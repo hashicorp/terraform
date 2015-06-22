@@ -33,7 +33,7 @@ func Provider() terraform.ResourceProvider {
 			"rundeck_project": resourceRundeckProject(),
 			//"rundeck_job":         resourceRundeckJob(),
 			//"rundeck_private_key": resourceRundeckPrivateKey(),
-			//"rundeck_public_key":  resourceRundeckPublicKey(),
+			"rundeck_public_key":  resourceRundeckPublicKey(),
 		},
 
 		ConfigureFunc: providerConfigure,
