@@ -71,7 +71,7 @@ provisioner "file" {
 * `key_file` - The SSH key to use for the connection. This takes preference over the
   password if provided.
 
-* `agent` - Set to true to enable using ssh-agent to authenticate.
+* `agent` - Set to false to disable using ssh-agent to authenticate.
 
 **Additional arguments only supported by the "winrm" connection type:**
 
