@@ -1,5 +1,11 @@
 ## 0.6.0 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+ * `provisioner/remote-exec`: The `agent` field now defaults to `true` if
+    the `SSH_AGENT_SOCK` environment variable is present. In other words,
+    `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
+
 FEATURES:
 
   * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380, GH-2394]
