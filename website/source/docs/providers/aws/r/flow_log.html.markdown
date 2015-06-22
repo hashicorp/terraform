@@ -24,8 +24,8 @@ resource "aws_flow_log" "test_flow_log" {
 
 The following arguments are supported:
 
-*	`log_group_name` - (Required) The name of the CloudWatch log group
-*	`iam_role_arn` - (Required) The ARN for the IAM role that's used to post flow
+* `log_group_name` - (Required) The name of the CloudWatch log group
+* `iam_role_arn` - (Required) The ARN for the IAM role that's used to post flow
   logs to a CloudWatch Logs log group
 * `vpc_id` - (Optional) VPC ID to attach to
 * `subnet_id` - (Optional) Subnet ID to attach to
