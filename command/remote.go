@@ -42,6 +42,10 @@ Usage: terraform remote <subcommand> [options]
 
   Configure remote state storage with Terraform.
 
+Options:
+
+  -no-color   If specified, output won't contain any color.
+
 Available subcommands:
 
   config      Configure the remote storage settings.

@@ -94,6 +94,8 @@ Options:
   -state=path      Path to the state file to read. Defaults to
                    "terraform.tfstate".
 
+  -no-color           If specified, output won't contain any color.
+
 `
 	return strings.TrimSpace(helpText)
 }

@@ -149,6 +149,8 @@ Options:
   -backend-config="k=v"  Specifies configuration for the remote storage
                          backend. This can be specified multiple times.
 
+  -no-color           If specified, output won't contain any color.
+
 `
 	return strings.TrimSpace(helpText)
 }
