@@ -55,16 +55,6 @@ func resourceAwsFlowLog() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
-			"flow_log_status": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"deliver_log_status": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -144,8 +134,6 @@ func resourceAwsLogFlowRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("traffic_type", fl.TrafficType)
 	d.Set("log_group_name", fl.LogGroupName)
 	d.Set("iam_role_arn", fl.DeliverLogsPermissionARN)
-	d.Set("flow_log_status", fl.FlowLogStatus)
-	d.Set("deliver_log_status", fl.DeliverLogsStatus)
 
 	return nil
 }
