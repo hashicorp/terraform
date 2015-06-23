@@ -130,10 +130,10 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 	if autherr != nil {
 		if awsErr, ok := autherr.(awserr.Error); ok {
 			if awsErr.Code() == "InvalidPermission.Duplicate" {
-				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found. This may be 
-a side effect of a now-fixed Terraform issue causing two security groups with 
-identical attributes but different source_security_group_ids to overwrite each 
-other in the state. See https://github.com/hashicorp/terraform/pull/2376 for more 
+				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found. This may be
+a side effect of a now-fixed Terraform issue causing two security groups with
+identical attributes but different source_security_group_ids to overwrite each
+other in the state. See https://github.com/hashicorp/terraform/pull/2376 for more
 information and instructions for recovery. Error message: %s`, awsErr.Message())
 			}
 		}
@@ -257,7 +257,7 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	if err != nil {
 		return nil, err
 	}
-	if len(resp.SecurityGroups) != 1 {
+	if resp == nil || len(resp.SecurityGroups) != 1 {
 		return nil, fmt.Errorf(
 			"Expected to find one security group with ID %q, got: %#v",
 			id, resp.SecurityGroups)
