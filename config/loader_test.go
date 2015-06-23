@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io/ioutil"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -37,15 +38,15 @@ func TestIsEmptyDir_noConfigs(t *testing.T) {
 	}
 }
 
-func TestLoad_badType(t *testing.T) {
-	_, err := Load(filepath.Join(fixtureDir, "bad_type.tf.nope"))
+func TestLoadFile_badType(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "bad_type.tf.nope"))
 	if err == nil {
 		t.Fatal("should have error")
 	}
 }
 
-func TestLoadBasic(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "basic.tf"))
+func TestLoadFileBasic(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "basic.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -84,8 +85,8 @@ func TestLoadBasic(t *testing.T) {
 	}
 }
 
-func TestLoadBasic_empty(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "empty.tf"))
+func TestLoadFileBasic_empty(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "empty.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -95,11 +96,11 @@ func TestLoadBasic_empty(t *testing.T) {
 	}
 }
 
-func TestLoadBasic_import(t *testing.T) {
+func TestLoadFileBasic_import(t *testing.T) {
 	// Skip because we disabled importing
 	t.Skip()
 
-	c, err := Load(filepath.Join(fixtureDir, "import.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "import.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -124,8 +125,8 @@ func TestLoadBasic_import(t *testing.T) {
 	}
 }
 
-func TestLoadBasic_json(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "basic.tf.json"))
+func TestLoadFileBasic_json(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "basic.tf.json"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -164,8 +165,8 @@ func TestLoadBasic_json(t *testing.T) {
 	}
 }
 
-func TestLoadBasic_modules(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "modules.tf"))
+func TestLoadFileBasic_modules(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "modules.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -184,8 +185,53 @@ func TestLoadBasic_modules(t *testing.T) {
 	}
 }
 
-func TestLoad_variables(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "variables.tf"))
+func TestLoadJSONBasic(t *testing.T) {
+	raw, err := ioutil.ReadFile(filepath.Join(fixtureDir, "basic.tf.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	c, err := LoadJSON(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	expectedAtlas := &AtlasConfig{Name: "mitchellh/foo"}
+	if !reflect.DeepEqual(c.Atlas, expectedAtlas) {
+		t.Fatalf("bad: %#v", c.Atlas)
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(basicVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = providerConfigsStr(c.ProviderConfigs)
+	if actual != strings.TrimSpace(basicProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(basicResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = outputsStr(c.Outputs)
+	if actual != strings.TrimSpace(basicOutputsStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadFile_variables(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "variables.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -303,8 +349,8 @@ func TestLoadDir_override(t *testing.T) {
 	}
 }
 
-func TestLoad_provisioners(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "provisioners.tf"))
+func TestLoadFile_provisioners(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -319,8 +365,8 @@ func TestLoad_provisioners(t *testing.T) {
 	}
 }
 
-func TestLoad_connections(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "connection.tf"))
+func TestLoadFile_connections(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "connection.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -357,8 +403,8 @@ func TestLoad_connections(t *testing.T) {
 	}
 }
 
-func TestLoad_createBeforeDestroy(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "create-before-destroy.tf"))
+func TestLoadFile_createBeforeDestroy(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "create-before-destroy.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -394,7 +440,7 @@ func TestLoad_createBeforeDestroy(t *testing.T) {
 	}
 }
 
-func TestLoad_temporary_files(t *testing.T) {
+func TestLoadDir_temporary_files(t *testing.T) {
 	_, err := LoadDir(filepath.Join(fixtureDir, "dir-temporary-files"))
 	if err == nil {
 		t.Fatalf("Expected to see an error stating no config files found")
