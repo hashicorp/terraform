@@ -71,6 +71,17 @@ func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
 	return ctx.InitProvider(n.Name)
 }
 
+// EvalCloseProvider is an EvalNode implementation that closes provider
+// connections that aren't needed anymore.
+type EvalCloseProvider struct {
+	Name string
+}
+
+func (n *EvalCloseProvider) Eval(ctx EvalContext) (interface{}, error) {
+	ctx.CloseProvider(n.Name)
+	return nil, nil
+}
+
 // EvalGetProvider is an EvalNode implementation that retrieves an already
 // initialized provider instance for the given name.
 type EvalGetProvider struct {

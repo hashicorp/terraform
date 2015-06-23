@@ -174,6 +174,10 @@ func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	return result
 }
 
+func (p *ResourceProvider) Close() error {
+	return p.Client.Close()
+}
+
 // ResourceProviderServer is a net/rpc compatible structure for serving
 // a ResourceProvider. This should not be used directly.
 type ResourceProviderServer struct {

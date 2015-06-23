@@ -114,6 +114,28 @@ func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
 	return ctx.ProviderCache[PathCacheKey(providerPath)]
 }
 
+func (ctx *BuiltinEvalContext) CloseProvider(n string) error {
+	ctx.once.Do(ctx.init)
+
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	providerPath := make([]string, len(ctx.Path())+1)
+	copy(providerPath, ctx.Path())
+	providerPath[len(providerPath)-1] = n
+
+	var provider interface{}
+	provider = ctx.ProviderCache[PathCacheKey(providerPath)]
+	if provider != nil {
+		if p, ok := provider.(ResourceProviderCloser); ok {
+			delete(ctx.ProviderCache, PathCacheKey(providerPath))
+			return p.Close()
+		}
+	}
+
+	return nil
+}
+
 func (ctx *BuiltinEvalContext) ConfigureProvider(
 	n string, cfg *ResourceConfig) error {
 	p := ctx.Provider(n)
@@ -220,6 +242,28 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
 	provPath[len(provPath)-1] = n
 
 	return ctx.ProvisionerCache[PathCacheKey(provPath)]
+}
+
+func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
+	ctx.once.Do(ctx.init)
+
+	ctx.ProvisionerLock.Lock()
+	defer ctx.ProvisionerLock.Unlock()
+
+	provPath := make([]string, len(ctx.Path())+1)
+	copy(provPath, ctx.Path())
+	provPath[len(provPath)-1] = n
+
+	var prov interface{}
+	prov = ctx.ProvisionerCache[PathCacheKey(provPath)]
+	if prov != nil {
+		if p, ok := prov.(ResourceProvisionerCloser); ok {
+			delete(ctx.ProvisionerCache, PathCacheKey(provPath))
+			return p.Close()
+		}
+	}
+
+	return nil
 }
 
 func (ctx *BuiltinEvalContext) Interpolate(
