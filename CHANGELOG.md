@@ -34,6 +34,7 @@ IMPROVEMENTS:
       without destroying first [GH-2191]
   * provider/aws: Normalize `certificate_chain` in `aws_iam_servier_certificate` to
       prevent unnecessary replacement. [GH-2411]
+  * provider/aws: Show outputs after `terraform refresh` [GH-2347]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
   * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
@@ -54,6 +55,12 @@ BUG FIXES:
       when non-lowercase protocol strings were used [GH-2246]
   * provider/aws: corrected frankfurt S3 website region [GH-2259]
   * provider/aws: `aws_elasticache_cluster` port is required [GH-2160]
+  * provider/aws: Handle AMIs where RootBlockDevice does not appear in the
+      BlockDeviceMapping, preventing root_block_device from working [GH-2271]
+  * provider/aws: fix `terraform show` with remote state [GH-2371]
+  * provider/aws: detect `instance_type` drift on `aws_instance` [GH-2374]
+  * provider/aws: fix crash when `security_group_rule` referenced non-existent
+      security group [GH-2434]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
 
@@ -85,8 +92,6 @@ BUG FIXES:
 
   * provider/aws: Correctly handle AWS keypairs which no longer exist [GH-2032]
   * provider/aws: Fix issue with restoring an Instance from snapshot ID [GH-2120]
-  * provider/aws: Handle AMIs where RootBlockDevice does not appear in the
-      BlockDeviceMapping, preventing root_block_device from working [GH-2271]
   * provider/template: store relative path in the state [GH-2038]
   * provisioner/chef: fix interpolation in the Chef provisioner [GH-2168]
   * provisioner/remote-exec: Don't prepend shebang on scripts that already
