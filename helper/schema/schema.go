@@ -1096,6 +1096,13 @@ func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+	raw, _ := c.GetRaw(k)
+	if _, ok := raw.(map[string]interface{}); !ok {
+		return nil, []error{fmt.Errorf(
+			"%s: expected object, got %s",
+			k, reflect.ValueOf(raw).Kind())}
+	}
+
 	var ws []string
 	var es []error
 	for subK, s := range schema {
@@ -1114,7 +1121,6 @@ func (m schemaMap) validateObject(
 	}
 
 	// Detect any extra/unknown keys and report those as errors.
-	raw, _ := c.GetRaw(k)
 	if m, ok := raw.(map[string]interface{}); ok {
 		for subk, _ := range m {
 			if _, ok := schema[subk]; !ok {
