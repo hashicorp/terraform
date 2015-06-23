@@ -450,7 +450,7 @@ func TestVariableDefaultsMap(t *testing.T) {
 }
 
 func testConfig(t *testing.T, name string) *Config {
-	c, err := Load(filepath.Join(fixtureDir, name, "main.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
 		t.Fatalf("file: %s\n\nerr: %s", name, err)
 	}
