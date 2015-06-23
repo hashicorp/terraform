@@ -77,6 +77,8 @@ Options:
   -update=false       If true, modules already downloaded will be checked
                       for updates and updated if necessary.
 
+  -no-color           If specified, output won't contain any color.
+
 `
 	return strings.TrimSpace(helpText)
 }

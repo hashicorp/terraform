@@ -81,6 +81,8 @@ Usage: terraform push [options]
 
 Options:
 
+  -no-color              If specified, output won't contain any color.
+
   -force                 Forces the upload of the local state, ignoring any
                          conflicts. This should be used carefully, as force pushing
 						 can cause remote state information to be lost.
