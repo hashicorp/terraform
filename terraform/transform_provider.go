@@ -348,11 +348,6 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.N
 	})
 }
 
-// GraphNodeDotterOrigin impl.
-func (n *graphNodeCloseProvider) DotOrigin() bool {
-	return true
-}
-
 // GraphNodeFlattenable impl.
 func (n *graphNodeCloseProvider) Flatten(p []string) (dag.Vertex, error) {
 	return &graphNodeCloseProviderFlat{
