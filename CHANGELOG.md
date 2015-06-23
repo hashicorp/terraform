@@ -65,6 +65,7 @@ BUG FIXES:
       security group [GH-2434]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
+  * core: fix `-no-color` flag in subcommands [GH-2414]
 
 ## 0.5.3 (June 1, 2015)
 
