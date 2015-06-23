@@ -17,6 +17,8 @@ func TestProvisioner_connInfo(t *testing.T) {
 				"host":     "127.0.0.1",
 				"port":     "22",
 				"timeout":  "30s",
+
+				"bastion_host": "127.0.1.1",
 			},
 		},
 	}
@@ -45,6 +47,21 @@ func TestProvisioner_connInfo(t *testing.T) {
 		t.Fatalf("bad: %v", conf)
 	}
 	if conf.ScriptPath != DefaultScriptPath {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionHost != "127.0.1.1" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionPort != 22 {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionUser != "root" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionPassword != "supersecret" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.BastionKeyFile != "/my/key/file.pem" {
 		t.Fatalf("bad: %v", conf)
 	}
 }
