@@ -72,3 +72,9 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 
 	return &EvalSequence{Nodes: seq}
 }
+
+// CloseProviderEvalTree returns the evaluation tree for closing
+// provider connections that aren't needed anymore.
+func CloseProviderEvalTree(n string) EvalNode {
+	return &EvalCloseProvider{Name: n}
+}

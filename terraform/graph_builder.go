@@ -116,12 +116,14 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
+		&CloseProviderTransformer{},
 		&PruneProviderTransformer{},
 		&DisableProviderTransformer{},
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
 		&ProvisionerTransformer{},
+		&CloseProvisionerTransformer{},
 		&PruneProvisionerTransformer{},
 
 		// Run our vertex-level transforms

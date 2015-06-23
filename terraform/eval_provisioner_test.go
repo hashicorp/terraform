@@ -24,6 +24,22 @@ func TestEvalInitProvisioner(t *testing.T) {
 	}
 }
 
+func TestEvalCloseProvisioner(t *testing.T) {
+	n := &EvalCloseProvisioner{Name: "foo"}
+	provisioner := &MockResourceProvisioner{}
+	ctx := &MockEvalContext{CloseProvisionerProvisioner: provisioner}
+	if _, err := n.Eval(ctx); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !ctx.CloseProvisionerCalled {
+		t.Fatal("should be called")
+	}
+	if ctx.CloseProvisionerName != "foo" {
+		t.Fatalf("bad: %#v", ctx.CloseProvisionerName)
+	}
+}
+
 func TestEvalGetProvisioner_impl(t *testing.T) {
 	var _ EvalNode = new(EvalGetProvisioner)
 }

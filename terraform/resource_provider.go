@@ -71,6 +71,12 @@ type ResourceProvider interface {
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
 }
 
+// ResourceProviderCloser is an interface that providers that can close
+// connections that aren't needed anymore must implement.
+type ResourceProviderCloser interface {
+	Close() error
+}
+
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
 	Name string

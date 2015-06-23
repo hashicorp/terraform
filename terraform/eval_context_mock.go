@@ -25,6 +25,10 @@ type MockEvalContext struct {
 	ProviderName     string
 	ProviderProvider ResourceProvider
 
+	CloseProviderCalled   bool
+	CloseProviderName     string
+	CloseProviderProvider ResourceProvider
+
 	ProviderInputCalled bool
 	ProviderInputName   string
 	ProviderInputConfig map[string]interface{}
@@ -54,6 +58,10 @@ type MockEvalContext struct {
 	ProvisionerCalled      bool
 	ProvisionerName        string
 	ProvisionerProvisioner ResourceProvisioner
+
+	CloseProvisionerCalled      bool
+	CloseProvisionerName        string
+	CloseProvisionerProvisioner ResourceProvisioner
 
 	InterpolateCalled       bool
 	InterpolateConfig       *config.RawConfig
@@ -105,6 +113,12 @@ func (c *MockEvalContext) Provider(n string) ResourceProvider {
 	return c.ProviderProvider
 }
 
+func (c *MockEvalContext) CloseProvider(n string) error {
+	c.CloseProviderCalled = true
+	c.CloseProviderName = n
+	return nil
+}
+
 func (c *MockEvalContext) ConfigureProvider(n string, cfg *ResourceConfig) error {
 	c.ConfigureProviderCalled = true
 	c.ConfigureProviderName = n
@@ -148,6 +162,12 @@ func (c *MockEvalContext) Provisioner(n string) ResourceProvisioner {
 	c.ProvisionerCalled = true
 	c.ProvisionerName = n
 	return c.ProvisionerProvisioner
+}
+
+func (c *MockEvalContext) CloseProvisioner(n string) error {
+	c.CloseProvisionerCalled = true
+	c.CloseProvisionerName = n
+	return nil
 }
 
 func (c *MockEvalContext) Interpolate(
