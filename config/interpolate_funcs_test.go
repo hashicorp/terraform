@@ -5,13 +5,14 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
-func TestInterpolateFuncConcat(t *testing.T) {
+func TestInterpolateFuncDeprecatedConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			{
@@ -30,6 +31,86 @@ func TestInterpolateFuncConcat(t *testing.T) {
 				`${concat()}`,
 				nil,
 				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncConcat(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// String + list
+			{
+				`${concat("a", split(",", "b,c"))}`,
+				fmt.Sprintf(
+					"%s%s%s%s%s",
+					"a",
+					InterpSplitDelim,
+					"b",
+					InterpSplitDelim,
+					"c"),
+				false,
+			},
+
+			// List + string
+			{
+				`${concat(split(",", "a,b"), "c")}`,
+				fmt.Sprintf(
+					"%s%s%s%s%s",
+					"a",
+					InterpSplitDelim,
+					"b",
+					InterpSplitDelim,
+					"c"),
+				false,
+			},
+
+			// Single list
+			{
+				`${concat(split(",", ",foo,"))}`,
+				fmt.Sprintf(
+					"%s%s%s",
+					InterpSplitDelim,
+					"foo",
+					InterpSplitDelim),
+				false,
+			},
+			{
+				`${concat(split(",", "a,b,c"))}`,
+				fmt.Sprintf(
+					"%s%s%s%s%s",
+					"a",
+					InterpSplitDelim,
+					"b",
+					InterpSplitDelim,
+					"c"),
+				false,
+			},
+
+			// Two lists
+			{
+				`${concat(split(",", "a,b,c"), split(",", "d,e"))}`,
+				strings.Join([]string{
+					"a", "b", "c", "d", "e",
+				}, InterpSplitDelim),
+				false,
+			},
+			// Two lists with different separators
+			{
+				`${concat(split(",", "a,b,c"), split(" ", "d e"))}`,
+				strings.Join([]string{
+					"a", "b", "c", "d", "e",
+				}, InterpSplitDelim),
+				false,
+			},
+
+			// More lists
+			{
+				`${concat(split(",", "a,b"), split(",", "c,d"), split(",", "e,f"), split(",", "0,1"))}`,
+				strings.Join([]string{
+					"a", "b", "c", "d", "e", "f", "0", "1",
+				}, InterpSplitDelim),
+				false,
 			},
 		},
 	})
@@ -532,12 +613,12 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 	for i, tc := range config.Cases {
 		ast, err := lang.Parse(tc.Input)
 		if err != nil {
-			t.Fatalf("%d: err: %s", i, err)
+			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
 		}
 
 		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
 		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
+			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}
 
 		if !reflect.DeepEqual(out, tc.Result) {
