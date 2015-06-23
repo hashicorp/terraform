@@ -351,6 +351,7 @@ func (m *Meta) process(args []string, vars bool) []string {
 	for i, v := range args {
 		if v == "-no-color" {
 			m.color = false
+			m.Color = false
 			args = append(args[:i], args[i+1:]...)
 			break
 		}
