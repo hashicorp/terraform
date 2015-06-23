@@ -87,7 +87,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 	sg, err := findResourceSecurityGroup(conn, sg_id)
 
 	if err != nil {
-		return fmt.Errorf("sorry")
+		return err
 	}
 
 	perm := expandIPPerm(d, sg)
@@ -205,7 +205,7 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 	sg, err := findResourceSecurityGroup(conn, sg_id)
 
 	if err != nil {
-		return fmt.Errorf("sorry")
+		return err
 	}
 
 	perm := expandIPPerm(d, sg)
@@ -255,18 +255,12 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	}
 	resp, err := conn.DescribeSecurityGroups(req)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok {
-			if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
-				ec2err.Code() == "InvalidGroup.NotFound" {
-				resp = nil
-				err = nil
-			}
-		}
-
-		if err != nil {
-			log.Printf("Error on findResourceSecurityGroup: %s", err)
-			return nil, err
-		}
+		return nil, err
+	}
+	if len(resp.SecurityGroups) != 1 {
+		return nil, fmt.Errorf(
+			"Expected to find one security group with ID %q, got: %#v",
+			id, resp.SecurityGroups)
 	}
 
 	return resp.SecurityGroups[0], nil
