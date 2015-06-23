@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	statelib "github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -66,16 +65,15 @@ func (c *ShowCommand) Run(args []string) int {
 				stateErr = err
 			}
 		}
-
 	} else {
-		// We should use the default state if it exists.
-		stateStore := &statelib.LocalState{Path: DefaultStateFilename}
-		if err := stateStore.RefreshState(); err != nil {
+		stateOpts := c.StateOpts()
+		stateOpts.RemoteCacheOnly = true
+		result, err := State(stateOpts)
+		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error reading state: %s", err))
 			return 1
 		}
-
-		state = stateStore.State()
+		state = result.State.State()
 		if state == nil {
 			c.Ui.Output("No state.")
 			return 0
