@@ -764,13 +764,19 @@ func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
 
 func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
 	rawNetworks := d.Get("network").([]interface{})
-	newNetworks := make([]map[string]interface{}, len(rawNetworks))
+	newNetworks := make([]map[string]interface{}, 0, len(rawNetworks))
 	var tenantnet tenantnetworks.Network
 
 	tenantNetworkExt := true
-	for i, raw := range rawNetworks {
-		rawMap := raw.(map[string]interface{})
+	for _, raw := range rawNetworks {
+		// Not sure what causes this, but it is a possibility (see GH-2323).
+		// Since we call this function to reconcile what we'll save in the
+		// state anyways, we just ignore it.
+		if raw == nil {
+			continue
+		}
 
+		rawMap := raw.(map[string]interface{})
 		allPages, err := tenantnetworks.List(computeClient).AllPages()
 		if err != nil {
 			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
@@ -809,16 +815,15 @@ func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schem
 			networkName = rawMap["name"].(string)
 		}
 
-		newNetworks[i] = map[string]interface{}{
+		newNetworks = append(newNetworks, map[string]interface{}{
 			"uuid":        networkID,
 			"name":        networkName,
 			"port":        rawMap["port"].(string),
 			"fixed_ip_v4": rawMap["fixed_ip_v4"].(string),
-		}
+		})
 	}
 
 	log.Printf("[DEBUG] networks: %+v", newNetworks)
-
 	return newNetworks, nil
 }
 
