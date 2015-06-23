@@ -5,6 +5,7 @@ BACKWARDS INCOMPATIBILITIES:
  * `provisioner/remote-exec`: The `agent` field now defaults to `true` if
     the `SSH_AGENT_SOCK` environment variable is present. In other words,
     `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
+ * `concat()` has been repurposed to combine lists instead of strings [GH-1790]
 
 FEATURES:
 
