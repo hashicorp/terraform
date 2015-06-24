@@ -2803,7 +2803,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 				"foo": &Schema{
 					Type:     TypeMap,
 					Required: true,
-					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						return
 					},
 				},
@@ -3422,7 +3422,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"validate_me": &Schema{
 					Type:     TypeString,
 					Required: true,
-					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						return
 					},
 				},
@@ -3438,7 +3438,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"validate_me": &Schema{
 					Type:     TypeString,
 					Required: true,
-					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						es = append(es, fmt.Errorf("something is not right here"))
 						return
 					},
@@ -3458,7 +3458,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"number": &Schema{
 					Type:     TypeInt,
 					Required: true,
-					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						t.Fatalf("Should not have gotten validate call")
 						return
 					},
@@ -3475,7 +3475,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"maybe": &Schema{
 					Type:     TypeBool,
 					Required: true,
-					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						if _, ok := v.(bool); !ok {
 							t.Fatalf("Expected bool, got: %#v", v)
 						}
@@ -3493,7 +3493,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"validate_me": &Schema{
 					Type:     TypeString,
 					Required: true,
-					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						es = append(es, fmt.Errorf("something is not right here"))
 						return
 					},
