@@ -269,8 +269,9 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
 					attemptCount += 1
 				} else if awsErr.Code() == "LimitExceededException" {
-					log.Printf("[DEBUG] Limit on creation hit, sleeping for a bit")
+					log.Printf("[DEBUG] Limit on concurrent table creations hit, sleeping for a bit")
 					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
+					attemptCount += 1
 				} else {
 					// Some other non-retryable exception occurred
 					return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
