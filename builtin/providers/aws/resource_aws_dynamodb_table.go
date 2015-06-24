@@ -208,7 +208,7 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 				ProjectionType: aws.String(lsi["projection_type"].(string)),
 			}
 
-			if lsi["projection_type"] != "ALL" {
+			if lsi["projection_type"] == "INCLUDE" {
 				non_key_attributes := []*string{}
 				for _, attr := range lsi["non_key_attributes"].([]interface{}) {
 					non_key_attributes = append(non_key_attributes, aws.String(attr.(string)))
@@ -570,7 +570,7 @@ func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryInd
 		ProjectionType: aws.String((*data)["projection_type"].(string)),
 	}
 
-	if (*data)["projection_type"] != "ALL" {
+	if (*data)["projection_type"] == "INCLUDE" {
 		non_key_attributes := []*string{}
 		for _, attr := range (*data)["non_key_attributes"].([]interface{}) {
 			non_key_attributes = append(non_key_attributes, aws.String(attr.(string)))
