@@ -75,6 +75,7 @@ BUG FIXES:
   * provider/aws: detect `instance_type` drift on `aws_instance` [GH-2374]
   * provider/aws: fix crash when `security_group_rule` referenced non-existent
       security group [GH-2434]
+  * provider/openstack: fix panic case if API returns nil network [GH-2448]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
   * core: fix `-no-color` flag in subcommands [GH-2414]
