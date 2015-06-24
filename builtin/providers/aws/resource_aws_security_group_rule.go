@@ -257,7 +257,7 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	if err != nil {
 		return nil, err
 	}
-	if resp == nil || len(resp.SecurityGroups) != 1 {
+	if resp == nil || len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
 		return nil, fmt.Errorf(
 			"Expected to find one security group with ID %q, got: %#v",
 			id, resp.SecurityGroups)
