@@ -52,6 +52,8 @@ BUG FIXES:
   * core: matching provider types in sibling modules won't override
       each other's config. [GH-2464]
   * core: computed provider configurations now properly validate [GH-2457]
+  * core: orphan (commented out) resource dependencies are destroyed in
+      the correct order [GH-2453]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
