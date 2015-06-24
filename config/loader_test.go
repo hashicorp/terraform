@@ -440,7 +440,44 @@ func TestLoadFile_createBeforeDestroy(t *testing.T) {
 	}
 }
 
-func TestLoadDir_temporary_files(t *testing.T) {
+func TestLoad_preventDestroyString(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "prevent-destroy-string.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(createBeforeDestroyResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	// Check for the flag value
+	r := c.Resources[0]
+	if r.Name != "web" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should enable create before destroy
+	if !r.Lifecycle.PreventDestroy {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	r = c.Resources[1]
+	if r.Name != "bar" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should not enable create before destroy
+	if r.Lifecycle.PreventDestroy {
+		t.Fatalf("Bad: %#v", r)
+	}
+}
+
+func TestLoad_temporary_files(t *testing.T) {
 	_, err := LoadDir(filepath.Join(fixtureDir, "dir-temporary-files"))
 	if err == nil {
 		t.Fatalf("Expected to see an error stating no config files found")
