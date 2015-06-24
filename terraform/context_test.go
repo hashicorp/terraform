@@ -2447,6 +2447,34 @@ func TestContext2Validate_badVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_computedVar(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-computed-var")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws":  testProviderFuncFixed(p),
+			"test": testProviderFuncFixed(testProvider("test")),
+		},
+	})
+
+	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		if !c.IsComputed("value") {
+			return nil, []error{fmt.Errorf("value isn't computed")}
+		}
+
+		return nil, c.CheckSet([]string{"value"})
+	}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_countNegative(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-negative")
@@ -4580,6 +4608,49 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyOutputOrphanStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_providerComputedVar(t *testing.T) {
+	m := testModule(t, "apply-provider-computed")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pTest := testProvider("test")
+	pTest.ApplyFn = testApplyFn
+	pTest.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws":  testProviderFuncFixed(p),
+			"test": testProviderFuncFixed(pTest),
+		},
+	})
+
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if c.IsComputed("value") {
+			return fmt.Errorf("value is computed")
+		}
+
+		v, ok := c.Get("value")
+		if !ok {
+			return fmt.Errorf("value is not found")
+		}
+		if v != "yes" {
+			return fmt.Errorf("value is not 'yes': %v", v)
+		}
+
+		return nil
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
