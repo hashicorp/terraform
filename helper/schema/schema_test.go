@@ -3469,6 +3469,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Err: true,
 		},
+
 		"ValidateFunc gets decoded type": {
 			Schema: map[string]*Schema{
 				"maybe": &Schema{
@@ -3485,6 +3486,27 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Config: map[string]interface{}{
 				"maybe": "true",
 			},
+		},
+
+		"ValidateFunc is not called with a computed value": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeString,
+					Required: true,
+					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+						es = append(es, fmt.Errorf("something is not right here"))
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": "${var.foo}",
+			},
+			Vars: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Err: false,
 		},
 	}
 
