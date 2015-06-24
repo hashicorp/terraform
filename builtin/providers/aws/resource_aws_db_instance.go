@@ -154,17 +154,17 @@ func resourceAwsDbInstance() *schema.Resource {
 			"final_snapshot_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ValidateFunc: func(v interface{}) (ws []string, es []error) {
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					fsi := v.(string)
 					if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(fsi) {
 						es = append(es, fmt.Errorf(
-							"only alphanumeric characters and hyphens allowed"))
+							"only alphanumeric characters and hyphens allowed in %s", k))
 					}
 					if regexp.MustCompile(`--`).MatchString(fsi) {
-						es = append(es, fmt.Errorf("cannot contain two consecutive hyphens"))
+						es = append(es, fmt.Errorf("%s cannot contain two consecutive hyphens", k))
 					}
 					if regexp.MustCompile(`-$`).MatchString(fsi) {
-						es = append(es, fmt.Errorf("cannot end in a hyphen"))
+						es = append(es, fmt.Errorf("%s cannot end in a hyphen", k))
 					}
 					return
 				},

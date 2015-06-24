@@ -183,7 +183,7 @@ type SchemaStateFunc func(interface{}) string
 
 // SchemaValidateFunc is a function used to validate a single field in the
 // schema.
-type SchemaValidateFunc func(interface{}) ([]string, []error)
+type SchemaValidateFunc func(interface{}, string) ([]string, []error)
 
 func (s *Schema) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
@@ -1178,7 +1178,7 @@ func (m schemaMap) validatePrimitive(
 	}
 
 	if schema.ValidateFunc != nil {
-		return schema.ValidateFunc(decoded)
+		return schema.ValidateFunc(decoded, k)
 	}
 
 	return nil, nil
