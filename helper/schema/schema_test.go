@@ -2981,6 +2981,29 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
+		"Sub-resource is the wrong type": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{"foo"},
+			},
+
+			Err: true,
+		},
+
 		"Not a list": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
