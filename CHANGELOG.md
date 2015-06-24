@@ -49,6 +49,8 @@ BUG FIXES:
 
   * core: lifecycle `prevent_destroy` can be any value that can be
       coerced into a bool [GH-2268]
+  * core: matching provider types in sibling modules won't override
+      each other's config. [GH-2464]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
