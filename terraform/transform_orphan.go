@@ -298,6 +298,24 @@ func (n *graphNodeOrphanResource) dependableName() string {
 	return n.ResourceName
 }
 
+// GraphNodeDestroyable impl.
+func (n *graphNodeOrphanResource) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
+	if mode != DestroyPrimary {
+		return nil
+	}
+
+	return n
+}
+
+// GraphNodeDestroy impl.
+func (n *graphNodeOrphanResource) CreateBeforeDestroy() bool {
+	return false
+}
+
+func (n *graphNodeOrphanResource) CreateNode() dag.Vertex {
+	return n
+}
+
 // Same as graphNodeOrphanResource, but for flattening
 type graphNodeOrphanResourceFlat struct {
 	*graphNodeOrphanResource
@@ -312,4 +330,22 @@ func (n *graphNodeOrphanResourceFlat) Name() string {
 
 func (n *graphNodeOrphanResourceFlat) Path() []string {
 	return n.PathValue
+}
+
+// GraphNodeDestroyable impl.
+func (n *graphNodeOrphanResourceFlat) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
+	if mode != DestroyPrimary {
+		return nil
+	}
+
+	return n
+}
+
+// GraphNodeDestroy impl.
+func (n *graphNodeOrphanResourceFlat) CreateBeforeDestroy() bool {
+	return false
+}
+
+func (n *graphNodeOrphanResourceFlat) CreateNode() dag.Vertex {
+	return n
 }

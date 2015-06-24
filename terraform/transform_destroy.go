@@ -1,6 +1,8 @@
 package terraform
 
-import "github.com/hashicorp/terraform/dag"
+import (
+	"github.com/hashicorp/terraform/dag"
+)
 
 type GraphNodeDestroyMode byte
 
@@ -102,6 +104,12 @@ func (t *DestroyTransformer) transform(
 		// Store it
 		nodeToCn[n] = cn
 		nodeToDn[cn] = n
+
+		// If the creation node is equal to the destroy node, then
+		// don't do any of the edge jump rope below.
+		if n.(interface{}) == cn.(interface{}) {
+			continue
+		}
 
 		// Add it to the graph
 		g.Add(n)
