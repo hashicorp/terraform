@@ -168,14 +168,32 @@ func (ctx *BuiltinEvalContext) ProviderInput(n string) map[string]interface{} {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	return ctx.ProviderInputConfig[n]
+	// Make a copy of the path so we can safely edit it
+	path := ctx.Path()
+	pathCopy := make([]string, len(path)+1)
+	copy(pathCopy, path)
+
+	// Go up the tree.
+	for i := len(path) - 1; i >= 0; i-- {
+		pathCopy[i+1] = n
+		k := PathCacheKey(pathCopy[:i+2])
+		if v, ok := ctx.ProviderInputConfig[k]; ok {
+			return v
+		}
+	}
+
+	return nil
 }
 
 func (ctx *BuiltinEvalContext) SetProviderInput(n string, c map[string]interface{}) {
-	ctx.ProviderLock.Lock()
-	defer ctx.ProviderLock.Unlock()
+	providerPath := make([]string, len(ctx.Path())+1)
+	copy(providerPath, ctx.Path())
+	providerPath[len(providerPath)-1] = n
 
-	ctx.ProviderInputConfig[n] = c
+	// Save the configuration
+	ctx.ProviderLock.Lock()
+	ctx.ProviderInputConfig[PathCacheKey(providerPath)] = c
+	ctx.ProviderLock.Unlock()
 }
 
 func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
