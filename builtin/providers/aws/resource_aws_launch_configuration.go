@@ -378,7 +378,17 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	err := resource.Retry(30*time.Second, func() error {
 		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
-		return err
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Message() == "Invalid IamInstanceProfile" {
+					return err
+				}
+			}
+			return &resource.RetryError{
+				Err: err,
+			}
+		}
+		return nil
 	})
 
 	if err != nil {
