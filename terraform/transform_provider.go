@@ -342,6 +342,9 @@ func (n *graphNodeCloseProvider) CloseProviderName() string {
 
 // GraphNodeDotter impl.
 func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	if !opts.Verbose {
+		return nil
+	}
 	return dot.NewNode(name, map[string]string{
 		"label": n.Name(),
 		"shape": "diamond",
