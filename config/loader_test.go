@@ -441,7 +441,7 @@ func TestLoadFile_createBeforeDestroy(t *testing.T) {
 }
 
 func TestLoad_preventDestroyString(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "prevent-destroy-string.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "prevent-destroy-string.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
