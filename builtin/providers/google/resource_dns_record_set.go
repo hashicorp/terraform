@@ -61,17 +61,17 @@ func resourceDnsRecordSetCreate(d *schema.ResourceData, meta interface{}) error 
 
 	// Build the change
 	chg := &dns.Change{
-		Additions: []*dns.ResourceRecordSet {
-			&dns.ResourceRecordSet {
-				Name: d.Get("name").(string),
-				Type: d.Get("type").(string),
-				Ttl: int64(d.Get("ttl").(int)),
+		Additions: []*dns.ResourceRecordSet{
+			&dns.ResourceRecordSet{
+				Name:    d.Get("name").(string),
+				Type:    d.Get("type").(string),
+				Ttl:     int64(d.Get("ttl").(int)),
 				Rrdatas: make([]string, rrdatasCount),
 			},
 		},
 	}
 
-	for i := 0; i < rrdatasCount ; i++ {
+	for i := 0; i < rrdatasCount; i++ {
 		rrdata := fmt.Sprintf("rrdatas.%d", i)
 		chg.Additions[0].Rrdatas[i] = d.Get(rrdata).(string)
 	}
@@ -85,9 +85,9 @@ func resourceDnsRecordSetCreate(d *schema.ResourceData, meta interface{}) error 
 	d.SetId(chg.Id)
 
 	w := &DnsChangeWaiter{
-		Service: config.clientDns,
-		Change: chg,
-		Project: config.Project,
+		Service:     config.clientDns,
+		Change:      chg,
+		Project:     config.Project,
 		ManagedZone: zone,
 	}
 	state := w.Conf()
@@ -126,7 +126,6 @@ func resourceDnsRecordSetRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Only expected 1 record set, got %d", len(resp.Rrsets))
 	}
 
-
 	d.Set("ttl", resp.Rrsets[0].Ttl)
 	d.Set("rrdatas", resp.Rrsets[0].Rrdatas)
 
@@ -142,17 +141,17 @@ func resourceDnsRecordSetDelete(d *schema.ResourceData, meta interface{}) error 
 
 	// Build the change
 	chg := &dns.Change{
-		Deletions: []*dns.ResourceRecordSet {
-			&dns.ResourceRecordSet {
-				Name: d.Get("name").(string),
-				Type: d.Get("type").(string),
-				Ttl: int64(d.Get("ttl").(int)),
+		Deletions: []*dns.ResourceRecordSet{
+			&dns.ResourceRecordSet{
+				Name:    d.Get("name").(string),
+				Type:    d.Get("type").(string),
+				Ttl:     int64(d.Get("ttl").(int)),
 				Rrdatas: make([]string, rrdatasCount),
 			},
 		},
 	}
 
-	for i := 0; i < rrdatasCount ; i++ {
+	for i := 0; i < rrdatasCount; i++ {
 		rrdata := fmt.Sprintf("rrdatas.%d", i)
 		chg.Deletions[0].Rrdatas[i] = d.Get(rrdata).(string)
 	}
@@ -163,9 +162,9 @@ func resourceDnsRecordSetDelete(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	w := &DnsChangeWaiter{
-		Service: config.clientDns,
-		Change: chg,
-		Project: config.Project,
+		Service:     config.clientDns,
+		Change:      chg,
+		Project:     config.Project,
 		ManagedZone: zone,
 	}
 	state := w.Conf()

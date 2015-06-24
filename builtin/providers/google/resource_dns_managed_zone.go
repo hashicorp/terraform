@@ -50,18 +50,18 @@ func resourceDnsManagedZone() *schema.Resource {
 func resourceDnsManagedZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-    // Build the parameter
-    zone := &dns.ManagedZone{
-        Name: d.Get("name").(string),
+	// Build the parameter
+	zone := &dns.ManagedZone{
+		Name:    d.Get("name").(string),
 		DnsName: d.Get("dns_name").(string),
-    }
-    // Optional things
-    if v, ok := d.GetOk("description"); ok {
-        zone.Description = v.(string)
-    }
-    if v, ok := d.GetOk("dns_name"); ok {
-        zone.DnsName = v.(string)
-    }
+	}
+	// Optional things
+	if v, ok := d.GetOk("description"); ok {
+		zone.Description = v.(string)
+	}
+	if v, ok := d.GetOk("dns_name"); ok {
+		zone.DnsName = v.(string)
+	}
 
 	log.Printf("[DEBUG] DNS ManagedZone create request: %#v", zone)
 	zone, err := config.clientDns.ManagedZones.Create(config.Project, zone).Do()
@@ -90,7 +90,7 @@ func resourceDnsManagedZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Error reading DNS ManagedZone: %#v", err)
 	}
 
-    d.Set("name_servers", zone.NameServers)
+	d.Set("name_servers", zone.NameServers)
 
 	return nil
 }

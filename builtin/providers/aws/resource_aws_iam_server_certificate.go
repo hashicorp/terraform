@@ -27,9 +27,9 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 			},
 
 			"certificate_chain": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				ForceNew:  true,
 				StateFunc: normalizeCert,
 			},
 

@@ -85,7 +85,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(retContainer.ID)
 
 	hostConfig := &dc.HostConfig{
-		Privileged: d.Get("privileged").(bool),
+		Privileged:      d.Get("privileged").(bool),
 		PublishAllPorts: d.Get("publish_all_ports").(bool),
 	}
 
