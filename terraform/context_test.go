@@ -4454,6 +4454,68 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_multiVar(t *testing.T) {
+	m := testModule(t, "apply-multi-var")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"count": "3",
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := state.RootModule().Outputs["output"]
+	expected := "bar0,bar1,bar2"
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Apply again, reduce the count to 1
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			State:  state,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]string{
+				"count": "1",
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := state.RootModule().Outputs["output"]
+		expected := "bar0"
+		if actual != expected {
+			t.Fatalf("bad: \n%s", actual)
+		}
+	}
+}
+
 func TestContext2Apply_nilDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
