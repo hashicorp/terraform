@@ -6,8 +6,9 @@ BACKWARDS INCOMPATIBILITIES:
     the `SSH_AGENT_SOCK` environment variable is present. In other words,
     `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
  * `concat()` has been repurposed to combine lists instead of strings (old behavior
-     of joining strings is maintained in this version but is deprecated, strings can be
-     combined strings using "${var.foo}{var.bar}" going forward) [GH-1790]
+     of joining strings is maintained in this version but is deprecated, strings
+     should be combined using interpolation syntax, like "${var.foo}{var.bar}")
+     [GH-1790]
 
 FEATURES:
 
