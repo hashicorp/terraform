@@ -251,7 +251,7 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 			range_key = "TestGSIRangeKey"
 			write_capacity = 10
 			read_capacity = 10
-			projection_type = "ALL"
+			projection_type = "KEYS_ONLY"
 		}
 }
 `
