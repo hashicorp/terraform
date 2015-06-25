@@ -40,6 +40,7 @@ IMPROVEMENTS:
       without destroying first [GH-2191]
   * provider/aws: Normalize `certificate_chain` in `aws_iam_servier_certificate` to
       prevent unnecessary replacement. [GH-2411]
+  * provider/aws: `aws_launch_configuration` now supports `enable_monitoring` [GH-2410]
   * provider/aws: Show outputs after `terraform refresh` [GH-2347]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
