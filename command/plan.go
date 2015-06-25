@@ -53,6 +53,9 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
+	countHook := new(CountHook)
+	c.Meta.extraHooks = []terraform.Hook{countHook}
+
 	ctx, _, err := c.Context(contextOpts{
 		Destroy:   destroy,
 		Path:      path,
@@ -129,6 +132,13 @@ func (c *PlanCommand) Run(args []string) int {
 		Color:       c.Colorize(),
 		ModuleDepth: moduleDepth,
 	}))
+
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][bold]Plan:[reset] "+
+			"%d to add, %d to change, %d to destroy.",
+		countHook.ToAdd,
+		(countHook.ToChange + countHook.ToRemoveAndAdd),
+		countHook.ToRemove)))
 
 	if detailed {
 		return 2
