@@ -190,22 +190,17 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 				"A=1, B=2, C=3",
 				false,
 			},
-			// formatlist of lists of length zero/one are repeated, just as scalars are
-			{
-				`${join(", ", formatlist("%s=%s", split(",", ""), split(",", "1,2,3")))}`,
-				"=1, =2, =3",
-				false,
-			},
-			{
-				`${join(", ", formatlist("%s=%s", split(",", "A"), split(",", "1,2,3")))}`,
-				"A=1, A=2, A=3",
-				false,
-			},
 			// Mismatched list lengths generate an error
 			{
 				`${formatlist("%s=%2s", split(",", "A,B,C,D"), split(",", "1,2,3"))}`,
 				nil,
 				true,
+			},
+			// Works with lists of length 1 [GH-2240]
+			{
+				`${formatlist("%s.id", split(",", "demo-rest-elb"))}`,
+				NewStringList([]string{"demo-rest-elb.id"}).String(),
+				false,
 			},
 		},
 	})

@@ -138,16 +138,6 @@ func interpolationFuncFormatList() ast.Function {
 
 				parts := StringList(s).Slice()
 
-				// 0 or 1 length lists are treated as scalars and repeated
-				switch len(parts) {
-				case 0:
-					varargs[i-1] = ""
-					continue
-				case 1:
-					varargs[i-1] = parts[0]
-					continue
-				}
-
 				// otherwise the list is sent down to be indexed
 				varargs[i-1] = parts
 
