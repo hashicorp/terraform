@@ -37,6 +37,7 @@ IMPROVEMENTS:
 
   * core: HTTP remote state now accepts `skip_cert_verification`
       option to ignore TLS cert verification. [GH-2214]
+  * core: S3 remote state now accepts the 'encrypt' option for SSE [GH-2405]
   * provider/aws: AutoScaling groups now support updating Load Balancers without
       recreation [GH-2472]
   * provider/aws: ElastiCache Subnet Groups can be updated
