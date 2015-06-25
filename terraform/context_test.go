@@ -1935,6 +1935,23 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_moduleComputedVar(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-module-computed-var")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	// This was failing (see GH-2188) at some point, so this test just
+	// verifies that the failure goes away.
+	if _, err := ctx.Refresh(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Refresh_delete(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
