@@ -63,6 +63,7 @@ names to associate with this cache cluster
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon ElastiCache Documentation for more information.][1]
+     (Available since v0.6.0)
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
