@@ -40,6 +40,8 @@ IMPROVEMENTS:
   * core: S3 remote state now accepts the 'encrypt' option for SSE [GH-2405]
   * provider/aws: AutoScaling groups now support updating Load Balancers without
       recreation [GH-2472]
+  * provider/aws: Allow more in-place updates for ElastiCache cluster without recreating
+      [GH-2469]
   * provider/aws: ElastiCache Subnet Groups can be updated
       without destroying first [GH-2191]
   * provider/aws: Normalize `certificate_chain` in `aws_iam_servier_certificate` to
