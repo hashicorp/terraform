@@ -56,7 +56,7 @@ func resourceComputeServerGroupV2Create(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	newSG, err := servergroups.Create(computeClient, createOpts).Extract()
 	if err != nil {
-		return fmt.Errorf("Error creating ServerGroup", err)
+		return fmt.Errorf("Error creating ServerGroup: %s", err)
 	}
 
 	d.SetId(newSG.ID)
