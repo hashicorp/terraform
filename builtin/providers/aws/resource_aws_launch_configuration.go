@@ -106,6 +106,13 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"enable_monitoring": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"ebs_block_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -254,6 +261,12 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("user_data"); ok {
 		userData := base64.StdEncoding.EncodeToString([]byte(v.(string)))
 		createLaunchConfigurationOpts.UserData = aws.String(userData)
+	}
+
+	if v, ok := d.GetOk("enable_monitoring"); ok {
+		createLaunchConfigurationOpts.InstanceMonitoring = &autoscaling.InstanceMonitoring{
+			Enabled: aws.Boolean(v.(bool)),
+		}
 	}
 
 	if v, ok := d.GetOk("iam_instance_profile"); ok {
@@ -440,6 +453,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("iam_instance_profile", lc.IAMInstanceProfile)
 	d.Set("ebs_optimized", lc.EBSOptimized)
 	d.Set("spot_price", lc.SpotPrice)
+	d.Set("enable_monitoring", lc.InstanceMonitoring.Enabled)
 	d.Set("security_groups", lc.SecurityGroups)
 
 	if err := readLCBlockDevices(d, lc, ec2conn); err != nil {
