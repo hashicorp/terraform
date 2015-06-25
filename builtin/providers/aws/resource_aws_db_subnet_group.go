@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -24,6 +25,22 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+					}
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					if regexp.MustCompile(`(?i)^default$`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q is not allowed as %q", "Default", k))
+					}
+					return
+				},
 			},
 
 			"description": &schema.Schema{
