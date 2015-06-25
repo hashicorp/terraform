@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
+func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 	cases := map[string]struct {
 		Config        *terraform.ResourceConfig
 		Commands      map[string]bool
@@ -28,7 +28,7 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 			},
 
 			UploadScripts: map[string]string{
-				"ChefClient.ps1": defaultWinRMInstallScript,
+				"ChefClient.ps1": defaultWindowsInstallScript,
 			},
 		},
 
@@ -48,7 +48,7 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 			},
 
 			UploadScripts: map[string]string{
-				"ChefClient.ps1": proxyWinRMInstallScript,
+				"ChefClient.ps1": proxyWindowsInstallScript,
 			},
 		},
 
@@ -67,7 +67,7 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 			},
 
 			UploadScripts: map[string]string{
-				"ChefClient.ps1": versionWinRMInstallScript,
+				"ChefClient.ps1": versionWindowsInstallScript,
 			},
 		},
 	}
@@ -87,14 +87,14 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 
 		p.useSudo = false
 
-		err = p.winrmInstallChefClient(o, c)
+		err = p.windowsInstallChefClient(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 	}
 }
 
-func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
+func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	cases := map[string]struct {
 		Config   *terraform.ResourceConfig
 		Commands map[string]bool
@@ -115,7 +115,7 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				"C:/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"C:/chef/client.rb":       defaultWinRMClientConf,
+				"C:/chef/client.rb":       defaultWindowsClientConf,
 				"C:/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
@@ -138,7 +138,7 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				"C:/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"C:/chef/client.rb":       proxyWinRMClientConf,
+				"C:/chef/client.rb":       proxyWindowsClientConf,
 				"C:/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
@@ -179,7 +179,7 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				"C:/chef/validation.pem": "VALIDATOR-PEM-FILE",
-				"C:/chef/client.rb":      defaultWinRMClientConf,
+				"C:/chef/client.rb":      defaultWindowsClientConf,
 				"C:/chef/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
@@ -201,14 +201,14 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 
 		p.useSudo = false
 
-		err = p.winrmCreateConfigFiles(o, c)
+		err = p.windowsCreateConfigFiles(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 	}
 }
 
-const defaultWinRMInstallScript = `
+const defaultWindowsInstallScript = `
 $winver = [System.Environment]::OSVersion.Version | % {"{0}.{1}" -f $_.Major,$_.Minor}
 
 switch ($winver)
@@ -245,7 +245,7 @@ Write-Host 'Installing Chef Client...'
 Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 `
 
-const proxyWinRMInstallScript = `
+const proxyWindowsInstallScript = `
 $winver = [System.Environment]::OSVersion.Version | % {"{0}.{1}" -f $_.Major,$_.Minor}
 
 switch ($winver)
@@ -282,7 +282,7 @@ Write-Host 'Installing Chef Client...'
 Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 `
 
-const versionWinRMInstallScript = `
+const versionWindowsInstallScript = `
 $winver = [System.Environment]::OSVersion.Version | % {"{0}.{1}" -f $_.Major,$_.Minor}
 
 switch ($winver)
@@ -319,12 +319,12 @@ Write-Host 'Installing Chef Client...'
 Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 `
 
-const defaultWinRMClientConf = `log_location            STDOUT
+const defaultWindowsClientConf = `log_location            STDOUT
 chef_server_url         "https://chef.local"
 validation_client_name  "validator"
 node_name               "nodename1"`
 
-const proxyWinRMClientConf = `log_location            STDOUT
+const proxyWindowsClientConf = `log_location            STDOUT
 chef_server_url         "https://chef.local"
 validation_client_name  "validator"
 node_name               "nodename1"

@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestResourceProvider_sshInstallChefClient(t *testing.T) {
+func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 	cases := map[string]struct {
 		Config   *terraform.ResourceConfig
 		Commands map[string]bool
@@ -118,14 +118,14 @@ func TestResourceProvider_sshInstallChefClient(t *testing.T) {
 
 		p.useSudo = !p.PreventSudo
 
-		err = p.sshInstallChefClient(o, c)
+		err = p.linuxInstallChefClient(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 	}
 }
 
-func TestResourceProvider_sshCreateConfigFiles(t *testing.T) {
+func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 	cases := map[string]struct {
 		Config   *terraform.ResourceConfig
 		Commands map[string]bool
@@ -149,7 +149,7 @@ func TestResourceProvider_sshCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				"/etc/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":       defaultSSHClientConf,
+				"/etc/chef/client.rb":       defaultLinuxClientConf,
 				"/etc/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
@@ -170,7 +170,7 @@ func TestResourceProvider_sshCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				"/etc/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":       defaultSSHClientConf,
+				"/etc/chef/client.rb":       defaultLinuxClientConf,
 				"/etc/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
@@ -194,7 +194,7 @@ func TestResourceProvider_sshCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				"/etc/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":       proxySSHClientConf,
+				"/etc/chef/client.rb":       proxyLinuxClientConf,
 				"/etc/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
@@ -236,7 +236,7 @@ func TestResourceProvider_sshCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				"/etc/chef/validation.pem": "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":      defaultSSHClientConf,
+				"/etc/chef/client.rb":      defaultLinuxClientConf,
 				"/etc/chef/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
@@ -258,19 +258,19 @@ func TestResourceProvider_sshCreateConfigFiles(t *testing.T) {
 
 		p.useSudo = !p.PreventSudo
 
-		err = p.sshCreateConfigFiles(o, c)
+		err = p.linuxCreateConfigFiles(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 	}
 }
 
-const defaultSSHClientConf = `log_location            STDOUT
+const defaultLinuxClientConf = `log_location            STDOUT
 chef_server_url         "https://chef.local"
 validation_client_name  "validator"
 node_name               "nodename1"`
 
-const proxySSHClientConf = `log_location            STDOUT
+const proxyLinuxClientConf = `log_location            STDOUT
 chef_server_url         "https://chef.local"
 validation_client_name  "validator"
 node_name               "nodename1"
