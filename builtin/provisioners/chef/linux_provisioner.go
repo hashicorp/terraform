@@ -12,7 +12,7 @@ const (
 	installURL = "https://www.chef.io/chef/install.sh"
 )
 
-func (p *Provisioner) sshInstallChefClient(
+func (p *Provisioner) linuxInstallChefClient(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 
@@ -41,7 +41,7 @@ func (p *Provisioner) sshInstallChefClient(
 	return p.runCommand(o, comm, fmt.Sprintf("%srm -f install.sh", prefix))
 }
 
-func (p *Provisioner) sshCreateConfigFiles(
+func (p *Provisioner) linuxCreateConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 	// Make sure the config directory exists

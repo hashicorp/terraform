@@ -63,6 +63,7 @@ type Provisioner struct {
 	HTTPSProxy           string      `mapstructure:"https_proxy"`
 	NOProxy              []string    `mapstructure:"no_proxy"`
 	NodeName             string      `mapstructure:"node_name"`
+	OSType               string      `mapstructure:"os_type"`
 	PreventSudo          bool        `mapstructure:"prevent_sudo"`
 	RunList              []string    `mapstructure:"run_list"`
 	ServerURL            string      `mapstructure:"server_url"`
@@ -92,20 +93,31 @@ func (r *ResourceProvisioner) Apply(
 		return err
 	}
 
+	if p.OSType == "" {
+		switch s.Ephemeral.ConnInfo["type"] {
+		case "ssh", "": // The default connection type is ssh, so if the type is empty assume ssh
+			p.OSType = "linux"
+		case "winrm":
+			p.OSType = "windows"
+		default:
+			return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
+		}
+	}
+
 	// Set some values based on the targeted OS
-	switch s.Ephemeral.ConnInfo["type"] {
-	case "ssh", "": // The default connection type is ssh, so if the type is empty use ssh
-		p.installChefClient = p.sshInstallChefClient
-		p.createConfigFiles = p.sshCreateConfigFiles
+	switch p.OSType {
+	case "linux":
+		p.installChefClient = p.linuxInstallChefClient
+		p.createConfigFiles = p.linuxCreateConfigFiles
 		p.runChefClient = p.runChefClientFunc(linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
-	case "winrm":
-		p.installChefClient = p.winrmInstallChefClient
-		p.createConfigFiles = p.winrmCreateConfigFiles
+	case "windows":
+		p.installChefClient = p.windowsInstallChefClient
+		p.createConfigFiles = p.windowsCreateConfigFiles
 		p.runChefClient = p.runChefClientFunc(windowsConfDir)
 		p.useSudo = false
 	default:
-		return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
+		return fmt.Errorf("Unsupported os type: %s", p.OSType)
 	}
 
 	// Get a new communicator
