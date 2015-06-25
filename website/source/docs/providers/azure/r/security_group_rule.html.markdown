@@ -17,9 +17,13 @@ resource "azure_security_group" "web" {
     ...
 }
 
+resource "azure_security_group" "apps" {
+    ...
+}
+
 resource "azure_security_group_rule" "ssh_access" {
     name = "ssh-access-rule"
-	security_group_name = "${azure_security_group.web.name}"
+	security_group_names = ["${azure_security_group.web.name}", "${azure_security_group.apps.name}"]
 	type = "Inbound"
 	action = "Allow"
 	priority = 200
@@ -34,10 +38,11 @@ resource "azure_security_group_rule" "ssh_access" {
 ## Argument Reference
 
 The following arguments are supported:
-* `name` - (Required) The name of the security group the rule should be
-    applied to.
+* `name` - (Required) The name of the security group rule.
 
-* `security_group_name` - (Required) The name of the security group m
+* `security_group_names` - (Required) A list of the names of the security groups
+    the rule should be applied to.
+    Changing this list forces the creation of a new resource.
 
 * `type` - (Required) The type of the security rule. Valid options are:
     `Inbound` and `Outbound`.

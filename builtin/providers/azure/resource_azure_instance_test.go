@@ -348,7 +348,7 @@ resource "azure_security_group" "foo" {
 
 resource "azure_security_group_rule" "foo" {
     name = "rdp"
-    security_group_name = "${azure_security_group.foo.name}"
+    security_group_names = ["${azure_security_group.foo.name}"]
     priority = 101
     source_address_prefix = "*"
     source_port_range = "*"
@@ -404,7 +404,7 @@ resource "azure_security_group" "foo" {
 
 resource "azure_security_group_rule" "foo" {
     name = "rdp"
-    security_group_name = "${azure_security_group.foo.name}"
+    security_group_names = ["${azure_security_group.foo.name}"]
     priority = 101
     source_address_prefix = "*"
     source_port_range = "*"
@@ -422,7 +422,7 @@ resource "azure_security_group" "bar" {
 
 resource "azure_security_group_rule" "bar" {
     name = "rdp"
-    security_group_name = "${azure_security_group.bar.name}"
+    security_group_names = ["${azure_security_group.bar.name}"]
     priority = 101
     source_address_prefix = "192.168.0.0/24"
     source_port_range = "*"
