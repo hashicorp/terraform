@@ -221,7 +221,8 @@ func TestInterpolateFuncJoin(t *testing.T) {
 			},
 
 			{
-				`${join(",", "foo")}`,
+				fmt.Sprintf(`${join(",", "%s")}`,
+					NewStringList([]string{"foo"}).String()),
 				"foo",
 				false,
 			},
@@ -355,8 +356,14 @@ func TestInterpolateFuncSplit(t *testing.T) {
 			},
 
 			{
+				`${split(",", "")}`,
+				NewStringList([]string{""}).String(),
+				false,
+			},
+
+			{
 				`${split(",", "foo")}`,
-				"foo",
+				NewStringList([]string{"foo"}).String(),
 				false,
 			},
 
@@ -524,7 +531,8 @@ func TestInterpolateFuncElement(t *testing.T) {
 			},
 
 			{
-				`${element("foo", "0")}`,
+				fmt.Sprintf(`${element("%s", "0")}`,
+					NewStringList([]string{"foo"}).String()),
 				"foo",
 				false,
 			},

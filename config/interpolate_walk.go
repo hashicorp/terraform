@@ -144,7 +144,7 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		// set if it is computed. This behavior is different if we're
 		// splitting (in a SliceElem) or not.
 		remove := false
-		if w.loc == reflectwalk.SliceElem {
+		if w.loc == reflectwalk.SliceElem && IsStringList(replaceVal) {
 			parts := StringList(replaceVal).Slice()
 			for _, p := range parts {
 				if p == UnknownVariableValue {
@@ -265,10 +265,15 @@ func (w *interpolationWalker) splitSlice() {
 			continue
 		}
 
-		// Split on the delimiter
-		for _, p := range StringList(sv).Slice() {
-			result = append(result, p)
+		if IsStringList(sv) {
+			for _, p := range StringList(sv).Slice() {
+				result = append(result, p)
+			}
+			continue
 		}
+
+		// Not a string list, so just set it
+		result = append(result, sv)
 	}
 
 	// Our slice is now done, we have to replace the slice now

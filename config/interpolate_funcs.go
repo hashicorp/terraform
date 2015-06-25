@@ -56,9 +56,10 @@ func interpolationFuncConcat() ast.Function {
 
 				if IsStringList(argument) {
 					isDeprecated = false
+					finalList = append(finalList, StringList(argument).Slice()...)
+				} else {
+					finalList = append(finalList, argument)
 				}
-
-				finalList = append(finalList, argument)
 
 				// Deprecated concat behaviour
 				b.WriteString(argument)
@@ -131,11 +132,26 @@ func interpolationFuncFormatList() ast.Function {
 				if !ok {
 					continue
 				}
-				parts := StringList(s).Slice()
-				if len(parts) <= 1 {
+				if !IsStringList(s) {
 					continue
 				}
+
+				parts := StringList(s).Slice()
+
+				// 0 or 1 length lists are treated as scalars and repeated
+				switch len(parts) {
+				case 0:
+					varargs[i-1] = ""
+					continue
+				case 1:
+					varargs[i-1] = parts[0]
+					continue
+				}
+
+				// otherwise the list is sent down to be indexed
 				varargs[i-1] = parts
+
+				// Check length
 				if n == 0 {
 					// first list we've seen
 					n = len(parts)
