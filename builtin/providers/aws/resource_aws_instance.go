@@ -471,8 +471,8 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ebs_optimized", instance.EBSOptimized)
 
 	if instance.Monitoring != nil && instance.Monitoring.State != nil {
-		monitoring_state := *instance.Monitoring.State
-		d.Set("monitoring", monitoring_state == "enabled" || monitoring_state == "pending")
+		monitoringState := *instance.Monitoring.State
+		d.Set("monitoring", monitoringState == "enabled" || monitoringState == "pending")
 	}
 
 	d.Set("tags", tagsToMap(instance.Tags))
