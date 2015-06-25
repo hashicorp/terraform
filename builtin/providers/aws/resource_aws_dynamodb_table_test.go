@@ -279,6 +279,10 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 			name = "ReplacementGSIRangeKey"
 			type = "N"
 		}
+		attribute {
+			name = "TestNonKeyAttribute"
+			type = "S"
+		}
 		local_secondary_index {
 			name = "TestTableLSI"
 			range_key = "TestLSIRangeKey"
@@ -290,7 +294,8 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 			range_key = "ReplacementGSIRangeKey"
 			write_capacity = 5
 			read_capacity = 5
-			projection_type = "ALL"
+			projection_type = "INCLUDE"
+			non_key_attributes = ["TestNonKeyAttribute"]
 		}
 }
 `
