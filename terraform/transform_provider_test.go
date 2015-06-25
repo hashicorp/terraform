@@ -63,7 +63,7 @@ func TestCloseProviderTransformer(t *testing.T) {
 }
 
 func TestMissingProviderTransformer(t *testing.T) {
-	mod := testModule(t, "transform-provider-basic")
+	mod := testModule(t, "transform-provider-missing")
 
 	g := Graph{Path: RootModulePath}
 	{
@@ -74,7 +74,7 @@ func TestMissingProviderTransformer(t *testing.T) {
 	}
 
 	{
-		transform := &MissingProviderTransformer{Providers: []string{"foo"}}
+		transform := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -275,10 +275,13 @@ provider.aws (close)
 
 const testTransformMissingProviderBasicStr = `
 aws_instance.web
+foo_instance.web
 provider.aws
 provider.aws (close)
   aws_instance.web
 provider.foo
+provider.foo (close)
+  foo_instance.web
 `
 
 const testTransformPruneProviderBasicStr = `
