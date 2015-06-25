@@ -148,6 +148,11 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 			},
 
+			"monitoring": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"iam_instance_profile": &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -324,6 +329,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		BlockDeviceMappings:   instanceOpts.BlockDeviceMappings,
 		DisableAPITermination: instanceOpts.DisableAPITermination,
 		EBSOptimized:          instanceOpts.EBSOptimized,
+		Monitoring:            instanceOpts.Monitoring,
 		IAMInstanceProfile:    instanceOpts.IAMInstanceProfile,
 		ImageID:               instanceOpts.ImageID,
 		InstanceType:          instanceOpts.InstanceType,
@@ -463,6 +469,12 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("subnet_id", instance.SubnetID)
 	}
 	d.Set("ebs_optimized", instance.EBSOptimized)
+
+	if instance.Monitoring != nil && instance.Monitoring.State != nil {
+		monitoring_state := *instance.Monitoring.State
+		d.Set("monitoring", monitoring_state == "enabled" || monitoring_state == "pending")
+	}
+
 	d.Set("tags", tagsToMap(instance.Tags))
 
 	// Determine whether we're referring to security groups with
@@ -847,6 +859,7 @@ type awsInstanceOpts struct {
 	BlockDeviceMappings   []*ec2.BlockDeviceMapping
 	DisableAPITermination *bool
 	EBSOptimized          *bool
+	Monitoring            *ec2.RunInstancesMonitoringEnabled
 	IAMInstanceProfile    *ec2.IAMInstanceProfileSpecification
 	ImageID               *string
 	InstanceType          *string
@@ -870,6 +883,10 @@ func buildAwsInstanceOpts(
 		EBSOptimized:          aws.Boolean(d.Get("ebs_optimized").(bool)),
 		ImageID:               aws.String(d.Get("ami").(string)),
 		InstanceType:          aws.String(d.Get("instance_type").(string)),
+	}
+
+	opts.Monitoring = &ec2.RunInstancesMonitoringEnabled{
+		Enabled: aws.Boolean(d.Get("monitoring").(bool)),
 	}
 
 	opts.IAMInstanceProfile = &ec2.IAMInstanceProfileSpecification{
