@@ -49,6 +49,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_instance` supports `monitoring' [GH-2489]
   * provider/aws: `aws_launch_configuration` now supports `enable_monitoring` [GH-2410]
   * provider/aws: Show outputs after `terraform refresh` [GH-2347]
+  * provider/aws: Add backoff/throttling during DynamoDB creation [GH-2462]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
   * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
