@@ -6615,6 +6615,23 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_unknownAttributeInterpolate(t *testing.T) {
+	m := testModule(t, "apply-unknown-interpolate")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestContext2Apply_vars(t *testing.T) {
 	m := testModule(t, "apply-vars")
 	p := testProvider("aws")

@@ -362,7 +362,7 @@ MISSING:
 	// Validation for missing interpolations should happen at a higher
 	// semantic level. If we reached this point and don't have variables,
 	// just return the computed value.
-	if scope == nil || scope.Resource == nil {
+	if scope == nil && scope.Resource == nil {
 		return config.UnknownVariableValue, nil
 	}
 
