@@ -166,14 +166,16 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	// If the user data contains any info, it needs to be base64 encoded and
 	// added to the parameter struct
 	if userData, ok := d.GetOk("user_data"); ok {
-                //deployVirtualMachine uses POST, so max userdata is 32K
-                //https://github.com/xanzy/go-cloudstack/commit/c767de689df1faedfec69233763a7c5334bee1f6
-		if len(userData.(string)) > 32768 {
-			return fmt.Errorf(
-				"The supplied user_data contains %d bytes before encoding, "+
-					"this exeeds the limit of 32768 bytes", len(userData.(string)))
-		}
 		ud := base64.StdEncoding.EncodeToString([]byte(userData.(string)))
+
+		// deployVirtualMachine uses POST, so max userdata is 32K
+		// https://github.com/xanzy/go-cloudstack/commit/c767de689df1faedfec69233763a7c5334bee1f6
+		if len(ud) > 32768 {
+			return fmt.Errorf(
+				"The supplied user_data contains %d bytes after encoding, "+
+					"this exeeds the limit of 32768 bytes", len(ud))
+		}
+
 		p.SetUserdata(ud)
 	}
 
