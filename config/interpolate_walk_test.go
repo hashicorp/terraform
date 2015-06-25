@@ -183,7 +183,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(tc.Input, tc.Output) {
-			t.Fatalf("%d: bad:\n\n%#v", i, tc.Input)
+			t.Fatalf("%d: bad:\n\nexpected:%#v\ngot:%#v", i, tc.Output, tc.Input)
 		}
 	}
 }
