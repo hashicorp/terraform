@@ -69,6 +69,8 @@ BUG FIXES:
   * core: Fix error of 'attribute not found for variable' when a computed
       resource attribute is used as a parameter to a module [GH-2477]
   * core: moduled orphans will properly inherit provider configs [GH-2476]
+  * core: modules with provider aliases work properly if the parent
+      doesn't implement those aliases [GH-2475]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
