@@ -2,6 +2,7 @@ package chef
 
 import (
 	"fmt"
+	"path"
 	"testing"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -102,6 +103,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	}{
 		"Default": {
 			Config: testConfig(t, map[string]interface{}{
+				"ohai_hints":             []interface{}{"test-fixtures/ohaihint.json"},
 				"node_name":              "nodename1",
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
@@ -111,12 +113,16 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 
 			Commands: map[string]bool{
 				fmt.Sprintf("if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("if not exist %q mkdir %q",
+					path.Join(windowsConfDir, "ohai/hints"),
+					path.Join(windowsConfDir, "ohai/hints")): true,
 			},
 
 			Uploads: map[string]string{
-				"C:/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"C:/chef/client.rb":       defaultWindowsClientConf,
-				"C:/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/validation.pem":           "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/ohai/hints/ohaihint.json": "OHAI-HINT-FILE",
+				windowsConfDir + "/client.rb":                defaultWindowsClientConf,
+				windowsConfDir + "/first-boot.json":          `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
 
@@ -137,9 +143,9 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				"C:/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"C:/chef/client.rb":       proxyWindowsClientConf,
-				"C:/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/validation.pem":  "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/client.rb":       proxyWindowsClientConf,
+				windowsConfDir + "/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
 
@@ -178,9 +184,9 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				"C:/chef/validation.pem": "VALIDATOR-PEM-FILE",
-				"C:/chef/client.rb":      defaultWindowsClientConf,
-				"C:/chef/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				windowsConfDir + "/validation.pem": "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/client.rb":      defaultWindowsClientConf,
+				windowsConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
 		},
