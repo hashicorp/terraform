@@ -63,6 +63,7 @@ type Provisioner struct {
 	HTTPSProxy           string      `mapstructure:"https_proxy"`
 	NOProxy              []string    `mapstructure:"no_proxy"`
 	NodeName             string      `mapstructure:"node_name"`
+	OhaiHints            []string    `mapstructure:"ohai_hints"`
 	OSType               string      `mapstructure:"os_type"`
 	PreventSudo          bool        `mapstructure:"prevent_sudo"`
 	RunList              []string    `mapstructure:"run_list"`
@@ -210,6 +211,14 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 
 	if p.Environment == "" {
 		p.Environment = defaultEnv
+	}
+
+	for i, hint := range p.OhaiHints {
+		hintPath, err := homedir.Expand(hint)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the path %s: %v", hint, err)
+		}
+		p.OhaiHints[i] = hintPath
 	}
 
 	if p.ValidationKeyPath != "" {
@@ -381,6 +390,27 @@ func (p *Provisioner) deployConfigFiles(
 	// Copy the first-boot.json to the new instance
 	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
+	}
+
+	return nil
+}
+
+func (p *Provisioner) deployOhaiHints(
+	o terraform.UIOutput,
+	comm communicator.Communicator,
+	hintDir string) error {
+	for _, hint := range p.OhaiHints {
+		// Open the hint file
+		f, err := os.Open(hint)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		// Copy the hint to the new instance
+		if err := comm.Upload(path.Join(hintDir, path.Base(hint)), f); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", path.Base(hint), err)
+		}
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package chef
 
 import (
+	"path"
 	"testing"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -133,6 +134,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 	}{
 		"Sudo": {
 			Config: testConfig(t, map[string]interface{}{
+				"ohai_hints":             []interface{}{"test-fixtures/ohaihint.json"},
 				"node_name":              "nodename1",
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
@@ -141,16 +143,18 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			}),
 
 			Commands: map[string]bool{
-				"sudo mkdir -p " + linuxConfDir:           true,
-				"sudo chmod 777 " + linuxConfDir:          true,
-				"sudo chmod 755 " + linuxConfDir:          true,
-				"sudo chown -R root.root " + linuxConfDir: true,
+				"sudo mkdir -p " + linuxConfDir:                          true,
+				"sudo chmod 777 " + linuxConfDir:                         true,
+				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"): true,
+				"sudo chmod 755 " + linuxConfDir:                         true,
+				"sudo chown -R root.root " + linuxConfDir:                true,
 			},
 
 			Uploads: map[string]string{
-				"/etc/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":       defaultLinuxClientConf,
-				"/etc/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/validation.pem":           "VALIDATOR-PEM-FILE",
+				linuxConfDir + "/ohai/hints/ohaihint.json": "OHAI-HINT-FILE",
+				linuxConfDir + "/client.rb":                defaultLinuxClientConf,
+				linuxConfDir + "/first-boot.json":          `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
 
@@ -169,9 +173,9 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				"/etc/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":       defaultLinuxClientConf,
-				"/etc/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/validation.pem":  "VALIDATOR-PEM-FILE",
+				linuxConfDir + "/client.rb":       defaultLinuxClientConf,
+				linuxConfDir + "/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
 
@@ -193,9 +197,9 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				"/etc/chef/validation.pem":  "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":       proxyLinuxClientConf,
-				"/etc/chef/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/validation.pem":  "VALIDATOR-PEM-FILE",
+				linuxConfDir + "/client.rb":       proxyLinuxClientConf,
+				linuxConfDir + "/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
 
@@ -235,9 +239,9 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				"/etc/chef/validation.pem": "VALIDATOR-PEM-FILE",
-				"/etc/chef/client.rb":      defaultLinuxClientConf,
-				"/etc/chef/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+				linuxConfDir + "/validation.pem": "VALIDATOR-PEM-FILE",
+				linuxConfDir + "/client.rb":      defaultLinuxClientConf,
+				linuxConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
 		},

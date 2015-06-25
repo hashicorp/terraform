@@ -2,6 +2,7 @@ package chef
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -58,6 +59,18 @@ func (p *Provisioner) linuxCreateConfigFiles(
 
 	if err := p.deployConfigFiles(o, comm, linuxConfDir); err != nil {
 		return err
+	}
+
+	if len(p.OhaiHints) > 0 {
+		// Make sure the hits directory exists
+		hintsDir := path.Join(linuxConfDir, "ohai/hints")
+		if err := p.runCommand(o, comm, "mkdir -p "+hintsDir); err != nil {
+			return err
+		}
+
+		if err := p.deployOhaiHints(o, comm, hintsDir); err != nil {
+			return err
+		}
 	}
 
 	// When done copying the files restore the rights and make sure root is owner
