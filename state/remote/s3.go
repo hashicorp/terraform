@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -33,9 +34,14 @@ func s3Factory(conf map[string]string) (Client, error) {
 	}
 
 	serverSideEncryption := false
-	_, ok = conf["encrypt"]
-	if ok {
-		serverSideEncryption = true
+	if raw, ok := conf["encrypt"]; ok {
+		v, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"'encrypt' field couldn't be parsed as bool: %s", err)
+		}
+
+		serverSideEncryption = v
 	}
 
 	accessKeyId := conf["access_key"]
@@ -130,13 +136,10 @@ func (c *S3Client) Put(data []byte) error {
 	}
 
 	if c.serverSideEncryption {
-		e := "AES256"
-		i.ServerSideEncryption = &e
+		i.ServerSideEncryption = aws.String("AES256")
 	}
 
-	_, err := c.nativeClient.PutObject(i)
-
-	if err == nil {
+	if _, err := c.nativeClient.PutObject(i); err == nil {
 		return nil
 	} else {
 		return fmt.Errorf("Failed to upload state: %v", err)
