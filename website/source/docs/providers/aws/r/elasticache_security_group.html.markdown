@@ -1,9 +1,9 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_subnet"
+page_title: "AWS: aws_elasticache_security_group"
 sidebar_current: "docs-aws-resource-elasticache-security-group"
 description: |-
-  Provides an VPC subnet resource.
+  Provides an ElastiCache Security Group to control access to one or more cache clusters.
 ---
 
 # aws\_elasticache\_security\_<wbr>group
