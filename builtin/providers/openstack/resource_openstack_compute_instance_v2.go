@@ -92,13 +92,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 			},
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: 	  func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
@@ -550,7 +547,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("security_groups") {
 		oldSGRaw, newSGRaw := d.GetChange("security_groups")
-		oldSGSlice, newSGSlice := oldSGRaw.(*schema.Set).List(), newSGRaw.(*schema.Set).List()
+		oldSGSlice, newSGSlice := oldSGRaw.([]interface{}), newSGRaw.([]interface{})
 		oldSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, oldSGSlice)
 		newSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, newSGSlice)
 		secgroupsToAdd := newSGSet.Difference(oldSGSet)
@@ -757,7 +754,7 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 }
 
 func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
-	rawSecGroups := d.Get("security_groups").(*schema.Set).List()
+	rawSecGroups := d.Get("security_groups").([]interface{})
 	secgroups := make([]string, len(rawSecGroups))
 	for i, raw := range rawSecGroups {
 		secgroups[i] = raw.(string)
