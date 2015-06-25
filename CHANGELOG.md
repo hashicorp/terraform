@@ -2,7 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES:
 
- * `provisioner/remote-exec`: The `agent` field now defaults to `true` if
+ * `communicator/ssh`: The `agent` field now defaults to `true` if
     the `SSH_AGENT_SOCK` environment variable is present. In other words,
     `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
  * `concat()` has been repurposed to combine lists instead of strings (old behavior
@@ -31,7 +31,7 @@ FEATURES:
      a OpenStack Swift. [GH-2254]
   * command/output: support display of module outputs [GH-2102]
   * core: `keys()` and `values()` funcs for map variables [GH-2198]
-  * provisioner/remote-exec: SSH bastion host support and ssh-agent forwarding [GH-2425]
+  * communicator/ssh: SSH bastion host support and ssh-agent forwarding [GH-2425]
 
 IMPROVEMENTS:
 
