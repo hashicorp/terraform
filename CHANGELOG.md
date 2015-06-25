@@ -79,6 +79,8 @@ BUG FIXES:
       doesn't implement those aliases [GH-2475]
   * core: unknown resource attributes passed in as parameters to modules
       now error [GH-2478]
+  * command/*: fixed bug where variable input was not asked for unset
+      vars if terraform.tfvars existed [GH-2502]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no `cidr_block` [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
