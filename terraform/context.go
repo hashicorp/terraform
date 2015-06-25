@@ -434,6 +434,12 @@ func (c *Context) Validate() ([]string, []error) {
 		}
 	}
 
+	// If we have errors at this point, the graphing has no chance,
+	// so just bail early.
+	if errs != nil {
+		return nil, []error{errs}
+	}
+
 	// Build the graph so we can walk it and run Validate on nodes.
 	// We also validate the graph generated here, but this graph doesn't
 	// necessarily match the graph that Plan will generate, so we'll validate the
