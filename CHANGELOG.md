@@ -26,6 +26,7 @@ FEATURES:
   * **New resource: `aws_route53_delegation_set`** [GH-1999]
   * **New resource: `aws_route53_health_check`** [GH-2226]
   * **New resource: `aws_spot_instance_request`** [GH-2263]
+  * **New resource: `cloudstack_ssh_keypair`** [GH-2004]
   * **New remote state backend: `swift`**: You can now store remote state in
      a OpenStack Swift. [GH-2254]
   * command/output: support display of module outputs [GH-2102]
@@ -48,6 +49,7 @@ IMPROVEMENTS:
       to set the openstack `api_key` field [GH-2234]
   * provider/openstack: Can now configure endpoint type (public, admin,
       internal) [GH-2262]
+  * provider/cloudstack: `cloudstack_instance` now supports projects [GH-2115]
 
 BUG FIXES:
 
@@ -82,7 +84,6 @@ BUG FIXES:
   * provider/openstack: fix panic case if API returns nil network [GH-2448]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
-  * provisioner/chef: fix interpolation in the Chef provisioner [GH-2168]
 
 ## 0.5.3 (June 1, 2015)
 
