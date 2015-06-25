@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_subnet"
+page_title: "AWS: aws_elasticache_security_group"
 sidebar_current: "docs-aws-resource-elasticache-security-group"
 description: |-
   Provides an VPC subnet resource.
