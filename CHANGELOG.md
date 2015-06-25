@@ -71,8 +71,10 @@ BUG FIXES:
   * core: moduled orphans will properly inherit provider configs [GH-2476]
   * core: modules with provider aliases work properly if the parent
       doesn't implement those aliases [GH-2475]
+  * core: unknown resource attributes passed in as parameters to modules
+      now error [GH-2478]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
-  * provider/aws: fix panic when route has no cidr_block [GH-2215]
+  * provider/aws: fix panic when route has no `cidr_block` [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
   * provider/aws: fix issue where Security Group Rules could collide and fail
       to save to the state file correctly [GH-2376]
