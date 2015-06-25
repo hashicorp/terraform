@@ -52,6 +52,8 @@ IMPROVEMENTS:
   * provider/openstack: Can now configure endpoint type (public, admin,
       internal) [GH-2262]
   * provider/cloudstack: `cloudstack_instance` now supports projects [GH-2115]
+  * provisioner/chef: Added a `os_type` to specifically specify the target OS [GH-2483]
+  * provisioner/chef: Added a `ohai_hints` option to upload hint files [GH-2487]
 
 BUG FIXES:
 
