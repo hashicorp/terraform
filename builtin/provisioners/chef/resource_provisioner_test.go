@@ -98,7 +98,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"environment":            "production",
 				"node_name":              "nodename1",
-				"prevent_sudo":           true, // Needs to be set for ALL WinRM tests!
+				"prevent_sudo":           true,
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",

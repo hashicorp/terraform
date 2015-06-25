@@ -71,5 +71,18 @@ func (p *Provisioner) windowsCreateConfigFiles(
 		return err
 	}
 
+	if len(p.OhaiHints) > 0 {
+		// Make sure the hits directory exists
+		hintsDir := path.Join(windowsConfDir, "ohai/hints")
+		cmd := fmt.Sprintf("if not exist %q mkdir %q", hintsDir, hintsDir)
+		if err := p.runCommand(o, comm, cmd); err != nil {
+			return err
+		}
+
+		if err := p.deployOhaiHints(o, comm, hintsDir); err != nil {
+			return err
+		}
+	}
+
 	return p.deployConfigFiles(o, comm, windowsConfDir)
 }
