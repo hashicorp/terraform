@@ -92,7 +92,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"load_balancers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -256,6 +255,42 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		d.Partial(true)
 		return fmt.Errorf("Error updating Autoscaling group: %s", err)
+	}
+
+	if d.HasChange("load_balancers") {
+
+		o, n := d.GetChange("load_balancers")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
+
+		if len(remove) > 0 {
+			_, err := conn.DetachLoadBalancers(&autoscaling.DetachLoadBalancersInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				LoadBalancerNames:    remove,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
+
+		if len(add) > 0 {
+			_, err := conn.AttachLoadBalancers(&autoscaling.AttachLoadBalancersInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				LoadBalancerNames:    add,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
