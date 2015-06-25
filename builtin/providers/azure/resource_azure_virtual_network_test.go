@@ -218,7 +218,7 @@ resource "azure_security_group" "foo" {
 
 resource "azure_security_group_rule" "foo" {
 	name = "terraform-secgroup-rule"
-	security_group_name = "${azure_security_group.foo.name}"
+	security_group_names = ["${azure_security_group.foo.name}"]
 	type = "Inbound"
 	action = "Deny"
 	priority = 200
@@ -249,7 +249,7 @@ resource "azure_security_group" "foo" {
 
 resource "azure_security_group_rule" "foo" {
 	name = "terraform-secgroup-rule"
-	security_group_name = "${azure_security_group.foo.name}"
+	security_group_names = ["${azure_security_group.foo.name}"]
 	type = "Inbound"
 	action = "Deny"
 	priority = 200
