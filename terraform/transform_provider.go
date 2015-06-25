@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
@@ -146,15 +147,44 @@ type MissingProviderTransformer struct {
 }
 
 func (t *MissingProviderTransformer) Transform(g *Graph) error {
+	// Create a set of our supported providers
+	supported := make(map[string]struct{}, len(t.Providers))
+	for _, v := range t.Providers {
+		supported[v] = struct{}{}
+	}
+
+	// Get the map of providers we already have in our graph
 	m := providerVertexMap(g)
-	for _, p := range t.Providers {
-		if _, ok := m[p]; ok {
-			// This provider already exists as a configured node
+
+	// Go through all the provider consumers and make sure we add
+	// that provider if it is missing.
+	for _, v := range g.Vertices() {
+		pv, ok := v.(GraphNodeProviderConsumer)
+		if !ok {
 			continue
 		}
 
-		// Add our own missing provider node to the graph
-		g.Add(&graphNodeMissingProvider{ProviderNameValue: p})
+		for _, p := range pv.ProvidedBy() {
+			if _, ok := m[p]; ok {
+				// This provider already exists as a configure node
+				break
+			}
+
+			// If the provider has an alias in it, we just want the type
+			ptype := p
+			if idx := strings.IndexRune(p, '.'); idx != -1 {
+				ptype = p[:idx]
+			}
+
+			if _, ok := supported[ptype]; !ok {
+				// If we don't support the provider type, skip it.
+				// Validation later will catch this as an error.
+				continue
+			}
+
+			// Add our own missing provider node to the graph
+			m[p] = g.Add(&graphNodeMissingProvider{ProviderNameValue: p})
+		}
 	}
 
 	return nil
