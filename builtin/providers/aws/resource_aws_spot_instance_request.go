@@ -83,6 +83,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		LaunchSpecification: &ec2.RequestSpotLaunchSpecification{
 			BlockDeviceMappings: instanceOpts.BlockDeviceMappings,
 			EBSOptimized:        instanceOpts.EBSOptimized,
+			Monitoring:          instanceOpts.Monitoring,
 			IAMInstanceProfile:  instanceOpts.IAMInstanceProfile,
 			ImageID:             instanceOpts.ImageID,
 			InstanceType:        instanceOpts.InstanceType,
