@@ -84,6 +84,7 @@ BUG FIXES:
   * provider/openstack: fix panic case if API returns nil network [GH-2448]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
+  * provisioner/chef: improve the decoding logic to prevent parameter not found errors [GH-2206]
 
 ## 0.5.3 (June 1, 2015)
 
