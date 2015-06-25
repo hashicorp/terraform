@@ -37,7 +37,7 @@ IMPROVEMENTS:
 
   * core: HTTP remote state now accepts `skip_cert_verification`
       option to ignore TLS cert verification. [GH-2214]
-  * provider/aws: AutoScaling groups now support updating Load Balancers without 
+  * provider/aws: AutoScaling groups now support updating Load Balancers without
       recreation [GH-2472]
   * provider/aws: ElastiCache Subnet Groups can be updated
       without destroying first [GH-2191]
@@ -66,6 +66,8 @@ BUG FIXES:
       the correct order [GH-2453]
   * core: validate object types in plugins are actually objects [GH-2450]
   * core: fix `-no-color` flag in subcommands [GH-2414]
+  * core: Fix error of 'attribute not found for variable' when a computed
+      resource attribute is used as a parameter to a module [GH-2477]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
