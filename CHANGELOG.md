@@ -58,6 +58,7 @@ BUG FIXES:
   * core: orphan (commented out) resource dependencies are destroyed in
       the correct order [GH-2453]
   * core: validate object types in plugins are actually objects [GH-2450]
+  * core: fix `-no-color` flag in subcommands [GH-2414]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
@@ -75,10 +76,11 @@ BUG FIXES:
   * provider/aws: detect `instance_type` drift on `aws_instance` [GH-2374]
   * provider/aws: fix crash when `security_group_rule` referenced non-existent
       security group [GH-2434]
+  * provider/aws: `aws_launch_configuration` retries if IAM instance
+      profile is not ready yet. [GH-2452]
   * provider/openstack: fix panic case if API returns nil network [GH-2448]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
-  * core: fix `-no-color` flag in subcommands [GH-2414]
 
 ## 0.5.3 (June 1, 2015)
 
