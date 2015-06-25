@@ -27,6 +27,15 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"launch_configuration": &schema.Schema{
