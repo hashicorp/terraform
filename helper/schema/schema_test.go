@@ -582,7 +582,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]string{
-				"var.foo": "2" + config.StringListDelim + "5",
+				"var.foo": config.NewStringList([]string{"2", "5"}).String(),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -626,8 +626,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue +
-					config.StringListDelim + "5",
+				"var.foo": config.NewStringList([]string{
+					config.UnknownVariableValue, "5"}).String(),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -905,7 +905,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]string{
-				"var.foo": "2" + config.StringListDelim + "5",
+				"var.foo": config.NewStringList([]string{"2", "5"}).String(),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -952,8 +952,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue +
-					config.StringListDelim + "5",
+				"var.foo": config.NewStringList([]string{
+					config.UnknownVariableValue, "5"}).String(),
 			},
 
 			Diff: &terraform.InstanceDiff{
