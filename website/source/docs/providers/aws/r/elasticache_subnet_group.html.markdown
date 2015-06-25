@@ -3,7 +3,7 @@ layout: "aws"
 page_title: "AWS: aws_elasticache_subnet_group"
 sidebar_current: "docs-aws-resource-elasticache-subnet-group"
 description: |-
-  Provides an VPC subnet resource.
+  Provides an ElastiCache Subnet Group resource.
 ---
 
 # aws\_elasticache\_subnet\_group
