@@ -157,7 +157,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Value: "bar" + StringListDelim + "baz",
+			Value: NewStringList([]string{"bar", "baz"}).String(),
 		},
 
 		{
@@ -168,7 +168,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				},
 			},
 			Output: map[string]interface{}{},
-			Value:  UnknownVariableValue + StringListDelim + "baz",
+			Value:  NewStringList([]string{UnknownVariableValue, "baz"}).String(),
 		},
 	}
 

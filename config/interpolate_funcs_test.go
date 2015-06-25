@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config/lang"
@@ -42,74 +41,46 @@ func TestInterpolateFuncConcat(t *testing.T) {
 			// String + list
 			{
 				`${concat("a", split(",", "b,c"))}`,
-				fmt.Sprintf(
-					"%s%s%s%s%s",
-					"a",
-					InterpSplitDelim,
-					"b",
-					InterpSplitDelim,
-					"c"),
+				NewStringList([]string{"a", "b", "c"}).String(),
 				false,
 			},
 
 			// List + string
 			{
 				`${concat(split(",", "a,b"), "c")}`,
-				fmt.Sprintf(
-					"%s%s%s%s%s",
-					"a",
-					InterpSplitDelim,
-					"b",
-					InterpSplitDelim,
-					"c"),
+				NewStringList([]string{"a", "b", "c"}).String(),
 				false,
 			},
 
 			// Single list
 			{
 				`${concat(split(",", ",foo,"))}`,
-				fmt.Sprintf(
-					"%s%s%s",
-					InterpSplitDelim,
-					"foo",
-					InterpSplitDelim),
+				NewStringList([]string{"", "foo", ""}).String(),
 				false,
 			},
 			{
 				`${concat(split(",", "a,b,c"))}`,
-				fmt.Sprintf(
-					"%s%s%s%s%s",
-					"a",
-					InterpSplitDelim,
-					"b",
-					InterpSplitDelim,
-					"c"),
+				NewStringList([]string{"a", "b", "c"}).String(),
 				false,
 			},
 
 			// Two lists
 			{
 				`${concat(split(",", "a,b,c"), split(",", "d,e"))}`,
-				strings.Join([]string{
-					"a", "b", "c", "d", "e",
-				}, InterpSplitDelim),
+				NewStringList([]string{"a", "b", "c", "d", "e"}).String(),
 				false,
 			},
 			// Two lists with different separators
 			{
 				`${concat(split(",", "a,b,c"), split(" ", "d e"))}`,
-				strings.Join([]string{
-					"a", "b", "c", "d", "e",
-				}, InterpSplitDelim),
+				NewStringList([]string{"a", "b", "c", "d", "e"}).String(),
 				false,
 			},
 
 			// More lists
 			{
 				`${concat(split(",", "a,b"), split(",", "c,d"), split(",", "e,f"), split(",", "0,1"))}`,
-				strings.Join([]string{
-					"a", "b", "c", "d", "e", "f", "0", "1",
-				}, InterpSplitDelim),
+				NewStringList([]string{"a", "b", "c", "d", "e", "f", "0", "1"}).String(),
 				false,
 			},
 		},
@@ -204,7 +175,7 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 			// formatlist applies to each list element in turn
 			{
 				`${formatlist("<%s>", split(",", "A,B"))}`,
-				"<A>" + StringListDelim + "<B>",
+				NewStringList([]string{"<A>", "<B>"}).String(),
 				false,
 			},
 			// formatlist repeats scalar elements
@@ -266,10 +237,7 @@ func TestInterpolateFuncJoin(t *testing.T) {
 
 			{
 				fmt.Sprintf(`${join(".", "%s")}`,
-					fmt.Sprintf(
-						"foo%sbar%sbaz",
-						StringListDelim,
-						StringListDelim)),
+					NewStringList([]string{"foo", "bar", "baz"}).String()),
 				"foo.bar.baz",
 				false,
 			},
@@ -394,39 +362,25 @@ func TestInterpolateFuncSplit(t *testing.T) {
 
 			{
 				`${split(",", ",,,")}`,
-				fmt.Sprintf(
-					"%s%s%s",
-					StringListDelim,
-					StringListDelim,
-					StringListDelim),
+				NewStringList([]string{"", "", "", ""}).String(),
 				false,
 			},
 
 			{
 				`${split(",", "foo,")}`,
-				fmt.Sprintf(
-					"%s%s",
-					"foo",
-					StringListDelim),
+				NewStringList([]string{"foo", ""}).String(),
 				false,
 			},
 
 			{
 				`${split(",", ",foo,")}`,
-				fmt.Sprintf(
-					"%s%s%s",
-					StringListDelim,
-					"foo",
-					StringListDelim),
+				NewStringList([]string{"", "foo", ""}).String(),
 				false,
 			},
 
 			{
 				`${split(".", "foo.bar.baz")}`,
-				fmt.Sprintf(
-					"foo%sbar%sbaz",
-					StringListDelim,
-					StringListDelim),
+				NewStringList([]string{"foo", "bar", "baz"}).String(),
 				false,
 			},
 		},
@@ -484,9 +438,7 @@ func TestInterpolateFuncKeys(t *testing.T) {
 		Cases: []testFunctionCase{
 			{
 				`${keys("foo")}`,
-				fmt.Sprintf(
-					"bar%squx",
-					StringListDelim),
+				NewStringList([]string{"bar", "qux"}).String(),
 				false,
 			},
 
@@ -533,9 +485,7 @@ func TestInterpolateFuncValues(t *testing.T) {
 		Cases: []testFunctionCase{
 			{
 				`${values("foo")}`,
-				fmt.Sprintf(
-					"quack%sbaz",
-					StringListDelim),
+				NewStringList([]string{"quack", "baz"}).String(),
 				false,
 			},
 
@@ -568,7 +518,7 @@ func TestInterpolateFuncElement(t *testing.T) {
 		Cases: []testFunctionCase{
 			{
 				fmt.Sprintf(`${element("%s", "1")}`,
-					"foo"+StringListDelim+"baz"),
+					NewStringList([]string{"foo", "baz"}).String()),
 				"baz",
 				false,
 			},
@@ -582,7 +532,7 @@ func TestInterpolateFuncElement(t *testing.T) {
 			// Invalid index should wrap vs. out-of-bounds
 			{
 				fmt.Sprintf(`${element("%s", "2")}`,
-					"foo"+StringListDelim+"baz"),
+					NewStringList([]string{"foo", "baz"}).String()),
 				"foo",
 				false,
 			},
@@ -590,7 +540,7 @@ func TestInterpolateFuncElement(t *testing.T) {
 			// Too many args
 			{
 				fmt.Sprintf(`${element("%s", "0", "2")}`,
-					"foo"+StringListDelim+"baz"),
+					NewStringList([]string{"foo", "baz"}).String()),
 				nil,
 				true,
 			},

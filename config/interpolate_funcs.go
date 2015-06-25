@@ -54,7 +54,7 @@ func interpolationFuncConcat() ast.Function {
 					continue
 				}
 
-				if strings.Contains(argument, InterpSplitDelim) {
+				if IsStringList(argument) {
 					isDeprecated = false
 				}
 
@@ -68,7 +68,7 @@ func interpolationFuncConcat() ast.Function {
 				return b.String(), nil
 			}
 
-			return strings.Join(finalList, InterpSplitDelim), nil
+			return NewStringList(finalList).String(), nil
 		},
 	}
 }
