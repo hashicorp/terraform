@@ -683,6 +683,10 @@ func (o *Output) mergerMerge(m merger) merger {
 	return &result
 }
 
+func (c *ProviderConfig) GoString() string {
+	return fmt.Sprintf("*%#v", *c)
+}
+
 func (c *ProviderConfig) FullName() string {
 	if c.Alias == "" {
 		return c.Name
