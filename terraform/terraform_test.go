@@ -379,6 +379,14 @@ do_instance.foo:
   type = do_instance
 `
 
+const testTerraformApplyModuleProviderAliasStr = `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+    provider = aws.eu
+`
+
 const testTerraformApplyOutputOrphanStr = `
 <no state>
 Outputs:
