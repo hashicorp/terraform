@@ -119,7 +119,7 @@ func TestPush_input(t *testing.T) {
 		"foo": "foo",
 	}
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
-		t.Fatalf("bad: %#v", client.UpsertOptions)
+		t.Fatalf("bad: %#v", client.UpsertOptions.Variables)
 	}
 }
 
