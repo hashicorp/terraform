@@ -29,6 +29,7 @@ func TestS3Factory(t *testing.T) {
 	config["bucket"] = "foo"
 	config["key"] = "bar"
 	config["encrypt"] = "1"
+
 	// For this test we'll provide the credentials as config. The
 	// acceptance tests implicitly test passing credentials as
 	// environment variables.
