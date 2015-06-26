@@ -1047,6 +1047,16 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old: "2",
 						New: "0",
 					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old:        "1",
+						New:        "0",
+						NewRemoved: true,
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old:        "2",
+						New:        "0",
+						NewRemoved: true,
+					},
 				},
 			},
 
@@ -2064,6 +2074,11 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New:         "0",
 						RequiresNew: true,
 					},
+					"instances.3": &terraform.ResourceAttrDiff{
+						Old:        "foo",
+						New:        "",
+						NewRemoved: true,
+					},
 				},
 			},
 
@@ -2341,6 +2356,59 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old:         "",
 						New:         "123!",
 						NewExtra:    "123",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// #60 - Removing set elements
+		{
+			Schema: map[string]*Schema{
+				"instances": &Schema{
+					Type:     TypeSet,
+					Elem:     &Schema{Type: TypeString},
+					Optional: true,
+					ForceNew: true,
+					Set: func(v interface{}) int {
+						return len(v.(string))
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"instances.#": "2",
+					"instances.3": "333",
+					"instances.2": "22",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"instances": []interface{}{"333", "4444"},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"instances.#": &terraform.ResourceAttrDiff{
+						Old: "2",
+						New: "2",
+					},
+					"instances.2": &terraform.ResourceAttrDiff{
+						Old:        "22",
+						New:        "",
+						NewRemoved: true,
+					},
+					"instances.3": &terraform.ResourceAttrDiff{
+						Old:         "333",
+						New:         "333",
+						RequiresNew: true,
+					},
+					"instances.4": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "4444",
 						RequiresNew: true,
 					},
 				},
