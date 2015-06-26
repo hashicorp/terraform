@@ -59,7 +59,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"force_delete": &schema.Schema{
@@ -217,6 +216,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	opts := autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(d.Id()),
+	}
+
+	if d.HasChange("default_cooldown") {
+		opts.DefaultCooldown = aws.Long(int64(d.Get("default_cooldown").(int)))
 	}
 
 	if d.HasChange("desired_capacity") {
