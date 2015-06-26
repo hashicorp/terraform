@@ -54,11 +54,12 @@ func interpolationFuncConcat() ast.Function {
 					continue
 				}
 
-				if strings.Contains(argument, InterpSplitDelim) {
+				if IsStringList(argument) {
 					isDeprecated = false
+					finalList = append(finalList, StringList(argument).Slice()...)
+				} else {
+					finalList = append(finalList, argument)
 				}
-
-				finalList = append(finalList, argument)
 
 				// Deprecated concat behaviour
 				b.WriteString(argument)
@@ -68,7 +69,7 @@ func interpolationFuncConcat() ast.Function {
 				return b.String(), nil
 			}
 
-			return strings.Join(finalList, InterpSplitDelim), nil
+			return NewStringList(finalList).String(), nil
 		},
 	}
 }
@@ -131,11 +132,16 @@ func interpolationFuncFormatList() ast.Function {
 				if !ok {
 					continue
 				}
-				parts := strings.Split(s, InterpSplitDelim)
-				if len(parts) == 1 {
+				if !IsStringList(s) {
 					continue
 				}
+
+				parts := StringList(s).Slice()
+
+				// otherwise the list is sent down to be indexed
 				varargs[i-1] = parts
+
+				// Check length
 				if n == 0 {
 					// first list we've seen
 					n = len(parts)
@@ -167,7 +173,7 @@ func interpolationFuncFormatList() ast.Function {
 				}
 				list[i] = fmt.Sprintf(format, fmtargs...)
 			}
-			return strings.Join(list, InterpSplitDelim), nil
+			return NewStringList(list).String(), nil
 		},
 	}
 }
@@ -181,7 +187,7 @@ func interpolationFuncJoin() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			var list []string
 			for _, arg := range args[1:] {
-				parts := strings.Split(arg.(string), InterpSplitDelim)
+				parts := StringList(arg.(string)).Slice()
 				list = append(list, parts...)
 			}
 
@@ -223,18 +229,15 @@ func interpolationFuncLength() ast.Function {
 		ReturnType: ast.TypeInt,
 		Variadic:   false,
 		Callback: func(args []interface{}) (interface{}, error) {
-			if !strings.Contains(args[0].(string), InterpSplitDelim) {
+			if !IsStringList(args[0].(string)) {
 				return len(args[0].(string)), nil
 			}
 
-			var list []string
+			length := 0
 			for _, arg := range args {
-				parts := strings.Split(arg.(string), InterpSplitDelim)
-				for _, part := range parts {
-					list = append(list, part)
-				}
+				length += StringList(arg.(string)).Length()
 			}
-			return len(list), nil
+			return length, nil
 		},
 	}
 }
@@ -246,7 +249,9 @@ func interpolationFuncSplit() ast.Function {
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			return strings.Replace(args[1].(string), args[0].(string), InterpSplitDelim, -1), nil
+			sep := args[0].(string)
+			s := args[1].(string)
+			return NewStringList(strings.Split(s, sep)).String(), nil
 		},
 	}
 }
@@ -284,7 +289,7 @@ func interpolationFuncElement() ast.Function {
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			list := strings.Split(args[0].(string), InterpSplitDelim)
+			list := StringList(args[0].(string))
 
 			index, err := strconv.Atoi(args[1].(string))
 			if err != nil {
@@ -292,7 +297,7 @@ func interpolationFuncElement() ast.Function {
 					"invalid number for index, got %s", args[1])
 			}
 
-			v := list[index%len(list)]
+			v := list.Element(index)
 			return v, nil
 		},
 	}
@@ -323,7 +328,7 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 
 			sort.Strings(keys)
 
-			return strings.Join(keys, InterpSplitDelim), nil
+			return NewStringList(keys).String(), nil
 		},
 	}
 }
@@ -363,7 +368,7 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 				vals = append(vals, vs[k].Value.(string))
 			}
 
-			return strings.Join(vals, InterpSplitDelim), nil
+			return NewStringList(vals).String(), nil
 		},
 	}
 }
