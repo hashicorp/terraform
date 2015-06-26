@@ -167,7 +167,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		for _, p := range pv.ProvidedBy() {
 			if _, ok := m[p]; ok {
 				// This provider already exists as a configure node
-				break
+				continue
 			}
 
 			// If the provider has an alias in it, we just want the type

@@ -4358,6 +4358,43 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	}
 }
 
+// This tests an issue where all the providers in a module but not
+// in the root weren't being added to the root properly. In this test
+// case: aws is explicitly added to root, but "test" should be added to.
+// With the bug, it wasn't.
+func TestContext2Apply_moduleOnlyProvider(t *testing.T) {
+	m := testModule(t, "apply-module-only-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pTest := testProvider("test")
+	pTest.ApplyFn = testApplyFn
+	pTest.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws":  testProviderFuncFixed(p),
+			"test": testProviderFuncFixed(pTest),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyModuleOnlyProviderStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_moduleProviderAlias(t *testing.T) {
 	m := testModule(t, "apply-module-provider-alias")
 	p := testProvider("aws")
