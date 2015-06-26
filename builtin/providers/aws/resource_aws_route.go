@@ -129,7 +129,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	default:
 		fmt.Errorf("Error: invalid target type specified.")
 	}
-	log.Printf("[DEBUG] Route create config: %#v", createOpts)
+	log.Printf("[DEBUG] Route create config: %s", awsutil.StringValue(createOpts))
 
 	// Create the route
 	_, err := conn.CreateRoute(createOpts)
