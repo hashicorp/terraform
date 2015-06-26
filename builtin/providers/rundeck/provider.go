@@ -30,8 +30,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"rundeck_project": resourceRundeckProject(),
-			//"rundeck_job":         resourceRundeckJob(),
+			"rundeck_project":     resourceRundeckProject(),
+			"rundeck_job":         resourceRundeckJob(),
 			"rundeck_private_key": resourceRundeckPrivateKey(),
 			"rundeck_public_key":  resourceRundeckPublicKey(),
 		},
