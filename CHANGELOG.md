@@ -94,6 +94,8 @@ BUG FIXES:
       now error [GH-2478]
   * core: better error messages for missing variables [GH-2479]
   * core: removed set items now properly appear in diffs and applies [GH-2507]
+  * core: '*' will not be added as part of the variable name when you
+      attempt multiplication without a space [GH-2505]
   * command/*: fixed bug where variable input was not asked for unset
       vars if terraform.tfvars existed [GH-2502]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
