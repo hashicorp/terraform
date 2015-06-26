@@ -191,15 +191,12 @@ func resourceAwsElasticacheParameterGroupDeleteRefreshFunc(
 
 		if _, err := conn.DeleteCacheParameterGroup(&deleteOpts); err != nil {
 			elasticahceerr, ok := err.(awserr.Error)
-			if !ok {
+			if ok && elasticahceerr.Code() == "CacheParameterGroupNotFoundFault" {
+				d.SetId("")
 				return d, "error", err
 			}
-
-			if elasticahceerr.Code() != "CacheParameterGroupNotFoundFault" {
-				return d, "error", err
-			}
+			return d, "error", err
 		}
-
 		return d, "destroyed", nil
 	}
 }
