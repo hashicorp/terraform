@@ -3112,28 +3112,6 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_varRef(t *testing.T) {
-	m := testModule(t, "validate-variable-ref")
-	p := testProvider("aws")
-	c := testContext2(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	computed := false
-	p.ValidateResourceFn = func(t string, c *ResourceConfig) ([]string, []error) {
-		computed = c.IsComputed("foo")
-		return nil, nil
-	}
-
-	c.Validate()
-	if !computed {
-		t.Fatal("should be computed")
-	}
-}
-
 func TestContext2Validate_varRefFilled(t *testing.T) {
 	m := testModule(t, "validate-variable-ref")
 	p := testProvider("aws")
