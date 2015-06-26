@@ -14,10 +14,10 @@ Creates a new storage service on Azure in which storage containers may be create
 
 ```
 resource "azure_storage_service" "tfstor" {
-	name = "tfstor"
-	location = "West US"
+    name = "tfstor"
+    location = "West US"
     description = "Made by Terraform."
-	account_type = "Standard_LRS"
+    account_type = "Standard_LRS"
 }
 ````
 

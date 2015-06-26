@@ -21,7 +21,6 @@ resource "azure_sql_database_service" "sql-server" {
     max_size_bytes = "5368709120"
     service_level_id = "f1173c43-91bd-4aaa-973c-54e79e15235b"
 }
-
 ```
 
 ## Argument Reference
