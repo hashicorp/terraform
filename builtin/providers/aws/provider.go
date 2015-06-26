@@ -100,6 +100,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ecs_task_definition":          resourceAwsEcsTaskDefinition(),
 			"aws_eip":                          resourceAwsEip(),
 			"aws_elasticache_cluster":          resourceAwsElasticacheCluster(),
+			"aws_elasticache_replication_group":resourceAwsElasticacheReplicationGroup(),
 			"aws_elasticache_security_group":   resourceAwsElasticacheSecurityGroup(),
 			"aws_elasticache_subnet_group":     resourceAwsElasticacheSubnetGroup(),
 			"aws_elb":                          resourceAwsElb(),
