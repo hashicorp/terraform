@@ -53,6 +53,8 @@ IMPROVEMENTS:
   * provider/aws: `aws_launch_configuration` now supports `enable_monitoring` [GH-2410]
   * provider/aws: Show outputs after `terraform refresh` [GH-2347]
   * provider/aws: Add backoff/throttling during DynamoDB creation [GH-2462]
+  * provider/aws: Add validation for aws_vpc.cidr_block [GH-2514]
+  * provider/aws: Add validation for aws_db_subnet_group.name [GH-2513]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
   * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
