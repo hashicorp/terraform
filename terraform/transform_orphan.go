@@ -256,6 +256,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 	})
 
 	// Apply
+	var err error
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
@@ -278,6 +279,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 					Diff:     &diff,
 					Provider: &provider,
 					Output:   &state,
+					Error:    &err,
 				},
 				&EvalWriteState{
 					Name:         n.ResourceName,
@@ -285,6 +287,11 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 					Provider:     n.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
+				},
+				&EvalApplyPost{
+					Info:  info,
+					State: &state,
+					Error: &err,
 				},
 				&EvalUpdateStateHook{},
 			},
