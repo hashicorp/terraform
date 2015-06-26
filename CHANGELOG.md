@@ -55,6 +55,9 @@ IMPROVEMENTS:
   * provider/aws: Add backoff/throttling during DynamoDB creation [GH-2462]
   * provider/aws: Add validation for aws_vpc.cidr_block [GH-2514]
   * provider/aws: Add validation for aws_db_subnet_group.name [GH-2513]
+  * provider/aws: Add validation for aws_db_instance.identifier [GH-2516]
+  * provider/aws: Add validation for aws_elb.name [GH-2517]
+  * provider/aws: Add validation for aws_security_group (name+description) [GH-2518]
   * provider/aws: aws_auto_scaling_group.default_cooldown no longer requires
       resource replacement [GH-2510]
   * provider/aws: add AH and ESP protocol integers [GH-2321]
