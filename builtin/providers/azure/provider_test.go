@@ -11,7 +11,10 @@ import (
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
 
-const testAccSecurityGroupName = "terraform-security-group"
+const (
+	testAccSecurityGroupName = "terraform-security-group"
+	testAccHostedServiceName = "terraform-testing-service"
+)
 
 // testAccStorageServiceName is used as the name for the Storage Service
 // created in all storage-related tests.
