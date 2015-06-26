@@ -113,28 +113,41 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 type CloseProviderTransformer struct{}
 
 func (t *CloseProviderTransformer) Transform(g *Graph) error {
-	m := closeProviderVertexMap(g)
+	pm := providerVertexMap(g)
+	cpm := closeProviderVertexMap(g)
+	var err error
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			for _, p := range pv.ProvidedBy() {
-				source := m[p]
+				source := cpm[p]
 
 				if source == nil {
 					// Create a new graphNodeCloseProvider and add it to the graph
 					source = &graphNodeCloseProvider{ProviderNameValue: p}
 					g.Add(source)
 
+					// Close node needs to depend on provider
+					provider, ok := pm[p]
+					if !ok {
+						err = multierror.Append(err, fmt.Errorf(
+							"%s: provider %s couldn't be found",
+							dag.VertexName(v), p))
+						continue
+					}
+					g.Connect(dag.BasicEdge(source, provider))
+
 					// Make sure we also add the new graphNodeCloseProvider to the map
 					// so we don't create and add any duplicate graphNodeCloseProviders.
-					m[p] = source
+					cpm[p] = source
 				}
 
+				// Close node depends on all nodes provided by the provider
 				g.Connect(dag.BasicEdge(source, v))
 			}
 		}
 	}
 
-	return nil
+	return err
 }
 
 // MissingProviderTransformer is a GraphTransformer that adds nodes
