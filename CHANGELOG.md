@@ -119,6 +119,7 @@ BUG FIXES:
       security group [GH-2434]
   * provider/aws: `aws_launch_configuration` retries if IAM instance
       profile is not ready yet. [GH-2452]
+  * provider/aws: `fqdn` is populated during creation for `aws_route53_record` [GH-2528]
   * provider/digitalocean: handle case where droplet is deleted outside of
       terraform [GH-2497]
   * provider/openstack: fix panic case if API returns nil network [GH-2448]
