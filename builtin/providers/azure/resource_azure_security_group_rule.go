@@ -220,9 +220,9 @@ func resourceAzureSecurityGroupRuleUpdate(d *schema.ResourceData, meta interface
 		// try and find our security group rule:
 		for _, rule := range secgroup.Rules {
 			if rule.Name == name {
-				// note the fact that this rule still apllies to this security group:
+				// note the fact that this rule still applies to this security group:
 				found = true
-				remaining.Add("secGroupName")
+				remaining.Add(secGroupName)
 
 				// and go ahead and update it:
 				log.Printf("[INFO] Sending Azure network security group rule update request for security group %q.", secGroupName)
@@ -237,6 +237,8 @@ func resourceAzureSecurityGroupRuleUpdate(d *schema.ResourceData, meta interface
 				if err != nil {
 					return fmt.Errorf("Error updating Azure network security group rule for security group %q: %s", secGroupName, err)
 				}
+
+				break
 			}
 		}
 	}
@@ -267,7 +269,6 @@ func resourceAzureSecurityGroupRuleDelete(d *schema.ResourceData, meta interface
 
 		// get info on the network security group and search for our rule:
 		log.Printf("[INFO] Sending network security group rule query for security group %q.", secGroupName)
-
 		secgroup, err := secGroupClient.GetNetworkSecurityGroup(secGroupName)
 		if err != nil {
 			if management.IsResourceNotFoundError(err) {
