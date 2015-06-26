@@ -379,6 +379,15 @@ do_instance.foo:
   type = do_instance
 `
 
+const testTerraformApplyModuleOnlyProviderStr = `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+  test_instance.foo:
+    ID = foo
+`
+
 const testTerraformApplyModuleProviderAliasStr = `
 <no state>
 module.child:
