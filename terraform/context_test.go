@@ -5912,6 +5912,57 @@ func TestContext2Apply_hook(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_hookOrphan(t *testing.T) {
+	m := testModule(t, "apply-blank")
+	h := new(MockHook)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		State:  state,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !h.PreApplyCalled {
+		t.Fatal("should be called")
+	}
+	if !h.PostApplyCalled {
+		t.Fatal("should be called")
+	}
+	if !h.PostStateUpdateCalled {
+		t.Fatalf("should call post state update")
+	}
+}
+
 func TestContext2Apply_idAttr(t *testing.T) {
 	m := testModule(t, "apply-idattr")
 	p := testProvider("aws")

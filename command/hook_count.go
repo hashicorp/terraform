@@ -24,14 +24,6 @@ type CountHook struct {
 	terraform.NilHook
 }
 
-type countHookAction byte
-
-const (
-	countHookActionAdd countHookAction = iota
-	countHookActionChange
-	countHookActionRemove
-)
-
 func (h *CountHook) Reset() {
 	h.Lock()
 	defer h.Unlock()
