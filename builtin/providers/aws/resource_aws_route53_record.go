@@ -219,7 +219,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	return nil
+	return resourceAwsRoute53RecordRead(d, meta)
 }
 
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
