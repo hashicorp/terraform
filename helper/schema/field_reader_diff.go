@@ -144,7 +144,11 @@ func (r *DiffFieldReader) readSet(
 	set := &Set{F: schema.Set}
 
 	// Go through the map and find all the set items
-	for k, _ := range r.Diff.Attributes {
+	for k, d := range r.Diff.Attributes {
+		if d.NewRemoved {
+			// If the field is removed, we always ignore it
+			continue
+		}
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
