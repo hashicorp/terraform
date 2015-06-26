@@ -790,14 +790,6 @@ func (m schemaMap) diffSet(
 	os := o.(*Set)
 	ns := n.(*Set)
 
-	// If the new value was set, compare the listCode's to determine if
-	// the two are equal. Comparing listCode's instead of the actuall values
-	// is needed because there could be computed values in the set which
-	// would result in false positives while comparing.
-	if !all && nSet && reflect.DeepEqual(os.listCode(), ns.listCode()) {
-		return nil
-	}
-
 	// Get the counts
 	oldLen := os.Len()
 	newLen := ns.Len()
@@ -842,20 +834,26 @@ func (m schemaMap) diffSet(
 		})
 	}
 
-	for _, code := range ns.listCode() {
-		// If the code is negative (first character is -) then
-		// replace it with "~" for our computed set stuff.
-		codeStr := strconv.Itoa(code)
-		if codeStr[0] == '-' {
-			codeStr = string('~') + codeStr[1:]
+	// Diff must consider the union of the keys in both sets,
+	// so we can detect both items removed and items added.
+	codeStrs := make(map[string]int)
+	for _, set := range []*Set{ns, os} {
+		for _, code := range set.listCode() {
+			codeStr := strconv.Itoa(code)
+			if codeStr[0] == '-' {
+				codeStr = string('~') + codeStr[1:]
+			}
+			codeStrs[codeStr] = code
 		}
+	}
 
+	for codeStr, _ := range codeStrs {
 		switch t := schema.Elem.(type) {
 		case *Resource:
 			// This is a complex resource
 			for k2, schema := range t.Schema {
 				subK := fmt.Sprintf("%s.%s.%s", k, codeStr, k2)
-				err := m.diff(subK, schema, diff, d, true)
+				err := m.diff(subK, schema, diff, d, false)
 				if err != nil {
 					return err
 				}
@@ -869,7 +867,7 @@ func (m schemaMap) diffSet(
 			// This is just a primitive element, so go through each and
 			// just diff each.
 			subK := fmt.Sprintf("%s.%s", k, codeStr)
-			err := m.diff(subK, &t2, diff, d, true)
+			err := m.diff(subK, &t2, diff, d, false)
 			if err != nil {
 				return err
 			}
