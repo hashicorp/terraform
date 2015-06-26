@@ -446,7 +446,6 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	lc := describConfs.LaunchConfigurations[0]
 
 	d.Set("key_name", lc.KeyName)
-	d.Set("image_id", lc.ImageID)
 	d.Set("instance_type", lc.InstanceType)
 	d.Set("name", lc.LaunchConfigurationName)
 
