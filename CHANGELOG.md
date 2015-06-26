@@ -20,6 +20,7 @@ FEATURES:
   * **New resource: `aws_ecs_cluster`** [GH-1803]
   * **New resource: `aws_ecs_service`** [GH-1803]
   * **New resource: `aws_ecs_task_definition`** [GH-1803]
+  * **New resource: `aws_elasticache_parameter_group`** [GH-2276]
   * **New resource: `aws_flow_log`** [GH-2384]
   * **New resource: `aws_iam_group_association`** [GH-2273]
   * **New resource: `aws_lambda_function`** [GH-2170]
