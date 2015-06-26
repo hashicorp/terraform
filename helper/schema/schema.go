@@ -842,76 +842,46 @@ func (m schemaMap) diffSet(
 		})
 	}
 
-	removed := os.Difference(ns)
-	for _, code := range removed.listCode() {
-		// If the code is negative (first character is -) then
-		// replace it with "~" for our computed set stuff.
-		codeStr := strconv.Itoa(code)
-		if codeStr[0] == '-' {
-			codeStr = string('~') + codeStr[1:]
-		}
+	// Build the list of codes that will make up our set. This is the
+	// removed codes as well as all the codes in the new codes.
+	codes := make([][]int, 2)
+	codes[0] = os.Difference(ns).listCode()
+	codes[1] = ns.listCode()
+	for _, list := range codes {
+		for _, code := range list {
+			// If the code is negative (first character is -) then
+			// replace it with "~" for our computed set stuff.
+			codeStr := strconv.Itoa(code)
+			if codeStr[0] == '-' {
+				codeStr = string('~') + codeStr[1:]
+			}
 
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			// This is a complex resource
-			for k2, schema := range t.Schema {
-				subK := fmt.Sprintf("%s.%s.%s", k, codeStr, k2)
-				err := m.diff(subK, schema, diff, d, true)
+			switch t := schema.Elem.(type) {
+			case *Resource:
+				// This is a complex resource
+				for k2, schema := range t.Schema {
+					subK := fmt.Sprintf("%s.%s.%s", k, codeStr, k2)
+					err := m.diff(subK, schema, diff, d, true)
+					if err != nil {
+						return err
+					}
+				}
+			case *Schema:
+				// Copy the schema so that we can set Computed/ForceNew from
+				// the parent schema (the TypeSet).
+				t2 := *t
+				t2.ForceNew = schema.ForceNew
+
+				// This is just a primitive element, so go through each and
+				// just diff each.
+				subK := fmt.Sprintf("%s.%s", k, codeStr)
+				err := m.diff(subK, &t2, diff, d, true)
 				if err != nil {
 					return err
 				}
+			default:
+				return fmt.Errorf("%s: unknown element type (internal)", k)
 			}
-		case *Schema:
-			// Copy the schema so that we can set Computed/ForceNew from
-			// the parent schema (the TypeSet).
-			t2 := *t
-			t2.ForceNew = schema.ForceNew
-
-			// This is just a primitive element, so go through each and
-			// just diff each.
-			subK := fmt.Sprintf("%s.%s", k, codeStr)
-			err := m.diff(subK, &t2, diff, d, true)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("%s: unknown element type (internal)", k)
-		}
-	}
-
-	for _, code := range ns.listCode() {
-		// If the code is negative (first character is -) then
-		// replace it with "~" for our computed set stuff.
-		codeStr := strconv.Itoa(code)
-		if codeStr[0] == '-' {
-			codeStr = string('~') + codeStr[1:]
-		}
-
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			// This is a complex resource
-			for k2, schema := range t.Schema {
-				subK := fmt.Sprintf("%s.%s.%s", k, codeStr, k2)
-				err := m.diff(subK, schema, diff, d, true)
-				if err != nil {
-					return err
-				}
-			}
-		case *Schema:
-			// Copy the schema so that we can set Computed/ForceNew from
-			// the parent schema (the TypeSet).
-			t2 := *t
-			t2.ForceNew = schema.ForceNew
-
-			// This is just a primitive element, so go through each and
-			// just diff each.
-			subK := fmt.Sprintf("%s.%s", k, codeStr)
-			err := m.diff(subK, &t2, diff, d, true)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("%s: unknown element type (internal)", k)
 		}
 	}
 
