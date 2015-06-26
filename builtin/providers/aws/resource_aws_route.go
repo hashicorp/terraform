@@ -86,8 +86,8 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	createOpts := &ec2.CreateRouteInput{}
 
 	// Check if more than 1 target is specified
-	for target := range allowedTargets {
-		if len(d.Get(target)) > 0 {
+	for _, target := range allowedTargets {
+		if len(d.Get(target).(string)) > 0 {
 			numTargets++
 			setTarget = target
 		}
@@ -99,31 +99,32 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 			"vpc_peering_connection_id is allowed.")
 	}
 
+	// Formulate CreateRouteInput based on the target type
 	switch setTarget {
 	case "gateway_id":
-		createOpts := &ec2.CreateRouteInput{
+		createOpts = &ec2.CreateRouteInput{
 			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
-			GatewayID:            d.Get("gateway_id").(string),
+			GatewayID:            aws.String(d.Get("gateway_id").(string)),
 		}
 	case "instance_id":
-		createOpts := &ec2.CreateRouteInput{
+		createOpts = &ec2.CreateRouteInput{
 			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
-			InstanceID:           d.Get("instance_id").(string),
+			InstanceID:           aws.String(d.Get("instance_id").(string)),
 		}
 	case "network_interface_id":
-		createOpts := &ec2.CreateRouteInput{
+		createOpts = &ec2.CreateRouteInput{
 			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
-			NetworkInterfaceID:   d.Get("network_interface_id").(string),
+			NetworkInterfaceID:   aws.String(d.Get("network_interface_id").(string)),
 		}
 	case "route_table_id":
-		createOpts := &ec2.CreateRouteInput{
+		createOpts = &ec2.CreateRouteInput{
 			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
-			RouteTableID:         d.Get("route_table_id").(string),
+			RouteTableID:         aws.String(d.Get("route_table_id").(string)),
 		}
 	case "vpc_peering_connection_id":
-		createOpts := &ec2.CreateRouteInput{
+		createOpts = &ec2.CreateRouteInput{
 			DestinationCIDRBlock:   aws.String(d.Get("destination_cidr_block").(string)),
-			VPCPeeringConnectionID: d.Get("route_table_id").(string),
+			VPCPeeringConnectionID: aws.String(d.Get("route_table_id").(string)),
 		}
 	default:
 		fmt.Errorf("Error: invalid target type specified.")
