@@ -12,7 +12,7 @@ BACKWARDS INCOMPATIBILITIES:
 
 FEATURES:
 
-  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380, GH-2394]
+  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380, GH-2394, GH-2515]
   * **New resource: `aws_autoscaling_notification`** [GH-2197]
   * **New resource: `aws_autoscaling_policy`** [GH-2201]
   * **New resource: `aws_cloudwatch_metric_alarm`** [GH-2201]
@@ -55,6 +55,8 @@ IMPROVEMENTS:
   * provider/aws: Add backoff/throttling during DynamoDB creation [GH-2462]
   * provider/aws: Add validation for aws_vpc.cidr_block [GH-2514]
   * provider/aws: Add validation for aws_db_subnet_group.name [GH-2513]
+  * provider/aws: aws_auto_scaling_group.default_cooldown no longer requires
+      resource replacement [GH-2510]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
   * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
