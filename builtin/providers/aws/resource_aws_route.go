@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -60,7 +61,7 @@ func resourceAwsRoute() *schema.Resource {
 
 			"route_table_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 
 			"vpc_peering_connection_id": &schema.Schema{
@@ -73,24 +74,63 @@ func resourceAwsRoute() *schema.Resource {
 
 func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	var numTargets int
+	var setTarget string
+	allowedTargets := []string{
+		"gateway_id",
+		"instance_id",
+		"network_interface_id",
+		"route_table_id",
+		"vpc_peering_connection_id",
+	}
+	createOpts := &ec2.CreateRouteInput{}
 
-	if d.Get("route_table_id") == "" {
-		fmt.Errorf("Error: no route table ID specified to add the route to." +
-			"Please specify the ID of the routing table to add the route to.")
-
+	// Check if more than 1 target is specified
+	for target := range allowedTargets {
+		if len(d.Get(target)) > 0 {
+			numTargets++
+			setTarget = target
+		}
 	}
 
-	// Create the route
-	createOpts := &ec2.CreateRouteInput{
-		DestinationCIDRBlock:   aws.String(d.Get("destination_cidr_block").(string)),
-		GatewayID:              aws.String(d.Get("gateway_id").(string)),
-		InstanceID:             aws.String(d.Get("instance_id").(string)),
-		NetworkInterfaceID:     aws.String(d.Get("network_interface_id").(string)),
-		RouteTableID:           aws.String(d.Get("route_table_id").(string)),
-		VPCPeeringConnectionID: aws.String(d.Get("vpc_peering_connection_id").(string)),
+	if numTargets > 1 {
+		fmt.Errorf("Error: more than 1 target specified. Only 1 of gateway_id" +
+			"instance_id, network_interface_id, route_table_id or" +
+			"vpc_peering_connection_id is allowed.")
+	}
+
+	switch setTarget {
+	case "gateway_id":
+		createOpts := &ec2.CreateRouteInput{
+			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			GatewayID:            d.Get("gateway_id").(string),
+		}
+	case "instance_id":
+		createOpts := &ec2.CreateRouteInput{
+			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			InstanceID:           d.Get("instance_id").(string),
+		}
+	case "network_interface_id":
+		createOpts := &ec2.CreateRouteInput{
+			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			NetworkInterfaceID:   d.Get("network_interface_id").(string),
+		}
+	case "route_table_id":
+		createOpts := &ec2.CreateRouteInput{
+			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			RouteTableID:         d.Get("route_table_id").(string),
+		}
+	case "vpc_peering_connection_id":
+		createOpts := &ec2.CreateRouteInput{
+			DestinationCIDRBlock:   aws.String(d.Get("destination_cidr_block").(string)),
+			VPCPeeringConnectionID: d.Get("route_table_id").(string),
+		}
+	default:
+		fmt.Errorf("Error: invalid target type specified.")
 	}
 	log.Printf("[DEBUG] Route create config: %#v", createOpts)
 
+	// Create the route
 	_, err := conn.CreateRoute(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating route: %s", err)
@@ -106,14 +146,14 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("destination_prefix_list_id", *route.DestinationPrefixListID)
-	d.Set("gateway_id", *route.DestinationPrefixListID)
-	d.Set("instance_id", *route.InstanceID)
-	d.Set("instance_owner_id", *route.InstanceOwnerID)
-	d.Set("network_interface_id", *route.NetworkInterfaceID)
-	d.Set("origin", *route.Origin)
-	d.Set("state", *route.State)
-	d.Set("vpc_peering_connection_id", *route.VPCPeeringConnectionID)
+	d.Set("destination_prefix_list_id", route.DestinationPrefixListID)
+	d.Set("gateway_id", route.DestinationPrefixListID)
+	d.Set("instance_id", route.InstanceID)
+	d.Set("instance_owner_id", route.InstanceOwnerID)
+	d.Set("network_interface_id", route.NetworkInterfaceID)
+	d.Set("origin", route.Origin)
+	d.Set("state", route.State)
+	d.Set("vpc_peering_connection_id", route.VPCPeeringConnectionID)
 
 	return nil
 }
@@ -129,7 +169,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 		RouteTableID:           aws.String(d.Get("route_table_id").(string)),
 		VPCPeeringConnectionID: aws.String(d.Get("vpc_peering_connection_id").(string)),
 	}
-	log.Printf("[DEBUG] Route replace config: %#v", replaceOpts)
+	log.Printf("[DEBUG] Route replace config: %s", awsutil.StringValue(replaceOpts))
 
 	_, err := conn.ReplaceRoute(replaceOpts)
 	if err != nil {
@@ -168,7 +208,7 @@ func findResourceRoute(conn *ec2.EC2, d *schema.ResourceData) (*ec2.Route, error
 	}
 
 	for _, route := range (*resp.RouteTables[0]).Routes {
-		if *route.DestinationCIDRBlock == d.Get("destination_cidr_block") {
+		if *route.DestinationCIDRBlock == d.Get("destination_cidr_block").(string) {
 			return route, nil
 		}
 	}
