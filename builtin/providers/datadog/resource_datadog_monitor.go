@@ -14,11 +14,7 @@ import (
 )
 
 const (
-	MONITOR_ENDPOINT = "https://app.datadoghq.com/api/v1/monitor"
-)
-
-var (
-	AUTH_SUFFIX = ""
+	monitorEndpoint = "https://app.datadoghq.com/api/v1/monitor"
 )
 
 func datadogMonitorResource() *schema.Resource {
@@ -140,15 +136,21 @@ func authSuffix(meta interface{}) string {
 }
 
 func resourceMonitorCreate(d *schema.ResourceData, meta interface{}) error {
-	warningBody, _ := marshalMetric(d, "warning")
-	criticalBody, _ := marshalMetric(d, "critical")
+	warningBody, err := marshalMetric(d, "warning")
+	if err != nil {
+		return err
+	}
+	criticalBody, err := marshalMetric(d, "critical")
+	if err != nil {
+		return err
+	}
 
-	resW, err := http.Post(fmt.Sprintf("%s%s", MONITOR_ENDPOINT, authSuffix(meta)), "application/json", bytes.NewReader(warningBody))
+	resW, err := http.Post(fmt.Sprintf("%s%s", monitorEndpoint, authSuffix(meta)), "application/json", bytes.NewReader(warningBody))
 	if err != nil {
 		return fmt.Errorf("error creating warning: %s", err.Error())
 	}
 
-	resC, err := http.Post(fmt.Sprintf("%s%s", MONITOR_ENDPOINT, authSuffix(meta)), "application/json", bytes.NewReader(criticalBody))
+	resC, err := http.Post(fmt.Sprintf("%s%s", monitorEndpoint, authSuffix(meta)), "application/json", bytes.NewReader(criticalBody))
 	if err != nil {
 		return fmt.Errorf("error creating critical: %s", err.Error())
 	}
@@ -170,7 +172,7 @@ func resourceMonitorCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceMonitorDelete(d *schema.ResourceData, meta interface{}) (e error) {
 	for _, v := range strings.Split(d.Id(), "__") {
 		client := http.Client{}
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("%s/%s%s", MONITOR_ENDPOINT, v, authSuffix(meta)), nil)
+		req, _ := http.NewRequest("DELETE", fmt.Sprintf("%s/%s%s", monitorEndpoint, v, authSuffix(meta)), nil)
 		_, err := client.Do(req)
 		e = err
 	}
@@ -180,7 +182,7 @@ func resourceMonitorDelete(d *schema.ResourceData, meta interface{}) (e error) {
 func resourceMonitorExists(d *schema.ResourceData, meta interface{}) (b bool, e error) {
 	b = true
 	for _, v := range strings.Split(d.Id(), "__") {
-		res, err := http.Get(fmt.Sprintf("%s/%s%s", MONITOR_ENDPOINT, v, authSuffix(meta)))
+		res, err := http.Get(fmt.Sprintf("%s/%s%s", monitorEndpoint, v, authSuffix(meta)))
 		if err != nil {
 			e = err
 			continue
@@ -210,7 +212,7 @@ func resourceMonitorUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	client := http.Client{}
 
-	reqW, _ := http.NewRequest("PUT", fmt.Sprintf("%s/%s%s", MONITOR_ENDPOINT, warningID, authSuffix(meta)), bytes.NewReader(warningBody))
+	reqW, _ := http.NewRequest("PUT", fmt.Sprintf("%s/%s%s", monitorEndpoint, warningID, authSuffix(meta)), bytes.NewReader(warningBody))
 	resW, err := client.Do(reqW)
 	if err != nil {
 		return fmt.Errorf("error updating warning: %s", err.Error())
@@ -220,7 +222,7 @@ func resourceMonitorUpdate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("error updating warning monitor: %s", resW.Status)
 	}
 
-	reqC, _ := http.NewRequest("PUT", fmt.Sprintf("%s/%s%s", MONITOR_ENDPOINT, criticalID, authSuffix(meta)), bytes.NewReader(criticalBody))
+	reqC, _ := http.NewRequest("PUT", fmt.Sprintf("%s/%s%s", monitorEndpoint, criticalID, authSuffix(meta)), bytes.NewReader(criticalBody))
 	resC, err := client.Do(reqC)
 	if err != nil {
 		return fmt.Errorf("error updating critical: %s", err.Error())
