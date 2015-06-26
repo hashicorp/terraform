@@ -97,6 +97,7 @@ BUG FIXES:
   * command/*: fixed bug where variable input was not asked for unset
       vars if terraform.tfvars existed [GH-2502]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
+  * command/apply: destroyed orphan resources are properly counted [GH-2506]
   * provider/aws: fix panic when route has no `cidr_block` [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
   * provider/aws: fix issue where Security Group Rules could collide and fail
