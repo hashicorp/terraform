@@ -57,6 +57,7 @@ IMPROVEMENTS:
   * provider/aws: Add validation for aws_db_subnet_group.name [GH-2513]
   * provider/aws: aws_auto_scaling_group.default_cooldown no longer requires
       resource replacement [GH-2510]
+  * provider/aws: add AH and ESP protocol integers [GH-2321]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
   * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
