@@ -79,6 +79,7 @@ BUG FIXES:
       doesn't implement those aliases [GH-2475]
   * core: unknown resource attributes passed in as parameters to modules
       now error [GH-2478]
+  * core: better error messages for missing variables [GH-2479]
   * command/*: fixed bug where variable input was not asked for unset
       vars if terraform.tfvars existed [GH-2502]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
