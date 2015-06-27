@@ -91,6 +91,12 @@ func resourceAwsVpnConnectionRouteRead(d *schema.ResourceData, meta interface{})
 			return err
 		}
 	}
+	if resp == nil || len(resp.VPNConnections) == 0 {
+		// This is kind of a weird edge case. I'd rather return an error
+		// instead of just blindly setting the ID to ""... since I don't know
+		// what might cause this.
+		return fmt.Errorf("No VPN connections returned")
+	}
 
 	vpnConnection := resp.VPNConnections[0]
 
