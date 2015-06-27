@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -118,7 +117,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dc.Client)
 
-	apiContainer, err := fetchDockerContainer(d.Get("name").(string), client)
+	apiContainer, err := fetchDockerContainer(d.Id(), client)
 	if err != nil {
 		return err
 	}
@@ -190,7 +189,7 @@ func stringSetToStringSlice(stringSet *schema.Set) []string {
 	return ret
 }
 
-func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, error) {
+func fetchDockerContainer(ID string , client *dc.Client) (*dc.APIContainers, error) {
 	apiContainers, err := client.ListContainers(dc.ListContainersOptions{All: true})
 
 	if err != nil {
@@ -198,17 +197,7 @@ func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, er
 	}
 
 	for _, apiContainer := range apiContainers {
-		// Sometimes the Docker API prefixes container names with /
-		// like it does in these commands. But if there's no
-		// set name, it just uses the ID without a /...ugh.
-		var dockerContainerName string
-		if len(apiContainer.Names) > 0 {
-			dockerContainerName = strings.TrimLeft(apiContainer.Names[0], "/")
-		} else {
-			dockerContainerName = apiContainer.ID
-		}
-
-		if dockerContainerName == name {
+		if apiContainer.ID == ID {
 			return &apiContainer, nil
 		}
 	}
