@@ -457,6 +457,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("tenancy", instance.Placement.Tenancy)
 	}
 
+	d.Set("ami", instance.ImageID)
 	d.Set("instance_type", instance.InstanceType)
 	d.Set("key_name", instance.KeyName)
 	d.Set("public_dns", instance.PublicDNSName)
