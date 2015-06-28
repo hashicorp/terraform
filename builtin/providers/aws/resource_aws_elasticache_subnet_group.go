@@ -32,8 +32,7 @@ func resourceAwsElasticacheSubnetGroup() *schema.Resource {
 			},
 			"subnet_ids": &schema.Schema{
 				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
