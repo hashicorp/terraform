@@ -59,8 +59,5 @@ The following attributes are exported:
 
 * `id` - The ID of the DHCP Options Set.
 
-## Known Issues
-* https://github.com/aws/aws-sdk-go/issues/210
-
 You can find more technical documentation about DHCP Options Set in the
 official [AWS User Guide](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html).
