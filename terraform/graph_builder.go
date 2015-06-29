@@ -138,10 +138,6 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 		// Make sure all the connections that are proxies are connected through
 		&ProxyTransformer{},
 
-		// Optionally reduces the graph to a user-specified list of targets and
-		// their dependencies.
-		&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
-
 		// Make sure we have a single root
 		&RootTransformer{},
 	}
@@ -150,6 +146,10 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 	// We don't do the following for modules.
 	if len(path) <= 1 {
 		steps = append(steps,
+			// Optionally reduces the graph to a user-specified list of targets and
+			// their dependencies.
+			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
+
 			// Prune the providers and provisioners. This must happen
 			// only once because flattened modules might depend on empty
 			// providers.
