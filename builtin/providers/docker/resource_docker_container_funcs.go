@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
+)
+
+var (
+	creationTime time.Time
 )
 
 func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) error {
@@ -23,9 +28,8 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	if _, ok := data.DockerImages[image]; !ok {
 		if _, ok := data.DockerImages[image+":latest"]; !ok {
 			return fmt.Errorf("Unable to find image %s", image)
-		} else {
-			image = image + ":latest"
 		}
+		image = image + ":latest"
 	}
 
 	// The awesome, wonderful, splendiferous, sensical
@@ -108,6 +112,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
 	}
 
+	creationTime = time.Now()
 	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
 		return fmt.Errorf("Unable to start container: %s", err)
 	}
@@ -122,21 +127,49 @@ func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return err
 	}
-
 	if apiContainer == nil {
 		// This container doesn't exist anymore
 		d.SetId("")
-
 		return nil
 	}
 
-	container, err := client.InspectContainer(apiContainer.ID)
-	if err != nil {
-		return fmt.Errorf("Error inspecting container %s: %s", apiContainer.ID, err)
+	var container *dc.Container
+
+	loops := 1 // if it hasn't just been created, don't delay
+	if !creationTime.IsZero() {
+		loops = 30 // with 500ms spacing, 15 seconds; ought to be plenty
+	}
+	sleepTime := 500 * time.Millisecond
+
+	for i := loops; i > 0; i-- {
+		container, err = client.InspectContainer(apiContainer.ID)
+		if err != nil {
+			return fmt.Errorf("Error inspecting container %s: %s", apiContainer.ID, err)
+		}
+
+		if container.State.Running ||
+			(!container.State.Running && !d.Get("must_run").(bool)) {
+			break
+		}
+
+		if creationTime.IsZero() { // We didn't just create it, so don't wait around
+			return resourceDockerContainerDelete(d, meta)
+		}
+
+		if container.State.FinishedAt.After(creationTime) {
+			// It exited immediately, so error out so dependent containers
+			// aren't started
+			resourceDockerContainerDelete(d, meta)
+			return fmt.Errorf("Container %s exited after creation, error was: %s", apiContainer.ID, container.State.Error)
+		}
+
+		time.Sleep(sleepTime)
 	}
 
-	if d.Get("must_run").(bool) && !container.State.Running {
-		return resourceDockerContainerDelete(d, meta)
+	// Handle the case of the for loop above running its course
+	if !container.State.Running && d.Get("must_run").(bool) {
+		resourceDockerContainerDelete(d, meta)
+		return fmt.Errorf("Container %s failed to be in running state", apiContainer.ID)
 	}
 
 	// Read Network Settings
@@ -201,15 +234,17 @@ func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, er
 		// Sometimes the Docker API prefixes container names with /
 		// like it does in these commands. But if there's no
 		// set name, it just uses the ID without a /...ugh.
-		var dockerContainerName string
-		if len(apiContainer.Names) > 0 {
-			dockerContainerName = strings.TrimLeft(apiContainer.Names[0], "/")
-		} else {
-			dockerContainerName = apiContainer.ID
-		}
-
-		if dockerContainerName == name {
-			return &apiContainer, nil
+		switch len(apiContainer.Names) {
+		case 0:
+			if apiContainer.ID == name {
+				return &apiContainer, nil
+			}
+		default:
+			for _, containerName := range apiContainer.Names {
+				if strings.TrimLeft(containerName, "/") == name {
+					return &apiContainer, nil
+				}
+			}
 		}
 	}
 
