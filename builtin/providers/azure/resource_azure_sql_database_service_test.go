@@ -135,7 +135,7 @@ func testAccCheckAzureSqlDatabaseServiceExists(name string) resource.TestCheckFu
 
 func testAccCheckAzureSqlDatabaseServiceDeleted(s *terraform.State) error {
 	for _, resource := range s.RootModule().Resources {
-		if resource.Type != "azure_sql_database_server" {
+		if resource.Type != "azure_sql_database_service" {
 			continue
 		}
 
@@ -155,6 +155,7 @@ func testAccCheckAzureSqlDatabaseServiceDeleted(s *terraform.State) error {
 			}
 		}
 	}
+
 	return nil
 }
 
