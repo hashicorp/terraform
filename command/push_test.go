@@ -225,7 +225,7 @@ func TestPush_localOverride(t *testing.T) {
 	args := []string{
 		"-var-file", path + "/terraform.tfvars",
 		"-vcs=false",
-		"-set=foo",
+		"-overwrite=foo",
 		path,
 	}
 	if code := c.Run(args); code != 0 {
