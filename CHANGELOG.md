@@ -101,6 +101,8 @@ BUG FIXES:
       vars if terraform.tfvars existed [GH-2502]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * command/apply: destroyed orphan resources are properly counted [GH-2506]
+  * provider/aws: loading credentials from the environment (vars, EC2 role,
+      etc.) is more robust and will not ask for credentials from stdin [GH-1841]
   * provider/aws: fix panic when route has no `cidr_block` [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
   * provider/aws: fix issue where Security Group Rules could collide and fail
