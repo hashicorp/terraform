@@ -21,7 +21,7 @@ resource "docker_container" "ubuntu" {
 
 # Find the latest Ubuntu precise image.
 resource "docker_image" "ubuntu" {
-    image = "ubuntu:precise"
+  name = "ubuntu:precise"
 }
 ```
 
