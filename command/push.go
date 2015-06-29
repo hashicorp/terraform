@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/atlas-go/archive"
@@ -133,13 +134,13 @@ func (c *PushCommand) Run(args []string) int {
 	}
 
 	// Get the variables we might already have
-	vars, err := c.client.Get(name)
+	atlasVars, err := c.client.Get(name)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error looking up previously pushed configuration: %s", err))
 		return 1
 	}
-	for k, v := range vars {
+	for k, v := range atlasVars {
 		if _, ok := setMap[k]; ok {
 			continue
 		}
@@ -177,12 +178,41 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Output to the user the variables that will be uploaded
+	var setVars []string
+	for k, _ := range ctx.Variables() {
+		if _, ok := setMap[k]; !ok {
+			if _, ok := atlasVars[k]; ok {
+				// Atlas variable not within override, so it came from Atlas
+				continue
+			}
+		}
+
+		// This variable was set from the local value
+		setVars = append(setVars, k)
+	}
+	sort.Strings(setVars)
+	if len(setVars) > 0 {
+		c.Ui.Output(
+			"The following variables will be set or updated within Atlas from\n" +
+				"their local values. All other variables are already set within Atlas.\n" +
+				"If you want to modify the value of a variable, use the Atlas web\n" +
+				"interface or set it locally and use the -set flag.\n\n")
+		for _, v := range setVars {
+			c.Ui.Output(fmt.Sprintf("  * %s", v))
+		}
+
+		// Newline
+		c.Ui.Output("")
+	}
+
 	// Upsert!
 	opts := &pushUpsertOptions{
 		Name:      name,
 		Archive:   archiveR,
 		Variables: ctx.Variables(),
 	}
+	c.Ui.Output("Uploading Terraform configuration...")
 	vsn, err := c.client.Upsert(opts)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
