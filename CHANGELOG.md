@@ -124,8 +124,12 @@ BUG FIXES:
   * provider/aws: `fqdn` is populated during creation for `aws_route53_record` [GH-2528]
   * provider/aws: retry VPC delete on DependencyViolation due to eventual
       consistency [GH-2532]
+  * provider/aws: VPC peering connections in "failed" state are deleted [GH-2544]
+  * provider/aws: EIP deletion works if it was manually disassociated [GH-2543]
+  * provider/cloudflare: manual record deletion doesn't cause error [GH-2545]
   * provider/digitalocean: handle case where droplet is deleted outside of
       terraform [GH-2497]
+  * provider/dme: No longer an error if record deleted manually [GH-2546]
   * provider/openstack: fix panic case if API returns nil network [GH-2448]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
