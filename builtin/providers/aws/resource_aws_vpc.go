@@ -258,16 +258,29 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 		VPCID: &vpcID,
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
-	if _, err := conn.DeleteVPC(DeleteVpcOpts); err != nil {
-		ec2err, ok := err.(awserr.Error)
-		if ok && ec2err.Code() == "InvalidVpcID.NotFound" {
+
+	return resource.Retry(5*time.Minute, func() error {
+		_, err := conn.DeleteVPC(DeleteVpcOpts)
+		if err == nil {
 			return nil
 		}
 
-		return fmt.Errorf("Error deleting VPC: %s", err)
-	}
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
+			return &resource.RetryError{Err: err}
+		}
 
-	return nil
+		switch ec2err.Code() {
+		case "InvalidVpcID.NotFound":
+			return nil
+		case "DependencyViolation":
+			return err
+		}
+
+		return &resource.RetryError{
+			Err: fmt.Errorf("Error deleting VPC: %s", err),
+		}
+	})
 }
 
 // VPCStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
