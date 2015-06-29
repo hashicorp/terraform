@@ -132,6 +132,7 @@ BUG FIXES:
   * provider/digitalocean: handle case where droplet is deleted outside of
       terraform [GH-2497]
   * provider/dme: No longer an error if record deleted manually [GH-2546]
+  * provider/docker: Fix issues when using containers with links [GH-2327]
   * provider/openstack: fix panic case if API returns nil network [GH-2448]
   * provider/template: fix issue causing "unknown variable" rendering errors
       when an existing set of template variables is changed [GH-2386]
