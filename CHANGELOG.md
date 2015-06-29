@@ -122,6 +122,8 @@ BUG FIXES:
   * provider/aws: `aws_launch_configuration` retries if IAM instance
       profile is not ready yet. [GH-2452]
   * provider/aws: `fqdn` is populated during creation for `aws_route53_record` [GH-2528]
+  * provider/aws: retry VPC delete on DependencyViolation due to eventual
+      consistency [GH-2532]
   * provider/digitalocean: handle case where droplet is deleted outside of
       terraform [GH-2497]
   * provider/openstack: fix panic case if API returns nil network [GH-2448]
