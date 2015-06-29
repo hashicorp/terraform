@@ -194,7 +194,7 @@ func (c *PushCommand) Run(args []string) int {
 	sort.Strings(setVars)
 	if len(setVars) > 0 {
 		c.Ui.Output(
-			"The following variables will be set or updated within Atlas from\n" +
+			"The following variables will be set or overwritten within Atlas from\n" +
 				"their local values. All other variables are already set within Atlas.\n" +
 				"If you want to modify the value of a variable, use the Atlas web\n" +
 				"interface or set it locally and use the -overwrite flag.\n\n")
