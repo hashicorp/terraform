@@ -222,6 +222,17 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 				PublicIP: aws.String(d.Get("public_ip").(string)),
 			})
 		}
+
+		if err != nil {
+			// First check if the association ID is not found. If this
+			// is the case, then it was already disassociated somehow,
+			// and that is okay. The most commmon reason for this is that
+			// the instance or ENI it was attached it was destroyed.
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
+				err = nil
+			}
+		}
+
 		if err != nil {
 			return err
 		}
