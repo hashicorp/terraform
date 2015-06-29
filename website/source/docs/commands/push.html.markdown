@@ -53,7 +53,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 
-* `-set=foo` - Marks a specific variable to be updated within Atlas.
+* `-overwrite=foo` - Marks a specific variable to be updated within Atlas.
   Normally, if a variable is already set in Atlas, Terraform will not
   send the local value (even if it is different). This forces it to
   send the local value to Atlas. This flag can be repeated multiple times.
@@ -93,14 +93,24 @@ flag when pushing, or specify the `exclude` parameter in the
 When you `push`, Terraform will automatically set the local values of
 your Terraform variables within Atlas. The values are only set if they
 don't already exist within Atlas. If you want to force push a certain
-variable value to update it, use the `-set` flag.
+variable value to update it, use the `-overwrite` flag.
 
 All the variable values stored within Atlas are encrypted and secured
 using [Vault](https://vaultproject.io). We blogged about the
 [architecture of our secure storage system](https://hashicorp.com/blog/how-atlas-uses-vault-for-managing-secrets.html) if you want more detail.
 
-The variable values can be updated using the `-set` flag or via
-the [Atlas website](https://atlas.hashicorp.com).
+The variable values can be updated using the `-overwrite` flag or via
+the [Atlas website](https://atlas.hashicorp.com). An example of updating
+just a single variable `foo` is shown below:
+
+```
+$ terraform push -var 'foo=bar' -overwrite foo
+...
+```
+
+Both the `-var` and `-overwrite` flag are required. The `-var` flag
+sets the value locally (the exact same process as commands such as apply
+or plan), and the `-overwrite` flag tells the push command to update Atlas.
 
 ## Remote State Requirement
 

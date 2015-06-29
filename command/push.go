@@ -34,7 +34,7 @@ func (c *PushCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&moduleUpload, "upload-modules", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.BoolVar(&archiveVCS, "vcs", true, "")
-	cmdFlags.Var((*FlagStringSlice)(&set), "set", "")
+	cmdFlags.Var((*FlagStringSlice)(&set), "overwrite", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -197,7 +197,7 @@ func (c *PushCommand) Run(args []string) int {
 			"The following variables will be set or updated within Atlas from\n" +
 				"their local values. All other variables are already set within Atlas.\n" +
 				"If you want to modify the value of a variable, use the Atlas web\n" +
-				"interface or set it locally and use the -set flag.\n\n")
+				"interface or set it locally and use the -overwrite flag.\n\n")
 		for _, v := range setVars {
 			c.Ui.Output(fmt.Sprintf("  * %s", v))
 		}
@@ -249,7 +249,7 @@ Options:
   -token=<token>       Access token to use to upload. If blank or unspecified,
                        the ATLAS_TOKEN environmental variable will be used.
 
-  -set=foo             Variable keys that should overwrite values in Atlas.
+  -overwrite=foo       Variable keys that should overwrite values in Atlas.
                        Otherwise, variables already set in Atlas will overwrite
                        local values. This flag can be repeated.
 
