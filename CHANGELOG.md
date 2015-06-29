@@ -23,6 +23,7 @@ FEATURES:
   * **New resource: `aws_elasticache_parameter_group`** [GH-2276]
   * **New resource: `aws_flow_log`** [GH-2384]
   * **New resource: `aws_iam_group_association`** [GH-2273]
+  * **New resource: `aws_iam_policy_attachment`** [GH-2395]
   * **New resource: `aws_lambda_function`** [GH-2170]
   * **New resource: `aws_route53_delegation_set`** [GH-1999]
   * **New resource: `aws_route53_health_check`** [GH-2226]
