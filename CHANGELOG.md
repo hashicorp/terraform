@@ -2,9 +2,11 @@
 
 BACKWARDS INCOMPATIBILITIES:
 
- * `connection/ssh`: The `agent` field now defaults to `true` if
-    the `SSH_AGENT_SOCK` environment variable is present. In other words,
-    `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
+ * command/push: If a variable is already set within Atlas, it won't be
+     updated unless the `-overwrite` flag is present [GH-2373]
+ * connection/ssh: The `agent` field now defaults to `true` if
+     the `SSH_AGENT_SOCK` environment variable is present. In other words,
+     `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
  * `concat()` has been repurposed to combine lists instead of strings (old behavior
      of joining strings is maintained in this version but is deprecated, strings
      should be combined using interpolation syntax, like "${var.foo}{var.bar}")
