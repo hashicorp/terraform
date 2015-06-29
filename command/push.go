@@ -24,6 +24,7 @@ func (c *PushCommand) Run(args []string) int {
 	var atlasAddress, atlasToken string
 	var archiveVCS, moduleUpload bool
 	var name string
+	var set []string
 	args = c.Meta.process(args, true)
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&atlasAddress, "atlas-address", "", "")
@@ -32,9 +33,16 @@ func (c *PushCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&moduleUpload, "upload-modules", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.BoolVar(&archiveVCS, "vcs", true, "")
+	cmdFlags.Var((*FlagStringSlice)(&set), "set", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	// Make a map of the set values
+	setMap := make(map[string]struct{}, len(set))
+	for _, v := range set {
+		setMap[v] = struct{}{}
 	}
 
 	// The pwd is used for the configuration path if one is not given
@@ -132,10 +140,10 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 	for k, v := range vars {
-		// Local variables override remote ones
-		if _, exists := ctx.Variables()[k]; exists {
+		if _, ok := setMap[k]; ok {
 			continue
 		}
+
 		ctx.SetVariable(k, v)
 	}
 
@@ -210,6 +218,10 @@ Options:
 
   -token=<token>       Access token to use to upload. If blank or unspecified,
                        the ATLAS_TOKEN environmental variable will be used.
+
+  -set=foo             Variable keys that should overwrite values in Atlas.
+                       Otherwise, variables already set in Atlas will overwrite
+                       local values. This flag can be repeated.
 
   -var 'foo=bar'       Set a variable in the Terraform configuration. This
                        flag can be set multiple times.
