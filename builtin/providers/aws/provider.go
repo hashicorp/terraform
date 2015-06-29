@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"net"
 	"sync"
+	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -26,13 +28,48 @@ func Provider() terraform.ResourceProvider {
 	var credErr error
 	var once sync.Once
 	getCreds := func() {
-		creds := credentials.NewChainCredentials([]credentials.Provider{
+		// Build the list of providers to look for creds in
+		providers := []credentials.Provider{
 			&credentials.EnvProvider{},
 			&credentials.SharedCredentialsProvider{},
-			&credentials.EC2RoleProvider{},
-		})
+		}
 
-		credVal, credErr = creds.Get()
+		// We only look in the EC2 metadata API if we can connect
+		// to the metadata service within a reasonable amount of time
+		conn, err := net.DialTimeout("tcp", "169.254.169.254:80", 100*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			providers = append(providers, &credentials.EC2RoleProvider{})
+		}
+
+		credVal, credErr = credentials.NewChainCredentials(providers).Get()
+
+		// If we didn't successfully find any credentials, just
+		// set the error to nil.
+		if credErr == credentials.ErrNoValidProvidersFoundInChain {
+			credErr = nil
+		}
+	}
+
+	// getCredDefault is a function used by DefaultFunc below to
+	// get the default value for various parts of the credentials.
+	// This function properly handles loading the credentials, checking
+	// for errors, etc.
+	getCredDefault := func(def interface{}, f func() string) (interface{}, error) {
+		once.Do(getCreds)
+
+		// If there was an error, that is always first
+		if credErr != nil {
+			return nil, credErr
+		}
+
+		// If the value is empty string, return nil (not set)
+		val := f()
+		if val == "" {
+			return def, nil
+		}
+
+		return val, nil
 	}
 
 	// The actual provider
@@ -42,8 +79,9 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Required: true,
 				DefaultFunc: func() (interface{}, error) {
-					once.Do(getCreds)
-					return credVal.AccessKeyID, credErr
+					return getCredDefault(nil, func() string {
+						return credVal.AccessKeyID
+					})
 				},
 				Description: descriptions["access_key"],
 			},
@@ -52,8 +90,9 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Required: true,
 				DefaultFunc: func() (interface{}, error) {
-					once.Do(getCreds)
-					return credVal.SecretAccessKey, credErr
+					return getCredDefault(nil, func() string {
+						return credVal.SecretAccessKey
+					})
 				},
 				Description: descriptions["secret_key"],
 			},
@@ -62,8 +101,9 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: func() (interface{}, error) {
-					once.Do(getCreds)
-					return credVal.SessionToken, credErr
+					return getCredDefault("", func() string {
+						return credVal.SessionToken
+					})
 				},
 				Description: descriptions["token"],
 			},
