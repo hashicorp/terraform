@@ -76,8 +76,8 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		// We fetched all credential sources in Provider.
-		// If it is available, it is stored in c.
+		// We fetched all credential sources in Provider. If they are
+		// available, they'll already be in c. See Provider definition.
 		creds := credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.Token)
 		awsConfig := &aws.Config{
 			Credentials: creds,
