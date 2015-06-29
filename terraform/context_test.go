@@ -6593,6 +6593,48 @@ module.child:
 	`)
 }
 
+// GH-1858
+func TestContext2Apply_targetedModuleDep(t *testing.T) {
+	m := testModule(t, "apply-targeted-module-dep")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+  foo = foo
+  type = aws_instance
+
+  Dependencies:
+    module.child
+
+module.child:
+  aws_instance.mod:
+    ID = foo
+
+  Outputs:
+
+  output = foo
+	`)
+}
+
 func TestContext2Apply_targetedModuleResource(t *testing.T) {
 	m := testModule(t, "apply-targeted-module-resource")
 	p := testProvider("aws")
