@@ -12,6 +12,7 @@ import (
 // the randomly-generated name of the SQL Server after it is created.
 // The anonymous function is there because go is too good to &"" directly.
 var testAccAzureSqlServerName *string = func(s string) *string { return &s }("")
+var testAccAzureSqlServerNames []string = []string{}
 
 func TestAccAzureSqlDatabaseServer(t *testing.T) {
 	name := "azure_sql_database_server.foo"
@@ -107,6 +108,44 @@ func testAccAzureSqlDatabaseServerGetName(s *terraform.State) error {
 	}
 
 	return fmt.Errorf("No Azure SQL Servers found.")
+}
+
+// testAccAzureSqlDatabaseServerGetNames is the same as the above; only it gets
+// all the servers' names.
+func testAccAzureSqlDatabaseServerGetNames(s *terraform.State) error {
+	testAccAzureSqlServerNames = []string{}
+
+	for _, resource := range s.RootModule().Resources {
+		if resource.Type != "azure_sql_database_server" {
+			continue
+		}
+
+		if resource.Primary.ID == "" {
+			return fmt.Errorf("Azure SQL Server resource ID not set.")
+		}
+
+		testAccAzureSqlServerNames = append(testAccAzureSqlServerNames, resource.Primary.ID)
+	}
+
+	if len(testAccAzureSqlServerNames) == 0 {
+		return fmt.Errorf("No Azure SQL Servers found.")
+	}
+
+	return nil
+}
+
+// testAccAzureSqlDatabaseServersNumber checks if the numbers of servers is
+// exactly equal to the given number. It is modeled as a resource.TestCheckFunc
+// to be easily embeddable in test checks.
+func testAccAzureSqlDatabaseServersNumber(n int) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		if len(testAccAzureSqlServerNames) != n {
+			return fmt.Errorf("Erroneous number of Azure Sql Database Servers. Expected %d; have %d.", n,
+				len(testAccAzureSqlServerNames))
+		}
+
+		return nil
+	}
 }
 
 const testAccAzureSqlDatabaseServerConfig = `
