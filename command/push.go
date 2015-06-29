@@ -25,7 +25,7 @@ func (c *PushCommand) Run(args []string) int {
 	var atlasAddress, atlasToken string
 	var archiveVCS, moduleUpload bool
 	var name string
-	var set []string
+	var overwrite []string
 	args = c.Meta.process(args, true)
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&atlasAddress, "atlas-address", "", "")
@@ -34,16 +34,16 @@ func (c *PushCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&moduleUpload, "upload-modules", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.BoolVar(&archiveVCS, "vcs", true, "")
-	cmdFlags.Var((*FlagStringSlice)(&set), "overwrite", "")
+	cmdFlags.Var((*FlagStringSlice)(&overwrite), "overwrite", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
 	// Make a map of the set values
-	setMap := make(map[string]struct{}, len(set))
-	for _, v := range set {
-		setMap[v] = struct{}{}
+	overwriteMap := make(map[string]struct{}, len(overwrite))
+	for _, v := range overwrite {
+		overwriteMap[v] = struct{}{}
 	}
 
 	// The pwd is used for the configuration path if one is not given
@@ -141,7 +141,7 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 	for k, v := range atlasVars {
-		if _, ok := setMap[k]; ok {
+		if _, ok := overwriteMap[k]; ok {
 			continue
 		}
 
@@ -181,7 +181,7 @@ func (c *PushCommand) Run(args []string) int {
 	// Output to the user the variables that will be uploaded
 	var setVars []string
 	for k, _ := range ctx.Variables() {
-		if _, ok := setMap[k]; !ok {
+		if _, ok := overwriteMap[k]; !ok {
 			if _, ok := atlasVars[k]; ok {
 				// Atlas variable not within override, so it came from Atlas
 				continue
