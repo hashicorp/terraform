@@ -42,6 +42,7 @@ IMPROVEMENTS:
   * core: `plan` now reports sum of resources to be changed/created/destroyed [GH-2458]
   * core: Change string list representation so we can distinguish empty, single
       element lists [GH-2504]
+  * core: Properly close provider and provisioner plugin connections [GH-2406, GH-2527]
   * provider/aws: AutoScaling groups now support updating Load Balancers without
       recreation [GH-2472]
   * provider/aws: Allow more in-place updates for ElastiCache cluster without recreating
@@ -97,6 +98,7 @@ BUG FIXES:
   * core: removed set items now properly appear in diffs and applies [GH-2507]
   * core: '*' will not be added as part of the variable name when you
       attempt multiplication without a space [GH-2505]
+  * core: fix target dependency calculation across module boundaries [GH-2555]
   * command/*: fixed bug where variable input was not asked for unset
       vars if terraform.tfvars existed [GH-2502]
   * command/apply: prevent output duplication when reporting errors [GH-2267]
