@@ -14,21 +14,28 @@ func Provider() terraform.ResourceProvider {
 	// TODO: Move the validation to this, requires conditional schemas
 	// TODO: Move the configuration to this, requires validation
 
-	// Prepare to handle external sources of credentials.
-	// Static credentials are intentionally omitted;
-	// this is used when no static credentials are provided.
-	creds := credentials.NewChainCredentials([]credentials.Provider{
-		&credentials.EnvProvider{},
-		&credentials.SharedCredentialsProvider{},
-		&credentials.EC2RoleProvider{},
-	})
+	// These variables are closed within the `getCreds` function below.
+	// This function is responsible for reading credentials from the
+	// environment in the case that they're not explicitly specified
+	// in the Terraform configuration.
+	//
+	// By using the getCreds function here instead of making the default
+	// empty, we avoid asking for input on credentials if they're available
+	// in the environment.
 	var credVal credentials.Value
 	var credErr error
 	var once sync.Once
 	getCreds := func() {
+		creds := credentials.NewChainCredentials([]credentials.Provider{
+			&credentials.EnvProvider{},
+			&credentials.SharedCredentialsProvider{},
+			&credentials.EC2RoleProvider{},
+		})
+
 		credVal, credErr = creds.Get()
 	}
 
+	// The actual provider
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
