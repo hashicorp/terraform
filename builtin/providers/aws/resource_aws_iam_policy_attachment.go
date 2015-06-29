@@ -58,7 +58,7 @@ func resourceAwsIamPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 	roles := expandStringList(d.Get("roles").(*schema.Set).List())
 	groups := expandStringList(d.Get("groups").(*schema.Set).List())
 
-	if users == "" && roles == "" && groups == "" {
+	if len(users) > 0 && len(roles) > 0 && len(groups) > 0 {
 		return fmt.Errorf("[WARN] No Users, Roles, or Groups specified for %s", name)
 	} else {
 		var userErr, roleErr, groupErr error
@@ -161,13 +161,13 @@ func resourceAwsIamPolicyAttachmentDelete(d *schema.ResourceData, meta interface
 	groups := expandStringList(d.Get("groups").(*schema.Set).List())
 
 	var userErr, roleErr, groupErr error
-	if users != "" {
+	if len(users) != 0 {
 		userErr = detachPolicyFromUsers(conn, users, arn)
 	}
-	if roles != "" {
+	if len(roles) != 0 {
 		roleErr = detachPolicyFromRoles(conn, roles, arn)
 	}
-	if groups != "" {
+	if len(groups) != 0 {
 		groupErr = detachPolicyFromGroups(conn, groups, arn)
 	}
 	if userErr != nil || roleErr != nil || groupErr != nil {
@@ -175,6 +175,13 @@ func resourceAwsIamPolicyAttachmentDelete(d *schema.ResourceData, meta interface
 	}
 	return nil
 }
+
+//func composeErrors(desc string, uErr error, rErr error, gErr error) error {
+//	errMsg := fmt.Sprintf(desc)
+//	errs := []error{uErr, rErr, gErr}
+//	return nil
+//}
+
 func attachPolicyToUsers(conn *iam.IAM, users []*string, arn string) error {
 	for _, u := range users {
 		_, err := conn.AttachUserPolicy(&iam.AttachUserPolicyInput{
