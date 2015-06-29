@@ -59,7 +59,7 @@ func resourceAwsIamPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 	groups := expandStringList(d.Get("groups").(*schema.Set).List())
 
 	if len(users) > 0 && len(roles) > 0 && len(groups) > 0 {
-		return fmt.Errorf("[WARN] No Users, Roles, or Groups specified for %s", name)
+		return fmt.Errorf("[WARN] No Users, Roles, or Groups specified for IAM Policy Attachment %s", name)
 	} else {
 		var userErr, roleErr, groupErr error
 		if users != nil {
@@ -72,7 +72,7 @@ func resourceAwsIamPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 			groupErr = attachPolicyToGroups(conn, groups, arn)
 		}
 		if userErr != nil || roleErr != nil || groupErr != nil {
-			return fmt.Errorf("[WARN] Error attaching policy with IAM Policy Attach (%s), error:\n users - %v\n roles - %v\n groups - %v", name, userErr, roleErr, groupErr)
+			return composeErrors(fmt.Sprint("[WARN] Error attaching policy with IAM Policy Attachment ", name, ":"), userErr, roleErr, groupErr)
 		}
 	}
 	d.SetId(d.Get("name").(string))
@@ -127,7 +127,7 @@ func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 	groupErr := d.Set("groups", gl)
 
 	if userErr != nil || roleErr != nil || groupErr != nil {
-		return fmt.Errorf("[WARN} Error setting user, role, or group list from IAM Policy Attach (%s):\n user error - %s\n role error - %s\n group error - %s", name, userErr, roleErr, groupErr)
+		return composeErrors(fmt.Sprint("[WARN} Error setting user, role, or group list from IAM Policy Attachment ", name, ":"), userErr, roleErr, groupErr)
 	}
 
 	return nil
@@ -147,7 +147,7 @@ func resourceAwsIamPolicyAttachmentUpdate(d *schema.ResourceData, meta interface
 		groupErr = updateGroups(conn, d, meta)
 	}
 	if userErr != nil || roleErr != nil || groupErr != nil {
-		return fmt.Errorf("[WARN] Error updating user, role, or group list from IAM Policy Attach (%s):\n user error - %s\n role error - %s\n group error - %s", name, userErr, roleErr, groupErr)
+		return composeErrors(fmt.Sprint("[WARN] Error updating user, role, or group list from IAM Policy Attachment ", name, ":"), userErr, roleErr, groupErr)
 	}
 	return resourceAwsIamPolicyAttachmentRead(d, meta)
 }
@@ -171,16 +171,21 @@ func resourceAwsIamPolicyAttachmentDelete(d *schema.ResourceData, meta interface
 		groupErr = detachPolicyFromGroups(conn, groups, arn)
 	}
 	if userErr != nil || roleErr != nil || groupErr != nil {
-		return fmt.Errorf("[WARN] Error removing user, role, or group list from IAM Policy Detach (%s), error:\n users - %v\n roles - %v\n groups - %v", name, userErr, roleErr, groupErr)
+		return composeErrors(fmt.Sprint("[WARN] Error removing user, role, or group list from IAM Policy Detach ", name, ":"), userErr, roleErr, groupErr)
 	}
 	return nil
 }
 
-//func composeErrors(desc string, uErr error, rErr error, gErr error) error {
-//	errMsg := fmt.Sprintf(desc)
-//	errs := []error{uErr, rErr, gErr}
-//	return nil
-//}
+func composeErrors(desc string, uErr error, rErr error, gErr error) error {
+	errMsg := fmt.Sprintf(desc)
+	errs := []error{uErr, rErr, gErr}
+	for _, e := range errs {
+		if e != nil {
+			errMsg = errMsg + "\n– " + e.Error()
+		}
+	}
+	return fmt.Errorf(errMsg)
+}
 
 func attachPolicyToUsers(conn *iam.IAM, users []*string, arn string) error {
 	for _, u := range users {
