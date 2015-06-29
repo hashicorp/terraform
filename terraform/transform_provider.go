@@ -394,59 +394,6 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.N
 	})
 }
 
-// GraphNodeFlattenable impl.
-func (n *graphNodeCloseProvider) Flatten(p []string) (dag.Vertex, error) {
-	return &graphNodeCloseProviderFlat{
-		graphNodeCloseProvider: n,
-		PathValue:              p,
-	}, nil
-}
-
-// Same as graphNodeCloseProvider, but for flattening
-type graphNodeCloseProviderFlat struct {
-	*graphNodeCloseProvider
-
-	PathValue []string
-}
-
-func (n *graphNodeCloseProviderFlat) Name() string {
-	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeCloseProvider.Name())
-}
-
-func (n *graphNodeCloseProviderFlat) Path() []string {
-	return n.PathValue
-}
-
-func (n *graphNodeCloseProviderFlat) ProviderName() string {
-	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue),
-		n.graphNodeCloseProvider.CloseProviderName())
-}
-
-// GraphNodeDependable impl.
-func (n *graphNodeCloseProviderFlat) DependableName() []string {
-	return []string{n.Name()}
-}
-
-func (n *graphNodeCloseProviderFlat) DependentOn() []string {
-	var result []string
-
-	// If we're in a module, then depend on our parent's provider
-	if len(n.PathValue) > 1 {
-		prefix := modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
-		if prefix != "" {
-			prefix += "."
-		}
-
-		result = append(result, fmt.Sprintf(
-			"%s%s",
-			prefix, n.graphNodeCloseProvider.Name()))
-	}
-
-	return result
-}
-
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
