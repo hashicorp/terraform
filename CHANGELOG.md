@@ -64,6 +64,8 @@ IMPROVEMENTS:
   * provider/aws: Add validation for aws_launch_configuration [GH-2519]
   * provider/aws: Add validation for aws_autoscaling_group.name [GH-2520]
   * provider/aws: Add validation for aws_iam_role.name [GH-2521]
+  * provider/aws: Add validation for aws_iam_role_policy.name [GH-2552]
+  * provider/aws: Add validation for aws_iam_instance_profile.name [GH-2553]
   * provider/aws: aws_auto_scaling_group.default_cooldown no longer requires
       resource replacement [GH-2510]
   * provider/aws: add AH and ESP protocol integers [GH-2321]
