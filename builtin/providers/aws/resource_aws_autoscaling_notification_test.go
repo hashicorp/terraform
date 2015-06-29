@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccASGNotification_basic(t *testing.T) {
+func TestAccAWSASGNotification_basic(t *testing.T) {
 	var asgn autoscaling.DescribeNotificationConfigurationsOutput
 
 	resource.Test(t, resource.TestCase{
@@ -30,7 +30,7 @@ func TestAccASGNotification_basic(t *testing.T) {
 	})
 }
 
-func TestAccASGNotification_update(t *testing.T) {
+func TestAccAWSASGNotification_update(t *testing.T) {
 	var asgn autoscaling.DescribeNotificationConfigurationsOutput
 
 	resource.Test(t, resource.TestCase{
