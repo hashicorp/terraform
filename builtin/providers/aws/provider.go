@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"sync"
+
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -11,35 +14,50 @@ func Provider() terraform.ResourceProvider {
 	// TODO: Move the validation to this, requires conditional schemas
 	// TODO: Move the configuration to this, requires validation
 
+	// Prepare to handle external sources of credentials.
+	// Static credentials are intentionally omitted;
+	// this is used when no static credentials are provided.
+	creds := credentials.NewChainCredentials([]credentials.Provider{
+		&credentials.EnvProvider{},
+		&credentials.SharedCredentialsProvider{},
+		&credentials.EC2RoleProvider{},
+	})
+	var credVal credentials.Value
+	var credErr error
+	var once sync.Once
+	getCreds := func() {
+		credVal, credErr = creds.Get()
+	}
+
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_ACCESS_KEY",
-					"AWS_ACCESS_KEY_ID",
-				}, nil),
+				DefaultFunc: func() (interface{}, error) {
+					once.Do(getCreds)
+					return credVal.AccessKeyID, credErr
+				},
 				Description: descriptions["access_key"],
 			},
 
 			"secret_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_SECRET_KEY",
-					"AWS_SECRET_ACCESS_KEY",
-				}, nil),
+				DefaultFunc: func() (interface{}, error) {
+					once.Do(getCreds)
+					return credVal.SecretAccessKey, credErr
+				},
 				Description: descriptions["secret_key"],
 			},
 
 			"token": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_SESSION_TOKEN",
-					"AWS_SECURITY_TOKEN",
-				}, ""),
+				DefaultFunc: func() (interface{}, error) {
+					once.Do(getCreds)
+					return credVal.SessionToken, credErr
+				},
 				Description: descriptions["token"],
 			},
 
