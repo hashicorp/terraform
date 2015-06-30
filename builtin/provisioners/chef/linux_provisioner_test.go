@@ -24,7 +24,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 
 			Commands: map[string]bool{
 				"sudo curl -LO https://www.chef.io/chef/install.sh": true,
-				"sudo bash ./install.sh -v ":                        true,
+				"sudo bash ./install.sh -v \"\"":                    true,
 				"sudo rm -f install.sh":                             true,
 			},
 		},
@@ -41,7 +41,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 
 			Commands: map[string]bool{
 				"curl -LO https://www.chef.io/chef/install.sh": true,
-				"bash ./install.sh -v ":                        true,
+				"bash ./install.sh -v \"\"":                    true,
 				"rm -f install.sh":                             true,
 			},
 		},
@@ -59,7 +59,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 
 			Commands: map[string]bool{
 				"proxy_http='http://proxy.local' curl -LO https://www.chef.io/chef/install.sh": true,
-				"proxy_http='http://proxy.local' bash ./install.sh -v ":                        true,
+				"proxy_http='http://proxy.local' bash ./install.sh -v \"\"":                    true,
 				"proxy_http='http://proxy.local' rm -f install.sh":                             true,
 			},
 		},
@@ -80,7 +80,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"proxy_http='http://proxy.local' no_proxy='http://local.local,http://local.org' " +
 					"curl -LO https://www.chef.io/chef/install.sh": true,
 				"proxy_http='http://proxy.local' no_proxy='http://local.local,http://local.org' " +
-					"bash ./install.sh -v ": true,
+					"bash ./install.sh -v \"\"": true,
 				"proxy_http='http://proxy.local' no_proxy='http://local.local,http://local.org' " +
 					"rm -f install.sh": true,
 			},
@@ -99,7 +99,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 
 			Commands: map[string]bool{
 				"curl -LO https://www.chef.io/chef/install.sh": true,
-				"bash ./install.sh -v 11.18.6":                 true,
+				"bash ./install.sh -v \"11.18.6\"":             true,
 				"rm -f install.sh":                             true,
 			},
 		},
