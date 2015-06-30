@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -24,7 +25,8 @@ func resourceAwsElb() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
@@ -211,10 +213,18 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	var elbName string
+	if v, ok := d.GetOk("name"); ok {
+		elbName = v.(string)
+	} else {
+		elbName = resource.PrefixedUniqueId("tf-lb-")
+		d.Set("name", elbName)
+	}
+
 	tags := tagsFromMapELB(d.Get("tags").(map[string]interface{}))
 	// Provision the elb
 	elbOpts := &elb.CreateLoadBalancerInput{
-		LoadBalancerName: aws.String(d.Get("name").(string)),
+		LoadBalancerName: aws.String(elbName),
 		Listeners:        listeners,
 		Tags:             tags,
 	}
@@ -241,7 +251,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Assign the elb's unique identifier for use later
-	d.SetId(d.Get("name").(string))
+	d.SetId(elbName)
 	log.Printf("[INFO] ELB ID: %s", d.Id())
 
 	// Enable partial mode and record what we set
