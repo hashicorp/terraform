@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
