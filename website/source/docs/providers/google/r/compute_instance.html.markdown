@@ -85,6 +85,11 @@ The following arguments are supported:
 
 * `tags` - (Optional) Tags to attach to the instance.
 
+* `preemptible` - (Optional) Whether the instance is preemptible. This defaults to false.
+
+* `automatic_restart` - (Optional) Whether the instance should be automatically restarted
+    if it is terminated by Compute Engine. This default to false.
+
 The `disk` block supports: (Note that either disk or image is required, unless
 the type is "local-ssd", in which case scratch must be true).
 
