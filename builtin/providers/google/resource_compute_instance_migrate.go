@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-    "github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -126,7 +126,6 @@ func migrateStateV1toV2(is *terraform.InstanceState) (*terraform.InstanceState, 
 
 		delete(is.Attributes, k)
 	}
-
 
 	for service_acct_index, newScopes := range newScopesMap {
 		for _, newScope := range newScopes {

@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/elasticache"
-	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -17,13 +17,13 @@ func resourceAwsElasticacheSubnetGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsElasticacheSubnetGroupCreate,
 		Read:   resourceAwsElasticacheSubnetGroupRead,
+		Update: resourceAwsElasticacheSubnetGroupUpdate,
 		Delete: resourceAwsElasticacheSubnetGroupDelete,
 
 		Schema: map[string]*schema.Schema{
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -32,9 +32,7 @@ func resourceAwsElasticacheSubnetGroup() *schema.Resource {
 			},
 			"subnet_ids": &schema.Schema{
 				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
@@ -110,6 +108,29 @@ func resourceAwsElasticacheSubnetGroupRead(d *schema.ResourceData, meta interfac
 	return nil
 }
 
+func resourceAwsElasticacheSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).elasticacheconn
+	if d.HasChange("subnet_ids") || d.HasChange("description") {
+		var subnets []*string
+		if v := d.Get("subnet_ids"); v != nil {
+			for _, v := range v.(*schema.Set).List() {
+				subnets = append(subnets, aws.String(v.(string)))
+			}
+		}
+		log.Printf("[DEBUG] Updating ElastiCache Subnet Group")
+
+		_, err := conn.ModifyCacheSubnetGroup(&elasticache.ModifyCacheSubnetGroupInput{
+			CacheSubnetGroupName:        aws.String(d.Get("name").(string)),
+			CacheSubnetGroupDescription: aws.String(d.Get("description").(string)),
+			SubnetIDs:                   subnets,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return resourceAwsElasticacheSubnetGroupRead(d, meta)
+}
 func resourceAwsElasticacheSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 

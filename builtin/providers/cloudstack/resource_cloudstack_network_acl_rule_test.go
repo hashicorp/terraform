@@ -160,11 +160,9 @@ func testAccCheckCloudStackNetworkACLRuleDestroy(s *terraform.State) error {
 				continue
 			}
 
-			p := cs.NetworkACL.NewDeleteNetworkACLParams(uuid)
-			_, err := cs.NetworkACL.DeleteNetworkACL(p)
-
-			if err != nil {
-				return err
+			_, _, err := cs.NetworkACL.GetNetworkACLByID(uuid)
+			if err == nil {
+				return fmt.Errorf("Network ACL rule %s still exists", rs.Primary.ID)
 			}
 		}
 	}

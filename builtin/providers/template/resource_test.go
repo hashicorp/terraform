@@ -34,15 +34,7 @@ func TestTemplateRendering(t *testing.T) {
 			Providers: testProviders,
 			Steps: []r.TestStep{
 				r.TestStep{
-					Config: `
-resource "template_file" "t0" {
-	filename = "mock"
-	vars = ` + tt.vars + `
-}
-output "rendered" {
-    value = "${template_file.t0.rendered}"
-}
-`,
+					Config: testTemplateConfig(tt.vars),
 					Check: func(s *terraform.State) error {
 						got := s.RootModule().Outputs["rendered"]
 						if tt.want != got {
@@ -54,4 +46,56 @@ output "rendered" {
 			},
 		})
 	}
+}
+
+// https://github.com/hashicorp/terraform/issues/2344
+func TestTemplateVariableChange(t *testing.T) {
+	steps := []struct {
+		vars     string
+		template string
+		want     string
+	}{
+		{`{a="foo"}`, `${a}`, `foo`},
+		{`{b="bar"}`, `${b}`, `bar`},
+	}
+
+	var testSteps []r.TestStep
+	for i, step := range steps {
+		testSteps = append(testSteps, r.TestStep{
+			PreConfig: func(template string) func() {
+				return func() {
+					readfile = func(string) ([]byte, error) {
+						return []byte(template), nil
+					}
+				}
+			}(step.template),
+			Config: testTemplateConfig(step.vars),
+			Check: func(i int, want string) r.TestCheckFunc {
+				return func(s *terraform.State) error {
+					got := s.RootModule().Outputs["rendered"]
+					if want != got {
+						return fmt.Errorf("[%d] got:\n%q\nwant:\n%q\n", i, got, want)
+					}
+					return nil
+				}
+			}(i, step.want),
+		})
+	}
+
+	r.Test(t, r.TestCase{
+		Providers: testProviders,
+		Steps:     testSteps,
+	})
+}
+
+func testTemplateConfig(vars string) string {
+	return `
+resource "template_file" "t0" {
+	filename = "mock"
+	vars = ` + vars + `
+}
+output "rendered" {
+    value = "${template_file.t0.rendered}"
+}
+	`
 }

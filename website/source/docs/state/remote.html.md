@@ -47,7 +47,7 @@ An example is shown below:
 resource "terraform_remote_state" "vpc" {
     backend = "atlas"
     config {
-        path = "hashicorp/vpc-prod"
+        name = "hashicorp/vpc-prod"
     }
 }
 

@@ -46,7 +46,7 @@ The following arguments are supported:
 * `type` - (Required) The type of VPN connection. The only type AWS supports at this time is "ipsec.1".
 * `vpn_gateway_id` - (Required) The ID of the virtual private gateway.
 
-## Attrubute Reference
+## Attribute Reference
 
 The following attributes are exported:
 

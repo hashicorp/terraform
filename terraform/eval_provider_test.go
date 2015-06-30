@@ -112,6 +112,22 @@ func TestEvalInitProvider(t *testing.T) {
 	}
 }
 
+func TestEvalCloseProvider(t *testing.T) {
+	n := &EvalCloseProvider{Name: "foo"}
+	provider := &MockResourceProvider{}
+	ctx := &MockEvalContext{CloseProviderProvider: provider}
+	if _, err := n.Eval(ctx); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !ctx.CloseProviderCalled {
+		t.Fatal("should be called")
+	}
+	if ctx.CloseProviderName != "foo" {
+		t.Fatalf("bad: %#v", ctx.CloseProviderName)
+	}
+}
+
 func TestEvalGetProvider_impl(t *testing.T) {
 	var _ EvalNode = new(EvalGetProvider)
 }

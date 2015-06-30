@@ -2,10 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -31,6 +32,19 @@ func resourceAwsIamRole() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
+					value := v.(string)
+					if len(value) > 64 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 64 characters", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+				},
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -101,6 +115,27 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 
 func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
+
+	// Roles cannot be destroyed when attached to an existing Instance Profile
+	resp, err := iamconn.ListInstanceProfilesForRole(&iam.ListInstanceProfilesForRoleInput{
+		RoleName: aws.String(d.Id()),
+	})
+	if err != nil {
+		return fmt.Errorf("Error listing Profiles for IAM Role (%s) when trying to delete: %s", d.Id(), err)
+	}
+
+	// Loop and remove this Role from any Profiles
+	if len(resp.InstanceProfiles) > 0 {
+		for _, i := range resp.InstanceProfiles {
+			_, err := iamconn.RemoveRoleFromInstanceProfile(&iam.RemoveRoleFromInstanceProfileInput{
+				InstanceProfileName: i.InstanceProfileName,
+				RoleName:            aws.String(d.Id()),
+			})
+			if err != nil {
+				return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+			}
+		}
+	}
 
 	request := &iam.DeleteRoleInput{
 		RoleName: aws.String(d.Id()),

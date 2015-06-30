@@ -8,7 +8,7 @@ description: |-
 
 # aws\_security\_group\_rule
 
-Provides a security group rule resource. Represents a signle `ingress` or
+Provides a security group rule resource. Represents a single `ingress` or
 `egress` group rule, which can be added to external Security Groups.
 
 ~> **NOTE on Security Groups and Security Group Rules:** Terraform currently

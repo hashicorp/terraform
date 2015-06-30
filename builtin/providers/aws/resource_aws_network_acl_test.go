@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -24,29 +24,29 @@ func TestAccAWSNetworkAcl_EgressAndIngressRules(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.1216169466.protocol", "6"),
+						"aws_network_acl.bar", "ingress.109047673.protocol", "6"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.1216169466.rule_no", "1"),
+						"aws_network_acl.bar", "ingress.109047673.rule_no", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.1216169466.from_port", "80"),
+						"aws_network_acl.bar", "ingress.109047673.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.1216169466.to_port", "80"),
+						"aws_network_acl.bar", "ingress.109047673.to_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.1216169466.action", "allow"),
+						"aws_network_acl.bar", "ingress.109047673.action", "allow"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.1216169466.cidr_block", "10.3.0.0/18"),
+						"aws_network_acl.bar", "ingress.109047673.cidr_block", "10.3.0.0/18"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.2634340476.protocol", "6"),
+						"aws_network_acl.bar", "egress.868403673.protocol", "6"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.2634340476.rule_no", "2"),
+						"aws_network_acl.bar", "egress.868403673.rule_no", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.2634340476.from_port", "443"),
+						"aws_network_acl.bar", "egress.868403673.from_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.2634340476.to_port", "443"),
+						"aws_network_acl.bar", "egress.868403673.to_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.2634340476.cidr_block", "10.3.0.0/18"),
+						"aws_network_acl.bar", "egress.868403673.cidr_block", "10.3.0.0/18"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.2634340476.action", "allow"),
+						"aws_network_acl.bar", "egress.868403673.action", "allow"),
 				),
 			},
 		},
@@ -67,17 +67,17 @@ func TestAccAWSNetworkAcl_OnlyIngressRules_basic(t *testing.T) {
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					// testAccCheckSubnetAssociation("aws_network_acl.foos", "aws_subnet.blob"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.protocol", "6"),
+						"aws_network_acl.foos", "ingress.1451312565.protocol", "6"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.rule_no", "2"),
+						"aws_network_acl.foos", "ingress.1451312565.rule_no", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.from_port", "443"),
+						"aws_network_acl.foos", "ingress.1451312565.from_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.to_port", "443"),
+						"aws_network_acl.foos", "ingress.1451312565.to_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.action", "deny"),
+						"aws_network_acl.foos", "ingress.1451312565.action", "deny"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.cidr_block", "10.2.0.0/18"),
+						"aws_network_acl.foos", "ingress.1451312565.cidr_block", "10.2.0.0/18"),
 				),
 			},
 		},
@@ -98,21 +98,21 @@ func TestAccAWSNetworkAcl_OnlyIngressRules_update(t *testing.T) {
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					testIngressRuleLength(&networkAcl, 2),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.protocol", "6"),
+						"aws_network_acl.foos", "ingress.2048097841.protocol", "6"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.rule_no", "1"),
+						"aws_network_acl.foos", "ingress.2048097841.rule_no", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.from_port", "0"),
+						"aws_network_acl.foos", "ingress.2048097841.from_port", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.to_port", "22"),
+						"aws_network_acl.foos", "ingress.2048097841.to_port", "22"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.action", "deny"),
+						"aws_network_acl.foos", "ingress.2048097841.action", "deny"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.cidr_block", "10.2.0.0/18"),
+						"aws_network_acl.foos", "ingress.1451312565.cidr_block", "10.2.0.0/18"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.from_port", "443"),
+						"aws_network_acl.foos", "ingress.1451312565.from_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3264550475.rule_no", "2"),
+						"aws_network_acl.foos", "ingress.1451312565.rule_no", "2"),
 				),
 			},
 			resource.TestStep{
@@ -121,17 +121,17 @@ func TestAccAWSNetworkAcl_OnlyIngressRules_update(t *testing.T) {
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					testIngressRuleLength(&networkAcl, 1),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.protocol", "6"),
+						"aws_network_acl.foos", "ingress.2048097841.protocol", "6"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.rule_no", "1"),
+						"aws_network_acl.foos", "ingress.2048097841.rule_no", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.from_port", "0"),
+						"aws_network_acl.foos", "ingress.2048097841.from_port", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.to_port", "22"),
+						"aws_network_acl.foos", "ingress.2048097841.to_port", "22"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.action", "deny"),
+						"aws_network_acl.foos", "ingress.2048097841.action", "deny"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2824900805.cidr_block", "10.2.0.0/18"),
+						"aws_network_acl.foos", "ingress.2048097841.cidr_block", "10.2.0.0/18"),
 				),
 			},
 		},

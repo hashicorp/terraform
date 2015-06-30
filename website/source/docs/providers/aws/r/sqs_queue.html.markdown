@@ -11,7 +11,7 @@ description: |-
 ## Example Usage
 
 ```
-resource "aws_sqs_queue" "terrform_queue" {
+resource "aws_sqs_queue" "terraform_queue" {
   name = "terraform-example-queue"
   delay_seconds = 90
   max_message_size = 2048
@@ -23,6 +23,7 @@ resource "aws_sqs_queue" "terrform_queue" {
 ## Argument Reference
 
 The following arguments are supported:
+
 * `name` - (Required) This is the human-readable name of the queue
 * `visibility_timeout_seconds` - (Optional) The time in seconds that the delivery of all messages in the queue will be delayed. An integer from 0 to 900 (15 minutes). The default for this attribute is 30 seconds
 * `message_retention_seconds` - (Optional) The number of seconds Amazon SQS retains a message. Integer representing seconds, from 60 (1 minute) to 1209600 (14 days). The default for this attribute is 345600 (4 days).
@@ -36,3 +37,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The URL for the created Amazon SQS queue.
+* `arn` - The ARN of the SQS queue

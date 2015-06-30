@@ -18,9 +18,18 @@ func TestMissingProvisionerTransformer(t *testing.T) {
 		}
 	}
 
-	transform := &MissingProvisionerTransformer{Provisioners: []string{"foo"}}
-	if err := transform.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
+	{
+		transform := &MissingProvisionerTransformer{Provisioners: []string{"foo"}}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &CloseProvisionerTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -57,6 +66,13 @@ func TestPruneProvisionerTransformer(t *testing.T) {
 	}
 
 	{
+		transform := &CloseProvisionerTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &PruneProvisionerTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -86,10 +102,14 @@ func TestGraphNodeMissingProvisioner_ProvisionerName(t *testing.T) {
 const testTransformMissingProvisionerBasicStr = `
 aws_instance.web
 provisioner.foo
+provisioner.shell (close)
+  aws_instance.web
 `
 
 const testTransformPruneProvisionerBasicStr = `
 aws_instance.web
   provisioner.foo
 provisioner.foo
+provisioner.foo (close)
+  aws_instance.web
 `

@@ -53,6 +53,9 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
+	countHook := new(CountHook)
+	c.Meta.extraHooks = []terraform.Hook{countHook}
+
 	ctx, _, err := c.Context(contextOpts{
 		Destroy:   destroy,
 		Path:      path,
@@ -130,6 +133,13 @@ func (c *PlanCommand) Run(args []string) int {
 		ModuleDepth: moduleDepth,
 	}))
 
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][bold]Plan:[reset] "+
+			"%d to add, %d to change, %d to destroy.",
+		countHook.ToAdd,
+		(countHook.ToChange + countHook.ToRemoveAndAdd),
+		countHook.ToRemove)))
+
 	if detailed {
 		return 2
 	}
@@ -189,7 +199,6 @@ Options:
   -var-file=foo       Set variables in the Terraform configuration from
                       a file. If "terraform.tfvars" is present, it will be
                       automatically loaded if this flag is not specified.
-
 `
 	return strings.TrimSpace(helpText)
 }

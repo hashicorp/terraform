@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDHCPOptionsAssociation(t *testing.T) {
+func TestAccAWSDHCPOptionsAssociation_basic(t *testing.T) {
 	var v ec2.VPC
 	var d ec2.DHCPOptions
 

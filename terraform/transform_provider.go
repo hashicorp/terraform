@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
@@ -15,6 +16,13 @@ import (
 type GraphNodeProvider interface {
 	ProviderName() string
 	ProviderConfig() *config.RawConfig
+}
+
+// GraphNodeCloseProvider is an interface that nodes that can be a close
+// provider must implement. The CloseProviderName returned is the name of
+// the provider they satisfy.
+type GraphNodeCloseProvider interface {
+	CloseProviderName() string
 }
 
 // GraphNodeProviderConsumer is an interface that nodes that require
@@ -98,6 +106,50 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	return err
 }
 
+// CloseProviderTransformer is a GraphTransformer that adds nodes to the
+// graph that will close open provider connections that aren't needed anymore.
+// A provider connection is not needed anymore once all depended resources
+// in the graph are evaluated.
+type CloseProviderTransformer struct{}
+
+func (t *CloseProviderTransformer) Transform(g *Graph) error {
+	pm := providerVertexMap(g)
+	cpm := closeProviderVertexMap(g)
+	var err error
+	for _, v := range g.Vertices() {
+		if pv, ok := v.(GraphNodeProviderConsumer); ok {
+			for _, p := range pv.ProvidedBy() {
+				source := cpm[p]
+
+				if source == nil {
+					// Create a new graphNodeCloseProvider and add it to the graph
+					source = &graphNodeCloseProvider{ProviderNameValue: p}
+					g.Add(source)
+
+					// Close node needs to depend on provider
+					provider, ok := pm[p]
+					if !ok {
+						err = multierror.Append(err, fmt.Errorf(
+							"%s: provider %s couldn't be found",
+							dag.VertexName(v), p))
+						continue
+					}
+					g.Connect(dag.BasicEdge(source, provider))
+
+					// Make sure we also add the new graphNodeCloseProvider to the map
+					// so we don't create and add any duplicate graphNodeCloseProviders.
+					cpm[p] = source
+				}
+
+				// Close node depends on all nodes provided by the provider
+				g.Connect(dag.BasicEdge(source, v))
+			}
+		}
+	}
+
+	return err
+}
+
 // MissingProviderTransformer is a GraphTransformer that adds nodes
 // for missing providers into the graph. Specifically, it creates provider
 // configuration nodes for all the providers that we support. These are
@@ -108,15 +160,44 @@ type MissingProviderTransformer struct {
 }
 
 func (t *MissingProviderTransformer) Transform(g *Graph) error {
+	// Create a set of our supported providers
+	supported := make(map[string]struct{}, len(t.Providers))
+	for _, v := range t.Providers {
+		supported[v] = struct{}{}
+	}
+
+	// Get the map of providers we already have in our graph
 	m := providerVertexMap(g)
-	for _, p := range t.Providers {
-		if _, ok := m[p]; ok {
-			// This provider already exists as a configured node
+
+	// Go through all the provider consumers and make sure we add
+	// that provider if it is missing.
+	for _, v := range g.Vertices() {
+		pv, ok := v.(GraphNodeProviderConsumer)
+		if !ok {
 			continue
 		}
 
-		// Add our own missing provider node to the graph
-		g.Add(&graphNodeMissingProvider{ProviderNameValue: p})
+		for _, p := range pv.ProvidedBy() {
+			if _, ok := m[p]; ok {
+				// This provider already exists as a configure node
+				continue
+			}
+
+			// If the provider has an alias in it, we just want the type
+			ptype := p
+			if idx := strings.IndexRune(p, '.'); idx != -1 {
+				ptype = p[:idx]
+			}
+
+			if _, ok := supported[ptype]; !ok {
+				// If we don't support the provider type, skip it.
+				// Validation later will catch this as an error.
+				continue
+			}
+
+			// Add our own missing provider node to the graph
+			m[p] = g.Add(&graphNodeMissingProvider{ProviderNameValue: p})
+		}
 	}
 
 	return nil
@@ -141,6 +222,28 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 	}
 
 	return nil
+}
+
+func providerVertexMap(g *Graph) map[string]dag.Vertex {
+	m := make(map[string]dag.Vertex)
+	for _, v := range g.Vertices() {
+		if pv, ok := v.(GraphNodeProvider); ok {
+			m[pv.ProviderName()] = v
+		}
+	}
+
+	return m
+}
+
+func closeProviderVertexMap(g *Graph) map[string]dag.Vertex {
+	m := make(map[string]dag.Vertex)
+	for _, v := range g.Vertices() {
+		if pv, ok := v.(GraphNodeCloseProvider); ok {
+			m[pv.CloseProviderName()] = v
+		}
+	}
+
+	return m
 }
 
 type graphNodeDisabledProvider struct {
@@ -258,6 +361,39 @@ func (n *graphNodeDisabledProviderFlat) DependentOn() []string {
 	return result
 }
 
+type graphNodeCloseProvider struct {
+	ProviderNameValue string
+}
+
+func (n *graphNodeCloseProvider) Name() string {
+	return fmt.Sprintf("provider.%s (close)", n.ProviderNameValue)
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeCloseProvider) EvalTree() EvalNode {
+	return CloseProviderEvalTree(n.ProviderNameValue)
+}
+
+// GraphNodeDependable impl.
+func (n *graphNodeCloseProvider) DependableName() []string {
+	return []string{n.Name()}
+}
+
+func (n *graphNodeCloseProvider) CloseProviderName() string {
+	return n.ProviderNameValue
+}
+
+// GraphNodeDotter impl.
+func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	if !opts.Verbose {
+		return nil
+	}
+	return dot.NewNode(name, map[string]string{
+		"label": n.Name(),
+		"shape": "diamond",
+	})
+}
+
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
@@ -303,17 +439,6 @@ func (n *graphNodeMissingProvider) Flatten(p []string) (dag.Vertex, error) {
 		graphNodeMissingProvider: n,
 		PathValue:                p,
 	}, nil
-}
-
-func providerVertexMap(g *Graph) map[string]dag.Vertex {
-	m := make(map[string]dag.Vertex)
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeProvider); ok {
-			m[pv.ProviderName()] = v
-		}
-	}
-
-	return m
 }
 
 // Same as graphNodeMissingProvider, but for flattening

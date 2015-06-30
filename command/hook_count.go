@@ -13,19 +13,16 @@ type CountHook struct {
 	Changed int
 	Removed int
 
+	ToAdd          int
+	ToChange       int
+	ToRemove       int
+	ToRemoveAndAdd int
+
 	pending map[string]countHookAction
 
 	sync.Mutex
 	terraform.NilHook
 }
-
-type countHookAction byte
-
-const (
-	countHookActionAdd countHookAction = iota
-	countHookActionChange
-	countHookActionRemove
-)
 
 func (h *CountHook) Reset() {
 	h.Lock()
@@ -82,6 +79,26 @@ func (h *CountHook) PostApply(
 				}
 			}
 		}
+	}
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *CountHook) PostDiff(
+	n *terraform.InstanceInfo, d *terraform.InstanceDiff) (
+	terraform.HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	switch d.ChangeType() {
+	case terraform.DiffDestroyCreate:
+		h.ToRemoveAndAdd += 1
+	case terraform.DiffCreate:
+		h.ToAdd += 1
+	case terraform.DiffDestroy:
+		h.ToRemove += 1
+	default:
+		h.ToChange += 1
 	}
 
 	return terraform.HookActionContinue, nil

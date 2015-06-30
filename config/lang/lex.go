@@ -192,9 +192,17 @@ func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
 
 func (x *parserLex) lexId(yylval *parserSymType) int {
 	var b bytes.Buffer
+	var last rune
 	for {
 		c := x.next()
 		if c == lexEOF {
+			break
+		}
+
+		// We only allow * after a '.' for resource splast: type.name.*.id
+		// Otherwise, its probably multiplication.
+		if c == '*' && last != '.' {
+			x.backup()
 			break
 		}
 
@@ -214,6 +222,8 @@ func (x *parserLex) lexId(yylval *parserSymType) int {
 			x.Error(err.Error())
 			return lexEOF
 		}
+
+		last = c
 	}
 
 	yylval.token = &parserToken{Value: b.String()}
@@ -299,9 +309,7 @@ func (x *parserLex) lexString(yylval *parserSymType, quoted bool) (int, bool) {
 			// Let's check to see if we're escaping anything.
 			if c == '\\' {
 				switch n := x.next(); n {
-				case '\\':
-					fallthrough
-				case '"':
+				case '\\', '"':
 					c = n
 				case 'n':
 					c = '\n'

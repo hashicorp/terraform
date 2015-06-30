@@ -21,7 +21,7 @@ resource "docker_container" "ubuntu" {
 
 # Find the latest Ubuntu precise image.
 resource "docker_image" "ubuntu" {
-    image = "ubuntu:precise"
+  name = "ubuntu:precise"
 }
 ```
 
@@ -46,6 +46,7 @@ The following arguments are supported:
   kept running. If false, then as long as the container exists, Terraform
   assumes it is successful.
 * `ports` - (Optional) See [Ports](#ports) below for details.
+* `privileged` - (Optional, bool) Run container in privileged mode.
 * `publish_all_ports` - (Optional, bool) Publish all ports of the container.
 * `volumes` - (Optional) See [Volumes](#volumes) below for details.
 

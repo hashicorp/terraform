@@ -56,7 +56,7 @@ func tempEnv(t *testing.T, k string, v string) string {
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
-	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
+	c, err := config.LoadFile(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -377,6 +377,23 @@ do_instance.foo:
   ID = foo
   num = 2
   type = do_instance
+`
+
+const testTerraformApplyModuleOnlyProviderStr = `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+  test_instance.foo:
+    ID = foo
+`
+
+const testTerraformApplyModuleProviderAliasStr = `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+    provider = aws.eu
 `
 
 const testTerraformApplyOutputOrphanStr = `

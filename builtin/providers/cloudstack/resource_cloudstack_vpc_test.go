@@ -92,13 +92,9 @@ func testAccCheckCloudStackVPCDestroy(s *terraform.State) error {
 			return fmt.Errorf("No VPC ID is set")
 		}
 
-		p := cs.VPC.NewDeleteVPCParams(rs.Primary.ID)
-		_, err := cs.VPC.DeleteVPC(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting VPC (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.VPC.GetVPCByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("VPC %s still exists", rs.Primary.ID)
 		}
 	}
 

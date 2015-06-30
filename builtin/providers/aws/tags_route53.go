@@ -3,14 +3,14 @@ package aws
 import (
 	"log"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // setTags is a helper to set the tags for a resource. It expects the
 // tags field to be named "tags"
-func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
+func setTagsR53(conn *route53.Route53, d *schema.ResourceData, resourceType string) error {
 	if d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
@@ -25,7 +25,7 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
 		log.Printf("[DEBUG] Changing tags: \n\tadding: %#v\n\tremoving:%#v", create, remove)
 		req := &route53.ChangeTagsForResourceInput{
 			ResourceID:   aws.String(d.Id()),
-			ResourceType: aws.String("hostedzone"),
+			ResourceType: aws.String(resourceType),
 		}
 
 		if len(create) > 0 {

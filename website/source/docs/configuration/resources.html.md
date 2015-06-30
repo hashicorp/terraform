@@ -129,7 +129,7 @@ resource "aws_instance" "app" {
 
 ## Multiple Provider Instances
 
-By default, a resource targets the resource based on its type. For example
+By default, a resource targets the provider based on its type. For example
 an `aws_instance` resource will target the "aws" provider. As of Terraform
 0.5.0, a resource can target any provider by name.
 

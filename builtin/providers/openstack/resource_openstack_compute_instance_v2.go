@@ -15,6 +15,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/schedulerhints"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/tenantnetworks"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
@@ -224,6 +225,48 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 				Set: resourceComputeVolumeAttachmentHash,
 			},
+			"scheduler_hints": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"different_host": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"same_host": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"query": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"target_cell": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"build_near_host_ip": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceComputeSchedulerHintsHash,
+			},
 		},
 	}
 }
@@ -286,6 +329,16 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		createOpts = &bootfromvolume.CreateOptsExt{
 			createOpts,
 			blockDevice,
+		}
+	}
+
+	schedulerHintsRaw := d.Get("scheduler_hints").(*schema.Set).List()
+	if len(schedulerHintsRaw) > 0 {
+		log.Printf("[DEBUG] schedulerhints: %+v", schedulerHintsRaw)
+		schedulerHints := resourceInstanceSchedulerHintsV2(d, schedulerHintsRaw[0].(map[string]interface{}))
+		createOpts = &schedulerhints.CreateOptsExt{
+			createOpts,
+			schedulerHints,
 		}
 	}
 
@@ -764,13 +817,19 @@ func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
 
 func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
 	rawNetworks := d.Get("network").([]interface{})
-	newNetworks := make([]map[string]interface{}, len(rawNetworks))
+	newNetworks := make([]map[string]interface{}, 0, len(rawNetworks))
 	var tenantnet tenantnetworks.Network
 
 	tenantNetworkExt := true
-	for i, raw := range rawNetworks {
-		rawMap := raw.(map[string]interface{})
+	for _, raw := range rawNetworks {
+		// Not sure what causes this, but it is a possibility (see GH-2323).
+		// Since we call this function to reconcile what we'll save in the
+		// state anyways, we just ignore it.
+		if raw == nil {
+			continue
+		}
 
+		rawMap := raw.(map[string]interface{})
 		allPages, err := tenantnetworks.List(computeClient).AllPages()
 		if err != nil {
 			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
@@ -809,16 +868,15 @@ func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schem
 			networkName = rawMap["name"].(string)
 		}
 
-		newNetworks[i] = map[string]interface{}{
+		newNetworks = append(newNetworks, map[string]interface{}{
 			"uuid":        networkID,
 			"name":        networkName,
 			"port":        rawMap["port"].(string),
 			"fixed_ip_v4": rawMap["fixed_ip_v4"].(string),
-		}
+		})
 	}
 
 	log.Printf("[DEBUG] networks: %+v", newNetworks)
-
 	return newNetworks, nil
 }
 
@@ -870,6 +928,40 @@ func resourceInstanceBlockDeviceV2(d *schema.ResourceData, bd map[string]interfa
 	}
 
 	return bfvOpts
+}
+
+func resourceInstanceSchedulerHintsV2(d *schema.ResourceData, schedulerHintsRaw map[string]interface{}) schedulerhints.SchedulerHints {
+	differentHost := []string{}
+	if len(schedulerHintsRaw["different_host"].([]interface{})) > 0 {
+		for _, dh := range schedulerHintsRaw["different_host"].([]interface{}) {
+			differentHost = append(differentHost, dh.(string))
+		}
+	}
+
+	sameHost := []string{}
+	if len(schedulerHintsRaw["same_host"].([]interface{})) > 0 {
+		for _, sh := range schedulerHintsRaw["same_host"].([]interface{}) {
+			sameHost = append(sameHost, sh.(string))
+		}
+	}
+
+	query := make([]interface{}, len(schedulerHintsRaw["query"].([]interface{})))
+	if len(schedulerHintsRaw["query"].([]interface{})) > 0 {
+		for _, q := range schedulerHintsRaw["query"].([]interface{}) {
+			query = append(query, q.(string))
+		}
+	}
+
+	schedulerHints := schedulerhints.SchedulerHints{
+		Group:           schedulerHintsRaw["group"].(string),
+		DifferentHost:   differentHost,
+		SameHost:        sameHost,
+		Query:           query,
+		TargetCell:      schedulerHintsRaw["target_cell"].(string),
+		BuildNearHostIP: schedulerHintsRaw["build_near_host_ip"].(string),
+	}
+
+	return schedulerHints
 }
 
 func getImageID(client *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
@@ -954,6 +1046,29 @@ func resourceComputeVolumeAttachmentHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["volume_id"].(string)))
+	return hashcode.String(buf.String())
+}
+
+func resourceComputeSchedulerHintsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if m["group"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["group"].(string)))
+	}
+
+	if m["target_cell"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["target_cell"].(string)))
+	}
+
+	if m["build_host_near_ip"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["build_host_near_ip"].(string)))
+	}
+
+	buf.WriteString(fmt.Sprintf("%s-", m["different_host"].([]interface{})))
+	buf.WriteString(fmt.Sprintf("%s-", m["same_host"].([]interface{})))
+	buf.WriteString(fmt.Sprintf("%s-", m["query"].([]interface{})))
+
 	return hashcode.String(buf.String())
 }
 

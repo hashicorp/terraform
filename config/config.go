@@ -84,8 +84,8 @@ type Resource struct {
 // ResourceLifecycle is used to store the lifecycle tuning parameters
 // to allow customized behavior
 type ResourceLifecycle struct {
-	CreateBeforeDestroy bool `hcl:"create_before_destroy"`
-	PreventDestroy      bool `hcl:"prevent_destroy"`
+	CreateBeforeDestroy bool `mapstructure:"create_before_destroy"`
+	PreventDestroy      bool `mapstructure:"prevent_destroy"`
 }
 
 // Provisioner is a configured provisioner step on a resource.
@@ -681,6 +681,10 @@ func (o *Output) mergerMerge(m merger) merger {
 	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
 
 	return &result
+}
+
+func (c *ProviderConfig) GoString() string {
+	return fmt.Sprintf("*%#v", *c)
 }
 
 func (c *ProviderConfig) FullName() string {

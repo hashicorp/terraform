@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -78,9 +78,17 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.CreateNetworkInterfaceInput{
-		Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
-		SubnetID:           aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
+		SubnetID: aws.String(d.Get("subnet_id").(string)),
+	}
+
+	security_groups := d.Get("security_groups").(*schema.Set).List()
+	if len(security_groups) != 0 {
+		request.Groups = expandStringList(security_groups)
+	}
+
+	private_ips := d.Get("private_ips").(*schema.Set).List()
+	if len(private_ips) != 0 {
+		request.PrivateIPAddresses = expandPrivateIPAddesses(private_ips)
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
