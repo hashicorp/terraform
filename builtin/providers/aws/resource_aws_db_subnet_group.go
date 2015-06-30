@@ -27,9 +27,9 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 				Required: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+					if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
-							"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+							"only alphanumeric characters and hyphens allowed in %q", k))
 					}
 					if len(value) > 255 {
 						errors = append(errors, fmt.Errorf(
