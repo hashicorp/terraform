@@ -47,6 +47,83 @@ func TestOutput(t *testing.T) {
 	}
 }
 
+func TestModuleOutput(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Outputs: map[string]string{
+					"foo": "bar",
+				},
+			},
+			&terraform.ModuleState{
+				Path: []string{"root", "my_module"},
+				Outputs: map[string]string{
+					"blah": "tastatur",
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	ui := new(cli.MockUi)
+	c := &OutputCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-module", "my_module",
+		"blah",
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	if actual != "tastatur" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestMissingModuleOutput(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Outputs: map[string]string{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	ui := new(cli.MockUi)
+	c := &OutputCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-module", "not_existing_module",
+		"blah",
+	}
+
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func TestOutput_badVar(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{

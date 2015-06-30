@@ -3,11 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
+	"net"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -24,6 +25,16 @@ func resourceAwsVpc() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					_, ipnet, err := net.ParseCIDR(value)
+
+					if err != nil || ipnet == nil || value != ipnet.String() {
+						errors = append(errors, fmt.Errorf(
+							"%q must contain a valid CIDR", k))
+					}
+					return
+				},
 			},
 
 			"instance_tenancy": &schema.Schema{
@@ -247,16 +258,29 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 		VPCID: &vpcID,
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
-	if _, err := conn.DeleteVPC(DeleteVpcOpts); err != nil {
-		ec2err, ok := err.(awserr.Error)
-		if ok && ec2err.Code() == "InvalidVpcID.NotFound" {
+
+	return resource.Retry(5*time.Minute, func() error {
+		_, err := conn.DeleteVPC(DeleteVpcOpts)
+		if err == nil {
 			return nil
 		}
 
-		return fmt.Errorf("Error deleting VPC: %s", err)
-	}
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
+			return &resource.RetryError{Err: err}
+		}
 
-	return nil
+		switch ec2err.Code() {
+		case "InvalidVpcID.NotFound":
+			return nil
+		case "DependencyViolation":
+			return err
+		}
+
+		return &resource.RetryError{
+			Err: fmt.Errorf("Error deleting VPC: %s", err),
+		}
+	})
 }
 
 // VPCStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

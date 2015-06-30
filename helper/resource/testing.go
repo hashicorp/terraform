@@ -60,6 +60,10 @@ type TestCase struct {
 // potentially complex update logic. In general, simply create/destroy
 // tests will only need one step.
 type TestStep struct {
+	// PreConfig is called before the Config is applied to perform any per-step
+	// setup that needs to happen
+	PreConfig func()
+
 	// Config a string of the configuration to give to Terraform.
 	Config string
 
@@ -160,6 +164,10 @@ func testStep(
 	opts terraform.ContextOpts,
 	state *terraform.State,
 	step TestStep) (*terraform.State, error) {
+	if step.PreConfig != nil {
+		step.PreConfig()
+	}
+
 	cfgPath, err := ioutil.TempDir("", "tf-test")
 	if err != nil {
 		return state, fmt.Errorf(

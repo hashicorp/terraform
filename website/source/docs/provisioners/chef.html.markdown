@@ -67,6 +67,13 @@ The following arguments are supported:
 
 * `node_name (string)` - (Required) The name of the node to register with the Chef Server.
 
+* `ohai_hints (array)` - (Optional) A list with
+  [Ohai hints](https://docs.chef.io/ohai.html#hints) to upload to the node.
+
+* `os_type (string)` - (Optional) The OS type of the node. Valid options are: `linux` and
+  `windows`. If not supplied the connection type will be used to determine the OS type (`ssh`
+  will asume `linux` and `winrm` will assume `windows`).
+
 * `prevent_sudo (boolean)` - (Optional) Prevent the use of sudo while installing, configuring
   and running the initial Chef Client run. This option is only used with `ssh` type
   [connections](/docs/provisioners/connection.html).

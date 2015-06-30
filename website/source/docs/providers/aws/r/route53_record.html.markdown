@@ -54,7 +54,7 @@ See [related part of AWS Route53 Developer Guide](http://docs.aws.amazon.com/Rou
 to understand differences between alias and non-alias records.
 
 TTL for all alias records is [60 seconds](http://aws.amazon.com/route53/faqs/#dns_failover_do_i_need_to_adjust),
-you cannot change this, therefore `ttl` has to be ommitted in alias records.
+you cannot change this, therefore `ttl` has to be omitted in alias records.
 
 ```
 resource "aws_elb" "main" {
@@ -89,12 +89,15 @@ The following arguments are supported:
 * `zone_id` - (Required) The ID of the hosted zone to contain this record.
 * `name` - (Required) The name of the record.
 * `type` - (Required) The record type.
-* `ttl` - (Required) The TTL of the record.
-* `records` - (Required) A string list of records.
+* `ttl` - (Required for non-alias records) The TTL of the record.
+* `records` - (Required for non-alias records) A string list of records.
 * `weight` - (Optional) The weight of weighted record (0-255).
 * `set_identifier` - (Optional) Unique identifier to differentiate weighted
-  record from one another. Required for each weighted record.
-* `alias` - (Optional) An alias block. Alias record documented below.
+record from one another. Required for each weighted record.
+* `failover` - (Optional) The routing behavior when associated health check fails. Must be PRIMARY or SECONDARY.
+* `health_check_id` - (Optional) The health check the record should be associated with.
+* `alias` - (Optional) An alias block. Conflicts with `ttl` & `records`.
+  Alias record documented below.
 
 Exactly one of `records` or `alias` must be specified: this determines whether it's an alias record.
 

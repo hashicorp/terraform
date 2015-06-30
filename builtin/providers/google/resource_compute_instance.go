@@ -101,7 +101,7 @@ func resourceComputeInstance() *schema.Resource {
 						},
 
 						"device_name": &schema.Schema{
-							Type: schema.TypeString,
+							Type:     schema.TypeString,
 							Optional: true,
 						},
 					},
@@ -148,9 +148,9 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"network": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeList,
+				Optional:   true,
+				ForceNew:   true,
 				Deprecated: "Please use network_interface",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -229,7 +229,7 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: stringHashcode,
+				Set:      stringHashcode,
 			},
 
 			"metadata_fingerprint": &schema.Schema{
@@ -327,7 +327,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			disk.Source = diskData.SelfLink
 		} else {
 			// Create a new disk
-			disk.InitializeParams = &compute.AttachedDiskInitializeParams{ }
+			disk.InitializeParams = &compute.AttachedDiskInitializeParams{}
 		}
 
 		if v, ok := d.GetOk(prefix + ".scratch"); ok {
@@ -367,7 +367,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			disk.InitializeParams.DiskSizeGb = int64(diskSizeGb)
 		}
 
-		if v, ok := d.GetOk(prefix  + ".device_name"); ok {
+		if v, ok := d.GetOk(prefix + ".device_name"); ok {
 			disk.DeviceName = v.(string)
 		}
 

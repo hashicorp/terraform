@@ -74,6 +74,9 @@ Usage: terraform pull [options]
 
   Refreshes the cached state file from the remote server.
 
+Options:
+
+  -no-color           If specified, output won't contain any color.
 `
 	return strings.TrimSpace(helpText)
 }

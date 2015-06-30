@@ -74,7 +74,7 @@ func (s *Set) List() []interface{} {
 	return result
 }
 
-// Differences performs a set difference of the two sets, returning
+// Difference performs a set difference of the two sets, returning
 // a new third set that has only the elements unique to this set.
 func (s *Set) Difference(other *Set) *Set {
 	result := &Set{F: s.F}

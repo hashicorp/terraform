@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -32,6 +32,7 @@ func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 }
 
 func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
+	var csg elasticache.CacheSubnetGroup
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -40,7 +41,7 @@ func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSElasticacheClusterInVPCConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar"),
+					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
 				),
 			},
@@ -95,7 +96,7 @@ func genRandInt() int {
 }
 
 var testAccAWSElasticacheClusterConfig = fmt.Sprintf(`
-provider "aws" { 
+provider "aws" {
 	region = "us-east-1"
 }
 resource "aws_security_group" "bar" {
@@ -120,6 +121,7 @@ resource "aws_elasticache_cluster" "bar" {
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
+    port = 11211
     parameter_group_name = "default.memcached1.4"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
 }

@@ -80,7 +80,11 @@ func loadKVFile(rawPath string) (map[string]string, error) {
 
 	var result map[string]string
 	if err := hcl.DecodeObject(&result, obj); err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"Error decoding Terraform vars file: %s\n\n"+
+				"The vars file should be in the format of `key = \"value\"`.\n"+
+				"Decoding errors are usually caused by an invalid format.",
+			err)
 	}
 
 	return result, nil

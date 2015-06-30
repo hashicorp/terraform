@@ -6,15 +6,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
-	var group autoscaling.AutoScalingGroup
+	var group autoscaling.Group
 	var lc autoscaling.LaunchConfiguration
 
 	resource.Test(t, resource.TestCase{
@@ -68,7 +68,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 }
 
 func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
-	var group autoscaling.AutoScalingGroup
+	var group autoscaling.Group
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -102,7 +102,7 @@ func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 }
 
 func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
-	var group autoscaling.AutoScalingGroup
+	var group autoscaling.Group
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -154,7 +154,7 @@ func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
+func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.AvailabilityZones[0] != "us-west-2a" {
 			return fmt.Errorf("Bad availability_zones: %#v", group.AvailabilityZones[0])
@@ -207,7 +207,7 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 	}
 }
 
-func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
+func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.LoadBalancerNames[0] != "foobar-terraform-test" {
 			return fmt.Errorf("Bad load_balancers: %#v", group.LoadBalancerNames[0])
@@ -217,7 +217,7 @@ func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.Au
 	}
 }
 
-func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
+func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -266,7 +266,7 @@ func testLaunchConfigurationName(n string, lc *autoscaling.LaunchConfiguration) 
 }
 
 func testAccCheckAWSAutoScalingGroupHealthyCapacity(
-	g *autoscaling.AutoScalingGroup, exp int) resource.TestCheckFunc {
+	g *autoscaling.Group, exp int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		healthy := 0
 		for _, i := range g.Instances {
@@ -343,9 +343,42 @@ resource "aws_autoscaling_group" "bar" {
 `
 
 const testAccAWSAutoScalingGroupConfigWithLoadBalancer = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+	tags { Name = "tf-asg-test" }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id="${aws_vpc.foo.id}"
+
+  ingress {
+    protocol = "-1"
+    from_port = 0
+    to_port = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    protocol = "-1"
+    from_port = 0
+    to_port = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_elb" "bar" {
   name = "foobar-terraform-test"
-  availability_zones = ["us-west-2a"]
+  subnets = ["${aws_subnet.foo.id}"]
+	security_groups = ["${aws_security_group.foo.id}"]
 
   listener {
     instance_port = 80
@@ -361,6 +394,8 @@ resource "aws_elb" "bar" {
     interval = 5
     timeout = 2
   }
+
+	depends_on = ["aws_internet_gateway.gw"]
 }
 
 resource "aws_launch_configuration" "foobar" {
@@ -368,16 +403,18 @@ resource "aws_launch_configuration" "foobar" {
   // bitnami-nginxstack-1.6.1-0-linux-ubuntu-14.04.1-x86_64-hvm-ebs-ami-99f5b1a9-3
   image_id = "ami-b5b3fc85"
   instance_type = "t2.micro"
+	security_groups = ["${aws_security_group.foo.id}"]
 }
 
 resource "aws_autoscaling_group" "bar" {
-  availability_zones = ["us-west-2a"]
+  availability_zones = ["${aws_subnet.foo.availability_zone}"]
+	vpc_zone_identifier = ["${aws_subnet.foo.id}"]
   name = "foobar3-terraform-test"
   max_size = 2
   min_size = 2
   health_check_grace_period = 300
   health_check_type = "ELB"
-  min_elb_capacity = 1
+  min_elb_capacity = 2
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"

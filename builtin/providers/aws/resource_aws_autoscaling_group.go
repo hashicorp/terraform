@@ -9,10 +9,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/autoscaling"
-	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/elb"
 )
 
 func resourceAwsAutoscalingGroup() *schema.Resource {
@@ -27,6 +27,15 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"launch_configuration": &schema.Schema{
@@ -59,7 +68,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"force_delete": &schema.Schema{
@@ -79,7 +87,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"availability_zones": &schema.Schema{
@@ -93,7 +100,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"load_balancers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -221,6 +227,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		AutoScalingGroupName: aws.String(d.Id()),
 	}
 
+	if d.HasChange("default_cooldown") {
+		opts.DefaultCooldown = aws.Long(int64(d.Get("default_cooldown").(int)))
+	}
+
 	if d.HasChange("desired_capacity") {
 		opts.DesiredCapacity = aws.Long(int64(d.Get("desired_capacity").(int)))
 	}
@@ -241,6 +251,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
 	}
 
+	if d.HasChange("health_check_type") {
+		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
+		opts.HealthCheckType = aws.String(d.Get("health_check_type").(string))
+	}
+
 	if err := setAutoscalingTags(conn, d); err != nil {
 		return err
 	} else {
@@ -252,6 +267,42 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		d.Partial(true)
 		return fmt.Errorf("Error updating Autoscaling group: %s", err)
+	}
+
+	if d.HasChange("load_balancers") {
+
+		o, n := d.GetChange("load_balancers")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
+
+		if len(remove) > 0 {
+			_, err := conn.DetachLoadBalancers(&autoscaling.DetachLoadBalancersInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				LoadBalancerNames:    remove,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
+
+		if len(add) > 0 {
+			_, err := conn.AttachLoadBalancers(&autoscaling.AttachLoadBalancersInput{
+				AutoScalingGroupName: aws.String(d.Id()),
+				LoadBalancerNames:    add,
+			})
+			if err != nil {
+				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
+			}
+		}
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
@@ -323,7 +374,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 
 func getAwsAutoscalingGroup(
 	d *schema.ResourceData,
-	meta interface{}) (*autoscaling.AutoScalingGroup, error) {
+	meta interface{}) (*autoscaling.Group, error) {
 	conn := meta.(*AWSClient).autoscalingconn
 
 	describeOpts := autoscaling.DescribeAutoScalingGroupsInput{
@@ -404,7 +455,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	}
 	wantELB := d.Get("min_elb_capacity").(int)
 
-	log.Printf("[DEBUG] Wanting for capacity: %d ASG, %d ELB", wantASG, wantELB)
+	log.Printf("[DEBUG] Waiting for capacity: %d ASG, %d ELB", wantASG, wantELB)
 
 	return resource.Retry(waitForASGCapacityTimeout, func() error {
 		g, err := getAwsAutoscalingGroup(d, meta)
@@ -458,7 +509,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return fmt.Errorf("Still need to wait for more healthy instances.")
+		return fmt.Errorf("Still need to wait for more healthy instances. This could mean instances failed to launch. See Scaling History for more information.")
 	})
 }
 
@@ -466,7 +517,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 // provided ASG.
 //
 // Nested like: lbName -> instanceId -> instanceState
-func getLBInstanceStates(g *autoscaling.AutoScalingGroup, meta interface{}) (map[string]map[string]string, error) {
+func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
 	lbInstanceStates := make(map[string]map[string]string)
 	elbconn := meta.(*AWSClient).elbconn
 

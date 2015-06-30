@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 
 	"github.com/rackspace/gophercloud"
@@ -19,11 +20,20 @@ type Config struct {
 	DomainID         string
 	DomainName       string
 	Insecure         bool
+	EndpointType     string
 
 	osClient *gophercloud.ProviderClient
 }
 
 func (c *Config) loadAndValidate() error {
+
+	if c.EndpointType != "internal" && c.EndpointType != "internalURL" &&
+		c.EndpointType != "admin" && c.EndpointType != "adminURL" &&
+		c.EndpointType != "public" && c.EndpointType != "publicURL" &&
+		c.EndpointType != "" {
+		return fmt.Errorf("Invalid endpoint type provided")
+	}
+
 	ao := gophercloud.AuthOptions{
 		Username:         c.Username,
 		UserID:           c.UserID,
@@ -60,24 +70,38 @@ func (c *Config) loadAndValidate() error {
 
 func (c *Config) blockStorageV1Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewBlockStorageV1(c.osClient, gophercloud.EndpointOpts{
-		Region: region,
+		Region:       region,
+		Availability: c.getEndpointType(),
 	})
 }
 
 func (c *Config) computeV2Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewComputeV2(c.osClient, gophercloud.EndpointOpts{
-		Region: region,
+		Region:       region,
+		Availability: c.getEndpointType(),
 	})
 }
 
 func (c *Config) networkingV2Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewNetworkV2(c.osClient, gophercloud.EndpointOpts{
-		Region: region,
+		Region:       region,
+		Availability: c.getEndpointType(),
 	})
 }
 
 func (c *Config) objectStorageV1Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewObjectStorageV1(c.osClient, gophercloud.EndpointOpts{
-		Region: region,
+		Region:       region,
+		Availability: c.getEndpointType(),
 	})
+}
+
+func (c *Config) getEndpointType() gophercloud.Availability {
+	if c.EndpointType == "internal" || c.EndpointType == "internalURL" {
+		return gophercloud.AvailabilityInternal
+	}
+	if c.EndpointType == "admin" || c.EndpointType == "adminURL" {
+		return gophercloud.AvailabilityAdmin
+	}
+	return gophercloud.AvailabilityPublic
 }
