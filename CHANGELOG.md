@@ -52,7 +52,7 @@ IMPROVEMENTS:
       [GH-2469]
   * provider/aws: ElastiCache Subnet Groups can be updated
       without destroying first [GH-2191]
-  * provider/aws: Normalize `certificate_chain` in `aws_iam_servier_certificate` to
+  * provider/aws: Normalize `certificate_chain` in `aws_iam_server_certificate` to
       prevent unnecessary replacement. [GH-2411]
   * provider/aws: `aws_instance` supports `monitoring' [GH-2489]
   * provider/aws: `aws_launch_configuration` now supports `enable_monitoring` [GH-2410]
