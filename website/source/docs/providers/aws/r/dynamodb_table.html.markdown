@@ -92,10 +92,8 @@ table as they have separate I/O capacity.
 
 Only define attributes on the table object that are going to be used as:
 
-* Table hash key 
-* Table range key 
-* LSI or GSI hash key 
-* LSI or GSI range key
+* Table hash key or range key
+* LSI or GSI hash key or range key
 
 The DynamoDB API expects attribute structure (name and type) to be 
 passed along when creating or updating GSI/LSIs or creating the initial 
