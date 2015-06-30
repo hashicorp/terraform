@@ -3,7 +3,6 @@ package azure
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
@@ -88,7 +87,8 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 
 	nc, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
-		if strings.Contains(err.Error(), "ResourceNotFound") {
+		if management.IsResourceNotFoundError(err) {
+			// if no network config exists yet; create a new one now:
 			nc = virtualnetwork.NetworkConfiguration{}
 		} else {
 			return fmt.Errorf(virtualNetworkRetrievalError, err)
