@@ -65,6 +65,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Computed: true,
 			},
 
+			"force_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -211,8 +217,20 @@ func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (ID: %s)",
 		d.Get("name").(string), d.Id())
+
+	if ok := d.Get("force_destroy").(bool); ok {
+		err := deleteZoneRecordSets(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err := r53.DeleteHostedZone(&route53.DeleteHostedZoneInput{ID: aws.String(d.Id())})
+
 	if err != nil {
+		if awserr, ok := err.(awserr.Error); ok {
+			log.Printf("[DEBUG] AWS Error deleting hosted zone %s", awserr)
+		}
 		return err
 	}
 
@@ -264,4 +282,74 @@ func getNameServers(zoneId string, zoneName string, r53 *route53.Route53) ([]str
 	}
 	sort.Strings(ns)
 	return ns, nil
+}
+
+// Basically the same as that found in resource_aws_route53_record
+// You cannot call that resource directly from this resource
+func deleteZoneRecordSets(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).r53conn
+
+	zone := cleanZoneID(d.Get("zone_id").(string))
+	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
+		zone, d.Get("name").(string))
+	var err error
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
+	if err != nil {
+		return err
+	}
+	// Get the records
+	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
+	if err != nil {
+		return err
+	}
+
+	// Create the new records
+	changeBatch := &route53.ChangeBatch{
+		Comment: aws.String("Deleted by Terraform"),
+		Changes: []*route53.Change{
+			&route53.Change{
+				Action:            aws.String("DELETE"),
+				ResourceRecordSet: rec,
+			},
+		},
+	}
+
+	req := &route53.ChangeResourceRecordSetsInput{
+		HostedZoneID: aws.String(cleanZoneID(zone)),
+		ChangeBatch:  changeBatch,
+	}
+
+	wait := resource.StateChangeConf{
+		Pending:    []string{"rejected"},
+		Target:     "accepted",
+		Timeout:    5 * time.Minute,
+		MinTimeout: 1 * time.Second,
+		Refresh: func() (interface{}, string, error) {
+			_, err := conn.ChangeResourceRecordSets(req)
+			if err != nil {
+				if r53err, ok := err.(awserr.Error); ok {
+					if r53err.Code() == "PriorRequestNotComplete" {
+						// There is some pending operation, so just retry
+						// in a bit.
+						return 42, "rejected", nil
+					}
+
+					if r53err.Code() == "InvalidChangeBatch" {
+						// This means that the record is already gone.
+						return 42, "accepted", nil
+					}
+				}
+
+				return 42, "failure", err
+			}
+
+			return 42, "accepted", nil
+		},
+	}
+
+	if _, err := wait.WaitForState(); err != nil {
+		return err
+	}
+
+	return nil
 }
