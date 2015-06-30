@@ -579,6 +579,11 @@ func testAccCheckInstanceExistsWithProviders(n string, i *ec2.Instance, provider
 			return fmt.Errorf("No ID is set")
 		}
 		for _, provider := range *providers {
+			// Ignore if Meta is empty, this can happen for validation providers
+			if provider.Meta() == nil {
+				continue
+			}
+
 			conn := provider.Meta().(*AWSClient).ec2conn
 			resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 				InstanceIDs: []*string{aws.String(rs.Primary.ID)},
