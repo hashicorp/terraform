@@ -7,6 +7,10 @@ BACKWARDS INCOMPATIBILITIES:
  * connection/ssh: The `agent` field now defaults to `true` if
      the `SSH_AGENT_SOCK` environment variable is present. In other words,
      `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
+ * provider/aws: If you were setting access and secret key to blank ("")
+     to force Terraform to load credentials from another source such as the
+     EC2 role, this will now error. Remove the blank lines and Terraform
+     will load from other sources.
  * `concat()` has been repurposed to combine lists instead of strings (old behavior
      of joining strings is maintained in this version but is deprecated, strings
      should be combined using interpolation syntax, like "${var.foo}{var.bar}")
