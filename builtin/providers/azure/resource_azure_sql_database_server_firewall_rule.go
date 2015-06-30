@@ -138,7 +138,7 @@ func resourceAzureSqlDatabaseServerFirewallRuleUpdate(d *schema.ResourceData, me
 	for _, srv := range d.Get("database_server_names").(*schema.Set).List() {
 		serverName := srv.(string)
 
-		log.Printf("[INFO] Issuing Azure Database Server Firewall Rule list for Database Server %q.", name, serverName)
+		log.Printf("[INFO] Issuing Azure Database Server Firewall Rule list for Database Server %q: %s.", name, serverName)
 		rules, err := sqlClient.ListFirewallRules(serverName)
 		if err != nil {
 			if strings.Contains(err.Error(), "does not exist") {
