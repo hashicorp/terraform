@@ -133,6 +133,7 @@ BUG FIXES:
       consistency [GH-2532]
   * provider/aws: VPC peering connections in "failed" state are deleted [GH-2544]
   * provider/aws: EIP deletion works if it was manually disassociated [GH-2543]
+  * provider/aws: `elasticache_subnet_group.subnet_ids` is now a required argument [GH-2534]
   * provider/cloudflare: manual record deletion doesn't cause error [GH-2545]
   * provider/digitalocean: handle case where droplet is deleted outside of
       terraform [GH-2497]
