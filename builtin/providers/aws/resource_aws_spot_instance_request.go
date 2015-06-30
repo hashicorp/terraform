@@ -95,6 +95,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 	}
 
 	// Make the spot instance request
+	log.Printf("[DEBUG] Requesting spot bid opts: %s", awsutil.StringValue(spotOpts))
 	resp, err := conn.RequestSpotInstances(spotOpts)
 	if err != nil {
 		return fmt.Errorf("Error requesting spot instances: %s", err)
@@ -184,7 +185,7 @@ func resourceAwsSpotInstanceRequestUpdate(d *schema.ResourceData, meta interface
 
 	d.Partial(false)
 
-	return resourceAwsInstanceRead(d, meta)
+	return resourceAwsSpotInstanceRequestRead(d, meta)
 }
 
 func resourceAwsSpotInstanceRequestDelete(d *schema.ResourceData, meta interface{}) error {
