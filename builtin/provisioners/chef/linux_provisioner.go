@@ -33,7 +33,7 @@ func (p *Provisioner) linuxInstallChefClient(
 	}
 
 	// Then execute the install.sh scrip to download and install Chef Client
-	err = p.runCommand(o, comm, fmt.Sprintf("%sbash ./install.sh -v %s", prefix, p.Version))
+	err = p.runCommand(o, comm, fmt.Sprintf("%sbash ./install.sh -v %q", prefix, p.Version))
 	if err != nil {
 		return err
 	}
