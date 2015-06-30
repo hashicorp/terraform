@@ -279,10 +279,6 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 			name = "ReplacementGSIRangeKey"
 			type = "N"
 		}
-		attribute {
-			name = "TestNonKeyAttribute"
-			type = "S"
-		}
 		local_secondary_index {
 			name = "TestTableLSI"
 			range_key = "TestLSIRangeKey"

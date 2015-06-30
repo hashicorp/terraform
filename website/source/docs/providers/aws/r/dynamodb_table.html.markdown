@@ -23,7 +23,7 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
     hash_key = "UserId"
     range_key = "GameTitle"
     attribute {
-      name = "Username"
+      name = "UserId"
       type = "S"
     }
     attribute {
@@ -32,18 +32,6 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
     }
     attribute {
       name = "TopScore"
-      type = "N"
-    }
-    attribute {
-      name = "TopScoreDateTime"
-      type = "S"
-    }
-    attribute {
-      name = "Wins"
-      type = "N"
-    } 
-    attribute {
-      name = "Losses"
       type = "N"
     }
     global_secondary_index {
@@ -93,13 +81,31 @@ the following properties are supported:
     projects only the keys specified in the _non_key_attributes_
 parameter. 
 * `non_key_attributes` - (Optional) Only required with *INCLUDE* as a
-  projection type; a list of attributes to project into the index. For
-each attribute listed, you need to make sure that it has been defined in
-the table object. 
+  projection type; a list of attributes to project into the index. These
+do not need to be defined as attributes on the table. 
 
 For `global_secondary_index` objects only, you need to specify
 `write_capacity` and `read_capacity` in the same way you would for the
 table as they have separate I/O capacity.
+
+### A note about attributes
+
+Only define attributes on the table object that are going to be used as:
+
+* Table hash key 
+* Table range key 
+* LSI or GSI hash key 
+* LSI or GSI range key
+
+The DynamoDB API expects attribute structure (name and type) to be 
+passed along when creating or updating GSI/LSIs or creating the initial 
+table. In these cases it expects the Hash / Range keys to be provided; 
+because these get re-used in numerous places (i.e the table's range key 
+could be a part of one or more GSIs), they are stored on the table 
+object to prevent duplication and increase consistency. If you add 
+attributes here that are not used in these scenarios it can cause an 
+infinite loop in planning.  
+
 
 ## Attributes Reference
 
