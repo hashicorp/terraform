@@ -10,10 +10,6 @@ description: |-
 
 Provides an ECS task definition to be used in `aws_ecs_service`.
 
-~> **NOTE:** There is currently no way to unregister
-any previously registered task definition.
-See related [thread in AWS forum](https://forums.aws.amazon.com/thread.jspa?threadID=170378&tstart=0).
-
 ## Example Usage
 
 ```
