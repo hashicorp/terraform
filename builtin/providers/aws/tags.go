@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -38,7 +39,7 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 			}
 		}
 		if len(create) > 0 {
-			log.Printf("[DEBUG] Creating tags: %#v for %s", create, d.Id())
+			log.Printf("[DEBUG] Creating tags: %s for %s", awsutil.StringValue(create), d.Id())
 			_, err := conn.CreateTags(&ec2.CreateTagsInput{
 				Resources: []*string{aws.String(d.Id())},
 				Tags:      create,
