@@ -3,7 +3,7 @@ layout: "aws"
 page_title: "AWS: aws_iam_group_membership"
 sidebar_current: "docs-aws-resource-iam-group-membership"
 description: |-
-  Provides an IAM role.
+  Provides a top level resource to manage IAM Group membership for IAM Users.
 ---
 
 # aws\_iam\_group\_membership
