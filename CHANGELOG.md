@@ -1,5 +1,9 @@
 ## 0.6.1 (Unreleased)
 
+BUG FIXES:
+
+  * providers/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
+
 ## 0.6.0 (June 30, 2015)
 
 BACKWARDS INCOMPATIBILITIES:
