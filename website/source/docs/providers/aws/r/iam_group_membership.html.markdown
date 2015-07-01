@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_iam_role"
+page_title: "AWS: aws_iam_group_membership"
 sidebar_current: "docs-aws-resource-iam-group-membership"
 description: |-
   Provides an IAM role.
