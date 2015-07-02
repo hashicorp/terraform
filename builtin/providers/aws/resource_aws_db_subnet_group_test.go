@@ -36,6 +36,31 @@ func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 	})
 }
 
+// Regression test for https://github.com/hashicorp/terraform/issues/2603
+func TestAccAWSDBSubnetGroup_withUnderscores(t *testing.T) {
+	var v rds.DBSubnetGroup
+
+	testCheck := func(*terraform.State) error {
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDBSubnetGroupConfig_withUnderscores,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDBSubnetGroupExists(
+						"aws_db_subnet_group.bar", &v),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDBSubnetGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -122,5 +147,29 @@ resource "aws_db_subnet_group" "foo" {
 	name = "FOO"
 	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+}
+`
+
+const testAccDBSubnetGroupConfig_withUnderscores = `
+resource "aws_vpc" "main" {
+    cidr_block = "192.168.0.0/16"
+}
+
+resource "aws_subnet" "frontend" {
+    vpc_id = "${aws_vpc.main.id}"
+    availability_zone = "us-west-2b"
+    cidr_block = "192.168.1.0/24"
+}
+
+resource "aws_subnet" "backend" {
+    vpc_id = "${aws_vpc.main.id}"
+    availability_zone = "us-west-2c"
+    cidr_block = "192.168.2.0/24"
+}
+
+resource "aws_db_subnet_group" "bar" {
+    name = "with_underscores"
+    description = "Our main group of subnets"
+    subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
 }
 `
