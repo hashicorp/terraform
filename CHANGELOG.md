@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+  * core: don't prompt for variables with defaults [GH-2613]
   * providers/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
 
 IMPROVEMENTS:
