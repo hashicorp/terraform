@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 )
 
@@ -120,6 +121,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+			},
+
+			"wait_for_instance_system_status_ok": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"tag": autoscalingTagsSchema(),
@@ -455,6 +463,8 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	}
 	wantELB := d.Get("min_elb_capacity").(int)
 
+	waitForOk := d.Get("wait_for_instance_system_status_ok").(bool)
+
 	log.Printf("[DEBUG] Waiting for capacity: %d ASG, %d ELB", wantASG, wantELB)
 
 	return resource.Retry(waitForASGCapacityTimeout, func() error {
@@ -484,6 +494,19 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 
 			if !strings.EqualFold(*i.LifecycleState, "InService") {
 				continue
+			}
+
+			if waitForOk {
+				status, err := getInstanceSystemStatus(i.InstanceID, meta)
+				if err != nil {
+					log.Printf("[WARN] Error getting %s InstanceStatus: %s", *i.InstanceID, err)
+					return resource.RetryError{Err: err}
+				}
+
+				log.Printf("[DEBUG] Instance [%s] Instance SystemStatus is %s", *i.InstanceID, status)
+				if status != "ok" {
+					continue
+				}
 			}
 
 			haveASG++
@@ -537,4 +560,23 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 	}
 
 	return lbInstanceStates, nil
+}
+
+func getInstanceSystemStatus(instance_id *string, meta interface{}) (string, error) {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	ids := []*string{instance_id}
+
+	input := &ec2.DescribeInstanceStatusInput{
+		InstanceIDs:         ids,
+		IncludeAllInstances: aws.Boolean(true),
+	}
+
+	output, err := ec2conn.DescribeInstanceStatus(input)
+	if err != nil {
+		return "", err
+	}
+
+	status := output.InstanceStatuses[0]
+	return *status.SystemStatus.Status, nil
 }
