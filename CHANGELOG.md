@@ -4,6 +4,10 @@ BUG FIXES:
 
   * providers/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
 
+IMPROVEMENTS:
+
+  * provider/aws: Create RDS databases from snapshots [GH-2062]
+
 ## 0.6.0 (June 30, 2015)
 
 BACKWARDS INCOMPATIBILITIES:
