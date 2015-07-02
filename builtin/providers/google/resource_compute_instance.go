@@ -191,6 +191,12 @@ func resourceComputeInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"metadata_startup_script": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"metadata": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -469,13 +475,18 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		serviceAccounts = append(serviceAccounts, serviceAccount)
 	}
 
+	metadata, err := resourceInstanceMetadata(d)
+	if err != nil {
+		return fmt.Errorf("Error creating metadata: %s", err)
+	}
+
 	// Create the instance information
 	instance := compute.Instance{
 		CanIpForward:      d.Get("can_ip_forward").(bool),
 		Description:       d.Get("description").(string),
 		Disks:             disks,
 		MachineType:       machineType.SelfLink,
-		Metadata:          resourceInstanceMetadata(d),
+		Metadata:          metadata,
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networkInterfaces,
 		Tags:              resourceInstanceTags(d),
@@ -662,7 +673,10 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
-		metadata := resourceInstanceMetadata(d)
+		metadata, err := resourceInstanceMetadata(d)
+		if err != nil {
+			return fmt.Errorf("Error updating metadata: %s", err)
+		}
 		op, err := config.clientCompute.Instances.SetMetadata(
 			config.Project, zone, d.Id(), metadata).Do()
 		if err != nil {
@@ -781,9 +795,18 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceInstanceMetadata(d *schema.ResourceData) *compute.Metadata {
+func resourceInstanceMetadata(d *schema.ResourceData) (*compute.Metadata, error) {
 	m := &compute.Metadata{}
-	if mdMap := d.Get("metadata").(map[string]interface{}); len(mdMap) > 0 {
+	mdMap := d.Get("metadata").(map[string]interface{})
+	_, mapScriptExists := mdMap["startup-script"]
+	dScript, dScriptExists := d.GetOk("metadata_startup_script")
+	if mapScriptExists && dScriptExists {
+		return nil, fmt.Errorf("Not allowed to have both metadata_startup_script and metadata.startup-script")
+	}
+	if dScriptExists {
+		mdMap["startup-script"] = dScript
+	}
+	if len(mdMap) > 0 {
 		m.Items = make([]*compute.MetadataItems, 0, len(mdMap))
 		for key, val := range mdMap {
 			m.Items = append(m.Items, &compute.MetadataItems{
@@ -797,7 +820,7 @@ func resourceInstanceMetadata(d *schema.ResourceData) *compute.Metadata {
 		m.Fingerprint = d.Get("metadata_fingerprint").(string)
 	}
 
-	return m
+	return m, nil
 }
 
 func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
