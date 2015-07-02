@@ -331,7 +331,11 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	instanceProperties.Description = d.Get("instance_description").(string)
 	instanceProperties.MachineType = d.Get("machine_type").(string)
 	instanceProperties.Disks = buildDisks(d, meta)
-	instanceProperties.Metadata = resourceInstanceMetadata(d)
+	metadata, err := resourceInstanceMetadata(d)
+	if err != nil {
+		return err
+	}
+	instanceProperties.Metadata = metadata
 	err, networks := buildNetworks(d, meta)
 	if err != nil {
 		return err
