@@ -35,6 +35,7 @@ The following arguments are supported:
 * `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `enable_monitoring` - (Optional) Enables/disables detailed monitoring. This is enabled by default.
+* `ebs_optimized` - (Optional) If true, the launched EC2 instance will be EBS-optimized.
 * `block_device_mapping` - (Optional) A list of block devices to add. Their keys are documented below.
 
 <a id="block-devices"></a>
