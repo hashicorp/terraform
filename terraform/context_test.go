@@ -3572,6 +3572,52 @@ func TestContext2Input_varOnlyUnset(t *testing.T) {
 	}
 }
 
+func TestContext2Input_varWithDefault(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-var-default")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{},
+		UIInput:   input,
+	})
+
+	input.InputFn = func(opts *InputOpts) (string, error) {
+		t.Fatalf(
+			"Input should never be called because variable has a default: %#v", opts)
+		return "", nil
+	}
+
+	if err := ctx.Input(InputModeVar | InputModeVarUnset); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(`
+aws_instance.foo:
+  ID = foo
+  foo = 123
+  type = aws_instance
+	`)
+	if actualStr != expectedStr {
+		t.Fatalf("expected: \n%s\ngot: \n%s\n", expectedStr, actualStr)
+	}
+}
+
 func TestContext2Apply(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
