@@ -7,6 +7,7 @@ BUG FIXES:
     setting `agent = false` [GH-2615]
   * core: don't prompt for variables with defaults [GH-2613]
   * providers/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
+  * providers/aws: Allow underscores in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2604]
 
 IMPROVEMENTS:
 
