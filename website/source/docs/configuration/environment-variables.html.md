@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Environment Variables"
 sidebar_current: "docs-config-environment-variables"
 description: |-
-  Something on Environment Variables!
+  Terraform uses different environment variables that can be used to configure various aspects of how Terraform behaves. this section documents those variables, their potential values, and how to use them.
 ---
 
 # Environment Variables
@@ -16,7 +16,7 @@ If set to any value, enables detailed logs to appear on stderr which is useful f
 export TF_LOG=1
 ```
 
-To disable, either unset it or set it to empty. For example:
+To disable, either unset it or set it to empty. When unset, logging will default to stderr. For example:
 
 ```
 export TF_LOG=
