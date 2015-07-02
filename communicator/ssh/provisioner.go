@@ -180,10 +180,6 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 		User: opts.user,
 	}
 
-	if opts.sshAgent != nil {
-		conf.Auth = append(conf.Auth, opts.sshAgent.Auth())
-	}
-
 	if opts.keyFile != "" {
 		pubKeyAuth, err := readPublicKeyFromPath(opts.keyFile)
 		if err != nil {
@@ -196,6 +192,10 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 		conf.Auth = append(conf.Auth, ssh.Password(opts.password))
 		conf.Auth = append(conf.Auth, ssh.KeyboardInteractive(
 			PasswordKeyboardInteractive(opts.password)))
+	}
+
+	if opts.sshAgent != nil {
+		conf.Auth = append(conf.Auth, opts.sshAgent.Auth())
 	}
 
 	return conf, nil
