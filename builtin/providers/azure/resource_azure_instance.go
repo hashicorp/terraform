@@ -670,12 +670,12 @@ func retrieveOSImageDetails(
 			return configureForImage, img.OS, nil
 		}
 
-		labels = append(labels, img.Label)
+		labels = append(labels, img.Name)
 	}
 
 
 	return nil, "", fmt.Errorf("Could not find image with label '%s'. Available OS images are: %s", label,
-                                strings.Join(labels,", "),
+                                strings.Join(labels,"\n"),
                                 )
 
 }
