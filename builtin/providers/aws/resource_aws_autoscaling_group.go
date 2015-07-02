@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 )
 
@@ -486,6 +487,17 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 				continue
 			}
 
+			status, err := getInstanceSystemStatus(i.InstanceID, meta)
+			if err != nil {
+				log.Printf("[WARN] Error getting %s InstanceStatus: %s", *i.InstanceID, err)
+				return resource.RetryError{Err: err}
+			}
+
+			log.Printf("[DEBUG] Instance [%s] Instance SystemStatus is %s", *i.InstanceID, status)
+			if status != "ok" {
+				continue
+			}
+
 			haveASG++
 
 			if wantELB > 0 {
@@ -537,4 +549,23 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 	}
 
 	return lbInstanceStates, nil
+}
+
+func getInstanceSystemStatus(instance_id *string, meta interface{}) (string, error) {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	ids := []*string{instance_id}
+
+	input := &ec2.DescribeInstanceStatusInput{
+		InstanceIDs:         ids,
+		IncludeAllInstances: aws.Boolean(true),
+	}
+
+	output, err := ec2conn.DescribeInstanceStatus(input)
+	if err != nil {
+		return "", err
+	}
+
+	status := output.InstanceStatuses[0]
+	return *status.SystemStatus.Status, nil
 }
