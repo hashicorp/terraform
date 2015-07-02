@@ -238,6 +238,19 @@ func resourceAwsDbInstance() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"snapshot_identifier": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: false,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"auto_minor_version_upgrade": &schema.Schema{
+				Type:     schema.TypeBool,
+				Computed: false,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -270,6 +283,66 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.PubliclyAccessible = aws.Boolean(attr.(bool))
 		}
 		_, err := conn.CreateDBInstanceReadReplica(&opts)
+		if err != nil {
+			return fmt.Errorf("Error creating DB Instance: %s", err)
+		}
+	} else if _, ok := d.GetOk("snapshot_identifier"); ok {
+		opts := rds.RestoreDBInstanceFromDBSnapshotInput{
+			DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
+			DBSnapshotIdentifier: aws.String(d.Get("snapshot_identifier").(string)),
+			Tags:                 tags,
+		}
+
+		if attr, ok := d.GetOk("auto_minor_version_upgrade"); ok {
+			opts.AutoMinorVersionUpgrade = aws.Boolean(attr.(bool))
+		}
+
+		if attr, ok := d.GetOk("availability_zone"); ok {
+			opts.AvailabilityZone = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
+			opts.DBSubnetGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("engine"); ok {
+			opts.Engine = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("iops"); ok {
+			opts.IOPS = aws.Long(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("license_model"); ok {
+			opts.LicenseModel = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("multi_az"); ok {
+			opts.MultiAZ = aws.Boolean(attr.(bool))
+		}
+
+		if attr, ok := d.GetOk("option_group_name"); ok {
+			opts.OptionGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("port"); ok {
+			opts.Port = aws.Long(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("publicly_accessible"); ok {
+			opts.PubliclyAccessible = aws.Boolean(attr.(bool))
+		}
+
+		if attr, ok := d.GetOk("tde_credential_arn"); ok {
+			opts.TDECredentialARN = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("storage_type"); ok {
+			opts.StorageType = aws.String(attr.(string))
+		}
+
+		_, err := conn.RestoreDBInstanceFromDBSnapshot(&opts)
 		if err != nil {
 			return fmt.Errorf("Error creating DB Instance: %s", err)
 		}
