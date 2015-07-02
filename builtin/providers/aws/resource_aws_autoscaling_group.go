@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 )
 
@@ -120,6 +121,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+			},
+
+			"wait_for_instance_status_ok": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"tag": autoscalingTagsSchema(),
@@ -537,4 +545,28 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 	}
 
 	return lbInstanceStates, nil
+}
+
+func waitForInstanceStatusOk(instance_id *string, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	ids := []*string{instance_id}
+
+	input := &ec2.DescribeInstanceStatusInput{
+		InstanceIDs: ids,
+		// IncludeAllInstances: true,
+	}
+
+	output, err := ec2conn.DescribeInstanceStatus(input)
+	if err != nil {
+		return err
+	}
+
+	statuses := output.InstanceStatuses
+	for _, status := range statuses {
+		if *status.InstanceState.Name == "running" {
+			return nil
+		}
+	}
+	return fmt.Errorf("Waiting for Instance [%s] Status 'ok'", ids)
 }
