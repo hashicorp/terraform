@@ -1,266 +1,266 @@
 <% wrap_layout :inner do %>
-  <% content_for :sidebar do %>
-    <div class="docs-sidebar hidden-print affix-top" role="complementary">
-      <ul class="nav docs-sidenav">
-        <li<%= sidebar_current("docs-home") %>>
-        <a href="/docs/index.html">Documentation Home</a>
-                </li>
+        <% content_for :sidebar do %>
+                <div class="docs-sidebar hidden-print affix-top" role="complementary">
+                        <ul class="nav docs-sidenav">
+                                <li<%= sidebar_current("docs-home") %>>
+                                <a href="/docs/index.html">Documentation Home</a>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-config/) %>>
-        <a href="/docs/configuration/index.html">Configuration</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-config-load") %>>
-          <a href="/docs/configuration/load.html">Load Order and Semantics</a>
-          </li>
+                                <li<%= sidebar_current(/^docs-config/) %>>
+                                <a href="/docs/configuration/index.html">Configuration</a>
+                                <ul class="nav">
+                                        <li<%= sidebar_current("docs-config-load") %>>
+                                        <a href="/docs/configuration/load.html">Load Order and Semantics</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-syntax") %>>
-          <a href="/docs/configuration/syntax.html">Configuration Syntax</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-syntax") %>>
+                                        <a href="/docs/configuration/syntax.html">Configuration Syntax</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-interpolation") %>>
-          <a href="/docs/configuration/interpolation.html">Interpolation Syntax</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-interpolation") %>>
+                                        <a href="/docs/configuration/interpolation.html">Interpolation Syntax</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-override") %>>
-          <a href="/docs/configuration/override.html">Overrides</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-override") %>>
+                                        <a href="/docs/configuration/override.html">Overrides</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-resources") %>>
-          <a href="/docs/configuration/resources.html">Resources</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-resources") %>>
+                                        <a href="/docs/configuration/resources.html">Resources</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-providers") %>>
-          <a href="/docs/configuration/providers.html">Providers</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-providers") %>>
+                                        <a href="/docs/configuration/providers.html">Providers</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-variables") %>>
-          <a href="/docs/configuration/variables.html">Variables</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-variables") %>>
+                                        <a href="/docs/configuration/variables.html">Variables</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-outputs") %>>
-          <a href="/docs/configuration/outputs.html">Outputs</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-outputs") %>>
+                                        <a href="/docs/configuration/outputs.html">Outputs</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-modules") %>>
-          <a href="/docs/configuration/modules.html">Modules</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-modules") %>>
+                                        <a href="/docs/configuration/modules.html">Modules</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-atlas") %>>
-          <a href="/docs/configuration/atlas.html">Atlas</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-atlas") %>>
+                                        <a href="/docs/configuration/atlas.html">Atlas</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-config-environment-variables") %>>
-          <a href="/docs/configuration/environment-variables.html">Environment Variables</a>
-          </li>
+                                        <li<%= sidebar_current("docs-config-environment-variables") %>>
+                                        <a href="/docs/configuration/environment-variables.html">Environment Variables</a>
+                                        </li>
 
-        </ul>
-        </li>
+                                </ul>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-commands/) %>>
-        <a href="/docs/commands/index.html">Commands (CLI)</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-commands-apply") %>>
-          <a href="/docs/commands/apply.html">apply</a>
-          </li>
+                                <li<%= sidebar_current(/^docs-commands/) %>>
+                                <a href="/docs/commands/index.html">Commands (CLI)</a>
+                                <ul class="nav">
+                                        <li<%= sidebar_current("docs-commands-apply") %>>
+                                        <a href="/docs/commands/apply.html">apply</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-destroy") %>>
-          <a href="/docs/commands/destroy.html">destroy</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-destroy") %>>
+                                        <a href="/docs/commands/destroy.html">destroy</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-get") %>>
-          <a href="/docs/commands/get.html">get</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-get") %>>
+                                        <a href="/docs/commands/get.html">get</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-graph") %>>
-          <a href="/docs/commands/graph.html">graph</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-graph") %>>
+                                        <a href="/docs/commands/graph.html">graph</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-init") %>>
-          <a href="/docs/commands/init.html">init</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-init") %>>
+                                        <a href="/docs/commands/init.html">init</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-output") %>>
-          <a href="/docs/commands/output.html">output</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-output") %>>
+                                        <a href="/docs/commands/output.html">output</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-plan") %>>
-          <a href="/docs/commands/plan.html">plan</a>
+                                        <li<%= sidebar_current("docs-commands-plan") %>>
+                                        <a href="/docs/commands/plan.html">plan</a>
                     </li>
 
-          <li<%= sidebar_current("docs-commands-push") %>>
-          <a href="/docs/commands/push.html">push</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-push") %>>
+                                        <a href="/docs/commands/push.html">push</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-refresh") %>>
-          <a href="/docs/commands/refresh.html">refresh</a>
+                                        <li<%= sidebar_current("docs-commands-refresh") %>>
+                                        <a href="/docs/commands/refresh.html">refresh</a>
                     </li>
 
-          <li<%= sidebar_current("docs-commands-remote") %>>
-          <a href="/docs/commands/remote.html">remote</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-remote") %>>
+                                        <a href="/docs/commands/remote.html">remote</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-show") %>>
-          <a href="/docs/commands/show.html">show</a>
-          </li>
+                                        <li<%= sidebar_current("docs-commands-show") %>>
+                                        <a href="/docs/commands/show.html">show</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-commands-taint") %>>
-          <a href="/docs/commands/taint.html">taint</a>
-          </li>
-        </ul>
-        </li>
+                                        <li<%= sidebar_current("docs-commands-taint") %>>
+                                        <a href="/docs/commands/taint.html">taint</a>
+                                        </li>
+                                </ul>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-state/) %>>
-          <a href="/docs/state/index.html">State</a>
-          <ul class="nav">
-            <li<%= sidebar_current("docs-state-remote") %>>
-              <a href="/docs/state/remote.html">Remote State</a>
-            </li>
-          </ul>
-        </li>
+                                <li<%= sidebar_current(/^docs-state/) %>>
+                                        <a href="/docs/state/index.html">State</a>
+                                        <ul class="nav">
+                                                <li<%= sidebar_current("docs-state-remote") %>>
+                                                        <a href="/docs/state/remote.html">Remote State</a>
+                                                </li>
+                                        </ul>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-providers/) %>>
-        <a href="/docs/providers/index.html">Providers</a>
+                                <li<%= sidebar_current(/^docs-providers/) %>>
+                                <a href="/docs/providers/index.html">Providers</a>
                 <ul class="nav">
-          <li<%= sidebar_current("docs-providers-atlas") %>>
-          <a href="/docs/providers/atlas/index.html">Atlas</a>
+                                        <li<%= sidebar_current("docs-providers-atlas") %>>
+                                        <a href="/docs/providers/atlas/index.html">Atlas</a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-aws") %>>
-          <a href="/docs/providers/aws/index.html">AWS</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-aws") %>>
+                                        <a href="/docs/providers/aws/index.html">AWS</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-azure") %>>
-          <a href="/docs/providers/azure/index.html">Azure</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-azure") %>>
+                                        <a href="/docs/providers/azure/index.html">Azure</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-cloudflare") %>>
-          <a href="/docs/providers/cloudflare/index.html">CloudFlare</a>
+                                        <li<%= sidebar_current("docs-providers-cloudflare") %>>
+                                        <a href="/docs/providers/cloudflare/index.html">CloudFlare</a>
           </li>
 
           <li<%= sidebar_current("docs-providers-cloudstack") %>>
-          <a href="/docs/providers/cloudstack/index.html">CloudStack</a>
+                                        <a href="/docs/providers/cloudstack/index.html">CloudStack</a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-consul") %>>
-          <a href="/docs/providers/consul/index.html">Consul</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-consul") %>>
+                                        <a href="/docs/providers/consul/index.html">Consul</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-do") %>>
-          <a href="/docs/providers/do/index.html">DigitalOcean</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-do") %>>
+                                        <a href="/docs/providers/do/index.html">DigitalOcean</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-dme") %>>
-          <a href="/docs/providers/dme/index.html">DNSMadeEasy</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-dme") %>>
+                                        <a href="/docs/providers/dme/index.html">DNSMadeEasy</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-dnsimple") %>>
-          <a href="/docs/providers/dnsimple/index.html">DNSimple</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-dnsimple") %>>
+                                        <a href="/docs/providers/dnsimple/index.html">DNSimple</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-docker") %>>
-          <a href="/docs/providers/docker/index.html">Docker</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-docker") %>>
+                                        <a href="/docs/providers/docker/index.html">Docker</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-google") %>>
-          <a href="/docs/providers/google/index.html">Google Cloud</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-google") %>>
+                                        <a href="/docs/providers/google/index.html">Google Cloud</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-heroku") %>>
-          <a href="/docs/providers/heroku/index.html">Heroku</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-heroku") %>>
+                                        <a href="/docs/providers/heroku/index.html">Heroku</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-mailgun") %>>
-          <a href="/docs/providers/mailgun/index.html">Mailgun</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-mailgun") %>>
+                                        <a href="/docs/providers/mailgun/index.html">Mailgun</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-openstack") %>>
-          <a href="/docs/providers/openstack/index.html">OpenStack</a>
-          </li>
+                                        <li<%= sidebar_current("docs-providers-openstack") %>>
+                                        <a href="/docs/providers/openstack/index.html">OpenStack</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-providers-template") %>>
-          <a href="/docs/providers/template/index.html">Template</a>
-          </li>
-        </ul>
-        </li>
+                                        <li<%= sidebar_current("docs-providers-template") %>>
+                                        <a href="/docs/providers/template/index.html">Template</a>
+                                        </li>
+                                </ul>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-provisioners/) %>>
-        <a href="/docs/provisioners/index.html">Provisioners</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-provisioners-chef") %>>
-          <a href="/docs/provisioners/chef.html">chef</a>
-          </li>
+                                <li<%= sidebar_current(/^docs-provisioners/) %>>
+                                <a href="/docs/provisioners/index.html">Provisioners</a>
+                                <ul class="nav">
+                                        <li<%= sidebar_current("docs-provisioners-chef") %>>
+                                        <a href="/docs/provisioners/chef.html">chef</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-provisioners-connection") %>>
-          <a href="/docs/provisioners/connection.html">connection</a>
-          </li>
+                                        <li<%= sidebar_current("docs-provisioners-connection") %>>
+                                        <a href="/docs/provisioners/connection.html">connection</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-provisioners-file") %>>
-          <a href="/docs/provisioners/file.html">file</a>
-          </li>
+                                        <li<%= sidebar_current("docs-provisioners-file") %>>
+                                        <a href="/docs/provisioners/file.html">file</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-provisioners-local") %>>
-          <a href="/docs/provisioners/local-exec.html">local-exec</a>
-          </li>
+                                        <li<%= sidebar_current("docs-provisioners-local") %>>
+                                        <a href="/docs/provisioners/local-exec.html">local-exec</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-provisioners-remote") %>>
-          <a href="/docs/provisioners/remote-exec.html">remote-exec</a>
-          </li>
-        </ul>
-        </li>
+                                        <li<%= sidebar_current("docs-provisioners-remote") %>>
+                                        <a href="/docs/provisioners/remote-exec.html">remote-exec</a>
+                                        </li>
+                                </ul>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-modules/) %>>
-        <a href="/docs/modules/index.html">Modules</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-modules-usage") %>>
-          <a href="/docs/modules/usage.html">Usage</a>
-          </li>
+                                <li<%= sidebar_current(/^docs-modules/) %>>
+                                <a href="/docs/modules/index.html">Modules</a>
+                                <ul class="nav">
+                                        <li<%= sidebar_current("docs-modules-usage") %>>
+                                        <a href="/docs/modules/usage.html">Usage</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-modules-sources") %>>
-          <a href="/docs/modules/sources.html">Sources</a>
-          </li>
+                                        <li<%= sidebar_current("docs-modules-sources") %>>
+                                        <a href="/docs/modules/sources.html">Sources</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-modules-create") %>>
-          <a href="/docs/modules/create.html">Creating Modules</a>
-          </li>
-        </ul>
-        </li>
+                                        <li<%= sidebar_current("docs-modules-create") %>>
+                                        <a href="/docs/modules/create.html">Creating Modules</a>
+                                        </li>
+                                </ul>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-plugins/) %>>
-        <a href="/docs/plugins/index.html">Plugins</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-plugins-basics") %>>
-          <a href="/docs/plugins/basics.html">Basics</a>
-          </li>
+                                <li<%= sidebar_current(/^docs-plugins/) %>>
+                                <a href="/docs/plugins/index.html">Plugins</a>
+                                <ul class="nav">
+                                        <li<%= sidebar_current("docs-plugins-basics") %>>
+                                        <a href="/docs/plugins/basics.html">Basics</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-plugins-provider") %>>
-          <a href="/docs/plugins/provider.html">Provider</a>
-          </li>
-        </ul>
-        </li>
+                                        <li<%= sidebar_current("docs-plugins-provider") %>>
+                                        <a href="/docs/plugins/provider.html">Provider</a>
+                                        </li>
+                                </ul>
+                                </li>
 
-        <li<%= sidebar_current(/^docs-internals/) %>>
-        <a href="/docs/internals/index.html">Internals</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-internals-debug") %>>
-          <a href="/docs/internals/debugging.html">Debugging Terraform</a>
-          </li>
+                                <li<%= sidebar_current(/^docs-internals/) %>>
+                                <a href="/docs/internals/index.html">Internals</a>
+                                <ul class="nav">
+                                        <li<%= sidebar_current("docs-internals-debug") %>>
+                                        <a href="/docs/internals/debugging.html">Debugging Terraform</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-internals-graph") %>>
-          <a href="/docs/internals/graph.html">Resource Graph</a>
-          </li>
+                                        <li<%= sidebar_current("docs-internals-graph") %>>
+                                        <a href="/docs/internals/graph.html">Resource Graph</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-internals-lifecycle") %>>
-          <a href="/docs/internals/lifecycle.html">Resource Lifecycle</a>
-          </li>
+                                        <li<%= sidebar_current("docs-internals-lifecycle") %>>
+                                        <a href="/docs/internals/lifecycle.html">Resource Lifecycle</a>
+                                        </li>
 
-          <li<%= sidebar_current("docs-internals-resource-addressing") %>>
-          <a href="/docs/internals/resource-addressing.html">Resource Addressing</a>
-          </li>
-        </ul>
-        </li>
-      </ul>
-    </div>
-  <% end %>
+                                        <li<%= sidebar_current("docs-internals-resource-addressing") %>>
+                                        <a href="/docs/internals/resource-addressing.html">Resource Addressing</a>
+                                        </li>
+                                </ul>
+                                </li>
+                        </ul>
+                </div>
+        <% end %>
 
-    <%= yield %>
-  <% end %>
+                <%= yield %>
+        <% end %>
