@@ -2,6 +2,9 @@
 
 BUG FIXES:
 
+  * connection/ssh: fix issue on machines with an SSH Agent available
+    preventing `key_file` from being read without explicitly
+    setting `agent = false` [GH-2615]
   * core: don't prompt for variables with defaults [GH-2613]
   * providers/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
 
