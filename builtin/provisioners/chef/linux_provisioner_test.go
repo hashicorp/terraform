@@ -64,6 +64,24 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 			},
 		},
 
+		"HTTPSProxy": {
+			Config: testConfig(t, map[string]interface{}{
+				"https_proxy":            "https://proxy.local",
+				"node_name":              "nodename1",
+				"prevent_sudo":           true,
+				"run_list":               []interface{}{"cookbook::recipe"},
+				"server_url":             "https://chef.local",
+				"validation_client_name": "validator",
+				"validation_key_path":    "validator.pem",
+			}),
+
+			Commands: map[string]bool{
+				"https_proxy='https://proxy.local' curl -LO https://www.chef.io/chef/install.sh": true,
+				"https_proxy='https://proxy.local' bash ./install.sh -v \"\"":                    true,
+				"https_proxy='https://proxy.local' rm -f install.sh":                             true,
+			},
+		},
+
 		"NOProxy": {
 			Config: testConfig(t, map[string]interface{}{
 				"http_proxy":             "http://proxy.local",
