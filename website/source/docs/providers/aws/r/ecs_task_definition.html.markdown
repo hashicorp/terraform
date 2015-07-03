@@ -12,23 +12,9 @@ Provides an ECS task definition to be used in `aws_ecs_service`.
 
 ## Example Usage
 
-### jenkins.tf
-
-```
-resource "aws_ecs_task_definition" "jenkins" {
-  family = "jenkins"
-  container_definitions = "${file("task-definitions/jenkins.json")}"
-
-  volume {
-    name = "jenkins-home"
-    host_path = "/ecs/jenkins-home"
-  }
-}
-```
-
 ### task-definitions/jenkins.json
 
-This is a small subset of the available parameters, see the [AWS docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html) for a full list.
+The below would be passed into the `container_definitions` attribute. This is a small subset of the available parameters, see the [AWS docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html) for a full list.
 
 ```
 [
@@ -53,7 +39,7 @@ This is a small subset of the available parameters, see the [AWS docs](http://do
 The following arguments are supported:
 
 * `family` - (Required) The family, unique name for your task definition.
-* `container_definitions` - (Required) A list of container definitions in JSON format. See [AWS docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/create-task-definition.html) for syntax. Note, you only need the containerDefinitions array contents, not the parent hash including the family and volumes keys.
+* `container_definitions` - (Required) A list of container definitions in JSON format. See [AWS docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/create-task-definition.html) for syntax. Note, you only need the containerDefinitions array, not the parent hash including the family and volumes keys.
 * `volume` - (Optional) A volume block. Volumes documented below.
 
 Volumes support the following:
