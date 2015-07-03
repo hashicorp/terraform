@@ -83,7 +83,7 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 		splitPortRepo := strings.Split(splitImageName[1], "/")
 		pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
 		pullOpts.Tag = splitImageName[2]
-		pullOpts.Repository = strings.Join(splitPortRepo[1:], "/")
+		pullOpts.Repository = pullOpts.Registry + "/" + strings.Join(splitPortRepo[1:], "/")
 
 	// It's either registry:port/username/repo, registry:port/repo,
 	// or repo:tag with default registry
@@ -98,7 +98,7 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 		// registry:port/username/repo or registry:port/repo
 		default:
 			pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
-			pullOpts.Repository = strings.Join(splitPortRepo[1:], "/")
+			pullOpts.Repository = pullOpts.Registry + "/" + strings.Join(splitPortRepo[1:], "/")
 			pullOpts.Tag = "latest"
 		}
 
