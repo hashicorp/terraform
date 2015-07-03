@@ -12,6 +12,18 @@ Provides an ECS task definition to be used in `aws_ecs_service`.
 
 ## Example Usage
 
+```
+resource "aws_ecs_task_definition" "jenkins" {
+  family = "jenkins"
+  container_definitions = "${file("task-definitions/jenkins.json")}"
+
+  volume {
+    name = "jenkins-home"
+    host_path = "/ecs/jenkins-home"
+  }
+}
+```
+
 ### task-definitions/jenkins.json
 
 The below would be passed into the `container_definitions` attribute. This is a small subset of the available parameters, see the [AWS docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html) for a full list.
