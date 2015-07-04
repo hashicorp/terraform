@@ -12,7 +12,7 @@ type rRSetResource struct {
 	RRType    string
 	RData     []string
 	TTL       int
-	Profile   *udnssdk.StringProfile
+	Profile   udnssdk.RawProfile
 	Zone      string
 }
 
@@ -38,6 +38,7 @@ func (r rRSetResource) RRSet() udnssdk.RRSet {
 		RRType:    r.RRType,
 		RData:     r.RData,
 		TTL:       r.TTL,
+		Profile:   r.Profile,
 	}
 }
 
