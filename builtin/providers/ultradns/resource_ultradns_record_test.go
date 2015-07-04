@@ -83,7 +83,7 @@ func testAccCheckUltraDNSRecordDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, _, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"],rs.Primary.Attributes["type"])
+		_, _, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -128,7 +128,7 @@ func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.
 		}
 
 		client := testAccProvider.Meta().(*udnssdk.Client)
-		foundRecord,_, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"],rs.Primary.Attributes["type"])
+		foundRecord, _, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
 
 		if err != nil {
 			return err

@@ -46,7 +46,6 @@ func resourceUltraDNSRecord() *schema.Resource {
 				Optional: true,
 				Default:  "3600",
 			},
-
 		},
 	}
 }
@@ -54,10 +53,10 @@ func resourceUltraDNSRecord() *schema.Resource {
 func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*udnssdk.Client)
 	newRecord := &udnssdk.RRSet{
-		OwnerName:	d.Get("name").(string),
-		RRType: d.Get("type").(string),
-		RData: d.Get("rdata").([]string),
-		}
+		OwnerName: d.Get("name").(string),
+		RRType:    d.Get("type").(string),
+		RData:     d.Get("rdata").([]string),
+	}
 
 	if ttl, ok := d.GetOk("ttl"); ok {
 		newRecord.TTL = ttl.(int)
@@ -66,7 +65,7 @@ func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) erro
 	log.Printf("[DEBUG] UltraDNS RRSet create configuration: %#v", newRecord)
 
 	_, err := client.RRSets.CreateRRSet(d.Get("zone").(string), *newRecord)
-	recId := fmt.Sprintf("%s.%s",d.Get("name").(string),d.Get("zone").(string))
+	recId := fmt.Sprintf("%s.%s", d.Get("name").(string), d.Get("zone").(string))
 	if err != nil {
 		return fmt.Errorf("Failed to create UltraDNS RRSet: %s", err)
 	}
@@ -141,7 +140,6 @@ func resourceUltraDNSRecordDelete(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("type"); ok {
 		deleteRecord.RRType = attr.(string)
 	}
-
 
 	_, err := client.RRSets.DeleteRRSet(d.Get("zone").(string), *deleteRecord)
 
