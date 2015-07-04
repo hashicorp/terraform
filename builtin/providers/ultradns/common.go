@@ -38,6 +38,7 @@ func (r rRSetResource) RRSet() udnssdk.RRSet {
 		RRType:    r.RRType,
 		RData:     r.RData,
 		TTL:       r.TTL,
+		Profile:   r.Profile,
 	}
 }
 
