@@ -43,7 +43,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Username: d.Get("username").(string),
 		Password: d.Get("password").(string),
-		BaseURL: d.Get("baseurl").(string),
+		BaseURL:  d.Get("baseurl").(string),
 	}
 
 	return config.Client()
