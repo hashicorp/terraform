@@ -15,6 +15,7 @@ import (
 	"golang.org/x/oauth2/jwt"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/storage/v1"
 )
@@ -28,6 +29,7 @@ type Config struct {
 
 	clientCompute     *compute.Service
 	clientComputeBeta *computeBeta.Service
+	clientContainer   *container.Service
 	clientDns         *dns.Service
 	clientStorage     *storage.Service
 }
@@ -58,6 +60,7 @@ func (c *Config) loadAndValidate() error {
 
 		clientScopes := []string{
 			"https://www.googleapis.com/auth/compute",
+			"https://www.googleapis.com/auth/cloud-platform",
 			"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
 			"https://www.googleapis.com/auth/devstorage.full_control",
 		}
@@ -118,6 +121,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientComputeBeta.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating GKE client...")
+	c.clientContainer, err = container.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientContainer.UserAgent = userAgent
 
 	log.Printf("[INFO] Instantiating Google Cloud DNS client...")
 	c.clientDns, err = dns.New(client)
