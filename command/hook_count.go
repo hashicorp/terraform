@@ -97,7 +97,7 @@ func (h *CountHook) PostDiff(
 		h.ToAdd += 1
 	case terraform.DiffDestroy:
 		h.ToRemove += 1
-	default:
+	case terraform.DiffUpdate:
 		h.ToChange += 1
 	}
 
