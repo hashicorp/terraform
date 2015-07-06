@@ -62,7 +62,7 @@ replacement.
 
 Each `ebs_block_device` supports the following:
 
-* `device_name` - The name of the device to mount.
+* `device_name` - (Required) The name of the device to mount.
 * `snapshot_id` - (Optional) The Snapshot ID to mount.
 * `volume_type` - (Optional) The type of volume. Can be `"standard"`, `"gp2"`,
   or `"io1"`. (Default: `"standard"`).
