@@ -44,7 +44,7 @@ func Provider() terraform.ResourceProvider {
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_AUTH_TOKEN"),
+				DefaultFunc: envDefaultFuncAllowMissing("OS_AUTH_TOKEN"),
 			},
 			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -64,7 +64,7 @@ func Provider() terraform.ResourceProvider {
 			"endpoint_type": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_ENDPOINT_TYPE"),
+				DefaultFunc: envDefaultFuncAllowMissing("OS_ENDPOINT_TYPE"),
 			},
 		},
 
