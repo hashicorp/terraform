@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -135,6 +136,13 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating route: %s", err)
 	}
 
+	route, err := findResourceRoute(conn, d)
+	if err != nil {
+		fmt.Errorf("Error: %s", awsutil.StringValue(err))
+	}
+
+	d.SetId(routeIDHash(d, route))
+
 	return resourceAwsRouteRead(d, meta)
 }
 
@@ -159,17 +167,62 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+	var numTargets int
+	var setTarget string
+	allowedTargets := []string{
+		"gateway_id",
+		"instance_id",
+		"network_interface_id",
+		"vpc_peering_connection_id",
+	}
+	replaceOpts := &ec2.ReplaceRouteInput{}
 
-	replaceOpts := &ec2.ReplaceRouteInput{
-		DestinationCIDRBlock:   aws.String(d.Get("destination_cidr_block").(string)),
-		GatewayID:              aws.String(d.Get("gateway_id").(string)),
-		InstanceID:             aws.String(d.Get("instance_id").(string)),
-		NetworkInterfaceID:     aws.String(d.Get("network_interface_id").(string)),
-		RouteTableID:           aws.String(d.Get("route_table_id").(string)),
-		VPCPeeringConnectionID: aws.String(d.Get("vpc_peering_connection_id").(string)),
+	// Check if more than 1 target is specified
+	for _, target := range allowedTargets {
+		if len(d.Get(target).(string)) > 0 {
+			numTargets++
+			setTarget = target
+		}
+	}
+
+	if numTargets > 1 {
+		fmt.Errorf("Error: more than 1 target specified. Only 1 of gateway_id" +
+			"instance_id, network_interface_id, route_table_id or" +
+			"vpc_peering_connection_id is allowed.")
+	}
+
+	// Formulate ReplaceRouteInput based on the target type
+	switch setTarget {
+	case "gateway_id":
+		replaceOpts = &ec2.ReplaceRouteInput{
+			RouteTableID:         aws.String(d.Get("route_table_id").(string)),
+			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			GatewayID:            aws.String(d.Get("gateway_id").(string)),
+		}
+	case "instance_id":
+		replaceOpts = &ec2.ReplaceRouteInput{
+			RouteTableID:         aws.String(d.Get("route_table_id").(string)),
+			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			InstanceID:           aws.String(d.Get("instance_id").(string)),
+		}
+	case "network_interface_id":
+		replaceOpts = &ec2.ReplaceRouteInput{
+			RouteTableID:         aws.String(d.Get("route_table_id").(string)),
+			DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
+			NetworkInterfaceID:   aws.String(d.Get("network_interface_id").(string)),
+		}
+	case "vpc_peering_connection_id":
+		replaceOpts = &ec2.ReplaceRouteInput{
+			RouteTableID:           aws.String(d.Get("route_table_id").(string)),
+			DestinationCIDRBlock:   aws.String(d.Get("destination_cidr_block").(string)),
+			VPCPeeringConnectionID: aws.String(d.Get("vpc_peering_connection_id").(string)),
+		}
+	default:
+		fmt.Errorf("Error: invalid target type specified.")
 	}
 	log.Printf("[DEBUG] Route replace config: %s", awsutil.StringValue(replaceOpts))
 
+	// Replace the route
 	_, err := conn.ReplaceRoute(replaceOpts)
 	if err != nil {
 		return err
@@ -184,13 +237,22 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 		DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
 		RouteTableID:         aws.String(d.Get("route_table_id").(string)),
 	}
+	log.Printf("[DEBUG] Route delete opts: %s", awsutil.StringValue(deleteOpts))
 
 	_, err := conn.DeleteRoute(deleteOpts)
+	log.Printf("[DEBUG] Route delete result: %s", awsutil.StringValue(err))
 	if err != nil {
 		return err
 	}
 
+	d.SetId("")
+
 	return nil
+}
+
+// Create an ID for a route
+func routeIDHash(d *schema.ResourceData, r *ec2.Route) string {
+	return fmt.Sprintf("r-%s-%d", d.Get("route_table_id").(string), hashcode.String(*r.DestinationCIDRBlock))
 }
 
 // Helper: retrieve a route
