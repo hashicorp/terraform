@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"encoding/base64"
 
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/mitchellh/go-homedir"
@@ -91,6 +92,19 @@ func interpolationFuncFile() ast.Function {
 			}
 
 			return string(data), nil
+		},
+	}
+}
+
+// interpolationFuncBase64 implements the "base64" function to
+// encode a string in base64
+func interpolationFuncBase64() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeString},
+		ReturnType:   ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			toEncode := []byte(args[0])
+			return base64.StdEncoding.EncodeToString(toEncode), nil
 		},
 	}
 }
