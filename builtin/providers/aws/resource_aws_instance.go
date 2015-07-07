@@ -778,6 +778,10 @@ func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 		rootDeviceName = image.BlockDeviceMappings[0].DeviceName
 	}
 
+        if rootDeviceName == nil {
+                return nil, fmt.Errorf("[WARN] Error finding Root Device Name for AMI (%s)", ami)
+        }
+
 	return rootDeviceName, nil
 }
 
