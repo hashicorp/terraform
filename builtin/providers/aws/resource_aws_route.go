@@ -239,8 +239,8 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Route delete opts: %s", awsutil.StringValue(deleteOpts))
 
-	_, err := conn.DeleteRoute(deleteOpts)
-	log.Printf("[DEBUG] Route delete result: %s", awsutil.StringValue(err))
+	resp, err := conn.DeleteRoute(deleteOpts)
+	log.Printf("[DEBUG] Route delete result: %s", awsutil.StringValue(resp))
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 
 // Create an ID for a route
 func routeIDHash(d *schema.ResourceData, r *ec2.Route) string {
-	return fmt.Sprintf("r-%s-%d", d.Get("route_table_id").(string), hashcode.String(*r.DestinationCIDRBlock))
+	return fmt.Sprintf("r-%s%d", d.Get("route_table_id").(string), hashcode.String(*r.DestinationCIDRBlock))
 }
 
 // Helper: retrieve a route
