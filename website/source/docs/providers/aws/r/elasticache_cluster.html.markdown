@@ -37,6 +37,10 @@ lowercase string
 See [Selecting a Cache Engine and Version](http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html)
 in the AWS Documentation center for supported versions
 
+* `maintenance_window` – (Optional) Specifies the weekly time range which maintenance 
+on the cache cluster is performed. The format is `ddd:hh24:mi-ddd:hh24:mi` (24H Clock UTC). 
+The minimum maintenance window is a 60 minute period. Example: `sun:05:00-sun:09:00`
+
 * `node_type` – (Required) The compute and memory capacity of the nodes. See
 [Available Cache Node Types](http://aws.amazon.com/elasticache/details#Available_Cache_Node_Types) for
 supported node types

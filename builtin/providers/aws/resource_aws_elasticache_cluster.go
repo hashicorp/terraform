@@ -58,6 +58,11 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"maintenance_window": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"subnet_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -154,6 +159,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		req.CacheParameterGroupName = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("maintenance_window"); ok {
+		req.PreferredMaintenanceWindow = aws.String(v.(string))
+	}
+
 	_, err := conn.CreateCacheCluster(req)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache: %s", err)
@@ -206,6 +215,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("security_group_names", c.CacheSecurityGroups)
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
+		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
 
 		if err := setCacheNodeData(d, c); err != nil {
 			return err
@@ -261,6 +271,11 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 
 	if d.HasChange("parameter_group_name") {
 		req.CacheParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("maintenance_window") {
+		req.PreferredMaintenanceWindow = aws.String(d.Get("maintenance_window").(string))
 		requestUpdate = true
 	}
 
