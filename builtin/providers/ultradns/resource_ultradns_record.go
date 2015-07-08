@@ -3,7 +3,7 @@ package ultradns
 import (
 	"fmt"
 	"log"
-
+	"strconv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"udnssdk"
 )
@@ -19,11 +19,13 @@ func resourceUltraDNSRecord() *schema.Resource {
 			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"hostname": &schema.Schema{
@@ -34,6 +36,7 @@ func resourceUltraDNSRecord() *schema.Resource {
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"rdata": &schema.Schema{
 				Type:     schema.TypeList,
@@ -55,11 +58,15 @@ func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) erro
 	newRecord := &udnssdk.RRSet{
 		OwnerName: d.Get("name").(string),
 		RRType:    d.Get("type").(string),
-		RData:     d.Get("rdata").([]string),
 	}
-
+	rdata := d.Get("rdata").([]interface{})
+	rdatas := make([]string, len(rdata))
+	for i, j := range rdata {
+		rdatas[i] = j.(string)
+	}
+	newRecord.RData = rdatas
 	if ttl, ok := d.GetOk("ttl"); ok {
-		newRecord.TTL = ttl.(int)
+		newRecord.TTL, _ = strconv.Atoi(ttl.(string))
 	}
 
 	log.Printf("[DEBUG] UltraDNS RRSet create configuration: %#v", newRecord)
@@ -90,9 +97,12 @@ func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error 
 	if rec.OwnerName == "" {
 		d.Set("hostname", d.Get("zone").(string))
 	} else {
+		if string(rec.OwnerName[len(rec.OwnerName)-1]) == "." {
+			d.Set("hostname", rec.OwnerName)
+		}	else {
 		d.Set("hostname", fmt.Sprintf("%s.%s", rec.OwnerName, d.Get("zone").(string)))
 	}
-
+}
 	return nil
 }
 
@@ -110,11 +120,16 @@ func resourceUltraDNSRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if attr, ok := d.GetOk("rdata"); ok {
-		updateRecord.RData = attr.([]string)
-	}
+		rdata := attr.([]interface{})
+		rdatas := make([]string, len(rdata))
+		for i, j := range rdata {
+			rdatas[i] = j.(string)
+		}
+		updateRecord.RData = rdatas
+		}
 
 	if attr, ok := d.GetOk("ttl"); ok {
-		updateRecord.TTL = attr.(int)
+		updateRecord.TTL, _ = strconv.Atoi(attr.(string))
 	}
 
 	log.Printf("[DEBUG] UltraDNS RRSet update configuration: %#v", updateRecord)
