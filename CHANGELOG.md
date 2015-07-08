@@ -9,6 +9,8 @@ BUG FIXES:
   * core: Return correct number of planned updates [GH-2620]
   * providers/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
   * providers/aws: Allow underscores in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2604]
+  * provider/aws: Fix issue in AWS Classic environment with referencing external 
+      Security Groups [GH-2644]
 
 IMPROVEMENTS:
 
