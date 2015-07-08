@@ -29,7 +29,7 @@ func TestAccUltraDNSRecord_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"ultradns_record.foobar", "zone", domain),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "value", "192.168.0.10"),
+						"ultradns_record.foobar", "rdata.0", "192.168.0.10"),
 				),
 			},
 		},
@@ -55,7 +55,7 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"ultradns_record.foobar", "zone", domain),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "rdata", "[192.168.0.10]"),
+						"ultradns_record.foobar", "rdata.0", "192.168.0.10"),
 				),
 			},
 			resource.TestStep{
@@ -68,7 +68,7 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"ultradns_record.foobar", "zone", domain),
 					resource.TestCheckResourceAttr(
-						"ultradns_record.foobar", "rdata", "[192.168.0.11]"),
+						"ultradns_record.foobar", "rdata.0", "192.168.0.11"),
 				),
 			},
 		},
@@ -134,8 +134,8 @@ func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.
 			return err
 		}
 
-		if foundRecord[0].OwnerName != rs.Primary.Attributes["name"] {
-			return fmt.Errorf("Record not found")
+		if foundRecord[0].OwnerName != rs.Primary.Attributes["hostname"] {
+			return fmt.Errorf("Record not found: %+v,\n %+v\n", foundRecord, rs.Primary.Attributes)
 		}
 
 		*record = foundRecord[0]
