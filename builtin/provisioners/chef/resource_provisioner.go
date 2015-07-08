@@ -348,7 +348,7 @@ func (p *Provisioner) deployConfigFiles(
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
 	}
 
-	if p.SecretKeyPath != nil
+	if p.SecretKeyPath != ""
 	{
         // Open the secret key file
         f, err := os.Open(p.SecretKeyPath)
@@ -361,6 +361,7 @@ func (p *Provisioner) deployConfigFiles(
         if err := comm.Upload(path.Join(confDir, secretKey), f); err != nil {
                 return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
         }
+	return
 	}
 
 	// Make strings.Join available for use within the template
