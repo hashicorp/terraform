@@ -65,6 +65,10 @@ names to associate with this cache cluster
      `false`. See [Amazon ElastiCache Documentation for more information.][1]
      (Available since v0.6.0)
 
+* `snapshot_arns` – (Optional) A single-element string list containing an 
+Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3. 
+Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
+
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
