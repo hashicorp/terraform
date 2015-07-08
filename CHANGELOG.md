@@ -17,6 +17,7 @@ IMPROVEMENTS:
 
   * provider/aws: Create RDS databases from snapshots [GH-2062]
   * provider/aws: Add support for restoring from Redis backup stored in S3 [GH-2634]
+  * provider/aws: Add `maintenance_window` to ElastiCache cluster [GH-2642]
 
 ## 0.6.0 (June 30, 2015)
 
