@@ -42,8 +42,8 @@ The following arguments are supported:
 
 * `name` 		(Required) - The name of the policy.
 * `users`		(Optional) - The user(s) the policy should be applied to
-* `roles		(Optional) - The role(s) the policy should be applied to`
-* `groups		(Optional) - The group(s) the policy should be applied to`
+* `roles`		(Optional) - The role(s) the policy should be applied to
+* `groups`		(Optional) - The group(s) the policy should be applied to
 * `policy_arn`	(Required) - The ARN of the policy you want to apply
 
 ## Attributes Reference
