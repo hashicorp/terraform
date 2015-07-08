@@ -28,6 +28,7 @@ const (
 	firstBoot      = "first-boot.json"
 	logfileDir     = "logfiles"
 	linuxConfDir   = "/etc/chef"
+	secretKey      = "encrypted_data_bag_secret"
 	validationKey  = "validation.pem"
 	windowsConfDir = "C:/chef"
 )
@@ -67,6 +68,7 @@ type Provisioner struct {
 	OSType               string      `mapstructure:"os_type"`
 	PreventSudo          bool        `mapstructure:"prevent_sudo"`
 	RunList              []string    `mapstructure:"run_list"`
+	SecretKeyPath	     string	 `mapstructure:"secret_key_path"`
 	ServerURL            string      `mapstructure:"server_url"`
 	SkipInstall          bool        `mapstructure:"skip_install"`
 	SSLVerifyMode        string      `mapstructure:"ssl_verify_mode"`
@@ -344,6 +346,21 @@ func (p *Provisioner) deployConfigFiles(
 	// Copy the validation key to the new instance
 	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
+	}
+
+	if p.SecretKeyPath != nil
+	{
+        // Open the secret key file
+        f, err := os.Open(p.SecretKeyPath)
+        if err != nil {
+                return err
+        }
+        defer f.Close()
+
+        // Copy the secret key to the new instance
+        if err := comm.Upload(path.Join(confDir, secretKey), f); err != nil {
+                return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
+        }
 	}
 
 	// Make strings.Join available for use within the template
