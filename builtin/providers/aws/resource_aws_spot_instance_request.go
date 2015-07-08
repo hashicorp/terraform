@@ -166,7 +166,10 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("spot_bid_status", *request.Status.Code)
-	d.Set("spot_instance_id", *request.InstanceID)
+	// Instance ID is not set if the request is still pending
+	if request.InstanceID != nil {
+		d.Set("spot_instance_id", *request.InstanceID)
+	}
 	d.Set("spot_request_state", *request.State)
 	d.Set("tags", tagsToMap(request.Tags))
 
