@@ -157,12 +157,15 @@ func expandIPPerms(
 
 				perm.UserIDGroupPairs[i] = &ec2.UserIDGroupPair{
 					GroupID: aws.String(id),
-					UserID:  aws.String(ownerId),
 				}
+
+				if ownerId != "" {
+					perm.UserIDGroupPairs[i].UserID = aws.String(ownerId)
+				}
+
 				if !vpc {
 					perm.UserIDGroupPairs[i].GroupID = nil
 					perm.UserIDGroupPairs[i].GroupName = aws.String(id)
-					perm.UserIDGroupPairs[i].UserID = nil
 				}
 			}
 		}

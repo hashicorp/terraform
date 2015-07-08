@@ -110,6 +110,22 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				},
 			},
 
+			// A single-element string list containing an Amazon Resource Name (ARN) that
+			// uniquely identifies a Redis RDB snapshot file stored in Amazon S3. The snapshot
+			// file will be used to populate the node group.
+			//
+			// See also:
+			// https://github.com/aws/aws-sdk-go/blob/4862a174f7fc92fb523fc39e68f00b87d91d2c3d/service/elasticache/api.go#L2079
+			"snapshot_arns": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
 			"tags": tagsSchema(),
 
 			// apply_immediately is used to determine when the update modifications
@@ -161,6 +177,13 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("maintenance_window"); ok {
 		req.PreferredMaintenanceWindow = aws.String(v.(string))
+	}
+
+	snaps := d.Get("snapshot_arns").(*schema.Set).List()
+	if len(snaps) > 0 {
+		s := expandStringList(snaps)
+		req.SnapshotARNs = s
+		log.Printf("[DEBUG] Restoring Redis cluster from S3 snapshot: %#v", s)
 	}
 
 	_, err := conn.CreateCacheCluster(req)
