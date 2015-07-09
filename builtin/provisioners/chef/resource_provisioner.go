@@ -175,6 +175,9 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	if p.ServerURL == "" {
 		es = append(es, fmt.Errorf("Key not found: server_url"))
 	}
+        if p.SecretKeyPath == "" {
+                es = append(es, fmt.Errorf("Key not found: secret_key_path"))
+        }
 	if p.ValidationClientName == "" {
 		es = append(es, fmt.Errorf("Key not found: validation_client_name"))
 	}
@@ -224,13 +227,19 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if p.ValidationKeyPath != "" {
-		keyPath, err := homedir.Expand(p.ValidationKeyPath)
+		vkeyPath, err := homedir.Expand(p.ValidationKeyPath)
 		if err != nil {
 			return nil, fmt.Errorf("Error expanding the validation key path: %v", err)
 		}
-		p.ValidationKeyPath = keyPath
+		p.ValidationKeyPath = vkeyPath
 	}
-
+        if p.SecretKeyPath != "" {
+                skeyPath, err := homedir.Expand(p.SecretKeyPath)
+                if err != nil {
+                        return nil, fmt.Errorf("Error expanding the secret key path: %v", err)
+                }
+                p.SecretKeyPath = skeyPath
+        }
 	if attrs, ok := c.Config["attributes"]; ok {
 		p.Attributes, err = rawToJSON(attrs)
 		if err != nil {
@@ -336,7 +345,7 @@ func (p *Provisioner) deployConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	confDir string) error {
-	// Open the validation  key file
+	// Open the validation key file
 	f, err := os.Open(p.ValidationKeyPath)
 	if err != nil {
 		return err
