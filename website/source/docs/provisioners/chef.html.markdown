@@ -36,10 +36,11 @@ resource "aws_instance" "web" {
         environment = "_default"
         run_list = ["cookbook::recipe"]
         node_name = "webserver1"
+        secret_key_path = "../encrypted_data_bag_secret"
         server_url = "https://chef.company.com/organizations/org1"
         validation_client_name = "chef-validator"
         validation_key_path = "../chef-validator.pem"
-        version = "11.18.6"
+        version = "12.4.1"
     }
 }
 ```
@@ -81,6 +82,10 @@ The following arguments are supported:
 * `run_list (array)` - (Required) A list with recipes that will be invoked during the initial
   Chef Client run. The run-list will also be saved to the Chef Server after a successful
   initial run.
+
+* `secret_key_path (string)` - (Optional) The path to the secret key that is used
+  by the client to decrypt data bags on the Chef Server. The key will be uploaded to the remote
+  machine.
 
 * `server_url (string)` - (Required) The URL to the Chef server. This includes the path to
   the organization. See the example.
