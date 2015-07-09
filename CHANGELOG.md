@@ -7,11 +7,13 @@ BUG FIXES:
     setting `agent = false` [GH-2615]
   * core: don't prompt for variables with defaults [GH-2613]
   * core: Return correct number of planned updates [GH-2620]
-  * providers/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
-  * providers/aws: Allow underscores in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2604]
+  * provider/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
+  * provider/aws: Allow underscores in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2604]
   * provider/aws: Fix issue with pending Spot Instance requests [GH-2640]
   * provider/aws: Fix issue in AWS Classic environment with referencing external 
       Security Groups [GH-2644]
+  * provider/aws: Bump internet gateway detach timeout [GH-2669]
+  * provider/openstack: allow empty api_key and endpoint_type [GH-2626]
 
 IMPROVEMENTS:
 
