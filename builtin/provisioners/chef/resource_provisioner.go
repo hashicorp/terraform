@@ -224,18 +224,18 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if p.ValidationKeyPath != "" {
-		vkeyPath, err := homedir.Expand(p.ValidationKeyPath)
+		keyPath, err := homedir.Expand(p.ValidationKeyPath)
 		if err != nil {
 			return nil, fmt.Errorf("Error expanding the validation key path: %v", err)
 		}
-		p.ValidationKeyPath = vkeyPath
+		p.ValidationKeyPath = keyPath
 	}
 	if p.SecretKeyPath != "" {
-		skeyPath, err := homedir.Expand(p.SecretKeyPath)
+		keyPath, err := homedir.Expand(p.SecretKeyPath)
 		if err != nil {
 			return nil, fmt.Errorf("Error expanding the secret key path: %v", err)
 		}
-		p.SecretKeyPath = skeyPath
+		p.SecretKeyPath = keyPath
 	}
 	if attrs, ok := c.Config["attributes"]; ok {
 		p.Attributes, err = rawToJSON(attrs)
