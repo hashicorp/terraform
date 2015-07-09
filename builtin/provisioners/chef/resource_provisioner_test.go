@@ -21,7 +21,6 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"server_url":             "https://chef.local",
 		"validation_client_name": "validator",
 		"validation_key_path":    "validator.pem",
-		"secret_key_path":        "encrypted_data_bag_secret",
 	})
 	r := new(ResourceProvisioner)
 	warn, errs := r.Validate(c)
@@ -69,7 +68,6 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			ConfDir: linuxConfDir,
@@ -87,7 +85,6 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			ConfDir: linuxConfDir,
@@ -106,7 +103,6 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			ConfDir: windowsConfDir,

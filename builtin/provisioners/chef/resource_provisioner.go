@@ -230,6 +230,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		}
 		p.ValidationKeyPath = keyPath
 	}
+
 	if p.SecretKeyPath != "" {
 		keyPath, err := homedir.Expand(p.SecretKeyPath)
 		if err != nil {
@@ -237,6 +238,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		}
 		p.SecretKeyPath = keyPath
 	}
+
 	if attrs, ok := c.Config["attributes"]; ok {
 		p.Attributes, err = rawToJSON(attrs)
 		if err != nil {
