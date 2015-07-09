@@ -68,7 +68,7 @@ type Provisioner struct {
 	OSType               string      `mapstructure:"os_type"`
 	PreventSudo          bool        `mapstructure:"prevent_sudo"`
 	RunList              []string    `mapstructure:"run_list"`
-	SecretKeyPath	     string	 `mapstructure:"secret_key_path"`
+	SecretKeyPath        string      `mapstructure:"secret_key_path"`
 	ServerURL            string      `mapstructure:"server_url"`
 	SkipInstall          bool        `mapstructure:"skip_install"`
 	SSLVerifyMode        string      `mapstructure:"ssl_verify_mode"`
@@ -175,9 +175,6 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	if p.ServerURL == "" {
 		es = append(es, fmt.Errorf("Key not found: server_url"))
 	}
-        if p.SecretKeyPath == "" {
-                es = append(es, fmt.Errorf("Key not found: secret_key_path"))
-        }
 	if p.ValidationClientName == "" {
 		es = append(es, fmt.Errorf("Key not found: validation_client_name"))
 	}
@@ -233,13 +230,13 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		}
 		p.ValidationKeyPath = vkeyPath
 	}
-        if p.SecretKeyPath != "" {
-                skeyPath, err := homedir.Expand(p.SecretKeyPath)
-                if err != nil {
-                        return nil, fmt.Errorf("Error expanding the secret key path: %v", err)
-                }
-                p.SecretKeyPath = skeyPath
-        }
+	if p.SecretKeyPath != "" {
+		skeyPath, err := homedir.Expand(p.SecretKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the secret key path: %v", err)
+		}
+		p.SecretKeyPath = skeyPath
+	}
 	if attrs, ok := c.Config["attributes"]; ok {
 		p.Attributes, err = rawToJSON(attrs)
 		if err != nil {
@@ -357,16 +354,18 @@ func (p *Provisioner) deployConfigFiles(
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
 	}
 
-        // Open the secret key file
-        s, err := os.Open(p.SecretKeyPath)
-        if err != nil {
-                return err
-        }
-        defer s.Close()
+	if p.SecretKeyPath != "" {
+		// Open the secret key file
+		s, err := os.Open(p.SecretKeyPath)
+		if err != nil {
+			return err
+		}
+		defer s.Close()
 
-        // Copy the secret key to the new instance
-        if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
-                return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
+		// Copy the secret key to the new instance
+		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
+		}
 	}
 
 	// Make strings.Join available for use within the template
