@@ -22,6 +22,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
+				"secret_key_path":        "encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -42,6 +43,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
+				"secret_key_path":        "encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -60,6 +62,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
+				"secret_key_path":        "encrypted_data_bag_secret",
 				"version":                "11.18.6",
 			}),
 
@@ -109,6 +112,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -119,10 +123,11 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				windowsConfDir + "/validation.pem":           "VALIDATOR-PEM-FILE",
-				windowsConfDir + "/ohai/hints/ohaihint.json": "OHAI-HINT-FILE",
-				windowsConfDir + "/client.rb":                defaultWindowsClientConf,
-				windowsConfDir + "/first-boot.json":          `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
+				windowsConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
+				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
+				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
 
@@ -136,6 +141,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -143,9 +149,10 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				windowsConfDir + "/validation.pem":  "VALIDATOR-PEM-FILE",
-				windowsConfDir + "/client.rb":       proxyWindowsClientConf,
-				windowsConfDir + "/first-boot.json": `{"run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
+				windowsConfDir + "/client.rb":                 proxyWindowsClientConf,
+				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
 			},
 		},
 
@@ -177,6 +184,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -184,8 +192,9 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				windowsConfDir + "/validation.pem": "VALIDATOR-PEM-FILE",
-				windowsConfDir + "/client.rb":      defaultWindowsClientConf,
+				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
+				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
 				windowsConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},

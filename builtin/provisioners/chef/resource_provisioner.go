@@ -28,6 +28,7 @@ const (
 	firstBoot      = "first-boot.json"
 	logfileDir     = "logfiles"
 	linuxConfDir   = "/etc/chef"
+	secretKey      = "encrypted_data_bag_secret"
 	validationKey  = "validation.pem"
 	windowsConfDir = "C:/chef"
 )
@@ -67,6 +68,7 @@ type Provisioner struct {
 	OSType               string      `mapstructure:"os_type"`
 	PreventSudo          bool        `mapstructure:"prevent_sudo"`
 	RunList              []string    `mapstructure:"run_list"`
+	SecretKeyPath        string      `mapstructure:"secret_key_path"`
 	ServerURL            string      `mapstructure:"server_url"`
 	SkipInstall          bool        `mapstructure:"skip_install"`
 	SSLVerifyMode        string      `mapstructure:"ssl_verify_mode"`
@@ -228,7 +230,13 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		}
 		p.ValidationKeyPath = keyPath
 	}
-
+	if p.SecretKeyPath != "" {
+		keyPath, err := homedir.Expand(p.SecretKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the secret key path: %v", err)
+		}
+		p.SecretKeyPath = keyPath
+	}
 	if attrs, ok := c.Config["attributes"]; ok {
 		p.Attributes, err = rawToJSON(attrs)
 		if err != nil {
@@ -334,7 +342,7 @@ func (p *Provisioner) deployConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	confDir string) error {
-	// Open the validation  key file
+	// Open the validation key file
 	f, err := os.Open(p.ValidationKeyPath)
 	if err != nil {
 		return err
@@ -344,6 +352,20 @@ func (p *Provisioner) deployConfigFiles(
 	// Copy the validation key to the new instance
 	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
+	}
+
+	if p.SecretKeyPath != "" {
+		// Open the secret key file
+		s, err := os.Open(p.SecretKeyPath)
+		if err != nil {
+			return err
+		}
+		defer s.Close()
+
+		// Copy the secret key to the new instance
+		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
+		}
 	}
 
 	// Make strings.Join available for use within the template
