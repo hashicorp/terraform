@@ -9,7 +9,7 @@ const _walkOperation_name = "walkInvalidwalkInputwalkApplywalkPlanwalkPlanDestro
 var _walkOperation_index = [...]uint8{0, 11, 20, 29, 37, 52, 63, 75}
 
 func (i walkOperation) String() string {
-	if i >= walkOperation(len(_walkOperation_index)-1) {
+	if i+1 >= walkOperation(len(_walkOperation_index)) {
 		return fmt.Sprintf("walkOperation(%d)", i)
 	}
 	return _walkOperation_name[_walkOperation_index[i]:_walkOperation_index[i+1]]
