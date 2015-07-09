@@ -207,7 +207,7 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 		Pending: []string{"detaching"},
 		Target:  "detached",
 		Refresh: detachIGStateRefreshFunc(conn, d.Id(), vpcID.(string)),
-		Timeout: 2 * time.Minute,
+		Timeout: 5 * time.Minute,
 		Delay:   10 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
