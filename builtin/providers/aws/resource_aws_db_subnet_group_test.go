@@ -36,7 +36,8 @@ func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 	})
 }
 
-// Regression test for https://github.com/hashicorp/terraform/issues/2603
+// Regression test for https://github.com/hashicorp/terraform/issues/2603 and
+// https://github.com/hashicorp/terraform/issues/2664
 func TestAccAWSDBSubnetGroup_withUnderscores(t *testing.T) {
 	var v rds.DBSubnetGroup
 
@@ -50,10 +51,12 @@ func TestAccAWSDBSubnetGroup_withUnderscores(t *testing.T) {
 		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDBSubnetGroupConfig_withUnderscores,
+				Config: testAccDBSubnetGroupConfig_withUnderscoresAndPeriods,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
-						"aws_db_subnet_group.bar", &v),
+						"aws_db_subnet_group.underscores", &v),
+					testAccCheckDBSubnetGroupExists(
+						"aws_db_subnet_group.periods", &v),
 					testCheck,
 				),
 			},
@@ -150,7 +153,7 @@ resource "aws_db_subnet_group" "foo" {
 }
 `
 
-const testAccDBSubnetGroupConfig_withUnderscores = `
+const testAccDBSubnetGroupConfig_withUnderscoresAndPeriods = `
 resource "aws_vpc" "main" {
     cidr_block = "192.168.0.0/16"
 }
@@ -167,8 +170,14 @@ resource "aws_subnet" "backend" {
     cidr_block = "192.168.2.0/24"
 }
 
-resource "aws_db_subnet_group" "bar" {
+resource "aws_db_subnet_group" "underscores" {
     name = "with_underscores"
+    description = "Our main group of subnets"
+    subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
+}
+
+resource "aws_db_subnet_group" "periods" {
+    name = "with.periods"
     description = "Our main group of subnets"
     subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
 }
