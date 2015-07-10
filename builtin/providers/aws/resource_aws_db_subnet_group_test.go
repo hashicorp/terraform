@@ -38,7 +38,7 @@ func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 
 // Regression test for https://github.com/hashicorp/terraform/issues/2603 and
 // https://github.com/hashicorp/terraform/issues/2664
-func TestAccAWSDBSubnetGroup_withUnderscores(t *testing.T) {
+func TestAccAWSDBSubnetGroup_withUndocumentedCharacters(t *testing.T) {
 	var v rds.DBSubnetGroup
 
 	testCheck := func(*terraform.State) error {
