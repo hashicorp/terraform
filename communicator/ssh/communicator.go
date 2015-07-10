@@ -136,11 +136,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		}
 		defer session.Close()
 
-		if err = agent.RequestAgentForwarding(session); err != nil {
-			return err
-		}
+		err = agent.RequestAgentForwarding(session)
 
-		log.Printf("[INFO] agent forwarding enabled")
+		if err == nil {
+			log.Printf("[INFO] agent forwarding enabled")
+		} else {
+			log.Printf("[WARN] error forwarding agent: %s", err)
+		}
 	}
 
 	if o != nil {
