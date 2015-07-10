@@ -90,7 +90,7 @@ func resourceAwsDbInstance() *schema.Resource {
 					}
 					if regexp.MustCompile(`-$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
-							"%q cannot end with a hyphen"))
+							"%q cannot end with a hyphen", k))
 					}
 					return
 				},
