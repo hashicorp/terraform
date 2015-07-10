@@ -123,13 +123,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"wait_for_instance_system_status_ok": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
 			"tag": autoscalingTagsSchema(),
 		},
 	}
@@ -463,8 +456,6 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	}
 	wantELB := d.Get("min_elb_capacity").(int)
 
-	waitForOk := d.Get("wait_for_instance_system_status_ok").(bool)
-
 	log.Printf("[DEBUG] Waiting for capacity: %d ASG, %d ELB", wantASG, wantELB)
 
 	return resource.Retry(waitForASGCapacityTimeout, func() error {
@@ -496,17 +487,15 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 				continue
 			}
 
-			if waitForOk {
-				status, err := getInstanceSystemStatus(i.InstanceID, meta)
-				if err != nil {
-					log.Printf("[WARN] Error getting %s InstanceStatus: %s", *i.InstanceID, err)
-					return resource.RetryError{Err: err}
-				}
+			status, err := getInstanceSystemStatus(i.InstanceID, meta)
+			if err != nil {
+				log.Printf("[WARN] Error getting %s InstanceStatus: %s", *i.InstanceID, err)
+				return resource.RetryError{Err: err}
+			}
 
-				log.Printf("[DEBUG] Instance [%s] Instance SystemStatus is %s", *i.InstanceID, status)
-				if status != "ok" {
-					continue
-				}
+			log.Printf("[DEBUG] Instance [%s] Instance SystemStatus is %s", *i.InstanceID, status)
+			if status != "ok" {
+				continue
 			}
 
 			haveASG++
