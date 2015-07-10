@@ -113,8 +113,8 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			}),
 
 			Commands: map[string]bool{
-				fmt.Sprintf("if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
-				fmt.Sprintf("if not exist %q mkdir %q",
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q",
 					path.Join(windowsConfDir, "ohai/hints"),
 					path.Join(windowsConfDir, "ohai/hints")): true,
 			},
@@ -142,7 +142,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			}),
 
 			Commands: map[string]bool{
-				fmt.Sprintf("if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
 			},
 
 			Uploads: map[string]string{
@@ -185,7 +185,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			}),
 
 			Commands: map[string]bool{
-				fmt.Sprintf("if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
 			},
 
 			Uploads: map[string]string{

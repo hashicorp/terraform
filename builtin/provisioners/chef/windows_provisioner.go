@@ -66,7 +66,7 @@ func (p *Provisioner) windowsCreateConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 	// Make sure the config directory exists
-	cmd := fmt.Sprintf("if not exist %q mkdir %q", windowsConfDir, windowsConfDir)
+	cmd := fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir)
 	if err := p.runCommand(o, comm, cmd); err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (p *Provisioner) windowsCreateConfigFiles(
 	if len(p.OhaiHints) > 0 {
 		// Make sure the hits directory exists
 		hintsDir := path.Join(windowsConfDir, "ohai/hints")
-		cmd := fmt.Sprintf("if not exist %q mkdir %q", hintsDir, hintsDir)
+		cmd := fmt.Sprintf("cmd /c if not exist %q mkdir %q", hintsDir, hintsDir)
 		if err := p.runCommand(o, comm, cmd); err != nil {
 			return err
 		}
