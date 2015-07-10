@@ -96,6 +96,21 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 			c.connInfo.KeyFile != "",
 			c.connInfo.Agent,
 		))
+
+		if c.connInfo.BastionHost != "" {
+			o.Output(fmt.Sprintf(
+				"Using configured bastion host..."+
+					"  Host: %s\n"+
+					"  User: %s\n"+
+					"  Password: %t\n"+
+					"  Private key: %t\n"+
+					"  SSH Agent: %t",
+				c.connInfo.BastionHost, c.connInfo.BastionUser,
+				c.connInfo.BastionPassword != "",
+				c.connInfo.BastionKeyFile != "",
+				c.connInfo.Agent,
+			))
+		}
 	}
 
 	log.Printf("connecting to TCP connection for SSH")
