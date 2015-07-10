@@ -9,7 +9,7 @@ const _countHookAction_name = "countHookActionAddcountHookActionChangecountHookA
 var _countHookAction_index = [...]uint8{0, 18, 39, 60}
 
 func (i countHookAction) String() string {
-	if i+1 >= countHookAction(len(_countHookAction_index)) {
+	if i >= countHookAction(len(_countHookAction_index)-1) {
 		return fmt.Sprintf("countHookAction(%d)", i)
 	}
 	return _countHookAction_name[_countHookAction_index[i]:_countHookAction_index[i+1]]
