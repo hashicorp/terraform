@@ -52,7 +52,7 @@ resource "google_container_cluster" "primary" {
 
 * `machine_type` - (Optional) The name of a Google Compute Engine machine type.
   Defaults to `n1-standard-1`.
-* `disk_size_in_gb` - (Optional) Size of the disk attached to each node, specified in GB.
+* `disk_size_gb` - (Optional) Size of the disk attached to each node, specified in GB.
   The smallest allowed disk size is 10GB. Defaults to 100GB.
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available on all
   of the node VMs under the "default" service account. The following scopes are necessary
