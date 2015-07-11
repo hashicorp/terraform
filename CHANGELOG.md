@@ -1,5 +1,9 @@
 ## 0.6.1 (Unreleased)
 
+FEATURES:
+
+  * **New resource: `google_container_cluster`** [GH-2357]
+
 BUG FIXES:
 
   * connection/ssh: fix issue on machines with an SSH Agent available
