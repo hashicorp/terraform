@@ -88,6 +88,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		ServiceName:    aws.String(d.Get("name").(string)),
 		TaskDefinition: aws.String(d.Get("task_definition").(string)),
 		DesiredCount:   aws.Long(int64(d.Get("desired_count").(int))),
+		ClientToken:    aws.String(resource.UniqueId()),
 	}
 
 	if v, ok := d.GetOk("cluster"); ok {
