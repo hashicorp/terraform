@@ -65,7 +65,7 @@ func TestLoadFileBasic(t *testing.T) {
 	}
 
 	actual := variablesStr(c.Variables)
-    expected := strings.TrimSpace(basicVariablesStr)
+	expected := strings.TrimSpace(basicVariablesStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\nexpected:\n%s", actual, expected)
 	}
@@ -76,7 +76,7 @@ func TestLoadFileBasic(t *testing.T) {
 	}
 
 	actual = resourcesStr(c.Resources)
-    expected = strings.TrimSpace(basicResourcesStr)
+	expected = strings.TrimSpace(basicResourcesStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s\nexpected:\n%s", actual, expected)
 	}
