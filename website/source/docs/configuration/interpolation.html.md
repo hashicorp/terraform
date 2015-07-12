@@ -102,6 +102,9 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
+  * `index(list, elem)` - Finds the index of a given element in a list. Example:
+      `index(aws_instance.foo.*.tags.Name, "foo-test")`
+
   * `join(delim, list)` - Joins the list with the delimiter. A list is
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
