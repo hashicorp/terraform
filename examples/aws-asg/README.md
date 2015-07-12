@@ -2,7 +2,7 @@
 
 This example shows how to launch instances using Auto Scaling Groups.
 
-This creates a security group, launch configuration, auto scaling group and an ELB. The user data for launch configuration installs nginx and it listnes on port 80.
+This creates a security group, launch configuration, auto scaling group and an ELB. The user data for launch configuration installs nginx and it listens on port 80.
 
 The example uses latest Ubuntu AMIs. 
 
@@ -14,15 +14,15 @@ Running the example
 
 For planning phase 
 
-terraform plan  -var 'key_name={your_key_name}}'
+terraform plan -var 'key_name={your_key_name}}'
 
 For apply phase 
 
-terraform apply  -var 'key_name={your_key_name}}'
+terraform apply -var 'key_name={your_key_name}}'
 
-Once the stack is created, wait for few minsutes and test the stack by launching a browser with ELB url. 
+Once the stack is created, wait for few minutes and test the stack by launching a browser with ELB url. 
 
 To remove the stack
 
-terraform apply  -var 'key_name={your_key_name}}'
+ terraform destroy -var 'key_name={your_key_name}}'
 
