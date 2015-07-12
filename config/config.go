@@ -117,7 +117,7 @@ const (
 	VariableTypeUnknown VariableType = iota
 	VariableTypeString
 	VariableTypeMap
-    VariableTypeStringSlice
+	VariableTypeStringSlice
 )
 
 // ProviderConfigName returns the name of the provider configuration in
