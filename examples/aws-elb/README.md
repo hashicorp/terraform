@@ -1,6 +1,6 @@
 # ELB with stickiness Example
 
-The example launches a web server, installs nginx, creates an ELB for isnatnce. It also creates security groups for elb/instance 
+The example launches a web server, installs nginx, creates an ELB for instance. It also creates security groups for elb/instance 
 
 To run, configure your AWS provider as described in https://www.terraform.io/docs/providers/aws/index.html
 
