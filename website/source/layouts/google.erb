@@ -3,14 +3,14 @@
 	<div class="docs-sidebar hidden-print affix-top" role="complementary">
 	<ul class="nav docs-sidenav">
 		<li<%= sidebar_current("docs-home") %>>
-		<a href="/docs/index.html">&laquo; Documentation Home</a>
+		<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
 		</li>
 
 		<li<%= sidebar_current("docs-google-index") %>>
 		<a href="/docs/providers/google/index.html">Google Provider</a>
 		</li>
 
-		<li<%= sidebar_current("docs-google-resource") %>>
+		<li<%= sidebar_current(/^docs-google-resource/) %>>
 		<a href="#">Resources</a>
 		<ul class="nav nav-visible">
 			<li<%= sidebar_current("docs-google-resource-address") %>>
@@ -51,6 +51,21 @@
 
 			<li<%= sidebar_current("docs-google-resource-target-pool") %>>
 			<a href="/docs/providers/google/r/compute_target_pool.html">google_compute_target_pool</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-container-cluster") %>>
+			<a href="/docs/providers/google/r/container_cluster.html">google_container_cluster</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-dns-managed-zone") %>>
+			<a href="/docs/providers/google/r/dns_managed_zone.html">google_dns_managed_zone</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-dns-record-set") %>>
+			<a href="/docs/providers/google/r/dns_record_set.html">google_dns_record_set</a>
+			</li>
+			<li<%= sidebar_current("docs-google-resource-storage-bucket") %>>
+			<a href="/docs/providers/google/r/storage_bucket.html">google_storage_bucket</a>
 			</li>
 		</ul>
 		</li>

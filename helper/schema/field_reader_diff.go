@@ -39,13 +39,7 @@ func (r *DiffFieldReader) ReadField(address []string) (FieldReadResult, error) {
 
 	schema := schemaList[len(schemaList)-1]
 	switch schema.Type {
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeFloat:
-		fallthrough
-	case TypeString:
+	case TypeBool, TypeInt, TypeFloat, TypeString:
 		return r.readPrimitive(address, schema)
 	case TypeList:
 		return readListField(r, address, schema)
@@ -150,7 +144,11 @@ func (r *DiffFieldReader) readSet(
 	set := &Set{F: schema.Set}
 
 	// Go through the map and find all the set items
-	for k, _ := range r.Diff.Attributes {
+	for k, d := range r.Diff.Attributes {
+		if d.NewRemoved {
+			// If the field is removed, we always ignore it
+			continue
+		}
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}

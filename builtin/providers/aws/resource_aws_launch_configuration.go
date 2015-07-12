@@ -9,9 +9,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/autoscaling"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -29,6 +30,15 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1932-L1939
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"image_id": &schema.Schema{
@@ -76,9 +86,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"associate_public_ip_address": &schema.Schema{
@@ -104,6 +112,13 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			"placement_tenancy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
+			},
+
+			"enable_monitoring": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -257,6 +272,12 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		createLaunchConfigurationOpts.UserData = aws.String(userData)
 	}
 
+	if v, ok := d.GetOk("enable_monitoring"); ok {
+		createLaunchConfigurationOpts.InstanceMonitoring = &autoscaling.InstanceMonitoring{
+			Enabled: aws.Boolean(v.(bool)),
+		}
+	}
+
 	if v, ok := d.GetOk("iam_instance_profile"); ok {
 		createLaunchConfigurationOpts.IAMInstanceProfile = aws.String(v.(string))
 	}
@@ -374,7 +395,24 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	log.Printf(
 		"[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
-	_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
+
+	// IAM profiles can take ~10 seconds to propagate in AWS:
+	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+	err := resource.Retry(30*time.Second, func() error {
+		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Message() == "Invalid IamInstanceProfile" {
+					return err
+				}
+			}
+			return &resource.RetryError{
+				Err: err,
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating launch configuration: %s", err)
 	}
@@ -424,6 +462,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("iam_instance_profile", lc.IAMInstanceProfile)
 	d.Set("ebs_optimized", lc.EBSOptimized)
 	d.Set("spot_price", lc.SpotPrice)
+	d.Set("enable_monitoring", lc.InstanceMonitoring.Enabled)
 	d.Set("security_groups", lc.SecurityGroups)
 
 	if err := readLCBlockDevices(d, lc, ec2conn); err != nil {
@@ -442,8 +481,8 @@ func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface
 			LaunchConfigurationName: aws.String(d.Id()),
 		})
 	if err != nil {
-		autoscalingerr, ok := err.(aws.APIError)
-		if ok && autoscalingerr.Code == "InvalidConfiguration.NotFound" {
+		autoscalingerr, ok := err.(awserr.Error)
+		if ok && autoscalingerr.Code() == "InvalidConfiguration.NotFound" {
 			return nil
 		}
 
@@ -488,6 +527,11 @@ func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autosca
 	rootDeviceName, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn)
 	if err != nil {
 		return nil, err
+	}
+	if rootDeviceName == nil {
+		// We do this so the value is empty so we don't have to do nil checks later
+		var blank string
+		rootDeviceName = &blank
 	}
 	for _, bdm := range lc.BlockDeviceMappings {
 		bd := make(map[string]interface{})

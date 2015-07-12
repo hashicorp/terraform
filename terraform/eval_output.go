@@ -6,6 +6,34 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+// EvalDeleteOutput is an EvalNode implementation that deletes an output
+// from the state.
+type EvalDeleteOutput struct {
+	Name string
+}
+
+// TODO: test
+func (n *EvalDeleteOutput) Eval(ctx EvalContext) (interface{}, error) {
+	state, lock := ctx.State()
+	if state == nil {
+		return nil, nil
+	}
+
+	// Get a write lock so we can access this instance
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Look for the module state. If we don't have one, create it.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		return nil, nil
+	}
+
+	delete(mod.Outputs, n.Name)
+
+	return nil, nil
+}
+
 // EvalWriteOutput is an EvalNode implementation that writes the output
 // for the given name to the current state.
 type EvalWriteOutput struct {

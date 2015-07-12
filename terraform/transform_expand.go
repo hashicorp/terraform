@@ -59,3 +59,7 @@ func (n *GraphNodeBasicSubgraph) Name() string {
 func (n *GraphNodeBasicSubgraph) Subgraph() *Graph {
 	return n.Graph
 }
+
+func (n *GraphNodeBasicSubgraph) FlattenGraph() *Graph {
+	return n.Graph
+}

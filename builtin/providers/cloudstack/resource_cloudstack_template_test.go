@@ -149,13 +149,9 @@ func testAccCheckCloudStackTemplateDestroy(s *terraform.State) error {
 			return fmt.Errorf("No template ID is set")
 		}
 
-		p := cs.Template.NewDeleteTemplateParams(rs.Primary.ID)
-		_, err := cs.Template.DeleteTemplate(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting template (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.Template.GetTemplateByID(rs.Primary.ID, "executable")
+		if err == nil {
+			return fmt.Errorf("Template %s still exists", rs.Primary.ID)
 		}
 	}
 

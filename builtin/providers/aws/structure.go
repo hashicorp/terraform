@@ -1,14 +1,19 @@
 package aws
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/awslabs/aws-sdk-go/service/elb"
-	"github.com/awslabs/aws-sdk-go/service/rds"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -41,10 +46,70 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 	return listeners, nil
 }
 
-// Takes the result of flatmap.Expand for an array of ingress/egress
-// security group rules and returns EC2 API compatible objects
+// Takes the result of flatmap. Expand for an array of listeners and
+// returns ECS Volume compatible objects
+func expandEcsVolumes(configured []interface{}) ([]*ecs.Volume, error) {
+	volumes := make([]*ecs.Volume, 0, len(configured))
+
+	// Loop over our configured volumes and create
+	// an array of aws-sdk-go compatible objects
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
+
+		l := &ecs.Volume{
+			Name: aws.String(data["name"].(string)),
+			Host: &ecs.HostVolumeProperties{
+				SourcePath: aws.String(data["host_path"].(string)),
+			},
+		}
+
+		volumes = append(volumes, l)
+	}
+
+	return volumes, nil
+}
+
+// Takes JSON in a string. Decodes JSON into
+// an array of ecs.ContainerDefinition compatible objects
+func expandEcsContainerDefinitions(rawDefinitions string) ([]*ecs.ContainerDefinition, error) {
+	var definitions []*ecs.ContainerDefinition
+
+	err := json.Unmarshal([]byte(rawDefinitions), &definitions)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding JSON: %s", err)
+	}
+
+	return definitions, nil
+}
+
+// Takes the result of flatmap. Expand for an array of load balancers and
+// returns ecs.LoadBalancer compatible objects
+func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
+	loadBalancers := make([]*ecs.LoadBalancer, 0, len(configured))
+
+	// Loop over our configured load balancers and create
+	// an array of aws-sdk-go compatible objects
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
+
+		l := &ecs.LoadBalancer{
+			ContainerName:    aws.String(data["container_name"].(string)),
+			ContainerPort:    aws.Long(int64(data["container_port"].(int))),
+			LoadBalancerName: aws.String(data["elb_name"].(string)),
+		}
+
+		loadBalancers = append(loadBalancers, l)
+	}
+
+	return loadBalancers
+}
+
+// Takes the result of flatmap.Expand for an array of ingress/egress security
+// group rules and returns EC2 API compatible objects. This function will error
+// if it finds invalid permissions input, namely a protocol of "-1" with either
+// to_port or from_port set to a non-zero value.
 func expandIPPerms(
-	group *ec2.SecurityGroup, configured []interface{}) []*ec2.IPPermission {
+	group *ec2.SecurityGroup, configured []interface{}) ([]*ec2.IPPermission, error) {
 	vpc := group.VPCID != nil
 
 	perms := make([]*ec2.IPPermission, len(configured))
@@ -55,6 +120,17 @@ func expandIPPerms(
 		perm.FromPort = aws.Long(int64(m["from_port"].(int)))
 		perm.ToPort = aws.Long(int64(m["to_port"].(int)))
 		perm.IPProtocol = aws.String(m["protocol"].(string))
+
+		// When protocol is "-1", AWS won't store any ports for the
+		// rule, but also won't error if the user specifies ports other
+		// than '0'. Force the user to make a deliberate '0' port
+		// choice when specifying a "-1" protocol, and tell them about
+		// AWS's behavior in the error message.
+		if *perm.IPProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
+			return nil, fmt.Errorf(
+				"from_port (%d) and to_port (%d) must both be 0 to use the the 'ALL' \"-1\" protocol!",
+				*perm.FromPort, *perm.ToPort)
+		}
 
 		var groups []string
 		if raw, ok := m["security_groups"]; ok {
@@ -81,12 +157,15 @@ func expandIPPerms(
 
 				perm.UserIDGroupPairs[i] = &ec2.UserIDGroupPair{
 					GroupID: aws.String(id),
-					UserID:  aws.String(ownerId),
 				}
+
+				if ownerId != "" {
+					perm.UserIDGroupPairs[i].UserID = aws.String(ownerId)
+				}
+
 				if !vpc {
 					perm.UserIDGroupPairs[i].GroupID = nil
 					perm.UserIDGroupPairs[i].GroupName = aws.String(id)
-					perm.UserIDGroupPairs[i].UserID = nil
 				}
 			}
 		}
@@ -101,7 +180,7 @@ func expandIPPerms(
 		perms[i] = &perm
 	}
 
-	return perms
+	return perms, nil
 }
 
 // Takes the result of flatmap.Expand for an array of parameters and
@@ -116,6 +195,27 @@ func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 
 		p := &rds.Parameter{
 			ApplyMethod:    aws.String(data["apply_method"].(string)),
+			ParameterName:  aws.String(data["name"].(string)),
+			ParameterValue: aws.String(data["value"].(string)),
+		}
+
+		parameters = append(parameters, p)
+	}
+
+	return parameters, nil
+}
+
+// Takes the result of flatmap.Expand for an array of parameters and
+// returns Parameter API compatible objects
+func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
+	parameters := make([]*elasticache.ParameterNameValue, 0, len(configured))
+
+	// Loop over our configured parameters and create
+	// an array of aws-sdk-go compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		p := &elasticache.ParameterNameValue{
 			ParameterName:  aws.String(data["name"].(string)),
 			ParameterValue: aws.String(data["value"].(string)),
 		}
@@ -170,6 +270,18 @@ func expandInstanceString(list []interface{}) []*elb.Instance {
 	return result
 }
 
+// Flattens an array of Backend Descriptions into a a map of instance_port to policy names.
+func flattenBackendPolicies(backends []*elb.BackendServerDescription) map[int64][]string {
+	policies := make(map[int64][]string)
+	for _, i := range backends {
+		for _, p := range i.PolicyNames {
+			policies[*i.InstancePort] = append(policies[*i.InstancePort], *p)
+		}
+		sort.Strings(policies[*i.InstancePort])
+	}
+	return policies
+}
+
 // Flattens an array of Listeners into a []map[string]interface{}
 func flattenListeners(list []*elb.ListenerDescription) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
@@ -189,8 +301,58 @@ func flattenListeners(list []*elb.ListenerDescription) []map[string]interface{} 
 	return result
 }
 
+// Flattens an array of Volumes into a []map[string]interface{}
+func flattenEcsVolumes(list []*ecs.Volume) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, volume := range list {
+		l := map[string]interface{}{
+			"name":      *volume.Name,
+			"host_path": *volume.Host.SourcePath,
+		}
+		result = append(result, l)
+	}
+	return result
+}
+
+// Flattens an array of ECS LoadBalancers into a []map[string]interface{}
+func flattenEcsLoadBalancers(list []*ecs.LoadBalancer) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, loadBalancer := range list {
+		l := map[string]interface{}{
+			"elb_name":       *loadBalancer.LoadBalancerName,
+			"container_name": *loadBalancer.ContainerName,
+			"container_port": *loadBalancer.ContainerPort,
+		}
+		result = append(result, l)
+	}
+	return result
+}
+
+// Encodes an array of ecs.ContainerDefinitions into a JSON string
+func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (string, error) {
+	byteArray, err := json.Marshal(definitions)
+	if err != nil {
+		return "", fmt.Errorf("Error encoding to JSON: %s", err)
+	}
+
+	n := bytes.Index(byteArray, []byte{0})
+	return string(byteArray[:n]), nil
+}
+
 // Flattens an array of Parameters into a []map[string]interface{}
 func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		result = append(result, map[string]interface{}{
+			"name":  strings.ToLower(*i.ParameterName),
+			"value": strings.ToLower(*i.ParameterValue),
+		})
+	}
+	return result
+}
+
+// Flattens an array of Parameters into a []map[string]interface{}
+func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{

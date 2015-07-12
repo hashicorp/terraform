@@ -25,7 +25,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
+	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
@@ -52,6 +52,9 @@ func (c *PlanCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
 		}
 	}
+
+	countHook := new(CountHook)
+	c.Meta.extraHooks = []terraform.Hook{countHook}
 
 	ctx, _, err := c.Context(contextOpts{
 		Destroy:   destroy,
@@ -130,6 +133,13 @@ func (c *PlanCommand) Run(args []string) int {
 		ModuleDepth: moduleDepth,
 	}))
 
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][bold]Plan:[reset] "+
+			"%d to add, %d to change, %d to destroy.",
+		countHook.ToAdd,
+		(countHook.ToChange + countHook.ToRemoveAndAdd),
+		countHook.ToRemove)))
+
 	if detailed {
 		return 2
 	}
@@ -189,7 +199,6 @@ Options:
   -var-file=foo       Set variables in the Terraform configuration from
                       a file. If "terraform.tfvars" is present, it will be
                       automatically loaded if this flag is not specified.
-
 `
 	return strings.TrimSpace(helpText)
 }

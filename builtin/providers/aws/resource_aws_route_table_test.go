@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSRouteTable_normal(t *testing.T) {
+func TestAccAWSRouteTable_basic(t *testing.T) {
 	var v ec2.RouteTable
 
 	testCheck := func(*terraform.State) error {
@@ -134,7 +135,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTagsSDK(&route_table.Tags, "foo", "bar"),
+					testAccCheckTags(&route_table.Tags, "foo", "bar"),
 				),
 			},
 
@@ -142,8 +143,8 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTagsSDK(&route_table.Tags, "foo", ""),
-					testAccCheckTagsSDK(&route_table.Tags, "bar", "baz"),
+					testAccCheckTags(&route_table.Tags, "foo", ""),
+					testAccCheckTags(&route_table.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -171,11 +172,11 @@ func testAccCheckRouteTableDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if ec2err.Code != "InvalidRouteTableID.NotFound" {
+		if ec2err.Code() != "InvalidRouteTableID.NotFound" {
 			return err
 		}
 	}
@@ -246,6 +247,49 @@ func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
 						"aws_route_table.foo", &v),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRouteTable_vgwRoutePropagation(t *testing.T) {
+	var v ec2.RouteTable
+	var vgw ec2.VPNGateway
+
+	testCheck := func(*terraform.State) error {
+		if len(v.PropagatingVGWs) != 1 {
+			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVGWs)
+		}
+
+		propagatingVGWs := make(map[string]*ec2.PropagatingVGW)
+		for _, gw := range v.PropagatingVGWs {
+			propagatingVGWs[*gw.GatewayID] = gw
+		}
+
+		if _, ok := propagatingVGWs[*vgw.VPNGatewayID]; !ok {
+			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVGWs)
+		}
+
+		return nil
+
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccCheckVpnGatewayDestroy,
+			testAccCheckRouteTableDestroy,
+		),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRouteTableVgwRoutePropagationConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists(
+						"aws_route_table.foo", &v),
+					testAccCheckVpnGatewayExists(
+						"aws_vpn_gateway.foo", &vgw),
 					testCheck,
 				),
 			},
@@ -370,5 +414,21 @@ resource "aws_route_table" "foo" {
 		cidr_block = "10.2.0.0/16"
         vpc_peering_connection_id = "pcx-12345"
 	}
+}
+`
+
+const testAccRouteTableVgwRoutePropagationConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpn_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+
+	propagating_vgws = ["${aws_vpn_gateway.foo.id}"]
 }
 `

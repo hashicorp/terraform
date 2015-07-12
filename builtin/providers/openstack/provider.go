@@ -42,9 +42,9 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: envDefaultFunc("OS_PASSWORD"),
 			},
 			"api_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFuncAllowMissing("OS_AUTH_TOKEN"),
 			},
 			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -61,6 +61,11 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 				Default:  false,
 			},
+			"endpoint_type": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFuncAllowMissing("OS_ENDPOINT_TYPE"),
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -68,6 +73,7 @@ func Provider() terraform.ResourceProvider {
 			"openstack_compute_instance_v2":            resourceComputeInstanceV2(),
 			"openstack_compute_keypair_v2":             resourceComputeKeypairV2(),
 			"openstack_compute_secgroup_v2":            resourceComputeSecGroupV2(),
+			"openstack_compute_servergroup_v2":         resourceComputeServerGroupV2(),
 			"openstack_compute_floatingip_v2":          resourceComputeFloatingIPV2(),
 			"openstack_fw_firewall_v1":                 resourceFWFirewallV1(),
 			"openstack_fw_policy_v1":                   resourceFWPolicyV1(),
@@ -99,6 +105,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		DomainID:         d.Get("domain_id").(string),
 		DomainName:       d.Get("domain_name").(string),
 		Insecure:         d.Get("insecure").(bool),
+		EndpointType:     d.Get("endpoint_type").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {

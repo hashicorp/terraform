@@ -12,4 +12,5 @@ const (
 	GraphNodeConfigTypeProvider
 	GraphNodeConfigTypeModule
 	GraphNodeConfigTypeOutput
+	GraphNodeConfigTypeVariable
 )

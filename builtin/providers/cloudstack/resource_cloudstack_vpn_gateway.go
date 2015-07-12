@@ -69,6 +69,8 @@ func resourceCloudStackVPNGatewayRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
+	setValueOrUUID(d, "vpc", d.Get("vpc").(string), v.Vpcid)
+
 	d.Set("public_ip", v.Publicip)
 
 	return nil

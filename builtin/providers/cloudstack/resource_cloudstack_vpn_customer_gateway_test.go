@@ -67,7 +67,7 @@ func TestAccCloudStackVPNCustomerGateway_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNCustomerGatewayExists(
 						"cloudstack_vpn_customer_gateway.foo", &vpnCustomerGateway),
-					testAccCheckCloudStackVPNCustomerGatewayAttributes(&vpnCustomerGateway),
+					testAccCheckCloudStackVPNCustomerGatewayUpdatedAttributes(&vpnCustomerGateway),
 					resource.TestCheckResourceAttr(
 						"cloudstack_vpn_customer_gateway.foo", "name", "terraform-foo-bar"),
 					resource.TestCheckResourceAttr(
@@ -131,6 +131,26 @@ func testAccCheckCloudStackVPNCustomerGatewayAttributes(
 	}
 }
 
+func testAccCheckCloudStackVPNCustomerGatewayUpdatedAttributes(
+	vpnCustomerGateway *cloudstack.VpnCustomerGateway) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if vpnCustomerGateway.Esppolicy != "3des-md5" {
+			return fmt.Errorf("Bad ESP policy: %s", vpnCustomerGateway.Esppolicy)
+		}
+
+		if vpnCustomerGateway.Ikepolicy != "3des-md5" {
+			return fmt.Errorf("Bad IKE policy: %s", vpnCustomerGateway.Ikepolicy)
+		}
+
+		if vpnCustomerGateway.Ipsecpsk != "terraform" {
+			return fmt.Errorf("Bad IPSEC pre-shared key: %s", vpnCustomerGateway.Ipsecpsk)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckCloudStackVPNCustomerGatewayDestroy(s *terraform.State) error {
 	cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
 
@@ -143,13 +163,9 @@ func testAccCheckCloudStackVPNCustomerGatewayDestroy(s *terraform.State) error {
 			return fmt.Errorf("No VPN Customer Gateway ID is set")
 		}
 
-		p := cs.VPN.NewDeleteVpnCustomerGatewayParams(rs.Primary.ID)
-		_, err := cs.VPN.DeleteVpnCustomerGateway(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting VPN Customer Gateway (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.VPN.GetVpnCustomerGatewayByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("VPN Customer Gateway %s still exists", rs.Primary.ID)
 		}
 	}
 
@@ -157,6 +173,53 @@ func testAccCheckCloudStackVPNCustomerGatewayDestroy(s *terraform.State) error {
 }
 
 var testAccCloudStackVPNCustomerGateway_basic = fmt.Sprintf(`
+resource "cloudstack_vpc" "foo" {
+	name = "terraform-vpc-foo"
+	cidr = "%s"
+	vpc_offering = "%s"
+	zone = "%s"
+}
+
+resource "cloudstack_vpc" "bar" {
+	name = "terraform-vpc-bar"
+	cidr = "%s"
+	vpc_offering = "%s"
+	zone = "%s"
+}
+
+resource "cloudstack_vpn_gateway" "foo" {
+	vpc = "${cloudstack_vpc.foo.name}"
+}
+
+resource "cloudstack_vpn_gateway" "bar" {
+	vpc = "${cloudstack_vpc.bar.name}"
+}
+
+resource "cloudstack_vpn_customer_gateway" "foo" {
+	name = "terraform-foo"
+	cidr = "${cloudstack_vpc.foo.cidr}"
+	esp_policy = "aes256-sha1"
+	gateway = "${cloudstack_vpn_gateway.foo.public_ip}"
+	ike_policy = "aes256-sha1"
+	ipsec_psk = "terraform"
+}
+
+resource "cloudstack_vpn_customer_gateway" "bar" {
+  name = "terraform-bar"
+  cidr = "${cloudstack_vpc.bar.cidr}"
+  esp_policy = "aes256-sha1"
+  gateway = "${cloudstack_vpn_gateway.bar.public_ip}"
+  ike_policy = "aes256-sha1"
+	ipsec_psk = "terraform"
+}`,
+	CLOUDSTACK_VPC_CIDR_1,
+	CLOUDSTACK_VPC_OFFERING,
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_VPC_CIDR_2,
+	CLOUDSTACK_VPC_OFFERING,
+	CLOUDSTACK_ZONE)
+
+var testAccCloudStackVPNCustomerGateway_update = fmt.Sprintf(`
 resource "cloudstack_vpc" "foo" {
   name = "terraform-vpc-foo"
   cidr = "%s"
@@ -172,29 +235,29 @@ resource "cloudstack_vpc" "bar" {
 }
 
 resource "cloudstack_vpn_gateway" "foo" {
-    vpc = "${cloudstack_vpc.foo.name}"
+  vpc = "${cloudstack_vpc.foo.name}"
 }
 
 resource "cloudstack_vpn_gateway" "bar" {
-    vpc = "${cloudstack_vpc.bar.name}"
+  vpc = "${cloudstack_vpc.bar.name}"
 }
 
 resource "cloudstack_vpn_customer_gateway" "foo" {
-    name = "terraform-foo"
-    cidr = "${cloudstack_vpc.foo.cidr}"
-    esp_policy = "aes256-sha1"
-    gateway = "${cloudstack_vpn_gateway.foo.public_ip}"
-    ike_policy = "aes256-sha1"
-    ipsec_psk = "terraform"
+  name = "terraform-foo-bar"
+  cidr = "${cloudstack_vpc.foo.cidr}"
+  esp_policy = "3des-md5"
+  gateway = "${cloudstack_vpn_gateway.foo.public_ip}"
+  ike_policy = "3des-md5"
+  ipsec_psk = "terraform"
 }
 
 resource "cloudstack_vpn_customer_gateway" "bar" {
-    name = "terraform-bar"
-    cidr = "${cloudstack_vpc.bar.cidr}"
-    esp_policy = "aes256-sha1"
-    gateway = "${cloudstack_vpn_gateway.bar.public_ip}"
-    ike_policy = "aes256-sha1"
-    ipsec_psk = "terraform"
+  name = "terraform-bar-foo"
+  cidr = "${cloudstack_vpc.bar.cidr}"
+  esp_policy = "3des-md5"
+  gateway = "${cloudstack_vpn_gateway.bar.public_ip}"
+  ike_policy = "3des-md5"
+  ipsec_psk = "terraform"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
@@ -202,22 +265,3 @@ resource "cloudstack_vpn_customer_gateway" "bar" {
 	CLOUDSTACK_VPC_CIDR_2,
 	CLOUDSTACK_VPC_OFFERING,
 	CLOUDSTACK_ZONE)
-
-var testAccCloudStackVPNCustomerGateway_update = fmt.Sprintf(`
-resource "cloudstack_vpn_customer_gateway" "foo" {
-    name = "terraform-foo-bar"
-    cidr = "${cloudstack_vpc.foo.cidr}"
-    esp_policy = "3des-md5"
-    gateway = "${cloudstack_vpn_gateway.foo.public_ip}"
-    ike_policy = "3des-md5"
-    ipsec_psk = "terraform"
-}
-
-resource "cloudstack_vpn_customer_gateway" "bar" {
-    name = "terraform-bar-foo"
-    cidr = "${cloudstack_vpc.bar.cidr}"
-    esp_policy = "3des-md5"
-    gateway = "${cloudstack_vpn_gateway.bar.public_ip}"
-    ike_policy = "3des-md5"
-    ipsec_psk = "terraform"
-}`)

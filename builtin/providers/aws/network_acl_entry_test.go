@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
 func Test_expandNetworkACLEntry(t *testing.T) {
@@ -134,4 +134,41 @@ func Test_flattenNetworkACLEntry(t *testing.T) {
 			expected)
 	}
 
+}
+
+func Test_validatePorts(t *testing.T) {
+	for _, ts := range []struct {
+		to       int64
+		from     int64
+		expected *expectedPortPair
+		wanted   bool
+	}{
+		{0, 0, &expectedPortPair{0, 0}, true},
+		{0, 1, &expectedPortPair{0, 0}, false},
+	} {
+		got := validatePorts(ts.to, ts.from, *ts.expected)
+		if got != ts.wanted {
+			t.Fatalf("Got: %t; Expected: %t\n", got, ts.wanted)
+		}
+	}
+}
+
+func Test_validateCIDRBlock(t *testing.T) {
+	for _, ts := range []struct {
+		cidr      string
+		shouldErr bool
+	}{
+		{"10.2.2.0/24", false},
+		{"10.2.2.0/1234", true},
+		{"10/24", true},
+		{"10.2.2.2/24", true},
+	} {
+		err := validateCIDRBlock(ts.cidr)
+		if ts.shouldErr && err == nil {
+			t.Fatalf("Input '%s' should error but didn't!", ts.cidr)
+		}
+		if !ts.shouldErr && err != nil {
+			t.Fatalf("Got unexpected error for '%s' input: %s", ts.cidr, err)
+		}
+	}
 }

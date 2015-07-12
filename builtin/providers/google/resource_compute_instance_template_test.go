@@ -214,8 +214,8 @@ resource "google_compute_instance_template" "foobar" {
 		boot = true
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {
@@ -241,9 +241,11 @@ resource "google_compute_instance_template" "foobar" {
 		source_image = "debian-7-wheezy-v20140814"
 	}
 
-	network {
-		source = "default"
-		address = "${google_compute_address.foo.address}"
+	network_interface {
+		network = "default"
+		access_config {
+			nat_ip = "${google_compute_address.foo.address}"
+		}
 	}
 
 	metadata {
@@ -276,8 +278,8 @@ resource "google_compute_instance_template" "foobar" {
 		boot = false
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {

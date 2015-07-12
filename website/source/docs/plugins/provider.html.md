@@ -202,7 +202,7 @@ subsequent `terraform apply` fixes this resource.
 Most of the time, partial state is not required. When it is, it must be
 specifically enabled. An example is shown below:
 
-<pre class="prettyprint">
+```
 func resourceUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Enable partial state mode
 	d.Partial(true)
@@ -230,7 +230,7 @@ func resourceUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	return nil
 }
-</pre>
+```
 
 In the example above, it is possible that setting the `tags` succeeds,
 but setting the `name` fails. In this scenario, we want to make sure

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -76,7 +76,7 @@ func resourceAwsMainRouteTableAssociationRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	if *mainAssociation.RouteTableAssociationID != d.Id() {
+	if mainAssociation == nil || *mainAssociation.RouteTableAssociationID != d.Id() {
 		// It seems it doesn't exist anymore, so clear the ID
 		d.SetId("")
 	}
@@ -135,6 +135,9 @@ func findMainRouteTableAssociation(conn *ec2.EC2, vpcId string) (*ec2.RouteTable
 	if err != nil {
 		return nil, err
 	}
+	if mainRouteTable == nil {
+		return nil, nil
+	}
 
 	for _, a := range mainRouteTable.Associations {
 		if *a.Main {
@@ -159,10 +162,7 @@ func findMainRouteTable(conn *ec2.EC2, vpcId string) (*ec2.RouteTable, error) {
 	if err != nil {
 		return nil, err
 	} else if len(routeResp.RouteTables) != 1 {
-		return nil, fmt.Errorf(
-			"Expected to find a single main routing table for VPC: %s, but found %d",
-			vpcId,
-			len(routeResp.RouteTables))
+		return nil, nil
 	}
 
 	return routeResp.RouteTables[0], nil

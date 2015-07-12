@@ -19,6 +19,9 @@ variables, attributes of resources, call functions, etc.
 You can also perform simple math in interpolations, allowing
 you to write expressions such as `${count.index+1}`.
 
+You can escape interpolation with double dollar signs: `$${foo}`
+will be rendered as a literal `${foo}`.
+
 ## Available Variables
 
 **To reference user variables**, use the `var.` prefix followed by the
@@ -69,8 +72,8 @@ are documented below.
 
 The supported built-in functions are:
 
-  * `concat(args...)` - Concatenates the values of multiple arguments into
-      a single string.
+  * `concat(list1, list2)` - Combines two or more lists into a single list.
+     Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
@@ -88,6 +91,16 @@ The supported built-in functions are:
       Good documentation for the syntax can be [found here](http://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index+1)`.
+
+  * `formatlist(format, args...)` - Formats each element of a list
+      according to the given format, similarly to `format`, and returns a list.
+      Non-list arguments are repeated for each list element.
+      For example, to convert a list of DNS addresses to a list of URLs, you might use:
+      `formatlist("https://%s:%s/", aws_instance.foo.*.public_dns, var.port)`.
+      If multiple args are lists, and they have the same number of elements, then the formatting is applied to the elements of the lists in parallel.
+      Example:
+      `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
+      Passing lists with different lengths to formatlist results in an error.
 
   * `join(delim, list)` - Joins the list with the delimiter. A list is
       only possible with splat variables from resources with a count
@@ -112,5 +125,77 @@ The supported built-in functions are:
 
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
-      outputs since they currently only support string values.
+      outputs since they currently only support string values. Depending on the
+      use, the string this is being performed within may need to be wrapped
+      in brackets to indicate that the output is actually a list, e.g.
+      `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
+
+## Templates
+
+Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+
+A template resource looks like:
+
+```
+resource "template_file" "example" {
+    filename = "template.txt"
+    vars {
+        hello = "goodnight"
+        world = "moon"
+    }
+}
+
+output "rendered" {
+    value = "${template_file.example.rendered}"
+}
+```
+
+Assuming `template.txt` looks like this:
+
+```
+${hello} ${world}!
+```
+
+Then the rendered value would be `goodnight moon!`.
+
+You may use any of the built-in functions in your template.
+
+
+### Using Templates with Count
+
+Here is an example that combines the capabilities of templates with the interpolation
+from `count` to give us a parametized template, unique to each resource instance:
+
+```
+variable "count" {
+  default = 2
+}
+
+variable "hostnames" {
+  default = {
+    "0" = "example1.org"
+    "1" = "example2.net"
+  }
+}
+
+resource "template_file" "web_init" {
+  // here we expand multiple template_files - the same number as we have instances
+  count = "${var.count}"
+  filename = "templates/web_init.tpl"
+  vars {
+    // that gives us access to use count.index to do the lookup
+    hostname = "${lookup(var.hostnames, count.index)}"
+  }
+}
+
+resource "aws_instance" "web" {
+  // ...
+  count = "${var.count}"
+  // here we link each web instance to the proper template_file
+  user_data = "${element(template_file.web_init.*.rendered, count.index)}"
+}
+```
+
+With this, we will build a list of `template_file.web_init` resources which we can
+use in combination with our list of `aws_instance.web` resources.

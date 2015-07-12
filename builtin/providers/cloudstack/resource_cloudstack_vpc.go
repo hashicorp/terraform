@@ -105,7 +105,8 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", v.Name)
 	d.Set("display_text", v.Displaytext)
 	d.Set("cidr", v.Cidr)
-	d.Set("zone", v.Zonename)
+
+	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
 
 	// Get the VPC offering details
 	o, _, err := cs.VPC.GetVPCOfferingByID(v.Vpcofferingid)
@@ -113,7 +114,7 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("vpc_offering", o.Name)
+	setValueOrUUID(d, "vpc_offering", o.Name, v.Vpcofferingid)
 
 	return nil
 }

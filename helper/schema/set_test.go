@@ -35,11 +35,15 @@ func TestSetAdd_negative(t *testing.T) {
 func TestSetContains(t *testing.T) {
 	s := &Set{F: testSetInt}
 	s.Add(5)
+	s.Add(-5)
 
 	if s.Contains(2) {
 		t.Fatal("should not contain")
 	}
 	if !s.Contains(5) {
+		t.Fatal("should contain")
+	}
+	if !s.Contains(-5) {
 		t.Fatal("should contain")
 	}
 }

@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSSubnet(t *testing.T) {
+func TestAccAWSSubnet_basic(t *testing.T) {
 	var v ec2.Subnet
 
 	testCheck := func(*terraform.State) error {
@@ -63,11 +64,11 @@ func testAccCheckSubnetDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if ec2err.Code != "InvalidSubnetID.NotFound" {
+		if ec2err.Code() != "InvalidSubnetID.NotFound" {
 			return err
 		}
 	}

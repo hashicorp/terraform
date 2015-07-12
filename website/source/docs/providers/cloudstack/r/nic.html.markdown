@@ -26,14 +26,14 @@ resource "cloudstack_nic" "test" {
 
 The following arguments are supported:
 
-* `network` - (Required) The name of the network to plug the NIC into. Changing
+* `network` - (Required) The name or ID of the network to plug the NIC into. Changing
     this forces a new resource to be created.
 
 * `ipaddress` - (Optional) The IP address to assign to the NIC. Changing this
     forces a new resource to be created.
 
-* `virtual_machine` - (Required) The name of the virtual machine to which to
-    attach the NIC. Changing this forces a new resource to be created.
+* `virtual_machine` - (Required) The name or ID of the virtual machine to which
+    to attach the NIC. Changing this forces a new resource to be created.
 
 ## Attributes Reference
 

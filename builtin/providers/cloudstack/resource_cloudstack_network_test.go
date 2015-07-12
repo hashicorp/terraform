@@ -29,7 +29,7 @@ func TestAccCloudStackNetwork_basic(t *testing.T) {
 	})
 }
 
-func TestAccCloudStackNetwork_vpcACL(t *testing.T) {
+func TestAccCloudStackNetwork_vpc(t *testing.T) {
 	var network cloudstack.Network
 
 	resource.Test(t, resource.TestCase{
@@ -38,11 +38,11 @@ func TestAccCloudStackNetwork_vpcACL(t *testing.T) {
 		CheckDestroy: testAccCheckCloudStackNetworkDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCloudStackNetwork_vpcACL,
+				Config: testAccCloudStackNetwork_vpc,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkExists(
 						"cloudstack_network.foo", &network),
-					testAccCheckCloudStackNetworkVPCACLAttributes(&network),
+					testAccCheckCloudStackNetworkVPCAttributes(&network),
 					resource.TestCheckResourceAttr(
 						"cloudstack_network.foo", "vpc", "terraform-vpc"),
 				),
@@ -92,11 +92,11 @@ func testAccCheckCloudStackNetworkBasicAttributes(
 			return fmt.Errorf("Bad display name: %s", network.Displaytext)
 		}
 
-		if network.Cidr != CLOUDSTACK_NETWORK_1_CIDR {
+		if network.Cidr != CLOUDSTACK_NETWORK_2_CIDR {
 			return fmt.Errorf("Bad service offering: %s", network.Cidr)
 		}
 
-		if network.Networkofferingname != CLOUDSTACK_NETWORK_1_OFFERING {
+		if network.Networkofferingname != CLOUDSTACK_NETWORK_2_OFFERING {
 			return fmt.Errorf("Bad template: %s", network.Networkofferingname)
 		}
 
@@ -104,7 +104,7 @@ func testAccCheckCloudStackNetworkBasicAttributes(
 	}
 }
 
-func testAccCheckCloudStackNetworkVPCACLAttributes(
+func testAccCheckCloudStackNetworkVPCAttributes(
 	network *cloudstack.Network) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -117,11 +117,11 @@ func testAccCheckCloudStackNetworkVPCACLAttributes(
 		}
 
 		if network.Cidr != CLOUDSTACK_VPC_NETWORK_CIDR {
-			return fmt.Errorf("Bad service offering: %s", network.Cidr)
+			return fmt.Errorf("Bad CIDR: %s", network.Cidr)
 		}
 
 		if network.Networkofferingname != CLOUDSTACK_VPC_NETWORK_OFFERING {
-			return fmt.Errorf("Bad template: %s", network.Networkofferingname)
+			return fmt.Errorf("Bad network offering: %s", network.Networkofferingname)
 		}
 
 		return nil
@@ -140,13 +140,9 @@ func testAccCheckCloudStackNetworkDestroy(s *terraform.State) error {
 			return fmt.Errorf("No network ID is set")
 		}
 
-		p := cs.Network.NewDeleteNetworkParams(rs.Primary.ID)
-		_, err := cs.Network.DeleteNetwork(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting network (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.Network.GetNetworkByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Network %s still exists", rs.Primary.ID)
 		}
 	}
 
@@ -160,11 +156,11 @@ resource "cloudstack_network" "foo" {
   network_offering = "%s"
   zone = "%s"
 }`,
-	CLOUDSTACK_NETWORK_1_CIDR,
-	CLOUDSTACK_NETWORK_1_OFFERING,
+	CLOUDSTACK_NETWORK_2_CIDR,
+	CLOUDSTACK_NETWORK_2_OFFERING,
 	CLOUDSTACK_ZONE)
 
-var testAccCloudStackNetwork_vpcACL = fmt.Sprintf(`
+var testAccCloudStackNetwork_vpc = fmt.Sprintf(`
 resource "cloudstack_vpc" "foobar" {
 	name = "terraform-vpc"
 	cidr = "%s"
@@ -172,18 +168,11 @@ resource "cloudstack_vpc" "foobar" {
 	zone = "%s"
 }
 
-resource "cloudstack_network_acl" "foo" {
-  name = "terraform-acl"
-  description = "terraform-acl-text"
-  vpc = "${cloudstack_vpc.foobar.name}"
-}
-
 resource "cloudstack_network" "foo" {
   name = "terraform-network"
   cidr = "%s"
   network_offering = "%s"
   vpc = "${cloudstack_vpc.foobar.name}"
-  aclid = "${cloudstack_network_acl.foo.id}"
   zone = "${cloudstack_vpc.foobar.zone}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,

@@ -10,7 +10,7 @@
 				<a href="/intro/use-cases.html">Use Cases</a>
 				</li>
 
-				<li<%= sidebar_current("vs-other") %>>
+				<li<%= sidebar_current(/^vs-other/) %>>
 				<a href="/intro/vs/index.html">Terraform vs. Other Software</a>
 				<ul class="nav">
 					<li<%= sidebar_current("vs-other-chef") %>>
@@ -31,7 +31,7 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("gettingstarted") %>>
+				<li<%= sidebar_current(/^gettingstarted/) %>>
 				<a href="/intro/getting-started/install.html">Getting Started</a>
 				<ul class="nav">
 					<li<%= sidebar_current("gettingstarted-install") %>>
@@ -80,7 +80,7 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("examples") %>>
+				<li<%= sidebar_current(/^examples/) %>>
 				<a href="/intro/examples/index.html">Example Configurations</a>
 				<ul class="nav">
 					<li<%= sidebar_current("examples-aws") %>>

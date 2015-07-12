@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -155,7 +156,7 @@ func testAccCheckAWSENIDestroy(s *terraform.State) error {
 		_, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidNetworkInterfaceID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidNetworkInterfaceID.NotFound" {
 				return nil
 			}
 
@@ -181,6 +182,13 @@ resource "aws_security_group" "foo" {
   vpc_id = "${aws_vpc.foo.id}"
   description = "foo"
   name = "foo"  
+
+        egress {
+                from_port = 0
+                to_port = 0
+                protocol = "tcp"
+                cidr_blocks = ["10.0.0.0/16"]
+        }
 }
 
 resource "aws_network_interface" "bar" {

@@ -106,6 +106,10 @@ func resourceCloudStackTemplate() *schema.Resource {
 func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
+	if err := verifyTemplateParams(d); err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 
 	// Compute/set the display text
@@ -169,6 +173,10 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 	currentTime := time.Now().Unix()
 	timeout := int64(d.Get("is_ready_timeout").(int))
 	for {
+		// Start with the sleep so the register action has a few seconds
+		// to process the registration correctly. Without this wait
+		time.Sleep(10 * time.Second)
+
 		err := resourceCloudStackTemplateRead(d, meta)
 		if err != nil {
 			return err
@@ -181,7 +189,6 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 		if time.Now().Unix()-currentTime > timeout {
 			return fmt.Errorf("Timeout while waiting for template to become ready")
 		}
-		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -205,14 +212,15 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("display_text", t.Displaytext)
 	d.Set("format", t.Format)
 	d.Set("hypervisor", t.Hypervisor)
-	d.Set("os_type", t.Ostypename)
-	d.Set("zone", t.Zonename)
 	d.Set("is_dynamically_scalable", t.Isdynamicallyscalable)
 	d.Set("is_extractable", t.Isextractable)
 	d.Set("is_featured", t.Isfeatured)
 	d.Set("is_public", t.Ispublic)
 	d.Set("password_enabled", t.Passwordenabled)
 	d.Set("is_ready", t.Isready)
+
+	setValueOrUUID(d, "os_type", t.Ostypename, t.Ostypeid)
+	setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
 
 	return nil
 }
@@ -279,5 +287,15 @@ func resourceCloudStackTemplateDelete(d *schema.ResourceData, meta interface{}) 
 
 		return fmt.Errorf("Error deleting template %s: %s", d.Get("name").(string), err)
 	}
+	return nil
+}
+
+func verifyTemplateParams(d *schema.ResourceData) error {
+	format := d.Get("format").(string)
+	if format != "OVA" && format != "QCOW2" && format != "RAW" && format != "VHD" && format != "VMDK" {
+		return fmt.Errorf(
+			"%s is not a valid format. Valid options are 'OVA','QCOW2', 'RAW', 'VHD' and 'VMDK'", format)
+	}
+
 	return nil
 }

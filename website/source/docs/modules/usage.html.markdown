@@ -59,6 +59,26 @@ for a module by inspecting the source of it very easily.
 Additionally, because these map directly to variables, they're always simple
 key/value pairs. Modules can't have complex variable inputs.
 
+## Dealing with parameters of the list type
+
+Variables are currently unable to hold the list type. Sometimes, though, it's
+desirable to parameterize a module's resource with an attribute that is of the
+list type, for example `aws_instance.security_groups`. 
+
+Until a future release broadens the functionality of variables to include list
+types, the way to work around this limitation is to pass a delimited string as
+a module parameter, and then "unpack" that parameter using
+[`split`](/docs/configuration/interpolation.html) interpolation function within
+the module definition. 
+
+Depending on the resource parameter in question, you may have to 
+indicate that the unpacked string is actually a list by using list notation.
+For example:
+
+```
+resource_param = ["${split(",", var.CSV_STRING)}"]
+```
+
 ## Outputs
 
 Modules can also specify their own [outputs](/docs/configuration/outputs.html).
@@ -104,3 +124,15 @@ But if we set `-module-depth=-1`, the graph will look like this:
 Other commands work similarly with modules. Note that the `-module-depth`
 flag is purely a formatting flag; it doesn't affect what modules are created
 or not.
+
+
+## Tainting resources within a module
+
+The [taint command](/docs/commands/taint.html) can be used to _taint_
+specific resources within a module:
+
+```
+terraform taint -module=salt_master aws_instance.salt_master
+```
+
+It is not (yet) possible to taint an entire module.

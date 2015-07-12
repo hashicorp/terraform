@@ -24,7 +24,7 @@ resource "cloudstack_vpn_gateway" "default" {
 
 The following arguments are supported:
 
-* `vpc` - (Required) The name of the VPC for which to create the VPN Gateway.
+* `vpc` - (Required) The name or ID of the VPC for which to create the VPN Gateway.
     Changing this forces a new resource to be created.
 
 ## Attributes Reference

@@ -48,7 +48,6 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				ForceNew: true,
 			},
 
-			// TODO: Constraint either source or other disk params
 			"disk": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
@@ -126,30 +125,35 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"network_interface": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-				},
-			},
-
-			"network": &schema.Schema{
-				Type:     schema.TypeList,
-				Required: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"source": &schema.Schema{
+						"network": &schema.Schema{
 							Type:     schema.TypeString,
-							ForceNew: true,
 							Required: true,
+							ForceNew: true,
 						},
 
-						"address": &schema.Schema{
-							Type:     schema.TypeString,
-							ForceNew: true,
+						"access_config": &schema.Schema{
+							Type:     schema.TypeList,
 							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"nat_ip": &schema.Schema{
+										Type:     schema.TypeString,
+										Computed: true,
+										Optional: true,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -287,31 +291,35 @@ func buildDisks(d *schema.ResourceData, meta interface{}) []*compute.AttachedDis
 
 func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.NetworkInterface) {
 	// Build up the list of networks
-	networksCount := d.Get("network.#").(int)
-	networks := make([]*compute.NetworkInterface, 0, networksCount)
+	networksCount := d.Get("network_interface.#").(int)
+	networkInterfaces := make([]*compute.NetworkInterface, 0, networksCount)
 	for i := 0; i < networksCount; i++ {
-		prefix := fmt.Sprintf("network.%d", i)
+		prefix := fmt.Sprintf("network_interface.%d", i)
 
 		source := "global/networks/default"
-		if v, ok := d.GetOk(prefix + ".source"); ok {
+		if v, ok := d.GetOk(prefix + ".network"); ok {
 			if v.(string) != "default" {
 				source = v.(string)
 			}
 		}
 
-		// Build the interface
+		// Build the networkInterface
 		var iface compute.NetworkInterface
-		iface.AccessConfigs = []*compute.AccessConfig{
-			&compute.AccessConfig{
-				Type:  "ONE_TO_ONE_NAT",
-				NatIP: d.Get(prefix + ".address").(string),
-			},
-		}
 		iface.Network = source
 
-		networks = append(networks, &iface)
+		accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
+		iface.AccessConfigs = make([]*compute.AccessConfig, accessConfigsCount)
+		for j := 0; j < accessConfigsCount; j++ {
+			acPrefix := fmt.Sprintf("%s.access_config.%d", prefix, j)
+			iface.AccessConfigs[j] = &compute.AccessConfig{
+				Type:  "ONE_TO_ONE_NAT",
+				NatIP: d.Get(acPrefix + ".nat_ip").(string),
+			}
+		}
+
+		networkInterfaces = append(networkInterfaces, &iface)
 	}
-	return nil, networks
+	return nil, networkInterfaces
 }
 
 func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
@@ -323,7 +331,11 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	instanceProperties.Description = d.Get("instance_description").(string)
 	instanceProperties.MachineType = d.Get("machine_type").(string)
 	instanceProperties.Disks = buildDisks(d, meta)
-	instanceProperties.Metadata = resourceInstanceMetadata(d)
+	metadata, err := resourceInstanceMetadata(d)
+	if err != nil {
+		return err
+	}
+	instanceProperties.Metadata = metadata
 	err, networks := buildNetworks(d, meta)
 	if err != nil {
 		return err

@@ -74,13 +74,7 @@ func (w *MapFieldWriter) set(addr []string, value interface{}) error {
 
 	schema := schemaList[len(schemaList)-1]
 	switch schema.Type {
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeFloat:
-		fallthrough
-	case TypeString:
+	case TypeBool, TypeInt, TypeFloat, TypeString:
 		return w.setPrimitive(addr, value, schema)
 	case TypeList:
 		return w.setList(addr, value, schema)
@@ -141,23 +135,21 @@ func (w *MapFieldWriter) setMap(
 	v := reflect.ValueOf(value)
 	vs := make(map[string]interface{})
 
-	if value != nil {
-		if v.Kind() != reflect.Map {
-			return fmt.Errorf("%s: must be a map", k)
-		}
-		if v.Type().Key().Kind() != reflect.String {
-			return fmt.Errorf("%s: keys must strings", k)
-		}
-		for _, mk := range v.MapKeys() {
-			mv := v.MapIndex(mk)
-			vs[mk.String()] = mv.Interface()
-		}
-	}
-
-	if len(vs) == 0 {
+	if value == nil {
 		// The empty string here means the map is removed.
 		w.result[k] = ""
 		return nil
+	}
+
+	if v.Kind() != reflect.Map {
+		return fmt.Errorf("%s: must be a map", k)
+	}
+	if v.Type().Key().Kind() != reflect.String {
+		return fmt.Errorf("%s: keys must strings", k)
+	}
+	for _, mk := range v.MapKeys() {
+		mv := v.MapIndex(mk)
+		vs[mk.String()] = mv.Interface()
 	}
 
 	// Remove the pure key since we're setting the full map value

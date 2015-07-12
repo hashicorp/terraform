@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
@@ -16,6 +17,14 @@ type retrieveError struct {
 
 func (e *retrieveError) Error() error {
 	return fmt.Errorf("Error retrieving UUID of %s %s: %s", e.name, e.value, e.err)
+}
+
+func setValueOrUUID(d *schema.ResourceData, key string, value string, uuid string) {
+	if isUUID(d.Get(key).(string)) {
+		d.Set(key, uuid)
+	} else {
+		d.Set(key, value)
+	}
 }
 
 func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid string, e *retrieveError) {
@@ -70,6 +79,8 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 			break
 		}
 		err = fmt.Errorf("Could not find UUID of OS Type: %s", value)
+	case "project":
+		uuid, err = cs.Project.GetProjectID(value)
 	default:
 		return uuid, &retrieveError{name: name, value: value,
 			err: fmt.Errorf("Unknown request: %s", name)}

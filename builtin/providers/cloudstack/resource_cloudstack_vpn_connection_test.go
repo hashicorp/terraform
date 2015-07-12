@@ -71,13 +71,9 @@ func testAccCheckCloudStackVPNConnectionDestroy(s *terraform.State) error {
 			return fmt.Errorf("No VPN Connection ID is set")
 		}
 
-		p := cs.VPN.NewDeleteVpnConnectionParams(rs.Primary.ID)
-		_, err := cs.VPN.DeleteVpnConnection(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting VPN Connection (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.VPN.GetVpnConnectionByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("VPN Connection %s still exists", rs.Primary.ID)
 		}
 	}
 
@@ -100,39 +96,39 @@ resource "cloudstack_vpc" "bar" {
 }
 
 resource "cloudstack_vpn_gateway" "foo" {
-    vpc = "${cloudstack_vpc.foo.name}"
+  vpc = "${cloudstack_vpc.foo.name}"
 }
 
 resource "cloudstack_vpn_gateway" "bar" {
-    vpc = "${cloudstack_vpc.bar.name}"
+  vpc = "${cloudstack_vpc.bar.name}"
 }
 
 resource "cloudstack_vpn_customer_gateway" "foo" {
-    name = "terraform-foo"
-    cidr = "${cloudstack_vpc.foo.cidr}"
-    esp_policy = "aes256-sha1"
-    gateway = "${cloudstack_vpn_gateway.foo.public_ip}"
-    ike_policy = "aes256-sha1"
-    ipsec_psk = "terraform"
+  name = "terraform-foo"
+  cidr = "${cloudstack_vpc.foo.cidr}"
+  esp_policy = "aes256-sha1"
+  gateway = "${cloudstack_vpn_gateway.foo.public_ip}"
+  ike_policy = "aes256-sha1"
+  ipsec_psk = "terraform"
 }
 
 resource "cloudstack_vpn_customer_gateway" "bar" {
-    name = "terraform-bar"
-    cidr = "${cloudstack_vpc.bar.cidr}"
-    esp_policy = "aes256-sha1"
-    gateway = "${cloudstack_vpn_gateway.bar.public_ip}"
-    ike_policy = "aes256-sha1"
-    ipsec_psk = "terraform"
+  name = "terraform-bar"
+  cidr = "${cloudstack_vpc.bar.cidr}"
+  esp_policy = "aes256-sha1"
+  gateway = "${cloudstack_vpn_gateway.bar.public_ip}"
+  ike_policy = "aes256-sha1"
+  ipsec_psk = "terraform"
 }
 
 resource "cloudstack_vpn_connection" "foo-bar" {
-    customergatewayid = "${cloudstack_vpn_customer_gateway.foo.id}"
-    vpngatewayid = "${cloudstack_vpn_gateway.bar.id}"
+  customergatewayid = "${cloudstack_vpn_customer_gateway.foo.id}"
+  vpngatewayid = "${cloudstack_vpn_gateway.bar.id}"
 }
 
 resource "cloudstack_vpn_connection" "bar-foo" {
-    customergatewayid = "${cloudstack_vpn_customer_gateway.bar.id}"
-    vpngatewayid = "${cloudstack_vpn_gateway.foo.id}"
+  customergatewayid = "${cloudstack_vpn_customer_gateway.bar.id}"
+  vpngatewayid = "${cloudstack_vpn_gateway.foo.id}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,

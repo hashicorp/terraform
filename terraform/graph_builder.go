@@ -16,9 +16,11 @@ type GraphBuilder interface {
 }
 
 // BasicGraphBuilder is a GraphBuilder that builds a graph out of a
-// series of transforms and validates the graph is a valid structure.
+// series of transforms and (optionally) validates the graph is a valid
+// structure.
 type BasicGraphBuilder struct {
-	Steps []GraphTransformer
+	Steps    []GraphTransformer
+	Validate bool
 }
 
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
@@ -34,9 +36,11 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 	}
 
 	// Validate the graph structure
-	if err := g.Validate(); err != nil {
-		log.Printf("[ERROR] Graph validation failed. Graph:\n\n%s", g.String())
-		return nil, err
+	if b.Validate {
+		if err := g.Validate(); err != nil {
+			log.Printf("[ERROR] Graph validation failed. Graph:\n\n%s", g.String())
+			return nil, err
+		}
 	}
 
 	return g, nil
@@ -72,12 +76,23 @@ type BuiltinGraphBuilder struct {
 	// Destroy is set to true when we're in a `terraform destroy` or a
 	// `terraform plan -destroy`
 	Destroy bool
+
+	// Determines whether the GraphBuilder should perform graph validation before
+	// returning the Graph. Generally you want this to be done, except when you'd
+	// like to inspect a problematic graph.
+	Validate bool
+
+	// Verbose is set to true when the graph should be built "worst case",
+	// skipping any prune steps. This is used for early cycle detection during
+	// Validate and for manual inspection via `terraform graph -verbose`.
+	Verbose bool
 }
 
 // Build builds the graph according to the steps returned by Steps.
 func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 	basic := &BasicGraphBuilder{
-		Steps: b.Steps(),
+		Steps:    b.Steps(path),
+		Validate: b.Validate,
 	}
 
 	return basic.Build(path)
@@ -85,8 +100,8 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 
 // Steps returns the ordered list of GraphTransformers that must be executed
 // to build a complete graph.
-func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
-	return []GraphTransformer{
+func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
+	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Module: b.Root},
 		&OrphanTransformer{
@@ -95,16 +110,17 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 			Targeting: (len(b.Targets) > 0),
 		},
 
+		// Output-related transformations
+		&AddOutputOrphanTransformer{State: b.State},
+
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
-		&PruneProviderTransformer{},
 		&DisableProviderTransformer{},
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
 		&ProvisionerTransformer{},
-		&PruneProvisionerTransformer{},
 
 		// Run our vertex-level transforms
 		&VertexTransformer{
@@ -116,20 +132,71 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 			},
 		},
 
-		// Optionally reduces the graph to a user-specified list of targets and
-		// their dependencies.
-		&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
+		// Flatten stuff
+		&FlattenTransformer{},
 
-		// Create the destruction nodes
-		&DestroyTransformer{},
-		&CreateBeforeDestroyTransformer{},
-		&PruneDestroyTransformer{Diff: b.Diff, State: b.State},
+		// Make sure all the connections that are proxies are connected through
+		&ProxyTransformer{},
 
-		// Make sure we create one root
+		// Make sure we have a single root
 		&RootTransformer{},
-
-		// Perform the transitive reduction to make our graph a bit
-		// more sane if possible (it usually is possible).
-		&TransitiveReductionTransformer{},
 	}
+
+	// If we're on the root path, then we do a bunch of other stuff.
+	// We don't do the following for modules.
+	if len(path) <= 1 {
+		steps = append(steps,
+			// Optionally reduces the graph to a user-specified list of targets and
+			// their dependencies.
+			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
+
+			// Prune the providers and provisioners. This must happen
+			// only once because flattened modules might depend on empty
+			// providers.
+			&PruneProviderTransformer{},
+			&PruneProvisionerTransformer{},
+
+			// Create the destruction nodes
+			&DestroyTransformer{FullDestroy: b.Destroy},
+			&CreateBeforeDestroyTransformer{},
+			b.conditional(&conditionalOpts{
+				If:   func() bool { return !b.Verbose },
+				Then: &PruneDestroyTransformer{Diff: b.Diff, State: b.State},
+			}),
+
+			// Insert nodes to close opened plugin connections
+			&CloseProviderTransformer{},
+			&CloseProvisionerTransformer{},
+
+			// Make sure we have a single root after the above changes.
+			// This is the 2nd root transformer. In practice this shouldn't
+			// actually matter as the RootTransformer is idempotent.
+			&RootTransformer{},
+
+			// Perform the transitive reduction to make our graph a bit
+			// more sane if possible (it usually is possible).
+			&TransitiveReductionTransformer{},
+		)
+	}
+
+	// Remove nils
+	for i, s := range steps {
+		if s == nil {
+			steps = append(steps[:i], steps[i+1:]...)
+		}
+	}
+
+	return steps
+}
+
+type conditionalOpts struct {
+	If   func() bool
+	Then GraphTransformer
+}
+
+func (b *BuiltinGraphBuilder) conditional(o *conditionalOpts) GraphTransformer {
+	if o.If != nil && o.Then != nil && o.If() {
+		return o.Then
+	}
+	return nil
 }

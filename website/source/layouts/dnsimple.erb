@@ -3,14 +3,14 @@
 		<div class="docs-sidebar hidden-print affix-top" role="complementary">
 			<ul class="nav docs-sidenav">
 				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/index.html">&laquo; Documentation Home</a>
+				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
                 </li>
 
 				<li<%= sidebar_current("docs-dnsimple-index") %>>
 				<a href="/docs/providers/dnsimple/index.html">DNSimple Provider</a>
                 </li>
 
-				<li<%= sidebar_current("docs-dnsimple-resource") %>>
+				<li<%= sidebar_current(/^docs-dnsimple-resource/) %>>
 				<a href="#">Resources</a>
                 <ul class="nav nav-visible">
                     <li<%= sidebar_current("docs-dnsimple-resource-record") %>>

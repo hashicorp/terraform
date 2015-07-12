@@ -47,8 +47,8 @@ The following arguments are supported:
 * `flavor_name` - (Optional; Required if `flavor_id` is empty) The name of the
     desired flavor for the server. Changing this resizes the existing server.
 
-* `floating_ip` - (Optional) A Floating IP that will be associated with the
-    Instance. The Floating IP must be provisioned already.
+* `floating_ip` - (Optional) A *Compute* Floating IP that will be associated
+    with the Instance. The Floating IP must be provisioned already.
 
 * `user_data` - (Optional) The user data to provide when launching the instance.
     Changing this creates a new server.
@@ -82,6 +82,9 @@ The following arguments are supported:
 
 * `volume` - (Optional) Attach an existing volume to the instance. The volume
     structure is described below.
+
+* `scheduler_hints` - (Optional) Provider the Nova scheduler with hints on how
+    the instance should be launched. The available hints are described below.
 
 The `network` block supports:
 
@@ -118,6 +121,25 @@ The `volume` block supports:
 * `device` - (Optional) The device that the volume will be attached as. For
     example:  `/dev/vdc`. Omit this option to allow the volume to be
     auto-assigned a device.
+
+The `scheduler_hints` block supports:
+
+* `group` - (Optional) A UUID of a Server Group. The instance will be placed
+    into that group.
+
+* `different_host` - (Optional) A list of instance UUIDs. The instance will
+    be scheduled on a different host than all other instances.
+
+* `same_host` - (Optional) A list of instance UUIDs. The instance will be
+    scheduled on the same host of those specified.
+
+* `query` - (Optional) A conditional query that a compute node must pass in
+    order to host an instance.
+
+* `target_cell` - (Optional) The name of a cell to host the instance.
+
+* `build_near_host_ip` - (Optional) An IP Address in CIDR form. The instance
+    will be placed on a compute node that is in the same subnet.
 
 ## Attributes Reference
 

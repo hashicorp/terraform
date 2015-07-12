@@ -28,7 +28,7 @@ func TestAccNetworkingV2Subnet_basic(t *testing.T) {
 				Config: testAccNetworkingV2Subnet_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "name", "tf-test-subnet"),
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.68.0.1"),
+					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.168.199.1"),
 				),
 			},
 		},
@@ -115,5 +115,5 @@ var testAccNetworkingV2Subnet_update = fmt.Sprintf(`
     network_id = "${openstack_networking_network_v2.network_1.id}"
     cidr = "192.168.199.0/24"
     ip_version = 4
-    gateway_ip = "192.68.0.1"
+    gateway_ip = "192.168.199.1"
   }`, OS_REGION_NAME, OS_REGION_NAME)

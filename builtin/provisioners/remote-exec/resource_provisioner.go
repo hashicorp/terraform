@@ -10,29 +10,22 @@ import (
 	"strings"
 	"time"
 
-	helper "github.com/hashicorp/terraform/helper/ssh"
+	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
 
-const (
-	// DefaultShebang is added at the top of the script file
-	DefaultShebang = "#!/bin/sh"
-)
-
+// ResourceProvisioner represents a remote exec provisioner
 type ResourceProvisioner struct{}
 
+// Apply executes the remote exec provisioner
 func (p *ResourceProvisioner) Apply(
 	o terraform.UIOutput,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
-	// Ensure the connection type is SSH
-	if err := helper.VerifySSH(s); err != nil {
-		return err
-	}
-
-	// Get the SSH configuration
-	conf, err := helper.ParseSSHConfig(s)
+	// Get a new communicator
+	comm, err := communicator.New(s)
 	if err != nil {
 		return err
 	}
@@ -47,21 +40,18 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	// Copy and execute each script
-	if err := p.runScripts(o, conf, scripts); err != nil {
+	if err := p.runScripts(o, comm, scripts); err != nil {
 		return err
 	}
 	return nil
 }
 
+// Validate checks if the required arguments are configured
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
 	num := 0
 	for name := range c.Raw {
 		switch name {
-		case "scripts":
-			fallthrough
-		case "script":
-			fallthrough
-		case "inline":
+		case "scripts", "script", "inline":
 			num++
 		default:
 			es = append(es, fmt.Errorf("Unknown configuration '%s'", name))
@@ -76,7 +66,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 // generateScript takes the configuration and creates a script to be executed
 // from the inline configs
 func (p *ResourceProvisioner) generateScript(c *terraform.ResourceConfig) (string, error) {
-	lines := []string{DefaultShebang}
+	var lines []string
 	command, ok := c.Config["inline"]
 	if ok {
 		switch cmd := command.(type) {
@@ -165,46 +155,20 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 // runScripts is used to copy and execute a set of scripts
 func (p *ResourceProvisioner) runScripts(
 	o terraform.UIOutput,
-	conf *helper.SSHConfig,
+	comm communicator.Communicator,
 	scripts []io.ReadCloser) error {
-	// Get the SSH client config
-	config, err := helper.PrepareConfig(conf)
-	if err != nil {
-		return err
-	}
-	defer config.CleanupConfig()
-
-	o.Output(fmt.Sprintf(
-		"Connecting to remote host via SSH...\n"+
-			"  Host: %s\n"+
-			"  User: %s\n"+
-			"  Password: %v\n"+
-			"  Private key: %v"+
-			"  SSH Agent: %v",
-		conf.Host, conf.User,
-		conf.Password != "",
-		conf.KeyFile != "",
-		conf.Agent,
-	))
-
-	// Wait and retry until we establish the SSH connection
-	var comm *helper.SSHCommunicator
-	err = retryFunc(conf.TimeoutVal, func() error {
-		host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
-		comm, err = helper.New(host, config)
-		if err != nil {
-			o.Output(fmt.Sprintf("Connection error, will retry: %s", err))
-		}
-
+	// Wait and retry until we establish the connection
+	err := retryFunc(comm.Timeout(), func() error {
+		err := comm.Connect(o)
 		return err
 	})
 	if err != nil {
 		return err
 	}
+	defer comm.Disconnect()
 
-	o.Output("Connected! Executing scripts...")
 	for _, script := range scripts {
-		var cmd *helper.RemoteCmd
+		var cmd *remote.Cmd
 		outR, outW := io.Pipe()
 		errR, errW := io.Pipe()
 		outDoneCh := make(chan struct{})
@@ -212,23 +176,14 @@ func (p *ResourceProvisioner) runScripts(
 		go p.copyOutput(o, outR, outDoneCh)
 		go p.copyOutput(o, errR, errDoneCh)
 
-		err := retryFunc(conf.TimeoutVal, func() error {
-			remotePath := conf.RemotePath()
+		err = retryFunc(comm.Timeout(), func() error {
+			remotePath := comm.ScriptPath()
 
-			if err := comm.Upload(remotePath, script); err != nil {
+			if err := comm.UploadScript(remotePath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
 			}
-			cmd = &helper.RemoteCmd{
-				Command: fmt.Sprintf("chmod 0777 %s", remotePath),
-			}
-			if err := comm.Start(cmd); err != nil {
-				return fmt.Errorf(
-					"Error chmodding script file to 0777 in remote "+
-						"machine: %s", err)
-			}
-			cmd.Wait()
 
-			cmd = &helper.RemoteCmd{
+			cmd = &remote.Cmd{
 				Command: remotePath,
 				Stdout:  outW,
 				Stderr:  errW,
@@ -236,6 +191,7 @@ func (p *ResourceProvisioner) runScripts(
 			if err := comm.Start(cmd); err != nil {
 				return fmt.Errorf("Error starting script: %v", err)
 			}
+
 			return nil
 		})
 		if err == nil {

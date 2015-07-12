@@ -688,6 +688,50 @@ func TestResourceDataGet(t *testing.T) {
 
 			Value: 33.0,
 		},
+
+		// #23 Sets with removed elements
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#":  "1",
+					"ports.80": "80",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "2",
+						New: "1",
+					},
+					"ports.80": &terraform.ResourceAttrDiff{
+						Old: "80",
+						New: "80",
+					},
+					"ports.8080": &terraform.ResourceAttrDiff{
+						Old:        "8080",
+						New:        "0",
+						NewRemoved: true,
+					},
+				},
+			},
+
+			Key: "ports",
+
+			Value: []interface{}{80},
+		},
 	}
 
 	for i, tc := range cases {
@@ -987,6 +1031,33 @@ func TestResourceDataGetOk(t *testing.T) {
 			Value: []interface{}{},
 			Ok:    false,
 		},
+
+		// Further illustrates and clarifiies the GetOk semantics from #933, and
+		// highlights the limitation that zero-value config is currently
+		// indistinguishable from unset config.
+		{
+			Schema: map[string]*Schema{
+				"from_port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"from_port": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "0",
+					},
+				},
+			},
+
+			Key:   "from_port",
+			Value: 0,
+			Ok:    false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -1004,7 +1075,7 @@ func TestResourceDataGetOk(t *testing.T) {
 			t.Fatalf("Bad: %d\n\n%#v", i, v)
 		}
 		if ok != tc.Ok {
-			t.Fatalf("Bad: %d\n\n%#v", i, ok)
+			t.Fatalf("%d: expected ok: %t, got: %t", i, tc.Ok, ok)
 		}
 	}
 }
@@ -2486,7 +2557,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// #20
+		// #20 empty computed map
 		{
 			Schema: map[string]*Schema{
 				"tags": &Schema{
@@ -2512,7 +2583,9 @@ func TestResourceDataState(t *testing.T) {
 			},
 
 			Result: &terraform.InstanceState{
-				Attributes: map[string]string{},
+				Attributes: map[string]string{
+					"tags.#": "0",
+				},
 			},
 		},
 

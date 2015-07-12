@@ -5,14 +5,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSVPCPeeringConnection_normal(t *testing.T) {
-	var conf ec2.Address
+func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
+	var connection ec2.VPCPeeringConnection
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -27,7 +27,26 @@ func TestAccAWSVPCPeeringConnection_normal(t *testing.T) {
 			resource.TestStep{
 				Config: testAccVpcPeeringConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &conf),
+					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &connection),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
+	var connection ec2.VPCPeeringConnection
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpcPeeringConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &connection),
+					testAccCheckTags(&connection.Tags, "foo", "bar"),
 				),
 			},
 		},
@@ -57,7 +76,7 @@ func testAccCheckAWSVpcPeeringConnectionDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSVpcPeeringConnectionExists(n string, res *ec2.Address) resource.TestCheckFunc {
+func testAccCheckAWSVpcPeeringConnectionExists(n string, connection *ec2.VPCPeeringConnection) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -68,21 +87,53 @@ func testAccCheckAWSVpcPeeringConnectionExists(n string, res *ec2.Address) resou
 			return fmt.Errorf("No vpc peering connection id is set")
 		}
 
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		resp, err := conn.DescribeVPCPeeringConnections(
+			&ec2.DescribeVPCPeeringConnectionsInput{
+				VPCPeeringConnectionIDs: []*string{aws.String(rs.Primary.ID)},
+			})
+		if err != nil {
+			return err
+		}
+		if len(resp.VPCPeeringConnections) == 0 {
+			return fmt.Errorf("VPC peering connection not found")
+		}
+
+		*connection = *resp.VPCPeeringConnections[0]
+
 		return nil
 	}
 }
 
 const testAccVpcPeeringConfig = `
 resource "aws_vpc" "foo" {
-    cidr_block = "10.0.0.0/16"
+		cidr_block = "10.0.0.0/16"
 }
 
 resource "aws_vpc" "bar" {
-    cidr_block = "10.1.0.0/16"
+		cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_vpc_peering_connection" "foo" {
-    vpc_id = "${aws_vpc.foo.id}"
-    peer_vpc_id = "${aws_vpc.bar.id}"
+		vpc_id = "${aws_vpc.foo.id}"
+		peer_vpc_id = "${aws_vpc.bar.id}"
+}
+`
+
+const testAccVpcPeeringConfigTags = `
+resource "aws_vpc" "foo" {
+		cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+		cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpc_peering_connection" "foo" {
+		vpc_id = "${aws_vpc.foo.id}"
+		peer_vpc_id = "${aws_vpc.bar.id}"
+		tags {
+			foo = "bar"
+		}
 }
 `

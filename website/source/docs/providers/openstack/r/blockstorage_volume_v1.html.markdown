@@ -38,6 +38,9 @@ The following arguments are supported:
 * `description` - (Optional) A description of the volume. Changing this updates
     the volume's description.
 
+* `availability_zone` - (Optional) The availability zone for the volume.
+    Changing this creates a new volume.
+
 * `image_id` - (Optional) The image ID from which to create the volume.
     Changing this creates a new volume.
 
@@ -61,6 +64,7 @@ The following attributes are exported:
 * `size` - See Argument Reference above.
 * `name` - See Argument Reference above.
 * `description` - See Argument Reference above.
+* `availability_zone` - See Argument Reference above.
 * `image_id` - See Argument Reference above.
 * `source_vol_id` - See Argument Reference above.
 * `snapshot_id` - See Argument Reference above.

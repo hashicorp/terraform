@@ -12,12 +12,14 @@ requests like any normal GitHub project, and we'll merge it in.
 
 ## Running the Site Locally
 
-Running the site locally is simple. Clone this repo and run the following
-commands:
+Running the site locally is simple. First you need a working copy of [Ruby >= 2.0](https://www.ruby-lang.org/en/downloads/) and [Bundler](http://bundler.io/).
+Then you can clone this repo and run the following commands from this directory:
 
 ```
 $ bundle
+# ( installs all gem dependencies )
 $ bundle exec middleman server
+# ( boots the local server )
 ```
 
 Then open up `http://localhost:4567`. Note that some URLs you may need to append

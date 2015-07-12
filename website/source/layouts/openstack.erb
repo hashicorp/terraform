@@ -3,18 +3,21 @@
     <div class="docs-sidebar hidden-print affix-top" role="complementary">
       <ul class="nav docs-sidenav">
         <li<%= sidebar_current("docs-home") %>>
-          <a href="/docs/index.html">&laquo; Documentation Home</a>
+          <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
         </li>
 
         <li<%= sidebar_current("docs-openstack-index") %>>
           <a href="/docs/providers/openstack/index.html">OpenStack Provider</a>
         </li>
 
-        <li<%= sidebar_current("docs-openstack-resource") %>>
+        <li<%= sidebar_current(/^docs-openstack-resource/) %>>
           <a href="#">Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-openstack-resource-blockstorage-volume-v1") %>>
               <a href="/docs/providers/openstack/r/blockstorage_volume_v1.html">openstack_blockstorage_volume_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-compute-floatingip-v2") %>>
+              <a href="/docs/providers/openstack/r/compute_floatingip_v2.html">openstack_compute_floatingip_v2</a>
             </li>
             <li<%= sidebar_current("docs-openstack-resource-compute-instance-v2") %>>
               <a href="/docs/providers/openstack/r/compute_instance_v2.html">openstack_compute_instance_v2</a>
@@ -25,6 +28,18 @@
             <li<%= sidebar_current("docs-openstack-resource-compute-secgroup-v2") %>>
               <a href="/docs/providers/openstack/r/compute_secgroup_v2.html">openstack_compute_secgroup_v2</a>
             </li>
+            <li<%= sidebar_current("docs-openstack-resource-fw-firewall-v1") %>>
+              <a href="/docs/providers/openstack/r/fw_firewall_v1.html">openstack_fw_firewall_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-fw-policy-v1") %>>
+              <a href="/docs/providers/openstack/r/fw_policy_v1.html">openstack_fw_policy_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-fw-rule-v1") %>>
+              <a href="/docs/providers/openstack/r/fw_rule_v1.html">openstack_fw_rule_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-lb-pool-v1") %>>
+              <a href="/docs/providers/openstack/r/lb_pool_v1.html">openstack_lb_pool_v1</a>
+            </li>
             <li<%= sidebar_current("docs-openstack-resource-lb-monitor-v1") %>>
               <a href="/docs/providers/openstack/r/lb_monitor_v1.html">openstack_lb_monitor_v1</a>
             </li>
@@ -34,8 +49,17 @@
             <li<%= sidebar_current("docs-openstack-resource-lb-vip-v1") %>>
               <a href="/docs/providers/openstack/r/lb_vip_v1.html">openstack_lb_vip_v1</a>
             </li>
+            <li<%= sidebar_current("docs-openstack-resource-networking-floatingip-v2") %>>
+              <a href="/docs/providers/openstack/r/networking_floatingip_v2.html">openstack_networking_floatingip_v2</a>
+            </li>
             <li<%= sidebar_current("docs-openstack-resource-networking-network-v2") %>>
               <a href="/docs/providers/openstack/r/networking_network_v2.html">openstack_networking_network_v2</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-networking-router-interface-v2") %>>
+              <a href="/docs/providers/openstack/r/networking_router_interface_v2.html">openstack_networking_router_interface_v2</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-networking-router-v2") %>>
+              <a href="/docs/providers/openstack/r/networking_router_v2.html">openstack_networking_router_v2</a>
             </li>
             <li<%= sidebar_current("docs-openstack-resource-networking-subnet-v2") %>>
               <a href="/docs/providers/openstack/r/networking_subnet_v2.html">openstack_networking_subnet_v2</a>

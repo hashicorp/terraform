@@ -12,7 +12,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
 
-func TestAccFWRuleV1(t *testing.T) {
+func TestAccFWRuleV1_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

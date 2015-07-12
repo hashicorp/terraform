@@ -40,6 +40,43 @@ func TestContext2Plan(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
+	m := testModule(t, "plan-cbd-maintain-root")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"in": "a,b,c",
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.bar.0
+CREATE: aws_instance.bar.1
+CREATE: aws_instance.foo.0
+CREATE: aws_instance.foo.1
+
+STATE:
+
+<no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s, got:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_emptyDiff(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
@@ -136,6 +173,56 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanModuleCycleStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Plan_moduleDeadlock(t *testing.T) {
+	m := testModule(t, "plan-module-deadlock")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	timeout := make(chan bool, 1)
+	done := make(chan bool, 1)
+	go func() {
+		time.Sleep(3 * time.Second)
+		timeout <- true
+	}()
+	go func() {
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		plan, err := ctx.Plan()
+		done <- true
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := strings.TrimSpace(plan.String())
+		expected := strings.TrimSpace(`
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+		`)
+		if actual != expected {
+			t.Fatalf("expected:\n%sgot:\n%s", expected, actual)
+		}
+	}()
+
+	select {
+	case <-timeout:
+		t.Fatalf("timed out! probably deadlock")
+	case <-done:
+		// ok
 	}
 }
 
@@ -607,43 +694,6 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		t.Fatalf("expected err would contain %q\nerr: %s\nplan: %s",
 			expectedErr, err, plan)
-	}
-}
-
-func TestContext2Plan_providerAliasMissing(t *testing.T) {
-	m := testModule(t, "apply-provider-alias-missing")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type:     "aws_instance",
-						Provider: "aws.foo",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"require_new": "abc",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-		State: state,
-	})
-
-	if _, err := ctx.Plan(); err == nil {
-		t.Fatal("should err")
 	}
 }
 
@@ -1155,6 +1205,58 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 	}
 }
 
+// GH-1835
+func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
+	m := testModule(t, "plan-module-destroy-gh-1835")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "a_module"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.a": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "a",
+						},
+					},
+				},
+			},
+			&ModuleState{
+				Path: []string{"root", "b_module"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.b": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "b",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   s,
+		Destroy: true,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleDestroyCycleStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 	m := testModule(t, "plan-module-destroy-multivar")
 	p := testProvider("aws")
@@ -1570,29 +1672,6 @@ func TestContext2Plan_provider(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_varMultiCountOne(t *testing.T) {
-	m := testModule(t, "plan-var-multi-count-one")
-	p := testProvider("aws")
-	p.DiffFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanVarMultiCountOneStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s", actual)
-	}
-}
-
 func TestContext2Plan_varListErr(t *testing.T) {
 	m := testModule(t, "plan-var-list-err")
 	p := testProvider("aws")
@@ -1793,6 +1872,23 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 	expected := []string{"aws_vpc.metoo", "aws_instance.me.0"}
 	if !reflect.DeepEqual(refreshedResources, expected) {
 		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
+	}
+}
+
+func TestContext2Refresh_moduleComputedVar(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-module-computed-var")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	// This was failing (see GH-2188) at some point, so this test just
+	// verifies that the failure goes away.
+	if _, err := ctx.Refresh(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -2308,6 +2404,38 @@ func TestContext2Validate_badVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_computedVar(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-computed-var")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws":  testProviderFuncFixed(p),
+			"test": testProviderFuncFixed(testProvider("test")),
+		},
+	})
+
+	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		if !c.IsComputed("value") {
+			return nil, []error{fmt.Errorf("value isn't computed")}
+		}
+
+		return nil, c.CheckSet([]string{"value"})
+	}
+
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		return fmt.Errorf("Configure should not be called for provider")
+	}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_countNegative(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-negative")
@@ -2364,6 +2492,28 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 		t.Fatalf("bad: %s", e)
 	}
 }
+
+/*
+TODO: What should we do here?
+func TestContext2Validate_cycle(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-cycle")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("expected no warns, got: %#v", w)
+	}
+	if len(e) != 1 {
+		t.Fatalf("expected 1 err, got: %s", e)
+	}
+}
+*/
 
 func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	p := testProvider("aws")
@@ -2424,6 +2574,26 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
+	m := testModule(t, "validate-module-deps-cycle")
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := ctx.Validate()
+
+	if len(w) > 0 {
+		t.Fatalf("expected no warnings, got: %s", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("expected no errors, got: %s", e)
+	}
+}
+
 func TestContext2Validate_moduleProviderInherit(t *testing.T) {
 	m := testModule(t, "validate-module-pc-inherit")
 	p := testProvider("aws")
@@ -2436,6 +2606,52 @@ func TestContext2Validate_moduleProviderInherit(t *testing.T) {
 
 	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
 		return nil, c.CheckSet([]string{"set"})
+	}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
+func TestContext2Validate_moduleProviderInheritOrphan(t *testing.T) {
+	m := testModule(t, "validate-module-pc-inherit-orphan")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root", "child"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.bar": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		v, ok := c.Get("set")
+		if !ok {
+			return nil, []error{fmt.Errorf("not set")}
+		}
+		if v != "bar" {
+			return nil, []error{fmt.Errorf("bad: %#v", v)}
+		}
+
+		return nil, nil
 	}
 
 	w, e := c.Validate()
@@ -2831,25 +3047,45 @@ func TestContext2Validate_tainted(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_varRef(t *testing.T) {
-	m := testModule(t, "validate-variable-ref")
+func TestContext2Validate_targetedDestroy(t *testing.T) {
+	m := testModule(t, "validate-targeted")
 	p := testProvider("aws")
-	c := testContext2(t, &ContextOpts{
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.foo"},
+		Destroy: true,
 	})
 
-	computed := false
-	p.ValidateResourceFn = func(t string, c *ResourceConfig) ([]string, []error) {
-		computed = c.IsComputed("foo")
-		return nil, nil
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		warnStr := ""
+		for _, v := range w {
+			warnStr = warnStr + " " + v
+		}
+		t.Fatalf("bad: %s", warnStr)
 	}
-
-	c.Validate()
-	if !computed {
-		t.Fatal("should be computed")
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
 	}
 }
 
@@ -3333,6 +3569,52 @@ func TestContext2Input_varOnlyUnset(t *testing.T) {
 	expectedStr := strings.TrimSpace(testTerraformInputVarOnlyUnsetStr)
 	if actualStr != expectedStr {
 		t.Fatalf("bad: \n%s", actualStr)
+	}
+}
+
+func TestContext2Input_varWithDefault(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-var-default")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{},
+		UIInput:   input,
+	})
+
+	input.InputFn = func(opts *InputOpts) (string, error) {
+		t.Fatalf(
+			"Input should never be called because variable has a default: %#v", opts)
+		return "", nil
+	}
+
+	if err := ctx.Input(InputModeVar | InputModeVarUnset); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(`
+aws_instance.foo:
+  ID = foo
+  foo = 123
+  type = aws_instance
+	`)
+	if actualStr != expectedStr {
+		t.Fatalf("expected: \n%s\ngot: \n%s\n", expectedStr, actualStr)
 	}
 }
 
@@ -3992,6 +4274,232 @@ func TestContext2Apply_module(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
+	m := testModule(t, "apply-module-destroy-order")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	// Create a custom apply function to track the order they were destroyed
+	var order []string
+	var orderLock sync.Mutex
+	p.ApplyFn = func(
+		info *InstanceInfo,
+		is *InstanceState,
+		id *InstanceDiff) (*InstanceState, error) {
+		orderLock.Lock()
+		defer orderLock.Unlock()
+
+		order = append(order, is.ID)
+		return nil, nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.b": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "b",
+						},
+					},
+				},
+			},
+
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.a": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "a",
+						},
+					},
+				},
+				Outputs: map[string]string{
+					"a_output": "a",
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{"b", "a"}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatalf("bad: %#v", order)
+	}
+
+	{
+		actual := strings.TrimSpace(state.String())
+		expected := strings.TrimSpace(testTerraformApplyModuleDestroyOrderStr)
+		if actual != expected {
+			t.Fatalf("bad: \n%s", actual)
+		}
+	}
+}
+
+func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
+	m := testModule(t, "apply-module-orphan-provider-inherit")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if _, ok := c.Get("value"); !ok {
+			return fmt.Errorf("value is not found")
+		}
+
+		return nil
+	}
+
+	// Create a state with an orphan module
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+// This tests an issue where all the providers in a module but not
+// in the root weren't being added to the root properly. In this test
+// case: aws is explicitly added to root, but "test" should be added to.
+// With the bug, it wasn't.
+func TestContext2Apply_moduleOnlyProvider(t *testing.T) {
+	m := testModule(t, "apply-module-only-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pTest := testProvider("test")
+	pTest.ApplyFn = testApplyFn
+	pTest.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws":  testProviderFuncFixed(p),
+			"test": testProviderFuncFixed(pTest),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyModuleOnlyProviderStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_moduleProviderAlias(t *testing.T) {
+	m := testModule(t, "apply-module-provider-alias")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyModuleProviderAliasStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
+	m := testModule(t, "apply-module-provider-alias")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"no.thing"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+<no state>
+	`)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 	m := testModule(t, "apply-module-var-resource-count")
 	p := testProvider("aws")
@@ -4103,6 +4611,68 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_multiVar(t *testing.T) {
+	m := testModule(t, "apply-multi-var")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"count": "3",
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := state.RootModule().Outputs["output"]
+	expected := "bar0,bar1,bar2"
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Apply again, reduce the count to 1
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			State:  state,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]string{
+				"count": "1",
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := state.RootModule().Outputs["output"]
+		expected := "bar0"
+		if actual != expected {
+			t.Fatalf("bad: \n%s", actual)
+		}
+	}
+}
+
 func TestContext2Apply_nilDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
@@ -4125,6 +4695,91 @@ func TestContext2Apply_nilDiff(t *testing.T) {
 
 	if _, err := ctx.Apply(); err == nil {
 		t.Fatal("should error")
+	}
+}
+
+func TestContext2Apply_outputOrphan(t *testing.T) {
+	m := testModule(t, "apply-output-orphan")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Outputs: map[string]string{
+					"foo": "bar",
+					"bar": "baz",
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_providerComputedVar(t *testing.T) {
+	m := testModule(t, "apply-provider-computed")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pTest := testProvider("test")
+	pTest.ApplyFn = testApplyFn
+	pTest.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws":  testProviderFuncFixed(p),
+			"test": testProviderFuncFixed(pTest),
+		},
+	})
+
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if c.IsComputed("value") {
+			return fmt.Errorf("value is computed")
+		}
+
+		v, ok := c.Get("value")
+		if !ok {
+			return fmt.Errorf("value is not found")
+		}
+		if v != "yes" {
+			return fmt.Errorf("value is not 'yes': %v", v)
+		}
+
+		return nil
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -5348,6 +6003,57 @@ func TestContext2Apply_hook(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_hookOrphan(t *testing.T) {
+	m := testModule(t, "apply-blank")
+	h := new(MockHook)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		State:  state,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !h.PreApplyCalled {
+		t.Fatal("should be called")
+	}
+	if !h.PostApplyCalled {
+		t.Fatal("should be called")
+	}
+	if !h.PostStateUpdateCalled {
+		t.Fatalf("should call post state update")
+	}
+}
+
 func TestContext2Apply_idAttr(t *testing.T) {
 	m := testModule(t, "apply-idattr")
 	p := testProvider("aws")
@@ -5920,6 +6626,129 @@ aws_instance.foo.1:
 	`)
 }
 
+func TestContext2Apply_targetedModule(t *testing.T) {
+	m := testModule(t, "apply-targeted-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.ModuleByPath([]string{"root", "child"})
+	if mod == nil {
+		t.Fatalf("no child module found in the state!\n\n%#v", state)
+	}
+	if len(mod.Resources) != 2 {
+		t.Fatalf("expected 2 resources, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  aws_instance.bar:
+    ID = foo
+    num = 2
+    type = aws_instance
+  aws_instance.foo:
+    ID = foo
+    num = 2
+    type = aws_instance
+	`)
+}
+
+// GH-1858
+func TestContext2Apply_targetedModuleDep(t *testing.T) {
+	m := testModule(t, "apply-targeted-module-dep")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+  foo = foo
+  type = aws_instance
+
+  Dependencies:
+    module.child
+
+module.child:
+  aws_instance.mod:
+    ID = foo
+
+  Outputs:
+
+  output = foo
+	`)
+}
+
+func TestContext2Apply_targetedModuleResource(t *testing.T) {
+	m := testModule(t, "apply-targeted-module-resource")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child.aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.ModuleByPath([]string{"root", "child"})
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+    num = 2
+    type = aws_instance
+	`)
+}
+
 func TestContext2Apply_unknownAttribute(t *testing.T) {
 	m := testModule(t, "apply-unknown")
 	p := testProvider("aws")
@@ -5945,6 +6774,23 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyUnknownAttrStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_unknownAttributeInterpolate(t *testing.T) {
+	m := testModule(t, "apply-unknown-interpolate")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err == nil {
+		t.Fatal("should error")
 	}
 }
 
@@ -5989,6 +6835,10 @@ func TestContext2Apply_vars(t *testing.T) {
 }
 
 func TestContext2Apply_varsEnv(t *testing.T) {
+	// Set the env var
+	old := tempEnv(t, "TF_VAR_ami", "baz")
+	defer os.Setenv("TF_VAR_ami", old)
+
 	m := testModule(t, "apply-vars-env")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
@@ -5999,10 +6849,6 @@ func TestContext2Apply_varsEnv(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 	})
-
-	// Set the env var
-	old := tempEnv(t, "TF_VAR_ami", "baz")
-	defer os.Setenv("TF_VAR_ami", old)
 
 	w, e := ctx.Validate()
 	if len(w) > 0 {

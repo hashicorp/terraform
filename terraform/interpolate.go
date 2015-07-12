@@ -49,11 +49,6 @@ func (i *Interpolater) Values(
 		}
 		for _, v := range mod.Config().Variables {
 			for k, val := range v.DefaultsMap() {
-				envKey := VarEnvPrefix + strings.TrimPrefix(k, "var.")
-				if v := os.Getenv(envKey); v != "" {
-					val = v
-				}
-
 				result[k] = ast.Variable{
 					Value: val,
 					Type:  ast.TypeString,
@@ -321,10 +316,7 @@ func (i *Interpolater) computeResourceVariable(
 		r = nil
 	}
 	if r == nil {
-		return "", fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			id,
-			v.FullKey())
+		goto MISSING
 	}
 
 	if r.Primary == nil {
@@ -367,6 +359,13 @@ func (i *Interpolater) computeResourceVariable(
 	}
 
 MISSING:
+	// Validation for missing interpolations should happen at a higher
+	// semantic level. If we reached this point and don't have variables,
+	// just return the computed value.
+	if scope == nil && scope.Resource == nil {
+		return config.UnknownVariableValue, nil
+	}
+
 	// If the operation is refresh, it isn't an error for a value to
 	// be unknown. Instead, we return that the value is computed so
 	// that the graph can continue to refresh other nodes. It doesn't
@@ -438,6 +437,14 @@ func (i *Interpolater) computeResourceMultiVariable(
 	}
 
 	if len(values) == 0 {
+		// If the operation is refresh, it isn't an error for a value to
+		// be unknown. Instead, we return that the value is computed so
+		// that the graph can continue to refresh other nodes. It doesn't
+		// matter because the config isn't interpolated anyways.
+		if i.Operation == walkRefresh {
+			return config.UnknownVariableValue, nil
+		}
+
 		return "", fmt.Errorf(
 			"Resource '%s' does not have attribute '%s' "+
 				"for variable '%s'",
@@ -446,7 +453,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 			v.FullKey())
 	}
 
-	return strings.Join(values, config.InterpSplitDelim), nil
+	return config.NewStringList(values).String(), nil
 }
 
 func (i *Interpolater) resourceVariableInfo(

@@ -43,6 +43,10 @@ The following arguments are supported in the `provider` block:
 * `region` - (Required) This is the AWS region. It must be provided, but
   it can also be sourced from the `AWS_DEFAULT_REGION` environment variables.
 
+* `max_retries` - (Optional) This is the maximum number of times an API call is
+  being retried in case requests are being throttled or experience transient failures.
+  The delay between the subsequent API calls increases exponentially.
+
 * `allowed_account_ids` - (Optional) List of allowed AWS account IDs (whitelist)
   to prevent you mistakenly using a wrong one (and end up destroying live environment).
   Conflicts with `forbidden_account_ids`.

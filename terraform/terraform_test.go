@@ -56,7 +56,7 @@ func tempEnv(t *testing.T, k string, v string) string {
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
-	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
+	c, err := config.LoadFile(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -362,6 +362,12 @@ module.child:
   leader = 1
 `
 
+const testTerraformApplyModuleDestroyOrderStr = `
+<no state>
+module.child:
+  <no state>
+`
+
 const testTerraformApplyMultiProviderStr = `
 aws_instance.bar:
   ID = foo
@@ -371,6 +377,30 @@ do_instance.foo:
   ID = foo
   num = 2
   type = do_instance
+`
+
+const testTerraformApplyModuleOnlyProviderStr = `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+  test_instance.foo:
+    ID = foo
+`
+
+const testTerraformApplyModuleProviderAliasStr = `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+    provider = aws.eu
+`
+
+const testTerraformApplyOutputOrphanStr = `
+<no state>
+Outputs:
+
+foo = bar
 `
 
 const testTerraformApplyProvisionerStr = `
@@ -981,6 +1011,26 @@ aws_instance.foo:
 module.child:
   aws_instance.foo:
     ID = bar
+`
+
+const testTerraformPlanModuleDestroyCycleStr = `
+DIFF:
+
+module.a_module:
+  DESTROY MODULE
+  DESTROY: aws_instance.a
+module.b_module:
+  DESTROY MODULE
+  DESTROY: aws_instance.b
+
+STATE:
+
+module.a_module:
+  aws_instance.a:
+    ID = a
+module.b_module:
+  aws_instance.b:
+    ID = b
 `
 
 const testTerraformPlanModuleDestroyMultivarStr = `

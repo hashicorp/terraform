@@ -3,13 +3,13 @@ layout: "docs"
 page_title: "Provisioner Connections"
 sidebar_current: "docs-provisioners-connection"
 description: |-
-  Many provisioners require access to the remote resource. For example, a provisioner may need to use ssh to connect to the resource.
+  Many provisioners require access to the remote resource. For example, a provisioner may need to use SSH or WinRM to connect to the resource.
 ---
 
 # Provisioner Connections
 
 Many provisioners require access to the remote resource. For example,
-a provisioner may need to use ssh to connect to the resource.
+a provisioner may need to use SSH or WinRM to connect to the resource.
 
 Terraform uses a number of defaults when connecting to a resource, but these
 can be overridden using `connection` block in either a `resource` or `provisioner`.
@@ -21,7 +21,7 @@ subsequent provisioners connect as a user with more limited permissions.
 ## Example usage
 
 ```
-# Copies the file as the root user using a password
+# Copies the file as the root user using SSH
 provisioner "file" {
     source = "conf/myapp.conf"
     destination = "/etc/myapp.conf"
@@ -30,28 +30,74 @@ provisioner "file" {
         password = "${var.root_password}"
     }
 }
+
+# Copies the file as the Administrator user using WinRM
+provisioner "file" {
+    source = "conf/myapp.conf"
+    destination = "C:/App/myapp.conf"
+    connection {
+        type = "winrm"
+        user = "Administrator"
+        password = "${var.admin_password}"
+    }
+}
 ```
 
 ## Argument Reference
 
-The following arguments are supported:
+**The following arguments are supported by all connection types:**
 
-* `type` - The connection type that should be used. This defaults to "ssh". The type
-  of connection supported depends on the provisioner.
+* `type` - The connection type that should be used. Valid types are "ssh" and "winrm"
+  This defaults to "ssh".
 
-* `user` - The user that we should use for the connection. This defaults to "root".
+* `user` - The user that we should use for the connection. Defaults to "root" when
+  using type "ssh" and defaults to "Administrator" when using type "winrm".
 
-* `password` - The password we should use for the connection.
-
-* `key_file` - The SSH key to use for the connection. This takes preference over the
-   password if provided.
-
-* `agent` - Set to true to enable using ssh-agent to authenticate.
+* `password` - The password we should use for the connection. In some cases this is
+  provided by the provider.
 
 * `host` - The address of the resource to connect to. This is provided by the provider.
 
-* `port` - The port to connect to. This defaults to 22.
+* `port` - The port to connect to. Defaults to 22 when using type "ssh" and defaults
+  to 5985 when using type "winrm".
 
 * `timeout` - The timeout to wait for the connection to become available. This defaults
-   to 5 minutes. Should be provided as a string like "30s" or "5m".
+  to 5 minutes. Should be provided as a string like "30s" or "5m".
 
+* `script_path` - The path used to copy scripts to meant for remote execution.
+
+**Additional arguments only supported by the "ssh" connection type:**
+
+* `key_file` - The SSH key to use for the connection. This takes preference over the
+  password if provided.
+
+* `agent` - Set to false to disable using ssh-agent to authenticate.
+
+**Additional arguments only supported by the "winrm" connection type:**
+
+* `https` - Set to true to connect using HTTPS instead of HTTP.
+
+* `insecure` - Set to true to not validate the HTTPS certificate chain.
+
+* `cacert` - The CA certificate to validate against.
+
+<a id="bastion"></a>
+## Connecting through a Bastion Host with SSH
+
+The `ssh` connection additionally supports the following fields to facilitate a
+[bastion host](https://en.wikipedia.org/wiki/Bastion_host) connection.
+
+* `bastion_host` - Setting this enables the bastion Host connection. This host
+  will be connected to first, and the `host` connection will be made from there.
+
+* `bastion_port` - The port to use connect to the bastion host. Defaults to the
+  value of `port`.
+
+* `bastion_user` - The user to use to connect to the bastion host. Defaults to
+  the value of `user`.
+
+* `bastion_password` - The password we should use for the bastion host.
+  Defaults to the value of `password`.
+
+* `bastion_key_file` - The SSH key to use for the bastion host. Defaults to the
+  value of `key_file`.

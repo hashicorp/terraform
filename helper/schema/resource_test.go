@@ -334,7 +334,7 @@ func TestResourceInternalValidate(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		err := tc.In.InternalValidate()
+		err := tc.In.InternalValidate(schemaMap{})
 		if (err != nil) != tc.Err {
 			t.Fatalf("%d: bad: %s", i, err)
 		}
@@ -384,6 +384,35 @@ func TestResourceRefresh(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceRefresh_blankId(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	r.Read = func(d *ResourceData, m interface{}) error {
+		d.SetId("foo")
+		return nil
+	}
+
+	s := &terraform.InstanceState{
+		ID:         "",
+		Attributes: map[string]string{},
+	}
+
+	actual, err := r.Refresh(s, 42)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != nil {
 		t.Fatalf("bad: %#v", actual)
 	}
 }

@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_compute_secgroup_v2"
-sidebar_current: "docs-openstack-resource-compute-secgroup-2"
+sidebar_current: "docs-openstack-resource-compute-secgroup-v2"
 description: |-
   Manages a V2 security group resource within OpenStack.
 ---
@@ -19,6 +19,12 @@ resource "openstack_compute_secgroup_v2" "secgroup_1" {
   rule {
     from_port = 22
     to_port = 22
+    ip_protocol = "tcp"
+    cidr = "0.0.0.0/0"
+  }
+  rule {
+    from_port = 80
+    to_port = 80
     ip_protocol = "tcp"
     cidr = "0.0.0.0/0"
   }
@@ -42,7 +48,8 @@ The following arguments are supported:
 
 * `rule` - (Optional) A rule describing how the security group operates. The
     rule object structure is documented below. Changing this updates the
-    security group rules.
+    security group rules. As shown in the example above, multiple rule blocks
+    may be used.
 
 The `rule` block supports:
 

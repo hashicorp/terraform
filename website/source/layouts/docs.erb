@@ -6,7 +6,7 @@
 				<a href="/docs/index.html">Documentation Home</a>
                 </li>
 
-				<li<%= sidebar_current("docs-config") %>>
+				<li<%= sidebar_current(/^docs-config/) %>>
 				<a href="/docs/configuration/index.html">Configuration</a>
 				<ul class="nav">
 					<li<%= sidebar_current("docs-config-load") %>>
@@ -52,7 +52,7 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("docs-commands") %>>
+				<li<%= sidebar_current(/^docs-commands/) %>>
 				<a href="/docs/commands/index.html">Commands (CLI)</a>
 				<ul class="nav">
 					<li<%= sidebar_current("docs-commands-apply") %>>
@@ -105,24 +105,37 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("docs-providers") %>>
+				<li<%= sidebar_current(/^docs-state/) %>>
+					<a href="/docs/state/index.html">State</a>
+					<ul class="nav">
+						<li<%= sidebar_current("docs-state-remote") %>>
+							<a href="/docs/state/remote.html">Remote State</a>
+						</li>
+					</ul>
+				</li>
+
+				<li<%= sidebar_current(/^docs-providers/) %>>
 				<a href="/docs/providers/index.html">Providers</a>
                 <ul class="nav">
 					<li<%= sidebar_current("docs-providers-atlas") %>>
 					<a href="/docs/providers/atlas/index.html">Atlas</a>
-                    </li>
+          </li>
 
 					<li<%= sidebar_current("docs-providers-aws") %>>
 					<a href="/docs/providers/aws/index.html">AWS</a>
 					</li>
 
+					<li<%= sidebar_current("docs-providers-azure") %>>
+					<a href="/docs/providers/azure/index.html">Azure</a>
+					</li>
+
 					<li<%= sidebar_current("docs-providers-cloudflare") %>>
 					<a href="/docs/providers/cloudflare/index.html">CloudFlare</a>
-                    </li>
+          </li>
 
           <li<%= sidebar_current("docs-providers-cloudstack") %>>
 					<a href="/docs/providers/cloudstack/index.html">CloudStack</a>
-                    </li>
+          </li>
 
 					<li<%= sidebar_current("docs-providers-consul") %>>
 					<a href="/docs/providers/consul/index.html">Consul</a>
@@ -159,12 +172,20 @@
 					<li<%= sidebar_current("docs-providers-openstack") %>>
 					<a href="/docs/providers/openstack/index.html">OpenStack</a>
 					</li>
+
+					<li<%= sidebar_current("docs-providers-template") %>>
+					<a href="/docs/providers/template/index.html">Template</a>
+					</li>
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("docs-provisioners") %>>
+				<li<%= sidebar_current(/^docs-provisioners/) %>>
 				<a href="/docs/provisioners/index.html">Provisioners</a>
 				<ul class="nav">
+					<li<%= sidebar_current("docs-provisioners-chef") %>>
+					<a href="/docs/provisioners/chef.html">chef</a>
+					</li>
+
 					<li<%= sidebar_current("docs-provisioners-connection") %>>
 					<a href="/docs/provisioners/connection.html">connection</a>
 					</li>
@@ -183,7 +204,7 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("docs-modules") %>>
+				<li<%= sidebar_current(/^docs-modules/) %>>
 				<a href="/docs/modules/index.html">Modules</a>
 				<ul class="nav">
 					<li<%= sidebar_current("docs-modules-usage") %>>
@@ -200,7 +221,7 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("docs-plugins") %>>
+				<li<%= sidebar_current(/^docs-plugins/) %>>
 				<a href="/docs/plugins/index.html">Plugins</a>
 				<ul class="nav">
 					<li<%= sidebar_current("docs-plugins-basics") %>>
@@ -213,9 +234,13 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("docs-internals") %>>
+				<li<%= sidebar_current(/^docs-internals/) %>>
 				<a href="/docs/internals/index.html">Internals</a>
 				<ul class="nav">
+					<li<%= sidebar_current("docs-internals-debug") %>>
+					<a href="/docs/internals/debugging.html">Debugging Terraform</a>
+					</li>
+
 					<li<%= sidebar_current("docs-internals-graph") %>>
 					<a href="/docs/internals/graph.html">Resource Graph</a>
 					</li>

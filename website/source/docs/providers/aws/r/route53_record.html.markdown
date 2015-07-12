@@ -49,6 +49,39 @@ resource "aws_route53_record" "www-live" {
 }
 ```
 
+### Alias record
+See [related part of AWS Route53 Developer Guide](http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-choosing-alias-non-alias.html)
+to understand differences between alias and non-alias records.
+
+TTL for all alias records is [60 seconds](http://aws.amazon.com/route53/faqs/#dns_failover_do_i_need_to_adjust),
+you cannot change this, therefore `ttl` has to be omitted in alias records.
+
+```
+resource "aws_elb" "main" {
+  name = "foobar-terraform-elb"
+  availability_zones = ["us-east-1c"]
+
+  listener {
+    instance_port = 80
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = "${aws_route53_zone.primary.zone_id}"
+  name = "example.com"
+  type = "A"
+
+  alias {
+    name = "${aws_elb.main.dns_name}"
+    zone_id = "${aws_elb.main.zone_id}"
+    evaluate_target_health = true
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -56,13 +89,25 @@ The following arguments are supported:
 * `zone_id` - (Required) The ID of the hosted zone to contain this record.
 * `name` - (Required) The name of the record.
 * `type` - (Required) The record type.
-* `ttl` - (Required) The TTL of the record.
-* `records` - (Required) A string list of records.
+* `ttl` - (Required for non-alias records) The TTL of the record.
+* `records` - (Required for non-alias records) A string list of records.
 * `weight` - (Optional) The weight of weighted record (0-255).
 * `set_identifier` - (Optional) Unique identifier to differentiate weighted
-  record from one another. Required for each weighted record.
+record from one another. Required for each weighted record.
+* `failover` - (Optional) The routing behavior when associated health check fails. Must be PRIMARY or SECONDARY.
+* `health_check_id` - (Optional) The health check the record should be associated with.
+* `alias` - (Optional) An alias block. Conflicts with `ttl` & `records`.
+  Alias record documented below.
+
+Exactly one of `records` or `alias` must be specified: this determines whether it's an alias record.
+
+Alias records support the following:
+
+* `name` - (Required) DNS domain name for a CloudFront distribution, S3 bucket, ELB, or another resource record set in this hosted zone.
+* `zone_id` - (Required) Hosted zone ID for a CloudFront distribution, S3 bucket, ELB, or Route 53 hosted zone. See [`resource_elb.zone_id`](/docs/providers/aws/r/elb.html#zone_id) for example.
+* `evaluate_target_health` - (Required) Set to `true` if you want Route 53 to determine whether to respond to DNS queries using this resource record set by checking the health of the resource record set. Some resources have special requirements, see [related part of documentation](http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-values.html#rrsets-values-alias-evaluate-target-health).
 
 ## Attributes Reference
 
-No attributes are exported.
+* `fqdn` - [FQDN](http://en.wikipedia.org/wiki/Fully_qualified_domain_name) built using the zone domain and `name`
 

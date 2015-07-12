@@ -19,6 +19,10 @@ A crash log has been placed at "crash.log" relative to your current
 working directory. It would be immensely helpful if you could please
 report the crash with Terraform[1] so that we can fix this.
 
+When reporting bugs, please include your terraform version. That
+information is available on the first line of crash.log. You can also
+get it by running 'terraform --version' on the command line.
+
 [1]: https://github.com/hashicorp/terraform/issues
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!

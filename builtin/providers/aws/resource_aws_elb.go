@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -23,6 +26,26 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"only alphanumeric characters and hyphens allowed in %q", k))
+					}
+					if len(value) > 32 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 32 characters", k))
+					}
+					if regexp.MustCompile(`^-`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot begin with a hyphen", k))
+					}
+					if regexp.MustCompile(`-$`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot end with a hyphen", k))
+					}
+					return
+				},
 			},
 
 			"internal": &schema.Schema{
@@ -43,9 +66,7 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"instances": &schema.Schema{
@@ -53,21 +74,21 @@ func resourceAwsElb() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
-			// TODO: could be not ForceNew
 			"security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
+			},
+
+			"source_security_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 
 			"subnets": &schema.Schema{
@@ -76,9 +97,7 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"idle_timeout": &schema.Schema{
@@ -173,6 +192,11 @@ func resourceAwsElb() *schema.Resource {
 				Computed: true,
 			},
 
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -245,7 +269,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -262,7 +286,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	describeAttrsResp, err := elbconn.DescribeLoadBalancerAttributes(describeAttrsOpts)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -277,11 +301,15 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", *lb.LoadBalancerName)
 	d.Set("dns_name", *lb.DNSName)
+	d.Set("zone_id", *lb.CanonicalHostedZoneNameID)
 	d.Set("internal", *lb.Scheme == "internal")
 	d.Set("availability_zones", lb.AvailabilityZones)
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
 	d.Set("security_groups", lb.SecurityGroups)
+	if lb.SourceSecurityGroup != nil {
+		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
+	}
 	d.Set("subnets", lb.Subnets)
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
@@ -331,7 +359,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.DeleteLoadBalancerListeners(deleteListenersOpts)
 			if err != nil {
-				return fmt.Errorf("Failure removing outdated listeners: %s", err)
+				return fmt.Errorf("Failure removing outdated ELB listeners: %s", err)
 			}
 		}
 
@@ -343,7 +371,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.CreateLoadBalancerListeners(createListenersOpts)
 			if err != nil {
-				return fmt.Errorf("Failure adding new or updated listeners: %s", err)
+				return fmt.Errorf("Failure adding new or updated ELB listeners: %s", err)
 			}
 		}
 
@@ -368,7 +396,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
 			if err != nil {
-				return fmt.Errorf("Failure registering instances: %s", err)
+				return fmt.Errorf("Failure registering instances with ELB: %s", err)
 			}
 		}
 		if len(remove) > 0 {
@@ -379,16 +407,14 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.DeregisterInstancesFromLoadBalancer(&deRegisterInstancesOpts)
 			if err != nil {
-				return fmt.Errorf("Failure deregistering instances: %s", err)
+				return fmt.Errorf("Failure deregistering instances from ELB: %s", err)
 			}
 		}
 
 		d.SetPartial("instances")
 	}
 
-	log.Println("[INFO] outside modify attributes")
-	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") || d.HasChange("connection_draining") || d.HasChange("connection_draining_timeout") {
-		log.Println("[INFO] inside modify attributes")
+	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") {
 		attrs := elb.ModifyLoadBalancerAttributesInput{
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
@@ -398,20 +424,63 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				ConnectionSettings: &elb.ConnectionSettings{
 					IdleTimeout: aws.Long(int64(d.Get("idle_timeout").(int))),
 				},
+			},
+		}
+
+		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+		if err != nil {
+			return fmt.Errorf("Failure configuring ELB attributes: %s", err)
+		}
+
+		d.SetPartial("cross_zone_load_balancing")
+		d.SetPartial("idle_timeout")
+		d.SetPartial("connection_draining_timeout")
+	}
+
+	// We have to do these changes separately from everything else since
+	// they have some weird undocumented rules. You can't set the timeout
+	// without having connection draining to true, so we set that to true,
+	// set the timeout, then reset it to false if requested.
+	if d.HasChange("connection_draining") || d.HasChange("connection_draining_timeout") {
+		// We do timeout changes first since they require us to set draining
+		// to true for a hot second.
+		if d.HasChange("connection_draining_timeout") {
+			attrs := elb.ModifyLoadBalancerAttributesInput{
+				LoadBalancerName: aws.String(d.Get("name").(string)),
+				LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+					ConnectionDraining: &elb.ConnectionDraining{
+						Enabled: aws.Boolean(true),
+						Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
+					},
+				},
+			}
+
+			_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+			if err != nil {
+				return fmt.Errorf("Failure configuring ELB attributes: %s", err)
+			}
+
+			d.SetPartial("connection_draining_timeout")
+		}
+
+		// Then we always set connection draining even if there is no change.
+		// This lets us reset to "false" if requested even with a timeout
+		// change.
+		attrs := elb.ModifyLoadBalancerAttributesInput{
+			LoadBalancerName: aws.String(d.Get("name").(string)),
+			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
 				ConnectionDraining: &elb.ConnectionDraining{
 					Enabled: aws.Boolean(d.Get("connection_draining").(bool)),
-					Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
 				},
 			},
 		}
+
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
-			return fmt.Errorf("Failure configuring elb attributes: %s", err)
+			return fmt.Errorf("Failure configuring ELB attributes: %s", err)
 		}
-		d.SetPartial("cross_zone_load_balancing")
-		d.SetPartial("idle_timeout")
+
 		d.SetPartial("connection_draining")
-		d.SetPartial("connection_draining_timeout")
 	}
 
 	if d.HasChange("health_check") {
@@ -430,10 +499,26 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 			_, err := elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)
 			if err != nil {
-				return fmt.Errorf("Failure configuring health check: %s", err)
+				return fmt.Errorf("Failure configuring health check for ELB: %s", err)
 			}
 			d.SetPartial("health_check")
 		}
+	}
+
+	if d.HasChange("security_groups") {
+		groups := d.Get("security_groups").(*schema.Set).List()
+
+		applySecurityGroupsOpts := elb.ApplySecurityGroupsToLoadBalancerInput{
+			LoadBalancerName: aws.String(d.Id()),
+			SecurityGroups:   expandStringList(groups),
+		}
+
+		_, err := elbconn.ApplySecurityGroupsToLoadBalancer(&applySecurityGroupsOpts)
+		if err != nil {
+			return fmt.Errorf("Failure applying security groups to ELB: %s", err)
+		}
+
+		d.SetPartial("security_groups")
 	}
 
 	if err := setTagsELB(elbconn, d); err != nil {
@@ -478,13 +563,20 @@ func resourceAwsElbListenerHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["instance_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-",
+		strings.ToLower(m["instance_protocol"].(string))))
 	buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["lb_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-",
+		strings.ToLower(m["lb_protocol"].(string))))
 
 	if v, ok := m["ssl_certificate_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func isLoadBalancerNotFound(err error) bool {
+	elberr, ok := err.(awserr.Error)
+	return ok && elberr.Code() == "LoadBalancerNotFound"
 }

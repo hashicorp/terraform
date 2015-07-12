@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
@@ -165,6 +166,13 @@ func (m *Meta) DataDir() string {
 	return dataDir
 }
 
+const (
+	// InputModeEnvVar is the environment variable that, if set to "false" or
+	// "0", causes terraform commands to behave as if the `-input=false` flag was
+	// specified.
+	InputModeEnvVar = "TF_INPUT"
+)
+
 // InputMode returns the type of input we should ask for in the form of
 // terraform.InputMode which is passed directly to Context.Input.
 func (m *Meta) InputMode() terraform.InputMode {
@@ -172,9 +180,17 @@ func (m *Meta) InputMode() terraform.InputMode {
 		return 0
 	}
 
+	if envVar := os.Getenv(InputModeEnvVar); envVar != "" {
+		if v, err := strconv.ParseBool(envVar); err == nil {
+			if !v {
+				return 0
+			}
+		}
+	}
+
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	if len(m.variables) == 0 && m.autoKey == "" {
+	if len(m.variables) == 0 {
 		mode |= terraform.InputModeVar
 		mode |= terraform.InputModeVarUnset
 	}
@@ -335,6 +351,7 @@ func (m *Meta) process(args []string, vars bool) []string {
 	for i, v := range args {
 		if v == "-no-color" {
 			m.color = false
+			m.Color = false
 			args = append(args[:i], args[i+1:]...)
 			break
 		}
@@ -380,6 +397,20 @@ func (m *Meta) uiHook() *UiHook {
 	return &UiHook{
 		Colorize: m.Colorize(),
 		Ui:       m.Ui,
+	}
+}
+
+const (
+	// The name of the environment variable that can be used to set module depth.
+	ModuleDepthEnvVar = "TF_MODULE_DEPTH"
+)
+
+func (m *Meta) addModuleDepthFlag(flags *flag.FlagSet, moduleDepth *int) {
+	flags.IntVar(moduleDepth, "module-depth", 0, "module-depth")
+	if envVar := os.Getenv(ModuleDepthEnvVar); envVar != "" {
+		if md, err := strconv.Atoi(envVar); err == nil {
+			*moduleDepth = md
+		}
 	}
 }
 

@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -66,7 +67,7 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		VPNGatewayIDs: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnGatewayID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnGatewayID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {
@@ -89,7 +90,7 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("vpc_id", vpnGateway.VPCAttachments[0].VPCID)
 	}
 	d.Set("availability_zone", vpnGateway.AvailabilityZone)
-	d.Set("tags", tagsToMapSDK(vpnGateway.Tags))
+	d.Set("tags", tagsToMap(vpnGateway.Tags))
 
 	return nil
 }
@@ -109,7 +110,7 @@ func resourceAwsVpnGatewayUpdate(d *schema.ResourceData, meta interface{}) error
 
 	conn := meta.(*AWSClient).ec2conn
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 
@@ -136,12 +137,12 @@ func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error
 			return nil
 		}
 
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 
-		switch ec2err.Code {
+		switch ec2err.Code() {
 		case "InvalidVpnGatewayID.NotFound":
 			return nil
 		case "IncorrectState":
@@ -218,15 +219,15 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 	wait := true
 	_, err := conn.DetachVPNGateway(&ec2.DetachVPNGatewayInput{
 		VPNGatewayID: aws.String(d.Id()),
-		VPCID:        aws.String(d.Get("vpc_id").(string)),
+		VPCID:        aws.String(vpcID.(string)),
 	})
 	if err != nil {
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if ok {
-			if ec2err.Code == "InvalidVpnGatewayID.NotFound" {
+			if ec2err.Code() == "InvalidVpnGatewayID.NotFound" {
 				err = nil
 				wait = false
-			} else if ec2err.Code == "InvalidVpnGatewayAttachment.NotFound" {
+			} else if ec2err.Code() == "InvalidVpnGatewayAttachment.NotFound" {
 				err = nil
 				wait = false
 			}
@@ -271,7 +272,7 @@ func vpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string)
 			VPNGatewayIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnGatewayID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnGatewayID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("[ERROR] Error on VpnGatewayStateRefresh: %s", err)

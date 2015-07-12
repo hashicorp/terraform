@@ -140,6 +140,26 @@ func TestAccComputeInstance_disks(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_local_ssd(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_local_ssd,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.local-ssd", &instance),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_update_deprecated_network(t *testing.T) {
 	var instance compute.Instance
 
@@ -221,6 +241,31 @@ func TestAccComputeInstance_update(t *testing.T) {
 						&instance, "bar", "baz"),
 					testAccCheckComputeInstanceTag(&instance, "baz"),
 					testAccCheckComputeInstanceAccessConfig(&instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_service_account(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_service_account,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceServiceAccount(&instance,
+						"https://www.googleapis.com/auth/compute.readonly"),
+					testAccCheckComputeInstanceServiceAccount(&instance,
+						"https://www.googleapis.com/auth/devstorage.read_only"),
+					testAccCheckComputeInstanceServiceAccount(&instance,
+						"https://www.googleapis.com/auth/userinfo.email"),
 				),
 			},
 		},
@@ -356,6 +401,22 @@ func testAccCheckComputeInstanceTag(instance *compute.Instance, n string) resour
 	}
 }
 
+func testAccCheckComputeInstanceServiceAccount(instance *compute.Instance, scope string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if count := len(instance.ServiceAccounts); count != 1 {
+			return fmt.Errorf("Wrong number of ServiceAccounts: expected 1, got %d", count)
+		}
+
+		for _, val := range instance.ServiceAccounts[0].Scopes {
+			if val == scope {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("Scope not found: %s", scope)
+	}
+}
+
 const testAccComputeInstance_basic_deprecated_network = `
 resource "google_compute_instance" "foobar" {
 	name = "terraform-test"
@@ -415,10 +476,10 @@ resource "google_compute_instance" "foobar" {
 
 	metadata {
 		foo = "bar"
-	}
-	metadata {
 		baz = "qux"
 	}
+
+	metadata_startup_script = "echo Hello"
 }`
 
 const testAccComputeInstance_basic2 = `
@@ -565,5 +626,49 @@ resource "google_compute_instance" "foobar" {
 
 	metadata {
 		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_local_ssd = `
+resource "google_compute_instance" "local-ssd" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	disk {
+        type = "local-ssd"
+        scratch = true
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+}`
+
+const testAccComputeInstance_service_account = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+	service_account {
+		scopes = [
+			"userinfo-email",
+			"compute-ro",
+			"storage-ro",
+		]
 	}
 }`

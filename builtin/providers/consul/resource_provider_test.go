@@ -42,6 +42,7 @@ func TestResourceProvider_Configure(t *testing.T) {
 	raw := map[string]interface{}{
 		"address":    "demo.consul.io:80",
 		"datacenter": "nyc3",
+		"scheme":     "https",
 	}
 
 	rawConfig, err := config.NewRawConfig(raw)

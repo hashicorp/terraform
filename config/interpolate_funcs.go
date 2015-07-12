@@ -2,9 +2,11 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -17,17 +19,15 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
-		"file":    interpolationFuncFile(),
-		"format":  interpolationFuncFormat(),
-		"join":    interpolationFuncJoin(),
-		"element": interpolationFuncElement(),
-		"replace": interpolationFuncReplace(),
-		"split":   interpolationFuncSplit(),
-		"length":  interpolationFuncLength(),
-
-		// Concat is a little useless now since we supported embeddded
-		// interpolations but we keep it around for backwards compat reasons.
-		"concat": interpolationFuncConcat(),
+		"concat":     interpolationFuncConcat(),
+		"element":    interpolationFuncElement(),
+		"file":       interpolationFuncFile(),
+		"format":     interpolationFuncFormat(),
+		"formatlist": interpolationFuncFormatList(),
+		"join":       interpolationFuncJoin(),
+		"length":     interpolationFuncLength(),
+		"replace":    interpolationFuncReplace(),
+		"split":      interpolationFuncSplit(),
 	}
 }
 
@@ -43,11 +43,33 @@ func interpolationFuncConcat() ast.Function {
 		VariadicType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			var b bytes.Buffer
-			for _, v := range args {
-				b.WriteString(v.(string))
+			var finalList []string
+
+			var isDeprecated = true
+
+			for _, arg := range args {
+				argument := arg.(string)
+
+				if len(argument) == 0 {
+					continue
+				}
+
+				if IsStringList(argument) {
+					isDeprecated = false
+					finalList = append(finalList, StringList(argument).Slice()...)
+				} else {
+					finalList = append(finalList, argument)
+				}
+
+				// Deprecated concat behaviour
+				b.WriteString(argument)
 			}
 
-			return b.String(), nil
+			if isDeprecated {
+				return b.String(), nil
+			}
+
+			return NewStringList(finalList).String(), nil
 		},
 	}
 }
@@ -73,8 +95,8 @@ func interpolationFuncFile() ast.Function {
 	}
 }
 
-// interpolationFuncFormat implements the "replace" function that does
-// string replacement.
+// interpolationFuncFormat implements the "format" function that does
+// string formatting.
 func interpolationFuncFormat() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{ast.TypeString},
@@ -88,6 +110,74 @@ func interpolationFuncFormat() ast.Function {
 	}
 }
 
+// interpolationFuncFormatList implements the "formatlist" function that does
+// string formatting on lists.
+func interpolationFuncFormatList() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeString},
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		ReturnType:   ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			// Make a copy of the variadic part of args
+			// to avoid modifying the original.
+			varargs := make([]interface{}, len(args)-1)
+			copy(varargs, args[1:])
+
+			// Convert arguments that are lists into slices.
+			// Confirm along the way that all lists have the same length (n).
+			var n int
+			for i := 1; i < len(args); i++ {
+				s, ok := args[i].(string)
+				if !ok {
+					continue
+				}
+				if !IsStringList(s) {
+					continue
+				}
+
+				parts := StringList(s).Slice()
+
+				// otherwise the list is sent down to be indexed
+				varargs[i-1] = parts
+
+				// Check length
+				if n == 0 {
+					// first list we've seen
+					n = len(parts)
+					continue
+				}
+				if n != len(parts) {
+					return nil, fmt.Errorf("format: mismatched list lengths: %d != %d", n, len(parts))
+				}
+			}
+
+			if n == 0 {
+				return nil, errors.New("no lists in arguments to formatlist")
+			}
+
+			// Do the formatting.
+			format := args[0].(string)
+
+			// Generate a list of formatted strings.
+			list := make([]string, n)
+			fmtargs := make([]interface{}, len(varargs))
+			for i := 0; i < n; i++ {
+				for j, arg := range varargs {
+					switch arg := arg.(type) {
+					default:
+						fmtargs[j] = arg
+					case []string:
+						fmtargs[j] = arg[i]
+					}
+				}
+				list[i] = fmt.Sprintf(format, fmtargs...)
+			}
+			return NewStringList(list).String(), nil
+		},
+	}
+}
+
 // interpolationFuncJoin implements the "join" function that allows
 // multi-variable values to be joined by some character.
 func interpolationFuncJoin() ast.Function {
@@ -97,7 +187,7 @@ func interpolationFuncJoin() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			var list []string
 			for _, arg := range args[1:] {
-				parts := strings.Split(arg.(string), InterpSplitDelim)
+				parts := StringList(arg.(string)).Slice()
 				list = append(list, parts...)
 			}
 
@@ -139,18 +229,15 @@ func interpolationFuncLength() ast.Function {
 		ReturnType: ast.TypeInt,
 		Variadic:   false,
 		Callback: func(args []interface{}) (interface{}, error) {
-			if !strings.Contains(args[0].(string), InterpSplitDelim) {
+			if !IsStringList(args[0].(string)) {
 				return len(args[0].(string)), nil
 			}
 
-			var list []string
+			length := 0
 			for _, arg := range args {
-				parts := strings.Split(arg.(string), InterpSplitDelim)
-				for _, part := range parts {
-					list = append(list, part)
-				}
+				length += StringList(arg.(string)).Length()
 			}
-			return len(list), nil
+			return length, nil
 		},
 	}
 }
@@ -162,7 +249,9 @@ func interpolationFuncSplit() ast.Function {
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			return strings.Replace(args[1].(string), args[0].(string), InterpSplitDelim, -1), nil
+			sep := args[0].(string)
+			s := args[1].(string)
+			return NewStringList(strings.Split(s, sep)).String(), nil
 		},
 	}
 }
@@ -200,7 +289,7 @@ func interpolationFuncElement() ast.Function {
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			list := strings.Split(args[0].(string), InterpSplitDelim)
+			list := StringList(args[0].(string))
 
 			index, err := strconv.Atoi(args[1].(string))
 			if err != nil {
@@ -208,8 +297,78 @@ func interpolationFuncElement() ast.Function {
 					"invalid number for index, got %s", args[1])
 			}
 
-			v := list[index%len(list)]
+			v := list.Element(index)
 			return v, nil
+		},
+	}
+}
+
+// interpolationFuncKeys implements the "keys" function that yields a list of
+// keys of map types within a Terraform configuration.
+func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			// Prefix must include ending dot to be a map
+			prefix := fmt.Sprintf("var.%s.", args[0].(string))
+			keys := make([]string, 0, len(vs))
+			for k, _ := range vs {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
+				keys = append(keys, k[len(prefix):])
+			}
+
+			if len(keys) <= 0 {
+				return "", fmt.Errorf(
+					"failed to find map '%s'",
+					args[0].(string))
+			}
+
+			sort.Strings(keys)
+
+			return NewStringList(keys).String(), nil
+		},
+	}
+}
+
+// interpolationFuncValues implements the "values" function that yields a list of
+// keys of map types within a Terraform configuration.
+func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			// Prefix must include ending dot to be a map
+			prefix := fmt.Sprintf("var.%s.", args[0].(string))
+			keys := make([]string, 0, len(vs))
+			for k, _ := range vs {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
+				keys = append(keys, k)
+			}
+
+			if len(keys) <= 0 {
+				return "", fmt.Errorf(
+					"failed to find map '%s'",
+					args[0].(string))
+			}
+
+			sort.Strings(keys)
+
+			vals := make([]string, 0, len(keys))
+
+			for _, k := range keys {
+				v := vs[k]
+				if v.Type != ast.TypeString {
+					return "", fmt.Errorf("values(): %q has bad type %s", k, v.Type)
+				}
+				vals = append(vals, vs[k].Value.(string))
+			}
+
+			return NewStringList(vals).String(), nil
 		},
 	}
 }

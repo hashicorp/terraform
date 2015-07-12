@@ -21,7 +21,7 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 			"check_interval_sec": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  5,
 			},
 
 			"description": &schema.Schema{
@@ -32,7 +32,7 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 			"healthy_threshold": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  2,
 			},
 
 			"host": &schema.Schema{
@@ -49,13 +49,13 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 			"port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  80,
 			},
 
 			"request_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
+				Default:  "/",
 			},
 
 			"self_link": &schema.Schema{
@@ -66,13 +66,13 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 			"timeout_sec": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  5,
 			},
 
 			"unhealthy_threshold": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  2,
 			},
 		},
 	}
@@ -98,7 +98,7 @@ func resourceComputeHttpHealthCheckCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("check_interval_sec"); ok {
 		hchk.CheckIntervalSec = int64(v.(int))
 	}
-	if v, ok := d.GetOk("health_threshold"); ok {
+	if v, ok := d.GetOk("healthy_threshold"); ok {
 		hchk.HealthyThreshold = int64(v.(int))
 	}
 	if v, ok := d.GetOk("port"); ok {
@@ -167,7 +167,7 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("check_interval_sec"); ok {
 		hchk.CheckIntervalSec = int64(v.(int))
 	}
-	if v, ok := d.GetOk("health_threshold"); ok {
+	if v, ok := d.GetOk("healthy_threshold"); ok {
 		hchk.HealthyThreshold = int64(v.(int))
 	}
 	if v, ok := d.GetOk("port"); ok {

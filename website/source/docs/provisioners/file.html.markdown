@@ -3,14 +3,14 @@ layout: "docs"
 page_title: "Provisioner: file"
 sidebar_current: "docs-provisioners-file"
 description: |-
-  The `file` provisioner is used to copy files or directories from the machine executing Terraform to the newly created resource. The `file` provisioner only supports `ssh` type connections.
+  The `file` provisioner is used to copy files or directories from the machine executing Terraform to the newly created resource. The `file` provisioner supports both `ssh` and `winrm` type connections.
 ---
 
 # File Provisioner
 
 The `file` provisioner is used to copy files or directories from the machine
-executing Terraform to the newly created resource. The `file` provisioner only
-supports `ssh` type [connections](/docs/provisioners/connection.html).
+executing Terraform to the newly created resource. The `file` provisioner
+supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection.html).
 
 ## Example usage
 
@@ -28,6 +28,12 @@ resource "aws_instance" "web" {
     provisioner "file" {
         source = "conf/configs.d"
         destination = "/etc"
+    }
+
+    # Copies all files and folders in apps/app1 to D:/IIS/webapp1
+    provisioner "file" {
+        source = "apps/app1/"
+        destination = "D:/IIS/webapp1"
     }
 }
 ```
@@ -47,8 +53,10 @@ The following arguments are supported:
 The file provisioner is also able to upload a complete directory to the remote machine.
 When uploading a directory, there are a few important things you should know.
 
-First, the destination directory must already exist. If you need to create it,
-use a remote-exec provisioner just prior to the file provisioner in order to create the directory.
+First, when using the `ssh` connection type the destination directory must already exist.
+If you need to create it, use a remote-exec provisioner just prior to the file provisioner
+in order to create the directory. When using the `winrm` connection type the destination
+directory will be created for you if it doesn't already exist.
 
 Next, the existence of a trailing slash on the source path will determine whether the
 directory name will be embedded within the destination, or whether the destination will
@@ -63,4 +71,3 @@ If the source, however, is `/foo/` (a trailing slash is present), and the destin
 
 This behavior was adopted from the standard behavior of rsync. Note that under the covers,
 rsync may or may not be used.
-

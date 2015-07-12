@@ -63,6 +63,22 @@ func TestGraph_replace(t *testing.T) {
 	}
 }
 
+func TestGraph_replaceSelf(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Replace(2, 2)
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphReplaceSelfStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 const testGraphBasicStr = `
 1
   3
@@ -87,4 +103,12 @@ const testGraphReplaceStr = `
 3
 42
   3
+`
+
+const testGraphReplaceSelfStr = `
+1
+  2
+2
+  3
+3
 `

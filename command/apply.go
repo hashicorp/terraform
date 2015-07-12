@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -207,7 +208,7 @@ func (c *ApplyCommand) Run(args []string) int {
 				"Instead, your Terraform state file has been partially updated with\n"+
 				"any resources that successfully completed. Please address the error\n"+
 				"above and apply again to incrementally change your infrastructure.",
-			applyErr))
+			multierror.Flatten(applyErr)))
 		return 1
 	}
 
@@ -229,38 +230,10 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Meta.StateOutPath())))
 	}
 
-	// If we have outputs, then output those at the end.
-	var outputs map[string]string
-	if !c.Destroy && state != nil {
-		outputs = state.RootModule().Outputs
-	}
-	if len(outputs) > 0 {
-		outputBuf := new(bytes.Buffer)
-		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
-
-		// Output the outputs in alphabetical order
-		keyLen := 0
-		keys := make([]string, 0, len(outputs))
-		for key, _ := range outputs {
-			keys = append(keys, key)
-			if len(key) > keyLen {
-				keyLen = len(key)
-			}
+	if !c.Destroy {
+		if outputs := outputsAsString(state); outputs != "" {
+			c.Ui.Output(c.Colorize().Color(outputs))
 		}
-		sort.Strings(keys)
-
-		for _, k := range keys {
-			v := outputs[k]
-
-			outputBuf.WriteString(fmt.Sprintf(
-				"  %s%s = %s\n",
-				k,
-				strings.Repeat(" ", keyLen-len(k)),
-				v))
-		}
-
-		c.Ui.Output(c.Colorize().Color(
-			strings.TrimSpace(outputBuf.String())))
 	}
 
 	return 0
@@ -371,4 +344,39 @@ Options:
 
 `
 	return strings.TrimSpace(helpText)
+}
+
+func outputsAsString(state *terraform.State) string {
+	if state == nil {
+		return ""
+	}
+
+	outputs := state.RootModule().Outputs
+	outputBuf := new(bytes.Buffer)
+	if len(outputs) > 0 {
+		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+
+		// Output the outputs in alphabetical order
+		keyLen := 0
+		keys := make([]string, 0, len(outputs))
+		for key, _ := range outputs {
+			keys = append(keys, key)
+			if len(key) > keyLen {
+				keyLen = len(key)
+			}
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			v := outputs[k]
+
+			outputBuf.WriteString(fmt.Sprintf(
+				"  %s%s = %s\n",
+				k,
+				strings.Repeat(" ", keyLen-len(k)),
+				v))
+		}
+	}
+
+	return strings.TrimSpace(outputBuf.String())
 }

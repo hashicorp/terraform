@@ -54,6 +54,33 @@ func (g *Graph) Add(v dag.Vertex) dag.Vertex {
 	return v
 }
 
+// Remove is the same as dag.Graph.Remove
+func (g *Graph) Remove(v dag.Vertex) dag.Vertex {
+	g.once.Do(g.init)
+
+	// If this is a depend-able node, then remove the lookaside info
+	if dv, ok := v.(GraphNodeDependable); ok {
+		for _, n := range dv.DependableName() {
+			delete(g.dependableMap, n)
+		}
+	}
+
+	// Call upwards to remove it from the actual graph
+	return g.Graph.Remove(v)
+}
+
+// Replace is the same as dag.Graph.Replace
+func (g *Graph) Replace(o, n dag.Vertex) bool {
+	// Go through and update our lookaside to point to the new vertex
+	for k, v := range g.dependableMap {
+		if v == o {
+			g.dependableMap[k] = n
+		}
+	}
+
+	return g.Graph.Replace(o, n)
+}
+
 // ConnectDependent connects a GraphNodeDependent to all of its
 // GraphNodeDependables. It returns the list of dependents it was
 // unable to connect to.
@@ -129,8 +156,8 @@ func (g *Graph) init() {
 
 func (g *Graph) walk(walker GraphWalker) error {
 	// The callbacks for enter/exiting a graph
-	ctx := walker.EnterGraph(g)
-	defer walker.ExitGraph(g)
+	ctx := walker.EnterPath(g.Path)
+	defer walker.ExitPath(g.Path)
 
 	// Get the path for logs
 	path := strings.Join(ctx.Path(), ".")
@@ -142,6 +169,15 @@ func (g *Graph) walk(walker GraphWalker) error {
 
 		walker.EnterVertex(v)
 		defer func() { walker.ExitVertex(v, rerr) }()
+
+		// vertexCtx is the context that we use when evaluating. This
+		// is normally the context of our graph but can be overridden
+		// with a GraphNodeSubPath impl.
+		vertexCtx := ctx
+		if pn, ok := v.(GraphNodeSubPath); ok && len(pn.Path()) > 0 {
+			vertexCtx = walker.EnterPath(pn.Path())
+			defer walker.ExitPath(pn.Path())
+		}
 
 		// If the node is eval-able, then evaluate it.
 		if ev, ok := v.(GraphNodeEvalable); ok {
@@ -155,7 +191,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 			// then callback with the output.
 			log.Printf("[DEBUG] vertex %s.%s: evaluating", path, dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
-			output, err := Eval(tree, ctx)
+			output, err := Eval(tree, vertexCtx)
 			if rerr = walker.ExitEvalTree(v, output, err); rerr != nil {
 				return
 			}
@@ -167,7 +203,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 				"[DEBUG] vertex %s.%s: expanding/walking dynamic subgraph",
 				path,
 				dag.VertexName(v))
-			g, err := ev.DynamicExpand(ctx)
+			g, err := ev.DynamicExpand(vertexCtx)
 			if err != nil {
 				rerr = err
 				return

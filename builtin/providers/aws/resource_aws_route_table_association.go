@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -102,8 +103,8 @@ func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interfa
 	resp, err := conn.ReplaceRouteTableAssociation(req)
 
 	if err != nil {
-		ec2err, ok := err.(aws.APIError)
-		if ok && ec2err.Code == "InvalidAssociationID.NotFound" {
+		ec2err, ok := err.(awserr.Error)
+		if ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
 			// Not found, so just create a new one
 			return resourceAwsRouteTableAssociationCreate(d, meta)
 		}
@@ -126,8 +127,8 @@ func resourceAwsRouteTableAssociationDelete(d *schema.ResourceData, meta interfa
 		AssociationID: aws.String(d.Id()),
 	})
 	if err != nil {
-		ec2err, ok := err.(aws.APIError)
-		if ok && ec2err.Code == "InvalidAssociationID.NotFound" {
+		ec2err, ok := err.(awserr.Error)
+		if ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
 			return nil
 		}
 

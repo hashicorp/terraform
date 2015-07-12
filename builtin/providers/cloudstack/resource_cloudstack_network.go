@@ -149,8 +149,9 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("name", n.Name)
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
-	d.Set("network_offering", n.Networkofferingname)
-	d.Set("zone", n.Zonename)
+
+	setValueOrUUID(d, "network_offering", n.Networkofferingname, n.Networkofferingid)
+	setValueOrUUID(d, "zone", n.Zonename, n.Zoneid)
 
 	return nil
 }

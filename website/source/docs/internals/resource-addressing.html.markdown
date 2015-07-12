@@ -10,19 +10,34 @@ description: |-
 # Resource Addressing
 
 A __Resource Address__ is a string that references a specific resource in a
-larger infrastructure. The syntax of a resource address is:
+larger infrastructure. An address is made up of two parts:
 
 ```
-<resource_type>.<resource_name>[optional fields]
+[module path][resource spec]
 ```
 
-Required fields:
+__Module path__:
+
+A module path addresses a module within the tree of modules. It takes the form:
+
+```
+module.A.module.B.module.C...
+```
+
+Multiple modules in a path indicate nesting. If a module path is specified
+without a resource spec, the address applies to every resource within the
+module. If the module path is omitted, this addresses the root module.
+
+__Resource spec__:
+
+A resource spec addresses a specific resource in the config. It takes the form:
+
+```
+resource_type.resource_name[N]
+```
 
  * `resource_type` - Type of the resource being addressed.
  * `resource_name` - User-defined name of the resource.
-
-Optional fields may include:
-
  * `[N]` - where `N` is a `0`-based index into a resource with multiple
    instances specified by the `count` meta-parameter. Omitting an index when
    addressing a resource where `count > 1` means that the address references

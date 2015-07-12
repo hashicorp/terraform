@@ -3,14 +3,14 @@
         <div class="docs-sidebar hidden-print affix-top" role="complementary">
             <ul class="nav docs-sidenav">
                 <li<%= sidebar_current("docs-home") %>>
-                    <a href="/docs/index.html">&laquo; Documentation Home</a>
+                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
                 </li>
 
                 <li<%= sidebar_current("docs-cloudstack-index") %>>
                     <a href="/docs/providers/cloudstack/index.html">CloudStack Provider</a>
                 </li>
 
-                <li<%= sidebar_current("docs-cloudstack-resource") %>>
+                <li<%= sidebar_current(/^docs-cloudstack-resource/) %>>
                     <a href="#">Resources</a>
                     <ul class="nav nav-visible">
                         <li<%= sidebar_current("docs-cloudstack-resource-disk") %>>
@@ -51,6 +51,10 @@
 
                         <li<%= sidebar_current("docs-cloudstack-resource-port-forward") %>>
                             <a href="/docs/providers/cloudstack/r/port_forward.html">cloudstack_port_forward</a>
+                        </li>
+
+			<li<%= sidebar_current("docs-cloudstack-resource-ssh-keypair") %>>
+                            <a href="/docs/providers/cloudstack/r/ssh_keypair.html">cloudstack_ssh_keypair</a>
                         </li>
 
                         <li<%= sidebar_current("docs-cloudstack-resource-template") %>>

@@ -82,6 +82,11 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 		return false
 	}
 
+	// If they're the same, then don't do anything
+	if original == replacement {
+		return true
+	}
+
 	// Add our new vertex, then copy all the edges
 	g.Add(replacement)
 	for _, target := range g.DownEdges(original).List() {

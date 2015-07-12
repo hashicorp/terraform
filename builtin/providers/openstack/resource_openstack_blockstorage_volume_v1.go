@@ -43,10 +43,17 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 				Optional: true,
 				ForceNew: false,
 			},
+			"availability_zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 			"metadata": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"snapshot_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -67,6 +74,7 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"attachment": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -101,14 +109,15 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 	}
 
 	createOpts := &volumes.CreateOpts{
-		Description: d.Get("description").(string),
-		Name:        d.Get("name").(string),
-		Size:        d.Get("size").(int),
-		SnapshotID:  d.Get("snapshot_id").(string),
-		SourceVolID: d.Get("source_vol_id").(string),
-		ImageID:     d.Get("image_id").(string),
-		VolumeType:  d.Get("volume_type").(string),
-		Metadata:    resourceContainerMetadataV2(d),
+		Description:  d.Get("description").(string),
+		Availability: d.Get("availability_zone").(string),
+		Name:         d.Get("name").(string),
+		Size:         d.Get("size").(int),
+		SnapshotID:   d.Get("snapshot_id").(string),
+		SourceVolID:  d.Get("source_vol_id").(string),
+		ImageID:      d.Get("image_id").(string),
+		VolumeType:   d.Get("volume_type").(string),
+		Metadata:     resourceContainerMetadataV2(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -160,6 +169,7 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 
 	d.Set("size", v.Size)
 	d.Set("description", v.Description)
+	d.Set("availability_zone", v.AvailabilityZone)
 	d.Set("name", v.Name)
 	d.Set("snapshot_id", v.SnapshotID)
 	d.Set("source_vol_id", v.SourceVolID)

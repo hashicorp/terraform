@@ -16,17 +16,25 @@ The output is in the DOT format, which can be used by
 
 ## Usage
 
-Usage: `terraform graph [options] PATH`
+Usage: `terraform graph [options] [DIR]`
 
-Outputs the visual graph of Terraform resources. If the path given is
-the path to a configuration, the dependency graph of the resources are
-shown. If the path is a plan file, then the dependency graph of the
-plan itself is shown.
+Outputs the visual dependency graph of Terraform resources according to
+configuration files in DIR (or the current directory if omitted).
+
+The graph is outputted in DOT format. The typical program that can
+read this format is GraphViz, but many web services are also available
+to read this format.
 
 Options:
 
+* `-draw-cycles`    - Highlight any cycles in the graph with colored edges.
+                      This helps when diagnosing cycle errors.
+
 * `-module-depth=n` - The maximum depth to expand modules. By default this is
                       zero, which will not expand modules at all.
+
+* `-verbose`        - Generate a verbose, "worst-case" graph, with all nodes
+                      for potential operations in place.
 
 ## Generating Images
 

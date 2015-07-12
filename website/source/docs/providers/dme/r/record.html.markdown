@@ -31,7 +31,7 @@ The following arguments are supported:
   record to
 * `name` - (Required) The name of the record
 * `type` - (Required) The type of the record
-* `value` - (Required) The value of the record; it's usage
+* `value` - (Required) The value of the record; its usage
   will depend on the `type` (see below)
 * `ttl` - (Integer, Optional) The TTL of the record
 

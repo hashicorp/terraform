@@ -488,3 +488,31 @@ func TestResourceProvider_validateResource_warns(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 }
+
+func TestResourceProvider_close(t *testing.T) {
+	client, _ := testNewClientServer(t)
+	defer client.Close()
+
+	provider, err := client.ResourceProvider()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var p interface{}
+	p = provider
+	pCloser, ok := p.(terraform.ResourceProviderCloser)
+	if !ok {
+		t.Fatal("should be a ResourceProviderCloser")
+	}
+
+	if err := pCloser.Close(); err != nil {
+		t.Fatalf("failed to close provider: %s", err)
+	}
+
+	// The connection should be closed now, so if we to make a
+	// new call we should get an error.
+	err = provider.Configure(&terraform.ResourceConfig{})
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}

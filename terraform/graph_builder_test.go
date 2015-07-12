@@ -41,11 +41,27 @@ func TestBasicGraphBuilder_validate(t *testing.T) {
 			&testBasicGraphBuilderTransform{1},
 			&testBasicGraphBuilderTransform{2},
 		},
+		Validate: true,
 	}
 
 	_, err := b.Build(RootModulePath)
 	if err == nil {
 		t.Fatal("should error")
+	}
+}
+
+func TestBasicGraphBuilder_validateOff(t *testing.T) {
+	b := &BasicGraphBuilder{
+		Steps: []GraphTransformer{
+			&testBasicGraphBuilderTransform{1},
+			&testBasicGraphBuilderTransform{2},
+		},
+		Validate: false,
+	}
+
+	_, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("expected no error, got: %s", err)
 	}
 }
 
@@ -58,7 +74,8 @@ func TestBuiltinGraphBuilder_impl(t *testing.T) {
 // specific ordering of steps should be added in other tests.
 func TestBuiltinGraphBuilder(t *testing.T) {
 	b := &BuiltinGraphBuilder{
-		Root: testModule(t, "graph-builder-basic"),
+		Root:     testModule(t, "graph-builder-basic"),
+		Validate: true,
 	}
 
 	g, err := b.Build(RootModulePath)
@@ -73,16 +90,110 @@ func TestBuiltinGraphBuilder(t *testing.T) {
 	}
 }
 
+func TestBuiltinGraphBuilder_Verbose(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-basic"),
+		Validate: true,
+		Verbose:  true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testBuiltinGraphBuilderVerboseStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 // This tests a cycle we got when a CBD resource depends on a non-CBD
 // resource. This cycle shouldn't happen in the general case anymore.
 func TestBuiltinGraphBuilder_cbdDepNonCbd(t *testing.T) {
 	b := &BuiltinGraphBuilder{
-		Root: testModule(t, "graph-builder-cbd-non-cbd"),
+		Root:     testModule(t, "graph-builder-cbd-non-cbd"),
+		Validate: true,
 	}
 
 	_, err := b.Build(RootModulePath)
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestBuiltinGraphBuilder_cbdDepNonCbd_errorsWhenVerbose(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-cbd-non-cbd"),
+		Validate: true,
+		Verbose:  true,
+	}
+
+	_, err := b.Build(RootModulePath)
+	if err == nil {
+		t.Fatalf("expected err, got none")
+	}
+}
+
+func TestBuiltinGraphBuilder_multiLevelModule(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-multi-level-module"),
+		Validate: true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testBuiltinGraphBuilderMultiLevelStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
+func TestBuiltinGraphBuilder_orphanDeps(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+
+					"aws_instance.bar": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.foo"},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-orphan-deps"),
+		State:    state,
+		Validate: true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testBuiltinGraphBuilderOrphanDepsStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
 	}
 }
 
@@ -128,8 +239,57 @@ aws_instance.db
 aws_instance.web
   aws_instance.db
 provider.aws
+provider.aws (close)
+  aws_instance.web
 `
 
+const testBuiltinGraphBuilderVerboseStr = `
+aws_instance.db
+  aws_instance.db (destroy tainted)
+  aws_instance.db (destroy)
+aws_instance.db (destroy tainted)
+  aws_instance.web (destroy tainted)
+aws_instance.db (destroy)
+  aws_instance.web (destroy)
+aws_instance.web
+  aws_instance.db
+aws_instance.web (destroy tainted)
+  provider.aws
+aws_instance.web (destroy)
+  provider.aws
+provider.aws
+provider.aws (close)
+  aws_instance.web
+`
+
+const testBuiltinGraphBuilderMultiLevelStr = `
+module.foo.module.bar.output.value
+  module.foo.module.bar.var.bar
+module.foo.module.bar.plan-destroy
+module.foo.module.bar.var.bar
+  module.foo.var.foo
+module.foo.plan-destroy
+module.foo.var.foo
+root
+  module.foo.module.bar.output.value
+  module.foo.module.bar.plan-destroy
+  module.foo.plan-destroy
+`
+
+const testBuiltinGraphBuilderOrphanDepsStr = `
+aws_instance.bar (orphan)
+  provider.aws
+aws_instance.foo (orphan)
+  aws_instance.bar (orphan)
+provider.aws
+provider.aws (close)
+  aws_instance.foo (orphan)
+`
+
+/*
+TODO: Commented out this const as it's likely this needs to
+be updated when the TestBuiltinGraphBuilder_modules test is
+enabled again.
 const testBuiltinGraphBuilderModuleStr = `
 aws_instance.web
   aws_instance.web (destroy)
@@ -146,3 +306,4 @@ module.consul (expanded)
   provider.aws
 provider.aws
 `
+*/

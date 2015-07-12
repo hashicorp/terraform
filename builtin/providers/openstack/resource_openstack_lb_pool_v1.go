@@ -51,6 +51,7 @@ func resourceLBPoolV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"member": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -178,10 +179,10 @@ func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var updateOpts pools.UpdateOpts
-	if d.HasChange("name") {
+	// If either option changed, update both.
+	// Gophercloud complains if one is empty.
+	if d.HasChange("name") || d.HasChange("lb_method") {
 		updateOpts.Name = d.Get("name").(string)
-	}
-	if d.HasChange("lb_method") {
 		updateOpts.LBMethod = d.Get("lb_method").(string)
 	}
 

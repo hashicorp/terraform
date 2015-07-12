@@ -140,11 +140,9 @@ func testAccCheckCloudStackPortForwardDestroy(s *terraform.State) error {
 				continue
 			}
 
-			p := cs.Firewall.NewDeletePortForwardingRuleParams(uuid)
-			_, err := cs.Firewall.DeletePortForwardingRule(p)
-
-			if err != nil {
-				return err
+			_, _, err := cs.Firewall.GetPortForwardingRuleByID(uuid)
+			if err == nil {
+				return fmt.Errorf("Port forward %s still exists", rs.Primary.ID)
 			}
 		}
 	}
@@ -204,7 +202,6 @@ resource "cloudstack_port_forward" "foo" {
     public_port = 8080
     virtual_machine = "${cloudstack_instance.foobar.name}"
   }
-
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,

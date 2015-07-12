@@ -50,6 +50,14 @@ The following backends are supported:
   variables can optionally be provided. Address is assumed to be the
   local agent if not provided.
 
+* S3 - Stores the state as a given key in a given bucket on Amazon S3.
+  Requires the `bucket` and `key` variables. Supports and honors the standard
+  AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+  and `AWS_DEFAULT_REGION`. These can optionally be provided as parameters
+  in the `aws_access_key`, `aws_secret_key` and `region` variables
+  respectively, but passing credentials this way is not recommended since they
+  will be included in cleartext inside the persisted state.
+
 * HTTP - Stores the state using a simple REST client. State will be fetched
   via GET, updated via POST, and purged with DELETE. Requires the `address` variable.
 

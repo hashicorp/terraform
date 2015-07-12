@@ -27,6 +27,27 @@ func TestComputeInstanceMigrateState(t *testing.T) {
 				"metadata.with.dots": "should.work",
 			},
 		},
+		"change scope from list to set": {
+			StateVersion: 1,
+			Attributes: map[string]string{
+				"service_account.#":          "1",
+				"service_account.0.email":    "xxxxxx-compute@developer.gserviceaccount.com",
+				"service_account.0.scopes.#": "4",
+				"service_account.0.scopes.0": "https://www.googleapis.com/auth/compute",
+				"service_account.0.scopes.1": "https://www.googleapis.com/auth/datastore",
+				"service_account.0.scopes.2": "https://www.googleapis.com/auth/devstorage.full_control",
+				"service_account.0.scopes.3": "https://www.googleapis.com/auth/logging.write",
+			},
+			Expected: map[string]string{
+				"service_account.#":                   "1",
+				"service_account.0.email":             "xxxxxx-compute@developer.gserviceaccount.com",
+				"service_account.0.scopes.#":          "4",
+				"service_account.0.scopes.1693978638": "https://www.googleapis.com/auth/devstorage.full_control",
+				"service_account.0.scopes.172152165":  "https://www.googleapis.com/auth/logging.write",
+				"service_account.0.scopes.299962681":  "https://www.googleapis.com/auth/compute",
+				"service_account.0.scopes.3435931483": "https://www.googleapis.com/auth/datastore",
+			},
+		},
 	}
 
 	for tn, tc := range cases {

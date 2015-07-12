@@ -166,7 +166,7 @@ func TestPruneDestroyTransformer_diff(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformPruneDestroyBasicDiffStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n\n%s\n\nbad:\n\n%s", expected, actual)
 	}
 }
 
@@ -421,9 +421,7 @@ aws_instance.foo
 
 const testTransformPruneDestroyBasicDiffStr = `
 aws_instance.bar
-  aws_instance.bar (destroy)
   aws_instance.foo
-aws_instance.bar (destroy)
 aws_instance.foo
 `
 

@@ -60,6 +60,10 @@ type TestCase struct {
 // potentially complex update logic. In general, simply create/destroy
 // tests will only need one step.
 type TestStep struct {
+	// PreConfig is called before the Config is applied to perform any per-step
+	// setup that needs to happen
+	PreConfig func()
+
 	// Config a string of the configuration to give to Terraform.
 	Config string
 
@@ -160,6 +164,10 @@ func testStep(
 	opts terraform.ContextOpts,
 	state *terraform.State,
 	step TestStep) (*terraform.State, error) {
+	if step.PreConfig != nil {
+		step.PreConfig()
+	}
+
 	cfgPath, err := ioutil.TempDir("", "tf-test")
 	if err != nil {
 		return state, fmt.Errorf(
@@ -203,13 +211,16 @@ func testStep(
 	opts.Destroy = step.Destroy
 	ctx := terraform.NewContext(&opts)
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
-		estrs := make([]string, len(es))
-		for i, e := range es {
-			estrs[i] = e.Error()
+		if len(es) > 0 {
+			estrs := make([]string, len(es))
+			for i, e := range es {
+				estrs[i] = e.Error()
+			}
+			return state, fmt.Errorf(
+				"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
+				ws, estrs)
 		}
-		return state, fmt.Errorf(
-			"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
-			ws, estrs)
+		log.Printf("[WARN] Config warnings: %#v", ws)
 	}
 
 	// Refresh!
@@ -235,12 +246,13 @@ func testStep(
 
 	// Check! Excitement!
 	if step.Check != nil {
-		if err = step.Check(state); err != nil {
-			err = fmt.Errorf("Check failed: %s", err)
+		if err := step.Check(state); err != nil {
+			return state, fmt.Errorf("Check failed: %s", err)
 		}
 	}
 
-	// Verify that Plan is now empty and we don't have a perpetual diff issue
+	// Now, verify that Plan is now empty and we don't have a perpetual diff issue
+	// We do this with TWO plans. One without a refresh.
 	if p, err := ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on follow-up plan: %s", err)
 	} else {
@@ -250,7 +262,23 @@ func testStep(
 		}
 	}
 
-	return state, err
+	// And another after a Refresh.
+	state, err = ctx.Refresh()
+	if err != nil {
+		return state, fmt.Errorf(
+			"Error on follow-up refresh: %s", err)
+	}
+	if p, err := ctx.Plan(); err != nil {
+		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
+	} else {
+		if p.Diff != nil && !p.Diff.Empty() {
+			return state, fmt.Errorf(
+				"After applying this step and refreshing, the plan was not empty:\n\n%s", p)
+		}
+	}
+
+	// Made it here? Good job test step!
+	return state, nil
 }
 
 // ComposeTestCheckFunc lets you compose multiple TestCheckFuncs into

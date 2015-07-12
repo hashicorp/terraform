@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Provisioner: remote-exec"
 sidebar_current: "docs-provisioners-remote"
 description: |-
-  The `remote-exec` provisioner invokes a script on a remote resource after it is created. This can be used to run a configuration management tool, bootstrap into a cluster, etc. To invoke a local process, see the `local-exec` provisioner instead. The `remote-exec` provisioner only supports `ssh` type connections.
+  The `remote-exec` provisioner invokes a script on a remote resource after it is created. This can be used to run a configuration management tool, bootstrap into a cluster, etc. To invoke a local process, see the `local-exec` provisioner instead. The `remote-exec` provisioner supports both `ssh` and `winrm` type connections.
 ---
 
 # remote-exec Provisioner
@@ -12,7 +12,7 @@ The `remote-exec` provisioner invokes a script on a remote resource after it
 is created. This can be used to run a configuration management tool, bootstrap
 into a cluster, etc. To invoke a local process, see the `local-exec`
 [provisioner](/docs/provisioners/local-exec.html) instead. The `remote-exec`
-provisioner only supports `ssh` type [connections](/docs/provisioners/connection.html).
+provisioner supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection.html).
 
 
 ## Example usage

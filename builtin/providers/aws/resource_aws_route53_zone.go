@@ -3,15 +3,16 @@ package aws
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/route53"
 )
 
 func resourceAwsRoute53Zone() *schema.Resource {
@@ -28,18 +29,40 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"comment": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "Managed by Terraform",
+			},
+
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"vpc_region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
 			"zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
+			"delegation_set_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"name_servers": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 
 			"tags": tagsSchema(),
@@ -50,14 +73,28 @@ func resourceAwsRoute53Zone() *schema.Resource {
 func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
 
-	comment := &route53.HostedZoneConfig{Comment: aws.String("Managed by Terraform")}
 	req := &route53.CreateHostedZoneInput{
 		Name:             aws.String(d.Get("name").(string)),
-		HostedZoneConfig: comment,
+		HostedZoneConfig: &route53.HostedZoneConfig{Comment: aws.String(d.Get("comment").(string))},
 		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
+	}
+	if v := d.Get("vpc_id"); v != "" {
+		req.VPC = &route53.VPC{
+			VPCID:     aws.String(v.(string)),
+			VPCRegion: aws.String(meta.(*AWSClient).region),
+		}
+		if w := d.Get("vpc_region"); w != "" {
+			req.VPC.VPCRegion = aws.String(w.(string))
+		}
+		d.Set("vpc_region", req.VPC.VPCRegion)
+	}
+
+	if v, ok := d.GetOk("delegation_set_id"); ok {
+		req.DelegationSetID = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)
+	var err error
 	resp, err := r53.CreateHostedZone(req)
 	if err != nil {
 		return err
@@ -94,19 +131,44 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	zone, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(d.Id())})
 	if err != nil {
 		// Handle a deleted zone
-		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
+		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
 			d.SetId("")
 			return nil
 		}
 		return err
 	}
 
-	ns := make([]string, len(zone.DelegationSet.NameServers))
-	for i := range zone.DelegationSet.NameServers {
-		ns[i] = *zone.DelegationSet.NameServers[i]
+	if !*zone.HostedZone.Config.PrivateZone {
+		ns := make([]string, len(zone.DelegationSet.NameServers))
+		for i := range zone.DelegationSet.NameServers {
+			ns[i] = *zone.DelegationSet.NameServers[i]
+		}
+		sort.Strings(ns)
+		if err := d.Set("name_servers", ns); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+		}
+	} else {
+		ns, err := getNameServers(d.Id(), d.Get("name").(string), r53)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("name_servers", ns); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+		}
+
+		var associatedVPC *route53.VPC
+		for _, vpc := range zone.VPCs {
+			if *vpc.VPCID == d.Get("vpc_id") {
+				associatedVPC = vpc
+			}
+		}
+		if associatedVPC == nil {
+			return fmt.Errorf("[DEBUG] VPC: %v is not associated with Zone: %v", d.Get("vpc_id"), d.Id())
+		}
 	}
-	if err := d.Set("name_servers", ns); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+
+	if zone.DelegationSet != nil && zone.DelegationSet.ID != nil {
+		d.Set("delegation_set_id", cleanDelegationSetId(*zone.DelegationSet.ID))
 	}
 
 	// get tags
@@ -135,7 +197,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	if err := setTagsR53(conn, d); err != nil {
+	if err := setTagsR53(conn, d, "hostedzone"); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -182,4 +244,24 @@ func cleanPrefix(ID, prefix string) string {
 		ID = strings.TrimPrefix(ID, prefix)
 	}
 	return ID
+}
+
+func getNameServers(zoneId string, zoneName string, r53 *route53.Route53) ([]string, error) {
+	resp, err := r53.ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
+		HostedZoneID:    aws.String(zoneId),
+		StartRecordName: aws.String(zoneName),
+		StartRecordType: aws.String("NS"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.ResourceRecordSets) == 0 {
+		return nil, nil
+	}
+	ns := make([]string, len(resp.ResourceRecordSets[0].ResourceRecords))
+	for i := range resp.ResourceRecordSets[0].ResourceRecords {
+		ns[i] = *resp.ResourceRecordSets[0].ResourceRecords[i].Value
+	}
+	sort.Strings(ns)
+	return ns, nil
 }

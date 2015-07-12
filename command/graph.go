@@ -17,11 +17,15 @@ type GraphCommand struct {
 
 func (c *GraphCommand) Run(args []string) int {
 	var moduleDepth int
+	var verbose bool
+	var drawCycles bool
 
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
-	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
+	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
+	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -52,25 +56,38 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	g, err := ctx.Graph()
+	// Skip validation during graph generation - we want to see the graph even if
+	// it is invalid for some reason.
+	g, err := ctx.Graph(&terraform.ContextGraphOpts{
+		Verbose:  verbose,
+		Validate: false,
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error creating graph: %s", err))
 		return 1
 	}
 
-	c.Ui.Output(terraform.GraphDot(g, nil))
+	graphStr, err := terraform.GraphDot(g, &terraform.GraphDotOpts{
+		DrawCycles: drawCycles,
+		MaxDepth:   moduleDepth,
+		Verbose:    verbose,
+	})
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error converting graph: %s", err))
+		return 1
+	}
+
+	c.Ui.Output(graphStr)
 
 	return 0
 }
 
 func (c *GraphCommand) Help() string {
 	helpText := `
-Usage: terraform graph [options] PATH
+Usage: terraform graph [options] [DIR]
 
-  Outputs the visual graph of Terraform resources. If the path given is
-  the path to a configuration, the dependency graph of the resources are
-  shown. If the path is a plan file, then the dependency graph of the
-  plan itself is shown.
+  Outputs the visual dependency graph of Terraform resources according to
+  configuration files in DIR (or the current directory if omitted).
 
   The graph is outputted in DOT format. The typical program that can
   read this format is GraphViz, but many web services are also available
@@ -78,8 +95,16 @@ Usage: terraform graph [options] PATH
 
 Options:
 
+  -draw-cycles         Highlight any cycles in the graph with colored edges.
+                       This helps when diagnosing cycle errors.
+
   -module-depth=n      The maximum depth to expand modules. By default this is
                        zero, which will not expand modules at all.
+
+  -verbose             Generate a verbose, "worst-case" graph, with all nodes
+                       for potential operations in place.
+
+  -no-color           If specified, output won't contain any color.
 
 `
 	return strings.TrimSpace(helpText)

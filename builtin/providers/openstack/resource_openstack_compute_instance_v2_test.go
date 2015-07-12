@@ -20,6 +20,7 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 	var testAccComputeV2Instance_basic = fmt.Sprintf(`
 		resource "openstack_compute_instance_v2" "foo" {
 			name = "terraform-test"
+			security_groups = ["default"]
 			network {
 				uuid = "%s"
 			}
@@ -75,6 +76,7 @@ func TestAccComputeV2Instance_floatingIPAttach(t *testing.T) {
 
 		resource "openstack_compute_instance_v2" "foo" {
 			name = "terraform-test"
+			security_groups = ["default"]
 			floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
 
 			network {
@@ -227,6 +229,7 @@ var testAccComputeV2Instance_volumeAttach = fmt.Sprintf(`
   resource "openstack_compute_instance_v2" "foo" {
     region = "%s"
     name = "terraform-test"
+    security_groups = ["default"]
     volume {
       volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
     }

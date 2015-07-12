@@ -95,7 +95,7 @@ func resourceCloudStackNetworkACLRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("vpc", v.Name)
+	setValueOrUUID(d, "vpc", v.Name, v.Id)
 
 	return nil
 }

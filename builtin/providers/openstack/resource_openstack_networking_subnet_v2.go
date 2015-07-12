@@ -3,7 +3,6 @@ package openstack
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -43,6 +42,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"allocation_pools": &schema.Schema{
 				Type:     schema.TypeList,
@@ -65,6 +65,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"ip_version": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -72,9 +73,10 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				ForceNew: true,
 			},
 			"enable_dhcp": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"dns_nameservers": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -125,13 +127,9 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		HostRoutes:      resourceSubnetHostRoutesV2(d),
 	}
 
-	edRaw := d.Get("enable_dhcp").(string)
-	if edRaw != "" {
-		ed, err := strconv.ParseBool(edRaw)
-		if err != nil {
-			return fmt.Errorf("enable_dhcp, if provided, must be either 'true' or 'false'")
-		}
-		createOpts.EnableDHCP = &ed
+	if raw, ok := d.GetOk("enable_dhcp"); ok {
+		value := raw.(bool)
+		createOpts.EnableDHCP = &value
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -167,7 +165,7 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 	d.Set("tenant_id", s.TenantID)
 	d.Set("allocation_pools", s.AllocationPools)
 	d.Set("gateway_ip", s.GatewayIP)
-	d.Set("enable_dhcp", strconv.FormatBool(s.EnableDHCP))
+	d.Set("enable_dhcp", s.EnableDHCP)
 	d.Set("dns_nameservers", s.DNSNameservers)
 	d.Set("host_routes", s.HostRoutes)
 
@@ -200,14 +198,8 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("enable_dhcp") {
-		edRaw := d.Get("enable_dhcp").(string)
-		if edRaw != "" {
-			ed, err := strconv.ParseBool(edRaw)
-			if err != nil {
-				return fmt.Errorf("enable_dhcp, if provided, must be either 'true' or 'false'")
-			}
-			updateOpts.EnableDHCP = &ed
-		}
+		v := d.Get("enable_dhcp").(bool)
+		updateOpts.EnableDHCP = &v
 	}
 
 	log.Printf("[DEBUG] Updating Subnet %s with options: %+v", d.Id(), updateOpts)

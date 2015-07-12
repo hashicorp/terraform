@@ -76,32 +76,33 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 	pullOpts := dc.PullImageOptions{}
 
 	splitImageName := strings.Split(image, ":")
-	switch {
+	switch len(splitImageName) {
 
-	// It's in registry:port/repo:tag format
-	case len(splitImageName) == 3:
+	// It's in registry:port/username/repo:tag or registry:port/repo:tag format
+	case 3:
 		splitPortRepo := strings.Split(splitImageName[1], "/")
 		pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
-		pullOpts.Repository = splitPortRepo[1]
 		pullOpts.Tag = splitImageName[2]
+		pullOpts.Repository = strings.Join(splitPortRepo[1:], "/")
 
-	// It's either registry:port/repo or repo:tag with default registry
-	case len(splitImageName) == 2:
+	// It's either registry:port/username/repo, registry:port/repo,
+	// or repo:tag with default registry
+	case 2:
 		splitPortRepo := strings.Split(splitImageName[1], "/")
 		switch len(splitPortRepo) {
-
-		// registry:port/repo
-		case 2:
-			pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
-			pullOpts.Repository = splitPortRepo[1]
-			pullOpts.Tag = "latest"
-
 		// repo:tag
 		case 1:
 			pullOpts.Repository = splitImageName[0]
 			pullOpts.Tag = splitImageName[1]
+
+		// registry:port/username/repo or registry:port/repo
+		default:
+			pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
+			pullOpts.Repository = strings.Join(splitPortRepo[1:], "/")
+			pullOpts.Tag = "latest"
 		}
 
+	// Plain username/repo or repo
 	default:
 		pullOpts.Repository = image
 	}

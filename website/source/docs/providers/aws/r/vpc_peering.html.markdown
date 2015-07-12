@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_vpc_peering_connection"
-sidebar_current: "docs-aws-resource-vpc-peering-connection"
+sidebar_current: "docs-aws-resource-vpc-peering"
 description: |-
   Provides an VPC Peering Connection resource.
 ---
@@ -46,14 +46,16 @@ The following arguments are supported:
 * `peer_owner_id` - (Required) The AWS account ID of the owner of the peer VPC.
 * `peer_vpc_id` - (Required) The ID of the VPC with which you are creating the VPC peering connection.
 * `vpc_id` - (Required) The ID of the requester VPC.
+* `auto_accept` - (Optional) Accept the peering (you need to be the owner of both VPCs).
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the VPC Peering Connectiona
+* `id` - The ID of the VPC Peering Connections
+* `accept_status` - The Status of the VPC peering connection request.
 
 
 ## Notes
-You still have to accept the peering with the aws console, aws-cli or aws-sdk-go.
+You still have to accept the peering with the AWS Console, aws-cli or aws-sdk-go.

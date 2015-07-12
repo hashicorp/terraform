@@ -6,7 +6,7 @@ description: |-
   The Mailgun provider is used to interact with the resources supported by Mailgun. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
-#  Provider
+# Mailgun Provider
 
 The Mailgun provider is used to interact with the
 resources supported by Mailgun. The provider needs to be configured

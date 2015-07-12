@@ -61,12 +61,13 @@ func (p *Provider) InternalValidate() error {
 		return errors.New("provider is nil")
 	}
 
-	if err := schemaMap(p.Schema).InternalValidate(); err != nil {
+	sm := schemaMap(p.Schema)
+	if err := sm.InternalValidate(sm); err != nil {
 		return err
 	}
 
 	for k, r := range p.ResourcesMap {
-		if err := r.InternalValidate(); err != nil {
+		if err := r.InternalValidate(nil); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 	}
@@ -96,6 +97,13 @@ func (p *Provider) Input(
 
 // Validate implementation of terraform.ResourceProvider interface.
 func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	if err := p.InternalValidate(); err != nil {
+		return nil, []error{fmt.Errorf(
+			"Internal validation of the provider failed! This is always a bug\n"+
+				"with the provider itself, and not a user issue. Please report\n"+
+				"this bug:\n\n%s", err)}
+	}
+
 	return schemaMap(p.Schema).Validate(c)
 }
 

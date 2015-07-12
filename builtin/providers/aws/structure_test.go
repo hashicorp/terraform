@@ -4,13 +4,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/awslabs/aws-sdk-go/service/elb"
-	"github.com/awslabs/aws-sdk-go/service/rds"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -38,9 +38,7 @@ func testConf() map[string]string {
 }
 
 func TestexpandIPPerms(t *testing.T) {
-	hash := func(v interface{}) int {
-		return hashcode.String(v.(string))
-	}
+	hash := schema.HashString
 
 	expanded := []interface{}{
 		map[string]interface{}{
@@ -64,7 +62,10 @@ func TestexpandIPPerms(t *testing.T) {
 		GroupID: aws.String("foo"),
 		VPCID:   aws.String("bar"),
 	}
-	perms := expandIPPerms(group, expanded)
+	perms, err := expandIPPerms(group, expanded)
+	if err != nil {
+		t.Fatalf("error expanding perms: %v", err)
+	}
 
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
@@ -120,10 +121,100 @@ func TestexpandIPPerms(t *testing.T) {
 
 }
 
-func TestExpandIPPerms_nonVPC(t *testing.T) {
-	hash := func(v interface{}) int {
-		return hashcode.String(v.(string))
+func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
+	hash := schema.HashString
+
+	expanded := []interface{}{
+		map[string]interface{}{
+			"protocol":    "-1",
+			"from_port":   0,
+			"to_port":     0,
+			"cidr_blocks": []interface{}{"0.0.0.0/0"},
+			"security_groups": schema.NewSet(hash, []interface{}{
+				"sg-11111",
+				"foo/sg-22222",
+			}),
+		},
 	}
+	group := &ec2.SecurityGroup{
+		GroupID: aws.String("foo"),
+		VPCID:   aws.String("bar"),
+	}
+
+	perms, err := expandIPPerms(group, expanded)
+	if err != nil {
+		t.Fatalf("error expanding perms: %v", err)
+	}
+
+	expected := []ec2.IPPermission{
+		ec2.IPPermission{
+			IPProtocol: aws.String("-1"),
+			FromPort:   aws.Long(int64(0)),
+			ToPort:     aws.Long(int64(0)),
+			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
+			UserIDGroupPairs: []*ec2.UserIDGroupPair{
+				&ec2.UserIDGroupPair{
+					UserID:  aws.String("foo"),
+					GroupID: aws.String("sg-22222"),
+				},
+				&ec2.UserIDGroupPair{
+					GroupID: aws.String("sg-22222"),
+				},
+			},
+		},
+	}
+
+	exp := expected[0]
+	perm := perms[0]
+
+	if *exp.FromPort != *perm.FromPort {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.FromPort,
+			*exp.FromPort)
+	}
+
+	if *exp.IPRanges[0].CIDRIP != *perm.IPRanges[0].CIDRIP {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.IPRanges[0].CIDRIP,
+			*exp.IPRanges[0].CIDRIP)
+	}
+
+	if *exp.UserIDGroupPairs[0].UserID != *perm.UserIDGroupPairs[0].UserID {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIDGroupPairs[0].UserID,
+			*exp.UserIDGroupPairs[0].UserID)
+	}
+
+	// Now test the error case. This *should* error when either from_port
+	// or to_port is not zero, but protocal is "-1".
+	errorCase := []interface{}{
+		map[string]interface{}{
+			"protocol":    "-1",
+			"from_port":   0,
+			"to_port":     65535,
+			"cidr_blocks": []interface{}{"0.0.0.0/0"},
+			"security_groups": schema.NewSet(hash, []interface{}{
+				"sg-11111",
+				"foo/sg-22222",
+			}),
+		},
+	}
+	securityGroups := &ec2.SecurityGroup{
+		GroupID: aws.String("foo"),
+		VPCID:   aws.String("bar"),
+	}
+
+	_, expandErr := expandIPPerms(securityGroups, errorCase)
+	if expandErr == nil {
+		t.Fatal("expandIPPerms should have errored!")
+	}
+}
+
+func TestExpandIPPerms_nonVPC(t *testing.T) {
+	hash := schema.HashString
 
 	expanded := []interface{}{
 		map[string]interface{}{
@@ -146,7 +237,10 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 	group := &ec2.SecurityGroup{
 		GroupName: aws.String("foo"),
 	}
-	perms := expandIPPerms(group, expanded)
+	perms, err := expandIPPerms(group, expanded)
+	if err != nil {
+		t.Fatalf("error expanding perms: %v", err)
+	}
 
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
@@ -300,6 +394,32 @@ func TestexpandParameters(t *testing.T) {
 	}
 }
 
+func TestexpandElasticacheParameters(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":         "character_set_client",
+			"value":        "utf8",
+			"apply_method": "immediate",
+		},
+	}
+	parameters, err := expandElastiCacheParameters(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &elasticache.Parameter{
+		ParameterName:  aws.String("activerehashing"),
+		ParameterValue: aws.String("yes"),
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
 func TestflattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*rds.Parameter
@@ -323,6 +443,35 @@ func TestflattenParameters(t *testing.T) {
 
 	for _, tc := range cases {
 		output := flattenParameters(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
+}
+
+func TestflattenElasticacheParameters(t *testing.T) {
+	cases := []struct {
+		Input  []*elasticache.Parameter
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []*elasticache.Parameter{
+				&elasticache.Parameter{
+					ParameterName:  aws.String("activerehashing"),
+					ParameterValue: aws.String("yes"),
+				},
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"name":  "activerehashing",
+					"value": "yes",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenElastiCacheParameters(tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}

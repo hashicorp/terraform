@@ -1,4 +1,275 @@
-## 0.5.0 (unreleased)
+## 0.6.1 (Unreleased)
+
+FEATURES:
+
+  * **New resource: `google_container_cluster`** [GH-2357]
+
+BUG FIXES:
+
+  * connection/ssh: fix issue on machines with an SSH Agent available
+    preventing `key_file` from being read without explicitly
+    setting `agent = false` [GH-2615]
+  * core: don't prompt for variables with defaults [GH-2613]
+  * core: Return correct number of planned updates [GH-2620]
+  * provider/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
+  * provider/aws: Allow underscores in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2604]
+  * provider/aws: Allow dots in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2665]
+  * provider/aws: Fix issue with pending Spot Instance requests [GH-2640]
+  * provider/aws: Fix issue in AWS Classic environment with referencing external 
+      Security Groups [GH-2644]
+  * provider/aws: Bump internet gateway detach timeout [GH-2669]
+  * provider/openstack: allow empty api_key and endpoint_type [GH-2626]
+
+IMPROVEMENTS:
+
+  * provider/aws: Create RDS databases from snapshots [GH-2062]
+  * provider/aws: Add support for restoring from Redis backup stored in S3 [GH-2634]
+  * provider/aws: Add `maintenance_window` to ElastiCache cluster [GH-2642]
+  * provider/google: Add metadata_startup_script to google_compute_instance [GH-2375]
+
+## 0.6.0 (June 30, 2015)
+
+BACKWARDS INCOMPATIBILITIES:
+
+ * command/push: If a variable is already set within Atlas, it won't be
+     updated unless the `-overwrite` flag is present [GH-2373]
+ * connection/ssh: The `agent` field now defaults to `true` if
+     the `SSH_AGENT_SOCK` environment variable is present. In other words,
+     `ssh-agent` support is now opt-out instead of opt-in functionality. [GH-2408]
+ * provider/aws: If you were setting access and secret key to blank ("")
+     to force Terraform to load credentials from another source such as the
+     EC2 role, this will now error. Remove the blank lines and Terraform
+     will load from other sources.
+ * `concat()` has been repurposed to combine lists instead of strings (old behavior
+     of joining strings is maintained in this version but is deprecated, strings
+     should be combined using interpolation syntax, like "${var.foo}{var.bar}")
+     [GH-1790]
+
+FEATURES:
+
+  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380, GH-2394, GH-2515, GH-2530, GH-2562]
+  * **New resource: `aws_autoscaling_notification`** [GH-2197]
+  * **New resource: `aws_autoscaling_policy`** [GH-2201]
+  * **New resource: `aws_cloudwatch_metric_alarm`** [GH-2201]
+  * **New resource: `aws_dynamodb_table`** [GH-2121]
+  * **New resource: `aws_ecs_cluster`** [GH-1803]
+  * **New resource: `aws_ecs_service`** [GH-1803]
+  * **New resource: `aws_ecs_task_definition`** [GH-1803, GH-2402]
+  * **New resource: `aws_elasticache_parameter_group`** [GH-2276]
+  * **New resource: `aws_flow_log`** [GH-2384]
+  * **New resource: `aws_iam_group_association`** [GH-2273]
+  * **New resource: `aws_iam_policy_attachment`** [GH-2395]
+  * **New resource: `aws_lambda_function`** [GH-2170]
+  * **New resource: `aws_route53_delegation_set`** [GH-1999]
+  * **New resource: `aws_route53_health_check`** [GH-2226]
+  * **New resource: `aws_spot_instance_request`** [GH-2263]
+  * **New resource: `cloudstack_ssh_keypair`** [GH-2004]
+  * **New remote state backend: `swift`**: You can now store remote state in
+     a OpenStack Swift. [GH-2254]
+  * command/output: support display of module outputs [GH-2102]
+  * core: `keys()` and `values()` funcs for map variables [GH-2198]
+  * connection/ssh: SSH bastion host support and ssh-agent forwarding [GH-2425]
+
+IMPROVEMENTS:
+
+  * core: HTTP remote state now accepts `skip_cert_verification`
+      option to ignore TLS cert verification. [GH-2214]
+  * core: S3 remote state now accepts the 'encrypt' option for SSE [GH-2405]
+  * core: `plan` now reports sum of resources to be changed/created/destroyed [GH-2458]
+  * core: Change string list representation so we can distinguish empty, single
+      element lists [GH-2504]
+  * core: Properly close provider and provisioner plugin connections [GH-2406, GH-2527]
+  * provider/aws: AutoScaling groups now support updating Load Balancers without
+      recreation [GH-2472]
+  * provider/aws: Allow more in-place updates for ElastiCache cluster without recreating
+      [GH-2469]
+  * provider/aws: ElastiCache Subnet Groups can be updated
+      without destroying first [GH-2191]
+  * provider/aws: Normalize `certificate_chain` in `aws_iam_server_certificate` to
+      prevent unnecessary replacement. [GH-2411]
+  * provider/aws: `aws_instance` supports `monitoring' [GH-2489]
+  * provider/aws: `aws_launch_configuration` now supports `enable_monitoring` [GH-2410]
+  * provider/aws: Show outputs after `terraform refresh` [GH-2347]
+  * provider/aws: Add backoff/throttling during DynamoDB creation [GH-2462]
+  * provider/aws: Add validation for aws_vpc.cidr_block [GH-2514]
+  * provider/aws: Add validation for aws_db_subnet_group.name [GH-2513]
+  * provider/aws: Add validation for aws_db_instance.identifier [GH-2516]
+  * provider/aws: Add validation for aws_elb.name [GH-2517]
+  * provider/aws: Add validation for aws_security_group (name+description) [GH-2518]
+  * provider/aws: Add validation for aws_launch_configuration [GH-2519]
+  * provider/aws: Add validation for aws_autoscaling_group.name [GH-2520]
+  * provider/aws: Add validation for aws_iam_role.name [GH-2521]
+  * provider/aws: Add validation for aws_iam_role_policy.name [GH-2552]
+  * provider/aws: Add validation for aws_iam_instance_profile.name [GH-2553]
+  * provider/aws: aws_auto_scaling_group.default_cooldown no longer requires
+      resource replacement [GH-2510]
+  * provider/aws: add AH and ESP protocol integers [GH-2321]
+  * provider/docker: `docker_container` has the `privileged`
+      option. [GH-2227]
+  * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
+      to set the openstack `api_key` field [GH-2234]
+  * provider/openstack: Can now configure endpoint type (public, admin,
+      internal) [GH-2262]
+  * provider/cloudstack: `cloudstack_instance` now supports projects [GH-2115]
+  * provisioner/chef: Added a `os_type` to specifically specify the target OS [GH-2483]
+  * provisioner/chef: Added a `ohai_hints` option to upload hint files [GH-2487]
+
+BUG FIXES:
+
+  * core: lifecycle `prevent_destroy` can be any value that can be
+      coerced into a bool [GH-2268]
+  * core: matching provider types in sibling modules won't override
+      each other's config. [GH-2464]
+  * core: computed provider configurations now properly validate [GH-2457]
+  * core: orphan (commented out) resource dependencies are destroyed in
+      the correct order [GH-2453]
+  * core: validate object types in plugins are actually objects [GH-2450]
+  * core: fix `-no-color` flag in subcommands [GH-2414]
+  * core: Fix error of 'attribute not found for variable' when a computed
+      resource attribute is used as a parameter to a module [GH-2477]
+  * core: moduled orphans will properly inherit provider configs [GH-2476]
+  * core: modules with provider aliases work properly if the parent
+      doesn't implement those aliases [GH-2475]
+  * core: unknown resource attributes passed in as parameters to modules
+      now error [GH-2478]
+  * core: better error messages for missing variables [GH-2479]
+  * core: removed set items now properly appear in diffs and applies [GH-2507]
+  * core: '*' will not be added as part of the variable name when you
+      attempt multiplication without a space [GH-2505]
+  * core: fix target dependency calculation across module boundaries [GH-2555]
+  * command/*: fixed bug where variable input was not asked for unset
+      vars if terraform.tfvars existed [GH-2502]
+  * command/apply: prevent output duplication when reporting errors [GH-2267]
+  * command/apply: destroyed orphan resources are properly counted [GH-2506]
+  * provider/aws: loading credentials from the environment (vars, EC2 role,
+      etc.) is more robust and will not ask for credentials from stdin [GH-1841]
+  * provider/aws: fix panic when route has no `cidr_block` [GH-2215]
+  * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
+  * provider/aws: fix issue where Security Group Rules could collide and fail
+      to save to the state file correctly [GH-2376]
+  * provider/aws: fix issue preventing destruction self referencing Securtity
+     Group Rules [GH-2305]
+  * provider/aws: fix issue causing perpetual diff on ELB listeners
+      when non-lowercase protocol strings were used [GH-2246]
+  * provider/aws: corrected frankfurt S3 website region [GH-2259]
+  * provider/aws: `aws_elasticache_cluster` port is required [GH-2160]
+  * provider/aws: Handle AMIs where RootBlockDevice does not appear in the
+      BlockDeviceMapping, preventing root_block_device from working [GH-2271]
+  * provider/aws: fix `terraform show` with remote state [GH-2371]
+  * provider/aws: detect `instance_type` drift on `aws_instance` [GH-2374]
+  * provider/aws: fix crash when `security_group_rule` referenced non-existent
+      security group [GH-2434]
+  * provider/aws: `aws_launch_configuration` retries if IAM instance
+      profile is not ready yet. [GH-2452]
+  * provider/aws: `fqdn` is populated during creation for `aws_route53_record` [GH-2528]
+  * provider/aws: retry VPC delete on DependencyViolation due to eventual
+      consistency [GH-2532]
+  * provider/aws: VPC peering connections in "failed" state are deleted [GH-2544]
+  * provider/aws: EIP deletion works if it was manually disassociated [GH-2543]
+  * provider/aws: `elasticache_subnet_group.subnet_ids` is now a required argument [GH-2534]
+  * provider/aws: handle nil response from VPN connection describes [GH-2533]
+  * provider/cloudflare: manual record deletion doesn't cause error [GH-2545]
+  * provider/digitalocean: handle case where droplet is deleted outside of
+      terraform [GH-2497]
+  * provider/dme: No longer an error if record deleted manually [GH-2546]
+  * provider/docker: Fix issues when using containers with links [GH-2327]
+  * provider/openstack: fix panic case if API returns nil network [GH-2448]
+  * provider/template: fix issue causing "unknown variable" rendering errors
+      when an existing set of template variables is changed [GH-2386]
+  * provisioner/chef: improve the decoding logic to prevent parameter not found errors [GH-2206]
+
+## 0.5.3 (June 1, 2015)
+
+IMPROVEMENTS:
+
+  * **New resource: `aws_kinesis_stream`** [GH-2110]
+  * **New resource: `aws_iam_server_certificate`** [GH-2086]
+  * **New resource: `aws_sqs_queue`** [GH-1939]
+  * **New resource: `aws_sns_topic`** [GH-1974]
+  * **New resource: `aws_sns_topic_subscription`** [GH-1974]
+  * **New resource: `aws_volume_attachment`** [GH-2050]
+  * **New resource: `google_storage_bucket`** [GH-2060]
+  * provider/aws: support ec2 termination protection [GH-1988]
+  * provider/aws: support for RDS Read Replicas [GH-1946]
+  * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]
+  * provider/aws: `aws_ebs_volume` add support for `tags` [GH-2135]
+  * provider/aws: `aws_elasticache_cluster` Confirm node status before reporting
+      available
+  * provider/aws: `aws_network_acl` Add support for ICMP Protocol [GH-2148]
+  * provider/aws: New `force_destroy` parameter for S3 buckets, to destroy
+      Buckets that contain objects [GH-2007]
+  * provider/aws: switching `health_check_type` on ASGs no longer requires
+      resource refresh [GH-2147]
+  * provider/aws: ignore empty `vpc_security_group_ids` on `aws_instance` [GH-2311]
+
+BUG FIXES:
+
+  * provider/aws: Correctly handle AWS keypairs which no longer exist [GH-2032]
+  * provider/aws: Fix issue with restoring an Instance from snapshot ID [GH-2120]
+  * provider/template: store relative path in the state [GH-2038]
+  * provisioner/chef: fix interpolation in the Chef provisioner [GH-2168]
+  * provisioner/remote-exec: Don't prepend shebang on scripts that already
+      have one [GH-2041]
+
+## 0.5.2 (May 15, 2015)
+
+FEATURES:
+
+  * **Chef provisioning**: You can now provision new hosts (both Linux and
+     Windows) with [Chef](https://chef.io) using a native provisioner [GH-1868]
+
+IMPROVEMENTS:
+
+  * **New config function: `formatlist`** - Format lists in a similar way to `format`.
+    Useful for creating URLs from a list of IPs. [GH-1829]
+  * **New resource: `aws_route53_zone_association`**
+  * provider/aws: `aws_autoscaling_group` can wait for capacity in ELB
+      via `min_elb_capacity` [GH-1970]
+  * provider/aws: `aws_db_instances` supports `license_model` [GH-1966]
+  * provider/aws: `aws_elasticache_cluster` add support for Tags [GH-1965]
+  * provider/aws: `aws_network_acl` Network ACLs can be applied to multiple subnets [GH-1931]
+  * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
+  * provider/aws: `aws_s3_bucket` add support for website `redirect_all_requests_to` [GH-1909]
+  * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
+  * provider/aws: `aws_route53_zone` can create private hosted zones [GH-1526]
+  * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
+
+BUG FIXES:
+
+  * core: fix "resource not found" for interpolation issues with modules
+  * core: fix unflattenable error for orphans [GH-1922]
+  * core: fix deadlock with create-before-destroy + modules [GH-1949]
+  * core: fix "no roots found" error with create-before-destroy [GH-1953]
+  * core: variables set with environment variables won't validate as
+      not set without a default [GH-1930]
+  * core: resources with a blank ID in the state are now assumed to not exist [GH-1905]
+  * command/push: local vars override remote ones [GH-1881]
+  * provider/aws: Mark `aws_security_group` description as `ForceNew` [GH-1871]
+  * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]
+  * provider/aws: `aws_db_instance` only submit modify request if there
+      is a change. [GH-1906]
+  * provider/aws: `aws_elasticache_cluster` export missing information on cluster nodes [GH-1965]
+  * provider/aws: bad AMI on a launch configuration won't block refresh [GH-1901]
+  * provider/aws: `aws_security_group` + `aws_subnet` - destroy timeout increased
+    to prevent DependencyViolation errors. [GH-1886]
+  * provider/google: `google_compute_instance` Local SSDs no-longer cause crash
+      [GH-1088]
+  * provider/google: `google_http_health_check` Defaults now driven from Terraform,
+      avoids errors on update [GH-1894]
+  * provider/google: `google_compute_template` Update Instance Template network
+      definition to match changes to Instance [GH-980]
+  * provider/template: Fix infinite diff [GH-1898]
+
+## 0.5.1 (never released)
+
+This version was never released since we accidentally skipped it!
+
+## 0.5.0 (May 7, 2015)
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * provider/aws: Terraform now remove the default egress rule created by AWS in
+    a new security group.
 
 FEATURES:
 
@@ -8,22 +279,77 @@ FEATURES:
   * **Environmental variables to set variables**: Environment variables can be
      used to set variables. The environment variables must be in the format
      `TF_VAR_name` and this will be checked last for a value.
+  * **New remote state backend: `s3`**: You can now store remote state in
+     an S3 bucket. [GH-1723]
+  * **Automatic AWS retries**: This release includes a lot of improvement
+     around automatic retries of transient errors in AWS. The number of
+     retry attempts is also configurable.
+  * **Templates**: A new `template_file` resource allows long strings needing
+     variable interpolation to be moved into files. [GH-1778]
+  * **Provision with WinRM**: Provisioners can now run remote commands on
+     Windows hosts. [GH-1483]
 
 IMPROVEMENTS:
 
   * **New config function: `length`** - Get the length of a string or a list.
       Useful in conjunction with `split`. [GH-1495]
+  * **New resource: `aws_app_cookie_stickiness_policy`**
+  * **New resource: `aws_customer_gateway`**
+  * **New resource: `aws_ebs_volume`**
+  * **New resource: `aws_elasticache_cluster`**
+  * **New resource: `aws_elasticache_security_group`**
+  * **New resource: `aws_elasticache_subnet_group`**
+  * **New resource: `aws_iam_access_key`**
+  * **New resource: `aws_iam_group_policy`**
+  * **New resource: `aws_iam_group`**
+  * **New resource: `aws_iam_instance_profile`**
+  * **New resource: `aws_iam_policy`**
+  * **New resource: `aws_iam_role_policy`**
+  * **New resource: `aws_iam_role`**
+  * **New resource: `aws_iam_user_policy`**
+  * **New resource: `aws_iam_user`**
+  * **New resource: `aws_lb_cookie_stickiness_policy`**
+  * **New resource: `aws_proxy_protocol_policy`**
+  * **New resource: `aws_security_group_rule`**
+  * **New resource: `aws_vpc_dhcp_options_association`**
+  * **New resource: `aws_vpc_dhcp_options`**
+  * **New resource: `aws_vpn_connection_route`**
+  * **New resource: `google_dns_managed_zone`**
+  * **New resource: `google_dns_record_set`**
+  * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
+      [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
+      the official `awslabs` library. Previously we had forked the library for
+      stability while `awslabs` refactored. Now that work has completed, and we've
+      migrated back to the upstream version.
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
+  * provider/aws: Better retry logic, now retries up to 11 times by default
+      with exponentional backoff. This number is configurable. [GH-1787]
+  * provider/aws: Improved credential detection [GH-1470]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
+  * provider/aws: Added new `vpc_security_group_ids` attribute for AWS
+      Instances. If using a VPC, you can now modify the security groups for that
+      Instance without destroying it [GH-1539]
   * provider/aws: White or blacklist account IDs that can be used to
       protect against accidents. [GH-1595]
+  * provider/aws: Add a subset of IAM resources [GH-939]
+  * provider/aws: `aws_autoscaling_group` retries deletes through "in progress"
+      errors [GH-1840]
+  * provider/aws: `aws_autoscaling_group` waits for healthy capacity during
+      ASG creation [GH-1839]
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
+  * provider/aws: `aws_eip` supports network interface attachment [GH-1681]
   * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
   * provider/aws: `aws_elb` supports connection draining settings [GH-1502]
   * provider/aws: `aws_elb` increase default idle timeout to 60s [GH-1646]
+  * provider/aws: `aws_key_pair` name can be omitted and generated [GH-1751]
+  * provider/aws: `aws_network_acl` improved validation for network ACL ports
+      and protocols [GH-1798] [GH-1808]
+  * provider/aws: `aws_route_table` can target network interfaces [GH-968]
+  * provider/aws: `aws_route_table` can specify propagating VGWs [GH-1516]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
+  * provider/aws: `aws_s3_bucket` website support [GH-1738]
   * provider/aws: `aws_security_group` name becomes optional and can be
       automatically set to a unique identifier; this helps with
       `create_before_destroy` scenarios [GH-1632]
@@ -31,14 +357,20 @@ IMPROVEMENTS:
       static default value [GH-1632]
   * provider/aws: automatically set the private IP as the SSH address
       if not specified and no public IP is available [GH-1623]
+  * provider/aws: `aws_elb` exports `source_security_group` field [GH-1708]
+  * provider/aws: `aws_route53_record` supports alias targeting [GH-1775]
+  * provider/aws: Remove default AWS egress rule for newly created Security Groups [GH-1765]
+  * provider/consul: add `scheme` configuration argument [GH-1838]
   * provider/docker: `docker_container` can specify links [GH-1564]
   * provider/google: `resource_compute_disk` supports snapshots [GH-1426]
   * provider/google: `resource_compute_instance` supports specifying the
       device name [GH-1426]
   * provider/openstack: Floating IP support for LBaaS [GH-1550]
+  * provider/openstack: Add AZ to `openstack_blockstorage_volume_v1` [GH-1726]
 
 BUG FIXES:
 
+  * core: Fix graph cycle issues surrounding modules [GH-1582] [GH-1637]
   * core: math on arbitrary variables works if first operand isn't a
       numeric primitive. [GH-1381]
   * core: avoid unnecessary cycles by pruning tainted destroys from
@@ -56,14 +388,31 @@ BUG FIXES:
       if the value was computed [GH-1507]
   * core: Fix issue where values in sets on resources couldn't contain
       hyphens. [GH-1641]
+  * core: Outputs removed from the config are removed from the state [GH-1714]
+  * core: Validate against the worst-case graph during plan phase to catch cycles
+      that would previously only show up during apply [GH-1655]
+  * core: Referencing invalid module output in module validates [GH-1448]
   * command: remote states with uppercase types work [GH-1356]
+  * provider/aws: Support `AWS_SECURITY_TOKEN` env var again [GH-1785]
+  * provider/aws: Don't save "instance" for EIP if association fails [GH-1776]
   * provider/aws: launch configuration ID set after create success [GH-1518]
+  * provider/aws: Fixed an issue with creating ELBs without any tags [GH-1580]
+  * provider/aws: Fix issue in Security Groups with empty IPRanges [GH-1612]
   * provider/aws: manually deleted S3 buckets are refreshed properly [GH-1574]
   * provider/aws: only check for EIP allocation ID in VPC [GH-1555]
   * provider/aws: raw protocol numbers work in `aws_network_acl` [GH-1435]
+  * provider/aws: Block devices can be encrypted [GH-1718]
+  * provider/aws: ASG health check grace period can be updated in-place [GH-1682]
+  * provider/aws: ELB security groups can be updated in-place [GH-1662]
+  * provider/aws: `aws_main_route_table_association` can be deleted
+      manually [GH-1806]
+  * provider/docker: image can reference more complex image addresses,
+      such as with private repos with ports [GH-1818]
   * provider/openstack: region config is not required [GH-1441]
+  * provider/openstack: `enable_dhcp` for networking subnet should be bool [GH-1741]
   * provisioner/remote-exec: add random number to uploaded script path so
       that parallel provisions work [GH-1588]
+  * provisioner/remote-exec: chmod the script to 0755 properly [GH-1796]
 
 ## 0.4.2 (April 10, 2015)
 
@@ -92,6 +441,8 @@ BUG FIXES:
       systems so copying your ".terraform" folder works. [GH-1418]
   * core: don't validate providers too early when nested in a module [GH-1380]
   * core: fix race condition in `count.index` interpolation [GH-1454]
+  * core: properly initialize provisioners, fixing resource targeting
+      during destroy [GH-1544]
   * command/push: don't ask for input if terraform.tfvars is present
   * command/remote-config: remove spurrious error "nil" when initializing
       remote state on a new configuration. [GH-1392]
@@ -152,7 +503,7 @@ FEATURES:
   * **Math operations** in interpolations. You can now do things like
       `${count.index+1}`. [GH-1068]
   * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go),
-      a fork of the offical `awslabs` repo. We forked for stability while
+      a fork of the official `awslabs` repo. We forked for stability while
       `awslabs` refactored the library, and will move back to the officially
       supported version in the next release.
 
@@ -181,7 +532,7 @@ IMPROVEMENTS:
   * providers/aws: Improve dependency violation error handling, when deleting
       Internet Gateways or Auto Scaling groups [GH-1325].
   * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade
-      `egine_version`, `parameter_group_name`, and `multi_az` without forcing
+      `engine_version`, `parameter_group_name`, and `multi_az` without forcing
       a new database to be created.[GH-1341]
   * providers/aws: Full support for block device mappings on instances and
       launch configurations [GH-1045, GH-1364]
@@ -687,5 +1038,3 @@ BUG FIXES:
 ## 0.1.0 (July 28, 2014)
 
   * Initial release
-
-

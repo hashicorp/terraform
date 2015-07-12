@@ -47,6 +47,7 @@ func resourceFWPolicyV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"rules": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -116,7 +117,7 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 	policy, err := policies.Get(networkingClient, d.Id()).Extract()
 
 	if err != nil {
-		return CheckDeleted(d, err, "LB pool")
+		return CheckDeleted(d, err, "FW policy")
 	}
 
 	d.Set("name", policy.Name)

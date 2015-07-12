@@ -25,6 +25,10 @@ type MockEvalContext struct {
 	ProviderName     string
 	ProviderProvider ResourceProvider
 
+	CloseProviderCalled   bool
+	CloseProviderName     string
+	CloseProviderProvider ResourceProvider
+
 	ProviderInputCalled bool
 	ProviderInputName   string
 	ProviderInputConfig map[string]interface{}
@@ -55,6 +59,10 @@ type MockEvalContext struct {
 	ProvisionerName        string
 	ProvisionerProvisioner ResourceProvisioner
 
+	CloseProvisionerCalled      bool
+	CloseProvisionerName        string
+	CloseProvisionerProvisioner ResourceProvisioner
+
 	InterpolateCalled       bool
 	InterpolateConfig       *config.RawConfig
 	InterpolateResource     *Resource
@@ -65,6 +73,7 @@ type MockEvalContext struct {
 	PathPath   []string
 
 	SetVariablesCalled    bool
+	SetVariablesModule    string
 	SetVariablesVariables map[string]string
 
 	DiffCalled bool
@@ -102,6 +111,12 @@ func (c *MockEvalContext) Provider(n string) ResourceProvider {
 	c.ProviderCalled = true
 	c.ProviderName = n
 	return c.ProviderProvider
+}
+
+func (c *MockEvalContext) CloseProvider(n string) error {
+	c.CloseProviderCalled = true
+	c.CloseProviderName = n
+	return nil
 }
 
 func (c *MockEvalContext) ConfigureProvider(n string, cfg *ResourceConfig) error {
@@ -149,6 +164,12 @@ func (c *MockEvalContext) Provisioner(n string) ResourceProvisioner {
 	return c.ProvisionerProvisioner
 }
 
+func (c *MockEvalContext) CloseProvisioner(n string) error {
+	c.CloseProvisionerCalled = true
+	c.CloseProvisionerName = n
+	return nil
+}
+
 func (c *MockEvalContext) Interpolate(
 	config *config.RawConfig, resource *Resource) (*ResourceConfig, error) {
 	c.InterpolateCalled = true
@@ -162,8 +183,9 @@ func (c *MockEvalContext) Path() []string {
 	return c.PathPath
 }
 
-func (c *MockEvalContext) SetVariables(vs map[string]string) {
+func (c *MockEvalContext) SetVariables(n string, vs map[string]string) {
 	c.SetVariablesCalled = true
+	c.SetVariablesModule = n
 	c.SetVariablesVariables = vs
 }
 

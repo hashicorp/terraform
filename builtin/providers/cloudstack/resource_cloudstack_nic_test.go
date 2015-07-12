@@ -53,7 +53,7 @@ func TestAccCloudStackNIC_update(t *testing.T) {
 						"cloudstack_instance.foobar", "cloudstack_nic.foo", &nic),
 					testAccCheckCloudStackNICIPAddress(&nic),
 					resource.TestCheckResourceAttr(
-						"cloudstack_nic.foo", "ipaddress", CLOUDSTACK_NETWORK_2_IPADDRESS),
+						"cloudstack_nic.foo", "ipaddress", CLOUDSTACK_2ND_NIC_IPADDRESS),
 				),
 			},
 		},
@@ -103,7 +103,7 @@ func testAccCheckCloudStackNICAttributes(
 	nic *cloudstack.Nic) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if nic.Networkname != CLOUDSTACK_NETWORK_2 {
+		if nic.Networkname != CLOUDSTACK_2ND_NIC_NETWORK {
 			return fmt.Errorf("Bad network: %s", nic.Networkname)
 		}
 
@@ -115,11 +115,11 @@ func testAccCheckCloudStackNICIPAddress(
 	nic *cloudstack.Nic) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if nic.Networkname != CLOUDSTACK_NETWORK_2 {
+		if nic.Networkname != CLOUDSTACK_2ND_NIC_NETWORK {
 			return fmt.Errorf("Bad network: %s", nic.Networkname)
 		}
 
-		if nic.Ipaddress != CLOUDSTACK_NETWORK_2_IPADDRESS {
+		if nic.Ipaddress != CLOUDSTACK_2ND_NIC_IPADDRESS {
 			return fmt.Errorf("Bad IP address: %s", nic.Ipaddress)
 		}
 
@@ -140,13 +140,9 @@ func testAccCheckCloudStackNICDestroy(s *terraform.State) error {
 			return fmt.Errorf("No instance ID is set")
 		}
 
-		p := cs.VirtualMachine.NewDestroyVirtualMachineParams(rs.Primary.ID)
-		_, err := cs.VirtualMachine.DestroyVirtualMachine(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting instance (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.VirtualMachine.GetVirtualMachineByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Virtual Machine %s still exists", rs.Primary.ID)
 		}
 	}
 
@@ -172,7 +168,7 @@ resource "cloudstack_nic" "foo" {
 	CLOUDSTACK_NETWORK_1,
 	CLOUDSTACK_TEMPLATE,
 	CLOUDSTACK_ZONE,
-	CLOUDSTACK_NETWORK_2)
+	CLOUDSTACK_2ND_NIC_NETWORK)
 
 var testAccCloudStackNIC_ipaddress = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
@@ -194,5 +190,5 @@ resource "cloudstack_nic" "foo" {
 	CLOUDSTACK_NETWORK_1,
 	CLOUDSTACK_TEMPLATE,
 	CLOUDSTACK_ZONE,
-	CLOUDSTACK_NETWORK_2,
-	CLOUDSTACK_NETWORK_2_IPADDRESS)
+	CLOUDSTACK_2ND_NIC_NETWORK,
+	CLOUDSTACK_2ND_NIC_IPADDRESS)

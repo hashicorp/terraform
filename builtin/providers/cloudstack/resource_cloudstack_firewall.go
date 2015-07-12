@@ -360,7 +360,7 @@ func resourceCloudStackFirewallUpdate(d *schema.ResourceData, meta interface{}) 
 		rules := o.(*schema.Set).Intersection(n.(*schema.Set))
 		d.Set("rule", rules)
 
-		// Then loop through al the currently configured rules and create the new ones
+		// Then loop through all the currently configured rules and create the new ones
 		for _, rule := range nrs.List() {
 			// When succesfully deleted, re-create it again if it still exists
 			err := resourceCloudStackFirewallCreateRule(

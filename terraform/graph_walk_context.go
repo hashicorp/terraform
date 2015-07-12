@@ -26,6 +26,8 @@ type ContextGraphWalker struct {
 	once                sync.Once
 	contexts            map[string]*BuiltinEvalContext
 	contextLock         sync.Mutex
+	interpolaterVars    map[string]map[string]string
+	interpolaterVarLock sync.Mutex
 	providerCache       map[string]ResourceProvider
 	providerConfigCache map[string]*ResourceConfig
 	providerLock        sync.Mutex
@@ -33,29 +35,36 @@ type ContextGraphWalker struct {
 	provisionerLock     sync.Mutex
 }
 
-func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
+func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 	w.once.Do(w.init)
 
 	w.contextLock.Lock()
 	defer w.contextLock.Unlock()
 
 	// If we already have a context for this path cached, use that
-	key := PathCacheKey(g.Path)
+	key := PathCacheKey(path)
 	if ctx, ok := w.contexts[key]; ok {
 		return ctx
 	}
 
-	// Variables should be our context variables, but these only apply
-	// to the root module. As we enter subgraphs, we don't want to set
-	// variables, which is set by the SetVariables EvalContext function.
-	variables := w.Context.variables
-	if len(g.Path) > 1 {
-		// We're in a submodule, the variables should be empty
-		variables = make(map[string]string)
+	// Setup the variables for this interpolater
+	variables := make(map[string]string)
+	if len(path) <= 1 {
+		for k, v := range w.Context.variables {
+			variables[k] = v
+		}
 	}
+	w.interpolaterVarLock.Lock()
+	if m, ok := w.interpolaterVars[key]; ok {
+		for k, v := range m {
+			variables[k] = v
+		}
+	}
+	w.interpolaterVars[key] = variables
+	w.interpolaterVarLock.Unlock()
 
 	ctx := &BuiltinEvalContext{
-		PathValue:           g.Path,
+		PathValue:           path,
 		Hooks:               w.Context.hooks,
 		InputValue:          w.Context.uiInput,
 		Providers:           w.Context.providers,
@@ -77,6 +86,8 @@ func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 			StateLock: &w.Context.stateLock,
 			Variables: variables,
 		},
+		InterpolaterVars:    w.interpolaterVars,
+		InterpolaterVarLock: &w.interpolaterVarLock,
 	}
 
 	w.contexts[key] = ctx
@@ -131,4 +142,5 @@ func (w *ContextGraphWalker) init() {
 	w.providerCache = make(map[string]ResourceProvider, 5)
 	w.providerConfigCache = make(map[string]*ResourceConfig, 5)
 	w.provisionerCache = make(map[string]ResourceProvisioner, 5)
+	w.interpolaterVars = make(map[string]map[string]string, 5)
 }
