@@ -438,6 +438,14 @@ func TestVariableDefaultsMap(t *testing.T) {
 				"var.foo.bar": "baz",
 			},
 		},
+
+        {
+            []string{
+                "quux",
+                "quuux",
+            },
+            map[string]string{"var.foo": "B780FFEC-B661-4EB8-9236-A01737AD98B6quuxB780FFEC-B661-4EB8-9236-A01737AD98B6quuuxB780FFEC-B661-4EB8-9236-A01737AD98B6"},
+        },
 	}
 
 	for i, tc := range cases {

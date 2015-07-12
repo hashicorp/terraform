@@ -751,7 +751,7 @@ func (v *Variable) DefaultsMap() map[string]string {
 
 		return result
     case VariableTypeStringSlice:
-        return map[string]string{n: fmt.Sprint(v.Default)}
+        return map[string]string{n: NewStringList(v.Default.([]string)).String()}
 	default:
 		return nil
 	}
