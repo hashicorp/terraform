@@ -39,8 +39,8 @@ func TestIsEmptyDir_noConfigs(t *testing.T) {
 
 func TestLoad_badType(t *testing.T) {
 	_, err := Load(filepath.Join(fixtureDir, "bad_type.tf.nope"))
-	if err == nil {
-		t.Fatal("should have error")
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 

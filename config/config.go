@@ -117,6 +117,7 @@ const (
 	VariableTypeUnknown VariableType = iota
 	VariableTypeString
 	VariableTypeMap
+    VariableTypeStringSlice
 )
 
 // ProviderConfigName returns the name of the provider configuration in
@@ -176,7 +177,7 @@ func (c *Config) Validate() error {
 	for _, v := range c.Variables {
 		if v.Type() == VariableTypeUnknown {
 			errs = append(errs, fmt.Errorf(
-				"Variable '%s': must be string or mapping",
+				"Variable '%s': must be string, string slice, or mapping",
 				v.Name))
 			continue
 		}
@@ -740,6 +741,8 @@ func (v *Variable) DefaultsMap() map[string]string {
 		result[n] = v.Name
 
 		return result
+    case VariableTypeStringSlice:
+        return map[string]string{n: fmt.Sprint(v.Default)}
 	default:
 		return nil
 	}
@@ -763,7 +766,7 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	return &result
 }
 
-// Type returns the type of varialbe this is.
+// Type returns the type of variable this is.
 func (v *Variable) Type() VariableType {
 	if v.Default == nil {
 		return VariableTypeString
@@ -780,7 +783,13 @@ func (v *Variable) Type() VariableType {
 		v.Default = m
 		return VariableTypeMap
 	}
-
+                
+	var sliceVal []string
+	if err := mapstructure.WeakDecode(v.Default, &sliceVal); err == nil {
+		v.Default = sliceVal
+		return VariableTypeStringSlice
+	}
+                
 	return VariableTypeUnknown
 }
 

@@ -234,6 +234,11 @@ func (w *interpolationWalker) splitSlice() {
 	switch v := raw.Interface().(type) {
 	case []interface{}:
 		s = v
+	case []string:
+        s := make([]interface{}, len(v))
+        for i, v := range v {
+            s[i] = v
+        }
 	case []map[string]interface{}:
 		return
 	default:

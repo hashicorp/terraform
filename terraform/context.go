@@ -179,6 +179,8 @@ func (c *Context) Input(mode InputMode) error {
 				continue
 			case config.VariableTypeMap:
 				continue
+			case config.VariableTypeStringSlice:
+				continue
 			case config.VariableTypeString:
 				// Good!
 			default:
