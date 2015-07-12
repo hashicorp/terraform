@@ -36,6 +36,7 @@ func resourceAwsEcsService() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"task_definition": &schema.Schema{
@@ -129,6 +130,10 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	out, err := conn.DescribeServices(&input)
 	if err != nil {
 		return err
+	}
+
+	if len(out.Services) < 1 {
+		return nil
 	}
 
 	service := out.Services[0]
