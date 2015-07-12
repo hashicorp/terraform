@@ -322,8 +322,8 @@ func TestConfigValidate_varDefault(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_varDefaultBadType(t *testing.T) {
-	c := testConfig(t, "validate-var-default-bad-type")
+func TestConfigValidate_varDefaultStringSliceType(t *testing.T) {
+	c := testConfig(t, "validate-var-default-string-slice-type")
 	if err := c.Validate(); err != nil {
 		t.Fatalf("should be valid: %s", err)
 	}
