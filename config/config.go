@@ -750,8 +750,8 @@ func (v *Variable) DefaultsMap() map[string]string {
 		result[n] = v.Name
 
 		return result
-    case VariableTypeStringSlice:
-        return map[string]string{n: NewStringList(v.Default.([]string)).String()}
+	case VariableTypeStringSlice:
+		return map[string]string{n: NewStringList(v.Default.([]string)).String()}
 	default:
 		return nil
 	}
@@ -792,13 +792,13 @@ func (v *Variable) Type() VariableType {
 		v.Default = m
 		return VariableTypeMap
 	}
-                
+
 	var sliceVal []string
 	if err := mapstructure.WeakDecode(v.Default, &sliceVal); err == nil {
 		v.Default = sliceVal
 		return VariableTypeStringSlice
 	}
-                
+
 	return VariableTypeUnknown
 }
 
