@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -122,6 +123,39 @@ func TestAccAWSEcsServiceWithFamilyAndRevision(t *testing.T) {
 				Config: testAccAWSEcsServiceWithFamilyAndRevisionModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
+				),
+			},
+		},
+	})
+}
+
+// Regression for https://github.com/hashicorp/terraform/issues/2427
+func TestAccAWSEcsServiceWithRenamedCluster(t *testing.T) {
+	originalRegexp := regexp.MustCompile(
+		"^arn:aws:ecs:[^:]+:[0-9]+:cluster/terraformecstest3$")
+	modifiedRegexp := regexp.MustCompile(
+		"^arn:aws:ecs:[^:]+:[0-9]+:cluster/terraformecstest3modified$")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsServiceWithRenamedCluster,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.ghost"),
+					resource.TestMatchResourceAttr(
+						"aws_ecs_service.ghost", "cluster", originalRegexp),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSEcsServiceWithRenamedClusterModified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.ghost"),
+					resource.TestMatchResourceAttr(
+						"aws_ecs_service.ghost", "cluster", modifiedRegexp),
 				),
 			},
 		},
@@ -271,6 +305,58 @@ resource "aws_ecs_service" "jenkins" {
   name = "jenkins"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.jenkins.family}:${aws_ecs_task_definition.jenkins.revision}"
+  desired_count = 1
+}
+`
+
+var testAccAWSEcsServiceWithRenamedCluster = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstest3"
+}
+resource "aws_ecs_task_definition" "ghost" {
+  family = "ghost"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "ghost:latest",
+    "memory": 128,
+    "name": "ghost"
+  }
+]
+DEFINITION
+}
+resource "aws_ecs_service" "ghost" {
+  name = "ghost"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.ghost.family}:${aws_ecs_task_definition.ghost.revision}"
+  desired_count = 1
+}
+`
+
+var testAccAWSEcsServiceWithRenamedClusterModified = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstest3modified"
+}
+resource "aws_ecs_task_definition" "ghost" {
+  family = "ghost"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "ghost:latest",
+    "memory": 128,
+    "name": "ghost"
+  }
+]
+DEFINITION
+}
+resource "aws_ecs_service" "ghost" {
+  name = "ghost"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.ghost.family}:${aws_ecs_task_definition.ghost.revision}"
   desired_count = 1
 }
 `
