@@ -206,6 +206,39 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncIndex(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${index("test", "")}`,
+				nil,
+				true,
+			},
+
+			{
+				fmt.Sprintf(`${index("%s", "foo")}`,
+					NewStringList([]string{"notfoo", "stillnotfoo", "bar"}).String()),
+				nil,
+				true,
+			},
+
+			{
+				fmt.Sprintf(`${index("%s", "foo")}`,
+					NewStringList([]string{"foo"}).String()),
+				"0",
+				false,
+			},
+
+			{
+				fmt.Sprintf(`${index("%s", "bar")}`,
+					NewStringList([]string{"foo", "spam", "bar", "eggs"}).String()),
+				"2",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncJoin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
