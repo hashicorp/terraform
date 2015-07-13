@@ -3,6 +3,17 @@ require "rack/contrib/not_found"
 require "rack/contrib/response_headers"
 require "rack/contrib/static_cache"
 require "rack/contrib/try_static"
+require "rack/protection"
+
+# Protect against various bad things
+use Rack::Protection::JsonCsrf
+use Rack::Protection::RemoteReferrer
+use Rack::Protection::HttpOrigin
+use Rack::Protection::EscapedParams
+use Rack::Protection::XSSHeader
+use Rack::Protection::FrameOptions
+use Rack::Protection::PathTraversal
+use Rack::Protection::IPSpoofing
 
 # Properly compress the output if the client can handle it.
 use Rack::Deflater
