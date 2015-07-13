@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"udnssdk"
+	"github.com/Ensighten/udnssdk"
 )
 
 type Config struct {

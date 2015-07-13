@@ -5,7 +5,7 @@ import (
 	"log"
 	"strconv"
 	"github.com/hashicorp/terraform/helper/schema"
-	"udnssdk"
+	"github.com/Ensighten/udnssdk"
 )
 
 func resourceUltraDNSRecord() *schema.Resource {

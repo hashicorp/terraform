@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"udnssdk"
+	"github.com/Ensighten/udnssdk"
 )
 
 func TestAccUltraDNSRecord_Basic(t *testing.T) {
