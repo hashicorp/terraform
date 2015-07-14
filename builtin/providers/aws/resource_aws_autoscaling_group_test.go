@@ -321,11 +321,12 @@ func testAccCheckAWSAutoScalingGroupAttributesVPCZoneIdentifer(group *autoscalin
 			subnets = append(subnets, rs.Primary.Attributes["id"])
 		}
 
-		if group.VPCZoneIdentifier == nil || *group.VPCZoneIdentifier != "" {
+		if group.VPCZoneIdentifier == nil {
 			return fmt.Errorf("Bad VPC Zone Identifier\nexpected: %s\ngot nil", subnets)
 		}
 
 		zones := strings.Split(*group.VPCZoneIdentifier, ",")
+
 		remaining := len(zones)
 		for _, z := range zones {
 			for _, s := range subnets {
@@ -516,7 +517,7 @@ resource "aws_launch_configuration" "foobar" {
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
   name = "vpc-asg-test"
-  max_size = 1
+  max_size = 2
   min_size = 1
   health_check_grace_period = 300
   health_check_type = "ELB"
@@ -565,7 +566,7 @@ resource "aws_autoscaling_group" "bar" {
     "${aws_subnet.alt.id}",
   ]
   name = "vpc-asg-test"
-  max_size = 1
+  max_size = 2
   min_size = 1
   health_check_grace_period = 300
   health_check_type = "ELB"
