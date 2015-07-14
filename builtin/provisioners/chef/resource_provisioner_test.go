@@ -1,6 +1,8 @@
 package chef
 
 import (
+	"fmt"
+	"path"
 	"testing"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -21,7 +23,6 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"server_url":             "https://chef.local",
 		"validation_client_name": "validator",
 		"validation_key_path":    "validator.pem",
-		"secret_key_path":        "encrypted_data_bag_secret",
 	})
 	r := new(ResourceProvisioner)
 	warn, errs := r.Validate(c)
@@ -59,6 +60,7 @@ func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfi
 func TestResourceProvider_runChefClient(t *testing.T) {
 	cases := map[string]struct {
 		Config   *terraform.ResourceConfig
+		ChefCmd  string
 		ConfDir  string
 		Commands map[string]bool
 	}{
@@ -69,13 +71,16 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
+
+			ChefCmd: linuxChefCmd,
 
 			ConfDir: linuxConfDir,
 
 			Commands: map[string]bool{
-				`sudo chef-client -j "/etc/chef/first-boot.json" -E "_default"`: true,
+				fmt.Sprintf(`sudo %s -j %q -E "_default"`,
+					linuxChefCmd,
+					path.Join(linuxConfDir, "first-boot.json")): true,
 			},
 		},
 
@@ -87,13 +92,16 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
+
+			ChefCmd: linuxChefCmd,
 
 			ConfDir: linuxConfDir,
 
 			Commands: map[string]bool{
-				`chef-client -j "/etc/chef/first-boot.json" -E "_default"`: true,
+				fmt.Sprintf(`%s -j %q -E "_default"`,
+					linuxChefCmd,
+					path.Join(linuxConfDir, "first-boot.json")): true,
 			},
 		},
 
@@ -106,13 +114,16 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
+
+			ChefCmd: windowsChefCmd,
 
 			ConfDir: windowsConfDir,
 
 			Commands: map[string]bool{
-				`chef-client -j "C:/chef/first-boot.json" -E "production"`: true,
+				fmt.Sprintf(`%s -j %q -E "production"`,
+					windowsChefCmd,
+					path.Join(windowsConfDir, "first-boot.json")): true,
 			},
 		},
 	}
@@ -129,7 +140,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 			t.Fatalf("Error: %v", err)
 		}
 
-		p.runChefClient = p.runChefClientFunc(tc.ConfDir)
+		p.runChefClient = p.runChefClientFunc(tc.ChefCmd, tc.ConfDir)
 		p.useSudo = !p.PreventSudo
 
 		err = p.runChefClient(o, c)

@@ -27,9 +27,11 @@ const (
 	defaultEnv     = "_default"
 	firstBoot      = "first-boot.json"
 	logfileDir     = "logfiles"
+	linuxChefCmd   = "chef-client"
 	linuxConfDir   = "/etc/chef"
 	secretKey      = "encrypted_data_bag_secret"
 	validationKey  = "validation.pem"
+	windowsChefCmd = "cmd /c chef-client"
 	windowsConfDir = "C:/chef"
 )
 
@@ -112,12 +114,12 @@ func (r *ResourceProvisioner) Apply(
 	case "linux":
 		p.installChefClient = p.linuxInstallChefClient
 		p.createConfigFiles = p.linuxCreateConfigFiles
-		p.runChefClient = p.runChefClientFunc(linuxConfDir)
+		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.installChefClient = p.windowsInstallChefClient
 		p.createConfigFiles = p.windowsCreateConfigFiles
-		p.runChefClient = p.runChefClientFunc(windowsConfDir)
+		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
 		p.useSudo = false
 	default:
 		return fmt.Errorf("Unsupported os type: %s", p.OSType)
@@ -230,6 +232,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		}
 		p.ValidationKeyPath = keyPath
 	}
+
 	if p.SecretKeyPath != "" {
 		keyPath, err := homedir.Expand(p.SecretKeyPath)
 		if err != nil {
@@ -237,6 +240,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		}
 		p.SecretKeyPath = keyPath
 	}
+
 	if attrs, ok := c.Config["attributes"]; ok {
 		p.Attributes, err = rawToJSON(attrs)
 		if err != nil {
@@ -287,10 +291,11 @@ func retryFunc(timeout time.Duration, f func() error) error {
 }
 
 func (p *Provisioner) runChefClientFunc(
+	chefCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		fb := path.Join(confDir, firstBoot)
-		cmd := fmt.Sprintf("chef-client -j %q -E %q", fb, p.Environment)
+		cmd := fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
 
 		if p.LogToFile {
 			if err := os.MkdirAll(logfileDir, 0755); err != nil {

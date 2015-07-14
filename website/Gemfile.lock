@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/hashicorp/middleman-hashicorp
-  revision: 7796ba44d303ac8e1b566e855e2766e6d0f695fc
+  revision: 76f0f284ad44cea0457484ea83467192f02daf87
   specs:
     middleman-hashicorp (0.1.0)
       bootstrap-sass (~> 3.3)
@@ -11,6 +11,7 @@ GIT
       middleman-minify-html (~> 3.4)
       middleman-syntax (~> 2.0)
       rack-contrib (~> 1.2)
+      rack-protection (~> 1.5)
       rack-rewrite (~> 1.5)
       rack-ssl-enforcer (~> 0.2)
       redcarpet (~> 3.2)
@@ -72,7 +73,7 @@ GEM
     http_parser.rb (0.6.0)
     i18n (0.7.0)
     json (1.8.3)
-    kramdown (1.7.0)
+    kramdown (1.8.0)
     less (2.6.0)
       commonjs (~> 0.2.7)
     libv8 (3.16.14.11)
@@ -119,7 +120,7 @@ GEM
       middleman-core (~> 3.2)
       rouge (~> 1.0)
     minitest (5.7.0)
-    multi_json (1.11.1)
+    multi_json (1.11.2)
     padrino-helpers (0.12.5)
       i18n (~> 0.6, >= 0.6.7)
       padrino-support (= 0.12.5)
@@ -130,7 +131,9 @@ GEM
     rack-contrib (1.3.0)
       git-version-bump (~> 0.15)
       rack (~> 1.4)
-    rack-livereload (0.3.15)
+    rack-livereload (0.3.16)
+      rack
+    rack-protection (1.5.3)
       rack
     rack-rewrite (1.5.1)
     rack-ssl-enforcer (0.2.8)
@@ -140,9 +143,9 @@ GEM
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)
     redcarpet (3.3.2)
-    ref (1.0.5)
-    rouge (1.9.0)
-    sass (3.4.15)
+    ref (2.0.0)
+    rouge (1.9.1)
+    sass (3.4.16)
     sprockets (2.12.4)
       hike (~> 1.2)
       multi_json (~> 1.0)

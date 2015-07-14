@@ -20,7 +20,6 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
-				"secret_key_path":        "encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -57,7 +56,6 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
-				"secret_key_path":        "encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -76,7 +74,6 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
-				"secret_key_path":        "encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -86,7 +83,7 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 			},
 		},
 
-		"NOProxy": {
+		"NoProxy": {
 			Config: testConfig(t, map[string]interface{}{
 				"http_proxy":             "http://proxy.local",
 				"no_proxy":               []interface{}{"http://local.local", "http://local.org"},
@@ -96,7 +93,6 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
-				"secret_key_path":        "encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -117,7 +113,6 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "validator.pem",
-				"secret_key_path":        "encrypted_data_bag_secret",
 				"version":                "11.18.6",
 			}),
 
@@ -161,10 +156,10 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"ohai_hints":             []interface{}{"test-fixtures/ohaihint.json"},
 				"node_name":              "nodename1",
 				"run_list":               []interface{}{"cookbook::recipe"},
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -176,11 +171,11 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
-				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
-				linuxConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
+				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
+				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
 			},
 		},
 
@@ -189,10 +184,10 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"node_name":              "nodename1",
 				"prevent_sudo":           true,
 				"run_list":               []interface{}{"cookbook::recipe"},
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -200,10 +195,10 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
-				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
+				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
 			},
 		},
 
@@ -215,10 +210,10 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"node_name":              "nodename1",
 				"prevent_sudo":           true,
 				"run_list":               []interface{}{"cookbook::recipe"},
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -226,10 +221,10 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
-				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
 				linuxConfDir + "/client.rb":                 proxyLinuxClientConf,
+				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
 				linuxConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
+				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
 			},
 		},
 
@@ -259,10 +254,10 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 				"node_name":              "nodename1",
 				"prevent_sudo":           true,
 				"run_list":               []interface{}{"cookbook::recipe"},
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
 				"validation_key_path":    "test-fixtures/validator.pem",
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
 			}),
 
 			Commands: map[string]bool{
@@ -270,9 +265,9 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			},
 
 			Uploads: map[string]string{
-				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
-				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
 				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
+				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
+				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
 				linuxConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},

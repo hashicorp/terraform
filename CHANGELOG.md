@@ -1,5 +1,9 @@
 ## 0.6.1 (Unreleased)
 
+FEATURES:
+
+  * **New resource: `google_container_cluster`** [GH-2357]
+
 BUG FIXES:
 
   * connection/ssh: fix issue on machines with an SSH Agent available
@@ -9,6 +13,7 @@ BUG FIXES:
   * core: Return correct number of planned updates [GH-2620]
   * provider/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
   * provider/aws: Allow underscores in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2604]
+  * provider/aws: Allow dots in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2665]
   * provider/aws: Fix issue with pending Spot Instance requests [GH-2640]
   * provider/aws: Fix issue in AWS Classic environment with referencing external 
       Security Groups [GH-2644]
@@ -20,6 +25,7 @@ IMPROVEMENTS:
   * provider/aws: Create RDS databases from snapshots [GH-2062]
   * provider/aws: Add support for restoring from Redis backup stored in S3 [GH-2634]
   * provider/aws: Add `maintenance_window` to ElastiCache cluster [GH-2642]
+  * provider/google: Add metadata_startup_script to google_compute_instance [GH-2375]
 
 ## 0.6.0 (June 30, 2015)
 
