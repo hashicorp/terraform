@@ -148,6 +148,12 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 
+		if r.DestinationPrefixListID != nil {
+			// Skipping because VPC endpoint routes are handled separately
+			// See aws_vpc_endpoint
+			continue
+		}
+
 		m := make(map[string]interface{})
 
 		if r.DestinationCIDRBlock != nil {
