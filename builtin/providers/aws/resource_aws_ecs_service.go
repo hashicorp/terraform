@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -36,6 +37,7 @@ func resourceAwsEcsService() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"task_definition": &schema.Schema{
@@ -87,6 +89,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		ServiceName:    aws.String(d.Get("name").(string)),
 		TaskDefinition: aws.String(d.Get("task_definition").(string)),
 		DesiredCount:   aws.Long(int64(d.Get("desired_count").(int))),
+		ClientToken:    aws.String(resource.UniqueId()),
 	}
 
 	if v, ok := d.GetOk("cluster"); ok {
@@ -95,14 +98,14 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 
 	loadBalancers := expandEcsLoadBalancers(d.Get("load_balancer").(*schema.Set).List())
 	if len(loadBalancers) > 0 {
-		log.Printf("[DEBUG] Adding ECS load balancers: %#v", loadBalancers)
+		log.Printf("[DEBUG] Adding ECS load balancers: %s", awsutil.StringValue(loadBalancers))
 		input.LoadBalancers = loadBalancers
 	}
 	if v, ok := d.GetOk("iam_role"); ok {
 		input.Role = aws.String(v.(string))
 	}
 
-	log.Printf("[DEBUG] Creating ECS service: %#v", input)
+	log.Printf("[DEBUG] Creating ECS service: %s", awsutil.StringValue(input))
 	out, err := conn.CreateService(&input)
 	if err != nil {
 		return err
@@ -131,8 +134,12 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if len(out.Services) < 1 {
+		return nil
+	}
+
 	service := out.Services[0]
-	log.Printf("[DEBUG] Received ECS service %#v", service)
+	log.Printf("[DEBUG] Received ECS service %s", awsutil.StringValue(service))
 
 	d.SetId(*service.ServiceARN)
 	d.Set("name", *service.ServiceName)
@@ -182,7 +189,7 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	service := out.Service
-	log.Printf("[DEBUG] Updated ECS service %#v", service)
+	log.Printf("[DEBUG] Updated ECS service %s", awsutil.StringValue(service))
 
 	return resourceAwsEcsServiceRead(d, meta)
 }
@@ -222,7 +229,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		Cluster: aws.String(d.Get("cluster").(string)),
 	}
 
-	log.Printf("[DEBUG] Deleting ECS service %#v", input)
+	log.Printf("[DEBUG] Deleting ECS service %s", awsutil.StringValue(input))
 	out, err := conn.DeleteService(&input)
 	if err != nil {
 		return err
