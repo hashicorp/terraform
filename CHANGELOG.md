@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New resource: `google_container_cluster`** [GH-2357]
+  * **New resource: `aws_vpc_endpoint`** [GH-2695]
 
 BUG FIXES:
 
@@ -19,6 +20,7 @@ BUG FIXES:
       Security Groups [GH-2644]
   * provider/aws: Bump internet gateway detach timeout [GH-2669]
   * provider/aws: `ecs_cluster` rename (recreation) and deletion is handled correctly [GH-2698]
+  * provider/aws: `aws_route_table` ignores routes generated for VPC endpoints [GH-2695]
   * provider/openstack: allow empty api_key and endpoint_type [GH-2626]
 
 IMPROVEMENTS:
