@@ -50,6 +50,12 @@ func resourceSoftLayerVirtualserver() *schema.Resource {
 				Required: true,
 			},
 
+			"public_network_speed": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default: 1000,
+			},
+
 			"ipv4_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -79,6 +85,10 @@ func resourceSoftLayerVirtualserverCreate(d *schema.ResourceData, meta interface
 		Name: d.Get("region").(string),
 	}
 
+	networkComponent := datatypes.NetworkComponents {
+		MaxSpeed: d.Get("public_network_speed").(int),
+	}
+
 	opts := datatypes.SoftLayer_Virtual_Guest_Template {
 		Hostname: d.Get("name").(string),
 		Domain: d.Get("domain").(string),
@@ -87,6 +97,7 @@ func resourceSoftLayerVirtualserverCreate(d *schema.ResourceData, meta interface
 		Datacenter: dc,
 		StartCpus: d.Get("cpu").(int),
 		MaxMemory: d.Get("ram").(int),
+		NetworkComponents: []datatypes.NetworkComponents{networkComponent},
 	}
 
 	// Get configured ssh_keys
@@ -148,6 +159,7 @@ func resourceSoftLayerVirtualserverRead(d *schema.ResourceData, meta interface{}
 	if result.Datacenter != nil {
 		d.Set("region", result.Datacenter.Name)
 	}
+	d.Set("public_network_speed", result.NetworkComponents[0].MaxSpeed)
 	d.Set("cpu", result.StartCpus)
 	d.Set("ram", result.MaxMemory)
 	d.Set("has_public_ip", result.PrimaryIpAddress != "")
@@ -171,6 +183,7 @@ func resourceSoftLayerVirtualserverUpdate(d *schema.ResourceData, meta interface
 	result.Domain = d.Get("domain").(string)
 	result.StartCpus = d.Get("cpu").(int)
 	result.MaxMemory = d.Get("ram").(int)
+	result.NetworkComponents[0].MaxSpeed = d.Get("public_network_speed").(int)
 
 	_, err = client.EditObject(id, result)
 

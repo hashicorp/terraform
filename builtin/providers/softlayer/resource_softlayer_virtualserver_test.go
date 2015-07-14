@@ -30,6 +30,8 @@ func TestAccSoftLayerVirtualserver_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"softlayer_virtualserver.terraform-acceptance-test-1", "region", "ams01"),
 					resource.TestCheckResourceAttr(
+						"softlayer_virtualserver.terraform-acceptance-test-1", "public_network_speed", "10"),
+					resource.TestCheckResourceAttr(
 						"softlayer_virtualserver.terraform-acceptance-test-1", "cpu", "1"),
 					resource.TestCheckResourceAttr(
 						"softlayer_virtualserver.terraform-acceptance-test-1", "ram", "1024"),
@@ -106,6 +108,7 @@ resource "softlayer_virtualserver" "terraform-acceptance-test-1" {
     domain = "bar.example.com"
     image = "DEBIAN_7_64"
     region = "ams01"
+    public_network_speed = 10
     cpu = 1
     ram = 1024
 }
