@@ -142,7 +142,11 @@ The CRUD operations in more detail, along with their contracts:
 
   * `Create` - This is called to create a new instance of the resource.
       Terraform guarantees that an existing ID is not set on the resource
-      data. That is, you're working with a new resource.
+      data. That is, you're working with a new resource. Therefore, you are
+      responsible for calling `setId` on your `schema.ResourceData` using a
+      value suitable for your resource. This ensures whatever resource
+      state you set on `schema.ResourceData` will be persisted in local state.
+      If you neglect to `setId`, no resource state will be persisted.
 
   * `Read` - This is called to resync the local state with the remote state.
       Terraform guarantees that an existing ID will be set. This ID should be
