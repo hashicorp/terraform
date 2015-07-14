@@ -101,6 +101,32 @@ func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoScalingGroup_VpcUpdates(t *testing.T) {
+	var group autoscaling.Group
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfigWithAZ,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfigWithVPCIdent,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSAutoScalingGroupAttributesVPCZoneIdentifer(&group),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 	var group autoscaling.Group
 
@@ -284,6 +310,39 @@ func testAccCheckAWSAutoScalingGroupHealthyCapacity(
 	}
 }
 
+func testAccCheckAWSAutoScalingGroupAttributesVPCZoneIdentifer(group *autoscaling.Group) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Grab Subnet Ids
+		var subnets []string
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "aws_subnet" {
+				continue
+			}
+			subnets = append(subnets, rs.Primary.Attributes["id"])
+		}
+
+		if group.VPCZoneIdentifier == nil || *group.VPCZoneIdentifier != "" {
+			return fmt.Errorf("Bad VPC Zone Identifier\nexpected: %s\ngot nil", subnets)
+		}
+
+		zones := strings.Split(*group.VPCZoneIdentifier, ",")
+		remaining := len(zones)
+		for _, z := range zones {
+			for _, s := range subnets {
+				if z == s {
+					remaining--
+				}
+			}
+		}
+
+		if remaining != 0 {
+			return fmt.Errorf("Bad VPC Zone Identifier match\nexpected: %s\ngot:%s", zones, subnets)
+		}
+
+		return nil
+	}
+}
+
 const testAccAWSAutoScalingGroupConfig = `
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
@@ -419,5 +478,100 @@ resource "aws_autoscaling_group" "bar" {
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
   load_balancers = ["${aws_elb.bar.name}"]
+}
+`
+
+const testAccAWSAutoScalingGroupConfigWithAZ = `
+resource "aws_vpc" "default" {
+  cidr_block = "10.0.0.0/16"
+  tags {
+     Name = "terraform-test"
+  }
+}
+
+resource "aws_subnet" "main" {
+  vpc_id = "${aws_vpc.default.id}"
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+     Name = "terraform-test"
+  }
+}
+
+resource "aws_subnet" "alt" {
+  vpc_id = "${aws_vpc.default.id}"
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+  tags {
+     Name = "asg-vpc-thing"
+  }
+}
+
+resource "aws_launch_configuration" "foobar" {
+  name = "vpc-asg-test"
+  image_id = "ami-b5b3fc85"
+  instance_type = "t2.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "vpc-asg-test"
+  max_size = 1
+  min_size = 1
+  health_check_grace_period = 300
+  health_check_type = "ELB"
+  desired_capacity = 1
+  force_delete = true
+  termination_policies = ["OldestInstance"]
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+}
+`
+
+const testAccAWSAutoScalingGroupConfigWithVPCIdent = `
+resource "aws_vpc" "default" {
+  cidr_block = "10.0.0.0/16"
+  tags {
+     Name = "terraform-test"
+  }
+}
+
+resource "aws_subnet" "main" {
+  vpc_id = "${aws_vpc.default.id}"
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+  tags {
+     Name = "terraform-test"
+  }
+}
+
+resource "aws_subnet" "alt" {
+  vpc_id = "${aws_vpc.default.id}"
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+  tags {
+     Name = "asg-vpc-thing"
+  }
+}
+
+resource "aws_launch_configuration" "foobar" {
+  name = "vpc-asg-test"
+  image_id = "ami-b5b3fc85"
+  instance_type = "t2.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  vpc_zone_identifier = [
+    "${aws_subnet.main.id}",
+    "${aws_subnet.alt.id}",
+  ]
+  name = "vpc-asg-test"
+  max_size = 1
+  min_size = 1
+  health_check_grace_period = 300
+  health_check_type = "ELB"
+  desired_capacity = 1
+  force_delete = true
+  termination_policies = ["OldestInstance"]
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
 }
 `
