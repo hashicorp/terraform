@@ -83,6 +83,11 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"replication_group_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"security_group_names": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -216,6 +221,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	subnetGroupName := d.Get("subnet_group_name").(string)
 	securityNameSet := d.Get("security_group_names").(*schema.Set)
 	securityIdSet := d.Get("security_group_ids").(*schema.Set)
+	replicationGroupID := d.Get("replication_group_id").(string)
 
 	securityNames := expandStringList(securityNameSet.List())
 	securityIds := expandStringList(securityIdSet.List())
@@ -232,6 +238,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		CacheSecurityGroupNames: securityNames,
 		SecurityGroupIds:        securityIds,
 		Tags:                    tags,
+		ReplicationGroupId:      aws.String(replicationGroupID),
 	}
 
 	// parameter groups are optional and can be defaulted by AWS
