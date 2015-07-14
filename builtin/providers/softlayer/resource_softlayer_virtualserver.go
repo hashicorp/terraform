@@ -71,6 +71,11 @@ func resourceSoftLayerVirtualserver() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeInt},
 			},
+
+			"user_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -98,6 +103,15 @@ func resourceSoftLayerVirtualserverCreate(d *schema.ResourceData, meta interface
 		StartCpus: d.Get("cpu").(int),
 		MaxMemory: d.Get("ram").(int),
 		NetworkComponents: []datatypes.NetworkComponents{networkComponent},
+	}
+
+	userData := d.Get("user_data").(string)
+	if userData != "" {
+		opts.UserData = []datatypes.UserData {
+			datatypes.UserData {
+				Value: userData,
+			},
+		}
 	}
 
 	// Get configured ssh_keys
@@ -184,6 +198,15 @@ func resourceSoftLayerVirtualserverUpdate(d *schema.ResourceData, meta interface
 	result.StartCpus = d.Get("cpu").(int)
 	result.MaxMemory = d.Get("ram").(int)
 	result.NetworkComponents[0].MaxSpeed = d.Get("public_network_speed").(int)
+
+	userData := d.Get("user_data").(string)
+	if userData != "" {
+		result.UserData = []datatypes.UserData {
+			datatypes.UserData {
+				Value: userData,
+			},
+		}
+	}
 
 	_, err = client.EditObject(id, result)
 
