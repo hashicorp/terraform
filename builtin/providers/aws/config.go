@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/multierror"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -85,6 +86,14 @@ func (c *Config) Client() (interface{}, error) {
 			MaxRetries:  c.MaxRetries,
 		}
 
+		log.Println("[INFO] Initializing IAM Connection")
+		client.iamconn = iam.New(awsConfig)
+
+		err := c.ValidateCredentials(client.iamconn)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
 		log.Println("[INFO] Initializing DynamoDB connection")
 		client.dynamodbconn = dynamodb.New(awsConfig)
 
@@ -103,15 +112,12 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing RDS Connection")
 		client.rdsconn = rds.New(awsConfig)
 
-		log.Println("[INFO] Initializing IAM Connection")
-		client.iamconn = iam.New(awsConfig)
-
 		log.Println("[INFO] Initializing Kinesis Connection")
 		client.kinesisconn = kinesis.New(awsConfig)
 
-		err := c.ValidateAccountId(client.iamconn)
-		if err != nil {
-			errs = append(errs, err)
+		authErr := c.ValidateAccountId(client.iamconn)
+		if authErr != nil {
+			errs = append(errs, authErr)
 		}
 
 		log.Println("[INFO] Initializing AutoScaling connection")
@@ -163,6 +169,21 @@ func (c *Config) ValidateRegion() error {
 		}
 	}
 	return fmt.Errorf("Not a valid region: %s", c.Region)
+}
+
+// Validate credentials early and fail before we do any graph walking
+func (c *Config) ValidateCredentials(iamconn *iam.IAM) error {
+	_, err := iamconn.GetUser(nil)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "SignatureDoesNotMatch" {
+				return fmt.Errorf("Failed authenticating with AWS: please verify credentials")
+			}
+		}
+		return err
+	}
+
+	return nil
 }
 
 // ValidateAccountId returns a context-specific error if the configured account
