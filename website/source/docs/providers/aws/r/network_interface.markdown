@@ -33,6 +33,8 @@ The following arguments are supported:
 * `security_groups` - (Optional) List of security group IDs to assign to the ENI.
 * `attachment` - (Required) Block to define the attachment of the ENI. Documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
+* `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
+  the destination address does not match the instance. Used for NAT or VPNs. Defaults true.
 
 The `attachment` block supports:
 
@@ -48,4 +50,3 @@ The following attributes are exported:
 * `security_groups` - List of security groups attached to the ENI.
 * `attachment` - Block defining the attachment of the ENI.
 * `tags` - Tags assigned to the ENI.
-
