@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -90,7 +91,7 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 		input.Volumes = volumes
 	}
 
-	log.Printf("[DEBUG] Registering ECS task definition: %#v", input)
+	log.Printf("[DEBUG] Registering ECS task definition: %s", awsutil.StringValue(input))
 	out, err := conn.RegisterTaskDefinition(&input)
 	if err != nil {
 		return err
@@ -98,7 +99,7 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 
 	taskDefinition := *out.TaskDefinition
 
-	log.Printf("[DEBUG] ECS task definition registered: %#v (rev. %d)",
+	log.Printf("[DEBUG] ECS task definition registered: %q (rev. %d)",
 		*taskDefinition.TaskDefinitionARN, *taskDefinition.Revision)
 
 	d.SetId(*taskDefinition.Family)
@@ -117,7 +118,7 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Received task definition %#v", out)
+	log.Printf("[DEBUG] Received task definition %s", awsutil.StringValue(out))
 
 	taskDefinition := out.TaskDefinition
 
