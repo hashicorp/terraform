@@ -18,6 +18,7 @@ BUG FIXES:
   * provider/aws: Fix issue in AWS Classic environment with referencing external 
       Security Groups [GH-2644]
   * provider/aws: Bump internet gateway detach timeout [GH-2669]
+  * provider/aws: `ecs_cluster` rename (recreation) and deletion is handled correctly [GH-2698]
   * provider/openstack: allow empty api_key and endpoint_type [GH-2626]
 
 IMPROVEMENTS:
