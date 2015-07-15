@@ -156,10 +156,6 @@ func testAccCheckRoute53ZoneDestroy(s *terraform.State) error {
 	return testAccCheckRoute53ZoneDestroyWithProvider(s, testAccProvider)
 }
 
-// func testAccCheckRoute53ZoneForceDestroy(s *terraform.State) error {
-// 	return testAccCheckRoute53ZoneForceDestroyWithProvider(s, testAccProvider)
-// }
-
 func testAccCheckRoute53ZoneDestroyWithProviders(providers *[]*schema.Provider) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		for _, provider := range *providers {
@@ -188,21 +184,6 @@ func testAccCheckRoute53ZoneDestroyWithProvider(s *terraform.State, provider *sc
 	}
 	return nil
 }
-
-// func testAccCheckRoute53ZoneForceDestroyWithProvider(s *terraform.State, provider *schema.Provider) error {
-// 	conn := provider.Meta().(*AWSClient).r53conn
-// 	for _, rs := range s.RootModule().Resources {
-// 		if rs.Type != "aws_route53_zone" {
-// 			continue
-// 		}
-
-// 		_, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(rs.Primary.ID)})
-// 		if err == nil {
-// 			return fmt.Errorf("Hosted zone still exists")
-// 		}
-// 	}
-// 	return nil
-// }
 
 func testAccCheckRoute53ZoneExists(n string, zone *route53.GetHostedZoneOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
