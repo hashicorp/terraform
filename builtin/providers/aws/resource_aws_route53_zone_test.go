@@ -134,9 +134,31 @@ func TestAccRoute53Zone_private_region(t *testing.T) {
 	})
 }
 
+func TestAccRoute53Zone_force_destroy(t *testing.T) {
+	var zone route53.GetHostedZoneOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53ZoneDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53ZoneWithRecordsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &zone),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53ZoneDestroy(s *terraform.State) error {
 	return testAccCheckRoute53ZoneDestroyWithProvider(s, testAccProvider)
 }
+
+// func testAccCheckRoute53ZoneForceDestroy(s *terraform.State) error {
+// 	return testAccCheckRoute53ZoneForceDestroyWithProvider(s, testAccProvider)
+// }
 
 func testAccCheckRoute53ZoneDestroyWithProviders(providers *[]*schema.Provider) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -166,6 +188,21 @@ func testAccCheckRoute53ZoneDestroyWithProvider(s *terraform.State, provider *sc
 	}
 	return nil
 }
+
+// func testAccCheckRoute53ZoneForceDestroyWithProvider(s *terraform.State, provider *schema.Provider) error {
+// 	conn := provider.Meta().(*AWSClient).r53conn
+// 	for _, rs := range s.RootModule().Resources {
+// 		if rs.Type != "aws_route53_zone" {
+// 			continue
+// 		}
+
+// 		_, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(rs.Primary.ID)})
+// 		if err == nil {
+// 			return fmt.Errorf("Hosted zone still exists")
+// 		}
+// 	}
+// 	return nil
+// }
 
 func testAccCheckRoute53ZoneExists(n string, zone *route53.GetHostedZoneOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -326,4 +363,26 @@ resource "aws_route53_zone" "main" {
 	vpc_id = "${aws_vpc.main.id}"
 	vpc_region = "us-east-1"
 }
+`
+
+const testAccRoute53ZoneWithRecordsConfig = `
+resource "aws_route53_zone" "main" {
+	name = "hashicorp.com"
+	comment = "Custom comment"
+	force_destroy = true
+
+	tags {
+		foo = "bar"
+		Name = "tf-route53-tag-test"
+	}
+}
+
+resource "aws_route53_record" "rr_test" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "test"
+  type = "TXT"
+  ttl = "60"
+  records = ["This is a test record set"]
+}
+
 `

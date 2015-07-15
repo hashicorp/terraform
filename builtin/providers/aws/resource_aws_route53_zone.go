@@ -284,38 +284,37 @@ func getNameServers(zoneId string, zoneName string, r53 *route53.Route53) ([]str
 	return ns, nil
 }
 
-// Similar to that found in resource_aws_route53_record
-// We only have info on the zone here though, as opposed to record set variables
 func deleteZoneRecordSets(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
 	zone := cleanZoneID(d.Get("zone_id").(string))
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
-	var err error
-	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
-	if err != nil {
-		return err
-	}
+
 	// Get the records
-	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
+	recs, err := readRecordSets(d, meta)
 	if err != nil {
 		return err
 	}
 
-	// Create the new records
+	log.Printf("[DEBUG] Read %d resource records for zone: %s", len(recs), zone)
+	if len(recs) == 0 {
+		return nil
+	}
+
+	// ChangeBatch for deletes
 	changeBatch := &route53.ChangeBatch{
 		Comment: aws.String("Deleted by Terraform"),
 		Changes: []*route53.Change{
 			&route53.Change{
 				Action:            aws.String("DELETE"),
-				ResourceRecordSet: rec,
+				ResourceRecordSet: recs[0],
 			},
 		},
 	}
 
 	req := &route53.ChangeResourceRecordSetsInput{
-		HostedZoneID: aws.String(cleanZoneID(zone)),
+		HostedZoneID: aws.String(zone),
 		ChangeBatch:  changeBatch,
 	}
 
@@ -352,4 +351,29 @@ func deleteZoneRecordSets(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
+}
+
+func readRecordSets(d *schema.ResourceData, meta interface{}) ([]*route53.ResourceRecordSet, error) {
+	conn := meta.(*AWSClient).r53conn
+
+	zone := cleanZoneID(d.Get("zone_id").(string))
+
+	// get expanded name
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
+	if err != nil {
+		return nil, err
+	}
+	en := expandRecordName(zone, *zoneRecord.HostedZone.Name)
+	log.Printf("[DEBUG] Expanded record name: %s", en)
+
+	lopts := &route53.ListResourceRecordSetsInput{
+		HostedZoneID:    aws.String(zone),
+		StartRecordName: aws.String(en),
+	}
+
+	resp, err := conn.ListResourceRecordSets(lopts)
+	if err != nil {
+		return nil, err
+	}
+	return resp.ResourceRecordSets, nil
 }
