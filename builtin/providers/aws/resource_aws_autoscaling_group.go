@@ -91,8 +91,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 
 			"availability_zones": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
-				ForceNew: true,
+				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -108,7 +107,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -135,8 +133,11 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	autoScalingGroupOpts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
 	autoScalingGroupOpts.MinSize = aws.Long(int64(d.Get("min_size").(int)))
 	autoScalingGroupOpts.MaxSize = aws.Long(int64(d.Get("max_size").(int)))
-	autoScalingGroupOpts.AvailabilityZones = expandStringList(
-		d.Get("availability_zones").(*schema.Set).List())
+
+	// Availability Zones are optional if VPC Zone Identifer(s) are specified
+	if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
+		autoScalingGroupOpts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
+	}
 
 	if v, ok := d.GetOk("tag"); ok {
 		autoScalingGroupOpts.Tags = autoscalingTagsFromMap(
@@ -165,12 +166,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	if v, ok := d.GetOk("vpc_zone_identifier"); ok && v.(*schema.Set).Len() > 0 {
-		exp := expandStringList(v.(*schema.Set).List())
-		strs := make([]string, len(exp))
-		for _, s := range exp {
-			strs = append(strs, *s)
-		}
-		autoScalingGroupOpts.VPCZoneIdentifier = aws.String(strings.Join(strs, ","))
+		autoScalingGroupOpts.VPCZoneIdentifier = expandVpcZoneIdentifiers(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("termination_policies"); ok && v.(*schema.Set).Len() > 0 {
@@ -254,6 +250,16 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("health_check_type") {
 		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
 		opts.HealthCheckType = aws.String(d.Get("health_check_type").(string))
+	}
+
+	if d.HasChange("vpc_zone_identifier") {
+		opts.VPCZoneIdentifier = expandVpcZoneIdentifiers(d.Get("vpc_zone_identifier").(*schema.Set).List())
+	}
+
+	if d.HasChange("availability_zones") {
+		if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
+			opts.AvailabilityZones = expandStringList(d.Get("availability_zones").(*schema.Set).List())
+		}
 	}
 
 	if err := setAutoscalingTags(conn, d); err != nil {
@@ -537,4 +543,12 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 	}
 
 	return lbInstanceStates, nil
+}
+
+func expandVpcZoneIdentifiers(list []interface{}) *string {
+	strs := make([]string, len(list))
+	for _, s := range list {
+		strs = append(strs, s.(string))
+	}
+	return aws.String(strings.Join(strs, ","))
 }
