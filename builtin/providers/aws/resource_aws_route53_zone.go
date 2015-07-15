@@ -284,8 +284,8 @@ func getNameServers(zoneId string, zoneName string, r53 *route53.Route53) ([]str
 	return ns, nil
 }
 
-// Basically the same as that found in resource_aws_route53_record
-// You cannot call that resource directly from this resource
+// Similar to that found in resource_aws_route53_record
+// We only have info on the zone here though, as opposed to record set variables
 func deleteZoneRecordSets(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
