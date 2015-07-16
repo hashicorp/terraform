@@ -99,7 +99,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 
 		if c.connInfo.BastionHost != "" {
 			o.Output(fmt.Sprintf(
-				"Using configured bastion host..."+
+				"Using configured bastion host...\n"+
 					"  Host: %s\n"+
 					"  User: %s\n"+
 					"  Password: %t\n"+
