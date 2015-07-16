@@ -296,21 +296,29 @@ func deleteZoneRecordSets(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	log.Printf("[DEBUG] Read %d resource records for zone: %s", len(recs), zone)
+
+	recs = filterRequiredRecords(recs)
+
+	log.Printf("[DEBUG] Have %d resource records after filter", len(recs))
+
 	if len(recs) == 0 {
 		return nil
+	}
+
+	changes := make([]*route53.Change, len(recs))
+	for i, r := range recs {
+		c := &route53.Change{
+			Action:            aws.String("DELETE"),
+			ResourceRecordSet: r,
+		}
+		changes[i] = c
 	}
 
 	// ChangeBatch for deletes
 	changeBatch := &route53.ChangeBatch{
 		Comment: aws.String("Deleted by Terraform"),
-		Changes: []*route53.Change{
-			&route53.Change{
-				Action:            aws.String("DELETE"),
-				ResourceRecordSet: recs[0],
-			},
-		},
+		Changes: changes,
 	}
 
 	req := &route53.ChangeResourceRecordSetsInput{
@@ -367,8 +375,8 @@ func readRecordSets(d *schema.ResourceData, meta interface{}) ([]*route53.Resour
 	log.Printf("[DEBUG] Expanded record name: %s", en)
 
 	lopts := &route53.ListResourceRecordSetsInput{
-		HostedZoneID:    aws.String(zone),
-		StartRecordName: aws.String(en),
+		HostedZoneID: aws.String(zone),
+		// StartRecordName: aws.String(en),
 	}
 
 	resp, err := conn.ListResourceRecordSets(lopts)
@@ -376,4 +384,14 @@ func readRecordSets(d *schema.ResourceData, meta interface{}) ([]*route53.Resour
 		return nil, err
 	}
 	return resp.ResourceRecordSets, nil
+}
+
+func filterRequiredRecords(rrs []*route53.ResourceRecordSet) []*route53.ResourceRecordSet {
+	filtered := make([]*route53.ResourceRecordSet, 0)
+	for _, rr := range rrs {
+		if *rr.Type != "NS" && *rr.Type != "SOA" {
+			filtered = append(filtered, rr)
+		}
+	}
+	return filtered
 }
