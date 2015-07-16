@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
@@ -112,4 +113,25 @@ func retrieveTemplateUUID(cs *cloudstack.CloudStackClient, zoneid, value string)
 func isUUID(s string) bool {
 	re := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 	return re.MatchString(s)
+}
+
+// RetryFunc is the function retried n times
+type RetryFunc func() (interface{}, error)
+
+// Retry is a wrapper around a RetryFunc that will retry a function
+// n times or until it succeeds.
+func Retry(n int, f RetryFunc) (interface{}, error) {
+	var lastErr error
+
+	for i := 0; i < n; i++ {
+		r, err := f()
+		if err == nil {
+			return r, nil
+		}
+
+		lastErr = err
+		time.Sleep(30 * time.Second)
+	}
+
+	return nil, lastErr
 }
