@@ -44,7 +44,12 @@ The following arguments are supported:
 * `secret_key` - (Required) This is the CloudStack secret key. It must be provided,
   but it can also be sourced from the `CLOUDSTACK_SECRET_KEY` environment variable.
 
-* `timeout` - (Optional) A value in seconds. This is the time allowed for Cloudstack 
+* `http_get_only` - (Optional) Some cloud providers only allow HTTP GET calls to
+  their CloudStack API. If using such a provider, you need to set this to `true`
+  in order for the provider to only make GET calls and no POST calls. It can also
+  be sourced from the `CLOUDSTACK_HTTP_GET_ONLY` environment variable.
+
+* `timeout` - (Optional) A value in seconds. This is the time allowed for Cloudstack
   to complete each asynchronous job triggered. If unset, this can be sourced from the
-  `CLOUDSTACK_TIMEOUT` environment variable. Otherwise, this will default to 300 
+  `CLOUDSTACK_TIMEOUT` environment variable. Otherwise, this will default to 300
   seconds.
