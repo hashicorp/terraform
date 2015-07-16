@@ -47,8 +47,8 @@ The following arguments are supported:
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.
 
-* `zone` - (Required) The name of the zone where this instance will be created.
-    Changing this forces a new resource to be created.
+* `zone` - (Required) The name or ID of the zone where this instance will be
+    created. Changing this forces a new resource to be created.
 
 * `user_data` - (Optional) The user data to provide when launching the
     instance.

@@ -116,7 +116,12 @@ func resourceCloudStackPortForwardCreateForward(
 	}
 
 	// Retrieve the virtual_machine UUID
-	vm, _, err := cs.VirtualMachine.GetVirtualMachineByName(forward["virtual_machine"].(string))
+	virtualmachineid, e := retrieveUUID(cs, "virtual_machine", forward["virtual_machine"].(string))
+	if e != nil {
+		return e.Error()
+	}
+
+	vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(virtualmachineid)
 	if err != nil {
 		return err
 	}
@@ -186,7 +191,13 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			forward["protocol"] = r.Protocol
 			forward["private_port"] = privPort
 			forward["public_port"] = pubPort
-			forward["virtual_machine"] = r.Virtualmachinename
+
+			if isUUID(forward["virtual_machine"].(string)) {
+				forward["virtual_machine"] = r.Virtualmachineid
+			} else {
+				forward["virtual_machine"] = r.Virtualmachinename
+			}
+
 			forwards.Add(forward)
 		}
 	}
@@ -219,7 +230,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			}
 		}
 
-		for uuid, _ := range uuids {
+		for uuid := range uuids {
 			// Make a dummy forward to hold the unknown UUID
 			forward := map[string]interface{}{
 				"protocol":        "N/A",
