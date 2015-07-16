@@ -157,21 +157,23 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 		p.SetIcmptype(rule["icmp_type"].(int))
 		p.SetIcmpcode(rule["icmp_code"].(int))
 
-		r, err := cs.NetworkACL.CreateNetworkACL(p)
+		r, err := Retry(4, retryableACLCreationFunc(cs, p))
 		if err != nil {
 			return err
 		}
-		uuids["icmp"] = r.Id
+
+		uuids["icmp"] = r.(*cloudstack.CreateNetworkACLResponse).Id
 		rule["uuids"] = uuids
 	}
 
 	// If the protocol is ALL set the needed parameters
 	if rule["protocol"].(string) == "all" {
-		r, err := cs.NetworkACL.CreateNetworkACL(p)
+		r, err := Retry(4, retryableACLCreationFunc(cs, p))
 		if err != nil {
 			return err
 		}
-		uuids["all"] = r.Id
+
+		uuids["all"] = r.(*cloudstack.CreateNetworkACLResponse).Id
 		rule["uuids"] = uuids
 	}
 
@@ -206,7 +208,7 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 				p.SetStartport(startPort)
 				p.SetEndport(endPort)
 
-				r, err := cs.NetworkACL.CreateNetworkACL(p)
+				r, err := Retry(4, retryableACLCreationFunc(cs, p))
 				if err != nil {
 					return err
 				}
@@ -214,7 +216,7 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 				ports.Add(port)
 				rule["ports"] = ports
 
-				uuids[port.(string)] = r.Id
+				uuids[port.(string)] = r.(*cloudstack.CreateNetworkACLResponse).Id
 				rule["uuids"] = uuids
 			}
 		}
@@ -592,4 +594,16 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 	}
 
 	return nil
+}
+
+func retryableACLCreationFunc(
+	cs *cloudstack.CloudStackClient,
+	p *cloudstack.CreateNetworkACLParams) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		r, err := cs.NetworkACL.CreateNetworkACL(p)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	}
 }
