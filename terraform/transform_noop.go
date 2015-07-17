@@ -12,10 +12,12 @@ type GraphNodeNoopPrunable interface {
 
 // NoopOpts are the options available to determine if your node is a noop.
 type NoopOpts struct {
-	Graph  *Graph
-	Vertex dag.Vertex
-	Diff   *ModuleDiff
-	State  *ModuleState
+	Graph    *Graph
+	Vertex   dag.Vertex
+	Diff     *Diff
+	State    *State
+	ModDiff  *ModuleDiff
+	ModState *ModuleState
 }
 
 // PruneNoopTransformer is a graph transform that prunes nodes that
@@ -52,6 +54,7 @@ func (t *PruneNoopTransformer) Transform(g *Graph) error {
 
 	// Do a depth first walk from the leaves and remove things.
 	return g.ReverseDepthFirstWalk(leaves, func(v dag.Vertex, depth int) error {
+		println("NAME: " + v.(dag.NamedVertex).Name())
 		// We need a prunable
 		pn, ok := v.(GraphNodeNoopPrunable)
 		if !ok {
@@ -75,10 +78,12 @@ func (t *PruneNoopTransformer) Transform(g *Graph) error {
 
 		// Determine if its a noop. If it isn't, just return
 		noop := pn.Noop(&NoopOpts{
-			Graph:  g,
-			Vertex: v,
-			Diff:   modDiff,
-			State:  modState,
+			Graph:    g,
+			Vertex:   v,
+			Diff:     t.Diff,
+			State:    t.State,
+			ModDiff:  modDiff,
+			ModState: modState,
 		})
 		if !noop {
 			return nil

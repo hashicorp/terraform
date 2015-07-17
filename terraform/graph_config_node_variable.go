@@ -75,6 +75,28 @@ func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 	return false
 }
 
+// GraphNodeNoopPrunable
+func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
+	// If we have no diff, always keep this in the graph. We have to do
+	// this primarily for validation: we want to validate that variable
+	// interpolations are valid even if there are no resources that
+	// depend on them.
+	if opts.Diff == nil || opts.Diff.Empty() {
+		return false
+	}
+
+	for _, v := range opts.Graph.UpEdges(opts.Vertex).List() {
+		// This is terrible, but I can't think of a better way to do this.
+		if dag.VertexName(v) == rootNodeName {
+			continue
+		}
+
+		return false
+	}
+
+	return true
+}
+
 // GraphNodeProxy impl.
 func (n *GraphNodeConfigVariable) Proxy() bool {
 	return true
