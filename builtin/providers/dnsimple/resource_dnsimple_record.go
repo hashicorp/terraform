@@ -19,6 +19,7 @@ func resourceDNSimpleRecord() *schema.Resource {
 			"domain": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"domain_id": &schema.Schema{
@@ -39,6 +40,7 @@ func resourceDNSimpleRecord() *schema.Resource {
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"value": &schema.Schema{
