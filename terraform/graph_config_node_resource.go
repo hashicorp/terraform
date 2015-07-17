@@ -249,6 +249,38 @@ func (n *GraphNodeConfigResource) DestroyNode(mode GraphNodeDestroyMode) GraphNo
 	return result
 }
 
+// GraphNodeNoopPrunable
+func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
+	// We don't have any noop optimizations for destroy nodes yet
+	if n.DestroyMode != DestroyNone {
+		return false
+	}
+
+	// If there is no diff, then we aren't a noop
+	if opts.Diff == nil || opts.Diff.Empty() {
+		return false
+	}
+
+	// If we have no module diff, we're certainly a noop
+	if opts.ModDiff == nil || opts.ModDiff.Empty() {
+		return true
+	}
+
+	// Grab the ID which is the prefix (in the case count > 0 at some point)
+	prefix := n.Resource.Id()
+
+	// Go through the diff and if there are any with our name on it, keep us
+	found := false
+	for k, _ := range opts.ModDiff.Resources {
+		if strings.HasPrefix(k, prefix) {
+			found = true
+			break
+		}
+	}
+
+	return !found
+}
+
 // Same as GraphNodeConfigResource, but for flattening
 type GraphNodeConfigResourceFlat struct {
 	*GraphNodeConfigResource
