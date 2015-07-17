@@ -335,6 +335,13 @@ func (n *graphNodeResourceDestroyFlat) CreateNode() dag.Vertex {
 	return n.FlatCreateNode
 }
 
+func (n *graphNodeResourceDestroyFlat) ProvidedBy() []string {
+	prefix := modulePrefixStr(n.PathValue)
+	return modulePrefixList(
+		n.GraphNodeConfigResource.ProvidedBy(),
+		prefix)
+}
+
 // graphNodeResourceDestroy represents the logical destruction of a
 // resource. This node doesn't mean it will be destroyed for sure, but
 // instead that if a destroy were to happen, it must happen at this point.
