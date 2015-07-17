@@ -572,6 +572,10 @@ func getInstanceSystemStatus(instance_id *string, meta interface{}) (string, err
 		return "", err
 	}
 
+	if len(output.InstanceStatuses) != 1 || output.InstanceStatuses[0].SystemStatus == nil {
+		return "", fmt.Errorf("Unexpected response while trying to describe instance status: %s", output)
+	}
+
 	status := output.InstanceStatuses[0]
 	return *status.SystemStatus.Status, nil
 }
