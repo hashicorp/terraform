@@ -130,7 +130,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 					provider, ok := pm[p]
 					if !ok {
 						err = multierror.Append(err, fmt.Errorf(
-							"%s: provider %s couldn't be found",
+							"%s: provider %s couldn't be found for closing",
 							dag.VertexName(v), p))
 						continue
 					}

@@ -894,6 +894,43 @@ func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
+	m := testModule(t, "apply-module-provider-close-nested")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root", "child", "subchild"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 	m := testModule(t, "apply-module-var-resource-count")
 	p := testProvider("aws")
