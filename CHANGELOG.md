@@ -7,16 +7,18 @@ FEATURES:
 
 BUG FIXES:
 
+  * core: don't prompt for variables with defaults [GH-2613]
+  * core: Return correct number of planned updates [GH-2620]
+  * core: Fix "provider not found" error that can occur while running
+      a destroy plan with grandchildren modules [GH-2755]
   * connection/ssh: fix issue on machines with an SSH Agent available
     preventing `key_file` from being read without explicitly
     setting `agent = false` [GH-2615]
-  * core: don't prompt for variables with defaults [GH-2613]
-  * core: Return correct number of planned updates [GH-2620]
   * provider/aws: Allow uppercase characters in `aws_elb.name` [GH-2580]
   * provider/aws: Allow underscores in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2604]
   * provider/aws: Allow dots in `aws_db_subnet_group.name` (undocumented by AWS) [GH-2665]
   * provider/aws: Fix issue with pending Spot Instance requests [GH-2640]
-  * provider/aws: Fix issue in AWS Classic environment with referencing external 
+  * provider/aws: Fix issue in AWS Classic environment with referencing external
       Security Groups [GH-2644]
   * provider/aws: Bump internet gateway detach timeout [GH-2669]
   * provider/aws: `ecs_cluster` rename (recreation) and deletion is handled correctly [GH-2698]
