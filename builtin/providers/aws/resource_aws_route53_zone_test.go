@@ -366,4 +366,12 @@ resource "aws_route53_record" "rr_test" {
   records = ["This is a test record set"]
 }
 
+resource "aws_route53_record" "rr_test2" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "test2"
+  type = "TXT"
+  ttl = "60"
+  records = ["This is a test record set #2"]
+}
+
 `

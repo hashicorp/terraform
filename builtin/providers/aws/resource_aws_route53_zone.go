@@ -376,7 +376,6 @@ func readRecordSets(d *schema.ResourceData, meta interface{}) ([]*route53.Resour
 
 	lopts := &route53.ListResourceRecordSetsInput{
 		HostedZoneID: aws.String(zone),
-		// StartRecordName: aws.String(en),
 	}
 
 	resp, err := conn.ListResourceRecordSets(lopts)
