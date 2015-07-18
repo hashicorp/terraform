@@ -148,6 +148,12 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 			},
 
+                        "instance_initiated_shutdown_behavior": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			        Default:  "stop",
+			},
+                                                                        
 			"monitoring": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -333,6 +339,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		IAMInstanceProfile:    instanceOpts.IAMInstanceProfile,
 		ImageID:               instanceOpts.ImageID,
 		InstanceType:          instanceOpts.InstanceType,
+		InstanceInitiatedShutdownBehavior: instanceOpts.InstanceInitiatedShutdownBehavior,
 		KeyName:               instanceOpts.KeyName,
 		MaxCount:              aws.Long(int64(1)),
 		MinCount:              aws.Long(int64(1)),
@@ -579,6 +586,19 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("instance_initiated_shutdown_behavior") {
+		log.Printf("[INFO] Modifying instance %s", d.Id())
+		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+			InstanceID: aws.String(d.Id()),
+			InstanceInitiatedShutdownBehavior: &ec2.AttributeValue{
+				Value: aws.String(d.Get("instance_initiated_shutdown_behavior").(string)),
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+	
 	// TODO(mitchellh): wait for the attributes we modified to
 	// persist the change...
 
@@ -864,6 +884,7 @@ type awsInstanceOpts struct {
 	IAMInstanceProfile    *ec2.IAMInstanceProfileSpecification
 	ImageID               *string
 	InstanceType          *string
+	InstanceInitiatedShutdownBehavior   *string
 	KeyName               *string
 	NetworkInterfaces     []*ec2.InstanceNetworkInterfaceSpecification
 	Placement             *ec2.Placement
@@ -884,6 +905,7 @@ func buildAwsInstanceOpts(
 		EBSOptimized:          aws.Boolean(d.Get("ebs_optimized").(bool)),
 		ImageID:               aws.String(d.Get("ami").(string)),
 		InstanceType:          aws.String(d.Get("instance_type").(string)),
+		InstanceInitiatedShutdownBehavior: aws.String(d.Get("instance_initiated_shutdown_behavior").(string)),
 	}
 
 	opts.Monitoring = &ec2.RunInstancesMonitoringEnabled{
