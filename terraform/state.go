@@ -104,25 +104,30 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 // returning their full paths. These paths can be used with ModuleByPath
 // to return the actual state.
 func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
+	// direct keeps track of what direct children we have both in our config
+	// and in our state. childrenKeys keeps track of what isn't an orphan.
+	direct := make(map[string]struct{})
 	childrenKeys := make(map[string]struct{})
 	if c != nil {
 		for _, m := range c.Modules {
 			childrenKeys[m.Name] = struct{}{}
+			direct[m.Name] = struct{}{}
 		}
 	}
 
 	// Go over the direct children and find any that aren't in our keys.
 	var orphans [][]string
-	direct := make(map[string]struct{}, len(childrenKeys))
 	for _, m := range s.Children(path) {
 		key := m.Path[len(m.Path)-1]
-		if _, ok := childrenKeys[key]; ok {
-			continue
-		}
 
 		// Record that we found this key as a direct child. We use this
 		// later to find orphan nested modules.
 		direct[key] = struct{}{}
+
+		// If we have a direct child still in our config, it is not an orphan
+		if _, ok := childrenKeys[key]; ok {
+			continue
+		}
 
 		orphans = append(orphans, m.Path)
 	}
@@ -140,7 +145,7 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 		}
 
 		// If we have the direct child, then just skip it.
-		key := m.Path[len(m.Path)-1]
+		key := m.Path[len(m.Path)-2]
 		if _, ok := direct[key]; ok {
 			continue
 		}
