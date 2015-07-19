@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -72,6 +73,7 @@ type AWSClient struct {
 	lambdaconn         *lambda.Lambda
 	opsworksconn       *opsworks.OpsWorks
 	glacierconn        *glacier.Glacier
+	codedeployconn     *codedeploy.CodeDeploy
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -197,6 +199,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing Glacier connection")
 		client.glacierconn = glacier.New(awsConfig)
+
+		log.Println("[INFO] Initializing CodeDeploy Connection")
+		client.codedeployconn = codedeploy.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
