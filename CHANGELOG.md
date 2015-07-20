@@ -5,6 +5,16 @@ FEATURES:
   * **New resource: `google_container_cluster`** [GH-2357]
   * **New resource: `aws_vpc_endpoint`** [GH-2695]
 
+IMPROVEMENTS:
+
+  * connection/ssh: Print SSH bastion host details to output [GH-2684]
+  * provider/aws: Create RDS databases from snapshots [GH-2062]
+  * provider/aws: Add support for restoring from Redis backup stored in S3 [GH-2634]
+  * provider/aws: Add `maintenance_window` to ElastiCache cluster [GH-2642]
+  * provider/aws: Availability Zones are optional when specifying VPC Zone Identifiers in
+      Auto Scaling Groups updates [GH-2724]
+  * provider/google: Add metadata_startup_script to google_compute_instance [GH-2375]
+
 BUG FIXES:
 
   * core: don't prompt for variables with defaults [GH-2613]
@@ -31,16 +41,7 @@ BUG FIXES:
   * provider/aws: `aws_route_table` ignores routes generated for VPC endpoints [GH-2695]
   * provider/aws: Fix issue with Launch Configurations and enable_monitoring [GH-2735]
   * provider/openstack: allow empty api_key and endpoint_type [GH-2626]
-
-IMPROVEMENTS:
-
-  * connection/ssh: Print SSH bastion host details to output [GH-2684]
-  * provider/aws: Create RDS databases from snapshots [GH-2062]
-  * provider/aws: Add support for restoring from Redis backup stored in S3 [GH-2634]
-  * provider/aws: Add `maintenance_window` to ElastiCache cluster [GH-2642]
-  * provider/aws: Availability Zones are optional when specifying VPC Zone Identifiers in
-      Auto Scaling Groups updates [GH-2724]
-  * provider/google: Add metadata_startup_script to google_compute_instance [GH-2375]
+  * provisioner/chef: Fix permission denied error with ohai hints [GH-2781]
 
 ## 0.6.0 (June 30, 2015)
 
