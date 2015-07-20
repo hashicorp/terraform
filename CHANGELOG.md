@@ -13,6 +13,8 @@ BUG FIXES:
       a destroy plan with grandchildren modules [GH-2755]
   * core: Fix UUID showing up in diff for computed splat (`foo.*.bar`)
       variables. [GH-2788]
+  * core: Orphan modules that contain no resources (only other modules)
+      are properly destroyed up to arbitrary depth [GH-2786]
   * connection/ssh: fix issue on machines with an SSH Agent available
     preventing `key_file` from being read without explicitly
     setting `agent = false` [GH-2615]
