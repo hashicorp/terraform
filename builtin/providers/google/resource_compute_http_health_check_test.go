@@ -116,7 +116,7 @@ func testAccCheckComputeHttpHealthCheckExists(n string, healthCheck *compute.Htt
 func testAccCheckComputeHttpHealthCheckRequestPath(path string, healthCheck *compute.HttpHealthCheck) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if healthCheck.RequestPath != path {
-			return fmt.Errorf("RequestPath doesn't match: expected %d, got %d", path, healthCheck.RequestPath)
+			return fmt.Errorf("RequestPath doesn't match: expected %s, got %s", path, healthCheck.RequestPath)
 		}
 
 		return nil

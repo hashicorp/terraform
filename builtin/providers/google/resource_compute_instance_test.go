@@ -476,10 +476,10 @@ resource "google_compute_instance" "foobar" {
 
 	metadata {
 		foo = "bar"
-	}
-	metadata {
 		baz = "qux"
 	}
+
+	metadata_startup_script = "echo Hello"
 }`
 
 const testAccComputeInstance_basic2 = `

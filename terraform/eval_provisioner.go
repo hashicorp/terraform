@@ -15,6 +15,17 @@ func (n *EvalInitProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	return ctx.InitProvisioner(n.Name)
 }
 
+// EvalCloseProvisioner is an EvalNode implementation that closes provisioner
+// connections that aren't needed anymore.
+type EvalCloseProvisioner struct {
+	Name string
+}
+
+func (n *EvalCloseProvisioner) Eval(ctx EvalContext) (interface{}, error) {
+	ctx.CloseProvisioner(n.Name)
+	return nil, nil
+}
+
 // EvalGetProvisioner is an EvalNode implementation that retrieves an already
 // initialized provisioner instance for the given name.
 type EvalGetProvisioner struct {

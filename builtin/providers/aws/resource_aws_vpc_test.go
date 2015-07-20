@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -66,7 +67,7 @@ func TestAccVpc_tags(t *testing.T) {
 					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
-					testAccCheckTagsSDK(&vpc.Tags, "foo", "bar"),
+					testAccCheckTags(&vpc.Tags, "foo", "bar"),
 				),
 			},
 
@@ -74,8 +75,8 @@ func TestAccVpc_tags(t *testing.T) {
 				Config: testAccVpcConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
-					testAccCheckTagsSDK(&vpc.Tags, "foo", ""),
-					testAccCheckTagsSDK(&vpc.Tags, "bar", "baz"),
+					testAccCheckTags(&vpc.Tags, "foo", ""),
+					testAccCheckTags(&vpc.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -133,11 +134,11 @@ func testAccCheckVpcDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if ec2err.Code != "InvalidVpcID.NotFound" {
+		if ec2err.Code() != "InvalidVpcID.NotFound" {
 			return err
 		}
 	}

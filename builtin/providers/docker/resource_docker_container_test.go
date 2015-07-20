@@ -53,7 +53,7 @@ func testAccContainerRunning(n string) resource.TestCheckFunc {
 
 const testAccDockerContainerConfig = `
 resource "docker_image" "foo" {
-	name = "ubuntu:trusty-20150320"
+	name = "nginx:latest"
 }
 
 resource "docker_container" "foo" {

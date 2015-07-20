@@ -6,8 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -185,7 +186,7 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Create tags.
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 
@@ -200,7 +201,7 @@ func vpnConnectionRefreshFunc(conn *ec2.EC2, connectionId string) resource.State
 		})
 
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on VPNConnectionRefresh: %s", err)
@@ -224,7 +225,7 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 		VPNConnectionIDs: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {
@@ -243,7 +244,7 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("vpn_gateway_id", vpnConnection.VPNGatewayID)
 	d.Set("customer_gateway_id", vpnConnection.CustomerGatewayID)
 	d.Set("type", vpnConnection.Type)
-	d.Set("tags", tagsToMapSDK(vpnConnection.Tags))
+	d.Set("tags", tagsToMap(vpnConnection.Tags))
 
 	if vpnConnection.Options != nil {
 		if err := d.Set("static_routes_only", vpnConnection.Options.StaticRoutesOnly); err != nil {
@@ -269,7 +270,7 @@ func resourceAwsVpnConnectionUpdate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ec2conn
 
 	// Update tags if required.
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 
@@ -285,7 +286,7 @@ func resourceAwsVpnConnectionDelete(d *schema.ResourceData, meta interface{}) er
 		VPNConnectionID: aws.String(d.Id()),
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {

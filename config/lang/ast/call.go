@@ -41,3 +41,7 @@ func (n *Call) Type(s Scope) (Type, error) {
 
 	return f.ReturnType, nil
 }
+
+func (n *Call) GoString() string {
+	return fmt.Sprintf("*%#v", *n)
+}

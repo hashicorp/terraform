@@ -24,9 +24,9 @@ resource "aws_db_subnet_group" "default" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the DB security group.
-* `description` - (Required) The description of the DB security group.
-* `subnet_ids` - (Required) A list of ingress rules.
+* `name` - (Required) The name of the DB subnet group.
+* `description` - (Required) The description of the DB subnet group.
+* `subnet_ids` - (Required) A list of VPC subnet IDs.
 
 ## Attributes Reference
 

@@ -6,8 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -170,8 +171,8 @@ func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 	_, err := conn.DeleteDBSecurityGroup(&opts)
 
 	if err != nil {
-		newerr, ok := err.(aws.APIError)
-		if ok && newerr.Code == "InvalidDBSecurityGroup.NotFound" {
+		newerr, ok := err.(awserr.Error)
+		if ok && newerr.Code() == "InvalidDBSecurityGroup.NotFound" {
 			return nil
 		}
 		return err

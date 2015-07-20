@@ -16,8 +16,10 @@ import (
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/autoscaler/v1beta2"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/replicapool/v1beta2"
+	"google.golang.org/api/storage/v1"
 )
 
 // Config is the configuration structure used to instantiate the Google
@@ -27,10 +29,12 @@ type Config struct {
 	Project     string
 	Region      string
 
+	clientAutoscaler *autoscaler.Service
 	clientCompute *compute.Service
+	clientContainer *container.Service
 	clientDns *dns.Service
 	clientReplicaPool *replicapool.Service
-	clientAutoscaler *autoscaler.Service
+	clientStorage *storage.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -59,7 +63,9 @@ func (c *Config) loadAndValidate() error {
 
 		clientScopes := []string{
 			"https://www.googleapis.com/auth/compute",
+			"https://www.googleapis.com/auth/cloud-platform",
 			"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
+			"https://www.googleapis.com/auth/devstorage.full_control",
 		}
 
 		// Get the token for use in our requests
@@ -112,6 +118,13 @@ func (c *Config) loadAndValidate() error {
 	}
 	c.clientCompute.UserAgent = userAgent
 
+	log.Printf("[INFO] Instantiating GKE client...")
+	c.clientContainer, err = container.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientContainer.UserAgent = userAgent
+
 	log.Printf("[INFO] Instantiating Google Cloud DNS client...")
 	c.clientDns, err = dns.New(client)
 	if err != nil {
@@ -132,6 +145,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientAutoscaler.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Storage Client...")
+	c.clientStorage, err = storage.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientStorage.UserAgent = userAgent
 
 	return nil
 }

@@ -2,9 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -33,6 +35,19 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8196-L8201
+					value := v.(string)
+					if len(value) > 128 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 128 characters", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+				},
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -59,6 +74,7 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 		Path:                aws.String(d.Get("path").(string)),
 	}
 
+	var err error
 	response, err := iamconn.CreateInstanceProfile(request)
 	if err == nil {
 		err = instanceProfileReadResult(d, response.InstanceProfile)
@@ -87,7 +103,7 @@ func instanceProfileRemoveRole(iamconn *iam.IAM, profileName, roleName string) e
 	}
 
 	_, err := iamconn.RemoveRoleFromInstanceProfile(request)
-	if iamerr, ok := err.(aws.APIError); ok && iamerr.Code == "NoSuchEntity" {
+	if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
 		return nil
 	}
 	return err
@@ -156,7 +172,7 @@ func resourceAwsIamInstanceProfileRead(d *schema.ResourceData, meta interface{})
 
 	result, err := iamconn.GetInstanceProfile(request)
 	if err != nil {
-		if iamerr, ok := err.(aws.APIError); ok && iamerr.Code == "NoSuchEntity" {
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
 			d.SetId("")
 			return nil
 		}

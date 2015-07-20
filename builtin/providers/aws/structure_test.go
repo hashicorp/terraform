@@ -4,11 +4,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/awslabs/aws-sdk-go/service/elb"
-	"github.com/awslabs/aws-sdk-go/service/rds"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -393,6 +394,32 @@ func TestexpandParameters(t *testing.T) {
 	}
 }
 
+func TestexpandElasticacheParameters(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":         "character_set_client",
+			"value":        "utf8",
+			"apply_method": "immediate",
+		},
+	}
+	parameters, err := expandElastiCacheParameters(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &elasticache.Parameter{
+		ParameterName:  aws.String("activerehashing"),
+		ParameterValue: aws.String("yes"),
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
 func TestflattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*rds.Parameter
@@ -416,6 +443,35 @@ func TestflattenParameters(t *testing.T) {
 
 	for _, tc := range cases {
 		output := flattenParameters(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
+}
+
+func TestflattenElasticacheParameters(t *testing.T) {
+	cases := []struct {
+		Input  []*elasticache.Parameter
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []*elasticache.Parameter{
+				&elasticache.Parameter{
+					ParameterName:  aws.String("activerehashing"),
+					ParameterValue: aws.String("yes"),
+				},
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"name":  "activerehashing",
+					"value": "yes",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenElastiCacheParameters(tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}

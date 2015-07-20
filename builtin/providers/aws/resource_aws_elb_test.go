@@ -7,8 +7,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -47,6 +48,26 @@ func TestAccAWSELB_basic(t *testing.T) {
 						"aws_elb.bar", "listener.206423021.lb_protocol", "http"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "cross_zone_load_balancing", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_fullCharacterRange(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBFullRangeOfCharacters,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "name", "FoobarTerraform-test123"),
 				),
 			},
 		},
@@ -361,6 +382,39 @@ func TestAccAWSELB_SecurityGroups(t *testing.T) {
 	})
 }
 
+// Unit test for listeners hash
+func TestResourceAwsElbListenerHash(t *testing.T) {
+	cases := map[string]struct {
+		Left  map[string]interface{}
+		Right map[string]interface{}
+		Match bool
+	}{
+		"protocols are case insensitive": {
+			map[string]interface{}{
+				"instance_port":     80,
+				"instance_protocol": "TCP",
+				"lb_port":           80,
+				"lb_protocol":       "TCP",
+			},
+			map[string]interface{}{
+				"instance_port":     80,
+				"instance_protocol": "Tcp",
+				"lb_port":           80,
+				"lb_protocol":       "tcP",
+			},
+			true,
+		},
+	}
+
+	for tn, tc := range cases {
+		leftHash := resourceAwsElbListenerHash(tc.Left)
+		rightHash := resourceAwsElbListenerHash(tc.Right)
+		if (leftHash == rightHash) != tc.Match {
+			t.Fatalf("%s: expected match: %t, but did not get it", tn, tc.Match)
+		}
+	}
+}
+
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elbconn
 
@@ -381,12 +435,12 @@ func testAccCheckAWSELBDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		providerErr, ok := err.(aws.APIError)
+		providerErr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 
-		if providerErr.Code != "InvalidLoadBalancerName.NotFound" {
+		if providerErr.Code() != "InvalidLoadBalancerName.NotFound" {
 			return fmt.Errorf("Unexpected error: %s", err)
 		}
 	}
@@ -512,7 +566,8 @@ resource "aws_elb" "bar" {
     instance_port = 8000
     instance_protocol = "http"
     lb_port = 80
-    lb_protocol = "http"
+    // Protocol should be case insensitive
+    lb_protocol = "HttP"
   }
 
 	tags {
@@ -520,6 +575,20 @@ resource "aws_elb" "bar" {
 	}
 
   cross_zone_load_balancing = true
+}
+`
+
+const testAccAWSELBFullRangeOfCharacters = `
+resource "aws_elb" "foo" {
+  name = "FoobarTerraform-test123"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
 }
 `
 

@@ -33,9 +33,7 @@ type fileLoaderFunc func(path string) (configurable, []string, error)
 func loadTree(root string) (*importTree, error) {
 	var f fileLoaderFunc
 	switch ext(root) {
-	case ".tf":
-		fallthrough
-	case ".tf.json":
+	case ".tf", ".tf.json":
 		f = loadFileHcl
 	default:
 	}

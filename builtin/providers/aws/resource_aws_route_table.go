@@ -6,8 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -147,6 +148,12 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 
+		if r.DestinationPrefixListID != nil {
+			// Skipping because VPC endpoint routes are handled separately
+			// See aws_vpc_endpoint
+			continue
+		}
+
 		m := make(map[string]interface{})
 
 		if r.DestinationCIDRBlock != nil {
@@ -170,7 +177,7 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("route", route)
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(rt.Tags))
+	d.Set("tags", tagsToMap(rt.Tags))
 
 	return nil
 }
@@ -224,8 +231,8 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				// If we get a Gateway.NotAttached, it is usually some
 				// eventually consistency stuff. So we have to just wait a
 				// bit...
-				ec2err, ok := err.(aws.APIError)
-				if ok && ec2err.Code == "Gateway.NotAttached" {
+				ec2err, ok := err.(awserr.Error)
+				if ok && ec2err.Code() == "Gateway.NotAttached" {
 					time.Sleep(20 * time.Second)
 					continue
 				}
@@ -289,7 +296,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -329,8 +336,8 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 		RouteTableID: aws.String(d.Id()),
 	})
 	if err != nil {
-		ec2err, ok := err.(aws.APIError)
-		if ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
+		ec2err, ok := err.(awserr.Error)
+		if ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
 			return nil
 		}
 
@@ -360,7 +367,10 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 func resourceAwsRouteTableHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["cidr_block"].(string)))
+
+	if v, ok := m["cidr_block"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
 
 	if v, ok := m["gateway_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
@@ -391,7 +401,7 @@ func resourceAwsRouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.St
 			RouteTableIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on RouteTableStateRefresh: %s", err)

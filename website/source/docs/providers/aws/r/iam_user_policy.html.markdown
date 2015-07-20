@@ -13,16 +13,6 @@ Provides an IAM policy attached to a user.
 ## Example Usage
 
 ```
-resource "aws_iam_user" "lb" {
-    name = "loadbalancer"
-    path = "/system/"
-}
-
-resource "aws_iam_access_key" "lb" {
-    user = "${aws_iam_user.lb.name}"
-    status = "Active"
-}
-
 resource "aws_iam_user_policy" "lb_ro" {
     name = "test"
     user = "${aws_iam_user.lb.name}"
@@ -40,6 +30,15 @@ resource "aws_iam_user_policy" "lb_ro" {
   ]
 }
 EOF
+}
+
+resource "aws_iam_user" "lb" {
+    name = "loadbalancer"
+    path = "/system/"
+}
+
+resource "aws_iam_access_key" "lb" {
+    user = "${aws_iam_user.lb.name}"
 }
 ```
 

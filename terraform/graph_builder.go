@@ -116,13 +116,11 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
-		&PruneProviderTransformer{},
 		&DisableProviderTransformer{},
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
 		&ProvisionerTransformer{},
-		&PruneProvisionerTransformer{},
 
 		// Run our vertex-level transforms
 		&VertexTransformer{
@@ -140,10 +138,6 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 		// Make sure all the connections that are proxies are connected through
 		&ProxyTransformer{},
 
-		// Optionally reduces the graph to a user-specified list of targets and
-		// their dependencies.
-		&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
-
 		// Make sure we have a single root
 		&RootTransformer{},
 	}
@@ -152,6 +146,16 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 	// We don't do the following for modules.
 	if len(path) <= 1 {
 		steps = append(steps,
+			// Optionally reduces the graph to a user-specified list of targets and
+			// their dependencies.
+			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
+
+			// Prune the providers and provisioners. This must happen
+			// only once because flattened modules might depend on empty
+			// providers.
+			&PruneProviderTransformer{},
+			&PruneProvisionerTransformer{},
+
 			// Create the destruction nodes
 			&DestroyTransformer{FullDestroy: b.Destroy},
 			&CreateBeforeDestroyTransformer{},
@@ -159,6 +163,10 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 				If:   func() bool { return !b.Verbose },
 				Then: &PruneDestroyTransformer{Diff: b.Diff, State: b.State},
 			}),
+
+			// Insert nodes to close opened plugin connections
+			&CloseProviderTransformer{},
+			&CloseProvisionerTransformer{},
 
 			// Make sure we have a single root after the above changes.
 			// This is the 2nd root transformer. In practice this shouldn't

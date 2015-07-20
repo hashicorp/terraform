@@ -256,6 +256,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 	})
 
 	// Apply
+	var err error
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
@@ -278,6 +279,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 					Diff:     &diff,
 					Provider: &provider,
 					Output:   &state,
+					Error:    &err,
 				},
 				&EvalWriteState{
 					Name:         n.ResourceName,
@@ -285,6 +287,11 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 					Provider:     n.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
+				},
+				&EvalApplyPost{
+					Info:  info,
+					State: &state,
+					Error: &err,
 				},
 				&EvalUpdateStateHook{},
 			},
@@ -296,6 +303,24 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 
 func (n *graphNodeOrphanResource) dependableName() string {
 	return n.ResourceName
+}
+
+// GraphNodeDestroyable impl.
+func (n *graphNodeOrphanResource) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
+	if mode != DestroyPrimary {
+		return nil
+	}
+
+	return n
+}
+
+// GraphNodeDestroy impl.
+func (n *graphNodeOrphanResource) CreateBeforeDestroy() bool {
+	return false
+}
+
+func (n *graphNodeOrphanResource) CreateNode() dag.Vertex {
+	return n
 }
 
 // Same as graphNodeOrphanResource, but for flattening
@@ -312,4 +337,22 @@ func (n *graphNodeOrphanResourceFlat) Name() string {
 
 func (n *graphNodeOrphanResourceFlat) Path() []string {
 	return n.PathValue
+}
+
+// GraphNodeDestroyable impl.
+func (n *graphNodeOrphanResourceFlat) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
+	if mode != DestroyPrimary {
+		return nil
+	}
+
+	return n
+}
+
+// GraphNodeDestroy impl.
+func (n *graphNodeOrphanResourceFlat) CreateBeforeDestroy() bool {
+	return false
+}
+
+func (n *graphNodeOrphanResourceFlat) CreateNode() dag.Vertex {
+	return n
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSProxyProtocolPolicy(t *testing.T) {
+func TestAccAWSProxyProtocolPolicy_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

@@ -9,11 +9,12 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/rds"
 )
 
-func TestAccAWSDBInstance(t *testing.T) {
+func TestAccAWSDBInstance_basic(t *testing.T) {
 	var v rds.DBInstance
 
 	resource.Test(t, resource.TestCase{
@@ -33,6 +34,8 @@ func TestAccAWSDBInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "engine_version", "5.6.21"),
 					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "license_model", "general-public-license"),
+					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "name", "baz"),
@@ -40,6 +43,26 @@ func TestAccAWSDBInstance(t *testing.T) {
 						"aws_db_instance.bar", "username", "foo"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstanceReplica(t *testing.T) {
+	var s, r rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccReplicaInstanceConfig(rand.New(rand.NewSource(time.Now().UnixNano())).Int()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &s),
+					testAccCheckAWSDBInstanceExists("aws_db_instance.replica", &r),
+					testAccCheckAWSDBInstanceReplicaAttributes(&s, &r),
 				),
 			},
 		},
@@ -55,6 +78,7 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the Group
+		var err error
 		resp, err := conn.DescribeDBInstances(
 			&rds.DescribeDBInstancesInput{
 				DBInstanceIdentifier: aws.String(rs.Primary.ID),
@@ -68,11 +92,11 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		newerr, ok := err.(*aws.APIError)
+		newerr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if newerr.Code != "InvalidDBInstance.NotFound" {
+		if newerr.Code() != "InvalidDBInstance.NotFound" {
 			return err
 		}
 	}
@@ -93,6 +117,17 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 
 		if *v.BackupRetentionPeriod != 0 {
 			return fmt.Errorf("bad backup_retention_period: %#v", *v.BackupRetentionPeriod)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSDBInstanceReplicaAttributes(source, replica *rds.DBInstance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if replica.ReadReplicaSourceDBInstanceIdentifier != nil && *replica.ReadReplicaSourceDBInstanceIdentifier != *source.DBInstanceIdentifier {
+			return fmt.Errorf("bad source identifier for replica, expected: '%s', got: '%s'", *source.DBInstanceIdentifier, *replica.ReadReplicaSourceDBInstanceIdentifier)
 		}
 
 		return nil
@@ -152,3 +187,38 @@ resource "aws_db_instance" "bar" {
 
 	parameter_group_name = "default.mysql5.6"
 }`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
+func testAccReplicaInstanceConfig(val int) string {
+	return fmt.Sprintf(`
+	resource "aws_db_instance" "bar" {
+		identifier = "foobarbaz-test-terraform-%d"
+
+		allocated_storage = 5
+		engine = "mysql"
+		engine_version = "5.6.21"
+		instance_class = "db.t1.micro"
+		name = "baz"
+		password = "barbarbarbar"
+		username = "foo"
+
+		backup_retention_period = 1
+
+		parameter_group_name = "default.mysql5.6"
+	}
+	
+	resource "aws_db_instance" "replica" {
+	  identifier = "tf-replica-db-%d"
+		backup_retention_period = 0
+		replicate_source_db = "${aws_db_instance.bar.identifier}"
+		allocated_storage = "${aws_db_instance.bar.allocated_storage}"
+		engine = "${aws_db_instance.bar.engine}"
+		engine_version = "${aws_db_instance.bar.engine_version}"
+		instance_class = "${aws_db_instance.bar.instance_class}"
+		password = "${aws_db_instance.bar.password}"
+		username = "${aws_db_instance.bar.username}"
+		tags {
+			Name = "tf-replica-db"
+		}
+	}
+	`, val, val)
+}

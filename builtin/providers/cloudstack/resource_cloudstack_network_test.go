@@ -140,13 +140,9 @@ func testAccCheckCloudStackNetworkDestroy(s *terraform.State) error {
 			return fmt.Errorf("No network ID is set")
 		}
 
-		p := cs.Network.NewDeleteNetworkParams(rs.Primary.ID)
-		_, err := cs.Network.DeleteNetwork(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting network (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.Network.GetNetworkByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Network %s still exists", rs.Primary.ID)
 		}
 	}
 

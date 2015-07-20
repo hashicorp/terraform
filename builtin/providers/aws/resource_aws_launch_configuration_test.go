@@ -7,11 +7,32 @@ import (
 	"testing"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestAccAWSLaunchConfiguration_basic(t *testing.T) {
+	var conf autoscaling.LaunchConfiguration
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSLaunchConfigurationNoNameConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
+					testAccCheckAWSLaunchConfigurationGeneratedNamePrefix(
+						"aws_launch_configuration.bar", "terraform-"),
+				),
+			},
+		},
+	})
+}
 
 func TestAccAWSLaunchConfiguration_withBlockDevices(t *testing.T) {
 	var conf autoscaling.LaunchConfiguration
@@ -60,26 +81,6 @@ func TestAccAWSLaunchConfiguration_withSpotPrice(t *testing.T) {
 	})
 }
 
-func TestAccAWSLaunchConfiguration_withGeneratedName(t *testing.T) {
-	var conf autoscaling.LaunchConfiguration
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSLaunchConfigurationNoNameConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
-					testAccCheckAWSLaunchConfigurationGeneratedNamePrefix(
-						"aws_launch_configuration.bar", "terraform-"),
-				),
-			},
-		},
-	})
-}
-
 func testAccCheckAWSLaunchConfigurationGeneratedNamePrefix(
 	resource, prefix string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -119,11 +120,11 @@ func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		providerErr, ok := err.(aws.APIError)
+		providerErr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if providerErr.Code != "InvalidLaunchConfiguration.NotFound" {
+		if providerErr.Code() != "InvalidLaunchConfiguration.NotFound" {
 			return err
 		}
 	}

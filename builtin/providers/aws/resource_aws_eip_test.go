@@ -5,13 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEIP_normal(t *testing.T) {
+func TestAccAWSEIP_basic(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
@@ -98,12 +99,12 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		providerErr, ok := err.(aws.APIError)
+		providerErr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 
-		if providerErr.Code != "InvalidAllocationID.NotFound" {
+		if providerErr.Code() != "InvalidAllocationID.NotFound" {
 			return fmt.Errorf("Unexpected error: %s", err)
 		}
 	}

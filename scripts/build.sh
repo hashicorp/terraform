@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This script builds the application from source for multiple platforms.
-set -e
 
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"

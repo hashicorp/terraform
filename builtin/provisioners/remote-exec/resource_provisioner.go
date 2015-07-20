@@ -51,11 +51,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	num := 0
 	for name := range c.Raw {
 		switch name {
-		case "scripts":
-			fallthrough
-		case "script":
-			fallthrough
-		case "inline":
+		case "scripts", "script", "inline":
 			num++
 		default:
 			es = append(es, fmt.Errorf("Unknown configuration '%s'", name))

@@ -105,6 +105,12 @@ func (t *DestroyTransformer) transform(
 		nodeToCn[n] = cn
 		nodeToDn[cn] = n
 
+		// If the creation node is equal to the destroy node, then
+		// don't do any of the edge jump rope below.
+		if n.(interface{}) == cn.(interface{}) {
+			continue
+		}
+
 		// Add it to the graph
 		g.Add(n)
 
@@ -193,6 +199,14 @@ func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
 		// This ensures that.
 		for _, sourceRaw := range g.UpEdges(cn).List() {
 			source := sourceRaw.(dag.Vertex)
+
+			// If the graph has a "root" node (one added by a RootTransformer and not
+			// just a resource that happens to have no ancestors), we don't want to
+			// add any edges to it, because then it ceases to be a root.
+			if _, ok := source.(graphNodeRoot); ok {
+				continue
+			}
+
 			connect = append(connect, dag.BasicEdge(dn, source))
 		}
 

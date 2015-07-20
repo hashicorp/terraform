@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -100,11 +101,19 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 
 	pc := pcRaw.(*ec2.VPCPeeringConnection)
 
+	// The failed status is a status that we can assume just means the
+	// connection is gone. Destruction isn't allowed, and it eventually
+	// just "falls off" the console. See GH-2322
+	if *pc.Status.Code == "failed" {
+		d.SetId("")
+		return nil
+	}
+
 	d.Set("accept_status", *pc.Status.Code)
 	d.Set("peer_owner_id", pc.AccepterVPCInfo.OwnerID)
 	d.Set("peer_vpc_id", pc.AccepterVPCInfo.VPCID)
 	d.Set("vpc_id", pc.RequesterVPCInfo.VPCID)
-	d.Set("tags", tagsToMapSDK(pc.Tags))
+	d.Set("tags", tagsToMap(pc.Tags))
 
 	return nil
 }
@@ -125,7 +134,7 @@ func resourceVPCPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error
 func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -179,7 +188,7 @@ func resourceAwsVPCPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) r
 			VPCPeeringConnectionIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpcPeeringConnectionID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpcPeeringConnectionID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on VPCPeeringConnectionStateRefresh: %s", err)

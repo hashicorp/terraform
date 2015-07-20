@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSSecurityGroup_normal(t *testing.T) {
+func TestAccAWSSecurityGroup_basic(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
@@ -310,12 +311,12 @@ func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 		// Confirm error code is what we want
-		if ec2err.Code != "InvalidGroup.NotFound" {
+		if ec2err.Code() != "InvalidGroup.NotFound" {
 			return err
 		}
 	}
@@ -428,7 +429,7 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTagsSDK(&group.Tags, "foo", "bar"),
+					testAccCheckTags(&group.Tags, "foo", "bar"),
 				),
 			},
 
@@ -436,8 +437,8 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTagsSDK(&group.Tags, "foo", ""),
-					testAccCheckTagsSDK(&group.Tags, "bar", "baz"),
+					testAccCheckTags(&group.Tags, "foo", ""),
+					testAccCheckTags(&group.Tags, "bar", "baz"),
 				),
 			},
 		},

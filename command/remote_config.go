@@ -368,6 +368,8 @@ Options:
   -state=path            Path to read state. Defaults to "terraform.tfstate"
                          unless remote state is enabled.
 
+  -no-color              If specified, output won't contain any color.
+
 `
 	return strings.TrimSpace(helpText)
 }

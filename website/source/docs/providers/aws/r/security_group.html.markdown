@@ -28,14 +28,14 @@ resource "aws_security_group" "allow_all" {
 
   ingress {
       from_port = 0
-      to_port = 65535
+      to_port = 0
       protocol = "-1"
       cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
       from_port = 0
-      to_port = 65535
+      to_port = 0
       protocol = "-1"
       cidr_blocks = ["0.0.0.0/0"]
   }
@@ -112,7 +112,7 @@ be in place, you can use this `egress` block:
       from_port = 0
       to_port = 0
       protocol = "-1"
-      cidr_block = "0.0.0.0/0"
+      cidr_blocks = ["0.0.0.0/0"]
     }
 
 ## Attributes Reference

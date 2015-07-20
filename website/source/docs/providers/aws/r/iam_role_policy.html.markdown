@@ -13,6 +13,24 @@ Provides an IAM role policy.
 ## Example Usage
 
 ```
+resource "aws_iam_role_policy" "test_policy" {
+    name = "test_policy"
+    role = "${aws_iam_role.test_role.id}"
+    policy = <<EOF
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Action": "sts:AssumeRole",
+            "Principal": {"AWS": "*"},
+            "Effect": "Allow",
+            "Sid": ""
+        }
+    ]
+}
+EOF
+}
+
 resource "aws_iam_role" "test_role" {
     name = "test_role"
     assume_role_policy = <<EOF
@@ -31,23 +49,6 @@ resource "aws_iam_role" "test_role" {
 }
 EOF
 }
-
-resource "aws_iam_role_policy" "test_policy" {
-    name = "test_policy"
-    role = "${aws_iam_role.test_role.id}"
-    policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "ec2:Describe*"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
-    }
-  ]
-}
 ```
 
 ## Argument Reference
@@ -56,7 +57,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the role policy.
 * `policy` - (Required) The policy document. This is a JSON formatted string.
-  The heredoc syntax or `file` funciton is helpful here.
+  The heredoc syntax or `file` function is helpful here.
 * `role` - (Required) The IAM role to attach to the policy.
 
 ## Attributes Reference

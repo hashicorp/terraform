@@ -5,8 +5,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -82,13 +83,19 @@ func resourceAwsVpnConnectionRouteRead(d *schema.ResourceData, meta interface{})
 		Filters: routeFilters,
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {
 			log.Printf("[ERROR] Error finding VPN connection route: %s", err)
 			return err
 		}
+	}
+	if resp == nil || len(resp.VPNConnections) == 0 {
+		// This is kind of a weird edge case. I'd rather return an error
+		// instead of just blindly setting the ID to ""... since I don't know
+		// what might cause this.
+		return fmt.Errorf("No VPN connections returned")
 	}
 
 	vpnConnection := resp.VPNConnections[0]
@@ -117,7 +124,7 @@ func resourceAwsVpnConnectionRouteDelete(d *schema.ResourceData, meta interface{
 		VPNConnectionID:      aws.String(d.Get("vpn_connection_id").(string)),
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {

@@ -581,6 +581,35 @@ func TestRefresh_disableBackup(t *testing.T) {
 	}
 }
 
+func TestRefresh_displaysOutputs(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh-output"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	outputValue := "foo.example.com"
+	actual := ui.OutputWriter.String()
+	if !strings.Contains(actual, outputValue) {
+		t.Fatalf("Expected:\n%s\n\nTo include: %q", actual, outputValue)
+	}
+}
+
 const refreshVarFile = `
 foo = "bar"
 `

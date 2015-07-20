@@ -178,7 +178,7 @@ func graphDotFindOrigins(g *Graph) ([]dag.Vertex, error) {
 	}
 
 	if len(origin) == 0 {
-		return nil, fmt.Errorf("No DOT origin nodes found.\nGraph: %s", g)
+		return nil, fmt.Errorf("No DOT origin nodes found.\nGraph: %s", g.String())
 	}
 
 	return origin, nil
