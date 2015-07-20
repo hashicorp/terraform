@@ -11,6 +11,8 @@ BUG FIXES:
   * core: Return correct number of planned updates [GH-2620]
   * core: Fix "provider not found" error that can occur while running
       a destroy plan with grandchildren modules [GH-2755]
+  * core: Fix UUID showing up in diff for computed splat (`foo.*.bar`)
+      variables. [GH-2788]
   * connection/ssh: fix issue on machines with an SSH Agent available
     preventing `key_file` from being read without explicitly
     setting `agent = false` [GH-2615]
