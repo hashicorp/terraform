@@ -256,12 +256,15 @@ func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
 		return false
 	}
 
-	// If there is no diff, then we aren't a noop
+	// If there is no diff, then we aren't a noop since something needs to
+	// be done (such as a plan). We only check if we're a noop in a diff.
 	if opts.Diff == nil || opts.Diff.Empty() {
 		return false
 	}
 
-	// If we have no module diff, we're certainly a noop
+	// If we have no module diff, we're certainly a noop. This is because
+	// it means there is a diff, and that the module we're in just isn't
+	// in it, meaning we're not doing anything.
 	if opts.ModDiff == nil || opts.ModDiff.Empty() {
 		return true
 	}
