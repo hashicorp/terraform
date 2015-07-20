@@ -164,6 +164,9 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 				Then: &PruneDestroyTransformer{Diff: b.Diff, State: b.State},
 			}),
 
+			// Remove the noop nodes
+			&PruneNoopTransformer{Diff: b.Diff, State: b.State},
+
 			// Insert nodes to close opened plugin connections
 			&CloseProviderTransformer{},
 			&CloseProvisionerTransformer{},
