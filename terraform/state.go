@@ -145,7 +145,7 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 		}
 
 		// If we have the direct child, then just skip it.
-		key := m.Path[len(m.Path)-2]
+		key := m.Path[len(path)]
 		if _, ok := direct[key]; ok {
 			continue
 		}
