@@ -40,9 +40,11 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_network": resourceComputeNetwork(),
 			"google_compute_route": resourceComputeRoute(),
 			"google_compute_target_pool": resourceComputeTargetPool(),
+			"google_container_cluster": resourceContainerCluster(),
 			"google_dns_managed_zone": resourceDnsManagedZone(),
 			"google_dns_record_set": resourceDnsRecordSet(),
 			"google_replicapool_instance_group_manager": resourceReplicaPoolInstanceGroupManager(),
+			"google_storage_bucket": resourceStorageBucket(),
 		},
 
 		ConfigureFunc: providerConfigure,

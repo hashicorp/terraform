@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -90,7 +91,7 @@ func resourceAwsLBCookieStickinessPolicyRead(d *schema.ResourceData, meta interf
 
 	getResp, err := elbconn.DescribeLoadBalancerPolicies(request)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "PolicyNotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "PolicyNotFound" {
 			// The policy is gone.
 			d.SetId("")
 			return nil

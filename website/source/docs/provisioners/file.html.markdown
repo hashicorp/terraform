@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Provisioner: file"
 sidebar_current: "docs-provisioners-file"
 description: |-
-  The `file` provisioner is used to copy files or directories from the machine executing Terraform to the newly created resource. The `file` provisioner only supports `ssh` type connections.
+  The `file` provisioner is used to copy files or directories from the machine executing Terraform to the newly created resource. The `file` provisioner supports both `ssh` and `winrm` type connections.
 ---
 
 # File Provisioner

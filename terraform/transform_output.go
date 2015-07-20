@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/dag"
 )
 
 // GraphNodeOutput is an interface that nodes that are outputs must
@@ -59,6 +61,34 @@ func (n *graphNodeOrphanOutput) Name() string {
 }
 
 func (n *graphNodeOrphanOutput) EvalTree() EvalNode {
+	return &EvalOpFilter{
+		Ops: []walkOperation{walkApply, walkRefresh},
+		Node: &EvalDeleteOutput{
+			Name: n.OutputName,
+		},
+	}
+}
+
+// GraphNodeFlattenable impl.
+func (n *graphNodeOrphanOutput) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeOrphanOutputFlat{
+		graphNodeOrphanOutput: n,
+		PathValue:             p,
+	}, nil
+}
+
+type graphNodeOrphanOutputFlat struct {
+	*graphNodeOrphanOutput
+
+	PathValue []string
+}
+
+func (n *graphNodeOrphanOutputFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeOrphanOutput.Name())
+}
+
+func (n *graphNodeOrphanOutputFlat) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkRefresh},
 		Node: &EvalDeleteOutput{

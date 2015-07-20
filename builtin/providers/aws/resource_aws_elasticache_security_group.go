@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -125,12 +126,12 @@ func resourceAwsElasticacheSecurityGroupDelete(d *schema.ResourceData, meta inte
 			CacheSecurityGroupName: aws.String(d.Id()),
 		})
 		if err != nil {
-			apierr, ok := err.(aws.APIError)
+			apierr, ok := err.(awserr.Error)
 			if !ok {
 				return err
 			}
 			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code)
-			switch apierr.Code {
+			switch apierr.Code() {
 			case "InvalidCacheSecurityGroupState":
 				return err
 			case "DependencyViolation":

@@ -13,14 +13,13 @@ Provides an IAM access key. This is a set of credentials that allow API requests
 ## Example Usage
 
 ```
+resource "aws_iam_access_key" "lb" {
+    user = "${aws_iam_user.lb.name}"
+}
+
 resource "aws_iam_user" "lb" {
     name = "loadbalancer"
     path = "/system/"
-}
-
-resource "aws_iam_access_key" "lb" {
-    user = "${aws_iam_user.lb.name}"
-    status = "Active"
 }
 
 resource "aws_iam_user_policy" "lb_ro" {

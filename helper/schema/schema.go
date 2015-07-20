@@ -131,6 +131,14 @@ type Schema struct {
 	// This string is the message shown to the user with instructions on
 	// what do to about the removed attribute.
 	Removed string
+
+	// ValidateFunc allows individual fields to define arbitrary validation
+	// logic. It is yielded the provided config value as an interface{} that is
+	// guaranteed to be of the proper Schema type, and it can yield warnings or
+	// errors based on inspection of that value.
+	//
+	// ValidateFunc currently only works for primitive types.
+	ValidateFunc SchemaValidateFunc
 }
 
 // SchemaDefaultFunc is a function called to return a default value for
@@ -172,6 +180,10 @@ type SchemaSetFunc func(interface{}) int
 // SchemaStateFunc is a function used to convert some type to a string
 // to be stored in the state.
 type SchemaStateFunc func(interface{}) string
+
+// SchemaValidateFunc is a function used to validate a single field in the
+// schema.
+type SchemaValidateFunc func(interface{}, string) ([]string, []error)
 
 func (s *Schema) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
@@ -378,13 +390,7 @@ func (m schemaMap) Input(
 
 		var value interface{}
 		switch v.Type {
-		case TypeBool:
-			fallthrough
-		case TypeInt:
-			fallthrough
-		case TypeFloat:
-			fallthrough
-		case TypeSet:
+		case TypeBool, TypeInt, TypeFloat, TypeSet:
 			continue
 		case TypeString:
 			value, err = m.inputString(input, k, v)
@@ -509,6 +515,13 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 				}
 			}
 		}
+
+		if v.ValidateFunc != nil {
+			switch v.Type {
+			case TypeList, TypeSet, TypeMap:
+				return fmt.Errorf("ValidateFunc is only supported on primitives.")
+			}
+		}
 	}
 
 	return nil
@@ -522,13 +535,7 @@ func (m schemaMap) diff(
 	all bool) error {
 	var err error
 	switch schema.Type {
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeFloat:
-		fallthrough
-	case TypeString:
+	case TypeBool, TypeInt, TypeFloat, TypeString:
 		err = m.diffString(k, schema, diff, d, all)
 	case TypeList:
 		err = m.diffList(k, schema, diff, d, all)
@@ -835,39 +842,46 @@ func (m schemaMap) diffSet(
 		})
 	}
 
-	for _, code := range ns.listCode() {
-		// If the code is negative (first character is -) then
-		// replace it with "~" for our computed set stuff.
-		codeStr := strconv.Itoa(code)
-		if codeStr[0] == '-' {
-			codeStr = string('~') + codeStr[1:]
-		}
+	// Build the list of codes that will make up our set. This is the
+	// removed codes as well as all the codes in the new codes.
+	codes := make([][]int, 2)
+	codes[0] = os.Difference(ns).listCode()
+	codes[1] = ns.listCode()
+	for _, list := range codes {
+		for _, code := range list {
+			// If the code is negative (first character is -) then
+			// replace it with "~" for our computed set stuff.
+			codeStr := strconv.Itoa(code)
+			if codeStr[0] == '-' {
+				codeStr = string('~') + codeStr[1:]
+			}
 
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			// This is a complex resource
-			for k2, schema := range t.Schema {
-				subK := fmt.Sprintf("%s.%s.%s", k, codeStr, k2)
-				err := m.diff(subK, schema, diff, d, true)
+			switch t := schema.Elem.(type) {
+			case *Resource:
+				// This is a complex resource
+				for k2, schema := range t.Schema {
+					subK := fmt.Sprintf("%s.%s.%s", k, codeStr, k2)
+					err := m.diff(subK, schema, diff, d, true)
+					if err != nil {
+						return err
+					}
+				}
+			case *Schema:
+				// Copy the schema so that we can set Computed/ForceNew from
+				// the parent schema (the TypeSet).
+				t2 := *t
+				t2.ForceNew = schema.ForceNew
+
+				// This is just a primitive element, so go through each and
+				// just diff each.
+				subK := fmt.Sprintf("%s.%s", k, codeStr)
+				err := m.diff(subK, &t2, diff, d, true)
 				if err != nil {
 					return err
 				}
+			default:
+				return fmt.Errorf("%s: unknown element type (internal)", k)
 			}
-		case *Schema:
-			// Copy the schema so that we can set Computed/ForceNew from
-			// the parent schema (the TypeSet).
-			t2 := *t
-			t2.ForceNew = schema.ForceNew
-
-			// This is just a primitive element, so go through each and
-			// just diff each.
-			subK := fmt.Sprintf("%s.%s", k, codeStr)
-			err := m.diff(subK, &t2, diff, d, true)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("%s: unknown element type (internal)", k)
 		}
 	}
 
@@ -1089,6 +1103,13 @@ func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+	raw, _ := c.GetRaw(k)
+	if _, ok := raw.(map[string]interface{}); !ok {
+		return nil, []error{fmt.Errorf(
+			"%s: expected object, got %s",
+			k, reflect.ValueOf(raw).Kind())}
+	}
+
 	var ws []string
 	var es []error
 	for subK, s := range schema {
@@ -1107,7 +1128,6 @@ func (m schemaMap) validateObject(
 	}
 
 	// Detect any extra/unknown keys and report those as errors.
-	raw, _ := c.GetRaw(k)
 	if m, ok := raw.(map[string]interface{}); ok {
 		for subk, _ := range m {
 			if _, ok := schema[subk]; !ok {
@@ -1130,6 +1150,7 @@ func (m schemaMap) validatePrimitive(
 		return nil, nil
 	}
 
+	var decoded interface{}
 	switch schema.Type {
 	case TypeBool:
 		// Verify that we can parse this as the correct type
@@ -1137,26 +1158,34 @@ func (m schemaMap) validatePrimitive(
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeString:
 		// Verify that we can parse this as a string
 		var n string
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	default:
 		panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
+	}
+
+	if schema.ValidateFunc != nil {
+		return schema.ValidateFunc(decoded, k)
 	}
 
 	return nil, nil
@@ -1170,9 +1199,7 @@ func (m schemaMap) validateType(
 	var ws []string
 	var es []error
 	switch schema.Type {
-	case TypeSet:
-		fallthrough
-	case TypeList:
+	case TypeSet, TypeList:
 		ws, es = m.validateList(k, raw, schema, c)
 	case TypeMap:
 		ws, es = m.validateMap(k, raw, schema, c)

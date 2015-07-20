@@ -7,8 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -27,6 +28,14 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"description": &schema.Schema{
@@ -34,6 +43,14 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"vpc_id": &schema.Schema{
@@ -166,6 +183,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	securityGroupOpts.GroupName = aws.String(groupName)
 
+	var err error
 	log.Printf(
 		"[DEBUG] Security Group create configuration: %#v", securityGroupOpts)
 	createResp, err := conn.CreateSecurityGroup(securityGroupOpts)
@@ -251,7 +269,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("owner_id", sg.OwnerID)
 	d.Set("ingress", ingressRules)
 	d.Set("egress", egressRules)
-	d.Set("tags", tagsToMapSDK(sg.Tags))
+	d.Set("tags", tagsToMap(sg.Tags))
 	return nil
 }
 
@@ -281,7 +299,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 
@@ -300,12 +318,12 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 			GroupID: aws.String(d.Id()),
 		})
 		if err != nil {
-			ec2err, ok := err.(aws.APIError)
+			ec2err, ok := err.(awserr.Error)
 			if !ok {
 				return err
 			}
 
-			switch ec2err.Code {
+			switch ec2err.Code() {
 			case "InvalidGroup.NotFound":
 				return nil
 			case "DependencyViolation":
@@ -530,9 +548,9 @@ func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		}
 		resp, err := conn.DescribeSecurityGroups(req)
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok {
-				if ec2err.Code == "InvalidSecurityGroupID.NotFound" ||
-					ec2err.Code == "InvalidGroup.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok {
+				if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
+					ec2err.Code() == "InvalidGroup.NotFound" {
 					resp = nil
 					err = nil
 				}

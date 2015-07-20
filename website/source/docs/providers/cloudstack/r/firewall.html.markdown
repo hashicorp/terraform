@@ -28,8 +28,8 @@ resource "cloudstack_firewall" "default" {
 
 The following arguments are supported:
 
-* `ipaddress` - (Required) The IP address for which to create the firewall rules.
-    Changing this forces a new resource to be created.
+* `ipaddress` - (Required) The IP address or ID for which to create the firewall
+    rules. Changing this forces a new resource to be created.
 
 * `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
     this IP address will be managed by this resource. This means it will delete

@@ -388,6 +388,35 @@ func TestResourceRefresh(t *testing.T) {
 	}
 }
 
+func TestResourceRefresh_blankId(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	r.Read = func(d *ResourceData, m interface{}) error {
+		d.SetId("foo")
+		return nil
+	}
+
+	s := &terraform.InstanceState{
+		ID:         "",
+		Attributes: map[string]string{},
+	}
+
+	actual, err := r.Refresh(s, 42)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceRefresh_delete(t *testing.T) {
 	r := &Resource{
 		Schema: map[string]*Schema{

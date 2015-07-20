@@ -8,7 +8,10 @@ description: |-
 
 # aws\_db\_security\_group
 
-Provides an RDS security group resource.
+Provides an RDS security group resource. This is only for DB instances in the
+EC2-Classic Platform. For instances inside a VPC, use the
+[`aws_db_instance.vpc_security_group_ids`](/docs/providers/aws/r/db_instance.html#vpc_security_group_ids)
+attribute instead.
 
 ## Example Usage
 

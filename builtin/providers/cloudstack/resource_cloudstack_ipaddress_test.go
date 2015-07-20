@@ -103,13 +103,9 @@ func testAccCheckCloudStackIPAddressDestroy(s *terraform.State) error {
 			return fmt.Errorf("No IP address ID is set")
 		}
 
-		p := cs.Address.NewDisassociateIpAddressParams(rs.Primary.ID)
-		_, err := cs.Address.DisassociateIpAddress(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error disassociating IP address (%s): %s",
-				rs.Primary.ID, err)
+		ip, _, err := cs.Address.GetPublicIpAddressByID(rs.Primary.ID)
+		if err == nil && ip.Associatednetworkid != "" {
+			return fmt.Errorf("Public IP %s still associated", rs.Primary.ID)
 		}
 	}
 

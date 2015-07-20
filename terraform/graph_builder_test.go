@@ -154,6 +154,49 @@ func TestBuiltinGraphBuilder_multiLevelModule(t *testing.T) {
 	}
 }
 
+func TestBuiltinGraphBuilder_orphanDeps(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+
+					"aws_instance.bar": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"aws_instance.foo"},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-orphan-deps"),
+		State:    state,
+		Validate: true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testBuiltinGraphBuilderOrphanDepsStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 /*
 TODO: This exposes a really bad bug we need to fix after we merge
 the f-ast-branch. This bug still exists in master.
@@ -196,6 +239,8 @@ aws_instance.db
 aws_instance.web
   aws_instance.db
 provider.aws
+provider.aws (close)
+  aws_instance.web
 `
 
 const testBuiltinGraphBuilderVerboseStr = `
@@ -213,8 +258,38 @@ aws_instance.web (destroy tainted)
 aws_instance.web (destroy)
   provider.aws
 provider.aws
+provider.aws (close)
+  aws_instance.web
 `
 
+const testBuiltinGraphBuilderMultiLevelStr = `
+module.foo.module.bar.output.value
+  module.foo.module.bar.var.bar
+module.foo.module.bar.plan-destroy
+module.foo.module.bar.var.bar
+  module.foo.var.foo
+module.foo.plan-destroy
+module.foo.var.foo
+root
+  module.foo.module.bar.output.value
+  module.foo.module.bar.plan-destroy
+  module.foo.plan-destroy
+`
+
+const testBuiltinGraphBuilderOrphanDepsStr = `
+aws_instance.bar (orphan)
+  provider.aws
+aws_instance.foo (orphan)
+  aws_instance.bar (orphan)
+provider.aws
+provider.aws (close)
+  aws_instance.foo (orphan)
+`
+
+/*
+TODO: Commented out this const as it's likely this needs to
+be updated when the TestBuiltinGraphBuilder_modules test is
+enabled again.
 const testBuiltinGraphBuilderModuleStr = `
 aws_instance.web
   aws_instance.web (destroy)
@@ -231,17 +306,4 @@ module.consul (expanded)
   provider.aws
 provider.aws
 `
-
-const testBuiltinGraphBuilderMultiLevelStr = `
-module.foo.module.bar.output.value
-  module.foo.module.bar.var.bar
-module.foo.module.bar.plan-destroy
-module.foo.module.bar.var.bar
-  module.foo.var.foo
-module.foo.plan-destroy
-module.foo.var.foo
-root
-  module.foo.module.bar.output.value
-  module.foo.module.bar.plan-destroy
-  module.foo.plan-destroy
-`
+*/

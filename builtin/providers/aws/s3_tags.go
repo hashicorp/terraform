@@ -3,8 +3,9 @@ package aws
 import (
 	"log"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -101,7 +102,7 @@ func getTagSetS3(s3conn *s3.S3, bucket string) ([]*s3.Tag, error) {
 	}
 
 	response, err := s3conn.GetBucketTagging(request)
-	if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "NoSuchTagSet" {
+	if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "NoSuchTagSet" {
 		// There is no tag set associated with the bucket.
 		return []*s3.Tag{}, nil
 	} else if err != nil {

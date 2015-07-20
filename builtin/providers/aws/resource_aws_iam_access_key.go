@@ -3,8 +3,9 @@ package aws
 import (
 	"fmt"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -71,7 +72,7 @@ func resourceAwsIamAccessKeyRead(d *schema.ResourceData, meta interface{}) error
 
 	getResp, err := iamconn.ListAccessKeys(request)
 	if err != nil {
-		if iamerr, ok := err.(aws.APIError); ok && iamerr.Code == "NoSuchEntity" { // XXX TEST ME
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX TEST ME
 			// the user does not exist, so the key can't exist.
 			d.SetId("")
 			return nil

@@ -344,7 +344,11 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 	instanceProperties.Disks = disks
-	instanceProperties.Metadata = resourceInstanceMetadata(d)
+	metadata, err := resourceInstanceMetadata(d)
+	if err != nil {
+		return err
+	}
+	instanceProperties.Metadata = metadata
 	err, networks := buildNetworks(d, meta)
 	if err != nil {
 		return err

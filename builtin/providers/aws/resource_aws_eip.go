@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -123,7 +124,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAllocationID.NotFound" {
 			d.SetId("")
 			return nil
 		}
@@ -221,6 +222,17 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 				PublicIP: aws.String(d.Get("public_ip").(string)),
 			})
 		}
+
+		if err != nil {
+			// First check if the association ID is not found. If this
+			// is the case, then it was already disassociated somehow,
+			// and that is okay. The most commmon reason for this is that
+			// the instance or ENI it was attached it was destroyed.
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
+				err = nil
+			}
+		}
+
 		if err != nil {
 			return err
 		}
@@ -247,7 +259,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 		if err == nil {
 			return nil
 		}
-		if _, ok := err.(aws.APIError); !ok {
+		if _, ok := err.(awserr.Error); !ok {
 			return resource.RetryError{Err: err}
 		}
 

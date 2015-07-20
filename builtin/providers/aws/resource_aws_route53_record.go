@@ -11,8 +11,9 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/route53"
 )
 
 func resourceAwsRoute53Record() *schema.Resource {
@@ -88,6 +89,16 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Set: resourceAwsRoute53AliasRecordHash,
 			},
 
+			"failover": &schema.Schema{ // PRIMARY | SECONDARY
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"health_check_id": &schema.Schema{ // ID of health check
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"records": &schema.Schema{
 				Type:          schema.TypeSet,
 				ConflictsWith: []string{"alias"},
@@ -116,6 +127,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).r53conn
 	zone := cleanZoneID(d.Get("zone_id").(string))
 
+	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
 	if err != nil {
 		return err
@@ -156,8 +168,8 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if r53err, ok := err.(aws.APIError); ok {
-					if r53err.Code == "PriorRequestNotComplete" {
+				if r53err, ok := err.(awserr.Error); ok {
+					if r53err.Code() == "PriorRequestNotComplete" {
 						// There is some pending operation, so just retry
 						// in a bit.
 						return nil, "rejected", nil
@@ -207,7 +219,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	return nil
+	return resourceAwsRoute53RecordRead(d, meta)
 }
 
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
@@ -230,10 +242,6 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
 
-	if v, ok := d.GetOk("set_identifier"); ok {
-		lopts.StartRecordIdentifier = aws.String(v.(string))
-	}
-
 	resp, err := conn.ListResourceRecordSets(lopts)
 	if err != nil {
 		return err
@@ -250,7 +258,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 			continue
 		}
 
-		if lopts.StartRecordIdentifier != nil && *record.SetIdentifier != *lopts.StartRecordIdentifier {
+		if record.SetIdentifier != nil && *record.SetIdentifier != d.Get("set_identifier") {
 			continue
 		}
 
@@ -260,9 +268,12 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
 		}
+
 		d.Set("ttl", record.TTL)
 		d.Set("weight", record.Weight)
 		d.Set("set_identifier", record.SetIdentifier)
+		d.Set("failover", record.Failover)
+		d.Set("health_check_id", record.HealthCheckID)
 
 		break
 	}
@@ -280,6 +291,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	zone := cleanZoneID(d.Get("zone_id").(string))
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
+	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
 	if err != nil {
 		return err
@@ -314,14 +326,14 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if r53err, ok := err.(aws.APIError); ok {
-					if r53err.Code == "PriorRequestNotComplete" {
+				if r53err, ok := err.(awserr.Error); ok {
+					if r53err.Code() == "PriorRequestNotComplete" {
 						// There is some pending operation, so just retry
 						// in a bit.
 						return 42, "rejected", nil
 					}
 
-					if r53err.Code == "InvalidChangeBatch" {
+					if r53err.Code() == "InvalidChangeBatch" {
 						// This means that the record is already gone.
 						return 42, "accepted", nil
 					}
@@ -377,6 +389,22 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 			HostedZoneID:         aws.String(alias["zone_id"].(string)),
 		}
 		log.Printf("[DEBUG] Creating alias: %#v", alias)
+	} else {
+		if _, ok := d.GetOk("ttl"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "ttl": required field is not set`, d.Get("name").(string))
+		}
+
+		if _, ok := d.GetOk("records"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "records": required field is not set`, d.Get("name").(string))
+		}
+	}
+
+	if v, ok := d.GetOk("failover"); ok {
+		rec.Failover = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("health_check_id"); ok {
+		rec.HealthCheckID = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("weight"); ok {

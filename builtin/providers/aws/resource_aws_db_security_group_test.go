@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDBSecurityGroup(t *testing.T) {
+func TestAccAWSDBSecurityGroup_basic(t *testing.T) {
 	var v rds.DBSecurityGroup
 
 	resource.Test(t, resource.TestCase{
@@ -59,11 +60,11 @@ func testAccCheckAWSDBSecurityGroupDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		newerr, ok := err.(aws.APIError)
+		newerr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if newerr.Code != "InvalidDBSecurityGroup.NotFound" {
+		if newerr.Code() != "InvalidDBSecurityGroup.NotFound" {
 			return err
 		}
 	}

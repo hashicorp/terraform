@@ -136,6 +136,12 @@ func resourceDockerContainer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"privileged": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }

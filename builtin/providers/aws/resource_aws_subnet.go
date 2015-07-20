@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -59,6 +60,7 @@ func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		VPCID:            aws.String(d.Get("vpc_id").(string)),
 	}
 
+	var err error
 	resp, err := conn.CreateSubnet(createOpts)
 
 	if err != nil {
@@ -98,7 +100,7 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidSubnetID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSubnetID.NotFound" {
 			// Update state to indicate the subnet no longer exists.
 			d.SetId("")
 			return nil
@@ -115,7 +117,7 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("availability_zone", subnet.AvailabilityZone)
 	d.Set("cidr_block", subnet.CIDRBlock)
 	d.Set("map_public_ip_on_launch", subnet.MapPublicIPOnLaunch)
-	d.Set("tags", tagsToMapSDK(subnet.Tags))
+	d.Set("tags", tagsToMap(subnet.Tags))
 
 	return nil
 }
@@ -125,7 +127,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -171,14 +173,14 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.DeleteSubnet(req)
 			if err != nil {
-				if apiErr, ok := err.(aws.APIError); ok {
-					if apiErr.Code == "DependencyViolation" {
+				if apiErr, ok := err.(awserr.Error); ok {
+					if apiErr.Code() == "DependencyViolation" {
 						// There is some pending operation, so just retry
 						// in a bit.
 						return 42, "pending", nil
 					}
 
-					if apiErr.Code == "InvalidSubnetID.NotFound" {
+					if apiErr.Code() == "InvalidSubnetID.NotFound" {
 						return 42, "destroyed", nil
 					}
 				}
@@ -204,7 +206,7 @@ func SubnetStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc 
 			SubnetIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidSubnetID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSubnetID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on SubnetStateRefresh: %s", err)

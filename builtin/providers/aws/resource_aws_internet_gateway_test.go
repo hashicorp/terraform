@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -98,7 +99,7 @@ func TestAccAWSInternetGateway_tags(t *testing.T) {
 				Config: testAccCheckInternetGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists("aws_internet_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
 				),
 			},
 
@@ -106,8 +107,8 @@ func TestAccAWSInternetGateway_tags(t *testing.T) {
 				Config: testAccCheckInternetGatewayConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists("aws_internet_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", ""),
-					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -135,11 +136,11 @@ func testAccCheckInternetGatewayDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if ec2err.Code != "InvalidInternetGatewayID.NotFound" {
+		if ec2err.Code() != "InvalidInternetGatewayID.NotFound" {
 			return err
 		}
 	}

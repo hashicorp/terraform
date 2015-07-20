@@ -110,6 +110,11 @@ func resourceDMERecordRead(d *schema.ResourceData, meta interface{}) error {
 
 	rec, err := client.ReadRecord(domainid, recordid)
 	if err != nil {
+		if strings.Contains(err.Error(), "Unable to find") {
+			d.SetId("")
+			return nil
+		}
+
 		return fmt.Errorf("Couldn't find record: %s", err)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/atlas-go/archive"
@@ -24,6 +25,7 @@ func (c *PushCommand) Run(args []string) int {
 	var atlasAddress, atlasToken string
 	var archiveVCS, moduleUpload bool
 	var name string
+	var overwrite []string
 	args = c.Meta.process(args, true)
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&atlasAddress, "atlas-address", "", "")
@@ -32,9 +34,16 @@ func (c *PushCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&moduleUpload, "upload-modules", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.BoolVar(&archiveVCS, "vcs", true, "")
+	cmdFlags.Var((*FlagStringSlice)(&overwrite), "overwrite", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	// Make a map of the set values
+	overwriteMap := make(map[string]struct{}, len(overwrite))
+	for _, v := range overwrite {
+		overwriteMap[v] = struct{}{}
 	}
 
 	// The pwd is used for the configuration path if one is not given
@@ -125,17 +134,17 @@ func (c *PushCommand) Run(args []string) int {
 	}
 
 	// Get the variables we might already have
-	vars, err := c.client.Get(name)
+	atlasVars, err := c.client.Get(name)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error looking up previously pushed configuration: %s", err))
 		return 1
 	}
-	for k, v := range vars {
-		// Local variables override remote ones
-		if _, exists := ctx.Variables()[k]; exists {
+	for k, v := range atlasVars {
+		if _, ok := overwriteMap[k]; ok {
 			continue
 		}
+
 		ctx.SetVariable(k, v)
 	}
 
@@ -169,12 +178,41 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Output to the user the variables that will be uploaded
+	var setVars []string
+	for k, _ := range ctx.Variables() {
+		if _, ok := overwriteMap[k]; !ok {
+			if _, ok := atlasVars[k]; ok {
+				// Atlas variable not within override, so it came from Atlas
+				continue
+			}
+		}
+
+		// This variable was set from the local value
+		setVars = append(setVars, k)
+	}
+	sort.Strings(setVars)
+	if len(setVars) > 0 {
+		c.Ui.Output(
+			"The following variables will be set or overwritten within Atlas from\n" +
+				"their local values. All other variables are already set within Atlas.\n" +
+				"If you want to modify the value of a variable, use the Atlas web\n" +
+				"interface or set it locally and use the -overwrite flag.\n\n")
+		for _, v := range setVars {
+			c.Ui.Output(fmt.Sprintf("  * %s", v))
+		}
+
+		// Newline
+		c.Ui.Output("")
+	}
+
 	// Upsert!
 	opts := &pushUpsertOptions{
 		Name:      name,
 		Archive:   archiveR,
 		Variables: ctx.Variables(),
 	}
+	c.Ui.Output("Uploading Terraform configuration...")
 	vsn, err := c.client.Upsert(opts)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
@@ -211,8 +249,21 @@ Options:
   -token=<token>       Access token to use to upload. If blank or unspecified,
                        the ATLAS_TOKEN environmental variable will be used.
 
+  -overwrite=foo       Variable keys that should overwrite values in Atlas.
+                       Otherwise, variables already set in Atlas will overwrite
+                       local values. This flag can be repeated.
+
+  -var 'foo=bar'       Set a variable in the Terraform configuration. This
+                       flag can be set multiple times.
+
+  -var-file=foo        Set variables in the Terraform configuration from
+                       a file. If "terraform.tfvars" is present, it will be
+                       automatically loaded if this flag is not specified.
+
   -vcs=true            If true (default), push will upload only files
                        comitted to your VCS, if detected.
+
+  -no-color           If specified, output won't contain any color.
 
 `
 	return strings.TrimSpace(helpText)

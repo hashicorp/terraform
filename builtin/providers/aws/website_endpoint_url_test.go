@@ -2,16 +2,27 @@ package aws
 
 import "testing"
 
-func TestWebsiteEndpointUrl_withoutRegion(t *testing.T) {
-	u := WebsiteEndpointUrl("buck.et", "")
-	if u != "buck.et.s3-website-us-east-1.amazonaws.com" {
-		t.Fatalf("bad: %s", u)
-	}
+// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
+var websiteEndpoints = []struct {
+	in  string
+	out string
+}{
+	{"", "bucket-name.s3-website-us-east-1.amazonaws.com"},
+	{"us-west-2", "bucket-name.s3-website-us-west-2.amazonaws.com"},
+	{"us-west-1", "bucket-name.s3-website-us-west-1.amazonaws.com"},
+	{"eu-west-1", "bucket-name.s3-website-eu-west-1.amazonaws.com"},
+	{"eu-central-1", "bucket-name.s3-website.eu-central-1.amazonaws.com"},
+	{"ap-southeast-1", "bucket-name.s3-website-ap-southeast-1.amazonaws.com"},
+	{"ap-northeast-1", "bucket-name.s3-website-ap-northeast-1.amazonaws.com"},
+	{"ap-southeast-2", "bucket-name.s3-website-ap-southeast-2.amazonaws.com"},
+	{"sa-east-1", "bucket-name.s3-website-sa-east-1.amazonaws.com"},
 }
 
-func TestWebsiteEndpointUrl_withRegion(t *testing.T) {
-	u := WebsiteEndpointUrl("buck.et", "us-west-1")
-	if u != "buck.et.s3-website-us-west-1.amazonaws.com" {
-		t.Fatalf("bad: %s", u)
+func TestWebsiteEndpointUrl(t *testing.T) {
+	for _, tt := range websiteEndpoints {
+		s := WebsiteEndpointUrl("bucket-name", tt.in)
+		if s != tt.out {
+			t.Errorf("WebsiteEndpointUrl(\"bucket-name\", %q) => %q, want %q", tt.in, s, tt.out)
+		}
 	}
 }

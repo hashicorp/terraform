@@ -148,9 +148,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	// Primary and non-destroy modes are responsible for creating/destroying
 	// all the nodes, expanding counts.
 	switch n.DestroyMode {
-	case DestroyNone:
-		fallthrough
-	case DestroyPrimary:
+	case DestroyNone, DestroyPrimary:
 		steps = append(steps, &ResourceCountTransformer{
 			Resource: n.Resource,
 			Destroy:  n.DestroyMode != DestroyNone,
@@ -311,6 +309,7 @@ func (n *GraphNodeConfigResourceFlat) DestroyNode(mode GraphNodeDestroyMode) Gra
 	return &graphNodeResourceDestroyFlat{
 		graphNodeResourceDestroy: node,
 		PathValue:                n.PathValue,
+		FlatCreateNode:           n,
 	}
 }
 
@@ -318,6 +317,9 @@ type graphNodeResourceDestroyFlat struct {
 	*graphNodeResourceDestroy
 
 	PathValue []string
+
+	// Needs to be able to properly yield back a flattened create node to prevent
+	FlatCreateNode *GraphNodeConfigResourceFlat
 }
 
 func (n *graphNodeResourceDestroyFlat) Name() string {
@@ -327,6 +329,17 @@ func (n *graphNodeResourceDestroyFlat) Name() string {
 
 func (n *graphNodeResourceDestroyFlat) Path() []string {
 	return n.PathValue
+}
+
+func (n *graphNodeResourceDestroyFlat) CreateNode() dag.Vertex {
+	return n.FlatCreateNode
+}
+
+func (n *graphNodeResourceDestroyFlat) ProvidedBy() []string {
+	prefix := modulePrefixStr(n.PathValue)
+	return modulePrefixList(
+		n.GraphNodeConfigResource.ProvidedBy(),
+		prefix)
 }
 
 // graphNodeResourceDestroy represents the logical destruction of a

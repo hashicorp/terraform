@@ -1,9 +1,9 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_subnet"
+page_title: "AWS: aws_elasticache_subnet_group"
 sidebar_current: "docs-aws-resource-elasticache-subnet-group"
 description: |-
-  Provides an VPC subnet resource.
+  Provides an ElastiCache Subnet Group resource.
 ---
 
 # aws\_elasticache\_subnet\_group
@@ -47,7 +47,7 @@ The following arguments are supported:
 * `description` – (Required) Description for the cache subnet group
 * `name` – (Required) Name for the cache subnet group. This value is stored as 
 a lowercase string
-* `subnet_ids` – (Optional) List of VPC Subnet IDs for the cache subnet group
+* `subnet_ids` – (Required) List of VPC Subnet IDs for the cache subnet group
 
 ## Attributes Reference
 

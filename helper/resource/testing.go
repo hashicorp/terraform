@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -60,6 +61,10 @@ type TestCase struct {
 // potentially complex update logic. In general, simply create/destroy
 // tests will only need one step.
 type TestStep struct {
+	// PreConfig is called before the Config is applied to perform any per-step
+	// setup that needs to happen
+	PreConfig func()
+
 	// Config a string of the configuration to give to Terraform.
 	Config string
 
@@ -160,6 +165,10 @@ func testStep(
 	opts terraform.ContextOpts,
 	state *terraform.State,
 	step TestStep) (*terraform.State, error) {
+	if step.PreConfig != nil {
+		step.PreConfig()
+	}
+
 	cfgPath, err := ioutil.TempDir("", "tf-test")
 	if err != nil {
 		return state, fmt.Errorf(
@@ -309,6 +318,32 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 				name,
 				key,
 				value,
+				is.Attributes[key])
+		}
+
+		return nil
+	}
+}
+
+func TestMatchResourceAttr(name, key string, r *regexp.Regexp) TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		is := rs.Primary
+		if is == nil {
+			return fmt.Errorf("No primary instance: %s", name)
+		}
+
+		if !r.MatchString(is.Attributes[key]) {
+			return fmt.Errorf(
+				"%s: Attribute '%s' didn't match %q, got %#v",
+				name,
+				key,
+				r.String(),
 				is.Attributes[key])
 		}
 

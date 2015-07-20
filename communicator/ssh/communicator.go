@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 const (
@@ -47,9 +48,9 @@ type sshConfig struct {
 	// noPty, if true, will not request a pty from the remote end.
 	noPty bool
 
-	// sshAgentConn is a pointer to the UNIX connection for talking with the
-	// ssh-agent.
-	sshAgentConn net.Conn
+	// sshAgent is a struct surrounding the agent.Agent client and the net.Conn
+	// to the SSH Agent. It is nil if no SSH agent is configured
+	sshAgent *sshAgent
 }
 
 // New creates a new communicator implementation over SSH.
@@ -95,6 +96,21 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 			c.connInfo.KeyFile != "",
 			c.connInfo.Agent,
 		))
+
+		if c.connInfo.BastionHost != "" {
+			o.Output(fmt.Sprintf(
+				"Using configured bastion host...\n"+
+					"  Host: %s\n"+
+					"  User: %s\n"+
+					"  Password: %t\n"+
+					"  Private key: %t\n"+
+					"  SSH Agent: %t",
+				c.connInfo.BastionHost, c.connInfo.BastionUser,
+				c.connInfo.BastionPassword != "",
+				c.connInfo.BastionKeyFile != "",
+				c.connInfo.Agent,
+			))
+		}
 	}
 
 	log.Printf("connecting to TCP connection for SSH")
@@ -122,6 +138,28 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 
 	c.client = ssh.NewClient(sshConn, sshChan, req)
 
+	if c.config.sshAgent != nil {
+		log.Printf("[DEBUG] Telling SSH config to foward to agent")
+		if err := c.config.sshAgent.ForwardToAgent(c.client); err != nil {
+			return err
+		}
+
+		log.Printf("[DEBUG] Setting up a session to request agent forwarding")
+		session, err := c.newSession()
+		if err != nil {
+			return err
+		}
+		defer session.Close()
+
+		err = agent.RequestAgentForwarding(session)
+
+		if err == nil {
+			log.Printf("[INFO] agent forwarding enabled")
+		} else {
+			log.Printf("[WARN] error forwarding agent: %s", err)
+		}
+	}
+
 	if o != nil {
 		o.Output("Connected!")
 	}
@@ -131,8 +169,8 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 
 // Disconnect implementation of communicator.Communicator interface
 func (c *Communicator) Disconnect() error {
-	if c.config.sshAgentConn != nil {
-		return c.config.sshAgentConn.Close()
+	if c.config.sshAgent != nil {
+		return c.config.sshAgent.Close()
 	}
 
 	return nil
@@ -222,10 +260,19 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 
 // UploadScript implementation of communicator.Communicator interface
 func (c *Communicator) UploadScript(path string, input io.Reader) error {
-	script := bytes.NewBufferString(DefaultShebang)
-	script.ReadFrom(input)
+	reader := bufio.NewReader(input)
+	prefix, err := reader.Peek(2)
+	if err != nil {
+		return fmt.Errorf("Error reading script: %s", err)
+	}
 
-	if err := c.Upload(path, script); err != nil {
+	var script bytes.Buffer
+	if string(prefix) != "#!" {
+		script.WriteString(DefaultShebang)
+	}
+
+	script.ReadFrom(reader)
+	if err := c.Upload(path, &script); err != nil {
 		return err
 	}
 
@@ -252,7 +299,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 
 // UploadDir implementation of communicator.Communicator interface
 func (c *Communicator) UploadDir(dst string, src string) error {
-	log.Printf("Upload dir '%s' to '%s'", src, dst)
+	log.Printf("Uploading dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
 		uploadEntries := func() error {
 			f, err := os.Open(src)
@@ -553,4 +600,44 @@ func ConnectFunc(network, addr string) func() (net.Conn, error) {
 
 		return c, nil
 	}
+}
+
+// BastionConnectFunc is a convenience method for returning a function
+// that connects to a host over a bastion connection.
+func BastionConnectFunc(
+	bProto string,
+	bAddr string,
+	bConf *ssh.ClientConfig,
+	proto string,
+	addr string) func() (net.Conn, error) {
+	return func() (net.Conn, error) {
+		log.Printf("[DEBUG] Connecting to bastion: %s", bAddr)
+		bastion, err := ssh.Dial(bProto, bAddr, bConf)
+		if err != nil {
+			return nil, fmt.Errorf("Error connecting to bastion: %s", err)
+		}
+
+		log.Printf("[DEBUG] Connecting via bastion (%s) to host: %s", bAddr, addr)
+		conn, err := bastion.Dial(proto, addr)
+		if err != nil {
+			bastion.Close()
+			return nil, err
+		}
+
+		// Wrap it up so we close both things properly
+		return &bastionConn{
+			Conn:    conn,
+			Bastion: bastion,
+		}, nil
+	}
+}
+
+type bastionConn struct {
+	net.Conn
+	Bastion *ssh.Client
+}
+
+func (c *bastionConn) Close() error {
+	c.Conn.Close()
+	return c.Bastion.Close()
 }

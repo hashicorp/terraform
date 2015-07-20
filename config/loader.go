@@ -1,19 +1,41 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/hcl"
 )
 
-// Load loads the Terraform configuration from a given file.
+// LoadJSON loads a single Terraform configuration from a given JSON document.
+//
+// The document must be a complete Terraform configuration. This function will
+// NOT try to load any additional modules so only the given document is loaded.
+func LoadJSON(raw json.RawMessage) (*Config, error) {
+	obj, err := hcl.Parse(string(raw))
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error parsing JSON document as HCL: %s", err)
+	}
+
+	// Start building the result
+	hclConfig := &hclConfigurable{
+		Object: obj,
+	}
+
+	return hclConfig.Config()
+}
+
+// LoadFile loads the Terraform configuration from a given file.
 //
 // This file can be any format that Terraform recognizes, and import any
 // other format that Terraform recognizes.
-func Load(path string) (*Config, error) {
+func LoadFile(path string) (*Config, error) {
 	importTree, err := loadTree(path)
 	if err != nil {
 		return nil, err
@@ -66,7 +88,7 @@ func LoadDir(root string) (*Config, error) {
 
 	// Load all the regular files, append them to each other.
 	for _, f := range files {
-		c, err := Load(f)
+		c, err := LoadFile(f)
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +105,7 @@ func LoadDir(root string) (*Config, error) {
 
 	// Load all the overrides, and merge them into the config
 	for _, f := range overrides {
-		c, err := Load(f)
+		c, err := LoadFile(f)
 		if err != nil {
 			return nil, err
 		}

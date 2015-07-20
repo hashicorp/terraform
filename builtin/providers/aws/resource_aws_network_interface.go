@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -77,9 +78,17 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.CreateNetworkInterfaceInput{
-		Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
-		SubnetID:           aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
+		SubnetID: aws.String(d.Get("subnet_id").(string)),
+	}
+
+	security_groups := d.Get("security_groups").(*schema.Set).List()
+	if len(security_groups) != 0 {
+		request.Groups = expandStringList(security_groups)
+	}
+
+	private_ips := d.Get("private_ips").(*schema.Set).List()
+	if len(private_ips) != 0 {
+		request.PrivateIPAddresses = expandPrivateIPAddesses(private_ips)
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
@@ -102,7 +111,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidNetworkInterfaceID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidNetworkInterfaceID.NotFound" {
 			// The ENI is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -120,7 +129,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(eni.TagSet))
+	d.Set("tags", tagsToMap(eni.TagSet))
 
 	if eni.Attachment != nil {
 		attachment := []map[string]interface{}{flattenAttachment(eni.Attachment)}
@@ -226,7 +235,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		d.SetPartial("security_groups")
 	}
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

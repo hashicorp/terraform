@@ -3,8 +3,9 @@ package aws
 import (
 	"fmt"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -75,7 +76,7 @@ func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 
 	getResp, err := iamconn.GetUser(request)
 	if err != nil {
-		if iamerr, ok := err.(aws.APIError); ok && iamerr.Code == "NoSuchEntity" { // XXX test me
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
 			d.SetId("")
 			return nil
 		}
