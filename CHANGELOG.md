@@ -15,6 +15,8 @@ BUG FIXES:
       variables. [GH-2788]
   * core: Orphan modules that contain no resources (only other modules)
       are properly destroyed up to arbitrary depth [GH-2786]
+  * core: Fix "attribute not available" during destroy plans in
+      cases where the parameter is passed between modules [GH-2775]
   * connection/ssh: fix issue on machines with an SSH Agent available
     preventing `key_file` from being read without explicitly
     setting `agent = false` [GH-2615]
