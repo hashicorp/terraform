@@ -54,7 +54,6 @@ func (t *PruneNoopTransformer) Transform(g *Graph) error {
 
 	// Do a depth first walk from the leaves and remove things.
 	return g.ReverseDepthFirstWalk(leaves, func(v dag.Vertex, depth int) error {
-		println("NAME: " + v.(dag.NamedVertex).Name())
 		// We need a prunable
 		pn, ok := v.(GraphNodeNoopPrunable)
 		if !ok {
