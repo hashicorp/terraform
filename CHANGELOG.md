@@ -37,6 +37,7 @@ BUG FIXES:
   * provider/aws: Fix issue in AWS Classic environment with referencing external
       Security Groups [GH-2644]
   * provider/aws: Bump internet gateway detach timeout [GH-2669]
+  * provider/aws: Fix issue with detecting differences in DB Parameters [GH-2728]
   * provider/aws: `ecs_cluster` rename (recreation) and deletion is handled correctly [GH-2698]
   * provider/aws: `aws_route_table` ignores routes generated for VPC endpoints [GH-2695]
   * provider/aws: Fix issue with Launch Configurations and enable_monitoring [GH-2735]
