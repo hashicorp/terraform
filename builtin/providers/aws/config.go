@@ -174,16 +174,14 @@ func (c *Config) ValidateRegion() error {
 // Validate credentials early and fail before we do any graph walking
 func (c *Config) ValidateCredentials(iamconn *iam.IAM) error {
 	_, err := iamconn.GetUser(nil)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "SignatureDoesNotMatch" {
-				return fmt.Errorf("Failed authenticating with AWS: please verify credentials")
-			}
+
+	if awsErr, ok := err.(awserr.Error); ok {
+		if awsErr.Code() == "SignatureDoesNotMatch" {
+			return fmt.Errorf("Failed authenticating with AWS: please verify credentials")
 		}
-		return err
 	}
 
-	return nil
+	return err
 }
 
 // ValidateAccountId returns a context-specific error if the configured account
