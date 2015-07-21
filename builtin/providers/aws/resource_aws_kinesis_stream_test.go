@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccKinesisStream_basic(t *testing.T) {
+func TestAccAWSKinesisStream_basic(t *testing.T) {
 	var stream kinesis.StreamDescription
 
 	resource.Test(t, resource.TestCase{

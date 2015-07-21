@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 )
 
-func TestAccRoute53HealthCheck_basic(t *testing.T) {
+func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -34,7 +34,7 @@ func TestAccRoute53HealthCheck_basic(t *testing.T) {
 	})
 }
 
-func TestAccRoute53HealthCheck_IpConfig(t *testing.T) {
+func TestAccAWSRoute53HealthCheck_IpConfig(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
