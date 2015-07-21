@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccIAMServerCertificate_basic(t *testing.T) {
+func TestAccAWSIAMServerCertificate_basic(t *testing.T) {
 	var cert iam.ServerCertificate
 
 	resource.Test(t, resource.TestCase{

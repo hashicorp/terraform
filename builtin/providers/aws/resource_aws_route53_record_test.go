@@ -50,7 +50,7 @@ func TestExpandRecordName(t *testing.T) {
 	}
 }
 
-func TestAccRoute53Record_basic(t *testing.T) {
+func TestAccAWSRoute53Record_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -66,7 +66,7 @@ func TestAccRoute53Record_basic(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Record_txtSupport(t *testing.T) {
+func TestAccAWSRoute53Record_txtSupport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -82,7 +82,7 @@ func TestAccRoute53Record_txtSupport(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Record_generatesSuffix(t *testing.T) {
+func TestAccAWSRoute53Record_generatesSuffix(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -98,7 +98,7 @@ func TestAccRoute53Record_generatesSuffix(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Record_wildcard(t *testing.T) {
+func TestAccAWSRoute53Record_wildcard(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -122,7 +122,7 @@ func TestAccRoute53Record_wildcard(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Record_weighted(t *testing.T) {
+func TestAccAWSRoute53Record_weighted(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -139,7 +139,7 @@ func TestAccRoute53Record_weighted(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Record_alias(t *testing.T) {
+func TestAccAWSRoute53Record_alias(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -155,7 +155,7 @@ func TestAccRoute53Record_alias(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Record_weighted_alias(t *testing.T) {
+func TestAccAWSRoute53Record_weighted_alias(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -182,7 +182,7 @@ func TestAccRoute53Record_weighted_alias(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Record_TypeChange(t *testing.T) {
+func TestAccAWSRoute53Record_TypeChange(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

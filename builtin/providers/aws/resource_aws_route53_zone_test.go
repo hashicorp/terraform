@@ -64,7 +64,7 @@ func TestCleanChangeID(t *testing.T) {
 	}
 }
 
-func TestAccRoute53Zone_basic(t *testing.T) {
+func TestAccAWSRoute53Zone_basic(t *testing.T) {
 	var zone route53.GetHostedZoneOutput
 	var td route53.ResourceTagSet
 
@@ -85,7 +85,7 @@ func TestAccRoute53Zone_basic(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Zone_private_basic(t *testing.T) {
+func TestAccAWSRoute53Zone_private_basic(t *testing.T) {
 	var zone route53.GetHostedZoneOutput
 
 	resource.Test(t, resource.TestCase{
@@ -104,7 +104,7 @@ func TestAccRoute53Zone_private_basic(t *testing.T) {
 	})
 }
 
-func TestAccRoute53Zone_private_region(t *testing.T) {
+func TestAccAWSRoute53Zone_private_region(t *testing.T) {
 	var zone route53.GetHostedZoneOutput
 
 	// record the initialized providers so that we can use them to
