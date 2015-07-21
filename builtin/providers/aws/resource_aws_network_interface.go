@@ -69,6 +69,12 @@ func resourceAwsNetworkInterface() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+      "source_dest_check": &schema.Schema{
+        Type:     schema.TypeBool,
+        Optional: true,
+        Default:  true,
+      },
 		},
 	}
 }
@@ -233,6 +239,22 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		d.SetPartial("security_groups")
+	}
+
+	if d.HasChange("source_dest_check") {
+		source_dest_check_request := &ec2.ModifyNetworkInterfaceAttributeInput{
+			NetworkInterfaceID: aws.String(d.Id()),
+			SourceDestCheck: &ec2.AttributeBooleanValue{
+				Value: aws.Boolean(d.Get("source_dest_check").(bool)),
+			},
+		}
+
+		_, source_dest_check_err := conn.ModifyNetworkInterfaceAttribute(source_dest_check_request)
+		if source_dest_check_err != nil {
+			return fmt.Errorf("Failure updating ENI: %s", source_dest_check_err)
+		}
+
+		d.SetPartial("source_dest_check")
 	}
 
 	if err := setTags(conn, d); err != nil {
