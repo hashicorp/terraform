@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccVpcEndpoint_basic(t *testing.T) {
+func TestAccAWSVpcEndpoint_basic(t *testing.T) {
 	var endpoint ec2.VPCEndpoint
 
 	resource.Test(t, resource.TestCase{
@@ -29,7 +29,7 @@ func TestAccVpcEndpoint_basic(t *testing.T) {
 	})
 }
 
-func TestAccVpcEndpoint_withRouteTableAndPolicy(t *testing.T) {
+func TestAccAWSVpcEndpoint_withRouteTableAndPolicy(t *testing.T) {
 	var endpoint ec2.VPCEndpoint
 	var routeTable ec2.RouteTable
 
