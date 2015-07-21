@@ -1,5 +1,9 @@
 ## 0.6.2 (Unreleased)
 
+IMPROVEMENTS:
+
+  * provider/aws: Validate credentials before walking the graph [GH-2730]
+
 ## 0.6.1 (July 20, 2015)
 
 FEATURES:
