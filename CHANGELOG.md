@@ -4,6 +4,10 @@ IMPROVEMENTS:
 
   * provider/aws: Validate credentials before walking the graph [GH-2730]
 
+BUG FIXES:
+
+  * provider/aws: Fix issue with toggling monitoring in AWS Instances [GH-2794]
+
 ## 0.6.1 (July 20, 2015)
 
 FEATURES:
