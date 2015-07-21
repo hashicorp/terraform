@@ -130,6 +130,11 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NoSuchHostedZone" {
+				return fmt.Errorf("Error creating Route 53 Record (%s): Hosted Zone (%s) not found", d.Get("name"), zone)
+			}
+		}
 		return err
 	}
 
@@ -230,8 +235,16 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	// get expanded name
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NoSuchHostedZone" {
+				log.Printf("[WARN] Error reading Route 53 Record (%s): Hosted Zone (%s) not found", d.Id(), zone)
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
+
 	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
 	log.Printf("[DEBUG] Expanded record name: %s", en)
 	d.Set("fqdn", en)
@@ -294,6 +307,15 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NoSuchHostedZone" {
+				// Hosted Zones cannot be deleted unless it's records have been deleted,
+				// so we assume that if the zone isn't found that this records has also
+				// been cleaned up
+				log.Printf("[DEBUG] Error reading Route 53 Record (%s): Hosted Zone (%s) not found", d.Id(), zone)
+				return nil
+			}
+		}
 		return err
 	}
 	// Get the records
