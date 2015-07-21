@@ -7,6 +7,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * provider/aws: Fix issue with toggling monitoring in AWS Instances [GH-2794]
+  * provider/aws: Fix issue with Spot Instance Requests and cancellation [GH-2805]
 
 ## 0.6.1 (July 20, 2015)
 
