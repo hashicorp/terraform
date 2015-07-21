@@ -579,6 +579,24 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("monitoring") {
+		var mErr error
+		if d.Get("monitoring").(bool) {
+			log.Printf("[DEBUG] Enabling monitoring for Instance (%s)", d.Id())
+			_, mErr = conn.MonitorInstances(&ec2.MonitorInstancesInput{
+				InstanceIDs: []*string{aws.String(d.Id())},
+			})
+		} else {
+			log.Printf("[DEBUG] Disabling monitoring for Instance (%s)", d.Id())
+			_, mErr = conn.UnmonitorInstances(&ec2.UnmonitorInstancesInput{
+				InstanceIDs: []*string{aws.String(d.Id())},
+			})
+		}
+		if mErr != nil {
+			return fmt.Errorf("[WARN] Error updating Instance monitoring: %s", mErr)
+		}
+	}
+
 	// TODO(mitchellh): wait for the attributes we modified to
 	// persist the change...
 
