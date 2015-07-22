@@ -3,6 +3,7 @@ package nsone
 import (
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
 )
 
 func zoneResource() *schema.Resource {
@@ -41,7 +42,8 @@ func zoneResource() *schema.Resource {
 		},
 		Create: ZoneCreate,
 		Read:   ZoneRead,
-		Update: ZoneUpdate,
+		Update: ZoneRead,
+		//	Update: ZoneUpdate,
 		Delete: ZoneDelete,
 	}
 }
@@ -96,6 +98,7 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	zoneToResourceData(d, z)
+	log.Println(z)
 	return nil
 }
 

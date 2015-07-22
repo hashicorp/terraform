@@ -7,3 +7,9 @@ resource "nsone_zone" "foo_com" {
     hostmaster = "hostmaster@foo.com"
 }
 
+#resource "nsone_record" "www_foo_com" {
+#    zone = "foo.com"
+#    domain = "www.foo.com"
+#    type = "A"
+#}
+
