@@ -17,7 +17,7 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-		//			"nsone_zone": zoneResource(),
+			"nsone_zone": zoneResource(),
 		},
 		ConfigureFunc: nsoneConfigure,
 	}
