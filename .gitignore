@@ -1,2 +1,3 @@
 terraform-provider-nsone
 terraform.tfstate
+terraform.tfstate.backup
