@@ -27,6 +27,7 @@ func recordResource() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"meta": metaSchema(),
 			/*			"answers": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -48,6 +49,10 @@ func recordResource() *schema.Resource {
 	}
 }
 
+func recordToResourceData(d *schema.ResourceData, z *nsone.Record) {
+	d.SetId(r.Id)
+}
+
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
@@ -57,27 +62,25 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.SetId(r.Id)
+	recordToResourceData(d, r)
 	return nil
 }
 
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
-	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	err := client.GetRecord(r)
+	r, err := client.GetRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	//    zone := d.Get("zone").(string)
 	//    hostmaster := d.Get("hostmaster").(string)
 	if err != nil {
 		return err
 	}
-	d.SetId(r.Id)
+	recordToResourceData(d, r)
 	return nil
 }
 
 func RecordDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
-	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	err := client.DeleteRecord(r)
+	err := client.DeleteRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	d.SetId("")
 	return err
 }

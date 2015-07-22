@@ -89,8 +89,7 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 
 func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
-	z := nsone.NewZone(d.Get("zone").(string))
-	err := client.GetZone(z)
+	z, err := client.GetZone(d.Get("zone").(string))
 	//    zone := d.Get("zone").(string)
 	//    hostmaster := d.Get("hostmaster").(string)
 	if err != nil {
@@ -102,8 +101,7 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 
 func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
-	z := nsone.NewZone(d.Get("zone").(string))
-	err := client.DeleteZone(z)
+	err := client.DeleteZone(d.Get("zone").(string))
 	d.SetId("")
 	return err
 }
