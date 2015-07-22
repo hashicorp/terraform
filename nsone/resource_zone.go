@@ -37,11 +37,24 @@ func zoneResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"meta": metaSchema(),
 		},
 		Create: ZoneCreate,
 		Read:   ZoneRead,
 		Update: ZoneUpdate,
 		Delete: ZoneDelete,
+	}
+}
+
+func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
+	d.SetId(z.Id)
+	d.Set("hostmaster", z.Hostmaster)
+	d.Set("ttl", z.Ttl)
+	d.Set("nx_ttl", z.Nx_ttl)
+	d.Set("retry", z.Retry)
+	d.Set("expiry", z.Expiry)
+	if z.Meta {
+		d.Set("meta", z.Meta)
 	}
 }
 
@@ -61,18 +74,16 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("expiry"); ok {
 		z.Expiry = v.(int)
 	}
+	if v, ok := d.GetOk("meta"); ok {
+		z.Meta = v.(map[string]string)
+	}
 	err := client.CreateZone(z)
 	//    zone := d.Get("zone").(string)
 	//    hostmaster := d.Get("hostmaster").(string)
 	if err != nil {
 		return err
 	}
-	d.SetId(z.Id)
-	d.Set("hostmaster", z.Hostmaster)
-	d.Set("ttl", z.Ttl)
-	d.Set("nx_ttl", z.Nx_ttl)
-	d.Set("retry", z.Retry)
-	d.Set("expiry", z.Expiry)
+	zoneToResourceData(d, z)
 	return nil
 }
 
@@ -85,12 +96,7 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.SetId(z.Id)
-	d.Set("hostmaster", z.Hostmaster)
-	d.Set("ttl", z.Ttl)
-	d.Set("nx_ttl", z.Nx_ttl)
-	d.Set("retry", z.Retry)
-	d.Set("expiry", z.Expiry)
+	zoneToResourceData(d, z)
 	return nil
 }
 
