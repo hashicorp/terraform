@@ -53,7 +53,7 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	d.Set("nx_ttl", z.Nx_ttl)
 	d.Set("retry", z.Retry)
 	d.Set("expiry", z.Expiry)
-	if z.Meta {
+	if z.Meta != nil {
 		d.Set("meta", z.Meta)
 	}
 }

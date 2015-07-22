@@ -49,7 +49,7 @@ func recordResource() *schema.Resource {
 	}
 }
 
-func recordToResourceData(d *schema.ResourceData, z *nsone.Record) {
+func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
 	d.SetId(r.Id)
 }
 
