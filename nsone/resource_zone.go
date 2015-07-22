@@ -77,13 +77,29 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ZoneRead(d *schema.ResourceData, meta interface{}) error {
-	panic("Read not implemented")
+	client := meta.(*nsone.APIClient)
+	z := nsone.NewZone(d.Get("zone").(string))
+	err := client.GetZone(z)
+	//    zone := d.Get("zone").(string)
+	//    hostmaster := d.Get("hostmaster").(string)
+	if err != nil {
+		return err
+	}
+	d.SetId(z.Id)
+	d.Set("hostmaster", z.Hostmaster)
+	d.Set("ttl", z.Ttl)
+	d.Set("nx_ttl", z.Nx_ttl)
+	d.Set("retry", z.Retry)
+	d.Set("expiry", z.Expiry)
 	return nil
 }
 
 func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
-	panic("Delete not implemented")
-	return nil
+	client := meta.(*nsone.APIClient)
+	z := nsone.NewZone(d.Get("zone").(string))
+	err := client.DeleteZone(z)
+	d.SetId("")
+	return err
 }
 
 func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
