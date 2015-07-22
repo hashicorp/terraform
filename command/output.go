@@ -27,7 +27,7 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	var allOutputs bool = false
+	allOutputs := false
 	var name string
 	if len(args) > 1 {
 		c.Ui.Error(
@@ -35,11 +35,14 @@ func (c *OutputCommand) Run(args []string) int {
 				"of an output variable or no arguments to show all outputs.\n")
 		cmdFlags.Usage()
 		return 1
-	} else if len(args) == 0 {
+	}
+
+	if len(args) == 0 {
 		allOutputs = true
 	} else {
 		name = args[0]
 	}
+
 	stateStore, err := c.Meta.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error reading state: %s", err))
