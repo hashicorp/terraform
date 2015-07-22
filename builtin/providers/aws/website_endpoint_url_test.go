@@ -20,9 +20,9 @@ var websiteEndpoints = []struct {
 
 func TestWebsiteEndpointUrl(t *testing.T) {
 	for _, tt := range websiteEndpoints {
-		s := WebsiteEndpointUrl("bucket-name", tt.in)
-		if s != tt.out {
-			t.Errorf("WebsiteEndpointUrl(\"bucket-name\", %q) => %q, want %q", tt.in, s, tt.out)
+		s := WebsiteEndpoint("bucket-name", tt.in)
+		if s.Endpoint != tt.out {
+			t.Errorf("WebsiteEndpointUrl(\"bucket-name\", %q) => %q, want %q", tt.in, s.Endpoint, tt.out)
 		}
 	}
 }
