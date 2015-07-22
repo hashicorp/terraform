@@ -145,6 +145,13 @@ func Provider() terraform.ResourceProvider {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"dynamodb_endpoint": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["dynamodb_endpoint"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -242,16 +249,20 @@ func init() {
 		"max_retries": "The maximum number of times an AWS API request is\n" +
 			"being executed. If the API request still fails, an error is\n" +
 			"thrown.",
+
+		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the :region.\n" +
+			"It's typically used to connect to dynamodb-local.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey:  d.Get("access_key").(string),
-		SecretKey:  d.Get("secret_key").(string),
-		Token:      d.Get("token").(string),
-		Region:     d.Get("region").(string),
-		MaxRetries: d.Get("max_retries").(int),
+		AccessKey:        d.Get("access_key").(string),
+		SecretKey:        d.Get("secret_key").(string),
+		Token:            d.Get("token").(string),
+		Region:           d.Get("region").(string),
+		MaxRetries:       d.Get("max_retries").(int),
+		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
