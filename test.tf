@@ -4,7 +4,7 @@ provider "nsone" {
 
 resource "nsone_zone" "foo_com" {
     zone = "foo.com"
-    hostmaster = "hostmaster@foo.com"
+    ttl = 60
 }
 
 #resource "nsone_record" "www_foo_com" {

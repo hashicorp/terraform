@@ -1,6 +1,7 @@
 package nsone
 
 import (
+	"fmt"
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
@@ -21,29 +22,33 @@ func zoneResource() *schema.Resource {
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"nx_ttl": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"retry": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"expiry": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"hostmaster": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 			"meta": metaSchema(),
 		},
 		Create: ZoneCreate,
 		Read:   ZoneRead,
-		Update: ZoneRead,
-		//	Update: ZoneUpdate,
+		Update: ZoneUpdate,
 		Delete: ZoneDelete,
 	}
 }
@@ -58,6 +63,8 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	if z.Meta != nil {
 		d.Set("meta", z.Meta)
 	}
+	log.Println(fmt.Sprintf("MOO: ID %i", z.Id))
+	log.Println(fmt.Sprintf("MOO: TTL %i", z.Ttl))
 }
 
 func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
@@ -99,6 +106,7 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	zoneToResourceData(d, z)
 	log.Println(z)
+	log.Println("Return from ZoneRead")
 	return nil
 }
 
@@ -110,6 +118,28 @@ func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
-	panic("Update not implemented")
+	client := meta.(*nsone.APIClient)
+	z := nsone.NewZone(d.Get("zone").(string))
+	z.Id = d.Id()
+	if d.HasChange("ttl") {
+		z.Ttl = d.Get("ttl").(int)
+	}
+	if d.HasChange("nx_ttl") {
+		z.Ttl = d.Get("nx_ttl").(int)
+	}
+	if d.HasChange("retry") {
+		z.Retry = d.Get("retry").(int)
+	}
+	if d.HasChange("expiry") {
+		z.Expiry = d.Get("expiry").(int)
+	}
+	if d.HasChange("meta") {
+		z.Meta = d.Get("meta").(map[string]string)
+	}
+	err := client.UpdateZone(z)
+	if err != nil {
+		return err
+	}
+	zoneToResourceData(d, z)
 	return nil
 }
