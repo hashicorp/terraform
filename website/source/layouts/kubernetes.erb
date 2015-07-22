@@ -1,0 +1,46 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+	<div class="docs-sidebar hidden-print affix-top" role="complementary">
+	<ul class="nav docs-sidenav">
+		<li<%= sidebar_current("docs-home") %>>
+		<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+		</li>
+
+		<li<%= sidebar_current("docs-kubernetes-index") %>>
+		<a href="/docs/providers/kubernetes/index.html">kubernetes Provider</a>
+		</li>
+
+		<li<%= sidebar_current(/^docs-kubernetes-resource/) %>>
+		<a href="#">Resources</a>
+		<ul class="nav nav-visible">
+			<li<%= sidebar_current("docs-kubernetes-resource-namespace") %>>
+			<a href="/docs/providers/kubernetes/r/namespace.html">kubernetes_namespace</a>
+			</li>
+
+			<li<%= sidebar_current("docs-kubernetes-resource-persistent-volume") %>>
+			<a href="/docs/providers/kubernetes/r/persistent_volume.html">kubernetes_persistent_volume</a>
+			</li>
+
+			<li<%= sidebar_current("docs-kubernetes-resource-pod") %>>
+			<a href="/docs/providers/kubernetes/r/pod.html">kubernetes_pod</a>
+			</li>
+
+			<li<%= sidebar_current("docs-kubernetes-resource-replication-controller") %>>
+			<a href="/docs/providers/kubernetes/r/replication_controller.html">kubernetes_replication_controller</a>
+			</li>
+
+			<li<%= sidebar_current("docs-kubernetes-resource-resource-quota") %>>
+			<a href="/docs/providers/kubernetes/r/resource_quota.html">kubernetes_resource_quota</a>
+			</li>
+
+			<li<%= sidebar_current("docs-kubernetes-resource-service") %>>
+			<a href="/docs/providers/kubernetes/r/service.html">kubernetes_service</a>
+			</li>
+		</ul>
+		</li>
+	</ul>
+</div>
+	<% end %>
+
+<%= yield %>
+	<% end %>
