@@ -6,7 +6,7 @@ terraform-provider-nsone:
 	go build .
 
 test:
-	go test .../.
+	cd nsone ; go test -v .
 
 clean:
 	rm terraform-provider-nsone

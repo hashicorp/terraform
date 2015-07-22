@@ -2,7 +2,6 @@ package nsone
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
