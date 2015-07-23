@@ -3,10 +3,12 @@ package google
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 
 	// TODO(dcunnin): Use version code from version.go
@@ -54,10 +56,25 @@ func (c *Config) loadAndValidate() error {
 	var client *http.Client
 
 	if c.AccountFile != "" {
-		if err := loadJSON(&account, c.AccountFile); err != nil {
+		if c.AccountFileContents != "" {
 			return fmt.Errorf(
-				"Error loading account file '%s': %s",
-				c.AccountFile,
+				"Cannot provide both account_file and account_file_contents",
+			)
+		}
+
+		b, err := ioutil.ReadFile(c.AccountFile)
+		if err != nil {
+			return err
+		}
+
+		c.AccountFileContents = string(b)
+	}
+
+	if c.AccountFileContents != "" {
+		if err := parseJSON(&account, c.AccountFileContents); err != nil {
+			return fmt.Errorf(
+				"Error parsing account file contents '%s': %s",
+				c.AccountFileContents,
 				err)
 		}
 
@@ -150,13 +167,9 @@ type accountFile struct {
 	ClientId     string `json:"client_id"`
 }
 
-func loadJSON(result interface{}, path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func parseJSON(result interface{}, contents string) error {
+	r := strings.NewReader(contents)
+	dec := json.NewDecoder(r)
 
-	dec := json.NewDecoder(f)
 	return dec.Decode(result)
 }
