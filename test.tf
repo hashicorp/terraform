@@ -7,9 +7,9 @@ resource "nsone_zone" "foo_com" {
     ttl = 60
 }
 
-#resource "nsone_record" "www_foo_com" {
-#    zone = "foo.com"
-#    domain = "www.foo.com"
-#    type = "A"
-#}
+resource "nsone_record" "www_foo_com" {
+    zone = "foo.com"
+    domain = "www.foo.com"
+    type = "A"
+}
 

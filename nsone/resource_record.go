@@ -1,8 +1,10 @@
 package nsone
 
 import (
+	"fmt"
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
+	"regexp"
 )
 
 func recordResource() *schema.Resource {
@@ -26,20 +28,36 @@ func recordResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(A|AAAA|ALIAS|AFSDB|CNAME|DNAME|HINFO|MX|NAPTR|NS|PTR|RP|SPF|SRV|TXT)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"only A, AAAA, ALIAS, AFSDB, CNAME, DNAME, HINFO, MX, NAPTR, NS, PTR, RP, SPF, SRV, TXT allowed in %q", k))
+					}
+					return
+				},
 			},
 			"meta": metaSchema(),
-			/*			"answers": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-						},
-						"expiry": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-						},
-						"hostmaster": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
+			"link": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"meta", "answers"},
+			},
+			"answers": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			/*		"expiry": &schema.Schema{
+						Type:     schema.TypeInt,
+						Optional: true,
+					},
+					"hostmaster": &schema.Schema{
+						Type:     schema.TypeString,
+						Required: true,
+					},
 			*/
 		},
 		Create: RecordCreate,
