@@ -80,11 +80,12 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("link"); ok {
 		r.Link = v.(string)
 	}
-	if v, ok := d.GetOk("meta"); ok {
-		r.Meta = v.(map[string]string)
-	}
-	if v, ok := d.GetOk("answers"); ok {
-		r.Answers = v.(map[string]string)
+	if attr := d.Get("answers").(*schema.Set); attr.Len() > 0 {
+		var a []nsone.Answer
+		for _, v := range attr.List() {
+			a = append(a, nsone.Answer{Answer: []string{v.(string)}})
+		}
+		r.Answers = a
 	}
 	err := client.CreateRecord(r)
 	//    zone := d.Get("zone").(string)
