@@ -55,11 +55,6 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	// THIS WORKS WITH THIS CHANGE
-	// if d.Get("protocol") == "email" {
-	// 	return fmt.Errorf("Email endpoints are not supported!")
-	// }
-
 	output, err := subscribeToSNSTopic(d, snsconn)
 
 	if err != nil {
