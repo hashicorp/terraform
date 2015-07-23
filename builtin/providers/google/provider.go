@@ -15,6 +15,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 			},
 
+			"account_file_contents": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE_CONTENTS", nil),
+			},
+
 			"project": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,

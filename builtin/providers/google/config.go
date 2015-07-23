@@ -23,9 +23,10 @@ import (
 // Config is the configuration structure used to instantiate the Google
 // provider.
 type Config struct {
-	AccountFile string
-	Project     string
-	Region      string
+	AccountFile         string
+	AccountFileContents string
+	Project             string
+	Region              string
 
 	clientCompute *compute.Service
 	clientContainer *container.Service
@@ -39,6 +40,9 @@ func (c *Config) loadAndValidate() error {
 	// TODO: validation that it isn't blank
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
+	}
+	if c.AccountFileContents == "" {
+		c.AccountFileContents = os.Getenv("GOOGLE_ACCOUNT_FILE_CONTENTS")
 	}
 	if c.Project == "" {
 		c.Project = os.Getenv("GOOGLE_PROJECT")
