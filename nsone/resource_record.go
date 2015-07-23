@@ -69,11 +69,23 @@ func recordResource() *schema.Resource {
 
 func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
 	d.SetId(r.Id)
+	d.Set("domain", r.Domain)
+	d.Set("zone", r.Zone)
+	d.Set("type", r.Type)
 }
 
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
+	if v, ok := d.GetOk("link"); ok {
+		r.Link = v.(string)
+	}
+	if v, ok := d.GetOk("meta"); ok {
+		r.Meta = v.(map[string]string)
+	}
+	if v, ok := d.GetOk("answers"); ok {
+		r.Answers = v.(map[string]string)
+	}
 	err := client.CreateRecord(r)
 	//    zone := d.Get("zone").(string)
 	//    hostmaster := d.Get("hostmaster").(string)
