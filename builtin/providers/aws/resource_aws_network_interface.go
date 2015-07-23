@@ -46,6 +46,12 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"source_dest_check": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
 			"attachment": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -127,6 +133,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("subnet_id", eni.SubnetID)
 	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
+	d.Set("source_dest_check", eni.SourceDestCheck)
 
 	// Tags
 	d.Set("tags", tagsToMap(eni.TagSet))
@@ -220,6 +227,18 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 
 		d.SetPartial("attachment")
 	}
+
+	request := &ec2.ModifyNetworkInterfaceAttributeInput{
+		NetworkInterfaceID: aws.String(d.Id()),
+		SourceDestCheck:    &ec2.AttributeBooleanValue{Value: aws.Boolean(d.Get("source_dest_check").(bool))},
+	}
+
+	_, err := conn.ModifyNetworkInterfaceAttribute(request)
+	if err != nil {
+		return fmt.Errorf("Failure updating ENI: %s", err)
+	}
+
+	d.SetPartial("source_dest_check")
 
 	if d.HasChange("security_groups") {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{
