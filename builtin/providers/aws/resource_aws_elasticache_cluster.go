@@ -112,7 +112,10 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 					},
 				},
 			},
-
+			"notification_topic_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			// A single-element string list containing an Amazon Resource Name (ARN) that
 			// uniquely identifies a Redis RDB snapshot file stored in Amazon S3. The snapshot
 			// file will be used to populate the node group.
@@ -182,6 +185,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		req.PreferredMaintenanceWindow = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("notification_topic_arn"); ok {
+		req.NotificationTopicArn = aws.String(v.(string))
+	}
+
 	snaps := d.Get("snapshot_arns").(*schema.Set).List()
 	if len(snaps) > 0 {
 		s := expandStringList(snaps)
@@ -244,6 +251,11 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
+		if c.NotificationConfiguration != nil {
+			if *c.NotificationConfiguration.TopicStatus == "active" {
+				d.Set("notification_topic_arn", c.NotificationConfiguration.TopicArn)
+			}
+		}
 
 		if err := setCacheNodeData(d, c); err != nil {
 			return err
@@ -304,6 +316,16 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 
 	if d.HasChange("maintenance_window") {
 		req.PreferredMaintenanceWindow = aws.String(d.Get("maintenance_window").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("notification_topic_arn") {
+		v := d.Get("notification_topic_arn").(string)
+		req.NotificationTopicArn = aws.String(v)
+		if v == "" {
+			inactive := "inactive"
+			req.NotificationTopicStatus = &inactive
+		}
 		requestUpdate = true
 	}
 
