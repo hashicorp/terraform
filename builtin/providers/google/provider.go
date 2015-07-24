@@ -10,15 +10,17 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"account_file": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"account_file_contents"},
+				DefaultFunc:   schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 			},
 
 			"account_file_contents": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE_CONTENTS", nil),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"account_file"},
+				DefaultFunc:   schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE_CONTENTS", nil),
 			},
 
 			"project": &schema.Schema{
