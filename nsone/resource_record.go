@@ -5,6 +5,7 @@ import (
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
+	"strings"
 )
 
 func recordResource() *schema.Resource {
@@ -83,7 +84,13 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	if attr := d.Get("answers").(*schema.Set); attr.Len() > 0 {
 		var a []nsone.Answer
 		for _, v := range attr.List() {
-			a = append(a, nsone.Answer{Answer: []string{v.(string)}})
+			var ans []string
+			if d.Get("type") != "TXT" {
+				ans = strings.Split(v.(string), " ")
+			} else {
+				ans = []string{v.(string)}
+			}
+			a = append(a, nsone.Answer{Answer: ans})
 		}
 		r.Answers = a
 	}
