@@ -51,15 +51,6 @@ func recordResource() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			/*		"expiry": &schema.Schema{
-						Type:     schema.TypeInt,
-						Optional: true,
-					},
-					"hostmaster": &schema.Schema{
-						Type:     schema.TypeString,
-						Required: true,
-					},
-			*/
 		},
 		Create: RecordCreate,
 		Read:   RecordRead,
