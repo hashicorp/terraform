@@ -21,6 +21,10 @@ func dataFeedResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"config": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 		},
 		Create: DataFeedCreate,
 		Read:   DataFeedRead,
@@ -38,6 +42,11 @@ func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	df := nsone.NewDataFeed(d.Get("source_id").(string))
 	df.Name = d.Get("name").(string)
+	config := make(map[string]string)
+	for k, v := range d.Get("config").(map[string]interface{}) {
+		config[k] = v.(string)
+	}
+	df.Config = config
 	err := client.CreateDataFeed(df)
 	if err != nil {
 		return err
