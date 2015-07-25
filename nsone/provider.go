@@ -20,6 +20,7 @@ func Provider() terraform.ResourceProvider {
 			"nsone_zone":       zoneResource(),
 			"nsone_record":     recordResource(),
 			"nsone_datasource": dataSourceResource(),
+			"nsone_datafeed":   dataFeedResource(),
 		},
 		ConfigureFunc: nsoneConfigure,
 	}

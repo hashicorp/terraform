@@ -1,10 +1,8 @@
 package nsone
 
 import (
-	"fmt"
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
-	"regexp"
 )
 
 func dataSourceResource() *schema.Resource {
@@ -22,14 +20,6 @@ func dataSourceResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if !regexp.MustCompile(`^(monitor_us)$`).MatchString(value) {
-						es = append(es, fmt.Errorf(
-							"only monitor_us allowed in %q", k))
-					}
-					return
-				},
 			},
 		},
 		Create: DataSourceCreate,
