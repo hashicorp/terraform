@@ -19,6 +19,12 @@ func zoneResource() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"link": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"meta"}, // FIXME
+			},
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -68,8 +74,11 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	if z.Meta != nil {
 		d.Set("meta", z.Meta)
 	}
-	if z.Secondary.Enabled {
+	if z.Secondary != nil && z.Secondary.Enabled {
 		d.Set("primary", z.Secondary.Primary_ip)
+	}
+	if z.Link != "" {
+		d.Set("link", z.Link)
 	}
 	log.Println(fmt.Sprintf("MOO: ID %i", z.Id))
 	log.Println(fmt.Sprintf("MOO: TTL %i", z.Ttl))
@@ -95,11 +104,10 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 		z.Meta = v.(map[string]string)
 	}
 	if v, ok := d.GetOk("primary"); ok {
-		z.Secondary = nsone.ZoneSecondary{
-			Primary_ip:   v.(string),
-			Primary_port: 53,
-			Enabled:      true,
-		}
+		z.MakeSecondary(v.(string))
+	}
+	if v, ok := d.GetOk("link"); ok {
+		z.LinkTo(v.(string))
 	}
 	err := client.CreateZone(z)
 	//    zone := d.Get("zone").(string)

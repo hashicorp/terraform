@@ -1,6 +1,7 @@
 package nsone
 
 import (
+	"errors"
 	"fmt"
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -64,16 +65,16 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
 	d.Set("domain", r.Domain)
 	d.Set("zone", r.Zone)
 	d.Set("type", r.Type)
+	if r.Link != "" {
+		d.Set("link", r.Link)
+	}
 }
 
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	if v, ok := d.GetOk("link"); ok {
-		r.Link = v.(string)
-	}
 	if attr := d.Get("answers").(*schema.Set); attr.Len() > 0 {
-		var a []nsone.Answer
+		a := make([]nsone.Answer, 0)
 		for _, v := range attr.List() {
 			var ans []string
 			if d.Get("type") != "TXT" {
@@ -84,6 +85,12 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 			a = append(a, nsone.Answer{Answer: ans})
 		}
 		r.Answers = a
+		if _, ok := d.GetOk("link"); ok {
+			return errors.New("Cannot have both link and answers in a record")
+		}
+	}
+	if v, ok := d.GetOk("link"); ok {
+		r.LinkTo(v.(string))
 	}
 	err := client.CreateRecord(r)
 	//    zone := d.Get("zone").(string)
