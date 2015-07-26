@@ -43,11 +43,10 @@ func recordResource() *schema.Resource {
 			},
 			"meta": metaSchema(),
 			"link": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Computed:      true,
-				ConflictsWith: []string{"meta", "answers"},
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -57,7 +56,7 @@ func recordResource() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"answer": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 							Computed: true,
 						},
 						"meta": &schema.Schema{
@@ -68,13 +67,13 @@ func recordResource() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"field": &schema.Schema{
 										Type:     schema.TypeString,
-										Required: true,
 										Computed: true,
+										Optional: true,
 									},
 									"feed": &schema.Schema{
 										Type:     schema.TypeString,
-										Required: true,
 										Computed: true,
+										Optional: true,
 									},
 								},
 							},
