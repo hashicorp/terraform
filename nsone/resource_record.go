@@ -46,29 +46,35 @@ func recordResource() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
+				Computed:      true,
 				ConflictsWith: []string{"meta", "answers"},
 			},
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"answer": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+							Computed: true,
 						},
 						"meta": &schema.Schema{
 							Type:     schema.TypeSet,
 							Optional: true,
+							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"field": &schema.Schema{
 										Type:     schema.TypeString,
 										Required: true,
+										Computed: true,
 									},
 									"feed": &schema.Schema{
 										Type:     schema.TypeString,
 										Required: true,
+										Computed: true,
 									},
 								},
 							},
