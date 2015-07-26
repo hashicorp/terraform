@@ -7,7 +7,6 @@ import (
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"log"
 	"regexp"
 	"strings"
 )
@@ -58,13 +57,22 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"meta_field": &schema.Schema{
-							Type:     schema.TypeString,
+						"meta": &schema.Schema{
+							Type:     schema.TypeSet,
 							Optional: true,
-						},
-						"meta_feed": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"field": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"feed": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: metaToHash,
 						},
 					},
 				},
@@ -82,8 +90,15 @@ func answersToHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["answer"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["meta_feed"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["meta_field"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func metaToHash(v interface{}) int {
+	var buf bytes.Buffer
+	s := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", s["field"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", s["feed"].(string)))
 
 	return hashcode.String(buf.String())
 }
@@ -111,42 +126,24 @@ func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	if attr := d.Get("answers").(*schema.Set); attr.Len() > 0 {
+	if answers := d.Get("answers").(*schema.Set); answers.Len() > 0 {
 		al := make([]nsone.Answer, 0)
-		for _, v := range attr.List() {
+		for _, answer_raw := range answers.List() {
+			answer := answer_raw.(map[string]interface{})
 			a := nsone.NewAnswer()
-			var meta_field string
-			var meta_feed string
-			for meta_key, raw_v := range v.(map[string]interface{}) {
-				v := raw_v.(string)
-				log.Println(fmt.Sprintf("meta_key %s v %s", meta_key, v))
-				switch meta_key {
-				case "answer":
-					{
-						var ans []string
-						if d.Get("type") != "TXT" {
-							ans = strings.Split(v, " ")
-						} else {
-							ans = []string{v}
-						}
-						a.Answer = ans
-					}
-				case "meta_feed":
-					{
-						meta_feed = v
-					}
-				case "meta_field":
-					{
-						meta_field = v
-					}
-				default:
-					{
-						panic("impossible")
-					}
-				}
+			v := answer["answer"].(string)
+			if d.Get("type") != "TXT" {
+				a.Answer = strings.Split(v, " ")
+			} else {
+				a.Answer = []string{v}
 			}
-			if meta_field != "" && meta_feed != "" {
-				a.Meta[meta_field] = nsone.NewMetaFeed(meta_feed)
+			if metas := answer["meta"].(*schema.Set); metas.Len() > 0 {
+				for _, meta_raw := range metas.List() {
+					meta := meta_raw.(map[string]interface{})
+					key := meta["field"].(string)
+					value := meta["feed"].(string)
+					a.Meta[key] = nsone.NewMetaFeed(value)
+				}
 			}
 			al = append(al, a)
 		}
