@@ -1,10 +1,13 @@
 package nsone
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/bobtfish/go-nsone-api"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -49,8 +52,23 @@ func recordResource() *schema.Resource {
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"answer": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"meta_field": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"meta_feed": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: answersToHash,
 			},
 		},
 		Create: RecordCreate,
@@ -58,6 +76,16 @@ func recordResource() *schema.Resource {
 		Update: RecordUpdate,
 		Delete: RecordDelete,
 	}
+}
+
+func answersToHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["answer"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["meta_feed"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["meta_field"].(string)))
+
+	return hashcode.String(buf.String())
 }
 
 func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
@@ -70,21 +98,59 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
 	}
 }
 
+func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
+	result := make(map[string]interface{})
+	for _, rawData := range s.List() {
+		data := rawData.(map[string]interface{})
+		result[data[key].(string)] = data
+	}
+
+	return result
+}
+
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	if attr := d.Get("answers").(*schema.Set); attr.Len() > 0 {
-		a := make([]nsone.Answer, 0)
+		al := make([]nsone.Answer, 0)
 		for _, v := range attr.List() {
-			var ans []string
-			if d.Get("type") != "TXT" {
-				ans = strings.Split(v.(string), " ")
-			} else {
-				ans = []string{v.(string)}
+			a := nsone.NewAnswer()
+			var meta_field string
+			var meta_feed string
+			for meta_key, raw_v := range v.(map[string]interface{}) {
+				v := raw_v.(string)
+				log.Println(fmt.Sprintf("meta_key %s v %s", meta_key, v))
+				switch meta_key {
+				case "answer":
+					{
+						var ans []string
+						if d.Get("type") != "TXT" {
+							ans = strings.Split(v, " ")
+						} else {
+							ans = []string{v}
+						}
+						a.Answer = ans
+					}
+				case "meta_feed":
+					{
+						meta_feed = v
+					}
+				case "meta_field":
+					{
+						meta_field = v
+					}
+				default:
+					{
+						panic("impossible")
+					}
+				}
 			}
-			a = append(a, nsone.Answer{Answer: ans})
+			if meta_field != "" && meta_feed != "" {
+				a.Meta[meta_field] = nsone.NewMetaFeed(meta_feed)
+			}
+			al = append(al, a)
 		}
-		r.Answers = a
+		r.Answers = al
 		if _, ok := d.GetOk("link"); ok {
 			return errors.New("Cannot have both link and answers in a record")
 		}
@@ -122,6 +188,13 @@ func RecordDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func RecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	panic("Update not implemented")
+	client := meta.(*nsone.APIClient)
+	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
+	r.Id = d.Id()
+	err := client.UpdateRecord(r)
+	if err != nil {
+		return err
+	}
+	recordToResourceData(d, r)
 	return nil
 }

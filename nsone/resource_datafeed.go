@@ -73,6 +73,13 @@ func DataFeedDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func DataFeedUpdate(d *schema.ResourceData, meta interface{}) error {
-	panic("Update not implemented")
+	client := meta.(*nsone.APIClient)
+	df := nsone.NewDataFeed(d.Get("source_id").(string))
+	df.Id = d.Id()
+	err := client.UpdateDataFeed(df)
+	if err != nil {
+		return err
+	}
+	dataFeedToResourceData(d, df)
 	return nil
 }
