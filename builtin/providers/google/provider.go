@@ -87,9 +87,12 @@ ${file("filename.json")} instead.`)
 		return
 	}
 
-	if _, err := os.Stat(value); os.IsNotExist(err) {
-		errors = append(errors, err)
-		fmt.Errorf("account_file path does not exist: %s", value)
+	if _, err := os.Stat(value); err != nil {
+		errors = append(errors,
+			fmt.Errorf(
+				"account_file path could not be read from '%s': %s",
+				value,
+				err))
 	}
 
 	return
