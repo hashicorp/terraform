@@ -116,21 +116,16 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
 	if r.Link != "" {
 		d.Set("link", r.Link)
 	}
-}
-
-func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
-	result := make(map[string]interface{})
-	for _, rawData := range s.List() {
-		data := rawData.(map[string]interface{})
-		result[data[key].(string)] = data
+	if len(r.Answers) > 0 {
+		answers := schema.Set{}
+		for _, answer := range r.Answers {
+		}
+		d.Set("answers", answers)
 	}
-
-	return result
 }
 
-func RecordCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
+func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) {
+	r.Id = d.Id()
 	if answers := d.Get("answers").(*schema.Set); answers.Len() > 0 {
 		al := make([]nsone.Answer, 0)
 		for _, answer_raw := range answers.List() {
@@ -160,6 +155,22 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
 	}
+}
+
+func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
+	result := make(map[string]interface{})
+	for _, rawData := range s.List() {
+		data := rawData.(map[string]interface{})
+		result[data[key].(string)] = data
+	}
+
+	return result
+}
+
+func RecordCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*nsone.APIClient)
+	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
+	resourceDataToRecord(r, d)
 	err := client.CreateRecord(r)
 	//    zone := d.Get("zone").(string)
 	//    hostmaster := d.Get("hostmaster").(string)
@@ -173,8 +184,6 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r, err := client.GetRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	//    zone := d.Get("zone").(string)
-	//    hostmaster := d.Get("hostmaster").(string)
 	if err != nil {
 		return err
 	}
@@ -192,7 +201,7 @@ func RecordDelete(d *schema.ResourceData, meta interface{}) error {
 func RecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	r.Id = d.Id()
+	resourceDataToRecord(r, d)
 	err := client.UpdateRecord(r)
 	if err != nil {
 		return err

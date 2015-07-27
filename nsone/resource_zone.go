@@ -84,10 +84,11 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	log.Println(fmt.Sprintf("MOO: TTL %i", z.Ttl))
 }
 
-func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
-	z := nsone.NewZone(d.Get("zone").(string))
-	z.Hostmaster = d.Get("hostmaster").(string)
+func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
+	z.Id = d.Id()
+	if v, ok := d.GetOk("hostmaster"); ok {
+		z.Hostmaster = v.(string)
+	}
 	if v, ok := d.GetOk("ttl"); ok {
 		z.Ttl = v.(int)
 	}
@@ -109,6 +110,12 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("link"); ok {
 		z.LinkTo(v.(string))
 	}
+}
+
+func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*nsone.APIClient)
+	z := nsone.NewZone(d.Get("zone").(string))
+	resourceToZoneData(z, d)
 	err := client.CreateZone(z)
 	//    zone := d.Get("zone").(string)
 	//    hostmaster := d.Get("hostmaster").(string)
@@ -122,8 +129,6 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	z, err := client.GetZone(d.Get("zone").(string))
-	//    zone := d.Get("zone").(string)
-	//    hostmaster := d.Get("hostmaster").(string)
 	if err != nil {
 		return err
 	}
@@ -143,22 +148,7 @@ func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	z := nsone.NewZone(d.Get("zone").(string))
-	z.Id = d.Id()
-	if d.HasChange("ttl") {
-		z.Ttl = d.Get("ttl").(int)
-	}
-	if d.HasChange("nx_ttl") {
-		z.Ttl = d.Get("nx_ttl").(int)
-	}
-	if d.HasChange("retry") {
-		z.Retry = d.Get("retry").(int)
-	}
-	if d.HasChange("expiry") {
-		z.Expiry = d.Get("expiry").(int)
-	}
-	if d.HasChange("meta") {
-		z.Meta = d.Get("meta").(map[string]string)
-	}
+	resourceToZoneData(z, d)
 	err := client.UpdateZone(z)
 	if err != nil {
 		return err
