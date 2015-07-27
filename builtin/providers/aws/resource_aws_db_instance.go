@@ -46,6 +46,10 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					value := v.(string)
+					return strings.ToLower(value)
+				},
 			},
 
 			"engine_version": &schema.Schema{
