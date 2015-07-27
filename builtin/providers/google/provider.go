@@ -1,6 +1,10 @@
 package google
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -10,15 +14,10 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"account_file": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", ""),
-			},
-
-			"account_file_contents": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE_CONTENTS", ""),
+				Type:         schema.TypeString,
+				Required:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
+				ValidateFunc: validateAccountFile,
 			},
 
 			"project": &schema.Schema{
@@ -59,10 +58,9 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccountFile:         d.Get("account_file").(string),
-		AccountFileContents: d.Get("account_file_contents").(string),
-		Project:             d.Get("project").(string),
-		Region:              d.Get("region").(string),
+		AccountFile: d.Get("account_file").(string),
+		Project:     d.Get("project").(string),
+		Region:      d.Get("region").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
@@ -70,4 +68,29 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return &config, nil
+}
+
+func validateAccountFile(v interface{}, k string) (warnings []string, errors []error) {
+	value := v.(string)
+
+	if value == "" {
+		return
+	}
+
+	var account accountFile
+	if err := json.Unmarshal([]byte(value), &account); err != nil {
+		warnings = append(warnings, `
+account_file is not valid JSON, so we are assuming it is a file path. This
+support will be removed in the future. Please update your configuration to use
+${file("filename.json")} instead.`)
+
+		return
+	}
+
+	if _, err := os.Stat(value); os.IsNotExist(err) {
+		errors = append(errors, err)
+		fmt.Errorf("account_file path does not exist: %s", value)
+	}
+
+	return
 }

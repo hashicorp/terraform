@@ -25,10 +25,9 @@ import (
 // Config is the configuration structure used to instantiate the Google
 // provider.
 type Config struct {
-	AccountFile         string
-	AccountFileContents string
-	Project             string
-	Region              string
+	AccountFile string
+	Project     string
+	Region      string
 
 	clientCompute *compute.Service
 	clientContainer *container.Service
@@ -39,12 +38,8 @@ type Config struct {
 func (c *Config) loadAndValidate() error {
 	var account accountFile
 
-	// TODO: validation that it isn't blank
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
-	}
-	if c.AccountFileContents == "" {
-		c.AccountFileContents = os.Getenv("GOOGLE_ACCOUNT_FILE_CONTENTS")
 	}
 	if c.Project == "" {
 		c.Project = os.Getenv("GOOGLE_PROJECT")
@@ -56,25 +51,32 @@ func (c *Config) loadAndValidate() error {
 	var client *http.Client
 
 	if c.AccountFile != "" {
-		if c.AccountFileContents != "" {
-			return fmt.Errorf(
-				"Cannot provide both account_file and account_file_contents",
-			)
+		contents := c.AccountFile
+
+		// Assume account_file is a JSON string
+		if err := parseJSON(&account, contents); err != nil {
+			// If account_file was not JSON, assume it is a file path instead
+			if _, err := os.Stat(c.AccountFile); os.IsNotExist(err) {
+				return fmt.Errorf(
+					"account_file path does not exist: %s",
+					c.AccountFile)
+			}
+
+			b, err := ioutil.ReadFile(c.AccountFile)
+			if err != nil {
+				return fmt.Errorf(
+					"Error reading account_file from path '%s': %s",
+					c.AccountFile,
+					err)
+			}
+
+			contents = string(b)
 		}
 
-		b, err := ioutil.ReadFile(c.AccountFile)
-		if err != nil {
-			return err
-		}
-
-		c.AccountFileContents = string(b)
-	}
-
-	if c.AccountFileContents != "" {
-		if err := parseJSON(&account, c.AccountFileContents); err != nil {
+		if err := parseJSON(&account, contents); err != nil {
 			return fmt.Errorf(
-				"Error parsing account file contents '%s': %s",
-				c.AccountFileContents,
+				"Error parsing account file '%s': %s",
+				contents,
 				err)
 		}
 
