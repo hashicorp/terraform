@@ -19,7 +19,7 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Google Cloud provider
 provider "google" {
-    account_file = "account.json"
+    account_file = "${file("account.json")}"
     project = "my-gce-project"
     region = "us-central1"
 }
@@ -34,19 +34,13 @@ resource "google_compute_instance" "default" {
 
 The following keys can be used to configure the provider.
 
-* `account_file` - (Required, unless `account_file_contents` is present) Path
-  to the JSON file used to describe your account credentials, downloaded from
-  Google Cloud Console. More details on retrieving this file are below. The
-  _account file_ can be "" if you are running terraform from a GCE instance with
-  a properly-configured [Compute Engine Service
-  Account](https://cloud.google.com/compute/docs/authentication). This can also
-  be specified with the `GOOGLE_ACCOUNT_FILE` shell environment variable.
-
-* `account_file_contents` - (Required, unless `account_file` is present) The
-  contents of `account_file`. This can be used to pass the account credentials
-  with a Terraform var or environment variable if the account file is not
-  accessible. This can also be specified with the `GOOGLE_ACCOUNT_FILE_CONTENTS`
-  shell environment variable.
+* `account_file` - (Required) Contents of the JSON file used to describe your
+  account credentials, downloaded from Google Cloud Console. More details on
+  retrieving this file are below. The `account file` can be "" if you are running
+  terraform from a GCE instance with a properly-configured [Compute Engine
+  Service Account](https://cloud.google.com/compute/docs/authentication). This
+  can also be specified with the `GOOGLE_ACCOUNT_FILE` shell environment
+  variable.
 
 * `project` - (Required) The ID of the project to apply any resources to.  This
   can also be specified with the `GOOGLE_PROJECT` shell environment variable.
