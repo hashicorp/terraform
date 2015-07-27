@@ -10,6 +10,7 @@ import (
 
 	// TODO(dcunnin): Use version code from version.go
 	// "github.com/hashicorp/terraform"
+	"github.com/mitchellh/go-homedir"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
@@ -49,7 +50,14 @@ func (c *Config) loadAndValidate() error {
 	var client *http.Client
 
 	if c.AccountFile != "" {
-		if err := loadJSON(&account, c.AccountFile); err != nil {
+		var path string
+		path, err := homedir.Expand(c.AccountFile)
+		if err != nil {
+			return fmt.Errorf("Error expanding path %q: %q",
+				c.AccountFile, err.Error())
+		}
+
+		if err := loadJSON(&account, path); err != nil {
 			return fmt.Errorf(
 				"Error loading account file '%s': %s",
 				c.AccountFile,
