@@ -83,7 +83,7 @@ func validateAccountFile(v interface{}, k string) (warnings []string, errors []e
 account_file is not valid JSON, so we are assuming it is a file path. This
 support will be removed in the future. Please update your configuration to use
 ${file("filename.json")} instead.`)
-
+	} else {
 		return
 	}
 
