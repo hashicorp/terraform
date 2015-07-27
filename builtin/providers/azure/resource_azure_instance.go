@@ -591,6 +591,10 @@ func retrieveImageDetails(
 		return configureForImage, osType, nil
 	}
 
+	if err == PlatformStorageError {
+		return nil, "", err
+	}
+
 	return nil, "", fmt.Errorf("Could not find image with label '%s'. Available images are: %s",
 		label, strings.Join(append(VMLabels, OSLabels...), ", "))
 }
@@ -647,7 +651,7 @@ func retrieveOSImageDetails(
 			if img.MediaLink == "" {
 				if storage == "" {
 					return nil, "", nil,
-						fmt.Errorf("When using a platform image, the 'storage' parameter is required")
+						PlatformStorageError
 				}
 				img.MediaLink = fmt.Sprintf(osDiskBlobStorageURL, storage, name)
 			}
