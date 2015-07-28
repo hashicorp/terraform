@@ -87,7 +87,7 @@ func TestAccAWSVpnGateway_delete(t *testing.T) {
 	})
 }
 
-func TestAccVpnGateway_tags(t *testing.T) {
+func TestAccAWSVpnGateway_tags(t *testing.T) {
 	var v ec2.VPNGateway
 
 	resource.Test(t, resource.TestCase{

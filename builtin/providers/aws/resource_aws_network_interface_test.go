@@ -57,6 +57,26 @@ func TestAccAWSENI_attached(t *testing.T) {
 	})
 }
 
+func TestAccAWSENI_sourceDestCheck(t *testing.T) {
+	var conf ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSENIDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSENIConfigWithSourceDestCheck,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSENIExists("aws_network_interface.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_network_interface.bar", "source_dest_check", "false"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -106,6 +126,10 @@ func testAccCheckAWSENIAttributes(conf *ec2.NetworkInterface) resource.TestCheck
 
 		if *conf.PrivateIPAddress != "172.16.10.100" {
 			return fmt.Errorf("expected private ip to be 172.16.10.100, but was %s", *conf.PrivateIPAddress)
+		}
+
+		if *conf.SourceDestCheck != true {
+			return fmt.Errorf("expected source_dest_check to be true, but was %t", *conf.SourceDestCheck)
 		}
 
 		if len(conf.TagSet) == 0 {
@@ -198,6 +222,24 @@ resource "aws_network_interface" "bar" {
     tags {
         Name = "bar_interface"
     }
+}
+`
+
+const testAccAWSENIConfigWithSourceDestCheck = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+		source_dest_check = false
+    private_ips = ["172.16.10.100"]
 }
 `
 
