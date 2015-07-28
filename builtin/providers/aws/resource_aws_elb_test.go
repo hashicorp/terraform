@@ -465,9 +465,9 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancerDescription) resource.Te
 		}
 
 		l := elb.Listener{
-			InstancePort:     aws.Long(int64(8000)),
+			InstancePort:     aws.Int64(int64(8000)),
 			InstanceProtocol: aws.String("HTTP"),
-			LoadBalancerPort: aws.Long(int64(80)),
+			LoadBalancerPort: aws.Int64(int64(80)),
 			Protocol:         aws.String("HTTP"),
 		}
 
@@ -503,10 +503,10 @@ func testAccCheckAWSELBAttributesHealthCheck(conf *elb.LoadBalancerDescription) 
 		}
 
 		check := &elb.HealthCheck{
-			Timeout:            aws.Long(int64(30)),
-			UnhealthyThreshold: aws.Long(int64(5)),
-			HealthyThreshold:   aws.Long(int64(5)),
-			Interval:           aws.Long(int64(60)),
+			Timeout:            aws.Int64(int64(30)),
+			UnhealthyThreshold: aws.Int64(int64(5)),
+			HealthyThreshold:   aws.Int64(int64(5)),
+			Interval:           aws.Int64(int64(60)),
 			Target:             aws.String("HTTP:8000/"),
 		}
 

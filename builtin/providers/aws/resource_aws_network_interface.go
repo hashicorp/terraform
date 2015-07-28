@@ -175,7 +175,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 		old_attachment := oa.List()[0].(map[string]interface{})
 		detach_request := &ec2.DetachNetworkInterfaceInput{
 			AttachmentID: aws.String(old_attachment["attachment_id"].(string)),
-			Force:        aws.Boolean(true),
+			Force:        aws.Bool(true),
 		}
 		conn := meta.(*AWSClient).ec2conn
 		_, detach_err := conn.DetachNetworkInterface(detach_request)
@@ -216,7 +216,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 			new_attachment := na.(*schema.Set).List()[0].(map[string]interface{})
 			di := new_attachment["device_index"].(int)
 			attach_request := &ec2.AttachNetworkInterfaceInput{
-				DeviceIndex:        aws.Long(int64(di)),
+				DeviceIndex:        aws.Int64(int64(di)),
 				InstanceID:         aws.String(new_attachment["instance"].(string)),
 				NetworkInterfaceID: aws.String(d.Id()),
 			}
@@ -231,7 +231,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 
 	request := &ec2.ModifyNetworkInterfaceAttributeInput{
 		NetworkInterfaceID: aws.String(d.Id()),
-		SourceDestCheck:    &ec2.AttributeBooleanValue{Value: aws.Boolean(d.Get("source_dest_check").(bool))},
+		SourceDestCheck:    &ec2.AttributeBooleanValue{Value: aws.Bool(d.Get("source_dest_check").(bool))},
 	}
 
 	_, err := conn.ModifyNetworkInterfaceAttribute(request)

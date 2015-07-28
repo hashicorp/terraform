@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -78,7 +77,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		// Though the AWS API supports creating spot instance requests for multiple
 		// instances, for TF purposes we fix this to one instance per request.
 		// Users can get equivalent behavior out of TF's "count" meta-parameter.
-		InstanceCount: aws.Long(1),
+		InstanceCount: aws.Int64(1),
 
 		LaunchSpecification: &ec2.RequestSpotLaunchSpecification{
 			BlockDeviceMappings: instanceOpts.BlockDeviceMappings,
@@ -95,14 +94,14 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 	}
 
 	// Make the spot instance request
-	log.Printf("[DEBUG] Requesting spot bid opts: %s", awsutil.StringValue(spotOpts))
+	log.Printf("[DEBUG] Requesting spot bid opts: %s", spotOpts)
 	resp, err := conn.RequestSpotInstances(spotOpts)
 	if err != nil {
 		return fmt.Errorf("Error requesting spot instances: %s", err)
 	}
 	if len(resp.SpotInstanceRequests) != 1 {
 		return fmt.Errorf(
-			"Expected response with length 1, got: %s", awsutil.StringValue(resp))
+			"Expected response with length 1, got: %s", resp)
 	}
 
 	sir := *resp.SpotInstanceRequests[0]
@@ -123,7 +122,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		_, err = spotStateConf.WaitForState()
 
 		if err != nil {
-			return fmt.Errorf("Error while waiting for spot request (%s) to resolve: %s", awsutil.StringValue(sir), err)
+			return fmt.Errorf("Error while waiting for spot request (%s) to resolve: %s", sir, err)
 		}
 	}
 
