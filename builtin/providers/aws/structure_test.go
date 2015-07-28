@@ -70,8 +70,8 @@ func TestexpandIPPerms(t *testing.T) {
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(int64(1)),
-			ToPort:     aws.Long(int64(-1)),
+			FromPort:   aws.Int64(int64(1)),
+			ToPort:     aws.Int64(int64(-1)),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
@@ -85,8 +85,8 @@ func TestexpandIPPerms(t *testing.T) {
 		},
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(int64(1)),
-			ToPort:     aws.Long(int64(-1)),
+			FromPort:   aws.Int64(int64(1)),
+			ToPort:     aws.Int64(int64(-1)),
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
 					UserID: aws.String("foo"),
@@ -149,8 +149,8 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
 			IPProtocol: aws.String("-1"),
-			FromPort:   aws.Long(int64(0)),
-			ToPort:     aws.Long(int64(0)),
+			FromPort:   aws.Int64(int64(0)),
+			ToPort:     aws.Int64(int64(0)),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
@@ -245,8 +245,8 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(int64(1)),
-			ToPort:     aws.Long(int64(-1)),
+			FromPort:   aws.Int64(int64(1)),
+			ToPort:     aws.Int64(int64(-1)),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
@@ -259,8 +259,8 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 		},
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(int64(1)),
-			ToPort:     aws.Long(int64(-1)),
+			FromPort:   aws.Int64(int64(1)),
+			ToPort:     aws.Int64(int64(-1)),
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
 					GroupName: aws.String("foo"),
@@ -302,8 +302,8 @@ func TestexpandListeners(t *testing.T) {
 	}
 
 	expected := &elb.Listener{
-		InstancePort:     aws.Long(int64(8000)),
-		LoadBalancerPort: aws.Long(int64(80)),
+		InstancePort:     aws.Int64(int64(8000)),
+		LoadBalancerPort: aws.Int64(int64(80)),
 		InstanceProtocol: aws.String("http"),
 		Protocol:         aws.String("http"),
 	}
@@ -324,11 +324,11 @@ func TestflattenHealthCheck(t *testing.T) {
 	}{
 		{
 			Input: &elb.HealthCheck{
-				UnhealthyThreshold: aws.Long(int64(10)),
-				HealthyThreshold:   aws.Long(int64(10)),
+				UnhealthyThreshold: aws.Int64(int64(10)),
+				HealthyThreshold:   aws.Int64(int64(10)),
 				Target:             aws.String("HTTP:80/"),
-				Timeout:            aws.Long(int64(30)),
-				Interval:           aws.Long(int64(30)),
+				Timeout:            aws.Int64(int64(30)),
+				Interval:           aws.Int64(int64(30)),
 			},
 			Output: []map[string]interface{}{
 				map[string]interface{}{
@@ -570,7 +570,7 @@ func TestexpandPrivateIPAddesses(t *testing.T) {
 func TestflattenAttachment(t *testing.T) {
 	expanded := &ec2.NetworkInterfaceAttachment{
 		InstanceID:   aws.String("i-00001"),
-		DeviceIndex:  aws.Long(int64(1)),
+		DeviceIndex:  aws.Int64(int64(1)),
 		AttachmentID: aws.String("at-002"),
 	}
 

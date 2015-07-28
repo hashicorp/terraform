@@ -12,7 +12,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -334,8 +333,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		ImageID:               instanceOpts.ImageID,
 		InstanceType:          instanceOpts.InstanceType,
 		KeyName:               instanceOpts.KeyName,
-		MaxCount:              aws.Long(int64(1)),
-		MinCount:              aws.Long(int64(1)),
+		MaxCount:              aws.Int64(int64(1)),
+		MinCount:              aws.Int64(int64(1)),
 		NetworkInterfaces:     instanceOpts.NetworkInterfaces,
 		Placement:             instanceOpts.Placement,
 		PrivateIPAddress:      instanceOpts.PrivateIPAddress,
@@ -346,7 +345,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Create the instance
-	log.Printf("[DEBUG] Run configuration: %s", awsutil.StringValue(runOpts))
+	log.Printf("[DEBUG] Run configuration: %s", runOpts)
 
 	var runResp *ec2.Reservation
 	for i := 0; i < 5; i++ {
@@ -543,7 +542,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
 			InstanceID: aws.String(d.Id()),
 			SourceDestCheck: &ec2.AttributeBooleanValue{
-				Value: aws.Boolean(d.Get("source_dest_check").(bool)),
+				Value: aws.Bool(d.Get("source_dest_check").(bool)),
 			},
 		})
 		if err != nil {
@@ -571,7 +570,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
 			InstanceID: aws.String(d.Id()),
 			DisableAPITermination: &ec2.AttributeBooleanValue{
-				Value: aws.Boolean(d.Get("disable_api_termination").(bool)),
+				Value: aws.Bool(d.Get("disable_api_termination").(bool)),
 			},
 		})
 		if err != nil {
@@ -778,9 +777,9 @@ func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 		rootDeviceName = image.BlockDeviceMappings[0].DeviceName
 	}
 
-        if rootDeviceName == nil {
-                return nil, fmt.Errorf("[WARN] Error finding Root Device Name for AMI (%s)", ami)
-        }
+	if rootDeviceName == nil {
+		return nil, fmt.Errorf("[WARN] Error finding Root Device Name for AMI (%s)", ami)
+	}
 
 	return rootDeviceName, nil
 }
@@ -794,7 +793,7 @@ func readBlockDeviceMappingsFromConfig(
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
 			ebs := &ec2.EBSBlockDevice{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
 			}
 
 			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
@@ -802,11 +801,11 @@ func readBlockDeviceMappingsFromConfig(
 			}
 
 			if v, ok := bd["encrypted"].(bool); ok && v {
-				ebs.Encrypted = aws.Boolean(v)
+				ebs.Encrypted = aws.Bool(v)
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
+				ebs.VolumeSize = aws.Int64(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -814,7 +813,7 @@ func readBlockDeviceMappingsFromConfig(
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
+				ebs.IOPS = aws.Int64(int64(v))
 			}
 
 			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
@@ -843,11 +842,11 @@ func readBlockDeviceMappingsFromConfig(
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
 			ebs := &ec2.EBSBlockDevice{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
+				ebs.VolumeSize = aws.Int64(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -855,7 +854,7 @@ func readBlockDeviceMappingsFromConfig(
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
+				ebs.IOPS = aws.Int64(int64(v))
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {
@@ -902,14 +901,14 @@ func buildAwsInstanceOpts(
 	conn := meta.(*AWSClient).ec2conn
 
 	opts := &awsInstanceOpts{
-		DisableAPITermination: aws.Boolean(d.Get("disable_api_termination").(bool)),
-		EBSOptimized:          aws.Boolean(d.Get("ebs_optimized").(bool)),
+		DisableAPITermination: aws.Bool(d.Get("disable_api_termination").(bool)),
+		EBSOptimized:          aws.Bool(d.Get("ebs_optimized").(bool)),
 		ImageID:               aws.String(d.Get("ami").(string)),
 		InstanceType:          aws.String(d.Get("instance_type").(string)),
 	}
 
 	opts.Monitoring = &ec2.RunInstancesMonitoringEnabled{
-		Enabled: aws.Boolean(d.Get("monitoring").(bool)),
+		Enabled: aws.Bool(d.Get("monitoring").(bool)),
 	}
 
 	opts.IAMInstanceProfile = &ec2.IAMInstanceProfileSpecification{
@@ -965,8 +964,8 @@ func buildAwsInstanceOpts(
 		// to avoid: Network interfaces and an instance-level security groups may not be specified on
 		// the same request
 		ni := &ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIPAddress: aws.Boolean(associatePublicIPAddress),
-			DeviceIndex:              aws.Long(int64(0)),
+			AssociatePublicIPAddress: aws.Bool(associatePublicIPAddress),
+			DeviceIndex:              aws.Int64(int64(0)),
 			SubnetID:                 aws.String(subnetID),
 			Groups:                   groups,
 		}

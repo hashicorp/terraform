@@ -140,15 +140,15 @@ func getAwsAutoscalingPutScalingPolicyInput(d *schema.ResourceData) autoscaling.
 	}
 
 	if v, ok := d.GetOk("cooldown"); ok {
-		params.Cooldown = aws.Long(int64(v.(int)))
+		params.Cooldown = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("scaling_adjustment"); ok {
-		params.ScalingAdjustment = aws.Long(int64(v.(int)))
+		params.ScalingAdjustment = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("min_adjustment_step"); ok {
-		params.MinAdjustmentStep = aws.Long(int64(v.(int)))
+		params.MinAdjustmentStep = aws.Int64(int64(v.(int)))
 	}
 
 	return params

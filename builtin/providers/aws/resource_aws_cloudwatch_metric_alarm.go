@@ -197,16 +197,16 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 	params := cloudwatch.PutMetricAlarmInput{
 		AlarmName:          aws.String(d.Get("alarm_name").(string)),
 		ComparisonOperator: aws.String(d.Get("comparison_operator").(string)),
-		EvaluationPeriods:  aws.Long(int64(d.Get("evaluation_periods").(int))),
+		EvaluationPeriods:  aws.Int64(int64(d.Get("evaluation_periods").(int))),
 		MetricName:         aws.String(d.Get("metric_name").(string)),
 		Namespace:          aws.String(d.Get("namespace").(string)),
-		Period:             aws.Long(int64(d.Get("period").(int))),
+		Period:             aws.Int64(int64(d.Get("period").(int))),
 		Statistic:          aws.String(d.Get("statistic").(string)),
-		Threshold:          aws.Double(d.Get("threshold").(float64)),
+		Threshold:          aws.Float64(d.Get("threshold").(float64)),
 	}
 
 	if v := d.Get("actions_enabled"); v != nil {
-		params.ActionsEnabled = aws.Boolean(v.(bool))
+		params.ActionsEnabled = aws.Bool(v.(bool))
 	}
 
 	if v, ok := d.GetOk("alarm_description"); ok {

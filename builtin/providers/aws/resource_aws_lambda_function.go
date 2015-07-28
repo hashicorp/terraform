@@ -112,10 +112,10 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		Description:  aws.String(d.Get("description").(string)),
 		FunctionName: aws.String(functionName),
 		Handler:      aws.String(d.Get("handler").(string)),
-		MemorySize:   aws.Long(int64(d.Get("memory_size").(int))),
+		MemorySize:   aws.Int64(int64(d.Get("memory_size").(int))),
 		Role:         aws.String(iamRole),
 		Runtime:      aws.String(d.Get("runtime").(string)),
-		Timeout:      aws.Long(int64(d.Get("timeout").(int))),
+		Timeout:      aws.Int64(int64(d.Get("timeout").(int))),
 	}
 
 	for i := 0; i < 5; i++ {

@@ -82,8 +82,8 @@ func (c *Config) Client() (interface{}, error) {
 		creds := credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.Token)
 		awsConfig := &aws.Config{
 			Credentials: creds,
-			Region:      c.Region,
-			MaxRetries:  c.MaxRetries,
+			Region:      aws.String(c.Region),
+			MaxRetries:  aws.Int(c.MaxRetries),
 		}
 
 		log.Println("[INFO] Initializing IAM Connection")
@@ -135,8 +135,8 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Route 53 connection")
 		client.r53conn = route53.New(&aws.Config{
 			Credentials: creds,
-			Region:      "us-east-1",
-			MaxRetries:  c.MaxRetries,
+			Region:      aws.String("us-east-1"),
+			MaxRetries:  aws.Int(c.MaxRetries),
 		})
 
 		log.Println("[INFO] Initializing Elasticache Connection")
