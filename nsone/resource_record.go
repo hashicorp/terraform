@@ -120,23 +120,23 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
 	log.Println("BOOOO")
 	log.Println(r)
 	if len(r.Answers) > 0 {
-		answers := make([]map[string]interface{}, len(r.Answers))
+		answers := make([]map[string]interface{}, 0, len(r.Answers))
 		log.Println("Got answers")
-		for i, answer := range r.Answers {
+		for _, answer := range r.Answers {
 			log.Println("GOT ANSWER")
 			log.Println(answer)
-			answers[i] = answerToMap(answer)
+			answers = append(answers, answerToMap(answer))
 		}
 		log.Println("Set answers")
 		log.Println(answers)
-		d.Set("answers", &answers)
+		d.Set("answers", nil) //&answers)
 	}
 }
 
 func answerToMap(a nsone.Answer) map[string]interface{} {
 	m := make(map[string]interface{})
-	m["answer"] = a.Answer
-	if a.Meta != nil {
+	m["answer"] = strings.Join(a.Answer, " ")
+	/*if a.Meta != nil {
 		metas := make([]map[string]interface{}, len(a.Meta))
 		for k, v := range a.Meta {
 			meta := make(map[string]interface{})
@@ -145,8 +145,8 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 			metas = append(metas, meta)
 		}
 		m["meta"] = metas
-	}
-	log.Println("answerToMap %v", m)
+	}*/
+	log.Println(fmt.Sprintf("answerToMap %v", m))
 	return m
 }
 
@@ -210,21 +210,21 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
-	z := d.Get("zone").(string)
-	do := d.Get("domain").(string)
-	t := d.Get("type").(string)
-	before := nsone.NewRecord(z, do, t)
-	resourceDataToRecord(before, d)
-	log.Println(fmt.Sprintf("FOOOO READ RECORD %+v", before))
+	//z := d.Get("zone").(string)
+	//do := d.Get("domain").(string)
+	//t := d.Get("type").(string)
+	//before := nsone.NewRecord(z, do, t)
+	//resourceDataToRecord(before, d)
+	//log.Println(fmt.Sprintf("FOOOO READ RECORD %+v", before))
 	client := meta.(*nsone.APIClient)
 	r, err := client.GetRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	if err != nil {
 		return err
 	}
 	recordToResourceData(d, r)
-	after := nsone.NewRecord(z, do, t)
-	resourceDataToRecord(after, d)
-	log.Println(fmt.Sprintf("FINISH READ RECORD %+v", after))
+	//after := nsone.NewRecord(z, do, t)
+	//resourceDataToRecord(after, d)
+	//log.Println(fmt.Sprintf("FINISH READ RECORD %+v", after))
 	return nil
 }
 
