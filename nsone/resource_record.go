@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -94,9 +95,17 @@ func recordResource() *schema.Resource {
 
 func answersToHash(v interface{}) int {
 	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["answer"].(string)))
-
+	a := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", a["answer"].(string)))
+	ms := a["meta"].(*schema.Set)
+	metas := make([]int, ms.Len())
+	for _, meta := range ms.List() {
+		metas = append(metas, metaToHash(meta))
+	}
+	sort.Ints(metas)
+	for _, metahash := range metas {
+		buf.WriteString(fmt.Sprintf("%d-", metahash))
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -128,7 +137,7 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 			answers = append(answers, answerToMap(answer))
 		}
 		log.Println(fmt.Sprintf("[DEBUG] SETTING ANSWERS: %v", answers))
-		err := d.Set("answers", &answers)
+		err := d.Set("answers", answers)
 		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting answers for: %s, error: %#v", r.Domain, err)
 		}
