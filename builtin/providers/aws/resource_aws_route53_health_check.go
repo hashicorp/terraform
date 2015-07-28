@@ -68,7 +68,7 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if d.HasChange("failure_threshold") {
-		updateHealthCheck.FailureThreshold = aws.Long(int64(d.Get("failure_threshold").(int)))
+		updateHealthCheck.FailureThreshold = aws.Int64(int64(d.Get("failure_threshold").(int)))
 	}
 
 	if d.HasChange("fqdn") {
@@ -76,7 +76,7 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if d.HasChange("port") {
-		updateHealthCheck.Port = aws.Long(int64(d.Get("port").(int)))
+		updateHealthCheck.Port = aws.Int64(int64(d.Get("port").(int)))
 	}
 
 	if d.HasChange("resource_path") {
@@ -104,8 +104,8 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 
 	healthConfig := &route53.HealthCheckConfig{
 		Type:             aws.String(d.Get("type").(string)),
-		FailureThreshold: aws.Long(int64(d.Get("failure_threshold").(int))),
-		RequestInterval:  aws.Long(int64(d.Get("request_interval").(int))),
+		FailureThreshold: aws.Int64(int64(d.Get("failure_threshold").(int))),
+		RequestInterval:  aws.Int64(int64(d.Get("request_interval").(int))),
 	}
 
 	if v, ok := d.GetOk("fqdn"); ok {
@@ -121,7 +121,7 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 	}
 
 	if v, ok := d.GetOk("port"); ok {
-		healthConfig.Port = aws.Long(int64(v.(int)))
+		healthConfig.Port = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("resource_path"); ok {

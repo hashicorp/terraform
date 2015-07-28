@@ -74,16 +74,16 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
 	}
 	if value, ok := d.GetOk("encrypted"); ok {
-		request.Encrypted = aws.Boolean(value.(bool))
+		request.Encrypted = aws.Bool(value.(bool))
 	}
 	if value, ok := d.GetOk("iops"); ok {
-		request.IOPS = aws.Long(int64(value.(int)))
+		request.IOPS = aws.Int64(int64(value.(int)))
 	}
 	if value, ok := d.GetOk("kms_key_id"); ok {
 		request.KMSKeyID = aws.String(value.(string))
 	}
 	if value, ok := d.GetOk("size"); ok {
-		request.Size = aws.Long(int64(value.(int)))
+		request.Size = aws.Int64(int64(value.(int)))
 	}
 	if value, ok := d.GetOk("snapshot_id"); ok {
 		request.SnapshotID = aws.String(value.(string))

@@ -137,7 +137,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 		modifyOpts := &ec2.ModifySubnetAttributeInput{
 			SubnetID: aws.String(d.Id()),
 			MapPublicIPOnLaunch: &ec2.AttributeBooleanValue{
-				Value: aws.Boolean(d.Get("map_public_ip_on_launch").(bool)),
+				Value: aws.Bool(d.Get("map_public_ip_on_launch").(bool)),
 			},
 		}
 
