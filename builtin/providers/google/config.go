@@ -71,13 +71,13 @@ func (c *Config) loadAndValidate() error {
 			}
 
 			contents = string(b)
-		}
 
-		if err := parseJSON(&account, contents); err != nil {
-			return fmt.Errorf(
-				"Error parsing account file '%s': %s",
-				contents,
-				err)
+			if err := parseJSON(&account, contents); err != nil {
+				return fmt.Errorf(
+					"Error parsing account file '%s': %s",
+					contents,
+					err)
+			}
 		}
 
 		clientScopes := []string{
