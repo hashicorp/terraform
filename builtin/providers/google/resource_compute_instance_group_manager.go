@@ -93,7 +93,7 @@ func waitOpZone(config *Config, op *compute.Operation, zone string,
 		Type:    OperationWaitZone,
 	}
 	state := w.Conf()
-	state.Timeout = 2 * time.Minute
+	state.Timeout = 8 * time.Minute
 	state.MinTimeout = 1 * time.Second
 	opRaw, err := state.WaitForState()
 	if err != nil {
