@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -35,7 +36,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	// Refresh!
 	state, err = provider.Refresh(n.Info, state)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %s", n.Info.Id, err.Error())
 	}
 
 	// Call post-refresh hook

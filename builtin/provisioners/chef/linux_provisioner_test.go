@@ -163,11 +163,14 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			}),
 
 			Commands: map[string]bool{
-				"sudo mkdir -p " + linuxConfDir:                          true,
-				"sudo chmod 777 " + linuxConfDir:                         true,
-				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"): true,
-				"sudo chmod 755 " + linuxConfDir:                         true,
-				"sudo chown -R root.root " + linuxConfDir:                true,
+				"sudo mkdir -p " + linuxConfDir:                                    true,
+				"sudo chmod 777 " + linuxConfDir:                                   true,
+				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):           true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):          true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):          true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "ohai/hints"): true,
+				"sudo chmod 755 " + linuxConfDir:                                   true,
+				"sudo chown -R root.root " + linuxConfDir:                          true,
 			},
 
 			Uploads: map[string]string{

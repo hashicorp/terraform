@@ -480,7 +480,8 @@ func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface
 		})
 	if err != nil {
 		autoscalingerr, ok := err.(awserr.Error)
-		if ok && autoscalingerr.Code() == "InvalidConfiguration.NotFound" {
+		if ok && (autoscalingerr.Code() == "InvalidConfiguration.NotFound" || autoscalingerr.Code() == "ValidationError") {
+			log.Printf("[DEBUG] Launch configuration (%s) not found", d.Id())
 			return nil
 		}
 
