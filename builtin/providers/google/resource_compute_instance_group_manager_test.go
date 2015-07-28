@@ -22,7 +22,7 @@ func TestAccInstanceGroupManager_basic(t *testing.T) {
 				Config: testAccInstanceGroupManager_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
-						"google_compute_instance_group_manager.foobar", &manager),
+						"google_compute_instance_group_manager.igm-basic", &manager),
 				),
 			},
 		},
@@ -38,27 +38,20 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccInstanceGroupManager_basic,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInstanceGroupManagerExists(
-						"google_compute_instance_group_manager.foobar", &manager),
-				),
-			},
-			resource.TestStep{
 				Config: testAccInstanceGroupManager_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
-						"google_compute_instance_group_manager.foobar", &manager),
+						"google_compute_instance_group_manager.igm-update", &manager),
 				),
 			},
 			resource.TestStep{
 				Config: testAccInstanceGroupManager_update2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
-						"google_compute_instance_group_manager.foobar", &manager),
+						"google_compute_instance_group_manager.igm-update", &manager),
 					testAccCheckInstanceGroupManagerUpdated(
-						"google_compute_instance_group_manager.foobar", 3,
-						"google_compute_target_pool.foobaz", "terraform-test-foobaz"),
+						"google_compute_instance_group_manager.igm-update", 3,
+						"google_compute_target_pool.igm-update", "terraform-test-igm-update2"),
 				),
 			},
 		},
@@ -152,8 +145,8 @@ func testAccCheckInstanceGroupManagerUpdated(n string, size int64, targetPool st
 }
 
 const testAccInstanceGroupManager_basic = `
-resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test-foobar"
+resource "google_compute_instance_template" "igm-basic" {
+	name = "terraform-test-igm-basic"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -177,25 +170,25 @@ resource "google_compute_instance_template" "foobar" {
 	}
 }
 
-resource "google_compute_target_pool" "foobar" {
+resource "google_compute_target_pool" "igm-basic" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-foobar"
+	name = "terraform-test-igm-basic"
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
-resource "google_compute_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "igm-basic" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test"
-	instance_template = "${google_compute_instance_template.foobar.self_link}"
-	target_pools = ["${google_compute_target_pool.foobar.self_link}"]
-	base_instance_name = "foobar"
+	name = "terraform-test-igm-basic"
+	instance_template = "${google_compute_instance_template.igm-basic.self_link}"
+	target_pools = ["${google_compute_target_pool.igm-basic.self_link}"]
+	base_instance_name = "igm-basic"
 	zone = "us-central1-c"
 	target_size = 2
 }`
 
 const testAccInstanceGroupManager_update = `
-resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test-foobar"
+resource "google_compute_instance_template" "igm-update" {
+	name = "terraform-test-igm-update"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -219,56 +212,26 @@ resource "google_compute_instance_template" "foobar" {
 	}
 }
 
-resource "google_compute_instance_template" "foobaz" {
-	name = "terraform-test-foobaz"
-	machine_type = "n1-standard-1"
-	can_ip_forward = false
-	tags = ["foo", "bar"]
-
-	disk {
-		source_image = "debian-cloud/debian-7-wheezy-v20140814"
-		auto_delete = true
-		boot = true
-	}
-
-	network_interface {
-		network = "default"
-	}
-
-	metadata {
-		foo = "bar"
-	}
-
-	service_account {
-		scopes = ["userinfo-email", "compute-ro", "storage-ro"]
-	}
-}
-
-resource "google_compute_target_pool" "foobar" {
+resource "google_compute_target_pool" "igm-update" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-foobar"
+	name = "terraform-test-igm-update"
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
-resource "google_compute_target_pool" "foobaz" {
-	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-foobaz"
-	session_affinity = "CLIENT_IP_PROTO"
-}
-
-resource "google_compute_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "igm-update" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test"
-	instance_template = "${google_compute_instance_template.foobar.self_link}"
-	target_pools = ["${google_compute_target_pool.foobaz.self_link}"]
-	base_instance_name = "foobar"
+	name = "terraform-test-igm-update"
+	instance_template = "${google_compute_instance_template.igm-update.self_link}"
+	target_pools = ["${google_compute_target_pool.igm-update.self_link}"]
+	base_instance_name = "igm-update"
 	zone = "us-central1-c"
 	target_size = 2
 }`
 
+// Change IGM's instance template and target size
 const testAccInstanceGroupManager_update2 = `
-resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test-foobar"
+resource "google_compute_instance_template" "igm-update" {
+	name = "terraform-test-igm-update"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -292,8 +255,14 @@ resource "google_compute_instance_template" "foobar" {
 	}
 }
 
-resource "google_compute_instance_template" "foobaz" {
-	name = "terraform-test-foobaz"
+resource "google_compute_target_pool" "igm-update" {
+	description = "Resource created for Terraform acceptance testing"
+	name = "terraform-test-igm-update"
+	session_affinity = "CLIENT_IP_PROTO"
+}
+
+resource "google_compute_instance_template" "igm-update2" {
+	name = "terraform-test-igm-update2"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -317,24 +286,13 @@ resource "google_compute_instance_template" "foobaz" {
 	}
 }
 
-resource "google_compute_target_pool" "foobar" {
-	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-foobar"
-	session_affinity = "CLIENT_IP_PROTO"
-}
-
-resource "google_compute_target_pool" "foobaz" {
-	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-foobaz"
-	session_affinity = "CLIENT_IP_PROTO"
-}
-
-resource "google_compute_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "igm-update" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test"
-	instance_template = "${google_compute_instance_template.foobaz.self_link}"
-	target_pools = ["${google_compute_target_pool.foobaz.self_link}"]
-	base_instance_name = "foobar"
+	name = "terraform-test-igm-update"
+	instance_template = "${google_compute_instance_template.igm-update2.self_link}"
+	target_pools = ["${google_compute_target_pool.igm-update.self_link}"]
+	base_instance_name = "igm-update"
 	zone = "us-central1-c"
 	target_size = 3
 }`
+
