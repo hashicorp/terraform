@@ -1,5 +1,10 @@
 ## 0.6.2 (Unreleased)
 
+FEATURES:
+
+  * **New resource: `google_compute_instance_group_manager`** [GH-2868]
+  * **New resource: `google_compute_autoscaler`** [GH-2868]
+
 IMPROVEMENTS:
 
   * core: Add resource IDs to errors coming from `apply`/`refresh` [GH-2815]
