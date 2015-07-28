@@ -9,6 +9,7 @@ IMPROVEMENTS:
   * provider/aws: Downcase RDS engine names to prevent continuous diffs [GH-2745]
   * provider/aws: Added `source_dest_check` attribute to the aws_network_interface [GH-2741]
   * provider/aws: Clean up externally removed Launch Configurations [GH-2806]
+  * provider/aws: Compute private ip addresses of ENIs if they are not specified [GH-2743]
 
 BUG FIXES:
 
