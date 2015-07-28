@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"google.golang.org/api/compute/v1"
-
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -25,8 +24,8 @@ type OperationWaiter struct {
 	Op      *compute.Operation
 	Project string
 	Region  string
-	Zone    string
 	Type    OperationWaitType
+	Zone    string
 }
 
 func (w *OperationWaiter) RefreshFunc() resource.StateRefreshFunc {
@@ -78,3 +77,4 @@ func (e OperationError) Error() string {
 
 	return buf.String()
 }
+
