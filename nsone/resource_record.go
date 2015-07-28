@@ -109,7 +109,7 @@ func metaToHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
+func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 	d.SetId(r.Id)
 	d.Set("domain", r.Domain)
 	d.Set("zone", r.Zone)
@@ -127,16 +127,20 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) {
 			log.Println(answer)
 			answers = append(answers, answerToMap(answer))
 		}
-		log.Println("Set answers")
-		log.Println(answers)
-		d.Set("answers", nil) //&answers)
+		log.Println(fmt.Sprintf("[DEBUG] SETTING ANSWERS: %v", answers))
+		err := d.Set("answers", &answers)
+		if err != nil {
+			return fmt.Errorf("[DEBUG] Error setting answers for: %s, error: %#v", r.Domain, err)
+		}
 	}
+	return nil
 }
 
 func answerToMap(a nsone.Answer) map[string]interface{} {
 	m := make(map[string]interface{})
+	m["meta"] = make([]map[string]interface{}, 0)
 	m["answer"] = strings.Join(a.Answer, " ")
-	/*if a.Meta != nil {
+	if a.Meta != nil {
 		metas := make([]map[string]interface{}, len(a.Meta))
 		for k, v := range a.Meta {
 			meta := make(map[string]interface{})
@@ -145,7 +149,7 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 			metas = append(metas, meta)
 		}
 		m["meta"] = metas
-	}*/
+	}
 	log.Println(fmt.Sprintf("answerToMap %v", m))
 	return m
 }
@@ -205,8 +209,7 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	recordToResourceData(d, r)
-	return nil
+	return recordToResourceData(d, r)
 }
 
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
