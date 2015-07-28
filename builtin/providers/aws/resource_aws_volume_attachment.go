@@ -157,7 +157,7 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 		Device:     aws.String(d.Get("device_name").(string)),
 		InstanceID: aws.String(iID),
 		VolumeID:   aws.String(vID),
-		Force:      aws.Boolean(d.Get("force_detach").(bool)),
+		Force:      aws.Bool(d.Get("force_detach").(bool)),
 	}
 
 	_, err := conn.DetachVolume(opts)

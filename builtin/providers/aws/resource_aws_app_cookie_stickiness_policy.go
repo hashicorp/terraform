@@ -64,7 +64,7 @@ func resourceAwsAppCookieStickinessPolicyCreate(d *schema.ResourceData, meta int
 
 	setLoadBalancerOpts := &elb.SetLoadBalancerPoliciesOfListenerInput{
 		LoadBalancerName: aws.String(d.Get("load_balancer").(string)),
-		LoadBalancerPort: aws.Long(int64(d.Get("lb_port").(int))),
+		LoadBalancerPort: aws.Int64(int64(d.Get("lb_port").(int))),
 		PolicyNames:      []*string{aws.String(d.Get("name").(string))},
 	}
 
@@ -129,7 +129,7 @@ func resourceAwsAppCookieStickinessPolicyDelete(d *schema.ResourceData, meta int
 	// policy itself.
 	setLoadBalancerOpts := &elb.SetLoadBalancerPoliciesOfListenerInput{
 		LoadBalancerName: aws.String(d.Get("load_balancer").(string)),
-		LoadBalancerPort: aws.Long(int64(d.Get("lb_port").(int))),
+		LoadBalancerPort: aws.Int64(int64(d.Get("lb_port").(int))),
 		PolicyNames:      []*string{},
 	}
 

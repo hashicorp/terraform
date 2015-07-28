@@ -122,7 +122,7 @@ func autoscalingTagsFromMap(m map[string]interface{}, resourceID string) []*auto
 		result = append(result, &autoscaling.Tag{
 			Key:               aws.String(k),
 			Value:             aws.String(attr["value"].(string)),
-			PropagateAtLaunch: aws.Boolean(attr["propagate_at_launch"].(bool)),
+			PropagateAtLaunch: aws.Bool(attr["propagate_at_launch"].(bool)),
 			ResourceID:        aws.String(resourceID),
 			ResourceType:      aws.String("auto-scaling-group"),
 		})

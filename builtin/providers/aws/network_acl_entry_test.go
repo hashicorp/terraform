@@ -41,35 +41,35 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 		&ec2.NetworkACLEntry{
 			Protocol: aws.String("6"),
 			PortRange: &ec2.PortRange{
-				From: aws.Long(22),
-				To:   aws.Long(22),
+				From: aws.Int64(22),
+				To:   aws.Int64(22),
 			},
 			RuleAction: aws.String("deny"),
-			RuleNumber: aws.Long(1),
+			RuleNumber: aws.Int64(1),
 			CIDRBlock:  aws.String("0.0.0.0/0"),
-			Egress:     aws.Boolean(true),
+			Egress:     aws.Bool(true),
 		},
 		&ec2.NetworkACLEntry{
 			Protocol: aws.String("6"),
 			PortRange: &ec2.PortRange{
-				From: aws.Long(443),
-				To:   aws.Long(443),
+				From: aws.Int64(443),
+				To:   aws.Int64(443),
 			},
 			RuleAction: aws.String("deny"),
-			RuleNumber: aws.Long(2),
+			RuleNumber: aws.Int64(2),
 			CIDRBlock:  aws.String("0.0.0.0/0"),
-			Egress:     aws.Boolean(true),
+			Egress:     aws.Bool(true),
 		},
 		&ec2.NetworkACLEntry{
 			Protocol: aws.String("-1"),
 			PortRange: &ec2.PortRange{
-				From: aws.Long(443),
-				To:   aws.Long(443),
+				From: aws.Int64(443),
+				To:   aws.Int64(443),
 			},
 			RuleAction: aws.String("deny"),
-			RuleNumber: aws.Long(2),
+			RuleNumber: aws.Int64(2),
 			CIDRBlock:  aws.String("0.0.0.0/0"),
-			Egress:     aws.Boolean(true),
+			Egress:     aws.Bool(true),
 		},
 	}
 
@@ -88,21 +88,21 @@ func Test_flattenNetworkACLEntry(t *testing.T) {
 		&ec2.NetworkACLEntry{
 			Protocol: aws.String("tcp"),
 			PortRange: &ec2.PortRange{
-				From: aws.Long(22),
-				To:   aws.Long(22),
+				From: aws.Int64(22),
+				To:   aws.Int64(22),
 			},
 			RuleAction: aws.String("deny"),
-			RuleNumber: aws.Long(1),
+			RuleNumber: aws.Int64(1),
 			CIDRBlock:  aws.String("0.0.0.0/0"),
 		},
 		&ec2.NetworkACLEntry{
 			Protocol: aws.String("tcp"),
 			PortRange: &ec2.PortRange{
-				From: aws.Long(443),
-				To:   aws.Long(443),
+				From: aws.Int64(443),
+				To:   aws.Int64(443),
 			},
 			RuleAction: aws.String("deny"),
-			RuleNumber: aws.Long(2),
+			RuleNumber: aws.Int64(2),
 			CIDRBlock:  aws.String("0.0.0.0/0"),
 		},
 	}

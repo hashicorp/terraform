@@ -143,7 +143,7 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ec2conn
 
 	connectOpts := &ec2.VPNConnectionOptionsSpecification{
-		StaticRoutesOnly: aws.Boolean(d.Get("static_routes_only").(bool)),
+		StaticRoutesOnly: aws.Bool(d.Get("static_routes_only").(bool)),
 	}
 
 	createOpts := &ec2.CreateVPNConnectionInput{

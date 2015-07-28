@@ -46,7 +46,7 @@ func testAccCheckKinesisStreamExists(n string, stream *kinesis.StreamDescription
 		conn := testAccProvider.Meta().(*AWSClient).kinesisconn
 		describeOpts := &kinesis.DescribeStreamInput{
 			StreamName: aws.String(rs.Primary.Attributes["name"]),
-			Limit:      aws.Long(1),
+			Limit:      aws.Int64(1),
 		}
 		resp, err := conn.DescribeStream(describeOpts)
 		if err != nil {
@@ -84,7 +84,7 @@ func testAccCheckKinesisStreamDestroy(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).kinesisconn
 		describeOpts := &kinesis.DescribeStreamInput{
 			StreamName: aws.String(rs.Primary.Attributes["name"]),
-			Limit:      aws.Long(1),
+			Limit:      aws.Int64(1),
 		}
 		resp, err := conn.DescribeStream(describeOpts)
 		if err == nil {
