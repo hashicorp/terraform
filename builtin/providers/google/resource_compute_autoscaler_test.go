@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"google.golang.org/api/autoscaler/v1beta2"
+	"google.golang.org/api/compute/v1"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAutoscaler_basic(t *testing.T) {
-	var ascaler autoscaler.Autoscaler
+	var ascaler compute.Autoscaler
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -21,7 +21,7 @@ func TestAccAutoscaler_basic(t *testing.T) {
 				Config: testAccAutoscaler_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAutoscalerExists(
-						"google_autoscaler.foobar", &ascaler),
+						"google_compute_autoscaler.foobar", &ascaler),
 				),
 			},
 		},
@@ -29,7 +29,7 @@ func TestAccAutoscaler_basic(t *testing.T) {
 }
 
 func TestAccAutoscaler_update(t *testing.T) {
-	var ascaler autoscaler.Autoscaler
+	var ascaler compute.Autoscaler
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -40,16 +40,16 @@ func TestAccAutoscaler_update(t *testing.T) {
 				Config: testAccAutoscaler_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAutoscalerExists(
-						"google_autoscaler.foobar", &ascaler),
+						"google_compute_autoscaler.foobar", &ascaler),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAutoscaler_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAutoscalerExists(
-						"google_autoscaler.foobar", &ascaler),
+						"google_compute_autoscaler.foobar", &ascaler),
 					testAccCheckAutoscalerUpdated(
-						"google_autoscaler.foobar", 10),
+						"google_compute_autoscaler.foobar", 10),
 				),
 			},
 		},
@@ -60,11 +60,11 @@ func testAccCheckAutoscalerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "google_autoscaler" {
+		if rs.Type != "google_compute_autoscaler" {
 			continue
 		}
 
-		_, err := config.clientAutoscaler.Autoscalers.Get(
+		_, err := config.clientCompute.Autoscalers.Get(
 			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Autoscaler still exists")
@@ -74,7 +74,7 @@ func testAccCheckAutoscalerDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAutoscalerExists(n string, ascaler *autoscaler.Autoscaler) resource.TestCheckFunc {
+func testAccCheckAutoscalerExists(n string, ascaler *compute.Autoscaler) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -87,7 +87,7 @@ func testAccCheckAutoscalerExists(n string, ascaler *autoscaler.Autoscaler) reso
 
 		config := testAccProvider.Meta().(*Config)
 
-		found, err := config.clientAutoscaler.Autoscalers.Get(
+		found, err := config.clientCompute.Autoscalers.Get(
 			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err != nil {
 			return err
@@ -116,7 +116,7 @@ func testAccCheckAutoscalerUpdated(n string, max int64) resource.TestCheckFunc {
 
 		config := testAccProvider.Meta().(*Config)
 
-		ascaler, err := config.clientAutoscaler.Autoscalers.Get(
+		ascaler, err := config.clientCompute.Autoscalers.Get(
 			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err != nil {
 			return err
@@ -162,7 +162,7 @@ resource "google_compute_target_pool" "foobar" {
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
-resource "google_replicapool_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "foobar" {
 	description = "Terraform test instance group manager"
 	name = "terraform-test-groupmanager"
 	instance_template = "${google_compute_instance_template.foobar.self_link}"
@@ -171,11 +171,11 @@ resource "google_replicapool_instance_group_manager" "foobar" {
 	zone = "us-central1-a"
 }
 
-resource "google_autoscaler" "foobar" {
+resource "google_compute_autoscaler" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
 	name = "terraform-test-ascaler"
 	zone = "us-central1-a"
-	target = "${google_replicapool_instance_group_manager.foobar.self_link}"
+	target = "${google_compute_instance_group_manager.foobar.self_link}"
 	autoscaling_policy = {
 		max_replicas = 5
 		min_replicas = 0
@@ -219,7 +219,7 @@ resource "google_compute_target_pool" "foobar" {
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
-resource "google_replicapool_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "foobar" {
 	description = "Terraform test instance group manager"
 	name = "terraform-test-groupmanager"
 	instance_template = "${google_compute_instance_template.foobar.self_link}"
@@ -228,11 +228,11 @@ resource "google_replicapool_instance_group_manager" "foobar" {
 	zone = "us-central1-a"
 }
 
-resource "google_autoscaler" "foobar" {
+resource "google_compute_autoscaler" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
 	name = "terraform-test-ascaler"
 	zone = "us-central1-a"
-	target = "${google_replicapool_instance_group_manager.foobar.self_link}"
+	target = "${google_compute_instance_group_manager.foobar.self_link}"
 	autoscaling_policy = {
 		max_replicas = 10
 		min_replicas = 0

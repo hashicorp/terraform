@@ -14,11 +14,9 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
-	"google.golang.org/api/autoscaler/v1beta2"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
-	"google.golang.org/api/replicapool/v1beta2"
 	"google.golang.org/api/storage/v1"
 )
 
@@ -29,11 +27,9 @@ type Config struct {
 	Project     string
 	Region      string
 
-	clientAutoscaler *autoscaler.Service
 	clientCompute *compute.Service
 	clientContainer *container.Service
 	clientDns *dns.Service
-	clientReplicaPool *replicapool.Service
 	clientStorage *storage.Service
 }
 
@@ -131,20 +127,6 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientDns.UserAgent = userAgent
-
-	log.Printf("[INFO] Instantiating Google Replica Pool client...")
-	c.clientReplicaPool, err = replicapool.New(client)
-	if err != nil {
-		return err
-	}
-	c.clientReplicaPool.UserAgent = userAgent
-
-	log.Printf("[INFO] Instantiating Google Autoscaler client...")
-	c.clientAutoscaler, err = autoscaler.New(client)
-	if err != nil {
-		return err
-	}
-	c.clientAutoscaler.UserAgent = userAgent
 
 	log.Printf("[INFO] Instantiating Google Storage Client...")
 	c.clientStorage, err = storage.New(client)

@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"google.golang.org/api/autoscaler/v1beta2"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/replicapool/v1beta2"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -26,8 +24,8 @@ type OperationWaiter struct {
 	Op      *compute.Operation
 	Project string
 	Region  string
-	Zone    string
 	Type    OperationWaitType
+	Zone    string
 }
 
 func (w *OperationWaiter) RefreshFunc() resource.StateRefreshFunc {
@@ -80,95 +78,3 @@ func (e OperationError) Error() string {
 	return buf.String()
 }
 
-// Replicapool Operations
-type ReplicaPoolOperationWaiter struct {
-	Service *replicapool.Service
-	Op      *replicapool.Operation
-	Project string
-	Region  string
-	Zone    string
-}
-
-func (w *ReplicaPoolOperationWaiter) RefreshFunc() resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		var op *replicapool.Operation
-		var err error
-
-		op, err = w.Service.ZoneOperations.Get(
-			w.Project, w.Zone, w.Op.Name).Do()
-
-		if err != nil {
-			return nil, "", err
-		}
-
-		return op, op.Status, nil
-	}
-}
-
-func (w *ReplicaPoolOperationWaiter) Conf() *resource.StateChangeConf {
-	return &resource.StateChangeConf{
-		Pending: []string{"PENDING", "RUNNING"},
-		Target:  "DONE",
-		Refresh: w.RefreshFunc(),
-	}
-}
-
-// ReplicaPoolOperationError wraps replicapool.OperationError and implements the
-// error interface so it can be returned.
-type ReplicaPoolOperationError replicapool.OperationError
-
-func (e ReplicaPoolOperationError) Error() string {
-	var buf bytes.Buffer
-
-	for _, err := range e.Errors {
-		buf.WriteString(err.Message + "\n")
-	}
-
-	return buf.String()
-}
-
-// Autoscaler Operations
-type AutoscalerOperationWaiter struct {
-	Service *autoscaler.Service
-	Op      *autoscaler.Operation
-	Project string
-	Zone    string
-}
-
-func (w *AutoscalerOperationWaiter) RefreshFunc() resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		var op *autoscaler.Operation
-		var err error
-
-		op, err = w.Service.ZoneOperations.Get(
-			w.Project, w.Zone, w.Op.Name).Do()
-
-		if err != nil {
-			return nil, "", err
-		}
-
-		return op, op.Status, nil
-	}
-}
-
-func (w *AutoscalerOperationWaiter) Conf() *resource.StateChangeConf {
-	return &resource.StateChangeConf{
-		Pending: []string{"PENDING", "RUNNING"},
-		Target:  "DONE",
-		Refresh: w.RefreshFunc(),
-	}
-}
-
-// AutoscalerOperationError wraps autoscaler.OperationError and implements the
-// error interface so it can be returned.
-type AutoscalerOperationError autoscaler.OperationError
-
-func (e AutoscalerOperationError) Error() string {
-	var buf bytes.Buffer
-
-	for _, err := range e.Errors {
-		buf.WriteString(err.Message + "\n")
-	}
-
-	return buf.String()
-}
