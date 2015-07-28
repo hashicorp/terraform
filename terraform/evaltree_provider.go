@@ -40,9 +40,8 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 		},
 	})
 
-	// Apply stuff
 	seq = append(seq, &EvalOpFilter{
-		Ops: []walkOperation{walkValidate, walkRefresh, walkPlan, walkApply},
+		Ops: []walkOperation{walkValidate},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
@@ -61,6 +60,32 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 				&EvalValidateProvider{
 					Provider: &provider,
 					Config:   &resourceConfig,
+				},
+				&EvalSetProviderConfig{
+					Provider: n,
+					Config:   &resourceConfig,
+				},
+			},
+		},
+	})
+
+	// Apply stuff
+	seq = append(seq, &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh, walkPlan, walkApply},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalGetProvider{
+					Name:   n,
+					Output: &provider,
+				},
+				&EvalInterpolate{
+					Config: config,
+					Output: &resourceConfig,
+				},
+				&EvalBuildProviderConfig{
+					Provider: n,
+					Config:   &resourceConfig,
+					Output:   &resourceConfig,
 				},
 				&EvalSetProviderConfig{
 					Provider: n,
