@@ -29,7 +29,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"google_autoscaler": resourceAutoscaler(),
+			"google_compute_autoscaler": resourceComputeAutoscaler(),
 			"google_compute_address": resourceComputeAddress(),
 			"google_compute_disk": resourceComputeDisk(),
 			"google_compute_firewall": resourceComputeFirewall(),
@@ -43,7 +43,7 @@ func Provider() terraform.ResourceProvider {
 			"google_container_cluster": resourceContainerCluster(),
 			"google_dns_managed_zone": resourceDnsManagedZone(),
 			"google_dns_record_set": resourceDnsRecordSet(),
-			"google_replicapool_instance_group_manager": resourceReplicaPoolInstanceGroupManager(),
+			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
 			"google_storage_bucket": resourceStorageBucket(),
 		},
 

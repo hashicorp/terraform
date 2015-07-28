@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"google.golang.org/api/replicapool/v1beta2"
+	"google.golang.org/api/compute/v1"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccInstanceGroupManager_basic(t *testing.T) {
-	var manager replicapool.InstanceGroupManager
+	var manager compute.InstanceGroupManager
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +22,7 @@ func TestAccInstanceGroupManager_basic(t *testing.T) {
 				Config: testAccInstanceGroupManager_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
-						"google_replicapool_instance_group_manager.foobar", &manager),
+						"google_compute_instance_group_manager.foobar", &manager),
 				),
 			},
 		},
@@ -30,7 +30,7 @@ func TestAccInstanceGroupManager_basic(t *testing.T) {
 }
 
 func TestAccInstanceGroupManager_update(t *testing.T) {
-	var manager replicapool.InstanceGroupManager
+	var manager compute.InstanceGroupManager
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -41,23 +41,23 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 				Config: testAccInstanceGroupManager_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
-						"google_replicapool_instance_group_manager.foobar", &manager),
+						"google_compute_instance_group_manager.foobar", &manager),
 				),
 			},
 			resource.TestStep{
 				Config: testAccInstanceGroupManager_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
-						"google_replicapool_instance_group_manager.foobar", &manager),
+						"google_compute_instance_group_manager.foobar", &manager),
 				),
 			},
 			resource.TestStep{
 				Config: testAccInstanceGroupManager_update2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
-						"google_replicapool_instance_group_manager.foobar", &manager),
+						"google_compute_instance_group_manager.foobar", &manager),
 					testAccCheckInstanceGroupManagerUpdated(
-						"google_replicapool_instance_group_manager.foobar", 3,
+						"google_compute_instance_group_manager.foobar", 3,
 						"google_compute_target_pool.foobaz", "terraform-test-foobaz"),
 				),
 			},
@@ -69,10 +69,10 @@ func testAccCheckInstanceGroupManagerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "google_replicapool_instance_group_manager" {
+		if rs.Type != "google_compute_instance_group_manager" {
 			continue
 		}
-		_, err := config.clientReplicaPool.InstanceGroupManagers.Get(
+		_, err := config.clientCompute.InstanceGroupManagers.Get(
 			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err != nil {
 			return fmt.Errorf("InstanceGroupManager still exists")
@@ -82,7 +82,7 @@ func testAccCheckInstanceGroupManagerDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckInstanceGroupManagerExists(n string, manager *replicapool.InstanceGroupManager) resource.TestCheckFunc {
+func testAccCheckInstanceGroupManagerExists(n string, manager *compute.InstanceGroupManager) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -95,7 +95,7 @@ func testAccCheckInstanceGroupManagerExists(n string, manager *replicapool.Insta
 
 		config := testAccProvider.Meta().(*Config)
 
-		found, err := config.clientReplicaPool.InstanceGroupManagers.Get(
+		found, err := config.clientCompute.InstanceGroupManagers.Get(
 			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err != nil {
 			return err
@@ -124,36 +124,16 @@ func testAccCheckInstanceGroupManagerUpdated(n string, size int64, targetPool st
 
 		config := testAccProvider.Meta().(*Config)
 
-		manager, err := config.clientReplicaPool.InstanceGroupManagers.Get(
+		manager, err := config.clientCompute.InstanceGroupManagers.Get(
 			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err != nil {
 			return err
 		}
 
-		// check that total instance count is "size"
-		if manager.CurrentSize != size {
+		// Cannot check the target pool as the instance creation is asynchronous.  However, can
+		// check the target_size.
+		if manager.TargetSize != size {
 			return fmt.Errorf("instance count incorrect")
-		}
-
-		// check that at least one instance exists in "targetpool"
-		tp, ok := s.RootModule().Resources[targetPool]
-		if !ok {
-			return fmt.Errorf("Not found: %s", targetPool)
-		}
-
-		if tp.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		targetpool, err := config.clientCompute.TargetPools.Get(
-			config.Project, config.Region, tp.Primary.ID).Do()
-		if err != nil {
-			return err
-		}
-
-		// check that total instance count is "size"
-		if len(targetpool.Instances) == 0 {
-			return fmt.Errorf("no instance in new targetpool")
 		}
 
 		// check that the instance template updated
@@ -203,13 +183,13 @@ resource "google_compute_target_pool" "foobar" {
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
-resource "google_replicapool_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "foobar" {
 	description = "Terraform test instance group manager"
 	name = "terraform-test"
 	instance_template = "${google_compute_instance_template.foobar.self_link}"
 	target_pools = ["${google_compute_target_pool.foobar.self_link}"]
 	base_instance_name = "foobar"
-	zone = "us-central1-a"
+	zone = "us-central1-c"
 	target_size = 2
 }`
 
@@ -276,13 +256,13 @@ resource "google_compute_target_pool" "foobaz" {
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
-resource "google_replicapool_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "foobar" {
 	description = "Terraform test instance group manager"
 	name = "terraform-test"
 	instance_template = "${google_compute_instance_template.foobar.self_link}"
 	target_pools = ["${google_compute_target_pool.foobaz.self_link}"]
 	base_instance_name = "foobar"
-	zone = "us-central1-a"
+	zone = "us-central1-c"
 	target_size = 2
 }`
 
@@ -349,12 +329,12 @@ resource "google_compute_target_pool" "foobaz" {
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
-resource "google_replicapool_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "foobar" {
 	description = "Terraform test instance group manager"
 	name = "terraform-test"
 	instance_template = "${google_compute_instance_template.foobaz.self_link}"
 	target_pools = ["${google_compute_target_pool.foobaz.self_link}"]
 	base_instance_name = "foobar"
-	zone = "us-central1-a"
+	zone = "us-central1-c"
 	target_size = 3
 }`

@@ -6,18 +6,18 @@ import (
 	"time"
 
 	"google.golang.org/api/googleapi"
-	"google.golang.org/api/replicapool/v1beta2"
+	"google.golang.org/api/compute/v1"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceReplicaPoolInstanceGroupManager() *schema.Resource {
+func resourceComputeInstanceGroupManager() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceReplicaPoolInstanceGroupManagerCreate,
-		Read:   resourceReplicaPoolInstanceGroupManagerRead,
-		Update: resourceReplicaPoolInstanceGroupManagerUpdate,
-		Delete: resourceReplicaPoolInstanceGroupManagerDelete,
+		Create: resourceComputeInstanceGroupManagerCreate,
+		Read:   resourceComputeInstanceGroupManagerRead,
+		Update: resourceComputeInstanceGroupManagerUpdate,
+		Delete: resourceComputeInstanceGroupManagerDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -38,17 +38,12 @@ func resourceReplicaPoolInstanceGroupManager() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"current_size": &schema.Schema{
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-
 			"fingerprint": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"group": &schema.Schema{
+			"instance_group": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -87,14 +82,15 @@ func resourceReplicaPoolInstanceGroupManager() *schema.Resource {
 	}
 }
 
-func waitOpZone(config *Config, op *replicapool.Operation, zone string,
-	resource string, action string) (*replicapool.Operation, error) {
+func waitOpZone(config *Config, op *compute.Operation, zone string,
+	resource string, action string) (*compute.Operation, error) {
 
-	w := &ReplicaPoolOperationWaiter{
-		Service: config.clientReplicaPool,
+	w := &OperationWaiter{
+		Service: config.clientCompute,
 		Op:      op,
 		Project: config.Project,
 		Zone:    zone,
+		Type:    OperationWaitZone,
 	}
 	state := w.Conf()
 	state.Timeout = 2 * time.Minute
@@ -103,10 +99,10 @@ func waitOpZone(config *Config, op *replicapool.Operation, zone string,
 	if err != nil {
 		return nil, fmt.Errorf("Error waiting for %s to %s: %s", resource, action, err)
 	}
-	return opRaw.(*replicapool.Operation), nil
+	return opRaw.(*compute.Operation), nil
 }
 
-func resourceReplicaPoolInstanceGroupManagerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Get group size, default to 1 if not given
@@ -116,10 +112,11 @@ func resourceReplicaPoolInstanceGroupManagerCreate(d *schema.ResourceData, meta 
 	}
 
 	// Build the parameter
-	manager := &replicapool.InstanceGroupManager{
+	manager := &compute.InstanceGroupManager{
 		Name:             d.Get("name").(string),
 		BaseInstanceName: d.Get("base_instance_name").(string),
 		InstanceTemplate: d.Get("instance_template").(string),
+		TargetSize: target_size,
 	}
 
 	// Set optional fields
@@ -136,8 +133,8 @@ func resourceReplicaPoolInstanceGroupManagerCreate(d *schema.ResourceData, meta 
 	}
 
 	log.Printf("[DEBUG] InstanceGroupManager insert request: %#v", manager)
-	op, err := config.clientReplicaPool.InstanceGroupManagers.Insert(
-		config.Project, d.Get("zone").(string), target_size, manager).Do()
+	op, err := config.clientCompute.InstanceGroupManagers.Insert(
+		config.Project, d.Get("zone").(string), manager).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating InstanceGroupManager: %s", err)
 	}
@@ -154,16 +151,16 @@ func resourceReplicaPoolInstanceGroupManagerCreate(d *schema.ResourceData, meta 
 		// The resource didn't actually create
 		d.SetId("")
 		// Return the error
-		return ReplicaPoolOperationError(*op.Error)
+		return OperationError(*op.Error)
 	}
 
-	return resourceReplicaPoolInstanceGroupManagerRead(d, meta)
+	return resourceComputeInstanceGroupManagerRead(d, meta)
 }
 
-func resourceReplicaPoolInstanceGroupManagerRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	manager, err := config.clientReplicaPool.InstanceGroupManagers.Get(
+	manager, err := config.clientCompute.InstanceGroupManagers.Get(
 		config.Project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -177,15 +174,14 @@ func resourceReplicaPoolInstanceGroupManagerRead(d *schema.ResourceData, meta in
 	}
 
 	// Set computed fields
-	d.Set("current_size", manager.CurrentSize)
 	d.Set("fingerprint", manager.Fingerprint)
-	d.Set("group", manager.Group)
+	d.Set("instance_group", manager.InstanceGroup)
 	d.Set("target_size", manager.TargetSize)
 	d.Set("self_link", manager.SelfLink)
 
 	return nil
 }
-func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	d.Partial(true)
@@ -200,12 +196,12 @@ func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta 
 		}
 
 		// Build the parameter
-		setTargetPools := &replicapool.InstanceGroupManagersSetTargetPoolsRequest{
+		setTargetPools := &compute.InstanceGroupManagersSetTargetPoolsRequest{
 			Fingerprint: d.Get("fingerprint").(string),
 			TargetPools: targetPools,
 		}
 
-		op, err := config.clientReplicaPool.InstanceGroupManagers.SetTargetPools(
+		op, err := config.clientCompute.InstanceGroupManagers.SetTargetPools(
 			config.Project, d.Get("zone").(string), d.Id(), setTargetPools).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
@@ -217,7 +213,7 @@ func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta 
 			return err
 		}
 		if op.Error != nil {
-			return ReplicaPoolOperationError(*op.Error)
+			return OperationError(*op.Error)
 		}
 
 		d.SetPartial("target_pools")
@@ -226,11 +222,11 @@ func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta 
 	// If instance_template changes then update
 	if d.HasChange("instance_template") {
 		// Build the parameter
-		setInstanceTemplate := &replicapool.InstanceGroupManagersSetInstanceTemplateRequest{
+		setInstanceTemplate := &compute.InstanceGroupManagersSetInstanceTemplateRequest{
 			InstanceTemplate: d.Get("instance_template").(string),
 		}
 
-		op, err := config.clientReplicaPool.InstanceGroupManagers.SetInstanceTemplate(
+		op, err := config.clientCompute.InstanceGroupManagers.SetInstanceTemplate(
 			config.Project, d.Get("zone").(string), d.Id(), setInstanceTemplate).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
@@ -242,7 +238,7 @@ func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta 
 			return err
 		}
 		if op.Error != nil {
-			return ReplicaPoolOperationError(*op.Error)
+			return OperationError(*op.Error)
 		}
 
 		d.SetPartial("instance_template")
@@ -254,7 +250,7 @@ func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta 
 			// Only do anything if the new size is set
 			target_size := int64(v.(int))
 
-			op, err := config.clientReplicaPool.InstanceGroupManagers.Resize(
+			op, err := config.clientCompute.InstanceGroupManagers.Resize(
 				config.Project, d.Get("zone").(string), d.Id(), target_size).Do()
 			if err != nil {
 				return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
@@ -266,7 +262,7 @@ func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta 
 				return err
 			}
 			if op.Error != nil {
-				return ReplicaPoolOperationError(*op.Error)
+				return OperationError(*op.Error)
 			}
 		}
 
@@ -275,39 +271,29 @@ func resourceReplicaPoolInstanceGroupManagerUpdate(d *schema.ResourceData, meta 
 
 	d.Partial(false)
 
-	return resourceReplicaPoolInstanceGroupManagerRead(d, meta)
+	return resourceComputeInstanceGroupManagerRead(d, meta)
 }
 
-func resourceReplicaPoolInstanceGroupManagerDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	zone := d.Get("zone").(string)
-	op, err := config.clientReplicaPool.InstanceGroupManagers.Delete(config.Project, zone, d.Id()).Do()
+	op, err := config.clientCompute.InstanceGroupManagers.Delete(config.Project, zone, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting instance group manager: %s", err)
 	}
 
 	// Wait for the operation to complete
-	w := &ReplicaPoolOperationWaiter{
-		Service: config.clientReplicaPool,
-		Op:      op,
-		Project: config.Project,
-		Zone:    d.Get("zone").(string),
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	op, err = waitOpZone(config, op, d.Get("zone").(string), "InstanceGroupManager", "delete")
 	if err != nil {
-		return fmt.Errorf("Error waiting for InstanceGroupManager to delete: %s", err)
+		return err
 	}
-	op = opRaw.(*replicapool.Operation)
 	if op.Error != nil {
 		// The resource didn't actually create
 		d.SetId("")
 
 		// Return the error
-		return ReplicaPoolOperationError(*op.Error)
+		return OperationError(*op.Error)
 	}
 
 	d.SetId("")

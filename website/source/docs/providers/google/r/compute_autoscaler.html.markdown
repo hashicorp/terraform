@@ -1,15 +1,12 @@
 ---
 layout: "google"
-page_title: "Google: google_autoscaler"
-sidebar_current: "docs-google-resource-autoscaler"
+page_title: "Google: google_compute_autoscaler"
+sidebar_current: "docs-google-resource-compute-autoscaler"
 description: |-
-  Managers an Instance Group within GCE.
+  Manages an Autoscaler within GCE.
 ---
 
-# google\_autoscaler
-
-**Note**: This resource is in
-[beta](https://cloud.google.com/terms/launch-stages).
+# google\_compute\_autoscaler
 
 A Compute Engine Autoscaler automatically adds or removes virtual machines from
 a managed instance group based on increases or decreases in load. This allows
@@ -51,7 +48,7 @@ resource "google_compute_target_pool" "foobar" {
     name = "foobar"
 }
 
-resource "google_replicapool_instance_group_manager" "foobar" {
+resource "google_compute_instance_group_manager" "foobar" {
     name = "foobar"
     instance_template = "${google_compute_instance_template.foobar.self_link}"
     target_pools = ["${google_compute_target_pool.foobar.self_link}"]
@@ -59,10 +56,10 @@ resource "google_replicapool_instance_group_manager" "foobar" {
     zone = "us-central1-f"
 }
 
-resource "google_autoscaler" "foobar" {
+resource "google_compute_autoscaler" "foobar" {
     name = "foobar"
     zone = "us-central1-f"
-    target = "${google_replicapool_instance_group_manager.foobar.self_link}"
+    target = "${google_compute_instance_group_manager.foobar.self_link}"
     autoscaling_policy = {
         max_replicas = 5
         min_replicas = 1
