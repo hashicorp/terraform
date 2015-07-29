@@ -45,7 +45,9 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "force_delete", "true"),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "termination_policies.912102603", "OldestInstance"),
+						"aws_autoscaling_group.bar", "termination_policies.0", "OldestInstance"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "termination_policies.1", "ClosestToNextInstanceHour"),
 				),
 			},
 
@@ -56,6 +58,8 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.new", &lc),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "desired_capacity", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "termination_policies.0", "ClosestToNextInstanceHour"),
 					testLaunchConfigurationName("aws_autoscaling_group.bar", &lc),
 					testAccCheckAutoscalingTags(&group.Tags, "Bar", map[string]interface{}{
 						"value":               "bar-foo",
@@ -359,7 +363,7 @@ resource "aws_autoscaling_group" "bar" {
   health_check_type = "ELB"
   desired_capacity = 4
   force_delete = true
-  termination_policies = ["OldestInstance"]
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 
@@ -391,6 +395,7 @@ resource "aws_autoscaling_group" "bar" {
   health_check_type = "ELB"
   desired_capacity = 5
   force_delete = true
+  termination_policies = ["ClosestToNextInstanceHour"]
 
   launch_configuration = "${aws_launch_configuration.new.name}"
 
