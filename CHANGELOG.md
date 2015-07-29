@@ -21,6 +21,7 @@ BUG FIXES:
   * core: Prevent error duplication in `apply` [GH-2815]
   * provider/aws: Fix issue with toggling monitoring in AWS Instances [GH-2794]
   * provider/aws: Fix issue with Spot Instance Requests and cancellation [GH-2805]
+  * provider/aws: Fix issue with checking for ElastiCache cluster cache node status [GH-2842]
   * provider/aws: Fix issue when unable to find a Root Block Device name of an Instance Backed
       AMI [GH-2646]
   * provider/dnsimple: Domain and type should force new records [GH-2777]
