@@ -94,7 +94,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// if we have one, otherwise we just output it.
 	if err != nil {
 		if n.Error != nil {
-			*n.Error = multierror.Append(*n.Error, err)
+			helpfulErr := fmt.Errorf("%s: %s", n.Info.Id, err.Error())
+			*n.Error = multierror.Append(*n.Error, helpfulErr)
 		} else {
 			return nil, err
 		}

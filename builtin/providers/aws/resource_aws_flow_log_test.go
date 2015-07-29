@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccFlowLog_basic(t *testing.T) {
+func TestAccAWSFlowLog_basic(t *testing.T) {
 	var flowLog ec2.FlowLog
 	lgn := os.Getenv("LOG_GROUP_NAME")
 
@@ -31,7 +31,7 @@ func TestAccFlowLog_basic(t *testing.T) {
 	})
 }
 
-func TestAccFlowLog_subnet(t *testing.T) {
+func TestAccAWSFlowLog_subnet(t *testing.T) {
 	var flowLog ec2.FlowLog
 	lgn := os.Getenv("LOG_GROUP_NAME")
 

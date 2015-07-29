@@ -43,7 +43,7 @@ func TestS3Factory(t *testing.T) {
 
 	s3Client := client.(*S3Client)
 
-	if s3Client.nativeClient.Config.Region != "us-west-1" {
+	if *s3Client.nativeClient.Config.Region != "us-west-1" {
 		t.Fatalf("Incorrect region was populated")
 	}
 	if s3Client.bucketName != "foo" {

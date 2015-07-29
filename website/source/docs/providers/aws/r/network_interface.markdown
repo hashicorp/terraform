@@ -32,6 +32,7 @@ The following arguments are supported:
 * `private_ips` - (Optional) List of private IPs to assign to the ENI.
 * `security_groups` - (Optional) List of security group IDs to assign to the ENI.
 * `attachment` - (Required) Block to define the attachment of the ENI. Documented below.
+* `source_dest_check` - (Optional) Whether to enable source destination checking for the ENI. Default true.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `attachment` block supports:
@@ -47,5 +48,6 @@ The following attributes are exported:
 * `private_ips` - List of private IPs assigned to the ENI.
 * `security_groups` - List of security groups attached to the ENI.
 * `attachment` - Block defining the attachment of the ENI.
+* `source_dest_check` - Whether source destination checking is enabled
 * `tags` - Tags assigned to the ENI.
 

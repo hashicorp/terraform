@@ -176,7 +176,7 @@ resource "aws_db_instance" "bar" {
 	identifier = "foobarbaz-test-terraform-%d"
 
 	allocated_storage = 10
-	engine = "mysql"
+	engine = "MySQL"
 	engine_version = "5.6.21"
 	instance_class = "db.t1.micro"
 	name = "baz"

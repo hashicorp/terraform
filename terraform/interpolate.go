@@ -370,7 +370,7 @@ MISSING:
 	// be unknown. Instead, we return that the value is computed so
 	// that the graph can continue to refresh other nodes. It doesn't
 	// matter because the config isn't interpolated anyways.
-	if i.Operation == walkRefresh {
+	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy {
 		return config.UnknownVariableValue, nil
 	}
 
@@ -433,6 +433,11 @@ func (i *Interpolater) computeResourceMultiVariable(
 			continue
 		}
 
+		// If any value is unknown, the whole thing is unknown
+		if attr == config.UnknownVariableValue {
+			return config.UnknownVariableValue, nil
+		}
+
 		values = append(values, attr)
 	}
 
@@ -441,7 +446,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 		// be unknown. Instead, we return that the value is computed so
 		// that the graph can continue to refresh other nodes. It doesn't
 		// matter because the config isn't interpolated anyways.
-		if i.Operation == walkRefresh {
+		if i.Operation == walkRefresh || i.Operation == walkPlanDestroy {
 			return config.UnknownVariableValue, nil
 		}
 

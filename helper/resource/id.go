@@ -9,13 +9,18 @@ import (
 
 const UniqueIdPrefix = `terraform-`
 
-// Helper for a resource to generate a unique identifier
+// Helper for a resource to generate a unique identifier w/ default prefix
+func UniqueId() string {
+	return PrefixedUniqueId(UniqueIdPrefix)
+}
+
+// Helper for a resource to generate a unique identifier w/ given prefix
 //
 // This uses a simple RFC 4122 v4 UUID with some basic cosmetic filters
 // applied (base32, remove padding, downcase) to make visually distinguishing
 // identifiers easier.
-func UniqueId() string {
-	return fmt.Sprintf("%s%s", UniqueIdPrefix,
+func PrefixedUniqueId(prefix string) string {
+	return fmt.Sprintf("%s%s", prefix,
 		strings.ToLower(
 			strings.Replace(
 				base32.StdEncoding.EncodeToString(uuidV4()),

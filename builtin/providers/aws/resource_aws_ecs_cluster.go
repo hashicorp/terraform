@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -58,7 +57,7 @@ func resourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Received ECS clusters: %s", awsutil.StringValue(out.Clusters))
+	log.Printf("[DEBUG] Received ECS clusters: %s", out.Clusters)
 
 	d.SetId(*out.Clusters[0].ClusterARN)
 	d.Set("name", *out.Clusters[0].ClusterName)
@@ -77,7 +76,7 @@ func resourceAwsEcsClusterDelete(d *schema.ResourceData, meta interface{}) error
 		})
 
 		if err == nil {
-			log.Printf("[DEBUG] ECS cluster %s deleted: %s", d.Id(), awsutil.StringValue(out))
+			log.Printf("[DEBUG] ECS cluster %s deleted: %s", d.Id(), out)
 			return nil
 		}
 

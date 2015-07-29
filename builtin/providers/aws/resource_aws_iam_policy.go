@@ -97,7 +97,7 @@ func resourceAwsIamPolicyUpdate(d *schema.ResourceData, meta interface{}) error 
 	request := &iam.CreatePolicyVersionInput{
 		PolicyARN:      aws.String(d.Id()),
 		PolicyDocument: aws.String(d.Get("policy").(string)),
-		SetAsDefault:   aws.Boolean(true),
+		SetAsDefault:   aws.Bool(true),
 	}
 
 	if _, err := iamconn.CreatePolicyVersion(request); err != nil {

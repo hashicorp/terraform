@@ -1,24 +1,50 @@
 package google
 
 import (
-	"reflect"
+	"io/ioutil"
 	"testing"
 )
 
-func TestConfigLoadJSON_account(t *testing.T) {
-	var actual accountFile
-	if err := loadJSON(&actual, "./test-fixtures/fake_account.json"); err != nil {
-		t.Fatalf("err: %s", err)
+const testFakeAccountFilePath = "./test-fixtures/fake_account.json"
+
+func TestConfigLoadAndValidate_accountFilePath(t *testing.T) {
+	config := Config{
+		AccountFile: testFakeAccountFilePath,
+		Project:     "my-gce-project",
+		Region:      "us-central1",
 	}
 
-	expected := accountFile{
-		PrivateKeyId: "foo",
-		PrivateKey:   "bar",
-		ClientEmail:  "foo@bar.com",
-		ClientId:     "id@foo.com",
+	err := config.loadAndValidate()
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+}
+
+func TestConfigLoadAndValidate_accountFileJSON(t *testing.T) {
+	contents, err := ioutil.ReadFile(testFakeAccountFilePath)
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+	config := Config{
+		AccountFile: string(contents),
+		Project:     "my-gce-project",
+		Region:      "us-central1",
 	}
 
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+	err = config.loadAndValidate()
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+}
+
+func TestConfigLoadAndValidate_accountFileJSONInvalid(t *testing.T) {
+	config := Config{
+		AccountFile: "{this is not json}",
+		Project:     "my-gce-project",
+		Region:      "us-central1",
+	}
+
+	if config.loadAndValidate() == nil {
+		t.Fatalf("expected error, but got nil")
 	}
 }

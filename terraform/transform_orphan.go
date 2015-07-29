@@ -100,9 +100,14 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 	moduleOrphans := t.State.ModuleOrphans(g.Path, config)
 	moduleVertexes := make([]dag.Vertex, len(moduleOrphans))
 	for i, path := range moduleOrphans {
+		var deps []string
+		if s := t.State.ModuleByPath(path); s != nil {
+			deps = s.Dependencies
+		}
+
 		moduleVertexes[i] = g.Add(&graphNodeOrphanModule{
 			Path:        path,
-			dependentOn: t.State.ModuleByPath(path).Dependencies,
+			dependentOn: deps,
 		})
 	}
 
@@ -355,4 +360,10 @@ func (n *graphNodeOrphanResourceFlat) CreateBeforeDestroy() bool {
 
 func (n *graphNodeOrphanResourceFlat) CreateNode() dag.Vertex {
 	return n
+}
+
+func (n *graphNodeOrphanResourceFlat) ProvidedBy() []string {
+	return modulePrefixList(
+		n.graphNodeOrphanResource.ProvidedBy(),
+		modulePrefixStr(n.PathValue))
 }
