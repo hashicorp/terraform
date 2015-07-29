@@ -102,7 +102,12 @@ func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
 		z.Expiry = v.(int)
 	}
 	if v, ok := d.GetOk("meta"); ok {
-		z.Meta = v.(map[string]string)
+		meta_raw := v.(map[string]interface{})
+		meta := make(map[string]string, len(meta_raw))
+		for i, val := range meta_raw {
+			meta[i] = val.(string)
+		}
+		z.Meta = meta
 	}
 	if v, ok := d.GetOk("primary"); ok {
 		z.MakeSecondary(v.(string))
