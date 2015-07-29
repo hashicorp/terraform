@@ -65,7 +65,7 @@ func resourceAwsElasticacheParameterGroupCreate(d *schema.ResourceData, meta int
 	createOpts := elasticache.CreateCacheParameterGroupInput{
 		CacheParameterGroupName:   aws.String(d.Get("name").(string)),
 		CacheParameterGroupFamily: aws.String(d.Get("family").(string)),
-		Description:            aws.String(d.Get("description").(string)),
+		Description:               aws.String(d.Get("description").(string)),
 	}
 
 	log.Printf("[DEBUG] Create Cache Parameter Group: %#v", createOpts)
@@ -110,7 +110,7 @@ func resourceAwsElasticacheParameterGroupRead(d *schema.ResourceData, meta inter
 	// Only include user customized parameters as there's hundreds of system/default ones
 	describeParametersOpts := elasticache.DescribeCacheParametersInput{
 		CacheParameterGroupName: aws.String(d.Id()),
-		Source:               aws.String("user"),
+		Source:                  aws.String("user"),
 	}
 
 	describeParametersResp, err := conn.DescribeCacheParameters(&describeParametersOpts)

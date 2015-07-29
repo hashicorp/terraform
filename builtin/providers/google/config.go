@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 
+
 	// TODO(dcunnin): Use version code from version.go
 	// "github.com/hashicorp/terraform"
 	"golang.org/x/oauth2"
@@ -26,10 +27,10 @@ type Config struct {
 	Project     string
 	Region      string
 
-	clientCompute   *compute.Service
+	clientCompute *compute.Service
 	clientContainer *container.Service
-	clientDns       *dns.Service
-	clientStorage   *storage.Service
+	clientDns *dns.Service
+	clientStorage *storage.Service
 }
 
 func (c *Config) loadAndValidate() error {

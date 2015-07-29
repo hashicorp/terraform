@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -160,10 +159,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	req := &elasticache.CreateCacheClusterInput{
 		CacheClusterID:          aws.String(clusterId),
 		CacheNodeType:           aws.String(nodeType),
-		NumCacheNodes:           aws.Long(numNodes),
+		NumCacheNodes:           aws.Int64(numNodes),
 		Engine:                  aws.String(engine),
 		EngineVersion:           aws.String(engineVersion),
-		Port:                    aws.Long(port),
+		Port:                    aws.Int64(port),
 		CacheSubnetGroupName:    aws.String(subnetGroupName),
 		CacheSecurityGroupNames: securityNames,
 		SecurityGroupIDs:        securityIds,
@@ -216,7 +215,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).elasticacheconn
 	req := &elasticache.DescribeCacheClustersInput{
 		CacheClusterID:    aws.String(d.Id()),
-		ShowCacheNodeInfo: aws.Boolean(true),
+		ShowCacheNodeInfo: aws.Bool(true),
 	}
 
 	res, err := conn.DescribeCacheClusters(req)
@@ -281,7 +280,7 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 
 	req := &elasticache.ModifyCacheClusterInput{
 		CacheClusterID:   aws.String(d.Id()),
-		ApplyImmediately: aws.Boolean(d.Get("apply_immediately").(bool)),
+		ApplyImmediately: aws.Bool(d.Get("apply_immediately").(bool)),
 	}
 
 	requestUpdate := false
@@ -308,12 +307,12 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if d.HasChange("num_cache_nodes") {
-		req.NumCacheNodes = aws.Long(int64(d.Get("num_cache_nodes").(int)))
+		req.NumCacheNodes = aws.Int64(int64(d.Get("num_cache_nodes").(int)))
 		requestUpdate = true
 	}
 
 	if requestUpdate {
-		log.Printf("[DEBUG] Modifying ElastiCache Cluster (%s), opts:\n%s", d.Id(), awsutil.StringValue(req))
+		log.Printf("[DEBUG] Modifying ElastiCache Cluster (%s), opts:\n%s", d.Id(), req)
 		_, err := conn.ModifyCacheCluster(req)
 		if err != nil {
 			return fmt.Errorf("[WARN] Error updating ElastiCache cluster (%s), error: %s", d.Id(), err)
@@ -348,7 +347,7 @@ func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error
 
 	for _, node := range sortedCacheNodes {
 		if node.CacheNodeID == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil {
-			return fmt.Errorf("Unexpected nil pointer in: %s", awsutil.StringValue(node))
+			return fmt.Errorf("Unexpected nil pointer in: %s", node)
 		}
 		cacheNodeData = append(cacheNodeData, map[string]interface{}{
 			"id":      *node.CacheNodeID,
@@ -404,7 +403,7 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
 			CacheClusterID:    aws.String(clusterID),
-			ShowCacheNodeInfo: aws.Boolean(true),
+			ShowCacheNodeInfo: aws.Bool(true),
 		})
 		if err != nil {
 			apierr := err.(awserr.Error)

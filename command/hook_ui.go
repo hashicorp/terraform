@@ -140,7 +140,8 @@ func (h *UiHook) PostApply(
 	}
 
 	if applyerr != nil {
-		msg = fmt.Sprintf("Error: %s", applyerr)
+		// Errors are collected and printed in ApplyCommand, no need to duplicate
+		return terraform.HookActionContinue, nil
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
