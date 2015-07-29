@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 )
 
-func TestAccRoute53DelegationSet_basic(t *testing.T) {
+func TestAccAWSRoute53DelegationSet_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -29,7 +29,7 @@ func TestAccRoute53DelegationSet_basic(t *testing.T) {
 	})
 }
 
-func TestAccRoute53DelegationSet_withZones(t *testing.T) {
+func TestAccAWSRoute53DelegationSet_withZones(t *testing.T) {
 	var zone route53.GetHostedZoneOutput
 
 	resource.Test(t, resource.TestCase{

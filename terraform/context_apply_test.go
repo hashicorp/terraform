@@ -78,6 +78,46 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 	}
 }
 
+// GH-2870
+func TestContext2Apply_providerWarning(t *testing.T) {
+	m := testModule(t, "apply-provider-warning")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	p.ValidateFn = func(c *ResourceConfig) (ws []string, es []error) {
+		ws = append(ws, "Just a warning")
+		return
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+aws_instance.foo:
+  ID = foo
+	`)
+	if actual != expected {
+		t.Fatalf("got: \n%s\n\nexpected:\n%s", actual, expected)
+	}
+
+	if !p.ConfigureCalled {
+		t.Fatalf("provider Configure() was never called!")
+	}
+}
+
 func TestContext2Apply_emptyModule(t *testing.T) {
 	m := testModule(t, "apply-empty-module")
 	p := testProvider("aws")
@@ -212,6 +252,49 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyCreateBeforeUpdateStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_destroyComputed(t *testing.T) {
+	m := testModule(t, "apply-destroy-computed")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"output": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -2094,6 +2177,105 @@ func TestContext2Apply_destroy(t *testing.T) {
 	actual2 := h.IDs
 	if !reflect.DeepEqual(actual2, expected2) {
 		t.Fatalf("expected: %#v\n\ngot:%#v", expected2, actual2)
+	}
+}
+
+func TestContext2Apply_destroyNestedModule(t *testing.T) {
+	m := testModule(t, "apply-destroy-nested-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child", "subchild"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	// First plan and apply a create operation
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyDestroyNestedModuleStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
+	m := testModule(t, "apply-destroy-deeply-nested-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child", "subchild", "subsubchild"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	// First plan and apply a create operation
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+module.child.subchild.subsubchild:
+  <no state>
+	`)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
 	}
 }
 

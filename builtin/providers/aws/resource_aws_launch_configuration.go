@@ -264,7 +264,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		LaunchConfigurationName: aws.String(d.Get("name").(string)),
 		ImageID:                 aws.String(d.Get("image_id").(string)),
 		InstanceType:            aws.String(d.Get("instance_type").(string)),
-		EBSOptimized:            aws.Boolean(d.Get("ebs_optimized").(bool)),
+		EBSOptimized:            aws.Bool(d.Get("ebs_optimized").(bool)),
 	}
 
 	if v, ok := d.GetOk("user_data"); ok {
@@ -273,7 +273,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	createLaunchConfigurationOpts.InstanceMonitoring = &autoscaling.InstanceMonitoring{
-		Enabled: aws.Boolean(d.Get("enable_monitoring").(bool)),
+		Enabled: aws.Bool(d.Get("enable_monitoring").(bool)),
 	}
 
 	if v, ok := d.GetOk("iam_instance_profile"); ok {
@@ -285,7 +285,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("associate_public_ip_address"); ok {
-		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Boolean(v.(bool))
+		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Bool(v.(bool))
 	}
 
 	if v, ok := d.GetOk("key_name"); ok {
@@ -308,7 +308,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
 			ebs := &autoscaling.EBS{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
 			}
 
 			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
@@ -316,7 +316,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
+				ebs.VolumeSize = aws.Int64(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -324,7 +324,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
+				ebs.IOPS = aws.Int64(int64(v))
 			}
 
 			blockDevices = append(blockDevices, &autoscaling.BlockDeviceMapping{
@@ -353,11 +353,11 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
 			ebs := &autoscaling.EBS{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
+				ebs.VolumeSize = aws.Int64(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -365,7 +365,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
+				ebs.IOPS = aws.Int64(int64(v))
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn); err == nil {
@@ -480,7 +480,8 @@ func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface
 		})
 	if err != nil {
 		autoscalingerr, ok := err.(awserr.Error)
-		if ok && autoscalingerr.Code() == "InvalidConfiguration.NotFound" {
+		if ok && (autoscalingerr.Code() == "InvalidConfiguration.NotFound" || autoscalingerr.Code() == "ValidationError") {
+			log.Printf("[DEBUG] Launch configuration (%s) not found", d.Id())
 			return nil
 		}
 

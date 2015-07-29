@@ -26,12 +26,12 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 		e := &ec2.NetworkACLEntry{
 			Protocol: aws.String(strconv.Itoa(p)),
 			PortRange: &ec2.PortRange{
-				From: aws.Long(int64(data["from_port"].(int))),
-				To:   aws.Long(int64(data["to_port"].(int))),
+				From: aws.Int64(int64(data["from_port"].(int))),
+				To:   aws.Int64(int64(data["to_port"].(int))),
 			},
-			Egress:     aws.Boolean((entryType == "egress")),
+			Egress:     aws.Bool((entryType == "egress")),
 			RuleAction: aws.String(data["action"].(string)),
-			RuleNumber: aws.Long(int64(data["rule_no"].(int))),
+			RuleNumber: aws.Int64(int64(data["rule_no"].(int))),
 			CIDRBlock:  aws.String(data["cidr_block"].(string)),
 		}
 
@@ -39,10 +39,10 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 		if p == 1 {
 			e.ICMPTypeCode = &ec2.ICMPTypeCode{}
 			if v, ok := data["icmp_code"]; ok {
-				e.ICMPTypeCode.Code = aws.Long(int64(v.(int)))
+				e.ICMPTypeCode.Code = aws.Int64(int64(v.(int)))
 			}
 			if v, ok := data["icmp_type"]; ok {
-				e.ICMPTypeCode.Type = aws.Long(int64(v.(int)))
+				e.ICMPTypeCode.Type = aws.Int64(int64(v.(int)))
 			}
 		}
 

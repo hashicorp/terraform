@@ -48,7 +48,7 @@ func resourceAwsCustomerGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).ec2conn
 
 	createOpts := &ec2.CreateCustomerGatewayInput{
-		BGPASN:   aws.Long(int64(d.Get("bgp_asn").(int))),
+		BGPASN:   aws.Int64(int64(d.Get("bgp_asn").(int))),
 		PublicIP: aws.String(d.Get("ip_address").(string)),
 		Type:     aws.String(d.Get("type").(string)),
 	}
