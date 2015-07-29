@@ -24,6 +24,8 @@ BUG FIXES:
   * provider/aws: Fix issue when unable to find a Root Block Device name of an Instance Backed
       AMI [GH-2646]
   * provider/dnsimple: Domain and type should force new records [GH-2777]
+  * provider/aws: Fix issue with IAM Server Certificates and Chains [GH-2871]
+  * provider/aws: Fix issue with IAM Server Certificates when using `path` [GH-2871]
 
 ## 0.6.1 (July 20, 2015)
 
