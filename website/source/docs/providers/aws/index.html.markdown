@@ -55,5 +55,7 @@ The following arguments are supported in the `provider` block:
   to prevent you mistakenly using a wrong one (and end up destroying live environment).
   Conflicts with `allowed_account_ids`.
 
+* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to dynamodb-local.
+
 In addition to the above parameters, the `AWS_SECURITY_TOKEN` environmental
 variable can be set to set an MFA token.
