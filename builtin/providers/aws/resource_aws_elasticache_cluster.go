@@ -185,10 +185,12 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] Restoring Redis cluster from S3 snapshot: %#v", s)
 	}
 
-	_, err := conn.CreateCacheCluster(req)
+	resp, err := conn.CreateCacheCluster(req)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache: %s", err)
 	}
+
+	d.SetId(*resp.CacheCluster.CacheClusterID)
 
 	pending := []string{"creating"}
 	stateConf := &resource.StateChangeConf{
@@ -205,8 +207,6 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	if sterr != nil {
 		return fmt.Errorf("Error waiting for elasticache (%s) to be created: %s", d.Id(), sterr)
 	}
-
-	d.SetId(clusterId)
 
 	return resourceAwsElasticacheClusterRead(d, meta)
 }
@@ -417,11 +417,27 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 			return nil, "", err
 		}
 
-		c := resp.CacheClusters[0]
-		log.Printf("[DEBUG] status: %v", *c.CacheClusterStatus)
+		if len(resp.CacheClusters) == 0 {
+			return nil, "", fmt.Errorf("[WARN] Error: no Cache Clusters found for id (%s)", clusterID)
+		}
+
+		var c *elasticache.CacheCluster
+		for _, cluster := range resp.CacheClusters {
+			if *cluster.CacheClusterID == clusterID {
+				log.Printf("[DEBUG] Found matching ElastiCache cluster: %s", *cluster.CacheClusterID)
+				c = cluster
+			}
+		}
+
+		if c == nil {
+			return nil, "", fmt.Errorf("[WARN] Error: no matching Elastic Cache cluster for id (%s)", clusterID)
+		}
+
+		log.Printf("[DEBUG] ElastiCache Cluster (%s) status: %v", clusterID, *c.CacheClusterStatus)
 
 		// return the current state if it's in the pending array
 		for _, p := range pending {
+			log.Printf("[DEBUG] ElastiCache: checking pending state (%s) for cluster (%s), cluster status: %s", pending, clusterID, *c.CacheClusterStatus)
 			s := *c.CacheClusterStatus
 			if p == s {
 				log.Printf("[DEBUG] Return with status: %v", *c.CacheClusterStatus)
@@ -431,18 +447,24 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 
 		// return given state if it's not in pending
 		if givenState != "" {
+			log.Printf("[DEBUG] ElastiCache: checking given state (%s) of cluster (%s) against cluster status (%s)", givenState, clusterID, *c.CacheClusterStatus)
 			// check to make sure we have the node count we're expecting
 			if int64(len(c.CacheNodes)) != *c.NumCacheNodes {
 				log.Printf("[DEBUG] Node count is not what is expected: %d found, %d expected", len(c.CacheNodes), *c.NumCacheNodes)
 				return nil, "creating", nil
 			}
+
+			log.Printf("[DEBUG] Node count matched (%d)", len(c.CacheNodes))
 			// loop the nodes and check their status as well
 			for _, n := range c.CacheNodes {
+				log.Printf("[DEBUG] Checking cache node for status: %s", n)
 				if n.CacheNodeStatus != nil && *n.CacheNodeStatus != "available" {
 					log.Printf("[DEBUG] Node (%s) is not yet available, status: %s", *n.CacheNodeID, *n.CacheNodeStatus)
 					return nil, "creating", nil
 				}
+				log.Printf("[DEBUG] Cache node not in expected state")
 			}
+			log.Printf("[DEBUG] ElastiCache returning given state (%s), cluster: %s", givenState, c)
 			return c, givenState, nil
 		}
 		log.Printf("[DEBUG] current status: %v", *c.CacheClusterStatus)
