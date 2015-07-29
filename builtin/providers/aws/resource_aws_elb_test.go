@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"testing"
 
@@ -68,6 +69,27 @@ func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "name", "FoobarTerraform-test123"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_generatedName(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+	generatedNameRegexp := regexp.MustCompile("^tf-lb-")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBGeneratedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestMatchResourceAttr(
+						"aws_elb.foo", "name", generatedNameRegexp),
 				),
 			},
 		},
@@ -581,6 +603,19 @@ resource "aws_elb" "bar" {
 const testAccAWSELBFullRangeOfCharacters = `
 resource "aws_elb" "foo" {
   name = "FoobarTerraform-test123"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+
+const testAccAWSELBGeneratedName = `
+resource "aws_elb" "foo" {
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
