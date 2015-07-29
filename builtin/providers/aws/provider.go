@@ -250,7 +250,7 @@ func init() {
 			"being executed. If the API request still fails, an error is\n" +
 			"thrown.",
 
-		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the :region.\n" +
+		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to dynamodb-local.",
 	}
 }
