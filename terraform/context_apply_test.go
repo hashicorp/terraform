@@ -78,6 +78,46 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 	}
 }
 
+// GH-2870
+func TestContext2Apply_providerWarning(t *testing.T) {
+	m := testModule(t, "apply-provider-warning")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	p.ValidateFn = func(c *ResourceConfig) (ws []string, es []error) {
+		ws = append(ws, "Just a warning")
+		return
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+aws_instance.foo:
+  ID = foo
+	`)
+	if actual != expected {
+		t.Fatalf("got: \n%s\n\nexpected:\n%s", actual, expected)
+	}
+
+	if !p.ConfigureCalled {
+		t.Fatalf("provider Configure() was never called!")
+	}
+}
+
 func TestContext2Apply_emptyModule(t *testing.T) {
 	m := testModule(t, "apply-empty-module")
 	p := testProvider("aws")
