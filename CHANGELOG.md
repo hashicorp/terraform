@@ -19,6 +19,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: Prevent error duplication in `apply` [GH-2815]
+  * core: Fix crash when  a provider validation adds a warning [GH-2878]
   * provider/aws: Fix issue with toggling monitoring in AWS Instances [GH-2794]
   * provider/aws: Fix issue with Spot Instance Requests and cancellation [GH-2805]
   * provider/aws: Fix issue with checking for ElastiCache cluster cache node status [GH-2842]
