@@ -112,6 +112,10 @@ I'm planning to continue developing and supporting this code for my use-cases,
 and I'll do my best to respond to issues and pull requests (and I'm happy to take
 patches to improve the code or add missing feaures!).
 
+Also, please be warned that I am *not* a competent Go programmer, so please expect
+to find hideous / insane / non-idiomatic code if you look at the source. I'd be
+extremely happy to accept patches or suggestions from anyone more experience than me:)
+
 Please *feel free* to contract me via github issues or Twitter or irc in #terraform (t0m)
 if you have *any* issues with, or would like advice on using this code.
 
