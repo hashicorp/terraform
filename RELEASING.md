@@ -51,9 +51,13 @@ git tag -m "${VERSION}" "${VERSION}"
 # Build the release
 make release
 
+# Add Godeps for the archive
+git add Godeps
+
 # Make an archive with vendored dependencies
-stashName=$(git stash)
+stashName=$(git stash create)
 git archive -o terraform-$VERSION-src.tar.gz $stashName
+git reset --hard ${VERSION}
 
 # Zip and push release to bintray
 export BINTRAY_API_KEY="..."
