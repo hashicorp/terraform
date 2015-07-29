@@ -196,7 +196,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     "available",
-		Refresh:    cacheClusterStateRefreshFunc(conn, *resp.CacheCluster.CacheClusterID, "available", pending),
+		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "available", pending),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
