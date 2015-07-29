@@ -74,9 +74,9 @@ is placed in the right place in your $GOPATH.
 # Supported features
 
 ## Setup zones
-    * Links supported
-    * Secondary zones supported
-    * Metadata *may* be supported, but is untested
+    * Normal primary zones supported
+    * Links to other zones supported
+    * Secondary (slave) zones supported
 
 ## Setup records in those zones
     * A, MX and CNAME records are supported.
@@ -94,7 +94,7 @@ is placed in the right place in your $GOPATH.
 # Unsupported features
 
 # Zones
-  * Setting up secondary servers is currently unsupported
+  * Setting up secondary servers to AXFR is currently unsupported
 
 ## Records
   * Static metadata (not linked to a feed) is not yet supported

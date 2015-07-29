@@ -20,10 +20,9 @@ func zoneResource() *schema.Resource {
 				ForceNew: true,
 			},
 			"link": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"meta"}, // FIXME
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -55,7 +54,6 @@ func zoneResource() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"meta": metaSchema(),
 		},
 		Create: ZoneCreate,
 		Read:   ZoneRead,
@@ -71,9 +69,6 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	d.Set("nx_ttl", z.Nx_ttl)
 	d.Set("retry", z.Retry)
 	d.Set("expiry", z.Expiry)
-	if z.Meta != nil {
-		d.Set("meta", z.Meta)
-	}
 	if z.Secondary != nil && z.Secondary.Enabled {
 		d.Set("primary", z.Secondary.Primary_ip)
 	}
@@ -100,14 +95,6 @@ func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
 	}
 	if v, ok := d.GetOk("expiry"); ok {
 		z.Expiry = v.(int)
-	}
-	if v, ok := d.GetOk("meta"); ok {
-		meta_raw := v.(map[string]interface{})
-		meta := make(map[string]string, len(meta_raw))
-		for i, val := range meta_raw {
-			meta[i] = val.(string)
-		}
-		z.Meta = meta
 	}
 	if v, ok := d.GetOk("primary"); ok {
 		z.MakeSecondary(v.(string))
