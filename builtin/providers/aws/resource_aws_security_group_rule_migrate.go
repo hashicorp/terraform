@@ -56,8 +56,8 @@ func migrateExpandIPPerm(attrs map[string]string) (*ec2.IPPermission, error) {
 		return nil, fmt.Errorf("Error converting from_port in Security Group migration")
 	}
 
-	perm.ToPort = aws.Long(int64(tp))
-	perm.FromPort = aws.Long(int64(fp))
+	perm.ToPort = aws.Int64(int64(tp))
+	perm.FromPort = aws.Int64(int64(fp))
 	perm.IPProtocol = aws.String(attrs["protocol"])
 
 	groups := make(map[string]bool)

@@ -67,7 +67,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 
 	awsConfig := &aws.Config{
 		Credentials: credentialsProvider,
-		Region:      regionName,
+		Region:      aws.String(regionName),
 	}
 	nativeClient := s3.New(awsConfig)
 
