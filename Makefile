@@ -2,6 +2,9 @@
 
 all: terraform-provider-nsone .git/hooks/pre-commit
 
+install: terraform-provider-nsone
+	cp -f terraform-provider-nsone $$(dirname $$(which terraform))
+
 terraform-provider-nsone:
 	go build .
 
