@@ -15,6 +15,8 @@ IMPROVEMENTS:
   * provider/aws: Added `source_dest_check` attribute to the aws_network_interface [GH-2741]
   * provider/aws: Clean up externally removed Launch Configurations [GH-2806]
   * provider/aws: Compute private ip addresses of ENIs if they are not specified [GH-2743]
+  * provider/google: `account_file` is now expected to be JSON. Paths are still supported for
+      backwards compatibility. [GH-2839]
 
 BUG FIXES:
 
