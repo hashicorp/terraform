@@ -25,6 +25,7 @@ resource "aws_s3_bucket_object" "object" {
 ## Argument Reference
 
 The following arguments are supported:
+
 * `bucket` - (Required) The name of the bucket to put the file in.
 * `key` - (Required) The name of the object once it is in the bucket.
 * `source` - (Required) The path to the source file being uploaded to the bucket.
@@ -33,4 +34,6 @@ The following arguments are supported:
 
 The following attributes are exported
 
-* `id` - the id of the resource corresponds to the ETag of the bucket object on aws.
+* `id` - the `key` of the resource supplied above
+* `etag` - the ETag generated for the object. This is often the MD5 hash of the
+object, unless you specify your own encryption keys
