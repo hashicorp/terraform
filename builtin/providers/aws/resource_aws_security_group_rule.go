@@ -152,7 +152,9 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	sg_id := d.Get("security_group_id").(string)
 	sg, err := findResourceSecurityGroup(conn, sg_id)
 	if err != nil {
+		log.Printf("[DEBUG] Error finding Secuirty Group (%s) for Rule (%s): %s", sg_id, d.Id(), err)
 		d.SetId("")
+		return nil
 	}
 
 	var rule *ec2.IPPermission
@@ -256,6 +258,7 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	if err != nil {
 		return nil, err
 	}
+
 	if resp == nil || len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
 		return nil, fmt.Errorf(
 			"Expected to find one security group with ID %q, got: %#v",
