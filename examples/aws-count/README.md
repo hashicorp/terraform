@@ -6,5 +6,8 @@ and let you scale resources by simply incrementing a number.
 Additionally, variables can be used to expand a list of resources
 for use elsewhere.
 
-As with all examples, just copy and paste the example and run
-`terraform apply` to see it work.
+To run, configure your AWS provider as described in https://www.terraform.io/docs/providers/aws/index.html
+
+Running the example
+
+run `terraform apply` to see it work.

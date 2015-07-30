@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/route53"
 )
 
 func resourceAwsRoute53Zone() *schema.Resource {
@@ -32,7 +32,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			"comment": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default: "Managed by Terraform",
+				Default:  "Managed by Terraform",
 			},
 
 			"vpc_id": &schema.Schema{
@@ -51,6 +51,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			"zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"delegation_set_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"name_servers": &schema.Schema{
@@ -81,6 +87,10 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 			req.VPC.VPCRegion = aws.String(w.(string))
 		}
 		d.Set("vpc_region", req.VPC.VPCRegion)
+	}
+
+	if v, ok := d.GetOk("delegation_set_id"); ok {
+		req.DelegationSetID = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)
@@ -157,6 +167,10 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
+	if zone.DelegationSet != nil && zone.DelegationSet.ID != nil {
+		d.Set("delegation_set_id", cleanDelegationSetId(*zone.DelegationSet.ID))
+	}
+
 	// get tags
 	req := &route53.ListTagsForResourceInput{
 		ResourceID:   aws.String(d.Id()),
@@ -183,7 +197,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	if err := setTagsR53(conn, d); err != nil {
+	if err := setTagsR53(conn, d, "hostedzone"); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

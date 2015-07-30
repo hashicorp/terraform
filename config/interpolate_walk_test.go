@@ -157,7 +157,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Value: "bar" + InterpSplitDelim + "baz",
+			Value: NewStringList([]string{"bar", "baz"}).String(),
 		},
 
 		{
@@ -168,7 +168,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				},
 			},
 			Output: map[string]interface{}{},
-			Value:  UnknownVariableValue + InterpSplitDelim + "baz",
+			Value:  NewStringList([]string{UnknownVariableValue, "baz"}).String(),
 		},
 	}
 
@@ -183,7 +183,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(tc.Input, tc.Output) {
-			t.Fatalf("%d: bad:\n\n%#v", i, tc.Input)
+			t.Fatalf("%d: bad:\n\nexpected:%#v\ngot:%#v", i, tc.Output, tc.Input)
 		}
 	}
 }

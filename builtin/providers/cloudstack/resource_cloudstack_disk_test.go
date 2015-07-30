@@ -35,7 +35,7 @@ func TestAccCloudStackDisk_device(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCloudStackDiskDestroyAdvanced,
+		CheckDestroy: testAccCheckCloudStackDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCloudStackDisk_device,
@@ -57,7 +57,7 @@ func TestAccCloudStackDisk_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCloudStackDiskDestroyAdvanced,
+		CheckDestroy: testAccCheckCloudStackDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCloudStackDisk_update,
@@ -151,57 +151,9 @@ func testAccCheckCloudStackDiskDestroy(s *terraform.State) error {
 			return fmt.Errorf("No disk ID is set")
 		}
 
-		p := cs.Volume.NewDeleteVolumeParams(rs.Primary.ID)
-		_, err := cs.Volume.DeleteVolume(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting disk (%s): %s",
-				rs.Primary.ID, err)
-		}
-	}
-
-	return nil
-}
-
-func testAccCheckCloudStackDiskDestroyAdvanced(s *terraform.State) error {
-	cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "cloudstack_disk" {
-			continue
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No disk ID is set")
-		}
-
-		p := cs.Volume.NewDeleteVolumeParams(rs.Primary.ID)
-		_, err := cs.Volume.DeleteVolume(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting disk (%s): %s",
-				rs.Primary.ID, err)
-		}
-	}
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "cloudstack_instance" {
-			continue
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No instance ID is set")
-		}
-
-		p := cs.VirtualMachine.NewDestroyVirtualMachineParams(rs.Primary.ID)
-		_, err := cs.VirtualMachine.DestroyVirtualMachine(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting instance (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.Volume.GetVolumeByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Disk %s still exists", rs.Primary.ID)
 		}
 	}
 

@@ -80,13 +80,7 @@ func (r *ConfigFieldReader) readField(
 	k := strings.Join(address, ".")
 	schema := schemaList[len(schemaList)-1]
 	switch schema.Type {
-	case TypeBool:
-		fallthrough
-	case TypeFloat:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeString:
+	case TypeBool, TypeFloat, TypeInt, TypeString:
 		return r.readPrimitive(k, schema)
 	case TypeList:
 		return readListField(&nestedConfigFieldReader{r}, address, schema)

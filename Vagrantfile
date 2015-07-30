@@ -5,34 +5,53 @@
 VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
-# Install Go and prerequisites
-apt-get -qq update
-apt-get -qq install build-essential curl git-core libpcre3-dev mercurial pkg-config zip
-hg clone -u release https://code.google.com/p/go /opt/go
-cd /opt/go/src && ./all.bash
+SRCROOT="/opt/go"
+SRCPATH="/opt/gopath"
 
-# Setup the GOPATH
-mkdir -p /opt/gopath
-cat <<EOF >/etc/profile.d/gopath.sh
-export GOPATH="/opt/gopath"
-export PATH="/opt/go/bin:\$GOPATH/bin:\$PATH"
+# Get the ARCH
+ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
+
+# Install Prereq Packages
+sudo apt-get update
+sudo apt-get install -y build-essential curl git-core libpcre3-dev mercurial pkg-config zip
+
+# Install Go
+cd /tmp
+wget -q https://storage.googleapis.com/golang/go1.4.2.linux-${ARCH}.tar.gz
+tar -xf go1.4.2.linux-${ARCH}.tar.gz
+sudo mv go $SRCROOT
+sudo chmod 775 $SRCROOT
+sudo chown vagrant:vagrant $SRCROOT
+
+# Setup the GOPATH; even though the shared folder spec gives the working
+# directory the right user/group, we need to set it properly on the
+# parent path to allow subsequent "go get" commands to work.
+sudo mkdir -p $SRCPATH
+sudo chown -R vagrant:vagrant $SRCPATH 2>/dev/null || true
+# ^^ silencing errors here because we expect this to fail for the shared folder
+
+cat <<EOF >/tmp/gopath.sh
+export GOPATH="$SRCPATH"
+export GOROOT="$SRCROOT"
+export PATH="$SRCROOT/bin:$SRCPATH/bin:\$PATH"
 EOF
-
-# Make sure the GOPATH is usable by vagrant
-chown -R vagrant:vagrant /opt/go
-chown -R vagrant:vagrant /opt/gopath
+sudo mv /tmp/gopath.sh /etc/profile.d/gopath.sh
+sudo chmod 0755 /etc/profile.d/gopath.sh
+source /etc/profile.d/gopath.sh
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "chef/ubuntu-12.04"
+  config.vm.hostname = "terraform"
 
-  config.vm.provision "shell", inline: $script
+  config.vm.provision "shell", inline: $script, privileged: false
+  config.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/terraform'
 
   ["vmware_fusion", "vmware_workstation"].each do |p|
-    config.vm.provider "p" do |v|
-      v.vmx["memsize"] = "2048"
-      v.vmx["numvcpus"] = "2"
-      v.vmx["cpuid.coresPerSocket"] = "1"
+    config.vm.provider p do |v|
+      v.vmx["memsize"] = "4096"
+      v.vmx["numvcpus"] = "4"
+      v.vmx['cpuid.coresPerSocket'] = '2'
     end
   end
 end

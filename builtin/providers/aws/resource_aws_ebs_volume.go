@@ -2,11 +2,14 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -14,6 +17,7 @@ func resourceAwsEbsVolume() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsEbsVolumeCreate,
 		Read:   resourceAwsEbsVolumeRead,
+		Update: resourceAWSEbsVolumeUpdate,
 		Delete: resourceAwsEbsVolumeDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -58,6 +62,7 @@ func resourceAwsEbsVolume() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -69,16 +74,16 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
 	}
 	if value, ok := d.GetOk("encrypted"); ok {
-		request.Encrypted = aws.Boolean(value.(bool))
+		request.Encrypted = aws.Bool(value.(bool))
 	}
 	if value, ok := d.GetOk("iops"); ok {
-		request.IOPS = aws.Long(int64(value.(int)))
+		request.IOPS = aws.Int64(int64(value.(int)))
 	}
 	if value, ok := d.GetOk("kms_key_id"); ok {
 		request.KMSKeyID = aws.String(value.(string))
 	}
 	if value, ok := d.GetOk("size"); ok {
-		request.Size = aws.Long(int64(value.(int)))
+		request.Size = aws.Int64(int64(value.(int)))
 	}
 	if value, ok := d.GetOk("snapshot_id"); ok {
 		request.SnapshotID = aws.String(value.(string))
@@ -91,7 +96,67 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return fmt.Errorf("Error creating EC2 volume: %s", err)
 	}
+
+	log.Printf(
+		"[DEBUG] Waiting for Volume (%s) to become available",
+		d.Id())
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"creating"},
+		Target:     "available",
+		Refresh:    volumeStateRefreshFunc(conn, *result.VolumeID),
+		Timeout:    5 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for Volume (%s) to become available: %s",
+			*result.VolumeID, err)
+	}
+
+	d.SetId(*result.VolumeID)
+
+	if _, ok := d.GetOk("tags"); ok {
+		setTags(conn, d)
+	}
+
 	return readVolume(d, result)
+}
+
+func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).ec2conn
+	if _, ok := d.GetOk("tags"); ok {
+		setTags(conn, d)
+	}
+	return resourceAwsEbsVolumeRead(d, meta)
+}
+
+// volumeStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// a the state of a Volume. Returns successfully when volume is available
+func volumeStateRefreshFunc(conn *ec2.EC2, volumeID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		resp, err := conn.DescribeVolumes(&ec2.DescribeVolumesInput{
+			VolumeIDs: []*string{aws.String(volumeID)},
+		})
+
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok {
+				// Set this to nil as if we didn't find anything.
+				log.Printf("Error on Volume State Refresh: message: \"%s\", code:\"%s\"", ec2err.Message(), ec2err.Code())
+				resp = nil
+				return nil, "", err
+			} else {
+				log.Printf("Error on Volume State Refresh: %s", err)
+				return nil, "", err
+			}
+		}
+
+		v := resp.Volumes[0]
+		return v, *v.State, nil
+	}
 }
 
 func resourceAwsEbsVolumeRead(d *schema.ResourceData, meta interface{}) error {
@@ -148,6 +213,9 @@ func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
 	}
 	if volume.VolumeType != nil {
 		d.Set("type", *volume.VolumeType)
+	}
+	if volume.Tags != nil {
+		d.Set("tags", tagsToMap(volume.Tags))
 	}
 
 	return nil

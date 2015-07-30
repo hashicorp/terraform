@@ -20,7 +20,6 @@ resource "aws_iam_user" "lb" {
 
 resource "aws_iam_access_key" "lb" {
     user = "${aws_iam_user.lb.name}"
-    status = "Active"
 }
 
 resource "aws_iam_user_policy" "lb_ro" {

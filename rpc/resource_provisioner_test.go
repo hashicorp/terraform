@@ -132,3 +132,34 @@ func TestResourceProvisioner_validate_warns(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 }
+
+func TestResourceProvisioner_close(t *testing.T) {
+	client, _ := testNewClientServer(t)
+	defer client.Close()
+
+	provisioner, err := client.ResourceProvisioner()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var p interface{}
+	p = provisioner
+	pCloser, ok := p.(terraform.ResourceProvisionerCloser)
+	if !ok {
+		t.Fatal("should be a ResourceProvisionerCloser")
+	}
+
+	if err := pCloser.Close(); err != nil {
+		t.Fatalf("failed to close provisioner: %s", err)
+	}
+
+	// The connection should be closed now, so if we to make a
+	// new call we should get an error.
+	o := &terraform.MockUIOutput{}
+	s := &terraform.InstanceState{}
+	c := &terraform.ResourceConfig{}
+	err = provisioner.Apply(o, s, c)
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}

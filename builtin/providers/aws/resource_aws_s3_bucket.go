@@ -7,9 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -77,8 +77,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-
 			"website_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+			"website_domain": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -237,12 +241,17 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Add website_endpoint as an attribute
-	endpoint, err := websiteEndpoint(s3conn, d)
+	websiteEndpoint, err := websiteEndpoint(s3conn, d)
 	if err != nil {
 		return err
 	}
-	if err := d.Set("website_endpoint", endpoint); err != nil {
-		return err
+	if websiteEndpoint != nil {
+		if err := d.Set("website_endpoint", websiteEndpoint.Endpoint); err != nil {
+			return err
+		}
+		if err := d.Set("website_domain", websiteEndpoint.Domain); err != nil {
+			return err
+		}
 	}
 
 	tagSet, err := getTagSetS3(s3conn, d.Id())
@@ -405,11 +414,11 @@ func resourceAwsS3BucketWebsiteDelete(s3conn *s3.S3, d *schema.ResourceData) err
 	return nil
 }
 
-func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
+func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (*S3Website, error) {
 	// If the bucket doesn't have a website configuration, return an empty
 	// endpoint
 	if _, ok := d.GetOk("website"); !ok {
-		return "", nil
+		return nil, nil
 	}
 
 	bucket := d.Get("bucket").(string)
@@ -421,19 +430,31 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	var region string
 	if location.LocationConstraint != nil {
 		region = *location.LocationConstraint
 	}
 
-	return WebsiteEndpointUrl(bucket, region), nil
+	return WebsiteEndpoint(bucket, region), nil
 }
 
-func WebsiteEndpointUrl(bucket string, region string) string {
+func WebsiteEndpoint(bucket string, region string) *S3Website {
+	domain := WebsiteDomainUrl(region)
+	return &S3Website{Endpoint: fmt.Sprintf("%s.%s", bucket, domain), Domain: domain}
+}
+
+func WebsiteDomainUrl(region string) string {
 	region = normalizeRegion(region)
-	return fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
+
+	// Frankfurt(and probably future) regions uses different syntax for website endpoints
+	// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
+	if region == "eu-central-1" {
+		return fmt.Sprintf("s3-website.%s.amazonaws.com", region)
+	}
+
+	return fmt.Sprintf("s3-website-%s.amazonaws.com", region)
 }
 
 func normalizeJson(jsonString interface{}) string {
@@ -457,4 +478,8 @@ func normalizeRegion(region string) string {
 	}
 
 	return region
+}
+
+type S3Website struct {
+	Endpoint, Domain string
 }

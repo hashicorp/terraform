@@ -15,9 +15,12 @@ type OutputCommand struct {
 func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
+	var module string
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
@@ -38,15 +41,34 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
+	if module == "" {
+		module = "root"
+	} else {
+		module = "root." + module
+	}
+
+	// Get the proper module we want to get outputs for
+	modPath := strings.Split(module, ".")
+
 	state := stateStore.State()
-	if state.Empty() || len(state.RootModule().Outputs) == 0 {
+	mod := state.ModuleByPath(modPath)
+
+	if mod == nil {
+		c.Ui.Error(fmt.Sprintf(
+			"The module %s could not be found. There is nothing to output.",
+			module))
+		return 1
+	}
+
+	if state.Empty() || len(mod.Outputs) == 0 {
 		c.Ui.Error(fmt.Sprintf(
 			"The state file has no outputs defined. Define an output\n" +
 				"in your configuration with the `output` directive and re-run\n" +
 				"`terraform apply` for it to become available."))
 		return 1
 	}
-	v, ok := state.RootModule().Outputs[name]
+
+	v, ok := mod.Outputs[name]
 	if !ok {
 		c.Ui.Error(fmt.Sprintf(
 			"The output variable requested could not be found in the state\n" +
@@ -71,6 +93,8 @@ Options:
 
   -state=path      Path to the state file to read. Defaults to
                    "terraform.tfstate".
+
+  -no-color           If specified, output won't contain any color.
 
 `
 	return strings.TrimSpace(helpText)

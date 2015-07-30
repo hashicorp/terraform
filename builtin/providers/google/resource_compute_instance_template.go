@@ -227,7 +227,9 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 	}
 }
 
-func buildDisks(d *schema.ResourceData, meta interface{}) []*compute.AttachedDisk {
+func buildDisks(d *schema.ResourceData, meta interface{}) ([]*compute.AttachedDisk, error) {
+	config := meta.(*Config)
+
 	disksCount := d.Get("disk.#").(int)
 
 	disks := make([]*compute.AttachedDisk, 0, disksCount)
@@ -267,7 +269,14 @@ func buildDisks(d *schema.ResourceData, meta interface{}) []*compute.AttachedDis
 			}
 
 			if v, ok := d.GetOk(prefix + ".source_image"); ok {
-				disk.InitializeParams.SourceImage = v.(string)
+				imageName := v.(string)
+				imageUrl, err := resolveImage(config, imageName)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error resolving image name '%s': %s",
+						imageName, err)
+				}
+				disk.InitializeParams.SourceImage = imageUrl
 			}
 		}
 
@@ -286,7 +295,7 @@ func buildDisks(d *schema.ResourceData, meta interface{}) []*compute.AttachedDis
 		disks = append(disks, &disk)
 	}
 
-	return disks
+	return disks, nil
 }
 
 func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.NetworkInterface) {
@@ -330,8 +339,16 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	instanceProperties.CanIpForward = d.Get("can_ip_forward").(bool)
 	instanceProperties.Description = d.Get("instance_description").(string)
 	instanceProperties.MachineType = d.Get("machine_type").(string)
-	instanceProperties.Disks = buildDisks(d, meta)
-	instanceProperties.Metadata = resourceInstanceMetadata(d)
+	disks, err := buildDisks(d, meta)
+	if err != nil {
+		return err
+	}
+	instanceProperties.Disks = disks
+	metadata, err := resourceInstanceMetadata(d)
+	if err != nil {
+		return err
+	}
+	instanceProperties.Metadata = metadata
 	err, networks := buildNetworks(d, meta)
 	if err != nil {
 		return err

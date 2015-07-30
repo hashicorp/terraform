@@ -60,6 +60,10 @@ The following arguments are supported:
 * `insecure` - (Optional) Explicitly allow the provider to perform
     "insecure" SSL requests. If omitted, default value is `false`
 
+* `endpoint_type` - (Optional) Specify which type of endpoint to use from the
+    service catalog. It can be set using the OS_ENDPOINT_TYPE environment
+    variable. If not set, public endpoints is used.
+
 ## Testing
 
 In order to run the Acceptance Tests for development, the following environment

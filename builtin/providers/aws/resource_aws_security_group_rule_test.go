@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -15,8 +15,8 @@ import (
 func TestIpPermissionIDHash(t *testing.T) {
 	simple := &ec2.IPPermission{
 		IPProtocol: aws.String("tcp"),
-		FromPort:   aws.Long(int64(80)),
-		ToPort:     aws.Long(int64(8000)),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
 		IPRanges: []*ec2.IPRange{
 			&ec2.IPRange{
 				CIDRIP: aws.String("10.0.0.0/8"),
@@ -26,8 +26,8 @@ func TestIpPermissionIDHash(t *testing.T) {
 
 	egress := &ec2.IPPermission{
 		IPProtocol: aws.String("tcp"),
-		FromPort:   aws.Long(int64(80)),
-		ToPort:     aws.Long(int64(8000)),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
 		IPRanges: []*ec2.IPRange{
 			&ec2.IPRange{
 				CIDRIP: aws.String("10.0.0.0/8"),
@@ -44,6 +44,46 @@ func TestIpPermissionIDHash(t *testing.T) {
 		},
 	}
 
+	vpc_security_group_source := &ec2.IPPermission{
+		IPProtocol: aws.String("tcp"),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
+		UserIDGroupPairs: []*ec2.UserIDGroupPair{
+			&ec2.UserIDGroupPair{
+				UserID:  aws.String("987654321"),
+				GroupID: aws.String("sg-12345678"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:  aws.String("123456789"),
+				GroupID: aws.String("sg-987654321"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:  aws.String("123456789"),
+				GroupID: aws.String("sg-12345678"),
+			},
+		},
+	}
+
+	security_group_source := &ec2.IPPermission{
+		IPProtocol: aws.String("tcp"),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
+		UserIDGroupPairs: []*ec2.UserIDGroupPair{
+			&ec2.UserIDGroupPair{
+				UserID:    aws.String("987654321"),
+				GroupName: aws.String("my-security-group"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:    aws.String("123456789"),
+				GroupName: aws.String("my-security-group"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:    aws.String("123456789"),
+				GroupName: aws.String("my-other-security-group"),
+			},
+		},
+	}
+
 	// hardcoded hashes, to detect future change
 	cases := []struct {
 		Input  *ec2.IPPermission
@@ -52,13 +92,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 	}{
 		{simple, "ingress", "sg-82613597"},
 		{egress, "egress", "sg-363054720"},
-		{egress_all, "egress", "sg-857124156"},
+		{egress_all, "egress", "sg-2766285362"},
+		{vpc_security_group_source, "egress", "sg-2661404947"},
+		{security_group_source, "egress", "sg-1841245863"},
 	}
 
 	for _, tc := range cases {
 		actual := ipPermissionIDHash(tc.Type, tc.Input)
 		if actual != tc.Output {
-			t.Fatalf("input: %s - %#v\noutput: %s", tc.Type, tc.Input, actual)
+			t.Errorf("input: %s - %s\noutput: %s", tc.Type, tc.Input, actual)
 		}
 	}
 }
@@ -141,9 +183,9 @@ func TestAccAWSSecurityGroupRule_MultiIngress(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testMultiRuleCount := func(*terraform.State) error {
-		if len(group.IPPermissions) != 3 {
+		if len(group.IPPermissions) != 2 {
 			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
-				3, len(group.IPPermissions))
+				2, len(group.IPPermissions))
 		}
 
 		var rule *ec2.IPPermission
@@ -190,6 +232,24 @@ func TestAccAWSSecurityGroupRule_Egress(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRuleAttributes(&group, "egress"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroupRule_SelfReference(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleConfigSelfReference,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 				),
 			},
 		},
@@ -262,8 +322,8 @@ func testAccCheckAWSSecurityGroupRuleExists(n string, group *ec2.SecurityGroup) 
 func testAccCheckAWSSecurityGroupRuleAttributes(group *ec2.SecurityGroup, ruleType string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := &ec2.IPPermission{
-			FromPort:   aws.Long(80),
-			ToPort:     aws.Long(8000),
+			FromPort:   aws.Int64(80),
+			ToPort:     aws.Int64(8000),
 			IPProtocol: aws.String("tcp"),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
 		}
@@ -377,7 +437,6 @@ resource "aws_security_group_rule" "ingress_1" {
   cidr_blocks = ["10.0.0.0/8"]
 
   security_group_id = "${aws_security_group.web.id}"
-        source_security_group_id = "${aws_security_group.worker.id}"
 }
 
 resource "aws_security_group_rule" "ingress_2" {
@@ -387,6 +446,37 @@ resource "aws_security_group_rule" "ingress_2" {
   to_port = 8000
         self = true
 
+  security_group_id = "${aws_security_group.web.id}"
+}
+`
+
+// check for GH-1985 regression
+const testAccAWSSecurityGroupRuleConfigSelfReference = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  tags {
+    Name = "sg-self-test"
+  }
+}
+
+resource "aws_security_group" "web" {
+  name = "main"
+  vpc_id = "${aws_vpc.main.id}"
+  tags {
+    Name = "sg-self-test"
+  }
+}
+
+resource "aws_security_group_rule" "self" {
+  type = "ingress"
+  protocol = "-1"
+  from_port = 0
+  to_port = 0
+  self = true
   security_group_id = "${aws_security_group.web.id}"
 }
 `

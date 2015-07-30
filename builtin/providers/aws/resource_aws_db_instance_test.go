@@ -9,12 +9,12 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/rds"
 )
 
-func TestAccAWSDBInstance(t *testing.T) {
+func TestAccAWSDBInstance_basic(t *testing.T) {
 	var v rds.DBInstance
 
 	resource.Test(t, resource.TestCase{
@@ -176,7 +176,7 @@ resource "aws_db_instance" "bar" {
 	identifier = "foobarbaz-test-terraform-%d"
 
 	allocated_storage = 10
-	engine = "mysql"
+	engine = "MySQL"
 	engine_version = "5.6.21"
 	instance_class = "db.t1.micro"
 	name = "baz"

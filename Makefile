@@ -15,6 +15,10 @@ dev: generate
 quickdev: generate
 	@TF_QUICKDEV=1 TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
+release: updatedeps
+	gox -build-toolchain
+	@$(MAKE) bin
+
 # test runs the unit tests and vets the code
 test: generate
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
@@ -23,10 +27,11 @@ test: generate
 # testacc runs acceptance tests
 testacc: generate
 	@if [ "$(TEST)" = "./..." ]; then \
-		echo "ERROR: Set TEST to a specific package"; \
+		echo "ERROR: Set TEST to a specific package. For example,"; \
+		echo "  make testacc TEST=./builtin/providers/aws"; \
 		exit 1; \
 	fi
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 45m
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 90m
 
 # testrace runs the race checker
 testrace: generate
@@ -61,7 +66,8 @@ vet:
 	@go tool vet $(VETARGS) . ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for reviewal."; \
+		echo "and fix them if necessary before submitting the code for review."; \
+		exit 1; \
 	fi
 
 # generate runs `go generate` to build the dynamically generated

@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSSecurityGroup_normal(t *testing.T) {
+func TestAccAWSSecurityGroup_basic(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
@@ -356,8 +356,8 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) reso
 func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := &ec2.IPPermission{
-			FromPort:   aws.Long(80),
-			ToPort:     aws.Long(8000),
+			FromPort:   aws.Int64(80),
+			ToPort:     aws.Int64(8000),
 			IPProtocol: aws.String("tcp"),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
 		}
@@ -449,14 +449,14 @@ func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroup) res
 	return func(s *terraform.State) error {
 		p := []*ec2.IPPermission{
 			&ec2.IPPermission{
-				FromPort:   aws.Long(80),
-				ToPort:     aws.Long(9000),
+				FromPort:   aws.Int64(80),
+				ToPort:     aws.Int64(9000),
 				IPProtocol: aws.String("tcp"),
 				IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
 			},
 			&ec2.IPPermission{
-				FromPort:   aws.Long(80),
-				ToPort:     aws.Long(8000),
+				FromPort:   aws.Int64(80),
+				ToPort:     aws.Int64(8000),
 				IPProtocol: aws.String("tcp"),
 				IPRanges: []*ec2.IPRange{
 					&ec2.IPRange{

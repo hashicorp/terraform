@@ -7,9 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -28,6 +28,14 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"description": &schema.Schema{
@@ -35,6 +43,14 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"vpc_id": &schema.Schema{
@@ -207,8 +223,8 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 			GroupID: createResp.GroupID,
 			IPPermissions: []*ec2.IPPermission{
 				&ec2.IPPermission{
-					FromPort: aws.Long(int64(0)),
-					ToPort:   aws.Long(int64(0)),
+					FromPort: aws.Int64(int64(0)),
+					ToPort:   aws.Int64(int64(0)),
 					IPRanges: []*ec2.IPRange{
 						&ec2.IPRange{
 							CIDRIP: aws.String("0.0.0.0/0"),

@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -100,6 +100,14 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	pc := pcRaw.(*ec2.VPCPeeringConnection)
+
+	// The failed status is a status that we can assume just means the
+	// connection is gone. Destruction isn't allowed, and it eventually
+	// just "falls off" the console. See GH-2322
+	if *pc.Status.Code == "failed" {
+		d.SetId("")
+		return nil
+	}
 
 	d.Set("accept_status", *pc.Status.Code)
 	d.Set("peer_owner_id", pc.AccepterVPCInfo.OwnerID)

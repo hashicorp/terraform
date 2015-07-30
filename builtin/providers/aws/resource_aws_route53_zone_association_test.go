@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/route53"
 )
 
-func TestAccRoute53ZoneAssociation_basic(t *testing.T) {
+func TestAccAWSRoute53ZoneAssociation_basic(t *testing.T) {
 	var zone route53.HostedZone
 
 	resource.Test(t, resource.TestCase{
@@ -30,7 +30,7 @@ func TestAccRoute53ZoneAssociation_basic(t *testing.T) {
 	})
 }
 
-func TestAccRoute53ZoneAssociation_region(t *testing.T) {
+func TestAccAWSRoute53ZoneAssociation_region(t *testing.T) {
 	var zone route53.HostedZone
 
 	// record the initialized providers so that we can use them to

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -34,6 +34,7 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -44,6 +45,12 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+			},
+
+			"source_dest_check": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
 			},
 
 			"attachment": &schema.Schema{
@@ -78,9 +85,17 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.CreateNetworkInterfaceInput{
-		Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
-		SubnetID:           aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
+		SubnetID: aws.String(d.Get("subnet_id").(string)),
+	}
+
+	security_groups := d.Get("security_groups").(*schema.Set).List()
+	if len(security_groups) != 0 {
+		request.Groups = expandStringList(security_groups)
+	}
+
+	private_ips := d.Get("private_ips").(*schema.Set).List()
+	if len(private_ips) != 0 {
+		request.PrivateIPAddresses = expandPrivateIPAddesses(private_ips)
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
@@ -119,6 +134,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("subnet_id", eni.SubnetID)
 	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
+	d.Set("source_dest_check", eni.SourceDestCheck)
 
 	// Tags
 	d.Set("tags", tagsToMap(eni.TagSet))
@@ -159,7 +175,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 		old_attachment := oa.List()[0].(map[string]interface{})
 		detach_request := &ec2.DetachNetworkInterfaceInput{
 			AttachmentID: aws.String(old_attachment["attachment_id"].(string)),
-			Force:        aws.Boolean(true),
+			Force:        aws.Bool(true),
 		}
 		conn := meta.(*AWSClient).ec2conn
 		_, detach_err := conn.DetachNetworkInterface(detach_request)
@@ -200,7 +216,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 			new_attachment := na.(*schema.Set).List()[0].(map[string]interface{})
 			di := new_attachment["device_index"].(int)
 			attach_request := &ec2.AttachNetworkInterfaceInput{
-				DeviceIndex:        aws.Long(int64(di)),
+				DeviceIndex:        aws.Int64(int64(di)),
 				InstanceID:         aws.String(new_attachment["instance"].(string)),
 				NetworkInterfaceID: aws.String(d.Id()),
 			}
@@ -212,6 +228,18 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 
 		d.SetPartial("attachment")
 	}
+
+	request := &ec2.ModifyNetworkInterfaceAttributeInput{
+		NetworkInterfaceID: aws.String(d.Id()),
+		SourceDestCheck:    &ec2.AttributeBooleanValue{Value: aws.Bool(d.Get("source_dest_check").(bool))},
+	}
+
+	_, err := conn.ModifyNetworkInterfaceAttribute(request)
+	if err != nil {
+		return fmt.Errorf("Failure updating ENI: %s", err)
+	}
+
+	d.SetPartial("source_dest_check")
 
 	if d.HasChange("security_groups") {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{

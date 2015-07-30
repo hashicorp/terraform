@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -207,7 +207,7 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 		Pending: []string{"detaching"},
 		Target:  "detached",
 		Refresh: detachIGStateRefreshFunc(conn, d.Id(), vpcID.(string)),
-		Timeout: 2 * time.Minute,
+		Timeout: 5 * time.Minute,
 		Delay:   10 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
