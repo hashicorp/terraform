@@ -650,8 +650,7 @@ func retrieveOSImageDetails(
 			}
 			if img.MediaLink == "" {
 				if storage == "" {
-					return nil, "", nil,
-						PlatformStorageError
+					return nil, "", nil, PlatformStorageError
 				}
 				img.MediaLink = fmt.Sprintf(osDiskBlobStorageURL, storage, name)
 			}
