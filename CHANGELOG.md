@@ -33,6 +33,7 @@ BUG FIXES:
   * provider/dnsimple: Domain and type should force new records [GH-2777]
   * provider/aws: Fix issue with IAM Server Certificates and Chains [GH-2871]
   * provider/aws: Fix issue with IAM Server Certificates when using `path` [GH-2871]
+  * provider/aws: Fix issue in Security Group Rules when the Security Group is not found [GH-2897]
 
 ## 0.6.1 (July 20, 2015)
 
