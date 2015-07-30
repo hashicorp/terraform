@@ -23,6 +23,8 @@ func TestAccInstanceGroupManager_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
 						"google_compute_instance_group_manager.igm-basic", &manager),
+					testAccCheckInstanceGroupManagerExists(
+						"google_compute_instance_group_manager.igm-no-tp", &manager),
 				),
 			},
 		},
@@ -184,7 +186,17 @@ resource "google_compute_instance_group_manager" "igm-basic" {
 	base_instance_name = "igm-basic"
 	zone = "us-central1-c"
 	target_size = 2
-}`
+}
+
+resource "google_compute_instance_group_manager" "igm-no-tp" {
+	description = "Terraform test instance group manager"
+	name = "terraform-test-igm-no-tp"
+	instance_template = "${google_compute_instance_template.igm-basic.self_link}"
+	base_instance_name = "igm-no-tp"
+	zone = "us-central1-c"
+	target_size = 2
+}
+`
 
 const testAccInstanceGroupManager_update = `
 resource "google_compute_instance_template" "igm-update" {
