@@ -31,7 +31,7 @@ The following arguments are supported:
 * `subnet_id` - (Required) Subnet ID to create the ENI in.
 * `private_ips` - (Optional) List of private IPs to assign to the ENI.
 * `security_groups` - (Optional) List of security group IDs to assign to the ENI.
-* `attachment` - (Required) Block to define the attachment of the ENI. Documented below.
+* `attachment` - (Optional) Block to define the attachment of the ENI. Documented below.
 * `source_dest_check` - (Optional) Whether to enable source destination checking for the ENI. Default true.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
