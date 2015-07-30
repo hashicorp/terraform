@@ -95,11 +95,12 @@ func (c *Config) Client() (interface{}, error) {
 		if err != nil {
 			errs = append(errs, err)
 		}
+
 		awsDynamoDBConfig := &aws.Config{
 			Credentials: creds,
-			Region:      c.Region,
-			MaxRetries:  c.MaxRetries,
-			Endpoint:    c.DynamoDBEndpoint,
+			Region:      aws.String(c.Region),
+			MaxRetries:  aws.Int(c.MaxRetries),
+			Endpoint:    aws.String(c.DynamoDBEndpoint),
 		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
