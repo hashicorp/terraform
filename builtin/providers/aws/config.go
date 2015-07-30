@@ -36,6 +36,8 @@ type Config struct {
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
+
+	DynamoDBEndpoint string
 }
 
 type AWSClient struct {
@@ -57,7 +59,7 @@ type AWSClient struct {
 	lambdaconn      *lambda.Lambda
 }
 
-// Client configures and returns a fully initailized AWSClient
+// Client configures and returns a fully initialized AWSClient
 func (c *Config) Client() (interface{}, error) {
 	var client AWSClient
 
@@ -94,8 +96,15 @@ func (c *Config) Client() (interface{}, error) {
 			errs = append(errs, err)
 		}
 
+		awsDynamoDBConfig := &aws.Config{
+			Credentials: creds,
+			Region:      aws.String(c.Region),
+			MaxRetries:  aws.Int(c.MaxRetries),
+			Endpoint:    aws.String(c.DynamoDBEndpoint),
+		}
+
 		log.Println("[INFO] Initializing DynamoDB connection")
-		client.dynamodbconn = dynamodb.New(awsConfig)
+		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(awsConfig)
