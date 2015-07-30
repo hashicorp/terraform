@@ -24,7 +24,7 @@ func TestAccComputeInstanceTemplate_basic(t *testing.T) {
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateTag(&instanceTemplate, "foo"),
 					testAccCheckComputeInstanceTemplateMetadata(&instanceTemplate, "foo", "bar"),
-					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "debian-7-wheezy-v20140814", true, true),
+					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814", true, true),
 				),
 			},
 		},
@@ -64,7 +64,7 @@ func TestAccComputeInstanceTemplate_disks(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceTemplateExists(
 						"google_compute_instance_template.foobar", &instanceTemplate),
-					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "debian-7-wheezy-v20140814", true, true),
+					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814", true, true),
 					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "terraform-test-foobar", false, false),
 				),
 			},

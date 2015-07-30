@@ -72,7 +72,8 @@ The following arguments are supported:
 
 * `storage_service_name` - (Optional) The name of an existing storage account
     within the subscription which will be used to store the VHDs of this
-    instance. Changing this forces a new resource to be created.
+    instance. Changing this forces a new resource to be created. **A Storage
+    Service is required if you are using a Platform Image**
 
 * `reverse_dns` - (Optional) The DNS address to which the IP address of the
     hosted service resolves when queried using a reverse DNS query. Changing

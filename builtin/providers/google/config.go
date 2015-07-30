@@ -3,10 +3,13 @@ package google
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
+
 
 	// TODO(dcunnin): Use version code from version.go
 	// "github.com/hashicorp/terraform"
@@ -26,16 +29,15 @@ type Config struct {
 	Project     string
 	Region      string
 
-	clientCompute   *compute.Service
+	clientCompute *compute.Service
 	clientContainer *container.Service
-	clientDns       *dns.Service
-	clientStorage   *storage.Service
+	clientDns *dns.Service
+	clientStorage *storage.Service
 }
 
 func (c *Config) loadAndValidate() error {
 	var account accountFile
 
-	// TODO: validation that it isn't blank
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
 	}
@@ -49,11 +51,33 @@ func (c *Config) loadAndValidate() error {
 	var client *http.Client
 
 	if c.AccountFile != "" {
-		if err := loadJSON(&account, c.AccountFile); err != nil {
-			return fmt.Errorf(
-				"Error loading account file '%s': %s",
-				c.AccountFile,
-				err)
+		contents := c.AccountFile
+
+		// Assume account_file is a JSON string
+		if err := parseJSON(&account, contents); err != nil {
+			// If account_file was not JSON, assume it is a file path instead
+			if _, err := os.Stat(c.AccountFile); os.IsNotExist(err) {
+				return fmt.Errorf(
+					"account_file path does not exist: %s",
+					c.AccountFile)
+			}
+
+			b, err := ioutil.ReadFile(c.AccountFile)
+			if err != nil {
+				return fmt.Errorf(
+					"Error reading account_file from path '%s': %s",
+					c.AccountFile,
+					err)
+			}
+
+			contents = string(b)
+
+			if err := parseJSON(&account, contents); err != nil {
+				return fmt.Errorf(
+					"Error parsing account file '%s': %s",
+					contents,
+					err)
+			}
 		}
 
 		clientScopes := []string{
@@ -145,13 +169,9 @@ type accountFile struct {
 	ClientId     string `json:"client_id"`
 }
 
-func loadJSON(result interface{}, path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func parseJSON(result interface{}, contents string) error {
+	r := strings.NewReader(contents)
+	dec := json.NewDecoder(r)
 
-	dec := json.NewDecoder(f)
 	return dec.Decode(result)
 }

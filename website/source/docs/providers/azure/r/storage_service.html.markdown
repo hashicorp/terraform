@@ -26,7 +26,7 @@ resource "azure_storage_service" "tfstor" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the storage service. Must be between 4 and 24
-    lowercase-only characters or digits Must be unique on Azure.
+    lowercase-only characters or digits. Must be unique on Azure.
 
 * `location` - (Required) The location where the storage service should be created.
     For a list of all Azure locations, please consult [this link](http://azure.microsoft.com/en-us/regions/).

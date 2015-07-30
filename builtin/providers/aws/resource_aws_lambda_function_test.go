@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSLambdaFunction_normal(t *testing.T) {
+func TestAccAWSLambdaFunction_basic(t *testing.T) {
 	var conf lambda.GetFunctionOutput
 
 	resource.Test(t, resource.TestCase{
