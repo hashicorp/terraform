@@ -7,9 +7,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awsutil"
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func resourceAwsS3BucketObject() *schema.Resource {
@@ -37,6 +36,11 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -51,8 +55,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	file, err := os.Open(source)
 
 	if err != nil {
-		d.SetId("")
-		return fmt.Errorf("Error opening S3 bucket object source(%s): %s", source, err)
+		return fmt.Errorf("Error opening S3 bucket object source (%s): %s", source, err)
 	}
 
 	resp, err := s3conn.PutObject(
@@ -63,11 +66,11 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		})
 
 	if err != nil {
-		d.SetId("")
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
 	}
 
-	d.SetId(*resp.ETag)
+	d.Set("etag", resp.ETag)
+	d.SetId(key)
 	return nil
 }
 
@@ -76,21 +79,23 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
+	etag := d.Get("etag").(string)
 
 	resp, err := s3conn.HeadObject(
 		&s3.HeadObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-			IfMatch: aws.String(d.Id()),
+			Bucket:  aws.String(bucket),
+			Key:     aws.String(key),
+			IfMatch: aws.String(etag),
 		})
 
 	if err != nil {
 		// if there is an error reading the object we assume it's not there.
 		d.SetId("")
 		log.Printf("Error Reading Object (%s): %s", key, err)
+		return nil
 	}
 
-	log.Printf(awsutil.StringValue(resp))
+	log.Printf("[DEBUG] Reading S3 Bucket Object meta: %s", resp)
 	return nil
 }
 
