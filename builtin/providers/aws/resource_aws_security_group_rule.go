@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -98,7 +97,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 	switch ruleType {
 	case "ingress":
 		log.Printf("[DEBUG] Authorizing security group %s %s rule: %s",
-			sg_id, "Ingress", awsutil.StringValue(perm))
+			sg_id, "Ingress", perm)
 
 		req := &ec2.AuthorizeSecurityGroupIngressInput{
 			GroupID:       sg.GroupID,
@@ -213,7 +212,7 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 	switch ruleType {
 	case "ingress":
 		log.Printf("[DEBUG] Revoking rule (%s) from security group %s:\n%s",
-			"ingress", sg_id, awsutil.StringValue(perm))
+			"ingress", sg_id, perm)
 		req := &ec2.RevokeSecurityGroupIngressInput{
 			GroupID:       sg.GroupID,
 			IPPermissions: []*ec2.IPPermission{perm},
@@ -330,8 +329,8 @@ func ipPermissionIDHash(ruleType string, ip *ec2.IPPermission) string {
 func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) *ec2.IPPermission {
 	var perm ec2.IPPermission
 
-	perm.FromPort = aws.Long(int64(d.Get("from_port").(int)))
-	perm.ToPort = aws.Long(int64(d.Get("to_port").(int)))
+	perm.FromPort = aws.Int64(int64(d.Get("from_port").(int)))
+	perm.ToPort = aws.Int64(int64(d.Get("to_port").(int)))
 	perm.IPProtocol = aws.String(d.Get("protocol").(string))
 
 	// build a group map that behaves like a set

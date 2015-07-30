@@ -131,8 +131,8 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	var autoScalingGroupOpts autoscaling.CreateAutoScalingGroupInput
 	autoScalingGroupOpts.AutoScalingGroupName = aws.String(d.Get("name").(string))
 	autoScalingGroupOpts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
-	autoScalingGroupOpts.MinSize = aws.Long(int64(d.Get("min_size").(int)))
-	autoScalingGroupOpts.MaxSize = aws.Long(int64(d.Get("max_size").(int)))
+	autoScalingGroupOpts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
+	autoScalingGroupOpts.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
 
 	// Availability Zones are optional if VPC Zone Identifer(s) are specified
 	if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
@@ -145,7 +145,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	if v, ok := d.GetOk("default_cooldown"); ok {
-		autoScalingGroupOpts.DefaultCooldown = aws.Long(int64(v.(int)))
+		autoScalingGroupOpts.DefaultCooldown = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("health_check_type"); ok && v.(string) != "" {
@@ -153,11 +153,11 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	if v, ok := d.GetOk("desired_capacity"); ok {
-		autoScalingGroupOpts.DesiredCapacity = aws.Long(int64(v.(int)))
+		autoScalingGroupOpts.DesiredCapacity = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("health_check_grace_period"); ok {
-		autoScalingGroupOpts.HealthCheckGracePeriod = aws.Long(int64(v.(int)))
+		autoScalingGroupOpts.HealthCheckGracePeriod = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
@@ -224,11 +224,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if d.HasChange("default_cooldown") {
-		opts.DefaultCooldown = aws.Long(int64(d.Get("default_cooldown").(int)))
+		opts.DefaultCooldown = aws.Int64(int64(d.Get("default_cooldown").(int)))
 	}
 
 	if d.HasChange("desired_capacity") {
-		opts.DesiredCapacity = aws.Long(int64(d.Get("desired_capacity").(int)))
+		opts.DesiredCapacity = aws.Int64(int64(d.Get("desired_capacity").(int)))
 	}
 
 	if d.HasChange("launch_configuration") {
@@ -236,19 +236,19 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if d.HasChange("min_size") {
-		opts.MinSize = aws.Long(int64(d.Get("min_size").(int)))
+		opts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
 	}
 
 	if d.HasChange("max_size") {
-		opts.MaxSize = aws.Long(int64(d.Get("max_size").(int)))
+		opts.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
 	}
 
 	if d.HasChange("health_check_grace_period") {
-		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
+		opts.HealthCheckGracePeriod = aws.Int64(int64(d.Get("health_check_grace_period").(int)))
 	}
 
 	if d.HasChange("health_check_type") {
-		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
+		opts.HealthCheckGracePeriod = aws.Int64(int64(d.Get("health_check_grace_period").(int)))
 		opts.HealthCheckType = aws.String(d.Get("health_check_type").(string))
 	}
 
@@ -342,7 +342,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// and then delete the group. This bypasses that and leaves
 	// resources potentially dangling.
 	if d.Get("force_delete").(bool) {
-		deleteopts.ForceDelete = aws.Boolean(true)
+		deleteopts.ForceDelete = aws.Bool(true)
 	}
 
 	// We retry the delete operation to handle InUse/InProgress errors coming
@@ -418,9 +418,9 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Reducing autoscaling group capacity to zero")
 	opts := autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(d.Id()),
-		DesiredCapacity:      aws.Long(0),
-		MinSize:              aws.Long(0),
-		MaxSize:              aws.Long(0),
+		DesiredCapacity:      aws.Int64(0),
+		MinSize:              aws.Int64(0),
+		MaxSize:              aws.Int64(0),
 	}
 	if _, err := conn.UpdateAutoScalingGroup(&opts); err != nil {
 		return fmt.Errorf("Error setting capacity to zero to drain: %s", err)

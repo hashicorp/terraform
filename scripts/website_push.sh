@@ -9,4 +9,4 @@ DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 cd $DIR
 
 # Push the subtree (force)
-git push heroku `git subtree split --prefix website master`:master --force
+git push heroku `git subtree split --prefix website HEAD`:master --force

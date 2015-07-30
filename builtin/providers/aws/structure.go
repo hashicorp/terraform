@@ -94,7 +94,7 @@ func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
 
 		l := &ecs.LoadBalancer{
 			ContainerName:    aws.String(data["container_name"].(string)),
-			ContainerPort:    aws.Long(int64(data["container_port"].(int))),
+			ContainerPort:    aws.Int64(int64(data["container_port"].(int))),
 			LoadBalancerName: aws.String(data["elb_name"].(string)),
 		}
 
@@ -117,8 +117,8 @@ func expandIPPerms(
 		var perm ec2.IPPermission
 		m := mRaw.(map[string]interface{})
 
-		perm.FromPort = aws.Long(int64(m["from_port"].(int)))
-		perm.ToPort = aws.Long(int64(m["to_port"].(int)))
+		perm.FromPort = aws.Int64(int64(m["from_port"].(int)))
+		perm.ToPort = aws.Int64(int64(m["to_port"].(int)))
 		perm.IPProtocol = aws.String(m["protocol"].(string))
 
 		// When protocol is "-1", AWS won't store any ports for the
@@ -405,7 +405,7 @@ func expandPrivateIPAddesses(ips []interface{}) []*ec2.PrivateIPAddressSpecifica
 			PrivateIPAddress: aws.String(v.(string)),
 		}
 
-		new_private_ip.Primary = aws.Boolean(i == 0)
+		new_private_ip.Primary = aws.Bool(i == 0)
 
 		dtos = append(dtos, new_private_ip)
 	}

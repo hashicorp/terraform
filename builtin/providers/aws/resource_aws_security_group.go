@@ -223,8 +223,8 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 			GroupID: createResp.GroupID,
 			IPPermissions: []*ec2.IPPermission{
 				&ec2.IPPermission{
-					FromPort: aws.Long(int64(0)),
-					ToPort:   aws.Long(int64(0)),
+					FromPort: aws.Int64(int64(0)),
+					ToPort:   aws.Int64(int64(0)),
 					IPRanges: []*ec2.IPRange{
 						&ec2.IPRange{
 							CIDRIP: aws.String("0.0.0.0/0"),
