@@ -2,14 +2,15 @@ package aws
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 var tf, err = ioutil.TempFile("", "tf")
@@ -47,7 +48,7 @@ func testAccCheckAWSS3BucketObjectDestroy(s *terraform.State) error {
 			&s3.HeadObjectInput{
 				Bucket:  aws.String(rs.Primary.Attributes["bucket"]),
 				Key:     aws.String(rs.Primary.Attributes["key"]),
-				IfMatch: aws.String(rs.Primary.ID),
+				IfMatch: aws.String(rs.Primary.Attributes["etag"]),
 			})
 		if err == nil {
 			return fmt.Errorf("AWS S3 Object still exists: %s", rs.Primary.ID)
@@ -75,7 +76,7 @@ func testAccCheckAWSS3BucketObjectExists(n string) resource.TestCheckFunc {
 			&s3.GetObjectInput{
 				Bucket:  aws.String(rs.Primary.Attributes["bucket"]),
 				Key:     aws.String(rs.Primary.Attributes["key"]),
-				IfMatch: aws.String(rs.Primary.ID),
+				IfMatch: aws.String(rs.Primary.Attributes["etag"]),
 			})
 		if err != nil {
 			return fmt.Errorf("S3Bucket Object error: %s", err)
@@ -89,10 +90,10 @@ var testAccAWSS3BucketObjectConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
 	bucket = "tf-object-test-bucket-%d"
 }
+
 resource "aws_s3_bucket_object" "object" {
-	depends_on = "aws_s3_bucket.object_bucket"
-	bucket = "tf-object-test-bucket-%d"
+	bucket = "${aws_s3_bucket.object_bucket.bucket}"
 	key = "test-key"
 	source = "%s"
 }
-`, randomBucket, randomBucket, tf.Name())
+`, randomBucket, tf.Name())
