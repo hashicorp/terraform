@@ -55,7 +55,7 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 
 			"target_pools": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
