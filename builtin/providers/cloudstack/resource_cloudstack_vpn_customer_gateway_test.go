@@ -163,13 +163,9 @@ func testAccCheckCloudStackVPNCustomerGatewayDestroy(s *terraform.State) error {
 			return fmt.Errorf("No VPN Customer Gateway ID is set")
 		}
 
-		p := cs.VPN.NewDeleteVpnCustomerGatewayParams(rs.Primary.ID)
-		_, err := cs.VPN.DeleteVpnCustomerGateway(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting VPN Customer Gateway (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.VPN.GetVpnCustomerGatewayByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("VPN Customer Gateway %s still exists", rs.Primary.ID)
 		}
 	}
 

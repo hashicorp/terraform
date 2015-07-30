@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/rds"
 )
 
 func resourceAwsDbParameterGroup() *schema.Resource {
@@ -166,7 +166,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 				Parameters:           parameters,
 			}
 
-			log.Printf("[DEBUG] Modify DB Parameter Group: %#v", modifyOpts)
+			log.Printf("[DEBUG] Modify DB Parameter Group: %s", modifyOpts)
 			_, err = rdsconn.ModifyDBParameterGroup(&modifyOpts)
 			if err != nil {
 				return fmt.Errorf("Error modifying DB Parameter Group: %s", err)

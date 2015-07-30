@@ -148,9 +148,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	// Primary and non-destroy modes are responsible for creating/destroying
 	// all the nodes, expanding counts.
 	switch n.DestroyMode {
-	case DestroyNone:
-		fallthrough
-	case DestroyPrimary:
+	case DestroyNone, DestroyPrimary:
 		steps = append(steps, &ResourceCountTransformer{
 			Resource: n.Resource,
 			Destroy:  n.DestroyMode != DestroyNone,
@@ -251,6 +249,41 @@ func (n *GraphNodeConfigResource) DestroyNode(mode GraphNodeDestroyMode) GraphNo
 	return result
 }
 
+// GraphNodeNoopPrunable
+func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
+	// We don't have any noop optimizations for destroy nodes yet
+	if n.DestroyMode != DestroyNone {
+		return false
+	}
+
+	// If there is no diff, then we aren't a noop since something needs to
+	// be done (such as a plan). We only check if we're a noop in a diff.
+	if opts.Diff == nil || opts.Diff.Empty() {
+		return false
+	}
+
+	// If we have no module diff, we're certainly a noop. This is because
+	// it means there is a diff, and that the module we're in just isn't
+	// in it, meaning we're not doing anything.
+	if opts.ModDiff == nil || opts.ModDiff.Empty() {
+		return true
+	}
+
+	// Grab the ID which is the prefix (in the case count > 0 at some point)
+	prefix := n.Resource.Id()
+
+	// Go through the diff and if there are any with our name on it, keep us
+	found := false
+	for k, _ := range opts.ModDiff.Resources {
+		if strings.HasPrefix(k, prefix) {
+			found = true
+			break
+		}
+	}
+
+	return !found
+}
+
 // Same as GraphNodeConfigResource, but for flattening
 type GraphNodeConfigResourceFlat struct {
 	*GraphNodeConfigResource
@@ -335,6 +368,13 @@ func (n *graphNodeResourceDestroyFlat) Path() []string {
 
 func (n *graphNodeResourceDestroyFlat) CreateNode() dag.Vertex {
 	return n.FlatCreateNode
+}
+
+func (n *graphNodeResourceDestroyFlat) ProvidedBy() []string {
+	prefix := modulePrefixStr(n.PathValue)
+	return modulePrefixList(
+		n.GraphNodeConfigResource.ProvidedBy(),
+		prefix)
 }
 
 // graphNodeResourceDestroy represents the logical destruction of a

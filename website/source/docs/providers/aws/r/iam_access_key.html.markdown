@@ -15,7 +15,6 @@ Provides an IAM access key. This is a set of credentials that allow API requests
 ```
 resource "aws_iam_access_key" "lb" {
     user = "${aws_iam_user.lb.name}"
-    status = "Active"
 }
 
 resource "aws_iam_user" "lb" {

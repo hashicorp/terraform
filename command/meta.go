@@ -190,7 +190,7 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	if len(m.variables) == 0 && m.autoKey == "" {
+	if len(m.variables) == 0 {
 		mode |= terraform.InputModeVar
 		mode |= terraform.InputModeVarUnset
 	}
@@ -351,6 +351,7 @@ func (m *Meta) process(args []string, vars bool) []string {
 	for i, v := range args {
 		if v == "-no-color" {
 			m.color = false
+			m.Color = false
 			args = append(args[:i], args[i+1:]...)
 			break
 		}

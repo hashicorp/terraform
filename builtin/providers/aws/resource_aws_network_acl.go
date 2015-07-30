@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -76,6 +76,14 @@ func resourceAwsNetworkAcl() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"icmp_type": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"icmp_code": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
 					},
 				},
 				Set: resourceAwsNetworkAclEntryHash,
@@ -108,6 +116,14 @@ func resourceAwsNetworkAcl() *schema.Resource {
 						},
 						"cidr_block": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"icmp_type": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"icmp_code": &schema.Schema{
+							Type:     schema.TypeInt,
 							Optional: true,
 						},
 					},
@@ -377,9 +393,10 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 			Protocol:     add.Protocol,
 			RuleAction:   add.RuleAction,
 			RuleNumber:   add.RuleNumber,
+			ICMPTypeCode: add.ICMPTypeCode,
 		})
 		if connErr != nil {
-			return fmt.Errorf("Error creating %s entry: %s", entryType, err)
+			return fmt.Errorf("Error creating %s entry: %s", entryType, connErr)
 		}
 	}
 	return nil
@@ -466,6 +483,13 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
+	if v, ok := m["icmp_type"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+	if v, ok := m["icmp_code"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
+	}
+
 	return hashcode.String(buf.String())
 }
 
@@ -536,6 +560,11 @@ func networkAclEntriesToMapList(networkAcls []*ec2.NetworkACLEntry) []map[string
 		if entry.PortRange != nil {
 			acl["from_port"] = *entry.PortRange.From
 			acl["to_port"] = *entry.PortRange.To
+		}
+
+		if entry.ICMPTypeCode != nil {
+			acl["icmp_type"] = *entry.ICMPTypeCode.Type
+			acl["icmp_code"] = *entry.ICMPTypeCode.Code
 		}
 
 		result = append(result, acl)

@@ -18,7 +18,7 @@ them.
 ```
 # Find the latest Ubuntu precise image.
 resource "docker_image" "ubuntu" {
-    image = "ubuntu:precise"
+    name = "ubuntu:precise"
 }
 
 # Access it somewhere else with ${docker_image.ubuntu.latest}
@@ -28,7 +28,7 @@ resource "docker_image" "ubuntu" {
 
 The following arguments are supported:
 
-* `image` - (Required) The name of the Docker image, including any tags.
+* `name` - (Required) The name of the Docker image, including any tags.
 * `keep_updated` - (Optional) If true, then the Docker image will always
   be updated on the host to the latest. If this is false, as long as an
   image is downloaded with the correct tag, it won't be redownloaded if

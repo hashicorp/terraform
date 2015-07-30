@@ -29,7 +29,7 @@ resource "aws_db_instance" "default" {
 
 ## Argument Reference
 
-For a more detailed documentation about the each argument refer to
+For more detailed documentation about each argument, refer to
 the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
 
 The following arguments are supported:
@@ -57,6 +57,8 @@ The following arguments are supported:
 * `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
     storage_type of "io1".
 * `maintenance_window` - (Optional) The window to perform maintenance in.
+  Syntax: "ddd:hh24:mi-ddd:hh24:mi". Eg: "Mon:00:00-Mon:03:00".
+  See [RDS Maintenance Window docs](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
 * `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
@@ -75,7 +77,7 @@ database, and to use this value as the source database. This correlates to the
 [DB Instance Replication][1] and
 [Working with PostgreSQL and MySQL Read Replicas](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html) for
  more information on using Replication.
-
+* `snapshot_identifier` - (Optional) Specifies whether or not to create this database from a snapshot. This correlates to the snapshot ID you'd find in the RDS console, e.g: rds:production-2015-06-26-06-05.
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
 Replicate database managed by Terraform will promote the database to a fully

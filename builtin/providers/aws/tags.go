@@ -3,8 +3,8 @@ package aws
 import (
 	"log"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -28,7 +28,7 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 
 		// Set tags
 		if len(remove) > 0 {
-			log.Printf("[DEBUG] Removing tags: %#v", remove)
+			log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
 			_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
 				Resources: []*string{aws.String(d.Id())},
 				Tags:      remove,
@@ -38,7 +38,7 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 			}
 		}
 		if len(create) > 0 {
-			log.Printf("[DEBUG] Creating tags: %#v", create)
+			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
 			_, err := conn.CreateTags(&ec2.CreateTagsInput{
 				Resources: []*string{aws.String(d.Id())},
 				Tags:      create,

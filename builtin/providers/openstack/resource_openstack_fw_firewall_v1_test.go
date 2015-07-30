@@ -11,7 +11,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 )
 
-func TestAccFWFirewallV1(t *testing.T) {
+func TestAccFWFirewallV1_basic(t *testing.T) {
 
 	var policyID *string
 

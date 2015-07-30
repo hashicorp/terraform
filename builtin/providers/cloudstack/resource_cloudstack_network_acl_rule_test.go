@@ -160,11 +160,9 @@ func testAccCheckCloudStackNetworkACLRuleDestroy(s *terraform.State) error {
 				continue
 			}
 
-			p := cs.NetworkACL.NewDeleteNetworkACLParams(uuid)
-			_, err := cs.NetworkACL.DeleteNetworkACL(p)
-
-			if err != nil {
-				return err
+			_, _, err := cs.NetworkACL.GetNetworkACLByID(uuid)
+			if err == nil {
+				return fmt.Errorf("Network ACL rule %s still exists", rs.Primary.ID)
 			}
 		}
 	}
@@ -183,7 +181,7 @@ resource "cloudstack_vpc" "foobar" {
 resource "cloudstack_network_acl" "foo" {
   name = "terraform-acl"
   description = "terraform-acl-text"
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc = "${cloudstack_vpc.foobar.id}"
 }
 
 resource "cloudstack_network_acl_rule" "foo" {

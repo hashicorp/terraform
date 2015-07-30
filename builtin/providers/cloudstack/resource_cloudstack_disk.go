@@ -165,7 +165,7 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 		}
 
 		d.Set("device", retrieveDeviceName(v.Deviceid, c.Name))
-		d.Set("virtual_machine", v.Vmname)
+		setValueOrUUID(d, "virtual_machine", v.Vmname, v.Virtualmachineid)
 	}
 
 	return nil

@@ -71,13 +71,9 @@ func testAccCheckCloudStackVPNConnectionDestroy(s *terraform.State) error {
 			return fmt.Errorf("No VPN Connection ID is set")
 		}
 
-		p := cs.VPN.NewDeleteVpnConnectionParams(rs.Primary.ID)
-		_, err := cs.VPN.DeleteVpnConnection(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting VPN Connection (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.VPN.GetVpnConnectionByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("VPN Connection %s still exists", rs.Primary.ID)
 		}
 	}
 

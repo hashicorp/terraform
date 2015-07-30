@@ -7,9 +7,9 @@ import (
 )
 
 type DnsChangeWaiter struct {
-	Service *dns.Service
-	Change *dns.Change
-	Project string
+	Service     *dns.Service
+	Change      *dns.Change
+	Project     string
 	ManagedZone string
 }
 

@@ -5,8 +5,8 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
 func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2.NetworkACLEntry, error) {
@@ -26,14 +26,26 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 		e := &ec2.NetworkACLEntry{
 			Protocol: aws.String(strconv.Itoa(p)),
 			PortRange: &ec2.PortRange{
-				From: aws.Long(int64(data["from_port"].(int))),
-				To:   aws.Long(int64(data["to_port"].(int))),
+				From: aws.Int64(int64(data["from_port"].(int))),
+				To:   aws.Int64(int64(data["to_port"].(int))),
 			},
-			Egress:     aws.Boolean((entryType == "egress")),
+			Egress:     aws.Bool((entryType == "egress")),
 			RuleAction: aws.String(data["action"].(string)),
-			RuleNumber: aws.Long(int64(data["rule_no"].(int))),
+			RuleNumber: aws.Int64(int64(data["rule_no"].(int))),
 			CIDRBlock:  aws.String(data["cidr_block"].(string)),
 		}
+
+		// Specify additional required fields for ICMP
+		if p == 1 {
+			e.ICMPTypeCode = &ec2.ICMPTypeCode{}
+			if v, ok := data["icmp_code"]; ok {
+				e.ICMPTypeCode.Code = aws.Int64(int64(v.(int)))
+			}
+			if v, ok := data["icmp_type"]; ok {
+				e.ICMPTypeCode.Type = aws.Int64(int64(v.(int)))
+			}
+		}
+
 		entries = append(entries, e)
 	}
 	return entries, nil
@@ -60,6 +72,9 @@ func flattenNetworkAclEntries(list []*ec2.NetworkACLEntry) []map[string]interfac
 func protocolIntegers() map[string]int {
 	var protocolIntegers = make(map[string]int)
 	protocolIntegers = map[string]int{
+		// defined at https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+		"ah":   51,
+		"esp":  50,
 		"udp":  17,
 		"tcp":  6,
 		"icmp": 1,

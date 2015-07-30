@@ -1,0 +1,86 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azure-index") %>>
+                    <a href="/docs/providers/azure/index.html">Azure Provider</a>
+                </li>
+
+                <li<%= sidebar_current(/^docs-azure-resource/) %>>
+                    <a href="#">Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-azure-resource-affinity-group") %>>
+                            <a href="/docs/providers/azure/r/affinity_group.html">azure_affinity_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-data-disk") %>>
+                            <a href="/docs/providers/azure/r/data_disk.html">azure_data_disk</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-dns-server") %>>
+                            <a href="/docs/providers/azure/r/dns_server.html">azure_dns_server</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-hosted-service") %>>
+                            <a href="/docs/providers/azure/r/hosted_service.html">azure_hosted_service</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-instance") %>>
+                            <a href="/docs/providers/azure/r/instance.html">azure_instance</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-local-network") %>>
+                            <a href="/docs/providers/azure/r/local_network_connection.html">azure_local_network_connection</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-security-group") %>>
+                            <a href="/docs/providers/azure/r/security_group.html">azure_security_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-security-group-rule") %>>
+                            <a href="/docs/providers/azure/r/security_group_rule.html">azure_security_group_rule</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-sql-database-server") %>>
+                            <a href="/docs/providers/azure/r/sql_database_server.html">azure_sql_database_server</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-sql-database-server-firewall-rule") %>>
+                            <a href="/docs/providers/azure/r/sql_database_server_firewall_rule.html">azure_sql_database_server_firewall_rule</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-sql-database-service") %>>
+                            <a href="/docs/providers/azure/r/sql_database_service.html">azure_sql_database_service</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-storage-blob") %>>
+                            <a href="/docs/providers/azure/r/storage_blob.html">azure_storage_blob</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-storage-container") %>>
+                            <a href="/docs/providers/azure/r/storage_container.html">azure_storage_container</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-storage-queue") %>>
+                            <a href="/docs/providers/azure/r/storage_queue.html">azure_storage_queue</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-storage-service") %>>
+                            <a href="/docs/providers/azure/r/storage_service.html">azure_storage_service</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-azure-resource-virtual-network") %>>
+                            <a href="/docs/providers/azure/r/virtual_network.html">azure_virtual_network</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

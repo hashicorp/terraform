@@ -148,11 +148,9 @@ func testAccCheckCloudStackFirewallDestroy(s *terraform.State) error {
 				continue
 			}
 
-			p := cs.Firewall.NewDeleteFirewallRuleParams(uuid)
-			_, err := cs.Firewall.DeleteFirewallRule(p)
-
-			if err != nil {
-				return err
+			_, _, err := cs.Firewall.GetFirewallRuleByID(uuid)
+			if err == nil {
+				return fmt.Errorf("Firewall rule %s still exists", rs.Primary.ID)
 			}
 		}
 	}

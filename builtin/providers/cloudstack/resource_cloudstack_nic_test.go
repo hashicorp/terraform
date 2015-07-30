@@ -140,13 +140,9 @@ func testAccCheckCloudStackNICDestroy(s *terraform.State) error {
 			return fmt.Errorf("No instance ID is set")
 		}
 
-		p := cs.VirtualMachine.NewDestroyVirtualMachineParams(rs.Primary.ID)
-		_, err := cs.VirtualMachine.DestroyVirtualMachine(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting instance (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.VirtualMachine.GetVirtualMachineByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Virtual Machine %s still exists", rs.Primary.ID)
 		}
 	}
 

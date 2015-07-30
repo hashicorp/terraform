@@ -63,6 +63,10 @@ func (p *ResourceProvisioner) Apply(
 	return err
 }
 
+func (p *ResourceProvisioner) Close() error {
+	return p.Client.Close()
+}
+
 type ResourceProvisionerValidateArgs struct {
 	Config *terraform.ResourceConfig
 }

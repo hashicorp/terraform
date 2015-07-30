@@ -149,15 +149,11 @@ func (d *ModuleDiff) ChangeType() DiffChangeType {
 	for _, r := range d.Resources {
 		change := r.ChangeType()
 		switch change {
-		case DiffCreate:
-			fallthrough
-		case DiffDestroy:
+		case DiffCreate, DiffDestroy:
 			if result == DiffNone {
 				result = change
 			}
-		case DiffDestroyCreate:
-			fallthrough
-		case DiffUpdate:
+		case DiffDestroyCreate, DiffUpdate:
 			result = DiffUpdate
 		}
 	}

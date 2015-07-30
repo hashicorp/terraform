@@ -8,7 +8,7 @@ description: |-
 
 # aws\_security\_group\_rule
 
-Provides a security group rule resource. Represents a signle `ingress` or
+Provides a security group rule resource. Represents a single `ingress` or
 `egress` group rule, which can be added to external Security Groups.
 
 ~> **NOTE on Security Groups and Security Group Rules:** Terraform currently
@@ -44,7 +44,7 @@ or `egress` (outbound).
 * `cidr_blocks` - (Optional) List of CIDR blocks.
 * `from_port` - (Required) The start port.
 * `protocol` - (Required) The protocol.
-* `security_group_id` - (Required) The security group to apply this rule too.
+* `security_group_id` - (Required) The security group to apply this rule to.
 * `source_security_group_id` - (Optional) The security group id to allow access to/from,
      depending on the `type`.
 * `self` - (Optional) If true, the security group itself will be added as

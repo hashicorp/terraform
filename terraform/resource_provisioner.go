@@ -23,6 +23,12 @@ type ResourceProvisioner interface {
 	Apply(UIOutput, *InstanceState, *ResourceConfig) error
 }
 
+// ResourceProvisionerCloser is an interface that provisioners that can close
+// connections that aren't needed anymore must implement.
+type ResourceProvisionerCloser interface {
+	Close() error
+}
+
 // ResourceProvisionerFactory is a function type that creates a new instance
 // of a resource provisioner.
 type ResourceProvisionerFactory func() (ResourceProvisioner, error)

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -87,7 +87,7 @@ func TestAccAWSVpnGateway_delete(t *testing.T) {
 	})
 }
 
-func TestAccVpnGateway_tags(t *testing.T) {
+func TestAccAWSVpnGateway_tags(t *testing.T) {
 	var v ec2.VPNGateway
 
 	resource.Test(t, resource.TestCase{

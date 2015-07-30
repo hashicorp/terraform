@@ -48,7 +48,7 @@ The `forward` block supports:
 
 * `public_port` - (Required) The public port to forward from.
 
-* `virtual_machine` - (Required) The name of the virtual machine to forward to.
+* `virtual_machine` - (Required) The name or ID of the virtual machine to forward to.
 
 ## Attributes Reference
 

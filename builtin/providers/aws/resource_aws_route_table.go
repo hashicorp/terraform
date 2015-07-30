@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -145,6 +145,12 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if r.Origin != nil && *r.Origin == "EnableVgwRoutePropagation" {
+			continue
+		}
+
+		if r.DestinationPrefixListID != nil {
+			// Skipping because VPC endpoint routes are handled separately
+			// See aws_vpc_endpoint
 			continue
 		}
 
@@ -361,7 +367,10 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 func resourceAwsRouteTableHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["cidr_block"].(string)))
+
+	if v, ok := m["cidr_block"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
 
 	if v, ok := m["gateway_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
