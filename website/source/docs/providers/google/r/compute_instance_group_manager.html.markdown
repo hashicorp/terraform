@@ -50,8 +50,8 @@ Supported characters include lowercase letters, numbers, and hyphens.
 * `target_size` - (Optional) If not given at creation time, this defaults to 1.  Do not specify this
   if you are managing the group with an autoscaler, as this will cause fighting.
 
-* `target_pools` - (Required) The full URL of all target pools to which new
-instances in the group are added. Updating the target pool values does not
+* `target_pools` - (Optional) The full URL of all target pools to which new
+instances in the group are added. Updating the target pools attribute does not
 affect existing instances.
 
 * `zone` - (Required) The zone that instances in this group should be created in.
