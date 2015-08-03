@@ -54,7 +54,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * core: don't prompt for variables with defaults [GH-2613]
+  * core: Don't prompt for variables with defaults [GH-2613]
   * core: Return correct number of planned updates [GH-2620]
   * core: Fix "provider not found" error that can occur while running
       a destroy plan with grandchildren modules [GH-2755]
@@ -64,6 +64,7 @@ BUG FIXES:
       are properly destroyed up to arbitrary depth [GH-2786]
   * core: Fix "attribute not available" during destroy plans in
       cases where the parameter is passed between modules [GH-2775]
+  * core: Record schema version when destroy fails [GH-2923]
   * connection/ssh: fix issue on machines with an SSH Agent available
     preventing `key_file` from being read without explicitly
     setting `agent = false` [GH-2615]
