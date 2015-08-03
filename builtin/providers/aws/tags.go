@@ -38,7 +38,7 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 			}
 		}
 		if len(create) > 0 {
-			log.Printf("[DEBUG] Creating tags: %#v for %s", create, d.Id())
+			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
 			_, err := conn.CreateTags(&ec2.CreateTagsInput{
 				Resources: []*string{aws.String(d.Id())},
 				Tags:      create,

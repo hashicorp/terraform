@@ -37,6 +37,13 @@ func resourceAzureInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"hosted_service_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -197,36 +204,30 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		return err
 	}
 
-	p := hostedservice.CreateHostedServiceParameters{
-		ServiceName:    name,
-		Label:          base64.StdEncoding.EncodeToString([]byte(name)),
-		Description:    fmt.Sprintf("Cloud Service created automatically for instance %s", name),
-		Location:       d.Get("location").(string),
-		ReverseDNSFqdn: d.Get("reverse_dns").(string),
-	}
+	var hostedServiceName string
+	// check if hosted service name parameter was given:
+	if serviceName, ok := d.GetOk("hosted_service_name"); !ok {
+		// if not provided; just use the name of the instance to create a new one:
+		hostedServiceName = name
+		d.Set("hosted_service_name", hostedServiceName)
 
-	log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
-	err = hostedServiceClient.CreateHostedService(p)
-	if err != nil {
-		return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
-	}
-
-	// Put in this defer here, so we are sure to cleanup already created parts
-	// when we exit with an error
-	defer func(mc management.Client) {
-		if err != nil {
-			req, err := hostedServiceClient.DeleteHostedService(name, true)
-			if err != nil {
-				log.Printf("[DEBUG] Error cleaning up Cloud Service of instance %s: %s", name, err)
-			}
-
-			// Wait until the Cloud Service is deleted
-			if err := mc.WaitForOperation(req, nil); err != nil {
-				log.Printf(
-					"[DEBUG] Error waiting for Cloud Service of instance %s to be deleted: %s", name, err)
-			}
+		p := hostedservice.CreateHostedServiceParameters{
+			ServiceName:    hostedServiceName,
+			Label:          base64.StdEncoding.EncodeToString([]byte(name)),
+			Description:    fmt.Sprintf("Cloud Service created automatically for instance %s", name),
+			Location:       d.Get("location").(string),
+			ReverseDNSFqdn: d.Get("reverse_dns").(string),
 		}
-	}(mc)
+
+		log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
+		err = hostedServiceClient.CreateHostedService(p)
+		if err != nil {
+			return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
+		}
+	} else {
+		// else; use the provided hosted service name:
+		hostedServiceName = serviceName.(string)
+	}
 
 	// Create a new role for the instance
 	role := vmutils.NewVMConfiguration(name, d.Get("size").(string))
@@ -312,7 +313,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	log.Printf("[DEBUG] Creating the new instance...")
-	req, err := vmClient.CreateDeployment(role, name, options)
+	req, err := vmClient.CreateDeployment(role, hostedServiceName, options)
 	if err != nil {
 		return fmt.Errorf("Error creating instance %s: %s", name, err)
 	}
@@ -333,28 +334,41 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	hostedServiceClient := azureClient.hostedServiceClient
 	vmClient := azureClient.vmClient
 
-	log.Printf("[DEBUG] Retrieving Cloud Service for instance: %s", d.Id())
-	cs, err := hostedServiceClient.GetHostedService(d.Id())
+	name := d.Get("name").(string)
+
+	// check if the instance belongs to an independent hosted service
+	// or it had one created for it.
+	var hostedServiceName string
+	if serviceName, ok := d.GetOk("hosted_service_name"); ok {
+		// if independent; use that hosted service name:
+		hostedServiceName = serviceName.(string)
+	} else {
+		// else; suppose it's the instance's name:
+		hostedServiceName = name
+	}
+
+	log.Printf("[DEBUG] Retrieving Cloud Service for instance: %s", name)
+	cs, err := hostedServiceClient.GetHostedService(hostedServiceName)
 	if err != nil {
-		return fmt.Errorf("Error retrieving Cloud Service of instance %s: %s", d.Id(), err)
+		return fmt.Errorf("Error retrieving Cloud Service of instance %s (%q): %s", name, hostedServiceName, err)
 	}
 
 	d.Set("reverse_dns", cs.ReverseDNSFqdn)
 	d.Set("location", cs.Location)
 
-	log.Printf("[DEBUG] Retrieving instance: %s", d.Id())
-	dpmt, err := vmClient.GetDeployment(d.Id(), d.Id())
+	log.Printf("[DEBUG] Retrieving instance: %s", name)
+	dpmt, err := vmClient.GetDeployment(hostedServiceName, name)
 	if err != nil {
 		if management.IsResourceNotFoundError(err) {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error retrieving instance %s: %s", d.Id(), err)
+		return fmt.Errorf("Error retrieving instance %s: %s", name, err)
 	}
 
 	if len(dpmt.RoleList) != 1 {
 		return fmt.Errorf(
-			"Instance %s has an unexpected number of roles: %d", d.Id(), len(dpmt.RoleList))
+			"Instance %s has an unexpected number of roles: %d", name, len(dpmt.RoleList))
 	}
 
 	d.Set("size", dpmt.RoleList[0].RoleSize)
@@ -362,7 +376,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	if len(dpmt.RoleInstanceList) != 1 {
 		return fmt.Errorf(
 			"Instance %s has an unexpected number of role instances: %d",
-			d.Id(), len(dpmt.RoleInstanceList))
+			name, len(dpmt.RoleInstanceList))
 	}
 	d.Set("ip_address", dpmt.RoleInstanceList[0].IPAddress)
 
@@ -400,7 +414,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			default:
 				return fmt.Errorf(
 					"Instance %s has an unexpected number of associated subnets %d",
-					d.Id(), len(dpmt.RoleInstanceList))
+					name, len(dpmt.RoleInstanceList))
 			}
 
 			// Update the security group
@@ -434,10 +448,13 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		return nil
 	}
 
+	name := d.Get("name").(string)
+	hostedServiceName := d.Get("hosted_service_name").(string)
+
 	// Get the current role
-	role, err := vmClient.GetRole(d.Id(), d.Id(), d.Id())
+	role, err := vmClient.GetRole(hostedServiceName, name, name)
 	if err != nil {
-		return fmt.Errorf("Error retrieving role of instance %s: %s", d.Id(), err)
+		return fmt.Errorf("Error retrieving role of instance %s: %s", name, err)
 	}
 
 	// Verify if we have all required parameters
@@ -473,7 +490,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 				)
 				if err != nil {
 					return fmt.Errorf(
-						"Error adding endpoint %s for instance %s: %s", m["name"].(string), d.Id(), err)
+						"Error adding endpoint %s for instance %s: %s", m["name"].(string), name, err)
 				}
 			}
 		}
@@ -484,19 +501,19 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		err := vmutils.ConfigureWithSecurityGroup(role, sg)
 		if err != nil {
 			return fmt.Errorf(
-				"Error associating security group %s with instance %s: %s", sg, d.Id(), err)
+				"Error associating security group %s with instance %s: %s", sg, name, err)
 		}
 	}
 
 	// Update the adjusted role
-	req, err := vmClient.UpdateRole(d.Id(), d.Id(), d.Id(), *role)
+	req, err := vmClient.UpdateRole(hostedServiceName, name, name, *role)
 	if err != nil {
-		return fmt.Errorf("Error updating role of instance %s: %s", d.Id(), err)
+		return fmt.Errorf("Error updating role of instance %s: %s", name, err)
 	}
 
 	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
-			"Error waiting for role of instance %s to be updated: %s", d.Id(), err)
+			"Error waiting for role of instance %s to be updated: %s", name, err)
 	}
 
 	return resourceAzureInstanceRead(d, meta)
@@ -505,21 +522,40 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mc := azureClient.mgmtClient
+	vmClient := azureClient.vmClient
 	hostedServiceClient := azureClient.hostedServiceClient
 
-	log.Printf("[DEBUG] Deleting instance: %s", d.Id())
-	req, err := hostedServiceClient.DeleteHostedService(d.Id(), true)
-	if err != nil {
-		return fmt.Errorf("Error deleting instance %s: %s", d.Id(), err)
-	}
+	name := d.Get("name").(string)
+	hostedServiceName := d.Get("hosted_service_name").(string)
 
-	// Wait until the instance is deleted
-	if err := mc.WaitForOperation(req, nil); err != nil {
-		return fmt.Errorf(
-			"Error waiting for instance %s to be deleted: %s", d.Id(), err)
-	}
+	log.Printf("[DEBUG] Deleting instance: %s", name)
 
-	d.SetId("")
+	// check if the instance had a hosted service created especially for it:
+	if name == hostedServiceName {
+		// if so; we must delete the associated hosted service as well:
+		req, err := hostedServiceClient.DeleteHostedService(name, true)
+		if err != nil {
+			return fmt.Errorf("Error deleting instance and hosted service %s: %s", name, err)
+		}
+
+		// Wait until the hosted service and the instance it contains is deleted:
+		if err := mc.WaitForOperation(req, nil); err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance %s to be deleted: %s", name, err)
+		}
+	} else {
+		// else; just delete the instance:
+		reqID, err := vmClient.DeleteDeployment(hostedServiceName, name)
+		if err != nil {
+			return fmt.Errorf("Error deleting instance %s off hosted service %s: %s", name, hostedServiceName, err)
+		}
+
+		// and wait for the deletion:
+		if err := mc.WaitForOperation(reqID, nil); err != nil {
+			return fmt.Errorf("Error waiting for intance %s to be deleted off the hosted service %s: %s",
+				name, hostedServiceName, err)
+		}
+	}
 
 	return nil
 }
@@ -553,6 +589,10 @@ func retrieveImageDetails(
 	configureForImage, osType, OSLabels, err := retrieveOSImageDetails(osImageClient, label, name, storage)
 	if err == nil {
 		return configureForImage, osType, nil
+	}
+
+	if err == PlatformStorageError {
+		return nil, "", err
 	}
 
 	return nil, "", fmt.Errorf("Could not find image with label '%s'. Available images are: %s",
@@ -610,8 +650,7 @@ func retrieveOSImageDetails(
 			}
 			if img.MediaLink == "" {
 				if storage == "" {
-					return nil, "", nil,
-						fmt.Errorf("When using a platform image, the 'storage' parameter is required")
+					return nil, "", nil, PlatformStorageError
 				}
 				img.MediaLink = fmt.Sprintf(osDiskBlobStorageURL, storage, name)
 			}

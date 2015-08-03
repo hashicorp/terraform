@@ -89,9 +89,14 @@ func testAccCheckAzureSecurityGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAzureSecurityGroupConfig = fmt.Sprintf(`
-resource "azure_security_group" "foo" {
+const testAccAzureSecurityGroupConfigTemplate = `
+resource "azure_security_group" "%s" {
     name = "%s"
     location = "West US"
     label = "terraform testing security group"
-}`, testAccSecurityGroupName)
+}`
+
+var testAccAzureSecurityGroupConfig = fmt.Sprintf(
+	testAccAzureSecurityGroupConfigTemplate,
+	"foo", "terraform-security-group",
+)

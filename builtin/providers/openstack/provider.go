@@ -44,7 +44,7 @@ func Provider() terraform.ResourceProvider {
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_AUTH_TOKEN"),
+				DefaultFunc: envDefaultFuncAllowMissing("OS_AUTH_TOKEN"),
 			},
 			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -64,7 +64,7 @@ func Provider() terraform.ResourceProvider {
 			"endpoint_type": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_ENDPOINT_TYPE"),
+				DefaultFunc: envDefaultFuncAllowMissing("OS_ENDPOINT_TYPE"),
 			},
 		},
 
@@ -73,6 +73,7 @@ func Provider() terraform.ResourceProvider {
 			"openstack_compute_instance_v2":            resourceComputeInstanceV2(),
 			"openstack_compute_keypair_v2":             resourceComputeKeypairV2(),
 			"openstack_compute_secgroup_v2":            resourceComputeSecGroupV2(),
+			"openstack_compute_servergroup_v2":         resourceComputeServerGroupV2(),
 			"openstack_compute_floatingip_v2":          resourceComputeFloatingIPV2(),
 			"openstack_fw_firewall_v1":                 resourceFWFirewallV1(),
 			"openstack_fw_policy_v1":                   resourceFWPolicyV1(),

@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -31,6 +32,19 @@ func resourceAwsIamRole() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
+					value := v.(string)
+					if len(value) > 64 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 64 characters", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+				},
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,

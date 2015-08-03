@@ -82,7 +82,7 @@ func (c *SwiftClient) Get() (*Payload, error) {
 	hash := md5.Sum(bytes)
 	payload := &Payload{
 		Data: bytes,
-		MD5: hash[:md5.Size],
+		MD5:  hash[:md5.Size],
 	}
 
 	return payload, nil

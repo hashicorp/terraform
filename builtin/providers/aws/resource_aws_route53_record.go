@@ -219,7 +219,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	return nil
+	return resourceAwsRoute53RecordRead(d, meta)
 }
 
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
@@ -367,7 +367,7 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 	}
 
 	if v, ok := d.GetOk("ttl"); ok {
-		rec.TTL = aws.Long(int64(v.(int)))
+		rec.TTL = aws.Int64(int64(v.(int)))
 	}
 
 	// Resource records
@@ -385,7 +385,7 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 		alias := aliases[0].(map[string]interface{})
 		rec.AliasTarget = &route53.AliasTarget{
 			DNSName:              aws.String(alias["name"].(string)),
-			EvaluateTargetHealth: aws.Boolean(alias["evaluate_target_health"].(bool)),
+			EvaluateTargetHealth: aws.Bool(alias["evaluate_target_health"].(bool)),
 			HostedZoneID:         aws.String(alias["zone_id"].(string)),
 		}
 		log.Printf("[DEBUG] Creating alias: %#v", alias)
@@ -408,7 +408,7 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 	}
 
 	if v, ok := d.GetOk("weight"); ok {
-		rec.Weight = aws.Long(int64(v.(int)))
+		rec.Weight = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("set_identifier"); ok {

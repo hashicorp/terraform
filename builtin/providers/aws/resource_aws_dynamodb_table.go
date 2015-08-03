@@ -9,9 +9,19 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 )
+
+// Number of times to retry if a throttling-related exception occurs
+const DYNAMODB_MAX_THROTTLE_RETRIES = 5
+
+// How long to sleep when a throttle-event happens
+const DYNAMODB_THROTTLE_SLEEP = 5 * time.Second
+
+// How long to sleep if a limit-exceeded event happens
+const DYNAMODB_LIMIT_EXCEEDED_SLEEP = 10 * time.Second
 
 // A number of these are marked as computed because if you don't
 // provide a value, DynamoDB will provide you with defaults (which are the
@@ -156,8 +166,8 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] DynamoDB table create: %s", name)
 
 	throughput := &dynamodb.ProvisionedThroughput{
-		ReadCapacityUnits:  aws.Long(int64(d.Get("read_capacity").(int))),
-		WriteCapacityUnits: aws.Long(int64(d.Get("write_capacity").(int))),
+		ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
+		WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
 	}
 
 	hash_key_name := d.Get("hash_key").(string)
@@ -208,7 +218,7 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 				ProjectionType: aws.String(lsi["projection_type"].(string)),
 			}
 
-			if lsi["projection_type"] != "ALL" {
+			if lsi["projection_type"] == "INCLUDE" {
 				non_key_attributes := []*string{}
 				for _, attr := range lsi["non_key_attributes"].([]interface{}) {
 					non_key_attributes = append(non_key_attributes, aws.String(attr.(string)))
@@ -249,15 +259,36 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		req.GlobalSecondaryIndexes = globalSecondaryIndexes
 	}
 
-	output, err := dynamodbconn.CreateTable(req)
-	if err != nil {
-		return fmt.Errorf("Error creating DynamoDB table: %s", err)
+	attemptCount := 1
+	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
+		output, err := dynamodbconn.CreateTable(req)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "ThrottlingException" {
+					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
+					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
+					attemptCount += 1
+				} else if awsErr.Code() == "LimitExceededException" {
+					log.Printf("[DEBUG] Limit on concurrent table creations hit, sleeping for a bit")
+					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
+					attemptCount += 1
+				} else {
+					// Some other non-retryable exception occurred
+					return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
+				}
+			} else {
+				// Non-AWS exception occurred, give up
+				return fmt.Errorf("Error creating DynamoDB table: %s", err)
+			}
+		} else {
+			// No error, set ID and return
+			d.SetId(*output.TableDescription.TableName)
+			return nil
+		}
 	}
 
-	d.SetId(*output.TableDescription.TableName)
-
-	// Creation complete, nothing to re-read
-	return nil
+	// Too many throttling events occurred, give up
+	return fmt.Errorf("Unable to create DynamoDB table '%s' after %d attempts", name, attemptCount)
 }
 
 func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -287,8 +318,8 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		throughput := &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Long(int64(d.Get("read_capacity").(int))),
-			WriteCapacityUnits: aws.Long(int64(d.Get("write_capacity").(int))),
+			ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
+			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
 		}
 		req.ProvisionedThroughput = throughput
 
@@ -455,8 +486,8 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 						Update: &dynamodb.UpdateGlobalSecondaryIndexAction{
 							IndexName: aws.String(gsidata["name"].(string)),
 							ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-								WriteCapacityUnits: aws.Long(int64(gsiWriteCapacity)),
-								ReadCapacityUnits:  aws.Long(int64(gsiReadCapacity)),
+								WriteCapacityUnits: aws.Int64(int64(gsiWriteCapacity)),
+								ReadCapacityUnits:  aws.Int64(int64(gsiReadCapacity)),
 							},
 						},
 					}
@@ -570,7 +601,7 @@ func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryInd
 		ProjectionType: aws.String((*data)["projection_type"].(string)),
 	}
 
-	if (*data)["projection_type"] != "ALL" {
+	if (*data)["projection_type"] == "INCLUDE" {
 		non_key_attributes := []*string{}
 		for _, attr := range (*data)["non_key_attributes"].([]interface{}) {
 			non_key_attributes = append(non_key_attributes, aws.String(attr.(string)))
@@ -603,8 +634,8 @@ func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryInd
 		KeySchema:  key_schema,
 		Projection: projection,
 		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-			WriteCapacityUnits: aws.Long(int64(writeCapacity)),
-			ReadCapacityUnits:  aws.Long(int64(readCapacity)),
+			WriteCapacityUnits: aws.Int64(int64(writeCapacity)),
+			ReadCapacityUnits:  aws.Int64(int64(readCapacity)),
 		},
 	}
 }

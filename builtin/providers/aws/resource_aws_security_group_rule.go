@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -98,7 +97,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 	switch ruleType {
 	case "ingress":
 		log.Printf("[DEBUG] Authorizing security group %s %s rule: %s",
-			sg_id, "Ingress", awsutil.StringValue(perm))
+			sg_id, "Ingress", perm)
 
 		req := &ec2.AuthorizeSecurityGroupIngressInput{
 			GroupID:       sg.GroupID,
@@ -130,10 +129,10 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 	if autherr != nil {
 		if awsErr, ok := autherr.(awserr.Error); ok {
 			if awsErr.Code() == "InvalidPermission.Duplicate" {
-				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found. This may be 
-a side effect of a now-fixed Terraform issue causing two security groups with 
-identical attributes but different source_security_group_ids to overwrite each 
-other in the state. See https://github.com/hashicorp/terraform/pull/2376 for more 
+				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found. This may be
+a side effect of a now-fixed Terraform issue causing two security groups with
+identical attributes but different source_security_group_ids to overwrite each
+other in the state. See https://github.com/hashicorp/terraform/pull/2376 for more
 information and instructions for recovery. Error message: %s`, awsErr.Message())
 			}
 		}
@@ -153,7 +152,9 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	sg_id := d.Get("security_group_id").(string)
 	sg, err := findResourceSecurityGroup(conn, sg_id)
 	if err != nil {
+		log.Printf("[DEBUG] Error finding Secuirty Group (%s) for Rule (%s): %s", sg_id, d.Id(), err)
 		d.SetId("")
+		return nil
 	}
 
 	var rule *ec2.IPPermission
@@ -213,7 +214,7 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 	switch ruleType {
 	case "ingress":
 		log.Printf("[DEBUG] Revoking rule (%s) from security group %s:\n%s",
-			"ingress", sg_id, awsutil.StringValue(perm))
+			"ingress", sg_id, perm)
 		req := &ec2.RevokeSecurityGroupIngressInput{
 			GroupID:       sg.GroupID,
 			IPPermissions: []*ec2.IPPermission{perm},
@@ -257,7 +258,8 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	if err != nil {
 		return nil, err
 	}
-	if len(resp.SecurityGroups) != 1 {
+
+	if resp == nil || len(resp.SecurityGroups) != 1 || resp.SecurityGroups[0] == nil {
 		return nil, fmt.Errorf(
 			"Expected to find one security group with ID %q, got: %#v",
 			id, resp.SecurityGroups)
@@ -330,8 +332,8 @@ func ipPermissionIDHash(ruleType string, ip *ec2.IPPermission) string {
 func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) *ec2.IPPermission {
 	var perm ec2.IPPermission
 
-	perm.FromPort = aws.Long(int64(d.Get("from_port").(int)))
-	perm.ToPort = aws.Long(int64(d.Get("to_port").(int)))
+	perm.FromPort = aws.Int64(int64(d.Get("from_port").(int)))
+	perm.ToPort = aws.Int64(int64(d.Get("to_port").(int)))
 	perm.IPProtocol = aws.String(d.Get("protocol").(string))
 
 	// build a group map that behaves like a set

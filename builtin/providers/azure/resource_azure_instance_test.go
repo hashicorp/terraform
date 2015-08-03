@@ -16,16 +16,46 @@ func TestAccAzureInstance_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAzureInstanceDestroy,
+		CheckDestroy: testAccCheckAzureInstanceDestroyed(""),
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureInstance_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
-						"azure_instance.foo", &dpmt),
+						"azure_instance.foo", "", &dpmt),
 					testAccCheckAzureInstanceBasicAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "hosted_service_name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "location", "West US"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "endpoint.2462817782.public_port", "22"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureInstance_separateHostedService(t *testing.T) {
+	var dpmt virtualmachine.DeploymentResponse
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAzureInstanceDestroyed(testAccHostedServiceName),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureInstance_seperateHostedService,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAzureInstanceExists(
+						"azure_instance.foo", testAccHostedServiceName, &dpmt),
+					testAccCheckAzureInstanceBasicAttributes(&dpmt),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "hosted_service_name", "terraform-testing-service"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "location", "West US"),
 					resource.TestCheckResourceAttr(
@@ -42,16 +72,18 @@ func TestAccAzureInstance_advanced(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAzureInstanceDestroy,
+		CheckDestroy: testAccCheckAzureInstanceDestroyed(""),
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureInstance_advanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
-						"azure_instance.foo", &dpmt),
+						"azure_instance.foo", "", &dpmt),
 					testAccCheckAzureInstanceAdvancedAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "name", "terraform-test1"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "hosted_service_name", "terraform-test1"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "size", "Basic_A1"),
 					resource.TestCheckResourceAttr(
@@ -74,16 +106,18 @@ func TestAccAzureInstance_update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAzureInstanceDestroy,
+		CheckDestroy: testAccCheckAzureInstanceDestroyed(""),
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureInstance_advanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
-						"azure_instance.foo", &dpmt),
+						"azure_instance.foo", "", &dpmt),
 					testAccCheckAzureInstanceAdvancedAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "name", "terraform-test1"),
+					resource.TestCheckResourceAttr(
+						"azure_instance.foo", "hosted_service_name", "terraform-test1"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "size", "Basic_A1"),
 					resource.TestCheckResourceAttr(
@@ -101,7 +135,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 				Config: testAccAzureInstance_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
-						"azure_instance.foo", &dpmt),
+						"azure_instance.foo", "", &dpmt),
 					testAccCheckAzureInstanceUpdatedAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "size", "Basic_A2"),
@@ -119,6 +153,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 
 func testAccCheckAzureInstanceExists(
 	n string,
+	hostedServiceName string,
 	dpmt *virtualmachine.DeploymentResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -130,8 +165,17 @@ func testAccCheckAzureInstanceExists(
 			return fmt.Errorf("No instance ID is set")
 		}
 
+		// if not hosted service was provided; it means that we expect it
+		// to be identical with the name of the instance; which is in the ID.
+		var serviceName string
+		if hostedServiceName == "" {
+			serviceName = rs.Primary.ID
+		} else {
+			serviceName = hostedServiceName
+		}
+
 		vmClient := testAccProvider.Meta().(*Client).vmClient
-		vm, err := vmClient.GetDeployment(rs.Primary.ID, rs.Primary.ID)
+		vm, err := vmClient.GetDeployment(serviceName, rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -281,29 +325,40 @@ func testAccCheckAzureInstanceUpdatedAttributes(
 	}
 }
 
-func testAccCheckAzureInstanceDestroy(s *terraform.State) error {
-	hostedServiceClient := testAccProvider.Meta().(*Client).hostedServiceClient
+func testAccCheckAzureInstanceDestroyed(hostedServiceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		hostedServiceClient := testAccProvider.Meta().(*Client).hostedServiceClient
 
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azure_instance" {
-			continue
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "azure_instance" {
+				continue
+			}
+
+			if rs.Primary.ID == "" {
+				return fmt.Errorf("No instance ID is set")
+			}
+
+			// if not hosted service was provided; it means that we expect it
+			// to be identical with the name of the instance; which is in the ID.
+			var serviceName string
+			if hostedServiceName == "" {
+				serviceName = rs.Primary.ID
+			} else {
+				serviceName = hostedServiceName
+			}
+
+			_, err := hostedServiceClient.GetHostedService(serviceName)
+			if err == nil {
+				return fmt.Errorf("Instance %s still exists", rs.Primary.ID)
+			}
+
+			if !management.IsResourceNotFoundError(err) {
+				return err
+			}
 		}
 
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No instance ID is set")
-		}
-
-		_, err := hostedServiceClient.GetHostedService(rs.Primary.ID)
-		if err == nil {
-			return fmt.Errorf("Instance %s still exists", rs.Primary.ID)
-		}
-
-		if !management.IsResourceNotFoundError(err) {
-			return err
-		}
+		return nil
 	}
-
-	return nil
 }
 
 var testAccAzureInstance_basic = fmt.Sprintf(`
@@ -323,6 +378,31 @@ resource "azure_instance" "foo" {
         private_port = 22
     }
 }`, testAccStorageServiceName)
+
+var testAccAzureInstance_seperateHostedService = fmt.Sprintf(`
+resource "azure_hosted_service" "foo" {
+	name = "%s"
+	location = "West US"
+	ephemeral_contents = true
+}
+
+resource "azure_instance" "foo" {
+    name = "terraform-test"
+	hosted_service_name = "${azure_hosted_service.foo.name}"
+    image = "Ubuntu Server 14.04 LTS"
+    size = "Basic_A1"
+    storage_service_name = "%s"
+    location = "West US"
+    username = "terraform"
+    password = "Pass!admin123"
+
+    endpoint {
+        name = "SSH"
+        protocol = "tcp"
+        public_port = 22
+        private_port = 22
+    }
+}`, testAccHostedServiceName, testAccStorageServiceName)
 
 var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
@@ -348,7 +428,7 @@ resource "azure_security_group" "foo" {
 
 resource "azure_security_group_rule" "foo" {
     name = "rdp"
-    security_group_name = "${azure_security_group.foo.name}"
+    security_group_names = ["${azure_security_group.foo.name}"]
     priority = 101
     source_address_prefix = "*"
     source_port_range = "*"
@@ -404,7 +484,7 @@ resource "azure_security_group" "foo" {
 
 resource "azure_security_group_rule" "foo" {
     name = "rdp"
-    security_group_name = "${azure_security_group.foo.name}"
+    security_group_names = ["${azure_security_group.foo.name}"]
     priority = 101
     source_address_prefix = "*"
     source_port_range = "*"
@@ -422,7 +502,7 @@ resource "azure_security_group" "bar" {
 
 resource "azure_security_group_rule" "bar" {
     name = "rdp"
-    security_group_name = "${azure_security_group.bar.name}"
+    security_group_names = ["${azure_security_group.bar.name}"]
     priority = 101
     source_address_prefix = "192.168.0.0/24"
     source_port_range = "*"

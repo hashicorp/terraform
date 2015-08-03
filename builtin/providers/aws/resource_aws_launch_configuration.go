@@ -30,6 +30,15 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1932-L1939
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
 			},
 
 			"image_id": &schema.Schema{
@@ -104,6 +113,13 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"enable_monitoring": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  true,
 			},
 
 			"ebs_block_device": &schema.Schema{
@@ -248,12 +264,16 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		LaunchConfigurationName: aws.String(d.Get("name").(string)),
 		ImageID:                 aws.String(d.Get("image_id").(string)),
 		InstanceType:            aws.String(d.Get("instance_type").(string)),
-		EBSOptimized:            aws.Boolean(d.Get("ebs_optimized").(bool)),
+		EBSOptimized:            aws.Bool(d.Get("ebs_optimized").(bool)),
 	}
 
 	if v, ok := d.GetOk("user_data"); ok {
 		userData := base64.StdEncoding.EncodeToString([]byte(v.(string)))
 		createLaunchConfigurationOpts.UserData = aws.String(userData)
+	}
+
+	createLaunchConfigurationOpts.InstanceMonitoring = &autoscaling.InstanceMonitoring{
+		Enabled: aws.Bool(d.Get("enable_monitoring").(bool)),
 	}
 
 	if v, ok := d.GetOk("iam_instance_profile"); ok {
@@ -265,7 +285,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("associate_public_ip_address"); ok {
-		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Boolean(v.(bool))
+		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Bool(v.(bool))
 	}
 
 	if v, ok := d.GetOk("key_name"); ok {
@@ -288,7 +308,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
 			ebs := &autoscaling.EBS{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
 			}
 
 			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
@@ -296,7 +316,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
+				ebs.VolumeSize = aws.Int64(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -304,7 +324,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
+				ebs.IOPS = aws.Int64(int64(v))
 			}
 
 			blockDevices = append(blockDevices, &autoscaling.BlockDeviceMapping{
@@ -333,11 +353,11 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
 			ebs := &autoscaling.EBS{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				DeleteOnTermination: aws.Bool(bd["delete_on_termination"].(bool)),
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
+				ebs.VolumeSize = aws.Int64(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -345,7 +365,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
+				ebs.IOPS = aws.Int64(int64(v))
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn); err == nil {
@@ -372,8 +392,25 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(lcName)
 
 	log.Printf(
-		"[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
-	_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
+		"[DEBUG] autoscaling create launch configuration: %s", createLaunchConfigurationOpts)
+
+	// IAM profiles can take ~10 seconds to propagate in AWS:
+	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+	err := resource.Retry(30*time.Second, func() error {
+		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Message() == "Invalid IamInstanceProfile" {
+					return err
+				}
+			}
+			return &resource.RetryError{
+				Err: err,
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating launch configuration: %s", err)
 	}
@@ -396,7 +433,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 		LaunchConfigurationNames: []*string{aws.String(d.Id())},
 	}
 
-	log.Printf("[DEBUG] launch configuration describe configuration: %#v", describeOpts)
+	log.Printf("[DEBUG] launch configuration describe configuration: %s", describeOpts)
 	describConfs, err := autoscalingconn.DescribeLaunchConfigurations(&describeOpts)
 	if err != nil {
 		return fmt.Errorf("Error retrieving launch configuration: %s", err)
@@ -423,6 +460,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("iam_instance_profile", lc.IAMInstanceProfile)
 	d.Set("ebs_optimized", lc.EBSOptimized)
 	d.Set("spot_price", lc.SpotPrice)
+	d.Set("enable_monitoring", lc.InstanceMonitoring.Enabled)
 	d.Set("security_groups", lc.SecurityGroups)
 
 	if err := readLCBlockDevices(d, lc, ec2conn); err != nil {
@@ -442,7 +480,8 @@ func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface
 		})
 	if err != nil {
 		autoscalingerr, ok := err.(awserr.Error)
-		if ok && autoscalingerr.Code() == "InvalidConfiguration.NotFound" {
+		if ok && (autoscalingerr.Code() == "InvalidConfiguration.NotFound" || autoscalingerr.Code() == "ValidationError") {
+			log.Printf("[DEBUG] Launch configuration (%s) not found", d.Id())
 			return nil
 		}
 

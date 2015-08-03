@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -94,7 +93,7 @@ func resourceAwsLogFlowCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf(
-		"[DEBUG] Flow Log Create configuration: %s", awsutil.StringValue(opts))
+		"[DEBUG] Flow Log Create configuration: %s", opts)
 	resp, err := conn.CreateFlowLogs(opts)
 	if err != nil {
 		return fmt.Errorf("Error creating Flow Log for (%s), error: %s", resourceId, err)

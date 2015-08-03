@@ -190,7 +190,7 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	if len(m.variables) == 0 && m.autoKey == "" {
+	if len(m.variables) == 0 {
 		mode |= terraform.InputModeVar
 		mode |= terraform.InputModeVarUnset
 	}

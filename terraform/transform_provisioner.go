@@ -171,36 +171,6 @@ func (n *graphNodeCloseProvisioner) CloseProvisionerName() string {
 	return n.ProvisionerNameValue
 }
 
-// GraphNodeFlattenable impl.
-func (n *graphNodeCloseProvisioner) Flatten(p []string) (dag.Vertex, error) {
-	return &graphNodeCloseProvisionerFlat{
-		graphNodeCloseProvisioner: n,
-		PathValue:                 p,
-	}, nil
-}
-
-// Same as graphNodeCloseProvisioner, but for flattening
-type graphNodeCloseProvisionerFlat struct {
-	*graphNodeCloseProvisioner
-
-	PathValue []string
-}
-
-func (n *graphNodeCloseProvisionerFlat) Name() string {
-	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeCloseProvisioner.Name())
-}
-
-func (n *graphNodeCloseProvisionerFlat) Path() []string {
-	return n.PathValue
-}
-
-func (n *graphNodeCloseProvisionerFlat) ProvisionerName() string {
-	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue),
-		n.graphNodeCloseProvisioner.CloseProvisionerName())
-}
-
 type graphNodeMissingProvisioner struct {
 	ProvisionerNameValue string
 }

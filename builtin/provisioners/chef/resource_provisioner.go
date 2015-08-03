@@ -27,8 +27,11 @@ const (
 	defaultEnv     = "_default"
 	firstBoot      = "first-boot.json"
 	logfileDir     = "logfiles"
+	linuxChefCmd   = "chef-client"
 	linuxConfDir   = "/etc/chef"
+	secretKey      = "encrypted_data_bag_secret"
 	validationKey  = "validation.pem"
+	windowsChefCmd = "cmd /c chef-client"
 	windowsConfDir = "C:/chef"
 )
 
@@ -63,8 +66,11 @@ type Provisioner struct {
 	HTTPSProxy           string      `mapstructure:"https_proxy"`
 	NOProxy              []string    `mapstructure:"no_proxy"`
 	NodeName             string      `mapstructure:"node_name"`
+	OhaiHints            []string    `mapstructure:"ohai_hints"`
+	OSType               string      `mapstructure:"os_type"`
 	PreventSudo          bool        `mapstructure:"prevent_sudo"`
 	RunList              []string    `mapstructure:"run_list"`
+	SecretKeyPath        string      `mapstructure:"secret_key_path"`
 	ServerURL            string      `mapstructure:"server_url"`
 	SkipInstall          bool        `mapstructure:"skip_install"`
 	SSLVerifyMode        string      `mapstructure:"ssl_verify_mode"`
@@ -92,20 +98,31 @@ func (r *ResourceProvisioner) Apply(
 		return err
 	}
 
+	if p.OSType == "" {
+		switch s.Ephemeral.ConnInfo["type"] {
+		case "ssh", "": // The default connection type is ssh, so if the type is empty assume ssh
+			p.OSType = "linux"
+		case "winrm":
+			p.OSType = "windows"
+		default:
+			return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
+		}
+	}
+
 	// Set some values based on the targeted OS
-	switch s.Ephemeral.ConnInfo["type"] {
-	case "ssh", "": // The default connection type is ssh, so if the type is empty use ssh
-		p.installChefClient = p.sshInstallChefClient
-		p.createConfigFiles = p.sshCreateConfigFiles
-		p.runChefClient = p.runChefClientFunc(linuxConfDir)
+	switch p.OSType {
+	case "linux":
+		p.installChefClient = p.linuxInstallChefClient
+		p.createConfigFiles = p.linuxCreateConfigFiles
+		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
-	case "winrm":
-		p.installChefClient = p.winrmInstallChefClient
-		p.createConfigFiles = p.winrmCreateConfigFiles
-		p.runChefClient = p.runChefClientFunc(windowsConfDir)
+	case "windows":
+		p.installChefClient = p.windowsInstallChefClient
+		p.createConfigFiles = p.windowsCreateConfigFiles
+		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
 		p.useSudo = false
 	default:
-		return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
+		return fmt.Errorf("Unsupported os type: %s", p.OSType)
 	}
 
 	// Get a new communicator
@@ -200,12 +217,28 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.Environment = defaultEnv
 	}
 
+	for i, hint := range p.OhaiHints {
+		hintPath, err := homedir.Expand(hint)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the path %s: %v", hint, err)
+		}
+		p.OhaiHints[i] = hintPath
+	}
+
 	if p.ValidationKeyPath != "" {
 		keyPath, err := homedir.Expand(p.ValidationKeyPath)
 		if err != nil {
 			return nil, fmt.Errorf("Error expanding the validation key path: %v", err)
 		}
 		p.ValidationKeyPath = keyPath
+	}
+
+	if p.SecretKeyPath != "" {
+		keyPath, err := homedir.Expand(p.SecretKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the secret key path: %v", err)
+		}
+		p.SecretKeyPath = keyPath
 	}
 
 	if attrs, ok := c.Config["attributes"]; ok {
@@ -258,10 +291,11 @@ func retryFunc(timeout time.Duration, f func() error) error {
 }
 
 func (p *Provisioner) runChefClientFunc(
+	chefCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		fb := path.Join(confDir, firstBoot)
-		cmd := fmt.Sprintf("chef-client -j %q -E %q", fb, p.Environment)
+		cmd := fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
 
 		if p.LogToFile {
 			if err := os.MkdirAll(logfileDir, 0755); err != nil {
@@ -313,7 +347,7 @@ func (p *Provisioner) deployConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	confDir string) error {
-	// Open the validation  key file
+	// Open the validation key file
 	f, err := os.Open(p.ValidationKeyPath)
 	if err != nil {
 		return err
@@ -323,6 +357,20 @@ func (p *Provisioner) deployConfigFiles(
 	// Copy the validation key to the new instance
 	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
+	}
+
+	if p.SecretKeyPath != "" {
+		// Open the secret key file
+		s, err := os.Open(p.SecretKeyPath)
+		if err != nil {
+			return err
+		}
+		defer s.Close()
+
+		// Copy the secret key to the new instance
+		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
+		}
 	}
 
 	// Make strings.Join available for use within the template
@@ -369,6 +417,27 @@ func (p *Provisioner) deployConfigFiles(
 	// Copy the first-boot.json to the new instance
 	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
+	}
+
+	return nil
+}
+
+func (p *Provisioner) deployOhaiHints(
+	o terraform.UIOutput,
+	comm communicator.Communicator,
+	hintDir string) error {
+	for _, hint := range p.OhaiHints {
+		// Open the hint file
+		f, err := os.Open(hint)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		// Copy the hint to the new instance
+		if err := comm.Upload(path.Join(hintDir, path.Base(hint)), f); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", path.Base(hint), err)
+		}
 	}
 
 	return nil

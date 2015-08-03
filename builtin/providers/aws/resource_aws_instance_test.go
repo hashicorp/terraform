@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -47,7 +46,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 					var err error
 					vol, err = conn.CreateVolume(&ec2.CreateVolumeInput{
 						AvailabilityZone: aws.String("us-west-2a"),
-						Size:             aws.Long(int64(5)),
+						Size:             aws.Int64(int64(5)),
 					})
 					return err
 				},
@@ -467,8 +466,8 @@ func TestAccAWSInstance_keyPairCheck(t *testing.T) {
 			if v.KeyName == nil {
 				return fmt.Errorf("No Key Pair found, expected(%s)", keyName)
 			}
-			if *v.KeyName != keyName {
-				return fmt.Errorf("Bad key name, expected (%s), got (%s)", keyName, awsutil.StringValue(v.KeyName))
+			if v.KeyName != nil && *v.KeyName != keyName {
+				return fmt.Errorf("Bad key name, expected (%s), got (%s)", keyName, *v.KeyName)
 			}
 
 			return nil
@@ -579,6 +578,11 @@ func testAccCheckInstanceExistsWithProviders(n string, i *ec2.Instance, provider
 			return fmt.Errorf("No ID is set")
 		}
 		for _, provider := range *providers {
+			// Ignore if Meta is empty, this can happen for validation providers
+			if provider.Meta() == nil {
+				continue
+			}
+
 			conn := provider.Meta().(*AWSClient).ec2conn
 			resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 				InstanceIDs: []*string{aws.String(rs.Primary.ID)},

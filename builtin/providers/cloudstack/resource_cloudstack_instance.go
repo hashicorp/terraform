@@ -106,8 +106,14 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		return e.Error()
 	}
 
+	// Retrieve the zone UUID
+	zoneid, e := retrieveUUID(cs, "zone", d.Get("zone").(string))
+	if e != nil {
+		return e.Error()
+	}
+
 	// Retrieve the zone object
-	zone, _, err := cs.Zone.GetZoneByName(d.Get("zone").(string))
+	zone, _, err := cs.Zone.GetZoneByID(zoneid)
 	if err != nil {
 		return err
 	}
@@ -167,11 +173,21 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	// added to the parameter struct
 	if userData, ok := d.GetOk("user_data"); ok {
 		ud := base64.StdEncoding.EncodeToString([]byte(userData.(string)))
-		if len(ud) > 2048 {
+
+		// deployVirtualMachine uses POST by default, so max userdata is 32K
+		maxUD := 32768
+
+		if cs.HTTPGETOnly {
+			// deployVirtualMachine using GET instead, so max userdata is 2K
+			maxUD = 2048
+		}
+
+		if len(ud) > maxUD {
 			return fmt.Errorf(
 				"The supplied user_data contains %d bytes after encoding, "+
-					"this exeeds the limit of 2048 bytes", len(ud))
+					"this exeeds the limit of %d bytes", len(ud), maxUD)
 		}
+
 		p.SetUserdata(ud)
 	}
 
@@ -200,7 +216,6 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		if count == 0 {
 			log.Printf("[DEBUG] Instance %s does no longer exist", d.Get("name").(string))
-			// Clear out all details so it's obvious the instance is gone
 			d.SetId("")
 			return nil
 		}
@@ -212,13 +227,13 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", vm.Name)
 	d.Set("display_name", vm.Displayname)
 	d.Set("ipaddress", vm.Nic[0].Ipaddress)
-	d.Set("zone", vm.Zonename)
 	//NB cloudstack sometimes sends back the wrong keypair name, so dont update it
 
 	setValueOrUUID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
 	setValueOrUUID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrUUID(d, "template", vm.Templatename, vm.Templateid)
 	setValueOrUUID(d, "project", vm.Project, vm.Projectid)
+	setValueOrUUID(d, "zone", vm.Zonename, vm.Zoneid)
 
 	return nil
 }
@@ -252,7 +267,8 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	// Attributes that require reboot to update
 	if d.HasChange("service_offering") || d.HasChange("keypair") {
 		// Before we can actually make these changes, the virtual machine must be stopped
-		_, err := cs.VirtualMachine.StopVirtualMachine(cs.VirtualMachine.NewStopVirtualMachineParams(d.Id()))
+		_, err := cs.VirtualMachine.StopVirtualMachine(
+			cs.VirtualMachine.NewStopVirtualMachineParams(d.Id()))
 		if err != nil {
 			return fmt.Errorf(
 				"Error stopping instance %s before making changes: %s", name, err)
@@ -295,12 +311,14 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		// Start the virtual machine again
-		_, err = cs.VirtualMachine.StartVirtualMachine(cs.VirtualMachine.NewStartVirtualMachineParams(d.Id()))
+		_, err = cs.VirtualMachine.StartVirtualMachine(
+			cs.VirtualMachine.NewStartVirtualMachineParams(d.Id()))
 		if err != nil {
 			return fmt.Errorf(
 				"Error starting instance %s after making changes", name)
 		}
 	}
+
 	d.Partial(false)
 	return resourceCloudStackInstanceRead(d, meta)
 }

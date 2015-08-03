@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccVpc_basic(t *testing.T) {
+func TestAccAWSVpc_basic(t *testing.T) {
 	var vpc ec2.VPC
 
 	resource.Test(t, resource.TestCase{
@@ -32,7 +32,7 @@ func TestAccVpc_basic(t *testing.T) {
 	})
 }
 
-func TestAccVpc_dedicatedTenancy(t *testing.T) {
+func TestAccAWSVpc_dedicatedTenancy(t *testing.T) {
 	var vpc ec2.VPC
 
 	resource.Test(t, resource.TestCase{
@@ -52,7 +52,7 @@ func TestAccVpc_dedicatedTenancy(t *testing.T) {
 	})
 }
 
-func TestAccVpc_tags(t *testing.T) {
+func TestAccAWSVpc_tags(t *testing.T) {
 	var vpc ec2.VPC
 
 	resource.Test(t, resource.TestCase{
@@ -83,7 +83,7 @@ func TestAccVpc_tags(t *testing.T) {
 	})
 }
 
-func TestAccVpcUpdate(t *testing.T) {
+func TestAccAWSVpc_update(t *testing.T) {
 	var vpc ec2.VPC
 
 	resource.Test(t, resource.TestCase{
@@ -187,7 +187,7 @@ func testAccCheckVpcExists(n string, vpc *ec2.VPC) resource.TestCheckFunc {
 }
 
 // https://github.com/hashicorp/terraform/issues/1301
-func TestAccVpc_bothDnsOptionsSet(t *testing.T) {
+func TestAccAWSVpc_bothDnsOptionsSet(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

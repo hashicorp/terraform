@@ -3,6 +3,7 @@ package cloudflare
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/pearkes/cloudflare"
@@ -91,7 +92,14 @@ func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) erro
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
-		return fmt.Errorf("Couldn't find CloudFlare Record ID (%s) for domain (%s): %s", d.Id(), d.Get("domain").(string), err)
+		if strings.Contains(err.Error(), "not found") {
+			d.SetId("")
+			return nil
+		}
+
+		return fmt.Errorf(
+			"Couldn't find CloudFlare Record ID (%s) for domain (%s): %s",
+			d.Id(), d.Get("domain").(string), err)
 	}
 
 	d.Set("name", rec.Name)

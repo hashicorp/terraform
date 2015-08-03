@@ -3,9 +3,9 @@ package rpc
 import (
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/yamux"
@@ -17,6 +17,7 @@ import (
 // or accept a connection from, and the broker handles the details of
 // holding these channels open while they're being negotiated.
 type muxBroker struct {
+	nextId  uint32
 	session *yamux.Session
 	streams map[uint32]*muxBrokerPending
 
@@ -94,12 +95,9 @@ func (m *muxBroker) Dial(id uint32) (net.Conn, error) {
 	return stream, nil
 }
 
-// NextId returns a unique ID to use next. There is no need for seeding the
-// rand package as the returned ID's aren't stored or used anywhere outside
-// the current runtime. So it's perfectly fine to get the same pseudo-random
-// numbers each time terraform is running.
+// NextId returns a unique ID to use next.
 func (m *muxBroker) NextId() uint32 {
-	return rand.Uint32()
+	return atomic.AddUint32(&m.nextId, 1)
 }
 
 // Run starts the brokering and should be executed in a goroutine, since it

@@ -57,6 +57,8 @@ For example, `${count.index}` will interpolate the current index
 in a multi-count resource. For more information on count, see the
 resource configuration page.
 
+<a id="path-variables"></a>
+
 **To reference path information**, the syntax is `path.TYPE`.
 TYPE can be `cwd`, `module`, or `root`. `cwd` will interpolate the
 cwd. `module` will interpolate the path to the current module. `root`
@@ -73,7 +75,7 @@ are documented below.
 The supported built-in functions are:
 
   * `concat(list1, list2)` - Combines two or more lists into a single list.
-     Example: `combine(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
+     Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of

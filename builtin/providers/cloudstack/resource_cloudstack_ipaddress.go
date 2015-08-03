@@ -105,7 +105,7 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 			return err
 		}
 
-		d.Set("network", n.Name)
+		setValueOrUUID(d, "network", n.Name, f.Associatednetworkid)
 	}
 
 	if _, ok := d.GetOk("vpc"); ok {
@@ -115,7 +115,7 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 			return err
 		}
 
-		d.Set("vpc", v.Name)
+		setValueOrUUID(d, "vpc", v.Name, f.Vpcid)
 	}
 
 	return nil

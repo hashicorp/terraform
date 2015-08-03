@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -32,6 +33,17 @@ func s3Factory(conf map[string]string) (Client, error) {
 		}
 	}
 
+	serverSideEncryption := false
+	if raw, ok := conf["encrypt"]; ok {
+		v, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"'encrypt' field couldn't be parsed as bool: %s", err)
+		}
+
+		serverSideEncryption = v
+	}
+
 	accessKeyId := conf["access_key"]
 	secretAccessKey := conf["secret_key"]
 
@@ -55,21 +67,23 @@ func s3Factory(conf map[string]string) (Client, error) {
 
 	awsConfig := &aws.Config{
 		Credentials: credentialsProvider,
-		Region:      regionName,
+		Region:      aws.String(regionName),
 	}
 	nativeClient := s3.New(awsConfig)
 
 	return &S3Client{
-		nativeClient: nativeClient,
-		bucketName:   bucketName,
-		keyName:      keyName,
+		nativeClient:         nativeClient,
+		bucketName:           bucketName,
+		keyName:              keyName,
+		serverSideEncryption: serverSideEncryption,
 	}, nil
 }
 
 type S3Client struct {
-	nativeClient *s3.S3
-	bucketName   string
-	keyName      string
+	nativeClient         *s3.S3
+	bucketName           string
+	keyName              string
+	serverSideEncryption bool
 }
 
 func (c *S3Client) Get() (*Payload, error) {
@@ -113,15 +127,19 @@ func (c *S3Client) Put(data []byte) error {
 	contentType := "application/octet-stream"
 	contentLength := int64(len(data))
 
-	_, err := c.nativeClient.PutObject(&s3.PutObjectInput{
+	i := &s3.PutObjectInput{
 		ContentType:   &contentType,
 		ContentLength: &contentLength,
 		Body:          bytes.NewReader(data),
 		Bucket:        &c.bucketName,
 		Key:           &c.keyName,
-	})
+	}
 
-	if err == nil {
+	if c.serverSideEncryption {
+		i.ServerSideEncryption = aws.String("AES256")
+	}
+
+	if _, err := c.nativeClient.PutObject(i); err == nil {
 		return nil
 	} else {
 		return fmt.Errorf("Failed to upload state: %v", err)

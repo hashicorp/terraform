@@ -43,7 +43,7 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).kinesisconn
 	sn := d.Get("name").(string)
 	createOpts := &kinesis.CreateStreamInput{
-		ShardCount: aws.Long(int64(d.Get("shard_count").(int))),
+		ShardCount: aws.Int64(int64(d.Get("shard_count").(int))),
 		StreamName: aws.String(sn),
 	}
 
@@ -82,7 +82,7 @@ func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) erro
 	conn := meta.(*AWSClient).kinesisconn
 	describeOpts := &kinesis.DescribeStreamInput{
 		StreamName: aws.String(d.Get("name").(string)),
-		Limit:      aws.Long(1),
+		Limit:      aws.Int64(1),
 	}
 	resp, err := conn.DescribeStream(describeOpts)
 	if err != nil {
@@ -138,7 +138,7 @@ func streamStateRefreshFunc(conn *kinesis.Kinesis, sn string) resource.StateRefr
 	return func() (interface{}, string, error) {
 		describeOpts := &kinesis.DescribeStreamInput{
 			StreamName: aws.String(sn),
-			Limit:      aws.Long(1),
+			Limit:      aws.Int64(1),
 		}
 		resp, err := conn.DescribeStream(describeOpts)
 		if err != nil {

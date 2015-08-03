@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,8 +25,29 @@ func resourceAwsElb() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"only alphanumeric characters and hyphens allowed in %q", k))
+					}
+					if len(value) > 32 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 32 characters", k))
+					}
+					if regexp.MustCompile(`^-`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot begin with a hyphen", k))
+					}
+					if regexp.MustCompile(`-$`).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot end with a hyphen", k))
+					}
+					return
+				},
 			},
 
 			"internal": &schema.Schema{
@@ -190,10 +213,18 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	var elbName string
+	if v, ok := d.GetOk("name"); ok {
+		elbName = v.(string)
+	} else {
+		elbName = resource.PrefixedUniqueId("tf-lb-")
+		d.Set("name", elbName)
+	}
+
 	tags := tagsFromMapELB(d.Get("tags").(map[string]interface{}))
 	// Provision the elb
 	elbOpts := &elb.CreateLoadBalancerInput{
-		LoadBalancerName: aws.String(d.Get("name").(string)),
+		LoadBalancerName: aws.String(elbName),
 		Listeners:        listeners,
 		Tags:             tags,
 	}
@@ -220,7 +251,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Assign the elb's unique identifier for use later
-	d.SetId(d.Get("name").(string))
+	d.SetId(elbName)
 	log.Printf("[INFO] ELB ID: %s", d.Id())
 
 	// Enable partial mode and record what we set
@@ -398,10 +429,10 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
 				CrossZoneLoadBalancing: &elb.CrossZoneLoadBalancing{
-					Enabled: aws.Boolean(d.Get("cross_zone_load_balancing").(bool)),
+					Enabled: aws.Bool(d.Get("cross_zone_load_balancing").(bool)),
 				},
 				ConnectionSettings: &elb.ConnectionSettings{
-					IdleTimeout: aws.Long(int64(d.Get("idle_timeout").(int))),
+					IdleTimeout: aws.Int64(int64(d.Get("idle_timeout").(int))),
 				},
 			},
 		}
@@ -428,8 +459,8 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				LoadBalancerName: aws.String(d.Get("name").(string)),
 				LoadBalancerAttributes: &elb.LoadBalancerAttributes{
 					ConnectionDraining: &elb.ConnectionDraining{
-						Enabled: aws.Boolean(true),
-						Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
+						Enabled: aws.Bool(true),
+						Timeout: aws.Int64(int64(d.Get("connection_draining_timeout").(int))),
 					},
 				},
 			}
@@ -449,7 +480,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
 				ConnectionDraining: &elb.ConnectionDraining{
-					Enabled: aws.Boolean(d.Get("connection_draining").(bool)),
+					Enabled: aws.Bool(d.Get("connection_draining").(bool)),
 				},
 			},
 		}
@@ -469,11 +500,11 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			configureHealthCheckOpts := elb.ConfigureHealthCheckInput{
 				LoadBalancerName: aws.String(d.Id()),
 				HealthCheck: &elb.HealthCheck{
-					HealthyThreshold:   aws.Long(int64(check["healthy_threshold"].(int))),
-					UnhealthyThreshold: aws.Long(int64(check["unhealthy_threshold"].(int))),
-					Interval:           aws.Long(int64(check["interval"].(int))),
+					HealthyThreshold:   aws.Int64(int64(check["healthy_threshold"].(int))),
+					UnhealthyThreshold: aws.Int64(int64(check["unhealthy_threshold"].(int))),
+					Interval:           aws.Int64(int64(check["interval"].(int))),
 					Target:             aws.String(check["target"].(string)),
-					Timeout:            aws.Long(int64(check["timeout"].(int))),
+					Timeout:            aws.Int64(int64(check["timeout"].(int))),
 				},
 			}
 			_, err := elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)

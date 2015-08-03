@@ -85,6 +85,28 @@ func TestStateModuleOrphans(t *testing.T) {
 	}
 }
 
+func TestStateModuleOrphans_nested(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "foo", "bar"},
+			},
+		},
+	}
+
+	actual := state.ModuleOrphans(RootModulePath, nil)
+	expected := [][]string{
+		[]string{RootModuleName, "foo"},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestStateModuleOrphans_nilConfig(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{

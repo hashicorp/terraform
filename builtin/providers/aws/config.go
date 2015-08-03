@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/multierror"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
@@ -35,6 +36,8 @@ type Config struct {
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
+
+	DynamoDBEndpoint string
 }
 
 type AWSClient struct {
@@ -56,7 +59,7 @@ type AWSClient struct {
 	lambdaconn      *lambda.Lambda
 }
 
-// Client configures and returns a fully initailized AWSClient
+// Client configures and returns a fully initialized AWSClient
 func (c *Config) Client() (interface{}, error) {
 	var client AWSClient
 
@@ -76,24 +79,32 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := credentials.NewChainCredentials([]credentials.Provider{
-			&credentials.StaticProvider{Value: credentials.Value{
-				AccessKeyID:     c.AccessKey,
-				SecretAccessKey: c.SecretKey,
-				SessionToken:    c.Token,
-			}},
-			&credentials.EnvProvider{},
-			&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-			&credentials.EC2RoleProvider{},
-		})
+		// We fetched all credential sources in Provider. If they are
+		// available, they'll already be in c. See Provider definition.
+		creds := credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.Token)
 		awsConfig := &aws.Config{
 			Credentials: creds,
-			Region:      c.Region,
-			MaxRetries:  c.MaxRetries,
+			Region:      aws.String(c.Region),
+			MaxRetries:  aws.Int(c.MaxRetries),
+		}
+
+		log.Println("[INFO] Initializing IAM Connection")
+		client.iamconn = iam.New(awsConfig)
+
+		err := c.ValidateCredentials(client.iamconn)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		awsDynamoDBConfig := &aws.Config{
+			Credentials: creds,
+			Region:      aws.String(c.Region),
+			MaxRetries:  aws.Int(c.MaxRetries),
+			Endpoint:    aws.String(c.DynamoDBEndpoint),
 		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
-		client.dynamodbconn = dynamodb.New(awsConfig)
+		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(awsConfig)
@@ -110,15 +121,12 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing RDS Connection")
 		client.rdsconn = rds.New(awsConfig)
 
-		log.Println("[INFO] Initializing IAM Connection")
-		client.iamconn = iam.New(awsConfig)
-
 		log.Println("[INFO] Initializing Kinesis Connection")
 		client.kinesisconn = kinesis.New(awsConfig)
 
-		err := c.ValidateAccountId(client.iamconn)
-		if err != nil {
-			errs = append(errs, err)
+		authErr := c.ValidateAccountId(client.iamconn)
+		if authErr != nil {
+			errs = append(errs, authErr)
 		}
 
 		log.Println("[INFO] Initializing AutoScaling connection")
@@ -136,8 +144,8 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Route 53 connection")
 		client.r53conn = route53.New(&aws.Config{
 			Credentials: creds,
-			Region:      "us-east-1",
-			MaxRetries:  c.MaxRetries,
+			Region:      aws.String("us-east-1"),
+			MaxRetries:  aws.Int(c.MaxRetries),
 		})
 
 		log.Println("[INFO] Initializing Elasticache Connection")
@@ -170,6 +178,19 @@ func (c *Config) ValidateRegion() error {
 		}
 	}
 	return fmt.Errorf("Not a valid region: %s", c.Region)
+}
+
+// Validate credentials early and fail before we do any graph walking
+func (c *Config) ValidateCredentials(iamconn *iam.IAM) error {
+	_, err := iamconn.GetUser(nil)
+
+	if awsErr, ok := err.(awserr.Error); ok {
+		if awsErr.Code() == "SignatureDoesNotMatch" {
+			return fmt.Errorf("Failed authenticating with AWS: please verify credentials")
+		}
+	}
+
+	return err
 }
 
 // ValidateAccountId returns a context-specific error if the configured account

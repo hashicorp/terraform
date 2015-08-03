@@ -60,7 +60,7 @@ The following arguments are supported:
 * `comparison_operator` - (Required) The arithmetic operation to use when comparing the specified Statistic and Threshold. The specified Statistic value is used as the first operand. Either of the following is supported: `GreaterThanOrEqualToThreshold`, `GreaterThanThreshold`, `LessThanThreshold`, `LessThanOrEqualToThreshold`.
 * `evaluation_periods` - (Required) The number of periods over which data is compared to the specified threshold.
 * `metric_name` - (Required) The name for the alarm's associated metric.
-  See docs for [supported metrics]([valid metrics](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html)).
+  See docs for [supported metrics](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
 * `namespace` - (Required) The namespace for the alarm's associated metric.
 * `period` - (Required) The period in seconds over which the specified `statistic` is applied.
 * `statistic` - (Required) The statistic to apply to the alarm's associated metric.

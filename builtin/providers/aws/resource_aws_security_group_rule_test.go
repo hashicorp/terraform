@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -16,8 +15,8 @@ import (
 func TestIpPermissionIDHash(t *testing.T) {
 	simple := &ec2.IPPermission{
 		IPProtocol: aws.String("tcp"),
-		FromPort:   aws.Long(int64(80)),
-		ToPort:     aws.Long(int64(8000)),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
 		IPRanges: []*ec2.IPRange{
 			&ec2.IPRange{
 				CIDRIP: aws.String("10.0.0.0/8"),
@@ -27,8 +26,8 @@ func TestIpPermissionIDHash(t *testing.T) {
 
 	egress := &ec2.IPPermission{
 		IPProtocol: aws.String("tcp"),
-		FromPort:   aws.Long(int64(80)),
-		ToPort:     aws.Long(int64(8000)),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
 		IPRanges: []*ec2.IPRange{
 			&ec2.IPRange{
 				CIDRIP: aws.String("10.0.0.0/8"),
@@ -47,8 +46,8 @@ func TestIpPermissionIDHash(t *testing.T) {
 
 	vpc_security_group_source := &ec2.IPPermission{
 		IPProtocol: aws.String("tcp"),
-		FromPort:   aws.Long(int64(80)),
-		ToPort:     aws.Long(int64(8000)),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
 		UserIDGroupPairs: []*ec2.UserIDGroupPair{
 			&ec2.UserIDGroupPair{
 				UserID:  aws.String("987654321"),
@@ -67,8 +66,8 @@ func TestIpPermissionIDHash(t *testing.T) {
 
 	security_group_source := &ec2.IPPermission{
 		IPProtocol: aws.String("tcp"),
-		FromPort:   aws.Long(int64(80)),
-		ToPort:     aws.Long(int64(8000)),
+		FromPort:   aws.Int64(int64(80)),
+		ToPort:     aws.Int64(int64(8000)),
 		UserIDGroupPairs: []*ec2.UserIDGroupPair{
 			&ec2.UserIDGroupPair{
 				UserID:    aws.String("987654321"),
@@ -101,12 +100,12 @@ func TestIpPermissionIDHash(t *testing.T) {
 	for _, tc := range cases {
 		actual := ipPermissionIDHash(tc.Type, tc.Input)
 		if actual != tc.Output {
-			t.Errorf("input: %s - %s\noutput: %s", tc.Type, awsutil.StringValue(tc.Input), actual)
+			t.Errorf("input: %s - %s\noutput: %s", tc.Type, tc.Input, actual)
 		}
 	}
 }
 
-func TestAccAWSSecurityGroupRule_Ingress(t *testing.T) {
+func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testRuleCount := func(*terraform.State) error {
@@ -143,7 +142,7 @@ func TestAccAWSSecurityGroupRule_Ingress(t *testing.T) {
 	})
 }
 
-func TestAccAWSSecurityGroupRule_IngressClassic(t *testing.T) {
+func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testRuleCount := func(*terraform.State) error {
@@ -323,8 +322,8 @@ func testAccCheckAWSSecurityGroupRuleExists(n string, group *ec2.SecurityGroup) 
 func testAccCheckAWSSecurityGroupRuleAttributes(group *ec2.SecurityGroup, ruleType string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := &ec2.IPPermission{
-			FromPort:   aws.Long(80),
-			ToPort:     aws.Long(8000),
+			FromPort:   aws.Int64(80),
+			ToPort:     aws.Int64(8000),
 			IPProtocol: aws.String("tcp"),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
 		}

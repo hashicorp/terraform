@@ -1,0 +1,3 @@
+provider "aws" {
+    value = "foo"
+}

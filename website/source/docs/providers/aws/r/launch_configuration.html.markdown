@@ -34,6 +34,8 @@ The following arguments are supported:
 * `security_groups` - (Optional) A list of associated security group IDS.
 * `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
 * `user_data` - (Optional) The user data to provide when launching the instance.
+* `enable_monitoring` - (Optional) Enables/disables detailed monitoring. This is enabled by default.
+* `ebs_optimized` - (Optional) If true, the launched EC2 instance will be EBS-optimized.
 * `block_device_mapping` - (Optional) A list of block devices to add. Their keys are documented below.
 
 <a id="block-devices"></a>
@@ -60,7 +62,7 @@ replacement.
 
 Each `ebs_block_device` supports the following:
 
-* `device_name` - The name of the device to mount.
+* `device_name` - (Required) The name of the device to mount.
 * `snapshot_id` - (Optional) The Snapshot ID to mount.
 * `volume_type` - (Optional) The type of volume. Can be `"standard"`, `"gp2"`,
   or `"io1"`. (Default: `"standard"`).

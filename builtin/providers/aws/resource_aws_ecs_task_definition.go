@@ -90,7 +90,7 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 		input.Volumes = volumes
 	}
 
-	log.Printf("[DEBUG] Registering ECS task definition: %#v", input)
+	log.Printf("[DEBUG] Registering ECS task definition: %s", input)
 	out, err := conn.RegisterTaskDefinition(&input)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 
 	taskDefinition := *out.TaskDefinition
 
-	log.Printf("[DEBUG] ECS task definition registered: %#v (rev. %d)",
+	log.Printf("[DEBUG] ECS task definition registered: %q (rev. %d)",
 		*taskDefinition.TaskDefinitionARN, *taskDefinition.Revision)
 
 	d.SetId(*taskDefinition.Family)
@@ -117,7 +117,7 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Received task definition %#v", out)
+	log.Printf("[DEBUG] Received task definition %s", out)
 
 	taskDefinition := out.TaskDefinition
 
@@ -132,18 +132,39 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsEcsTaskDefinitionUpdate(d *schema.ResourceData, meta interface{}) error {
-	return resourceAwsEcsTaskDefinitionCreate(d, meta)
+	oldArn := d.Get("arn").(string)
+
+	log.Printf("[DEBUG] Creating new revision of task definition %q", d.Id())
+	err := resourceAwsEcsTaskDefinitionCreate(d, meta)
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] New revision of %q created: %q", d.Id(), d.Get("arn").(string))
+
+	log.Printf("[DEBUG] Deregistering old revision of task definition %q: %q", d.Id(), oldArn)
+	conn := meta.(*AWSClient).ecsconn
+	_, err = conn.DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{
+		TaskDefinition: aws.String(oldArn),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Old revision of task definition deregistered: %q", oldArn)
+
+	return resourceAwsEcsTaskDefinitionRead(d, meta)
 }
 
 func resourceAwsEcsTaskDefinitionDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
-	// NOT YET IMPLEMENTED o_O
 	_, err := conn.DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{
-		TaskDefinition: aws.String(d.Id()),
+		TaskDefinition: aws.String(d.Get("arn").(string)),
 	})
+	if err != nil {
+		return err
+	}
 
-	log.Printf("[DEBUG] Deregistering task definition %s returned %#v", d.Id(), err)
+	log.Printf("[DEBUG] Task definition %q deregistered.", d.Get("arn").(string))
 
 	return nil
 }

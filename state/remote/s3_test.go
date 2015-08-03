@@ -28,6 +28,8 @@ func TestS3Factory(t *testing.T) {
 	config["region"] = "us-west-1"
 	config["bucket"] = "foo"
 	config["key"] = "bar"
+	config["encrypt"] = "1"
+
 	// For this test we'll provide the credentials as config. The
 	// acceptance tests implicitly test passing credentials as
 	// environment variables.
@@ -41,7 +43,7 @@ func TestS3Factory(t *testing.T) {
 
 	s3Client := client.(*S3Client)
 
-	if s3Client.nativeClient.Config.Region != "us-west-1" {
+	if *s3Client.nativeClient.Config.Region != "us-west-1" {
 		t.Fatalf("Incorrect region was populated")
 	}
 	if s3Client.bucketName != "foo" {
@@ -80,11 +82,13 @@ func TestS3Client(t *testing.T) {
 
 	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
 	keyName := "testState"
+	testData := []byte(`testing data`)
 
 	config := make(map[string]string)
 	config["region"] = regionName
 	config["bucket"] = bucketName
 	config["key"] = keyName
+	config["encrypt"] = "1"
 
 	client, err := s3Factory(config)
 	if err != nil {
@@ -105,6 +109,13 @@ func TestS3Client(t *testing.T) {
 	if err != nil {
 		t.Skipf("Failed to create test S3 bucket, so skipping")
 	}
+
+	// Ensure we can perform a PUT request with the encryption header
+	err = s3Client.Put(testData)
+	if err != nil {
+		t.Logf("WARNING: Failed to send test data to S3 bucket. (error was %s)", err)
+	}
+
 	defer func() {
 		deleteBucketReq := &s3.DeleteBucketInput{
 			Bucket: &bucketName,

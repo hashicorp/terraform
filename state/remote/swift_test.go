@@ -2,8 +2,8 @@ package remote
 
 import (
 	"net/http"
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestSwiftClient_impl(t *testing.T) {

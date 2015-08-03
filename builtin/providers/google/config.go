@@ -3,10 +3,13 @@ package google
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
+
 
 	// TODO(dcunnin): Use version code from version.go
 	// "github.com/hashicorp/terraform"
@@ -14,7 +17,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/compute/v1"
-	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/storage/v1"
 )
@@ -27,15 +30,14 @@ type Config struct {
 	Region      string
 
 	clientCompute *compute.Service
-	clientComputeBeta *computeBeta.Service
-	clientDns     *dns.Service
+	clientContainer *container.Service
+	clientDns *dns.Service
 	clientStorage *storage.Service
 }
 
 func (c *Config) loadAndValidate() error {
 	var account accountFile
 
-	// TODO: validation that it isn't blank
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
 	}
@@ -49,15 +51,38 @@ func (c *Config) loadAndValidate() error {
 	var client *http.Client
 
 	if c.AccountFile != "" {
-		if err := loadJSON(&account, c.AccountFile); err != nil {
-			return fmt.Errorf(
-				"Error loading account file '%s': %s",
-				c.AccountFile,
-				err)
+		contents := c.AccountFile
+
+		// Assume account_file is a JSON string
+		if err := parseJSON(&account, contents); err != nil {
+			// If account_file was not JSON, assume it is a file path instead
+			if _, err := os.Stat(c.AccountFile); os.IsNotExist(err) {
+				return fmt.Errorf(
+					"account_file path does not exist: %s",
+					c.AccountFile)
+			}
+
+			b, err := ioutil.ReadFile(c.AccountFile)
+			if err != nil {
+				return fmt.Errorf(
+					"Error reading account_file from path '%s': %s",
+					c.AccountFile,
+					err)
+			}
+
+			contents = string(b)
+
+			if err := parseJSON(&account, contents); err != nil {
+				return fmt.Errorf(
+					"Error parsing account file '%s': %s",
+					contents,
+					err)
+			}
 		}
 
 		clientScopes := []string{
 			"https://www.googleapis.com/auth/compute",
+			"https://www.googleapis.com/auth/cloud-platform",
 			"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
 			"https://www.googleapis.com/auth/devstorage.full_control",
 		}
@@ -112,12 +137,12 @@ func (c *Config) loadAndValidate() error {
 	}
 	c.clientCompute.UserAgent = userAgent
 
-	log.Printf("[INFO] Instantiating Beta GCE client...")
-	c.clientComputeBeta, err = computeBeta.New(client)
+	log.Printf("[INFO] Instantiating GKE client...")
+	c.clientContainer, err = container.New(client)
 	if err != nil {
 		return err
 	}
-	c.clientComputeBeta.UserAgent = userAgent
+	c.clientContainer.UserAgent = userAgent
 
 	log.Printf("[INFO] Instantiating Google Cloud DNS client...")
 	c.clientDns, err = dns.New(client)
@@ -144,13 +169,9 @@ type accountFile struct {
 	ClientId     string `json:"client_id"`
 }
 
-func loadJSON(result interface{}, path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func parseJSON(result interface{}, contents string) error {
+	r := strings.NewReader(contents)
+	dec := json.NewDecoder(r)
 
-	dec := json.NewDecoder(f)
 	return dec.Decode(result)
 }

@@ -181,7 +181,7 @@ resource "cloudstack_vpc" "foobar" {
 resource "cloudstack_network_acl" "foo" {
   name = "terraform-acl"
   description = "terraform-acl-text"
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc = "${cloudstack_vpc.foobar.id}"
 }
 
 resource "cloudstack_network_acl_rule" "foo" {
