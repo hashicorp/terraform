@@ -20,7 +20,7 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Azure Provider
 provider "azure" {
-    settings_file = "${var.azure_settings_file}"
+  settings_file = "${file("credentials.publishsettings")}"
 }
 
 # Create a web server
@@ -33,7 +33,7 @@ resource "azure_instance" "web" {
 
 The following arguments are supported:
 
-* `settings_file` - (Optional) The path to a publish settings file used to
+* `settings_file` - (Optional) Contents of a valid `publishsettings` file, used to
   authenticate with the Azure API. You can download the settings file here:
   https://manage.windowsazure.com/publishsettings. You must either provide
   (or source from the `AZURE_SETTINGS_FILE` environment variable) a settings
