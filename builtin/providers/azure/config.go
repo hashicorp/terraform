@@ -2,7 +2,6 @@ package azure
 
 import (
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/management"
@@ -22,7 +21,7 @@ import (
 // Config is the configuration structure used to instantiate a
 // new Azure management client.
 type Config struct {
-	SettingsFile   string
+	Settings       []byte
 	SubscriptionID string
 	Certificate    []byte
 	ManagementURL  string
@@ -96,14 +95,8 @@ func (c Client) getStorageServiceQueueClient(serviceName string) (storage.QueueS
 	return storageClient.GetQueueService(), err
 }
 
-// NewClientFromSettingsFile returns a new Azure management
-// client created using a publish settings file.
-func (c *Config) NewClientFromSettingsFile() (*Client, error) {
-	if _, err := os.Stat(c.SettingsFile); os.IsNotExist(err) {
-		return nil, fmt.Errorf("Publish Settings file %q does not exist!", c.SettingsFile)
-	}
-
-	mc, err := management.ClientFromPublishSettingsFile(c.SettingsFile, c.SubscriptionID)
+func (c *Config) NewClientFromSettingsData() (*Client, error) {
+	mc, err := management.ClientFromPublishSettingsData(c.Settings, c.SubscriptionID)
 	if err != nil {
 		return nil, nil
 	}
