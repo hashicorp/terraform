@@ -134,6 +134,26 @@ func TestAccAWSS3Bucket_WebsiteRedirect(t *testing.T) {
 	})
 }
 
+// Test TestAccAWSS3Bucket_shouldFailNotFound is designed to fail with a "plan
+// not empty" error in Terraform, to check against regresssions.
+// See https://github.com/hashicorp/terraform/pull/2925
+func TestAccAWSS3Bucket_shouldFailNotFound(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketDestroyedConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3DestroyBucket("aws_s3_bucket.bucket"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).s3conn
 
@@ -169,6 +189,29 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 
 		if err != nil {
 			return fmt.Errorf("S3Bucket error: %v", err)
+		}
+		return nil
+	}
+}
+
+func testAccCheckAWSS3DestroyBucket(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No S3 Bucket ID is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+		_, err := conn.DeleteBucket(&s3.DeleteBucketInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error destroying Bucket (%s) in testAccCheckAWSS3DestroyBucket: %s", rs.Primary.ID, err)
 		}
 		return nil
 	}
@@ -321,3 +364,11 @@ resource "aws_s3_bucket" "bucket" {
 	policy = %s
 }
 `, randInt, strconv.Quote(testAccAWSS3BucketPolicy))
+
+var destroyedName = fmt.Sprintf("tf-test-bucket-%d", randInt)
+var testAccAWSS3BucketDestroyedConfig = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "%s"
+	acl = "public-read"
+}
+`, destroyedName)
