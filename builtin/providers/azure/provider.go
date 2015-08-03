@@ -17,7 +17,7 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"settings_file": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("AZURE_SETTINGS_FILE", nil),
 				ValidateFunc: validateSettingsFile,
 			},

@@ -33,7 +33,7 @@ resource "azure_instance" "web" {
 
 The following arguments are supported:
 
-* `settings_file` - (Required) Contents of a valid `publishsettings` file, used to
+* `settings_file` - (Optional) Contents of a valid `publishsettings` file, used to
   authenticate with the Azure API. You can download the settings file here:
   https://manage.windowsazure.com/publishsettings. You must either provide
   (or source from the `AZURE_SETTINGS_FILE` environment variable) a settings
