@@ -392,7 +392,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(lcName)
 
 	log.Printf(
-		"[DEBUG] autoscaling create launch configuration: %s", aws.StringValue(createLaunchConfigurationOpts))
+		"[DEBUG] autoscaling create launch configuration: %s", aws.StringValue(&createLaunchConfigurationOpts))
 
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
@@ -433,7 +433,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 		LaunchConfigurationNames: []*string{aws.String(d.Id())},
 	}
 
-	log.Printf("[DEBUG] launch configuration describe configuration: %s", aws.StringValue(describeOpts))
+	log.Printf("[DEBUG] launch configuration describe configuration: %s", aws.StringValue(&describeOpts))
 	describConfs, err := autoscalingconn.DescribeLaunchConfigurations(&describeOpts)
 	if err != nil {
 		return fmt.Errorf("Error retrieving launch configuration: %s", err)
