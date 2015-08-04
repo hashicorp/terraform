@@ -17,7 +17,7 @@ IMPROVEMENTS:
   * provider/aws: Allow configuration of the DynamoDB Endpoint [GH-2825]
   * provider/aws: Compute private ip addresses of ENIs if they are not specified [GH-2743]
   * provider/azure: Allow `settings_file` to accept XML string [GH-2922]
-  * provider/azure: Provide a simpler error when using a Platform Image without a 
+  * provider/azure: Provide a simpler error when using a Platform Image without a
       Storage Service [GH-2861]
   * provider/google: `account_file` is now expected to be JSON. Paths are still supported for
       backwards compatibility. [GH-2839]
@@ -557,7 +557,7 @@ FEATURES:
       less likely to become corrupt in a catastrophic case: terraform panic
       or system killing Terraform.
   * **Math operations** in interpolations. You can now do things like
-      `${count.index+1}`. [GH-1068]
+      `${count.index + 1}`. [GH-1068]
   * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go),
       a fork of the official `awslabs` repo. We forked for stability while
       `awslabs` refactored the library, and will move back to the officially
