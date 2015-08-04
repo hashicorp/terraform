@@ -193,8 +193,14 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("cidr_blocks", cb)
 
 	if len(rule.UserIDGroupPairs) > 0 {
-		s := rule.UserIDGroupPairs[0]
-		d.Set("source_security_group_id", *s.GroupID)
+		// Can not use rule.UserIDGroupPairs[0] since if self=true is specifed
+		// then there will may be multiple objects in list.
+		for _, s := range rule.UserIDGroupPairs {
+			if *s.GroupID != sg_id {
+				d.Set("source_security_group_id", *s.GroupID)
+				break
+			}
+		}
 	}
 
 	return nil
@@ -295,6 +301,20 @@ func ipPermissionIDHash(ruleType string, ip *ec2.IPPermission) string {
 	}
 	buf.WriteString(fmt.Sprintf("%s-", *ip.IPProtocol))
 	buf.WriteString(fmt.Sprintf("%s-", ruleType))
+
+	// Need to include Peer security group IDs
+	// to avoid collisions.
+	if len(ip.UserIDGroupPairs) > 0 {
+		s := make([]string, len(ip.UserIDGroupPairs))
+		for i, r := range ip.UserIDGroupPairs {
+			s[i] = *r.GroupID
+		}
+		sort.Strings(s)
+
+		for _, v := range s {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
 
 	// We need to make sure to sort the strings below so that we always
 	// generate the same hash code no matter what is in the set.
