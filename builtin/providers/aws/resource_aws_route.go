@@ -136,7 +136,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating route: %s", err)
 	}
 
-	route, err := findResourceRoute(conn, d)
+	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 	if err != nil {
 		fmt.Errorf("Error: %s", awsutil.StringValue(err))
 	}
@@ -148,7 +148,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	route, err := findResourceRoute(conn, d)
+	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 	if err != nil {
 		return err
 	}
@@ -256,11 +256,11 @@ func routeIDHash(d *schema.ResourceData, r *ec2.Route) string {
 }
 
 // Helper: retrieve a route
-func findResourceRoute(conn *ec2.EC2, d *schema.ResourceData) (*ec2.Route, error) {
-	routeTableId := d.Get("route_table_id").(string)
+func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, error) {
+	routeTableID := rtbid
 
 	findOpts := &ec2.DescribeRouteTablesInput{
-		RouteTableIDs: []*string{&routeTableId},
+		RouteTableIDs: []*string{&routeTableID},
 	}
 
 	resp, err := conn.DescribeRouteTables(findOpts)
@@ -269,7 +269,7 @@ func findResourceRoute(conn *ec2.EC2, d *schema.ResourceData) (*ec2.Route, error
 	}
 
 	for _, route := range (*resp.RouteTables[0]).Routes {
-		if *route.DestinationCIDRBlock == d.Get("destination_cidr_block").(string) {
+		if *route.DestinationCIDRBlock == cidr {
 			return route, nil
 		}
 	}
