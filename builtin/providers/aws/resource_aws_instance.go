@@ -150,7 +150,6 @@ func resourceAwsInstance() *schema.Resource {
 			"instance_initiated_shutdown_behavior": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "stop",
 			},
 
 			"monitoring": &schema.Schema{
@@ -922,11 +921,14 @@ func buildAwsInstanceOpts(
 	conn := meta.(*AWSClient).ec2conn
 
 	opts := &awsInstanceOpts{
-		DisableAPITermination:             aws.Bool(d.Get("disable_api_termination").(bool)),
-		EBSOptimized:                      aws.Bool(d.Get("ebs_optimized").(bool)),
-		ImageID:                           aws.String(d.Get("ami").(string)),
-		InstanceType:                      aws.String(d.Get("instance_type").(string)),
-		InstanceInitiatedShutdownBehavior: aws.String(d.Get("instance_initiated_shutdown_behavior").(string)),
+		DisableAPITermination: aws.Bool(d.Get("disable_api_termination").(bool)),
+		EBSOptimized:          aws.Bool(d.Get("ebs_optimized").(bool)),
+		ImageID:               aws.String(d.Get("ami").(string)),
+		InstanceType:          aws.String(d.Get("instance_type").(string)),
+	}
+
+	if v := d.Get("instance_initiated_shutdown_behavior").(string); v != "" {
+		opts.InstanceInitiatedShutdownBehavior = aws.String(v)
 	}
 
 	opts.Monitoring = &ec2.RunInstancesMonitoringEnabled{
