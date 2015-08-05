@@ -4,6 +4,7 @@ FEATURES:
 
   * **New resource: `google_compute_instance_group_manager`** [GH-2868]
   * **New resource: `google_compute_autoscaler`** [GH-2868]
+  * **New resource: `aws_s3_bucket_object`** [GH-2898]
 
 IMPROVEMENTS:
 
