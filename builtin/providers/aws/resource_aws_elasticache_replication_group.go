@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -77,6 +77,10 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"primary_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -93,20 +97,22 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	engineVersion := d.Get("engine_version").(string)
 	securityNameSet := d.Get("security_group_names").(*schema.Set)
 	securityIdSet := d.Get("security_group_ids").(*schema.Set)
+	subnetGroupName := d.Get("subnet_group_name").(string)
 
 	securityNames := expandStringList(securityNameSet.List())
 	securityIds := expandStringList(securityIdSet.List())
 
 	req := &elasticache.CreateReplicationGroupInput{
-		ReplicationGroupID:		aws.String(replicationGroupId),
-		ReplicationGroupDescription:	aws.String(description),
-		CacheNodeType:            	aws.String(cacheNodeType),
-		AutomaticFailoverEnabled: 	aws.Boolean(automaticFailover),
-		NumCacheClusters:         	aws.Long(int64(numCacheClusters)),
-		Engine:				aws.String(engine),
-		EngineVersion:			aws.String(engineVersion),
-		CacheSecurityGroupNames:	securityNames,
-		SecurityGroupIDs:		securityIds,
+		ReplicationGroupID:          aws.String(replicationGroupId),
+		ReplicationGroupDescription: aws.String(description),
+		CacheNodeType:               aws.String(cacheNodeType),
+		AutomaticFailoverEnabled:    aws.Bool(automaticFailover),
+		NumCacheClusters:            aws.Int64(int64(numCacheClusters)),
+		Engine:                      aws.String(engine),
+		CacheSubnetGroupName:        aws.String(subnetGroupName),
+		EngineVersion:               aws.String(engineVersion),
+		CacheSecurityGroupNames:     securityNames,
+		SecurityGroupIDs:            securityIds,
 	}
 
 	if v, ok := d.GetOk("parameter_group_name"); ok {
@@ -123,7 +129,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		Pending:    pending,
 		Target:     "available",
 		Refresh:    ReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
-		Timeout:    15 * time.Minute,
+		Timeout:    60 * time.Minute,
 		Delay:      20 * time.Second,
 		MinTimeout: 5 * time.Second,
 	}
@@ -164,6 +170,7 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		d.Set("automatic_failover", c.AutomaticFailover)
 		d.Set("num_cache_clusters", len(c.MemberClusters))
 	}
+	d.Set("primary_endpoint", res.ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Address)
 
 	return nil
 }
@@ -171,14 +178,14 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
-	req := &elasticache.ModifyReplicationGroupInput {
-		ApplyImmediately:   aws.Boolean(true),
+	req := &elasticache.ModifyReplicationGroupInput{
+		ApplyImmediately:   aws.Bool(true),
 		ReplicationGroupID: aws.String(d.Id()),
 	}
 
 	if d.HasChange("automatic_failover") {
 		automaticFailover := d.Get("automatic_failover").(bool)
-		req.AutomaticFailoverEnabled = aws.Boolean(automaticFailover)
+		req.AutomaticFailoverEnabled = aws.Bool(automaticFailover)
 	}
 
 	if d.HasChange("description") {
