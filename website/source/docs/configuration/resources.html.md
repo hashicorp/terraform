@@ -68,6 +68,11 @@ The `lifecycle` block allows the following keys to be set:
       destruction of a given resource. When this is set to `true`, any plan
       that includes a destroy of this resource will return an error message.
 
+~> **NOTE on create\_before\_destroy and dependencies:** Resources that utilize
+the `create_before_destroy` key can only depend on other resources that also
+include `create_before_destroy`. Referencing a resource that does not include
+`create_before_destroy` will result in a dependency graph cycle. 
+
 -------------
 
 Within a resource, you can optionally have a **connection block**.
