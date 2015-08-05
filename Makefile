@@ -13,6 +13,7 @@ test: .git/hooks/pre-commit
 
 clean:
 	rm -f terraform-provider-nsone
+	make -C yelppack clean
 
 .git/hooks/pre-commit:
 	    if [ ! -f .git/hooks/pre-commit ]; then ln -s ../../git-hooks/pre-commit .git/hooks/pre-commit; fi
