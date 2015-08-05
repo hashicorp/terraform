@@ -17,3 +17,8 @@ clean:
 .git/hooks/pre-commit:
 	    if [ ! -f .git/hooks/pre-commit ]; then ln -s ../../git-hooks/pre-commit .git/hooks/pre-commit; fi
 
+itest_%:
+	make -C yelppack $@
+
+package: itest_trusty
+
