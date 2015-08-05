@@ -34,6 +34,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 		Delete: resourceAwsDynamoDbTableDelete,
 
 		Schema: map[string]*schema.Schema{
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -283,7 +287,6 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		} else {
 			// No error, set ID and return
 			d.SetId(*output.TableDescription.TableName)
-			d.Set("arn", *output.TableDescription.TableARN)
 			return nil
 		}
 	}
@@ -576,6 +579,7 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("global_secondary_index", gsiList)
+	d.Set("arn", table.TableARN)
 
 	return nil
 }
