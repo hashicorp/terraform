@@ -38,8 +38,7 @@ func dataFeedToResourceData(d *schema.ResourceData, df *nsone.DataFeed) {
 	d.Set("name", df.Name)
 }
 
-func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.APIClient)
+func resourceDataToDataFeed(d *schema.ResourceData) *nsone.DataFeed {
 	df := nsone.NewDataFeed(d.Get("source_id").(string))
 	df.Name = d.Get("name").(string)
 	config := make(map[string]string)
@@ -47,6 +46,12 @@ func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
 		config[k] = v.(string)
 	}
 	df.Config = config
+	return df
+}
+
+func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*nsone.APIClient)
+	df := resourceDataToDataFeed(d)
 	err := client.CreateDataFeed(df)
 	if err != nil {
 		return err
@@ -74,7 +79,7 @@ func DataFeedDelete(d *schema.ResourceData, meta interface{}) error {
 
 func DataFeedUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
-	df := nsone.NewDataFeed(d.Get("source_id").(string))
+	df := resourceDataToDataFeed(d)
 	df.Id = d.Id()
 	err := client.UpdateDataFeed(df)
 	if err != nil {
