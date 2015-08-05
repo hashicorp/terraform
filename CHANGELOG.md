@@ -35,6 +35,7 @@ BUG FIXES:
   * provider/aws: Fix issue with IAM Server Certificates and Chains [GH-2871]
   * provider/aws: Fix issue with IAM Server Certificates when using `path` [GH-2871]
   * provider/aws: Fix issue in Security Group Rules when the Security Group is not found [GH-2897]
+  * provider/aws: allow external ENI attachments [GH-2943]
 
 ## 0.6.1 (July 20, 2015)
 
