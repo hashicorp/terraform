@@ -180,6 +180,7 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 				Optional: true,
 			},
 		},
+		SchemaVersion: 3,
 	}
 
 	r.Delete = func(d *ResourceData, m interface{}) error {
@@ -209,10 +210,13 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 			"id":  "bar",
 			"foo": "42",
 		},
+		Meta: map[string]string{
+			"schema_version": "3",
+		},
 	}
 
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("expected:\n%#v\n\ngot:\n%#v", expected, actual)
 	}
 }
 

@@ -1,6 +1,9 @@
 package azure
 
 import (
+	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"testing"
 
@@ -56,5 +59,73 @@ func testAccPreCheck(t *testing.T) {
 
 	if v := os.Getenv("AZURE_STORAGE"); v == "" {
 		t.Fatal("AZURE_STORAGE must be set for acceptance tests")
+	}
+}
+
+func TestAzure_validateSettingsFile(t *testing.T) {
+	f, err := ioutil.TempFile("", "tf-test")
+	if err != nil {
+		t.Fatalf("Error creating temporary file in TestAzure_validateSettingsFile: %s", err)
+	}
+
+	fx, err := ioutil.TempFile("", "tf-test-xml")
+	if err != nil {
+		t.Fatalf("Error creating temporary file with XML in TestAzure_validateSettingsFile: %s", err)
+	}
+
+	_, err = io.WriteString(fx, "<PublishData></PublishData>")
+	if err != nil {
+		t.Fatalf("Error writing XML File: %s", err)
+	}
+
+	log.Printf("fx name: %s", fx.Name())
+	fx.Close()
+
+	cases := []struct {
+		Input string // String of XML or a path to an XML file
+		W     int    // expected count of warnings
+		E     int    // expected count of errors
+	}{
+		{"test", 1, 1},
+		{f.Name(), 1, 0},
+		{fx.Name(), 1, 0},
+		{"<PublishData></PublishData>", 0, 0},
+	}
+
+	for _, tc := range cases {
+		w, e := validateSettingsFile(tc.Input, "")
+
+		if len(w) != tc.W {
+			t.Errorf("Error in TestAzureValidateSettingsFile: input: %s , warnings: %#v, errors: %#v", tc.Input, w, e)
+		}
+		if len(e) != tc.E {
+			t.Errorf("Error in TestAzureValidateSettingsFile: input: %s , warnings: %#v, errors: %#v", tc.Input, w, e)
+		}
+	}
+}
+
+func TestAzure_isFile(t *testing.T) {
+	f, err := ioutil.TempFile("", "tf-test-file")
+	if err != nil {
+		t.Fatalf("Error creating temporary file with XML in TestAzure_isFile: %s", err)
+	}
+	cases := []struct {
+		Input string // String path to file
+		B     bool   // expected true/false
+		E     bool   // expect error
+	}{
+		{"test", false, true},
+		{f.Name(), true, false},
+	}
+
+	for _, tc := range cases {
+		x, y := isFile(tc.Input)
+		if tc.B != x {
+			t.Errorf("Error in TestAzure_isFile: input: %s , returned: %#v, expected: %#v", tc.Input, x, tc.B)
+		}
+
+		if tc.E != (y != nil) {
+			t.Errorf("Error in TestAzure_isFile: input: %s , returned: %#v, expected: %#v", tc.Input, y, tc.E)
+		}
 	}
 }

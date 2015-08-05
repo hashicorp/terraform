@@ -57,6 +57,8 @@ For example, `${count.index}` will interpolate the current index
 in a multi-count resource. For more information on count, see the
 resource configuration page.
 
+<a id="path-variables"></a>
+
 **To reference path information**, the syntax is `path.TYPE`.
 TYPE can be `cwd`, `module`, or `root`. `cwd` will interpolate the
 cwd. `module` will interpolate the path to the current module. `root`

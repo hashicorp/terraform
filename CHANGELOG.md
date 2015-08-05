@@ -16,6 +16,7 @@ IMPROVEMENTS:
   * provider/aws: Clean up externally removed Launch Configurations [GH-2806]
   * provider/aws: Allow configuration of the DynamoDB Endpoint [GH-2825]
   * provider/aws: Compute private ip addresses of ENIs if they are not specified [GH-2743]
+  * provider/azure: Allow `settings_file` to accept XML string [GH-2922]
   * provider/azure: Provide a simpler error when using a Platform Image without a 
       Storage Service [GH-2861]
   * provider/google: `account_file` is now expected to be JSON. Paths are still supported for
@@ -33,6 +34,9 @@ BUG FIXES:
   * provider/dnsimple: Domain and type should force new records [GH-2777]
   * provider/aws: Fix issue with IAM Server Certificates and Chains [GH-2871]
   * provider/aws: Fix issue with IAM Server Certificates when using `path` [GH-2871]
+  * provider/aws: Fix issue in Security Group Rules when the Security Group is not found [GH-2897]
+  * provider/aws: allow external ENI attachments [GH-2943]
+  * provider/aws: Fix issue with S3 Buckets, and throwing an error when not found [GH-2925]
 
 ## 0.6.1 (July 20, 2015)
 
@@ -53,7 +57,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * core: don't prompt for variables with defaults [GH-2613]
+  * core: Don't prompt for variables with defaults [GH-2613]
   * core: Return correct number of planned updates [GH-2620]
   * core: Fix "provider not found" error that can occur while running
       a destroy plan with grandchildren modules [GH-2755]
@@ -63,6 +67,7 @@ BUG FIXES:
       are properly destroyed up to arbitrary depth [GH-2786]
   * core: Fix "attribute not available" during destroy plans in
       cases where the parameter is passed between modules [GH-2775]
+  * core: Record schema version when destroy fails [GH-2923]
   * connection/ssh: fix issue on machines with an SSH Agent available
     preventing `key_file` from being read without explicitly
     setting `agent = false` [GH-2615]

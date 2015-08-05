@@ -105,7 +105,7 @@ func TestIpPermissionIDHash(t *testing.T) {
 	}
 }
 
-func TestAccAWSSecurityGroupRule_Ingress(t *testing.T) {
+func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testRuleCount := func(*terraform.State) error {
@@ -142,7 +142,7 @@ func TestAccAWSSecurityGroupRule_Ingress(t *testing.T) {
 	})
 }
 
-func TestAccAWSSecurityGroupRule_IngressClassic(t *testing.T) {
+func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testRuleCount := func(*terraform.State) error {
