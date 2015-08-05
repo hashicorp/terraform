@@ -14,7 +14,7 @@ Renders a template from a file.
 
 ```
 resource "template_file" "init" {
-    filename = "init.tpl"
+    filename = "${path.module}/init.tpl"
 
     vars {
         consul_address = "${aws_instance.consul.private_ip}"
@@ -27,9 +27,9 @@ resource "template_file" "init" {
 
 The following arguments are supported:
 
-* `filename` - (Required) The filename for the template. Use path variables
-    (documented in the interpolation section) to specify what the path is
-    relative to.
+* `filename` - (Required) The filename for the template. Use [path
+    variables](/docs/configuration/interpolation.html#path-variables) to make
+    this path relative to different path roots.
 
 * `vars` - (Optional) Variables for interpolation within the template.
 

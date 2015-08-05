@@ -2,13 +2,18 @@ package azure
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+var instanceName = fmt.Sprintf("terraform-test-%d", randInt)
 
 func TestAccAzureInstance_basic(t *testing.T) {
 	var dpmt virtualmachine.DeploymentResponse
@@ -25,9 +30,9 @@ func TestAccAzureInstance_basic(t *testing.T) {
 						"azure_instance.foo", "", &dpmt),
 					testAccCheckAzureInstanceBasicAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "name", "terraform-test"),
+						"azure_instance.foo", "name", instanceName),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "hosted_service_name", "terraform-test"),
+						"azure_instance.foo", "hosted_service_name", instanceName),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "location", "West US"),
 					resource.TestCheckResourceAttr(
@@ -194,7 +199,7 @@ func testAccCheckAzureInstanceBasicAttributes(
 	dpmt *virtualmachine.DeploymentResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if dpmt.Name != "terraform-test" {
+		if dpmt.Name != instanceName {
 			return fmt.Errorf("Bad name: %s", dpmt.Name)
 		}
 
@@ -363,7 +368,7 @@ func testAccCheckAzureInstanceDestroyed(hostedServiceName string) resource.TestC
 
 var testAccAzureInstance_basic = fmt.Sprintf(`
 resource "azure_instance" "foo" {
-    name = "terraform-test"
+    name = "%s"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
     storage_service_name = "%s"
@@ -377,7 +382,7 @@ resource "azure_instance" "foo" {
         public_port = 22
         private_port = 22
     }
-}`, testAccStorageServiceName)
+}`, instanceName, testAccStorageServiceName)
 
 var testAccAzureInstance_seperateHostedService = fmt.Sprintf(`
 resource "azure_hosted_service" "foo" {

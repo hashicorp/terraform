@@ -163,7 +163,9 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	})
 	if err != nil {
 		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() == 404 {
+			log.Printf("[WARN] S3 Bucket (%s) not found, error code (404)", d.Id())
 			d.SetId("")
+			return nil
 		} else {
 			// some of the AWS SDK's errors can be empty strings, so let's add
 			// some additional context.

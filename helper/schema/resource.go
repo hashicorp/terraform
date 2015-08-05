@@ -119,7 +119,7 @@ func (r *Resource) Apply(
 		if s.ID != "" {
 			// Destroy the resource since it is created
 			if err := r.Delete(data, meta); err != nil {
-				return data.State(), err
+				return r.recordCurrentSchemaVersion(data.State()), err
 			}
 
 			// Make sure the ID is gone.
