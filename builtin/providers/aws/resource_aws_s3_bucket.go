@@ -88,6 +88,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Computed: true,
 			},
 
+			"versioning": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 
 			"force_destroy": &schema.Schema{
@@ -147,6 +153,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("website") {
 		if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("versioning") {
+		if err := resourceAwsS3BucketVersioningUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -216,6 +228,26 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if err := d.Set("website", websites); err != nil {
 		return err
+	}
+
+	// Read the versioning configuration
+	versioning, err := s3conn.GetBucketVersioning(&s3.GetBucketVersioningInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, versioning: %v", d.Id(), versioning)
+	if versioning.Status != nil {
+		var versioningStatus bool
+		if *versioning.Status == s3.BucketVersioningStatusEnabled {
+			versioningStatus = true
+		} else {
+			versioningStatus = false
+		}
+		if err := d.Set("versioning", versioningStatus); err != nil {
+			return err
+		}
 	}
 
 	// Add the region as an attribute
@@ -457,6 +489,30 @@ func WebsiteDomainUrl(region string) string {
 	}
 
 	return fmt.Sprintf("s3-website-%s.amazonaws.com", region)
+}
+
+func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	v := d.Get("versioning").(bool)
+	bucket := d.Get("bucket").(string)
+
+	vc := &s3.VersioningConfiguration{}
+	if v {
+		vc.Status = aws.String(s3.BucketVersioningStatusEnabled)
+	} else {
+		vc.Status = aws.String(s3.BucketVersioningStatusSuspended)
+	}
+	i := &s3.PutBucketVersioningInput{
+		Bucket:                  aws.String(bucket),
+		VersioningConfiguration: vc,
+	}
+	log.Printf("[DEBUG] S3 put bucket versioning: %#v", i)
+
+	_, err := s3conn.PutBucketVersioning(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 versioning: %s", err)
+	}
+
+	return nil
 }
 
 func normalizeJson(jsonString interface{}) string {
