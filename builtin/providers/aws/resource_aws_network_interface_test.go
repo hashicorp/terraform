@@ -57,6 +57,26 @@ func TestAccAWSENI_attached(t *testing.T) {
 	})
 }
 
+func TestAccAWSENI_ignoreExternalAttachment(t *testing.T) {
+	var conf ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSENIDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSENIConfigExternalAttachment,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSENIExists("aws_network_interface.bar", &conf),
+					testAccCheckAWSENIAttributes(&conf),
+					testAccCheckAWSENIMakeExternalAttachment("aws_instance.foo", &conf),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSENI_sourceDestCheck(t *testing.T) {
 	var conf ec2.NetworkInterface
 
@@ -211,9 +231,29 @@ func testAccCheckAWSENIDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckAWSENIMakeExternalAttachment(n string, conf *ec2.NetworkInterface) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok || rs.Primary.ID == "" {
+			return fmt.Errorf("Not found: %s", n)
+		}
+		attach_request := &ec2.AttachNetworkInterfaceInput{
+			DeviceIndex:        aws.Int64(2),
+			InstanceID:         aws.String(rs.Primary.ID),
+			NetworkInterfaceID: conf.NetworkInterfaceID,
+		}
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		_, attach_err := conn.AttachNetworkInterface(attach_request)
+		if attach_err != nil {
+			return fmt.Errorf("Error attaching ENI: %s", attach_err)
+		}
+		return nil
+	}
+}
+
 const testAccAWSENIConfig = `
 resource "aws_vpc" "foo" {
-    cidr_block = "172.16.0.0/16"    
+    cidr_block = "172.16.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
@@ -225,7 +265,7 @@ resource "aws_subnet" "foo" {
 resource "aws_security_group" "foo" {
   vpc_id = "${aws_vpc.foo.id}"
   description = "foo"
-  name = "foo"  
+  name = "foo"
 
         egress {
                 from_port = 0
@@ -236,9 +276,9 @@ resource "aws_security_group" "foo" {
 }
 
 resource "aws_network_interface" "bar" {
-    subnet_id = "${aws_subnet.foo.id}"   
+    subnet_id = "${aws_subnet.foo.id}"
     private_ips = ["172.16.10.100"]
-    security_groups = ["${aws_security_group.foo.id}"]    
+    security_groups = ["${aws_security_group.foo.id}"]
     tags {
         Name = "bar_interface"
     }
@@ -258,7 +298,7 @@ resource "aws_subnet" "foo" {
 
 resource "aws_network_interface" "bar" {
     subnet_id = "${aws_subnet.foo.id}"
-		source_dest_check = false
+        source_dest_check = false
     private_ips = ["172.16.10.100"]
 }
 `
@@ -276,61 +316,114 @@ resource "aws_subnet" "foo" {
 
 resource "aws_network_interface" "bar" {
     subnet_id = "${aws_subnet.foo.id}"
-		source_dest_check = false
+        source_dest_check = false
 }
 `
 
 const testAccAWSENIConfigWithAttachment = `
 resource "aws_vpc" "foo" {
-    cidr_block = "172.16.0.0/16"    
-		tags {
-			Name = "tf-eni-test"
-		}
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
 }
 
 resource "aws_subnet" "foo" {
     vpc_id = "${aws_vpc.foo.id}"
     cidr_block = "172.16.10.0/24"
     availability_zone = "us-west-2a"
-		tags {
-			Name = "tf-eni-test"
-		}
+        tags {
+            Name = "tf-eni-test"
+        }
 }
 
 resource "aws_subnet" "bar" {
     vpc_id = "${aws_vpc.foo.id}"
     cidr_block = "172.16.11.0/24"
     availability_zone = "us-west-2a"
-		tags {
-			Name = "tf-eni-test"
-		}
+        tags {
+            Name = "tf-eni-test"
+        }
 }
 
 resource "aws_security_group" "foo" {
   vpc_id = "${aws_vpc.foo.id}"
   description = "foo"
-  name = "foo"  
+  name = "foo"
 }
 
 resource "aws_instance" "foo" {
-	ami = "ami-c5eabbf5"
-	instance_type = "t2.micro"
-	subnet_id = "${aws_subnet.bar.id}"
-	associate_public_ip_address = false
-	private_ip = "172.16.11.50"
-	tags {
-		Name = "tf-eni-test"
-	}
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    private_ip = "172.16.11.50"
+    tags {
+        Name = "tf-eni-test"
+    }
 }
 
 resource "aws_network_interface" "bar" {
-    subnet_id = "${aws_subnet.foo.id}"   
+    subnet_id = "${aws_subnet.foo.id}"
     private_ips = ["172.16.10.100"]
-    security_groups = ["${aws_security_group.foo.id}"]    
+    security_groups = ["${aws_security_group.foo.id}"]
     attachment {
-    	instance = "${aws_instance.foo.id}"
-    	device_index = 1
+        instance = "${aws_instance.foo.id}"
+        device_index = 1
     }
+    tags {
+        Name = "bar_interface"
+    }
+}
+`
+
+const testAccAWSENIConfigExternalAttachment = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.11.0/24"
+    availability_zone = "us-west-2a"
+        tags {
+            Name = "tf-eni-test"
+        }
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+}
+
+resource "aws_instance" "foo" {
+    ami = "ami-c5eabbf5"
+    instance_type = "t2.micro"
+    subnet_id = "${aws_subnet.bar.id}"
+    associate_public_ip_address = false
+    private_ip = "172.16.11.50"
+    tags {
+        Name = "tf-eni-test"
+    }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
     tags {
         Name = "bar_interface"
     }
