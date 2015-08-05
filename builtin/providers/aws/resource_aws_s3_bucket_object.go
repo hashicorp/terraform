@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -89,10 +90,13 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 		})
 
 	if err != nil {
-		// if there is an error reading the object we assume it's not there.
-		d.SetId("")
-		log.Printf("Error Reading Object (%s): %s", key, err)
-		return nil
+		// If S3 returns a 404 Request Failure, mark the object as destroyed
+		if awsErr, ok := err.(awserr.RequestFailure); ok && awsErr.StatusCode() == 404 {
+			d.SetId("")
+			log.Printf("[WARN] Error Reading Object (%s), object not found (HTTP status 404)", key)
+			return nil
+		}
+		return err
 	}
 
 	log.Printf("[DEBUG] Reading S3 Bucket Object meta: %s", resp)
