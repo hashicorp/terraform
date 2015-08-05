@@ -1,7 +1,7 @@
 .PHONY: itest_% clean shell
 PROJECT = terraform-provider-nsone
 
-BUILD_NUMBER := 0
+BUILD_NUMBER ?= 0
 VERSION = 0.1
 ITERATION = yelp$(BUILD_NUMBER)
 ARCH := $(shell facter architecture)
