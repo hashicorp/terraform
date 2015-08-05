@@ -36,6 +36,7 @@ func dataFeedResource() *schema.Resource {
 func dataFeedToResourceData(d *schema.ResourceData, df *nsone.DataFeed) {
 	d.SetId(df.Id)
 	d.Set("name", df.Name)
+	d.Set("config", df.Config)
 }
 
 func resourceDataToDataFeed(d *schema.ResourceData) *nsone.DataFeed {
@@ -52,8 +53,7 @@ func resourceDataToDataFeed(d *schema.ResourceData) *nsone.DataFeed {
 func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	df := resourceDataToDataFeed(d)
-	err := client.CreateDataFeed(df)
-	if err != nil {
+	if err := client.CreateDataFeed(df); err != nil {
 		return err
 	}
 	dataFeedToResourceData(d, df)
@@ -81,8 +81,7 @@ func DataFeedUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	df := resourceDataToDataFeed(d)
 	df.Id = d.Id()
-	err := client.UpdateDataFeed(df)
-	if err != nil {
+	if err := client.UpdateDataFeed(df); err != nil {
 		return err
 	}
 	dataFeedToResourceData(d, df)

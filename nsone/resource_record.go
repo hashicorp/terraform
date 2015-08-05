@@ -7,7 +7,6 @@ import (
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -126,17 +125,11 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 	if r.Link != "" {
 		d.Set("link", r.Link)
 	}
-	log.Println("BOOOO")
-	log.Println(r)
 	if len(r.Answers) > 0 {
 		answers := make([]map[string]interface{}, 0, len(r.Answers))
-		log.Println("Got answers")
 		for _, answer := range r.Answers {
-			log.Println("GOT ANSWER")
-			log.Println(answer)
 			answers = append(answers, answerToMap(answer))
 		}
-		log.Println(fmt.Sprintf("[DEBUG] SETTING ANSWERS: %v", answers))
 		err := d.Set("answers", answers)
 		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting answers for: %s, error: %#v", r.Domain, err)
@@ -159,7 +152,6 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 		}
 		m["meta"] = metas
 	}
-	log.Println(fmt.Sprintf("answerToMap %v", m))
 	return m
 }
 
@@ -210,33 +202,22 @@ func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	err := resourceDataToRecord(r, d)
-	if err != nil {
+	if err := resourceDataToRecord(r, d); err != nil {
 		return err
 	}
-	err = client.CreateRecord(r)
-	if err != nil {
+	if err := client.CreateRecord(r); err != nil {
 		return err
 	}
 	return recordToResourceData(d, r)
 }
 
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
-	//z := d.Get("zone").(string)
-	//do := d.Get("domain").(string)
-	//t := d.Get("type").(string)
-	//before := nsone.NewRecord(z, do, t)
-	//resourceDataToRecord(before, d)
-	//log.Println(fmt.Sprintf("FOOOO READ RECORD %+v", before))
 	client := meta.(*nsone.APIClient)
 	r, err := client.GetRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	if err != nil {
 		return err
 	}
 	recordToResourceData(d, r)
-	//after := nsone.NewRecord(z, do, t)
-	//resourceDataToRecord(after, d)
-	//log.Println(fmt.Sprintf("FINISH READ RECORD %+v", after))
 	return nil
 }
 
@@ -250,12 +231,10 @@ func RecordDelete(d *schema.ResourceData, meta interface{}) error {
 func RecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	r := nsone.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	err := resourceDataToRecord(r, d)
-	if err != nil {
+	if err := resourceDataToRecord(r, d); err != nil {
 		return err
 	}
-	err = client.UpdateRecord(r)
-	if err != nil {
+	if err := client.UpdateRecord(r); err != nil {
 		return err
 	}
 	recordToResourceData(d, r)

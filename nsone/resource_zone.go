@@ -1,10 +1,8 @@
 package nsone
 
 import (
-	"fmt"
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
-	"log"
 )
 
 func zoneResource() *schema.Resource {
@@ -75,8 +73,6 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	if z.Link != "" {
 		d.Set("link", z.Link)
 	}
-	log.Println(fmt.Sprintf("MOO: ID %i", z.Id))
-	log.Println(fmt.Sprintf("MOO: TTL %i", z.Ttl))
 }
 
 func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
@@ -108,10 +104,7 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	z := nsone.NewZone(d.Get("zone").(string))
 	resourceToZoneData(z, d)
-	err := client.CreateZone(z)
-	//    zone := d.Get("zone").(string)
-	//    hostmaster := d.Get("hostmaster").(string)
-	if err != nil {
+	if err := client.CreateZone(z); err != nil {
 		return err
 	}
 	zoneToResourceData(d, z)
@@ -125,8 +118,6 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	zoneToResourceData(d, z)
-	log.Println(z)
-	log.Println("Return from ZoneRead")
 	return nil
 }
 
@@ -141,8 +132,7 @@ func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	z := nsone.NewZone(d.Get("zone").(string))
 	resourceToZoneData(z, d)
-	err := client.UpdateZone(z)
-	if err != nil {
+	if err := client.UpdateZone(z); err != nil {
 		return err
 	}
 	zoneToResourceData(d, z)

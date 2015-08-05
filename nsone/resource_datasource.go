@@ -38,8 +38,7 @@ func dataSourceToResourceData(d *schema.ResourceData, ds *nsone.DataSource) {
 func DataSourceCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.APIClient)
 	ds := nsone.NewDataSource(d.Get("name").(string), d.Get("sourcetype").(string))
-	err := client.CreateDataSource(ds)
-	if err != nil {
+	if err := client.CreateDataSource(ds); err != nil {
 		return err
 	}
 	dataSourceToResourceData(d, ds)
@@ -64,6 +63,12 @@ func DataSourceDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func DataSourceUpdate(d *schema.ResourceData, meta interface{}) error {
-	panic("Update not implemented")
+	client := meta.(*nsone.APIClient)
+	ds := nsone.NewDataSource(d.Get("name").(string), d.Get("sourcetype").(string))
+	ds.Id = d.Id()
+	if err := client.UpdateDataSource(ds); err != nil {
+		return err
+	}
+	dataSourceToResourceData(d, ds)
 	return nil
 }
