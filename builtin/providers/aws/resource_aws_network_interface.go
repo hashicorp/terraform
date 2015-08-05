@@ -56,6 +56,7 @@ func resourceAwsNetworkInterface() *schema.Resource {
 			"attachment": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"instance": &schema.Schema{
