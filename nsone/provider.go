@@ -4,8 +4,6 @@ import (
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"log"
-	"time"
 )
 
 func Provider() terraform.ResourceProvider {
