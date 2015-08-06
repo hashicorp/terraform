@@ -4,3 +4,4 @@ terraform.tfstate.backup
 crash.log
 yelppack/.docker_container_id
 yelppack/.docker_image_id
+dist/

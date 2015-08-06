@@ -2,6 +2,7 @@ package nsone
 
 import (
 	"bytes"
+    "log"
 	"errors"
 	"fmt"
 	"github.com/bobtfish/go-nsone-api"
@@ -105,7 +106,9 @@ func answersToHash(v interface{}) int {
 	for _, metahash := range metas {
 		buf.WriteString(fmt.Sprintf("%d-", metahash))
 	}
-	return hashcode.String(buf.String())
+	hash := hashcode.String(buf.String())
+    log.Println("Generated answersToHash %d from %+v", hash, ms)
+    return hash
 }
 
 func metaToHash(v interface{}) int {
@@ -114,7 +117,9 @@ func metaToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", s["field"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", s["feed"].(string)))
 
-	return hashcode.String(buf.String())
+	hash := hashcode.String(buf.String())
+    log.Println("Generated metaToHash %d from %+v", hash, s)
+    return hash
 }
 
 func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
