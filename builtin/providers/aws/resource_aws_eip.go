@@ -29,6 +29,7 @@ func resourceAwsEip() *schema.Resource {
 
 			"instance": &schema.Schema{
 				Type:     schema.TypeString,
+				Computed: true,
 				Optional: true,
 			},
 
