@@ -4,8 +4,8 @@ import (
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-    "time"
-    "log"
+	"log"
+	"time"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -30,13 +30,8 @@ func Provider() terraform.ResourceProvider {
 
 func nsoneConfigure(d *schema.ResourceData) (interface{}, error) {
 	n := nsone.New(d.Get("apikey").(string))
-    n.RateLimitFunc = func(rl nsone.RateLimit) {
-      log.Println("Percentage left: %s", rl.PercentageLeft())
-      if rl.PercentageLeft() < 50 {
-        log.Println("Sleep")
-        time.Sleep((time.Second * time.Duration(rl.Period)) / ( time.Second * time.Duration(rl.Remaining) ))
-      }
-    }
+	n.Debug()
+	n.RateLimitStrategySleep()
 	return n, nil
 }
 
