@@ -25,6 +25,7 @@ func TestAccAWSSpotInstanceRequest_basic(t *testing.T) {
 					testAccCheckAWSSpotInstanceRequestExists(
 						"aws_spot_instance_request.foo", &sir),
 					testAccCheckAWSSpotInstanceRequestAttributes(&sir),
+					testCheckKeyPair("tmp-key", &sir),
 					resource.TestCheckResourceAttr(
 						"aws_spot_instance_request.foo", "spot_bid_status", "fulfilled"),
 					resource.TestCheckResourceAttr(
@@ -33,6 +34,45 @@ func TestAccAWSSpotInstanceRequest_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSSpotInstanceRequest_vpc(t *testing.T) {
+	var sir ec2.SpotInstanceRequest
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSpotInstanceRequestConfigVPC,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSpotInstanceRequestExists(
+						"aws_spot_instance_request.foo_VPC", &sir),
+					testAccCheckAWSSpotInstanceRequestAttributes(&sir),
+					testCheckKeyPair("tmp-key", &sir),
+					testAccCheckAWSSpotInstanceRequestAttributesVPC(&sir),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo_VPC", "spot_bid_status", "fulfilled"),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo_VPC", "spot_request_state", "active"),
+				),
+			},
+		},
+	})
+}
+
+func testCheckKeyPair(keyName string, sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
+	return func(*terraform.State) error {
+		if sir.LaunchSpecification.KeyName == nil {
+			return fmt.Errorf("No Key Pair found, expected(%s)", keyName)
+		}
+		if sir.LaunchSpecification.KeyName != nil && *sir.LaunchSpecification.KeyName != keyName {
+			return fmt.Errorf("Bad key name, expected (%s), got (%s)", keyName, *sir.LaunchSpecification.KeyName)
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckAWSSpotInstanceRequestDestroy(s *terraform.State) error {
@@ -138,10 +178,26 @@ func testAccCheckAWSSpotInstanceRequestAttributes(
 	}
 }
 
+func testAccCheckAWSSpotInstanceRequestAttributesVPC(
+	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if sir.LaunchSpecification.SubnetID == nil {
+			return fmt.Errorf("SubnetID was not passed, but should have been for this instance to belong to a VPC")
+		}
+		return nil
+	}
+}
+
 const testAccAWSSpotInstanceRequestConfig = `
+resource "aws_key_pair" "debugging" {
+	key_name = "tmp-key"
+	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+}
+
 resource "aws_spot_instance_request" "foo" {
 	ami = "ami-4fccb37f"
 	instance_type = "m1.small"
+	key_name = "${aws_key_pair.debugging.key_name}"
 
 	// base price is $0.044 hourly, so bidding above that should theoretically
 	// always fulfill
@@ -153,6 +209,43 @@ resource "aws_spot_instance_request" "foo" {
 
 	tags {
 		Name = "terraform-test"
+	}
+}
+`
+
+const testAccAWSSpotInstanceRequestConfigVPC = `
+resource "aws_vpc" "foo_VPC" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo_VPC" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo_VPC.id}"
+}
+
+resource "aws_key_pair" "debugging" {
+	key_name = "tmp-key"
+	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+}
+
+resource "aws_spot_instance_request" "foo_VPC" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	key_name = "${aws_key_pair.debugging.key_name}"
+
+	// base price is $0.044 hourly, so bidding above that should theoretically
+	// always fulfill
+	spot_price = "0.05"
+
+	// VPC settings
+	subnet_id = "${aws_subnet.foo_VPC.id}"
+
+	// we wait for fulfillment because we want to inspect the launched instance
+	// and verify termination behavior
+	wait_for_fulfillment = true
+
+	tags {
+		Name = "terraform-test-VPC"
 	}
 }
 `
