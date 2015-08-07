@@ -188,7 +188,7 @@ func (c *Config) ValidateCredentials(iamconn *iam.IAM) error {
 
 	if awsErr, ok := err.(awserr.Error); ok {
 
-		if awsErr.Code() == "AccessDenied" {
+		if awsErr.Code() == "AccessDenied" || awsErr.Code() == "ValidationError" {
 			log.Printf("[WARN] AccessDenied Error with iam.GetUser, assuming IAM profile")
 			// User may be an IAM instance profile, or otherwise IAM role without the
 			// GetUser permissions, so fail silently
