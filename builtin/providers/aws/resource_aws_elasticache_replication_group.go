@@ -81,6 +81,13 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"preferred_cache_cluster_azs": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
 		},
 	}
 }
@@ -98,9 +105,11 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	securityNameSet := d.Get("security_group_names").(*schema.Set)
 	securityIdSet := d.Get("security_group_ids").(*schema.Set)
 	subnetGroupName := d.Get("subnet_group_name").(string)
+	prefferedCacheClusterAZs := d.Get("preferred_cache_cluster_azs").(*schema.Set)
 
 	securityNames := expandStringList(securityNameSet.List())
 	securityIds := expandStringList(securityIdSet.List())
+	prefferedAZs := expandStringList(prefferedCacheClusterAZs.List())
 
 	req := &elasticache.CreateReplicationGroupInput{
 		ReplicationGroupID:          aws.String(replicationGroupId),
@@ -113,6 +122,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		EngineVersion:               aws.String(engineVersion),
 		CacheSecurityGroupNames:     securityNames,
 		SecurityGroupIDs:            securityIds,
+		PreferredCacheClusterAZs:    prefferedAZs,
 	}
 
 	if v, ok := d.GetOk("parameter_group_name"); ok {
