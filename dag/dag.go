@@ -195,7 +195,7 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 
 		// Start the goroutine to wait for our dependencies
 		readyCh := make(chan bool)
-		go func(deps []Vertex, chs []<-chan struct{}, readyCh chan<- bool) {
+		go func(v Vertex, deps []Vertex, chs []<-chan struct{}, readyCh chan<- bool) {
 			// First wait for all the dependencies
 			for _, ch := range chs {
 				<-ch
@@ -206,13 +206,14 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 			defer errLock.Unlock()
 			for _, dep := range deps {
 				if errMap[dep] {
+					errMap[v] = true
 					readyCh <- false
 					return
 				}
 			}
 
 			readyCh <- true
-		}(deps, depChs, readyCh)
+		}(v, deps, depChs, readyCh)
 
 		// Start the goroutine that executes
 		go func(v Vertex, doneCh chan<- struct{}, readyCh <-chan bool) {
