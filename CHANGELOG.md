@@ -4,6 +4,7 @@ BUG FIXES:
 
   * core: Skip all descendents after error, not just children; helps prevent confusing
       additional errors/crashes after initial failure [GH-2963]
+  * provider/aws: Fix issue with authenticating when using IAM profiles [GH-2959]
 
 ## 0.6.2 (August 6, 2015)
 
