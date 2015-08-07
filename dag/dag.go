@@ -2,9 +2,11 @@ package dag
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -197,8 +199,19 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 		readyCh := make(chan bool)
 		go func(v Vertex, deps []Vertex, chs []<-chan struct{}, readyCh chan<- bool) {
 			// First wait for all the dependencies
-			for _, ch := range chs {
-				<-ch
+			for i, ch := range chs {
+			DepSatisfied:
+				for {
+					select {
+					case <-ch:
+						break DepSatisfied
+					case <-time.After(time.Second * 5):
+						log.Printf("[DEBUG] vertex %s, waiting for: %s",
+							VertexName(v), VertexName(deps[i]))
+					}
+				}
+				log.Printf("[DEBUG] vertex %s, got dep: %s",
+					VertexName(v), VertexName(deps[i]))
 			}
 
 			// Then, check the map to see if any of our dependencies failed
