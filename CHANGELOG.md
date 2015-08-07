@@ -1,5 +1,10 @@
 ## 0.6.3 (Unreleased)
 
+BUG FIXES:
+
+  * core: Skip all descendents after error, not just children; helps prevent confusing
+      additional errors/crashes after initial failure [GH-2963]
+
 ## 0.6.2 (August 6, 2015)
 
 FEATURES:
