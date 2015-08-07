@@ -59,16 +59,22 @@ func testAccCheckAWSRouteExists(n string, res *ec2.Route) resource.TestCheckFunc
 }
 
 func testAccCheckAWSRouteAttributes(route *ec2.Route) resource.TestCheckFunc {
-	return func(s *terraform.State) {
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	return func(s *terraform.State) error {
+
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "aws_route" {
+				continue
+			}
+			if *route.DestinationCIDRBlock != rs.Primary.Attributes["destination_cidr_block"] {
+				return fmt.Errorf("Bad Destination CIDR Block on Route\n\t expected: %s\n\tgot %s\n", rs.Primary.Attributes["destination_cidr_block"], *route.DestinationCIDRBlock)
+			}
+		}
 
 		return nil
 	}
 }
 
 func testAccCheckAWSRouteDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_route" {
 			continue

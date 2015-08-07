@@ -128,7 +128,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	default:
 		fmt.Errorf("Error: invalid target type specified.")
 	}
-	log.Printf("[DEBUG] Route create config: %s", awsutil.StringValue(createOpts))
+	log.Printf("[DEBUG] Route create config: %s", awsutil.Prettify(createOpts))
 
 	// Create the route
 	_, err := conn.CreateRoute(createOpts)
@@ -138,7 +138,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 
 	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 	if err != nil {
-		fmt.Errorf("Error: %s", awsutil.StringValue(err))
+		fmt.Errorf("Error: %s", awsutil.Prettify(err))
 	}
 
 	d.SetId(routeIDHash(d, route))
@@ -220,7 +220,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	default:
 		fmt.Errorf("Error: invalid target type specified.")
 	}
-	log.Printf("[DEBUG] Route replace config: %s", awsutil.StringValue(replaceOpts))
+	log.Printf("[DEBUG] Route replace config: %s", awsutil.Prettify(replaceOpts))
 
 	// Replace the route
 	_, err := conn.ReplaceRoute(replaceOpts)
@@ -237,10 +237,10 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 		DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
 		RouteTableID:         aws.String(d.Get("route_table_id").(string)),
 	}
-	log.Printf("[DEBUG] Route delete opts: %s", awsutil.StringValue(deleteOpts))
+	log.Printf("[DEBUG] Route delete opts: %s", awsutil.Prettify(deleteOpts))
 
 	resp, err := conn.DeleteRoute(deleteOpts)
-	log.Printf("[DEBUG] Route delete result: %s", awsutil.StringValue(resp))
+	log.Printf("[DEBUG] Route delete result: %s", awsutil.Prettify(resp))
 	if err != nil {
 		return err
 	}
