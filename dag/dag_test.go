@@ -226,8 +226,10 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 	g.Add(1)
 	g.Add(2)
 	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(4, 3))
 	g.Connect(BasicEdge(3, 2))
-	g.Connect(BasicEdge(3, 1))
+	g.Connect(BasicEdge(2, 1))
 
 	var visits []Vertex
 	var lock sync.Mutex
