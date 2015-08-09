@@ -2,12 +2,12 @@ package nsone
 
 import (
 	"bytes"
-    "log"
 	"errors"
 	"fmt"
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -29,6 +29,10 @@ func recordResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"ttl": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
@@ -107,8 +111,8 @@ func answersToHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", metahash))
 	}
 	hash := hashcode.String(buf.String())
-    log.Println("Generated answersToHash %d from %+v", hash, ms)
-    return hash
+	log.Println("Generated answersToHash %d from %+v", hash, ms)
+	return hash
 }
 
 func metaToHash(v interface{}) int {
@@ -118,8 +122,8 @@ func metaToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", s["feed"].(string)))
 
 	hash := hashcode.String(buf.String())
-    log.Println("Generated metaToHash %d from %+v", hash, s)
-    return hash
+	log.Println("Generated metaToHash %d from %+v", hash, s)
+	return hash
 }
 
 func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
@@ -127,6 +131,7 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 	d.Set("domain", r.Domain)
 	d.Set("zone", r.Zone)
 	d.Set("type", r.Type)
+	d.Set("ttl", r.Ttl)
 	if r.Link != "" {
 		d.Set("link", r.Link)
 	}
@@ -135,6 +140,7 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 		for _, answer := range r.Answers {
 			answers = append(answers, answerToMap(answer))
 		}
+		log.Printf("Setting answers %+v", answers)
 		err := d.Set("answers", answers)
 		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting answers for: %s, error: %#v", r.Domain, err)
@@ -187,6 +193,9 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 		if _, ok := d.GetOk("link"); ok {
 			return errors.New("Cannot have both link and answers in a record")
 		}
+	}
+	if v, ok := d.GetOk("ttl"); ok {
+		r.Ttl(v.(int))
 	}
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
