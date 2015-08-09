@@ -84,8 +84,9 @@ type Resource struct {
 // ResourceLifecycle is used to store the lifecycle tuning parameters
 // to allow customized behavior
 type ResourceLifecycle struct {
-	CreateBeforeDestroy bool `mapstructure:"create_before_destroy"`
-	PreventDestroy      bool `mapstructure:"prevent_destroy"`
+	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy"`
+	PreventDestroy      bool     `mapstructure:"prevent_destroy"`
+	IgnoreChanges       []string `mapstructure:"ignore_changes"`
 }
 
 // Provisioner is a configured provisioner step on a resource.
