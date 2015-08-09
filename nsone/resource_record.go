@@ -65,6 +65,10 @@ func recordResource() *schema.Resource {
 							Optional: true,
 							Computed: true,
 						},
+						"region": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"meta": &schema.Schema{
 							Type:     schema.TypeSet,
 							Optional: true,
@@ -135,6 +139,7 @@ func answersToHash(v interface{}) int {
 	var buf bytes.Buffer
 	a := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", a["answer"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", a["region"].(string)))
 	ms := a["meta"].(*schema.Set)
 	metas := make([]int, ms.Len())
 	for _, meta := range ms.List() {
@@ -185,7 +190,7 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 		for region_name, region := range r.Regions {
 			var new_region map[string]interface{}
 			new_region["name"] = region_name
-			if len(region.Meta.GeoRegion) > 0  {
+			if len(region.Meta.GeoRegion) > 0 {
 				new_region["georegion"] = region.Meta.GeoRegion[0]
 			}
 			regions = append(regions, new_region)
@@ -203,6 +208,9 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 	m := make(map[string]interface{})
 	m["meta"] = make([]map[string]interface{}, 0)
 	m["answer"] = strings.Join(a.Answer, " ")
+	if a.Region != "" {
+		m["region"] = a.Region
+	}
 	if a.Meta != nil {
 		metas := make([]map[string]interface{}, len(a.Meta))
 		for k, v := range a.Meta {
@@ -228,6 +236,9 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 				a.Answer = strings.Split(v, " ")
 			} else {
 				a.Answer = []string{v}
+			}
+			if v, ok := d.GetOk("region"); ok {
+				a.Region = v.(string)
 			}
 			if metas := answer["meta"].(*schema.Set); metas.Len() > 0 {
 				for _, meta_raw := range metas.List() {
