@@ -89,12 +89,46 @@ func recordResource() *schema.Resource {
 				},
 				Set: answersToHash,
 			},
+			"regions": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"georegion": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								value := v.(string)
+								if !regexp.MustCompile(`^(US-WEST|US-EAST|US-CENTRAL|EUROPE|AFRICA|ASIAPAC|SOUTH-AMERICA)$`).MatchString(value) {
+									es = append(es, fmt.Errorf(
+										"only US-WEST, US-EAST, US-CENTRAL, EUROPE, AFRICA, ASIAPAC, SOUTH-AMERICA allowed in %q", k))
+								}
+								return
+							},
+						},
+					},
+				},
+				Set: regionsToHash,
+			},
 		},
 		Create: RecordCreate,
 		Read:   RecordRead,
 		Update: RecordUpdate,
 		Delete: RecordDelete,
 	}
+}
+
+func regionsToHash(v interface{}) int {
+	var buf bytes.Buffer
+	r := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", r["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", r["georegion"].(string)))
+	return hashcode.String(buf.String())
 }
 
 func answersToHash(v interface{}) int {
@@ -146,6 +180,22 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 			return fmt.Errorf("[DEBUG] Error setting answers for: %s, error: %#v", r.Domain, err)
 		}
 	}
+	if len(r.Regions) > 0 {
+		regions := make([]map[string]interface{}, 0, len(r.Answers))
+		for region_name, region := range r.Regions {
+			var new_region map[string]interface{}
+			new_region["name"] = region_name
+			if len(region.Meta.GeoRegion) > 0  {
+				new_region["georegion"] = region.Meta.GeoRegion[0]
+			}
+			regions = append(regions, new_region)
+		}
+		log.Printf("Setting regions %+v", regions)
+		err := d.Set("regions", regions)
+		if err != nil {
+			return fmt.Errorf("[DEBUG] Error setting regions for: %s, error: %#v", r.Domain, err)
+		}
+	}
 	return nil
 }
 
@@ -169,8 +219,8 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	r.Id = d.Id()
 	if answers := d.Get("answers").(*schema.Set); answers.Len() > 0 {
-		al := make([]nsone.Answer, 0)
-		for _, answer_raw := range answers.List() {
+		al := make([]nsone.Answer, answers.Len())
+		for i, answer_raw := range answers.List() {
 			answer := answer_raw.(map[string]interface{})
 			a := nsone.NewAnswer()
 			v := answer["answer"].(string)
@@ -187,7 +237,7 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 					a.Meta[key] = nsone.NewMetaFeed(value)
 				}
 			}
-			al = append(al, a)
+			al[i] = a
 		}
 		r.Answers = al
 		if _, ok := d.GetOk("link"); ok {
@@ -199,6 +249,20 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	}
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
+	}
+	if regions := d.Get("regions").(*schema.Set); regions.Len() > 0 {
+		rm := make(map[string]nsone.Region)
+		for _, region_raw := range regions.List() {
+			region := region_raw.(map[string]interface{})
+			nsone_r := nsone.Region{
+				Meta: nsone.RegionMeta{},
+			}
+			if g := region["georegion"].(string); g != "" {
+				nsone_r.Meta.GeoRegion = []string{g}
+			}
+			rm[region["name"].(string)] = nsone_r
+		}
+		r.Regions = rm
 	}
 	return nil
 }
