@@ -195,7 +195,7 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 		}
 	}
 	if v, ok := d.GetOk("ttl"); ok {
-		r.Ttl(v.(int))
+		r.Ttl = v.(int)
 	}
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
