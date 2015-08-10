@@ -176,8 +176,8 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 	}
 	if len(r.Answers) > 0 {
 		answers := make([]map[string]interface{}, 0, len(r.Answers))
-		for _, answer := range r.Answers {
-			answers = append(answers, answerToMap(answer))
+		for i, answer := range r.Answers {
+			answers[i] = answerToMap(answer)
 		}
 		log.Printf("Setting answers %+v", answers)
 		err := d.Set("answers", answers)
