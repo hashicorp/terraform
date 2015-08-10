@@ -74,7 +74,11 @@ func (g *Graph) Replace(o, n dag.Vertex) bool {
 	// Go through and update our lookaside to point to the new vertex
 	for k, v := range g.dependableMap {
 		if v == o {
-			g.dependableMap[k] = n
+			if _, ok := n.(GraphNodeDependable); ok {
+				g.dependableMap[k] = n
+			} else {
+				delete(g.dependableMap, k)
+			}
 		}
 	}
 
