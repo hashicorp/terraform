@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 )
 
 func TestContext2Plan(t *testing.T) {
@@ -176,16 +175,11 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 }
 
 func TestContext2Plan_moduleDeadlock(t *testing.T) {
-	m := testModule(t, "plan-module-deadlock")
-	p := testProvider("aws")
-	p.DiffFn = testDiffFn
-	timeout := make(chan bool, 1)
-	done := make(chan bool, 1)
-	go func() {
-		time.Sleep(3 * time.Second)
-		timeout <- true
-	}()
-	go func() {
+	testCheckDeadlock(t, func() {
+		m := testModule(t, "plan-module-deadlock")
+		p := testProvider("aws")
+		p.DiffFn = testDiffFn
+
 		ctx := testContext2(t, &ContextOpts{
 			Module: m,
 			Providers: map[string]ResourceProviderFactory{
@@ -194,7 +188,6 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 		})
 
 		plan, err := ctx.Plan()
-		done <- true
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -215,14 +208,7 @@ STATE:
 		if actual != expected {
 			t.Fatalf("expected:\n%sgot:\n%s", expected, actual)
 		}
-	}()
-
-	select {
-	case <-timeout:
-		t.Fatalf("timed out! probably deadlock")
-	case <-done:
-		// ok
-	}
+	})
 }
 
 func TestContext2Plan_moduleInput(t *testing.T) {
