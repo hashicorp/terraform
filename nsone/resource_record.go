@@ -175,7 +175,8 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 		d.Set("link", r.Link)
 	}
 	if len(r.Answers) > 0 {
-		answers := make([]map[string]interface{}, 0, len(r.Answers))
+		answers := make([]map[string]interface{}, len(r.Answers))
+		log.Printf("Got back from nsone answers: %+v", r.Answers)
 		for i, answer := range r.Answers {
 			answers[i] = answerToMap(answer)
 		}
@@ -212,7 +213,7 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 		m["region"] = a.Region
 	}
 	if a.Meta != nil {
-		metas := make([]map[string]interface{}, len(a.Meta))
+		metas := make([]map[string]interface{}, 0, len(a.Meta))
 		for k, v := range a.Meta {
 			meta := make(map[string]interface{})
 			meta["field"] = k
