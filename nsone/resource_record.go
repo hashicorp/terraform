@@ -139,7 +139,9 @@ func answersToHash(v interface{}) int {
 	var buf bytes.Buffer
 	a := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", a["answer"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", a["region"].(string)))
+	if a["region"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", a["region"].(string)))
+	}
 	ms := a["meta"].(*schema.Set)
 	metas := make([]int, ms.Len())
 	for _, meta := range ms.List() {
@@ -175,13 +177,15 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 		d.Set("link", r.Link)
 	}
 	if len(r.Answers) > 0 {
-		answers := make([]map[string]interface{}, len(r.Answers))
-		log.Printf("Got back from nsone answers: %+v", r.Answers)
-		for i, answer := range r.Answers {
-			answers[i] = answerToMap(answer)
+		ans := &schema.Set{
+			F: answersToHash,
 		}
-		log.Printf("Setting answers %+v", answers)
-		err := d.Set("answers", answers)
+		log.Printf("Got back from nsone answers: %+v", r.Answers)
+		for _, answer := range r.Answers {
+			ans.Add(answerToMap(answer))
+		}
+		log.Printf("Setting answers %+v", ans)
+		err := d.Set("answers", ans)
 		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting answers for: %s, error: %#v", r.Domain, err)
 		}
@@ -213,12 +217,14 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 		m["region"] = a.Region
 	}
 	if a.Meta != nil {
-		metas := make([]map[string]interface{}, 0, len(a.Meta))
+		metas := &schema.Set{
+			F: metaToHash,
+		}
 		for k, v := range a.Meta {
 			meta := make(map[string]interface{})
 			meta["field"] = k
 			meta["feed"] = v.Feed
-			metas = append(metas, meta)
+			metas.Add(meta)
 		}
 		m["meta"] = metas
 	}
