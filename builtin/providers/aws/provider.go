@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/awslabs/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -39,7 +40,7 @@ func Provider() terraform.ResourceProvider {
 		conn, err := net.DialTimeout("tcp", "169.254.169.254:80", 100*time.Millisecond)
 		if err == nil {
 			conn.Close()
-			providers = append(providers, &credentials.EC2RoleProvider{})
+			providers = append(providers, &ec2rolecreds.EC2RoleProvider{})
 		}
 
 		credVal, credErr = credentials.NewChainCredentials(providers).Get()
