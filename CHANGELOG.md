@@ -4,6 +4,8 @@ BUG FIXES:
 
   * core: Skip all descendents after error, not just children; helps prevent confusing
       additional errors/crashes after initial failure [GH-2963]
+  * core: fix deadlock possibility when both a module and a dependent resource are
+      removed in the same run [GH-2968]
   * provider/aws: Fix issue with authenticating when using IAM profiles [GH-2959]
 
 ## 0.6.2 (August 6, 2015)
