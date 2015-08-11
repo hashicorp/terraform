@@ -16,7 +16,7 @@ resource "aws_flow_log" "test_flow_log" {
   # log_group_name needs to exist before hand
   # until we have a CloudWatch Log Group Resource
   log_group_name = "tf-test-log-group"
-	iam_role_arn = "${aws_iam_role.test_role.arn}"
+  iam_role_arn = "${aws_iam_role.test_role.arn}"
   vpc_id = "${aws_vpc.default.id}"
   traffic_type = "ALL"
 }
