@@ -1,4 +1,4 @@
-## 0.6.3 (Unreleased)
+## 0.6.3 (August 11, 2015)
 
 BUG FIXES:
 
