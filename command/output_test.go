@@ -161,7 +161,8 @@ func TestOutput_blank(t *testing.T) {
 			&terraform.ModuleState{
 				Path: []string{"root"},
 				Outputs: map[string]string{
-					"foo": "bar",
+					"foo":  "bar",
+					"name": "john-doe",
 				},
 			},
 		},
@@ -181,8 +182,15 @@ func TestOutput_blank(t *testing.T) {
 		"-state", statePath,
 		"",
 	}
-	if code := c.Run(args); code != 1 {
+
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	expectedOutput := "foo = bar\nname = john-doe\n"
+	output := ui.OutputWriter.String()
+	if output != expectedOutput {
+		t.Fatalf("Expected output: %#v\ngiven: %#v", expectedOutput, output)
 	}
 }
 
