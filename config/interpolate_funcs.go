@@ -24,6 +24,7 @@ func init() {
 		"file":       interpolationFuncFile(),
 		"format":     interpolationFuncFormat(),
 		"formatlist": interpolationFuncFormatList(),
+		"index":      interpolationFuncIndex(),
 		"join":       interpolationFuncJoin(),
 		"length":     interpolationFuncLength(),
 		"replace":    interpolationFuncReplace(),
@@ -174,6 +175,25 @@ func interpolationFuncFormatList() ast.Function {
 				list[i] = fmt.Sprintf(format, fmtargs...)
 			}
 			return NewStringList(list).String(), nil
+		},
+	}
+}
+
+// interpolationFuncIndex implements the "index" function that allows one to
+// find the index of a specific element in a list
+func interpolationFuncIndex() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			haystack := StringList(args[0].(string)).Slice()
+			needle := args[1].(string)
+			for index, element := range haystack {
+				if needle == element {
+					return index, nil
+				}
+			}
+			return nil, fmt.Errorf("Could not find '%s' in '%s'", needle, haystack)
 		},
 	}
 }
