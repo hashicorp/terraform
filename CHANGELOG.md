@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
   * core: Add a function to find the index of an element in a list. [GH-2704]
+  * core: Print all outputs when `terraform output` is called with no arguments [GH-2920]
 
 ## 0.6.3 (August 11, 2015)
 
