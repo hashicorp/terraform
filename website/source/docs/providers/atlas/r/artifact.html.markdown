@@ -24,7 +24,7 @@ to this artifact will trigger a change to that instance.
 # Read the AMI
 resource "atlas_artifact" "web" {
     name = "hashicorp/web"
-    type = "amazon.ami"
+    type = "aws.ami"
     build = "latest"
     metadata {
         arch = "386"
