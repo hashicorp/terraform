@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -26,14 +27,18 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) != 1 || args[0] == "" {
+	if len(args) > 1 {
 		c.Ui.Error(
 			"The output command expects exactly one argument with the name\n" +
-				"of an output variable.\n")
+				"of an output variable or no arguments to show all outputs.\n")
 		cmdFlags.Usage()
 		return 1
 	}
-	name := args[0]
+
+	name := ""
+	if len(args) > 0 {
+		name = args[0]
+	}
 
 	stateStore, err := c.Meta.State()
 	if err != nil {
@@ -68,6 +73,20 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
+	if name == "" {
+		ks := make([]string, 0, len(mod.Outputs))
+		for k, _ := range mod.Outputs {
+				ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		for _, k := range ks {
+				v := mod.Outputs[k]
+				c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
+		}
+		return 0
+	}
+
 	v, ok := mod.Outputs[name]
 	if !ok {
 		c.Ui.Error(fmt.Sprintf(
@@ -84,17 +103,20 @@ func (c *OutputCommand) Run(args []string) int {
 
 func (c *OutputCommand) Help() string {
 	helpText := `
-Usage: terraform output [options] NAME
+Usage: terraform output [options] [NAME]
 
   Reads an output variable from a Terraform state file and prints
-  the value.
+  the value.  If NAME is not specified, all outputs are printed.
 
 Options:
 
   -state=path      Path to the state file to read. Defaults to
-                   "terraform.tfstate".
+				   "terraform.tfstate".
 
-  -no-color           If specified, output won't contain any color.
+  -no-color        If specified, output won't contain any color.
+
+  -module=name     If specified, returns the outputs for a
+				   specific module
 
 `
 	return strings.TrimSpace(helpText)
