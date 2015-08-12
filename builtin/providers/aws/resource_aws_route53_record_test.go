@@ -234,6 +234,43 @@ func TestAccAWSRoute53Record_weighted_alias(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_geolocation_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53GeolocationCNAMERecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+					testAccCheckRoute53RecordExists("aws_route53_record.california"),
+					testAccCheckRoute53RecordExists("aws_route53_record.oceania"),
+					testAccCheckRoute53RecordExists("aws_route53_record.denmark"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRoute53Record_latency_basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53LatencyCNAMERecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.us-east-1"),
+					testAccCheckRoute53RecordExists("aws_route53_record.eu-west-1"),
+					testAccCheckRoute53RecordExists("aws_route53_record.ap-northeast-1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute53Record_TypeChange(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -519,7 +556,9 @@ resource "aws_route53_record" "www-primary" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  failover = "PRIMARY"
+  failover_routing_policy {
+    type = "PRIMARY"
+  }
   health_check_id = "${aws_route53_health_check.foo.id}"
   set_identifier = "www-primary"
   records = ["primary.notexample.com"]
@@ -530,7 +569,9 @@ resource "aws_route53_record" "www-secondary" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  failover = "SECONDARY"
+  failover_routing_policy {
+    type = "SECONDARY"
+  }
   set_identifier = "www-secondary"
   records = ["secondary.notexample.com"]
 }
@@ -546,7 +587,9 @@ resource "aws_route53_record" "www-dev" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  weight = 10
+  weighted_routing_policy {
+  	weight = 10
+  }
   set_identifier = "dev"
   records = ["dev.notexample.com"]
 }
@@ -556,7 +599,9 @@ resource "aws_route53_record" "www-live" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  weight = 90
+  weighted_routing_policy {
+  	weight = 90
+  }
   set_identifier = "live"
   records = ["dev.notexample.com"]
 }
@@ -566,8 +611,107 @@ resource "aws_route53_record" "www-off" {
   name = "www"
   type = "CNAME"
   ttl = "5"
-  weight = 0
+  weighted_routing_policy = {
+  	weight = 0
+  }
   set_identifier = "off"
+  records = ["dev.notexample.com"]
+}
+`
+
+const testAccRoute53GeolocationCNAMERecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    country = "*"
+  }
+  set_identifier = "Default"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "california" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    country = "US"
+    subdivision = "CA"
+  }
+  set_identifier = "California"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "oceania" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    continent = "OC"
+  }
+  set_identifier = "Oceania"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "denmark" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  geolocation_routing_policy {
+    country = "DK"
+  }
+  set_identifier = "Denmark"
+  records = ["dev.notexample.com"]
+}
+`
+
+const testAccRoute53LatencyCNAMERecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "us-east-1" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  latency_routing_policy {
+    region = "us-east-1"
+  }
+  set_identifier = "us-east-1"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "eu-west-1" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  latency_routing_policy {
+    region = "eu-west-1"
+  }
+  set_identifier = "eu-west-1"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "ap-northeast-1" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  latency_routing_policy {
+    region = "ap-northeast-1"
+  }
+  set_identifier = "ap-northeast-1"
   records = ["dev.notexample.com"]
 }
 `
@@ -676,7 +820,9 @@ resource "aws_route53_record" "elb_weighted_alias_live" {
   name = "www"
   type = "A"
 
-  weight = 90
+  weighted_routing_policy {
+  	weight = 90
+  }
   set_identifier = "live"
 
   alias {
@@ -703,7 +849,9 @@ resource "aws_route53_record" "elb_weighted_alias_dev" {
   name = "www"
   type = "A"
 
-  weight = 10
+  weighted_routing_policy {
+  	weight = 10
+  }
   set_identifier = "dev"
 
   alias {
@@ -732,7 +880,9 @@ resource "aws_route53_record" "r53_weighted_alias_live" {
   name = "www"
   type = "CNAME"
 
-  weight = 90
+  weighted_routing_policy {
+  	weight = 90
+  }
   set_identifier = "blue"
 
   alias {
@@ -755,7 +905,9 @@ resource "aws_route53_record" "r53_weighted_alias_dev" {
   name = "www"
   type = "CNAME"
 
-  weight = 10
+  weighted_routing_policy {
+  	weight = 10
+  }
   set_identifier = "green"
 
   alias {
