@@ -10,8 +10,6 @@ description: |-
 
 Provides a resource to create a new launch configuration, used for autoscaling groups.
 
-~> **NOTE:** You may want to omit `name` attribute from attached `aws_launch_configuration`. When you [create](http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/LaunchConfiguration.html) a launch configuration, you cannot edit it. Terraform will treat a change in this resource as a destroy and create action. If you add a name to your launch configuration, then terraform will not be able to create the replacement launch configuration due to the name being the same.
-
 ## Example Usage
 
 ```
@@ -21,6 +19,39 @@ resource "aws_launch_configuration" "as_conf" {
     instance_type = "m1.small"
 }
 ```
+
+## Using with AutoScaling Groups
+
+Launch Configurations cannot be updated after creation with the Amazon
+Web Service API. In order to update a Launch Configuration, Terraform will 
+destroy the existing resource and create a replacement. If order to effectively 
+use a Launch Configuration resource with an[AutoScaling Group resource][1], 
+it's recommend to omit the Launch Configuration `name` attribute, and 
+specify `create_before_destroy` in a [lifecycle][2] block, as shown:
+
+```
+resource "aws_launch_configuration" "as_conf" {
+    image_id = "ami-1234"
+    instance_type = "m1.small"
+
+    lifecycle {
+      create_before_destroy = true
+    }
+}
+
+resource "aws_autoscaling_group" "bar" {
+    name = "terraform-asg-example"
+    launch_configuration = "${aws_launch_configuration.as_conf.name}"
+
+    lifecycle {
+      create_before_destroy = true
+    }
+}
+```
+
+With this setup Terraform generates a unique name for your Launch
+Configuration and can then update the AutoScaling Group without conflict before
+destroying the previous Launch Configuration.
 
 ## Argument Reference
 
@@ -100,3 +131,6 @@ configuration, resource recreation can be manually triggered by using the
 The following attributes are exported:
 
 * `id` - The ID of the launch configuration.
+
+[1]: /docs/providers/aws/r/autoscaling_group.html
+[2]: /docs/configuration/resources.html#lifecycle
