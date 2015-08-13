@@ -29,4 +29,4 @@ func (n *EvalCheckPreventDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-const preventDestroyErrStr = `%s: plan would destroy, but resource has prevent_destroy set. To avoid this error, either disable prevent_destroy, or change your config so the plan does not destroy this resource.`
+const preventDestroyErrStr = `%s: the plan would destroy this resource, but it currently has lifecycle.prevent_destroy set to true. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or adjust the scope of the plan using the -target flag.`
