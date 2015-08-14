@@ -64,6 +64,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"kubernetes_namespace":              resourceKubernetesNamespace(),
 			"kubernetes_pod":                    resourceKubernetesPod(),
 			"kubernetes_replication_controller": resourceKubernetesReplicationController(),
 			"kubernetes_service":                resourceKubernetesService(),
