@@ -32,6 +32,7 @@ func recordResource() *schema.Resource {
 			},
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
+				Optional: true,
 				Computed: true,
 			},
 			"type": &schema.Schema{
@@ -82,10 +83,6 @@ func recordResource() *schema.Resource {
 								},
 							},
 							Set: metaToHash,
-						},
-						"region": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
 						},
 					},
 				},
