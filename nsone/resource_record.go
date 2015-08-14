@@ -185,9 +185,9 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 		}
 	}
 	if len(r.Regions) > 0 {
-		regions := make([]map[string]interface{}, 0, len(r.Answers))
+		regions := make([]map[string]interface{}, 0, len(r.Regions))
 		for region_name, region := range r.Regions {
-			var new_region map[string]interface{}
+			new_region := make(map[string]interface{})
 			new_region["name"] = region_name
 			if len(region.Meta.GeoRegion) > 0 {
 				new_region["georegion"] = region.Meta.GeoRegion[0]
@@ -238,7 +238,7 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 			} else {
 				a.Answer = []string{v}
 			}
-			if v, ok := d.GetOk("region"); ok {
+			if v, ok := answer["region"]; ok {
 				a.Region = v.(string)
 			}
 			if metas := answer["meta"].(*schema.Set); metas.Len() > 0 {

@@ -38,6 +38,7 @@ resource "nsone_record" "www" {
     type = "CNAME" # Note, normally we'd use ALIAS here
     answers {
       answer = "example-elb-uswest1.aws.amazon.com"
+      region = "uswest"
       meta {
         field = "high_watermark"
         feed = "${nsone_datafeed.uswest1.id}"
@@ -53,6 +54,7 @@ resource "nsone_record" "www" {
     }
     answers {
       answer = "example-elb-useast1.aws.amazon.com"
+      region = "useast"
       meta {
         field = "high_watermark"
         feed = "${nsone_datafeed.useast1.id}"
@@ -65,6 +67,14 @@ resource "nsone_record" "www" {
         field = "connections"
         feed = "${nsone_datafeed.useast1.id}"
       }
+    }
+    regions {
+        name = "useast"
+        georegion = "US-EAST"
+    }
+    regions {
+        name = "uswest"
+        georegion = "US-WEST"
     }
 }
 
