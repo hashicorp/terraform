@@ -111,12 +111,12 @@ Usage: terraform output [options] [NAME]
 Options:
 
   -state=path      Path to the state file to read. Defaults to
-				   "terraform.tfstate".
+                   "terraform.tfstate".
 
   -no-color        If specified, output won't contain any color.
 
   -module=name     If specified, returns the outputs for a
-				   specific module
+                   specific module
 
 `
 	return strings.TrimSpace(helpText)
