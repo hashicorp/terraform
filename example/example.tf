@@ -76,5 +76,18 @@ resource "nsone_record" "www" {
         name = "uswest"
         georegion = "US-WEST"
     }
+    filters {
+        filter = "up"
+        disabled = true
+    }
+    filters {
+        filter = "shuffle"
+    }
+    filters {
+        filter = "select_first_n"
+        config {
+          N = 2 
+        }
+    }
 }
 

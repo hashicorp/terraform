@@ -130,6 +130,14 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+						"disabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"config": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -191,6 +199,23 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 	d.Set("ttl", r.Ttl)
 	if r.Link != "" {
 		d.Set("link", r.Link)
+	}
+	if len(r.Filters) > 0 {
+		log.Printf("HEAD FILTERS %+v", r.Filters)
+		filters := make([]map[string]interface{}, len(r.Filters))
+		for i, f := range r.Filters {
+			m := make(map[string]interface{})
+			m["filter"] = f.Filter
+			if f.Disabled {
+				m["disabled"] = true
+			}
+			if f.Config != nil {
+				m["config"] = f.Config
+			}
+			log.Printf("HEAD FILTER %s", f.Filter)
+			filters[i] = m
+		}
+		d.Set("filters", r.Filters)
 	}
 	if len(r.Answers) > 0 {
 		ans := &schema.Set{
@@ -289,6 +314,25 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	}
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
+	}
+	if rawFilters := d.Get("filters").([]interface{}); len(rawFilters) > 0 {
+		f := make([]nsone.Filter, len(rawFilters))
+		for i, filter_raw := range rawFilters {
+			fi := filter_raw.(map[string]interface{})
+			config := make(map[string]interface{})
+			filter := nsone.Filter{
+				Filter: fi["filter"].(string),
+				Config: config,
+			}
+			if disabled, ok := fi["disabled"]; ok {
+				filter.Disabled = disabled.(bool)
+			}
+			if config, ok := fi["config"]; ok {
+				filter.Config = config.(map[string]interface{})
+			}
+			f[i] = filter
+		}
+		r.Filters = f
 	}
 	if regions := d.Get("regions").(*schema.Set); regions.Len() > 0 {
 		rm := make(map[string]nsone.Region)
