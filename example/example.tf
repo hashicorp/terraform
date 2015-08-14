@@ -86,7 +86,7 @@ resource "nsone_record" "www" {
     filters {
         filter = "select_first_n"
         config {
-          N = 2 
+          N = 3
         }
     }
 }

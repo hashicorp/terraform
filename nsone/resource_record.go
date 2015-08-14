@@ -10,6 +10,7 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -327,8 +328,14 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 			if disabled, ok := fi["disabled"]; ok {
 				filter.Disabled = disabled.(bool)
 			}
-			if config, ok := fi["config"]; ok {
-				filter.Config = config.(map[string]interface{})
+			if raw_config, ok := fi["config"]; ok {
+				for k, v := range raw_config.(map[string]interface{}) {
+					if i, err := strconv.Atoi(v.(string)); err == nil {
+						filter.Config[k] = i
+					} else {
+						filter.Config[k] = v
+					}
+				}
 			}
 			f[i] = filter
 		}
