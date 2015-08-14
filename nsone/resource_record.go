@@ -109,9 +109,29 @@ func recordResource() *schema.Resource {
 								return
 							},
 						},
+						"country": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"us_state": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 				Set: regionsToHash,
+			},
+			"filters": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"filter": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 		},
 		Create: RecordCreate,
@@ -126,6 +146,8 @@ func regionsToHash(v interface{}) int {
 	r := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", r["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", r["georegion"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", r["country"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", r["us_state"].(string)))
 	return hashcode.String(buf.String())
 }
 
@@ -191,6 +213,12 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 			new_region["name"] = region_name
 			if len(region.Meta.GeoRegion) > 0 {
 				new_region["georegion"] = region.Meta.GeoRegion[0]
+			}
+			if len(region.Meta.Country) > 0 {
+				new_region["country"] = region.Meta.Country[0]
+			}
+			if len(region.Meta.USState) > 0 {
+				new_region["us_state"] = region.Meta.USState[0]
 			}
 			regions = append(regions, new_region)
 		}
@@ -271,6 +299,12 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 			}
 			if g := region["georegion"].(string); g != "" {
 				nsone_r.Meta.GeoRegion = []string{g}
+			}
+			if g := region["country"].(string); g != "" {
+				nsone_r.Meta.Country = []string{g}
+			}
+			if g := region["us_state"].(string); g != "" {
+				nsone_r.Meta.USState = []string{g}
 			}
 			rm[region["name"].(string)] = nsone_r
 		}
