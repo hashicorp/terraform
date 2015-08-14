@@ -76,13 +76,13 @@ func (c *OutputCommand) Run(args []string) int {
 	if name == "" {
 		ks := make([]string, 0, len(mod.Outputs))
 		for k, _ := range mod.Outputs {
-				ks = append(ks, k)
+			ks = append(ks, k)
 		}
 		sort.Strings(ks)
 
 		for _, k := range ks {
-				v := mod.Outputs[k]
-				c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
+			v := mod.Outputs[k]
+			c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
 		}
 		return 0
 	}
