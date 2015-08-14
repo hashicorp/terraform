@@ -59,6 +59,7 @@ Supported SNS protocols include:
 
 * `http` -- delivery of JSON-encoded message via HTTP POST
 * `https` -- delivery of JSON-encoded message via HTTPS POST
+* `lambda` -- delivery of JSON-encoded message to a lambda function
 * `sms` -- delivery of message via SMS
 * `sqs` -- delivery of JSON-encoded message to an Amazon SQS queue
 * `application` -- delivery of JSON-encoded message to an EndpointArn for a mobile app and device
