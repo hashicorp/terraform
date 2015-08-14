@@ -29,3 +29,9 @@ The following arguments are supported:
 
 * `name` - (Required) A unique name for the namespace.
 * `labels` - (Optional) A list of labels attached to the namespace.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `id` - Unique ID of the namespace.
