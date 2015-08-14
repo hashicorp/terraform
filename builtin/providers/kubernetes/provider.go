@@ -64,7 +64,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"kubernetes_pod": resourceKubernetesPod(),
+			"kubernetes_pod":                    resourceKubernetesPod(),
+			"kubernetes_replication_controller": resourceKubernetesReplicationController(),
 		},
 
 		ConfigureFunc: providerConfigure,
