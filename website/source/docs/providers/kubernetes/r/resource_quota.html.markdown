@@ -19,6 +19,7 @@ Read more in the [documentation](https://github.com/kubernetes/kubernetes/blob/v
 ```
 resource "kubernetes_resource_quota" "default" {
     name = "myns"
+    namespace = "development"
     labels {
         name = "development"
     }
@@ -41,7 +42,17 @@ SPEC
 
 The following arguments are supported:
 
-* `name` - (Required) A unique name for the resource_quota.
-* `labels` - (Optional) A list of labels attached to the resource_quota.
+* `name` - (Required) A unique name for the resource quota.
 * `spec` - (Required) The specification of the volume. Only `spec` section of
     the YAML or JSON structure is required (i.e. `hard` will be on the root level).
+* `namespace` - (Optional) Namespace defines the space to which apply the quota.
+    See [documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/v1/docs/design/namespaces.md)
+    for details about namespaces.
+* `labels` - (Optional) A list of labels attached to the resource_quota.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `id` - Unique ID of the resource quota
+
