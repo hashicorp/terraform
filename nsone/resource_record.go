@@ -61,7 +61,6 @@ func recordResource() *schema.Resource {
 						"answer": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 						"region": &schema.Schema{
 							Type:     schema.TypeString,
@@ -70,22 +69,23 @@ func recordResource() *schema.Resource {
 						"meta": &schema.Schema{
 							Type:     schema.TypeSet,
 							Optional: true,
-							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"field": &schema.Schema{
 										Type:     schema.TypeString,
-										Computed: true,
 										Optional: true,
 									},
 									"feed": &schema.Schema{
 										Type:     schema.TypeString,
-										Computed: true,
 										Optional: true,
 									},
 								},
 							},
 							Set: metaToHash,
+						},
+						"region": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
