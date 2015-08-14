@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"google.golang.org/api/googleapi"
-	"google.golang.org/api/compute/v1"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeAutoscaler() *schema.Resource {
@@ -52,7 +52,7 @@ func resourceComputeAutoscaler() *schema.Resource {
 						"cooldown_period": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							Default: 60,
+							Default:  60,
 						},
 
 						"cpu_utilization": &schema.Schema{

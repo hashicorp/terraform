@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"google.golang.org/api/compute/v1"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestAccAutoscaler_basic(t *testing.T) {
