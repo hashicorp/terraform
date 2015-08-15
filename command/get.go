@@ -68,8 +68,8 @@ Usage: terraform get [options] PATH
   PATH.
 
   This recursively downloads all modules needed, such as modules
-  imported by modules imported by the root and so on. If a module is
-  already downloaded, it will not be redownloaded or checked for updates
+  imported by the root and so on. If a module is already 
+  downloaded, it will not be redownloaded or checked for updates
   unless the -update flag is specified.
 
 Options:
