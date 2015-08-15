@@ -50,6 +50,12 @@ func resourceSoftLayerVirtualserver() *schema.Resource {
 				Required: true,
 			},
 
+			"disks": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeInt},
+			},
+
 			"public_network_speed": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -80,6 +86,38 @@ func resourceSoftLayerVirtualserver() *schema.Resource {
 	}
 }
 
+func getNameForBlockDevice(i int) string {
+	// skip 1, which is reserved for the swap disk.
+	// so we get 0, 2, 3, 4, 5 ...
+	if i == 0 {
+		return "0"
+	} else {
+		return strconv.Itoa(i + 1)
+	}
+}
+
+func getBlockDevices(d *schema.ResourceData) []datatypes.BlockDevice {
+	numBlocks := d.Get("disks.#").(int)
+	if numBlocks == 0 {
+		return nil
+	} else {
+		blocks := make([]datatypes.BlockDevice, 0, numBlocks)
+		for i := 0; i < numBlocks; i++ {
+			blockRef := fmt.Sprintf("disks.%d", i)
+			name := getNameForBlockDevice(i)
+			capacity := d.Get(blockRef).(int)
+			block := datatypes.BlockDevice {
+				Device: name,
+				DiskImage: datatypes.DiskImage {
+					Capacity: capacity,
+				},
+			}
+			blocks = append(blocks, block)
+		}
+		return blocks
+	}
+}
+
 func resourceSoftLayerVirtualserverCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client).virtualGuestService
 	if client == nil {
@@ -103,6 +141,7 @@ func resourceSoftLayerVirtualserverCreate(d *schema.ResourceData, meta interface
 		StartCpus: d.Get("cpu").(int),
 		MaxMemory: d.Get("ram").(int),
 		NetworkComponents: []datatypes.NetworkComponents{networkComponent},
+		BlockDevices: getBlockDevices(d),
 	}
 
 	userData := d.Get("user_data").(string)
