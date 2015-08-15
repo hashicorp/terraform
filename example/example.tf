@@ -7,20 +7,25 @@ variable "tld" {
 }
 
 resource "nsone_datasource" "api" {
-    name = "terraform_example"
+    name = "terraform_example_api"
     sourcetype = "nsone_v1"
 }
 
-resource "nsone_datafeed" "uswest1" {
-    name = "uswest1"
+resource "nsone_datasource" "monitoring" {
+    name = "terraform_example_monitoring"
+    sourcetype = "nsone_monitoring"
+}
+
+resource "nsone_datafeed" "uswest1_feed" {
+    name = "uswest1_feed"
     source_id = "${nsone_datasource.api.id}"
     config {
       label = "uswest1"
     }
 }
 
-resource "nsone_datafeed" "useast1" {
-    name = "useast1"
+resource "nsone_datafeed" "useast1_feed" {
+    name = "useast1_feed"
     source_id = "${nsone_datasource.api.id}"
     config {
       label = "useast1"
@@ -40,32 +45,40 @@ resource "nsone_record" "www" {
       answer = "example-elb-uswest1.aws.amazon.com"
       region = "uswest"
       meta {
+        field = "up"
+        feed = "${nsone_datafeed.uswest1_monitoring.id}"
+      }
+      meta {
         field = "high_watermark"
-        feed = "${nsone_datafeed.uswest1.id}"
+        feed = "${nsone_datafeed.uswest1_feed.id}"
       }
       meta {
         field = "low_watermark"
-        feed = "${nsone_datafeed.uswest1.id}"
+        feed = "${nsone_datafeed.uswest1_feed.id}"
       }
       meta {
         field = "connections"
-        feed = "${nsone_datafeed.uswest1.id}"
+        feed = "${nsone_datafeed.uswest1_feed.id}"
       }
     }
     answers {
       answer = "example-elb-useast1.aws.amazon.com"
       region = "useast"
       meta {
+        field = "up"
+        feed = "${nsone_datafeed.useast1_monitoring.id}"
+      }
+      meta {
         field = "high_watermark"
-        feed = "${nsone_datafeed.useast1.id}"
+        feed = "${nsone_datafeed.useast1_feed.id}"
       }
       meta {
         field = "low_watermark"
-        feed = "${nsone_datafeed.useast1.id}"
+        feed = "${nsone_datafeed.useast1_feed.id}"
       }
       meta {
         field = "connections"
-        feed = "${nsone_datafeed.useast1.id}"
+        feed = "${nsone_datafeed.useast1_feed.id}"
       }
     }
     regions {
@@ -104,6 +117,38 @@ resource "nsone_monitoringjob" "useast" {
         send = "HEAD / HTTP/1.0\r\n\r\n"
         port = 80
         host = "85.214.55.250"
+    }
+}
+
+resource "nsone_monitoringjob" "uswest" {
+    name = "uswest"
+    active = true
+    regions = [ "sjc" ]
+    job_type = "tcp"
+    frequency = 60
+    rapid_recheck = true
+    policy = "quorum"
+    notes = "foo"
+    config {
+        send = "HEAD / HTTP/1.0\r\n\r\n"
+        port = 80
+        host = "85.214.55.250"
+    }
+}
+
+resource "nsone_datafeed" "uswest1_monitoring" {
+    name = "uswest1_monitoring"
+    source_id = "${nsone_datasource.monitoring.id}"
+    config {
+      jobid = "${nsone_monitoringjob.uswest.id}"
+    }
+}
+
+resource "nsone_datafeed" "useast1_monitoring" {
+    name = "useast1_monitoring"
+    source_id = "${nsone_datasource.monitoring.id}"
+    config {
+      jobid = "${nsone_monitoringjob.useast.id}"
     }
 }
 

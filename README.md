@@ -45,12 +45,31 @@ records with the (NSOne)[http://nsone.net/] API.
           field = "up"
           feed = "${nsone_datafeed.exampledc1.id}"
         }
+        region = "useast"
       }
       answers {
         answer = "2.2.2.2"
         meta {
           feed = "${nsone_datafeed.exampledc2.id}"
           field = "up"
+        }
+        region = "uswest"
+      }
+      regions {
+        name = "useast"
+        georegion = "US-EAST"
+      }
+      regions {
+        name = "uswest"
+        georegion = "US-WEST"
+      }
+      filters {
+        filter = "up"
+      }
+      filters {
+        filter = "select_first_n"
+        config {
+          N = 1
         }
       }
     }
@@ -62,6 +81,21 @@ records with the (NSOne)[http://nsone.net/] API.
     resource "nsone_zone" "co_uk" {
       zone = "mycompany.co.uk"
       link = "${nsone_zone.example.zone}"
+    }
+
+    resource "nsone_monitoringjob" "useast" {
+      name = "useast"
+      active = true
+      regions = [ "lga" ]
+      job_type = "tcp"
+      frequency = 60
+      rapid_recheck = true
+      policy = "all"
+      config {
+        send = "HEAD / HTTP/1.0\r\n\r\n"
+        port = 80
+        host = "1.1.1.1"
+      }
     }
 
 # Installing
