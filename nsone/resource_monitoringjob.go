@@ -25,6 +25,9 @@ func monitoringJobResource() *schema.Resource {
 			"regions": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"job_type": &schema.Schema{
 				Type:     schema.TypeString,
@@ -93,6 +96,53 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob)
 
 func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData) error {
 	r.Id = d.Id()
+	r.Name = d.Get("name").(string)
+	r.JobType = d.Get("job_type").(string)
+	r.Active = d.Get("active").(bool)
+	raw_regions := d.Get("regions").([]interface{})
+	r.Regions = make([]string, len(raw_regions))
+	for i, v := range raw_regions {
+		r.Regions[i] = v.(string)
+	}
+	r.Frequency = d.Get("frequency").(int)
+	r.RapidRecheck = d.Get("rapid_recheck").(bool)
+	var raw_rules []interface{}
+	if r := d.Get("rules"); r != nil {
+		raw_rules = r.([]interface{})
+	}
+	r.Rules = make([]nsone.MonitoringJobRule, len(raw_rules))
+	for i, v := range raw_rules {
+		rule := v.(map[string]interface{})
+		r.Rules[i] = nsone.MonitoringJobRule{
+			Value:      rule["value"].(int),
+			Comparison: rule["comparison"].(string),
+			Key:        rule["key"].(string),
+		}
+	}
+	raw_config := make(map[string]interface{})
+	if c := d.Get("config"); c != nil {
+		raw_config = c.(map[string]interface{})
+	}
+	r.Config = raw_config
+	r.RegionScope = "fixed"
+	r.Policy = d.Get("policy").(string)
+	r.Notes = d.Get("notes").(string)
+	r.Frequency = d.Get("frequency").(int)
+	if v, ok := d.GetOk("notify_delay"); ok {
+		r.NotifyDelay = v.(int)
+	}
+	if v, ok := d.GetOk("notify_repeat"); ok {
+		r.NotifyRepeat = v.(int)
+	}
+	if v, ok := d.GetOk("notify_regional"); ok {
+		r.NotifyRegional = v.(bool)
+	}
+	if v, ok := d.GetOk("notify_failback"); ok {
+		r.NotifyFailback = v.(bool)
+	}
+	if v, ok := d.GetOk("notify_list"); ok {
+		r.NotifyList = v.(string)
+	}
 	return nil
 }
 

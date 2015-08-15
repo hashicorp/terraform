@@ -91,3 +91,14 @@ resource "nsone_record" "www" {
     }
 }
 
+resource "nsone_monitoringjob" "useast" {
+    name = "useast"
+    active = false
+    regions = [ "lga" ]
+    job_type = "ping"
+    frequency = 60
+    rapid_recheck = true
+    policy = "quorum"
+    notes = "foo"
+}
+
