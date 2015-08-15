@@ -41,7 +41,11 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 			"num_cache_clusters": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  1,
+				ForceNew: true,
+			},
+			"primary_cluster_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 			"parameter_group_name": &schema.Schema{
@@ -95,28 +99,30 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
-	replicationGroupId := d.Get("replication_group_id").(string)
+	replicationGroupID := d.Get("replication_group_id").(string)
 	description := d.Get("description").(string)
 	cacheNodeType := d.Get("cache_node_type").(string)
 	automaticFailover := d.Get("automatic_failover").(bool)
 	numCacheClusters := d.Get("num_cache_clusters").(int)
+	primaryClusterID := d.Get("primary_cluster_id").(string)
 	engine := d.Get("engine").(string)
 	engineVersion := d.Get("engine_version").(string)
 	securityNameSet := d.Get("security_group_names").(*schema.Set)
-	securityIdSet := d.Get("security_group_ids").(*schema.Set)
+	securityIDSet := d.Get("security_group_ids").(*schema.Set)
 	subnetGroupName := d.Get("subnet_group_name").(string)
 	prefferedCacheClusterAZs := d.Get("preferred_cache_cluster_azs").(*schema.Set)
 
 	securityNames := expandStringList(securityNameSet.List())
-	securityIds := expandStringList(securityIdSet.List())
+	securityIds := expandStringList(securityIDSet.List())
 	prefferedAZs := expandStringList(prefferedCacheClusterAZs.List())
 
 	req := &elasticache.CreateReplicationGroupInput{
-		ReplicationGroupID:          aws.String(replicationGroupId),
+		ReplicationGroupID:          aws.String(replicationGroupID),
 		ReplicationGroupDescription: aws.String(description),
 		CacheNodeType:               aws.String(cacheNodeType),
 		AutomaticFailoverEnabled:    aws.Bool(automaticFailover),
 		NumCacheClusters:            aws.Int64(int64(numCacheClusters)),
+		PrimaryClusterID:            aws.String(primaryClusterID),
 		Engine:                      aws.String(engine),
 		CacheSubnetGroupName:        aws.String(subnetGroupName),
 		EngineVersion:               aws.String(engineVersion),
@@ -125,8 +131,13 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		PreferredCacheClusterAZs:    prefferedAZs,
 	}
 
+	// parameter groups are optional and can be defaulted by AWS
 	if v, ok := d.GetOk("parameter_group_name"); ok {
 		req.CacheParameterGroupName = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("maintenance_window"); ok {
+		req.PreferredMaintenanceWindow = aws.String(v.(string))
 	}
 
 	_, err := conn.CreateReplicationGroup(req)
@@ -134,11 +145,13 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		return fmt.Errorf("Error creating Elasticache replication group: %s", err)
 	}
 
+	d.SetId(replicationGroupID)
+
 	pending := []string{"creating"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     "available",
-		Refresh:    ReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
+		Refresh:    replicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
 		Timeout:    60 * time.Minute,
 		Delay:      20 * time.Second,
 		MinTimeout: 5 * time.Second,
@@ -149,8 +162,6 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	if sterr != nil {
 		return fmt.Errorf("Error waiting for elasticache (%s) to be created: %s", d.Id(), sterr)
 	}
-
-	d.SetId(replicationGroupId)
 
 	return nil
 }
@@ -179,8 +190,8 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		d.Set("description", c.Description)
 		d.Set("automatic_failover", c.AutomaticFailover)
 		d.Set("num_cache_clusters", len(c.MemberClusters))
+		d.Set("primary_endpoint", res.ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Address)
 	}
-	d.Set("primary_endpoint", res.ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Address)
 
 	return nil
 }
@@ -204,13 +215,13 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 	}
 
 	if d.HasChange("engine_version") {
-		engine_version := d.Get("engine_version").(string)
-		req.EngineVersion = aws.String(engine_version)
+		engineVersion := d.Get("engine_version").(string)
+		req.EngineVersion = aws.String(engineVersion)
 	}
 
 	if d.HasChange("security_group_ids") {
-		securityIdSet := d.Get("security_group_ids").(*schema.Set)
-		securityIds := expandStringList(securityIdSet.List())
+		securityIDSet := d.Get("security_group_ids").(*schema.Set)
+		securityIds := expandStringList(securityIDSet.List())
 		req.SecurityGroupIDs = securityIds
 	}
 
@@ -250,7 +261,7 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "available", "deleting"},
 		Target:     "",
-		Refresh:    ReplicationGroupStateRefreshFunc(conn, d.Id(), "", []string{}),
+		Refresh:    replicationGroupStateRefreshFunc(conn, d.Id(), "", []string{}),
 		Timeout:    15 * time.Minute,
 		Delay:      20 * time.Second,
 		MinTimeout: 5 * time.Second,
@@ -264,7 +275,7 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 	return nil
 }
 
-func ReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupID, givenState string, pending []string) resource.StateRefreshFunc {
+func replicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupID, givenState string, pending []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
 			ReplicationGroupID: aws.String(replicationGroupID),
@@ -280,7 +291,7 @@ func ReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replication
 				}
 			}
 
-			log.Printf("[ERROR] ReplicationGroupStateRefreshFunc: %s", err)
+			log.Printf("[ERROR] replicationGroupStateRefreshFunc: %s", err)
 			return nil, "", err
 		}
 

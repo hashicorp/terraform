@@ -2,8 +2,8 @@ package aws
 
 import (
 	"fmt"
-	"testing"
 	"log"
+	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticache"

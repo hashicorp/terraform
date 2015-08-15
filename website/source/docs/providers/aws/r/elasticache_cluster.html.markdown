@@ -49,6 +49,12 @@ supported node types
 cache cluster will have. For Redis, this value must be 1. For Memcache, this
 value must be between 1 and 20
 
+* `replication_group_id` – (Optional, Redis only) The ID of the replication
+group to which this cache cluster should belong. If specified, the cache cluster
+will be added to the specified replication group as a read replica;
+otherwise, the cache cluster will be a standalone primary that is not part of
+any replication group.
+
 * `parameter_group_name` – (Required) Name of the parameter group to associate
 with this cache cluster
 
