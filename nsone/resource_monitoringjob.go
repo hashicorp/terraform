@@ -5,6 +5,7 @@ import (
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
+	"strconv"
 )
 
 func monitoringJobResource() *schema.Resource {
@@ -32,6 +33,7 @@ func monitoringJobResource() *schema.Resource {
 			"job_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"frequency": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -55,11 +57,11 @@ func monitoringJobResource() *schema.Resource {
 			},
 			"notes": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"config": &schema.Schema{
 				Type:     schema.TypeMap,
-				Optional: true,
+				Required: true,
 			},
 			"notify_delay": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -119,14 +121,22 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 			Key:        rule["key"].(string),
 		}
 	}
-	raw_config := make(map[string]interface{})
-	if c := d.Get("config"); c != nil {
-		raw_config = c.(map[string]interface{})
+	config := make(map[string]interface{})
+	if raw_config := d.Get("config"); raw_config != nil {
+		for k, v := range raw_config.(map[string]interface{}) {
+			if i, err := strconv.Atoi(v.(string)); err == nil {
+				config[k] = i
+			} else {
+				config[k] = v
+			}
+		}
 	}
-	r.Config = raw_config
+	r.Config = config
 	r.RegionScope = "fixed"
 	r.Policy = d.Get("policy").(string)
-	r.Notes = d.Get("notes").(string)
+	if v, ok = d.GetOk("notes"); ok {
+		r.Notes = v.(string)
+	}
 	r.Frequency = d.Get("frequency").(int)
 	if v, ok := d.GetOk("notify_delay"); ok {
 		r.NotifyDelay = v.(int)

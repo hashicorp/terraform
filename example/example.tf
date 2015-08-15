@@ -93,12 +93,17 @@ resource "nsone_record" "www" {
 
 resource "nsone_monitoringjob" "useast" {
     name = "useast"
-    active = false
+    active = true
     regions = [ "lga" ]
-    job_type = "ping"
+    job_type = "tcp"
     frequency = 60
     rapid_recheck = true
     policy = "quorum"
     notes = "foo"
+    config {
+        send = "HEAD / HTTP/1.0\r\n\r\n"
+        port = 80
+        host = "85.214.55.250"
+    }
 }
 
