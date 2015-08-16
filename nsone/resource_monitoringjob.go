@@ -83,6 +83,26 @@ func monitoringJobResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"rules": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"value": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"comparison": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"key": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 		Create: MonitoringJobCreate,
 		Read:   MonitoringJobRead,
@@ -134,7 +154,7 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	r.Config = config
 	r.RegionScope = "fixed"
 	r.Policy = d.Get("policy").(string)
-	if v, ok = d.GetOk("notes"); ok {
+	if v, ok := d.GetOk("notes"); ok {
 		r.Notes = v.(string)
 	}
 	r.Frequency = d.Get("frequency").(int)
