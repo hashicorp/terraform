@@ -24,6 +24,7 @@ func Provider() terraform.ResourceProvider {
 			"nsone_monitoringjob": monitoringJobResource(),
 			"nsone_user":          userResource(),
 			"nsone_apikey":        apikeyResource(),
+			"nsone_team":          teamResource(),
 		},
 		ConfigureFunc: nsoneConfigure,
 	}
