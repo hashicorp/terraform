@@ -113,6 +113,31 @@ func monitoringJobResource() *schema.Resource {
 
 func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob) error {
 	d.SetId(r.Id)
+	d.Set("name", r.Name)
+	d.Set("job_type", r.JobType)
+	d.Set("active", r.Active)
+	d.Set("regions", r.Regions)
+	d.Set("frequency", r.Frequency)
+	d.Set("rapid_recheck", r.RapidRecheck)
+	d.Set("config", r.Config)
+	d.Set("policy", r.Policy)
+	d.Set("notes", r.Notes)
+	d.Set("frequency", r.Frequency)
+	d.Set("notify_delay", r.NotifyDelay)
+	d.Set("notify_repeat", r.NotifyRepeat)
+	d.Set("notify_regional", r.NotifyRegional)
+	d.Set("notify_failback", r.NotifyFailback)
+	d.Set("notify_list", r.NotifyList)
+	if len(r.Rules) > 0 {
+		rules := make([]map[string]interface{}, len(r.Rules))
+		for i, r := range r.Rules {
+			m := make(map[string]interface{})
+			m["value"] = r.Value
+			m["comparison"] = r.Comparison
+			m["key"] = r.Key
+			rules[i] = m
+		}
+	}
 	return nil
 }
 

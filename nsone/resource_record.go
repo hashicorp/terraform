@@ -202,7 +202,6 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 		d.Set("link", r.Link)
 	}
 	if len(r.Filters) > 0 {
-		log.Printf("HEAD FILTERS %+v", r.Filters)
 		filters := make([]map[string]interface{}, len(r.Filters))
 		for i, f := range r.Filters {
 			m := make(map[string]interface{})
@@ -213,10 +212,9 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 			if f.Config != nil {
 				m["config"] = f.Config
 			}
-			log.Printf("HEAD FILTER %s", f.Filter)
 			filters[i] = m
 		}
-		d.Set("filters", r.Filters)
+		d.Set("filters", filters)
 	}
 	if len(r.Answers) > 0 {
 		ans := &schema.Set{
