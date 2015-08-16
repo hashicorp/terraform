@@ -89,7 +89,7 @@ func monitoringJobResource() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"value": &schema.Schema{
-							Type:     schema.TypeInt,
+							Type:     schema.TypeString,
 							Required: true,
 						},
 						"comparison": &schema.Schema{
@@ -134,7 +134,7 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 		for i, v := range raw_rules.([]interface{}) {
 			rule := v.(map[string]interface{})
 			r.Rules[i] = nsone.MonitoringJobRule{
-				Value:      rule["value"].(int),
+				Value:      rule["value"].(string),
 				Comparison: rule["comparison"].(string),
 				Key:        rule["key"].(string),
 			}
@@ -145,9 +145,14 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	for i, v := range raw_rules {
 		rule := v.(map[string]interface{})
 		r.Rules[i] = nsone.MonitoringJobRule{
-			Value:      rule["value"].(int),
 			Comparison: rule["comparison"].(string),
 			Key:        rule["key"].(string),
+		}
+		value := rule["value"].(string)
+		if i, err := strconv.Atoi(value); err == nil {
+			r.Rules[i].Value = i
+		} else {
+			r.Rules[i].Value = value
 		}
 	}
 	config := make(map[string]interface{})

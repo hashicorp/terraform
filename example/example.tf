@@ -134,6 +134,11 @@ resource "nsone_monitoringjob" "uswest" {
         port = 80
         host = "85.214.55.250"
     }
+    rules {
+        value = "200 OK"
+        comparison =  "contains"
+        key = "output"
+    }
 }
 
 resource "nsone_datafeed" "uswest1_monitoring" {
