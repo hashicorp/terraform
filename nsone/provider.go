@@ -23,6 +23,7 @@ func Provider() terraform.ResourceProvider {
 			"nsone_datafeed":      dataFeedResource(),
 			"nsone_monitoringjob": monitoringJobResource(),
 			"nsone_user":          userResource(),
+			"nsone_apikey":        apikeyResource(),
 		},
 		ConfigureFunc: nsoneConfigure,
 	}
