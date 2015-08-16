@@ -89,7 +89,7 @@ func monitoringJobResource() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"value": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Required: true,
 						},
 						"comparison": &schema.Schema{
@@ -129,10 +129,19 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	r.Frequency = d.Get("frequency").(int)
 	r.RapidRecheck = d.Get("rapid_recheck").(bool)
 	var raw_rules []interface{}
-	if r := d.Get("rules"); r != nil {
-		raw_rules = r.([]interface{})
+	if raw_rules := d.Get("rules"); raw_rules != nil {
+		r.Rules = make([]nsone.MonitoringJobRule, len(raw_rules.([]interface{})))
+		for i, v := range raw_rules.([]interface{}) {
+			rule := v.(map[string]interface{})
+			r.Rules[i] = nsone.MonitoringJobRule{
+				Value:      rule["value"].(int),
+				Comparison: rule["comparison"].(string),
+				Key:        rule["key"].(string),
+			}
+		}
+	} else {
+		r.Rules = make([]nsone.MonitoringJobRule, 0)
 	}
-	r.Rules = make([]nsone.MonitoringJobRule, len(raw_rules))
 	for i, v := range raw_rules {
 		rule := v.(map[string]interface{})
 		r.Rules[i] = nsone.MonitoringJobRule{
