@@ -22,6 +22,7 @@ func Provider() terraform.ResourceProvider {
 			"nsone_datasource":    dataSourceResource(),
 			"nsone_datafeed":      dataFeedResource(),
 			"nsone_monitoringjob": monitoringJobResource(),
+			"nsone_user":          userResource(),
 		},
 		ConfigureFunc: nsoneConfigure,
 	}
