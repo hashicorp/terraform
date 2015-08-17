@@ -89,7 +89,7 @@ func resourceAwsIAMServerCertificateCreate(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("[WARN] Error uploading server certificate, error: %s", err)
 	}
 
-	d.SetId(*resp.ServerCertificateMetadata.ServerCertificateID)
+	d.SetId(*resp.ServerCertificateMetadata.ServerCertificateId)
 
 	return resourceAwsIAMServerCertificateRead(d, meta)
 }
@@ -117,7 +117,7 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 	}
 
 	d.Set("path", resp.ServerCertificate.ServerCertificateMetadata.Path)
-	d.Set("arn", resp.ServerCertificate.ServerCertificateMetadata.ARN)
+	d.Set("arn", resp.ServerCertificate.ServerCertificateMetadata.Arn)
 
 	return nil
 }

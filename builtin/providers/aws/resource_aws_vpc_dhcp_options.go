@@ -65,7 +65,7 @@ func resourceAwsVpcDhcpOptions() *schema.Resource {
 func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	setDHCPOption := func(key string) *ec2.NewDHCPConfiguration {
+	setDHCPOption := func(key string) *ec2.NewDhcpConfiguration {
 		log.Printf("[DEBUG] Setting DHCP option %s...", key)
 		tfKey := strings.Replace(key, "-", "_", -1)
 
@@ -75,7 +75,7 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		if v, ok := value.(string); ok {
-			return &ec2.NewDHCPConfiguration{
+			return &ec2.NewDhcpConfiguration{
 				Key: aws.String(key),
 				Values: []*string{
 					aws.String(v),
@@ -89,7 +89,7 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 				s = append(s, aws.String(attr.(string)))
 			}
 
-			return &ec2.NewDHCPConfiguration{
+			return &ec2.NewDhcpConfiguration{
 				Key:    aws.String(key),
 				Values: s,
 			}
@@ -98,8 +98,8 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	createOpts := &ec2.CreateDHCPOptionsInput{
-		DHCPConfigurations: []*ec2.NewDHCPConfiguration{
+	createOpts := &ec2.CreateDhcpOptionsInput{
+		DhcpConfigurations: []*ec2.NewDhcpConfiguration{
 			setDHCPOption("domain-name"),
 			setDHCPOption("domain-name-servers"),
 			setDHCPOption("ntp-servers"),
@@ -108,13 +108,13 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	resp, err := conn.CreateDHCPOptions(createOpts)
+	resp, err := conn.CreateDhcpOptions(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating DHCP Options Set: %s", err)
 	}
 
-	dos := resp.DHCPOptions
-	d.SetId(*dos.DHCPOptionsID)
+	dos := resp.DhcpOptions
+	d.SetId(*dos.DhcpOptionsId)
 	log.Printf("[INFO] DHCP Options Set ID: %s", d.Id())
 
 	// Wait for the DHCP Options to become available
@@ -136,25 +136,25 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 
 func resourceAwsVpcDhcpOptionsRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	req := &ec2.DescribeDHCPOptionsInput{
-		DHCPOptionsIDs: []*string{
+	req := &ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []*string{
 			aws.String(d.Id()),
 		},
 	}
 
-	resp, err := conn.DescribeDHCPOptions(req)
+	resp, err := conn.DescribeDhcpOptions(req)
 	if err != nil {
 		return fmt.Errorf("Error retrieving DHCP Options: %s", err)
 	}
 
-	if len(resp.DHCPOptions) == 0 {
+	if len(resp.DhcpOptions) == 0 {
 		return nil
 	}
 
-	opts := resp.DHCPOptions[0]
+	opts := resp.DhcpOptions[0]
 	d.Set("tags", tagsToMap(opts.Tags))
 
-	for _, cfg := range opts.DHCPConfigurations {
+	for _, cfg := range opts.DhcpConfigurations {
 		tfKey := strings.Replace(*cfg.Key, "-", "_", -1)
 
 		if _, ok := d.Get(tfKey).(string); ok {
@@ -182,8 +182,8 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 
 	return resource.Retry(3*time.Minute, func() error {
 		log.Printf("[INFO] Deleting DHCP Options ID %s...", d.Id())
-		_, err := conn.DeleteDHCPOptions(&ec2.DeleteDHCPOptionsInput{
-			DHCPOptionsID: aws.String(d.Id()),
+		_, err := conn.DeleteDhcpOptions(&ec2.DeleteDhcpOptionsInput{
+			DhcpOptionsId: aws.String(d.Id()),
 		})
 
 		if err == nil {
@@ -210,10 +210,10 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 			}
 
 			for _, vpc := range vpcs {
-				log.Printf("[INFO] Disassociating DHCP Options Set %s from VPC %s...", d.Id(), *vpc.VPCID)
-				if _, err := conn.AssociateDHCPOptions(&ec2.AssociateDHCPOptionsInput{
-					DHCPOptionsID: aws.String("default"),
-					VPCID:         vpc.VPCID,
+				log.Printf("[INFO] Disassociating DHCP Options Set %s from VPC %s...", d.Id(), *vpc.VpcId)
+				if _, err := conn.AssociateDhcpOptions(&ec2.AssociateDhcpOptionsInput{
+					DhcpOptionsId: aws.String("default"),
+					VpcId:         vpc.VpcId,
 				}); err != nil {
 					return err
 				}
@@ -228,8 +228,8 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 	})
 }
 
-func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.VPC, error) {
-	req := &ec2.DescribeVPCsInput{
+func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.Vpc, error) {
+	req := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name: aws.String("dhcp-options-id"),
@@ -240,7 +240,7 @@ func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.VPC, error) {
 		},
 	}
 
-	resp, err := conn.DescribeVPCs(req)
+	resp, err := conn.DescribeVpcs(req)
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpcID.NotFound" {
 			return nil, nil
@@ -248,18 +248,18 @@ func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.VPC, error) {
 		return nil, err
 	}
 
-	return resp.VPCs, nil
+	return resp.Vpcs, nil
 }
 
 func DHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		DescribeDhcpOpts := &ec2.DescribeDHCPOptionsInput{
-			DHCPOptionsIDs: []*string{
+		DescribeDhcpOpts := &ec2.DescribeDhcpOptionsInput{
+			DhcpOptionsIds: []*string{
 				aws.String(id),
 			},
 		}
 
-		resp, err := conn.DescribeDHCPOptions(DescribeDhcpOpts)
+		resp, err := conn.DescribeDhcpOptions(DescribeDhcpOpts)
 		if err != nil {
 			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidDhcpOptionsID.NotFound" {
 				resp = nil
@@ -275,7 +275,7 @@ func DHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefresh
 			return nil, "", nil
 		}
 
-		dos := resp.DHCPOptions[0]
+		dos := resp.DhcpOptions[0]
 		return dos, "", nil
 	}
 }

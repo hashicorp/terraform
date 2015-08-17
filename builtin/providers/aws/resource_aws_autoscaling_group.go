@@ -480,7 +480,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 		haveELB := 0
 
 		for _, i := range g.Instances {
-			if i.HealthStatus == nil || i.InstanceID == nil || i.LifecycleState == nil {
+			if i.HealthStatus == nil || i.InstanceId == nil || i.LifecycleState == nil {
 				continue
 			}
 
@@ -497,7 +497,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 			if wantELB > 0 {
 				inAllLbs := true
 				for _, states := range lbis {
-					state, ok := states[*i.InstanceID]
+					state, ok := states[*i.InstanceId]
 					if !ok || !strings.EqualFold(state, "InService") {
 						inAllLbs = false
 					}
@@ -535,10 +535,10 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 			return nil, err
 		}
 		for _, is := range r.InstanceStates {
-			if is.InstanceID == nil || is.State == nil {
+			if is.InstanceId == nil || is.State == nil {
 				continue
 			}
-			lbInstanceStates[*lbName][*is.InstanceID] = *is.State
+			lbInstanceStates[*lbName][*is.InstanceId] = *is.State
 		}
 	}
 

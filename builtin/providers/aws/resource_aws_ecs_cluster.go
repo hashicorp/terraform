@@ -39,9 +39,9 @@ func resourceAwsEcsClusterCreate(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] ECS cluster %s created", *out.Cluster.ClusterARN)
+	log.Printf("[DEBUG] ECS cluster %s created", *out.Cluster.ClusterArn)
 
-	d.SetId(*out.Cluster.ClusterARN)
+	d.SetId(*out.Cluster.ClusterArn)
 	d.Set("name", *out.Cluster.ClusterName)
 	return nil
 }
@@ -59,7 +59,7 @@ func resourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Received ECS clusters: %s", out.Clusters)
 
-	d.SetId(*out.Clusters[0].ClusterARN)
+	d.SetId(*out.Clusters[0].ClusterArn)
 	d.Set("name", *out.Clusters[0].ClusterName)
 
 	return nil

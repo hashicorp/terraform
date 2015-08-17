@@ -130,7 +130,7 @@ func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.Test
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
-			NetworkInterfaceIDs: []*string{aws.String(rs.Primary.ID)},
+			NetworkInterfaceIds: []*string{aws.String(rs.Primary.ID)},
 		}
 		describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
@@ -139,7 +139,7 @@ func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.Test
 		}
 
 		if len(describeResp.NetworkInterfaces) != 1 ||
-			*describeResp.NetworkInterfaces[0].NetworkInterfaceID != rs.Primary.ID {
+			*describeResp.NetworkInterfaces[0].NetworkInterfaceId != rs.Primary.ID {
 			return fmt.Errorf("ENI not found")
 		}
 
@@ -164,8 +164,8 @@ func testAccCheckAWSENIAttributes(conf *ec2.NetworkInterface) resource.TestCheck
 			return fmt.Errorf("expected security group to be foo, but was %#v", conf.Groups)
 		}
 
-		if *conf.PrivateIPAddress != "172.16.10.100" {
-			return fmt.Errorf("expected private ip to be 172.16.10.100, but was %s", *conf.PrivateIPAddress)
+		if *conf.PrivateIpAddress != "172.16.10.100" {
+			return fmt.Errorf("expected private ip to be 172.16.10.100, but was %s", *conf.PrivateIpAddress)
 		}
 
 		if *conf.SourceDestCheck != true {
@@ -199,8 +199,8 @@ func testAccCheckAWSENIAttributesWithAttachment(conf *ec2.NetworkInterface) reso
 			return fmt.Errorf("expected security group to be foo, but was %#v", conf.Groups)
 		}
 
-		if *conf.PrivateIPAddress != "172.16.10.100" {
-			return fmt.Errorf("expected private ip to be 172.16.10.100, but was %s", *conf.PrivateIPAddress)
+		if *conf.PrivateIpAddress != "172.16.10.100" {
+			return fmt.Errorf("expected private ip to be 172.16.10.100, but was %s", *conf.PrivateIpAddress)
 		}
 
 		return nil
@@ -215,7 +215,7 @@ func testAccCheckAWSENIDestroy(s *terraform.State) error {
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
-			NetworkInterfaceIDs: []*string{aws.String(rs.Primary.ID)},
+			NetworkInterfaceIds: []*string{aws.String(rs.Primary.ID)},
 		}
 		_, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
@@ -239,8 +239,8 @@ func testAccCheckAWSENIMakeExternalAttachment(n string, conf *ec2.NetworkInterfa
 		}
 		attach_request := &ec2.AttachNetworkInterfaceInput{
 			DeviceIndex:        aws.Int64(2),
-			InstanceID:         aws.String(rs.Primary.ID),
-			NetworkInterfaceID: conf.NetworkInterfaceID,
+			InstanceId:         aws.String(rs.Primary.ID),
+			NetworkInterfaceId: conf.NetworkInterfaceId,
 		}
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		_, attach_err := conn.AttachNetworkInterface(attach_request)

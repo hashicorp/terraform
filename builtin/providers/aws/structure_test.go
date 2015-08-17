@@ -59,37 +59,37 @@ func TestexpandIPPerms(t *testing.T) {
 		},
 	}
 	group := &ec2.SecurityGroup{
-		GroupID: aws.String("foo"),
-		VPCID:   aws.String("bar"),
+		GroupId: aws.String("foo"),
+		VpcId:   aws.String("bar"),
 	}
 	perms, err := expandIPPerms(group, expanded)
 	if err != nil {
 		t.Fatalf("error expanding perms: %v", err)
 	}
 
-	expected := []ec2.IPPermission{
-		ec2.IPPermission{
-			IPProtocol: aws.String("icmp"),
+	expected := []ec2.IpPermission{
+		ec2.IpPermission{
+			IpProtocol: aws.String("icmp"),
 			FromPort:   aws.Int64(int64(1)),
 			ToPort:     aws.Int64(int64(-1)),
-			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
-			UserIDGroupPairs: []*ec2.UserIDGroupPair{
-				&ec2.UserIDGroupPair{
-					UserID:  aws.String("foo"),
-					GroupID: aws.String("sg-22222"),
+			IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")}},
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					UserId:  aws.String("foo"),
+					GroupId: aws.String("sg-22222"),
 				},
-				&ec2.UserIDGroupPair{
-					GroupID: aws.String("sg-22222"),
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("sg-22222"),
 				},
 			},
 		},
-		ec2.IPPermission{
-			IPProtocol: aws.String("icmp"),
+		ec2.IpPermission{
+			IpProtocol: aws.String("icmp"),
 			FromPort:   aws.Int64(int64(1)),
 			ToPort:     aws.Int64(int64(-1)),
-			UserIDGroupPairs: []*ec2.UserIDGroupPair{
-				&ec2.UserIDGroupPair{
-					UserID: aws.String("foo"),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					UserId: aws.String("foo"),
 				},
 			},
 		},
@@ -105,18 +105,18 @@ func TestexpandIPPerms(t *testing.T) {
 			*exp.FromPort)
 	}
 
-	if *exp.IPRanges[0].CIDRIP != *perm.IPRanges[0].CIDRIP {
+	if *exp.IpRanges[0].CidrIp != *perm.IpRanges[0].CidrIp {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-			*perm.IPRanges[0].CIDRIP,
-			*exp.IPRanges[0].CIDRIP)
+			*perm.IpRanges[0].CidrIp,
+			*exp.IpRanges[0].CidrIp)
 	}
 
-	if *exp.UserIDGroupPairs[0].UserID != *perm.UserIDGroupPairs[0].UserID {
+	if *exp.UserIdGroupPairs[0].UserId != *perm.UserIdGroupPairs[0].UserId {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-			*perm.UserIDGroupPairs[0].UserID,
-			*exp.UserIDGroupPairs[0].UserID)
+			*perm.UserIdGroupPairs[0].UserId,
+			*exp.UserIdGroupPairs[0].UserId)
 	}
 
 }
@@ -137,8 +137,8 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 		},
 	}
 	group := &ec2.SecurityGroup{
-		GroupID: aws.String("foo"),
-		VPCID:   aws.String("bar"),
+		GroupId: aws.String("foo"),
+		VpcId:   aws.String("bar"),
 	}
 
 	perms, err := expandIPPerms(group, expanded)
@@ -146,19 +146,19 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 		t.Fatalf("error expanding perms: %v", err)
 	}
 
-	expected := []ec2.IPPermission{
-		ec2.IPPermission{
-			IPProtocol: aws.String("-1"),
+	expected := []ec2.IpPermission{
+		ec2.IpPermission{
+			IpProtocol: aws.String("-1"),
 			FromPort:   aws.Int64(int64(0)),
 			ToPort:     aws.Int64(int64(0)),
-			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
-			UserIDGroupPairs: []*ec2.UserIDGroupPair{
-				&ec2.UserIDGroupPair{
-					UserID:  aws.String("foo"),
-					GroupID: aws.String("sg-22222"),
+			IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")}},
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					UserId:  aws.String("foo"),
+					GroupId: aws.String("sg-22222"),
 				},
-				&ec2.UserIDGroupPair{
-					GroupID: aws.String("sg-22222"),
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("sg-22222"),
 				},
 			},
 		},
@@ -174,18 +174,18 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 			*exp.FromPort)
 	}
 
-	if *exp.IPRanges[0].CIDRIP != *perm.IPRanges[0].CIDRIP {
+	if *exp.IpRanges[0].CidrIp != *perm.IpRanges[0].CidrIp {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-			*perm.IPRanges[0].CIDRIP,
-			*exp.IPRanges[0].CIDRIP)
+			*perm.IpRanges[0].CidrIp,
+			*exp.IpRanges[0].CidrIp)
 	}
 
-	if *exp.UserIDGroupPairs[0].UserID != *perm.UserIDGroupPairs[0].UserID {
+	if *exp.UserIdGroupPairs[0].UserId != *perm.UserIdGroupPairs[0].UserId {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-			*perm.UserIDGroupPairs[0].UserID,
-			*exp.UserIDGroupPairs[0].UserID)
+			*perm.UserIdGroupPairs[0].UserId,
+			*exp.UserIdGroupPairs[0].UserId)
 	}
 
 	// Now test the error case. This *should* error when either from_port
@@ -203,8 +203,8 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 		},
 	}
 	securityGroups := &ec2.SecurityGroup{
-		GroupID: aws.String("foo"),
-		VPCID:   aws.String("bar"),
+		GroupId: aws.String("foo"),
+		VpcId:   aws.String("bar"),
 	}
 
 	_, expandErr := expandIPPerms(securityGroups, errorCase)
@@ -242,27 +242,27 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 		t.Fatalf("error expanding perms: %v", err)
 	}
 
-	expected := []ec2.IPPermission{
-		ec2.IPPermission{
-			IPProtocol: aws.String("icmp"),
+	expected := []ec2.IpPermission{
+		ec2.IpPermission{
+			IpProtocol: aws.String("icmp"),
 			FromPort:   aws.Int64(int64(1)),
 			ToPort:     aws.Int64(int64(-1)),
-			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
-			UserIDGroupPairs: []*ec2.UserIDGroupPair{
-				&ec2.UserIDGroupPair{
+			IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")}},
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
 					GroupName: aws.String("sg-22222"),
 				},
-				&ec2.UserIDGroupPair{
+				&ec2.UserIdGroupPair{
 					GroupName: aws.String("sg-22222"),
 				},
 			},
 		},
-		ec2.IPPermission{
-			IPProtocol: aws.String("icmp"),
+		ec2.IpPermission{
+			IpProtocol: aws.String("icmp"),
 			FromPort:   aws.Int64(int64(1)),
 			ToPort:     aws.Int64(int64(-1)),
-			UserIDGroupPairs: []*ec2.UserIDGroupPair{
-				&ec2.UserIDGroupPair{
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
 					GroupName: aws.String("foo"),
 				},
 			},
@@ -279,11 +279,11 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 			*exp.FromPort)
 	}
 
-	if *exp.IPRanges[0].CIDRIP != *perm.IPRanges[0].CIDRIP {
+	if *exp.IpRanges[0].CidrIp != *perm.IpRanges[0].CidrIp {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-			*perm.IPRanges[0].CIDRIP,
-			*exp.IPRanges[0].CIDRIP)
+			*perm.IpRanges[0].CidrIp,
+			*exp.IpRanges[0].CidrIp)
 	}
 }
 
@@ -481,8 +481,8 @@ func TestflattenElasticacheParameters(t *testing.T) {
 func TestexpandInstanceString(t *testing.T) {
 
 	expected := []*elb.Instance{
-		&elb.Instance{InstanceID: aws.String("test-one")},
-		&elb.Instance{InstanceID: aws.String("test-two")},
+		&elb.Instance{InstanceId: aws.String("test-one")},
+		&elb.Instance{InstanceId: aws.String("test-two")},
 	}
 
 	ids := []interface{}{
@@ -498,9 +498,9 @@ func TestexpandInstanceString(t *testing.T) {
 }
 
 func TestflattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
-	expanded := []*ec2.NetworkInterfacePrivateIPAddress{
-		&ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.1")},
-		&ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.2")},
+	expanded := []*ec2.NetworkInterfacePrivateIpAddress{
+		&ec2.NetworkInterfacePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.1")},
+		&ec2.NetworkInterfacePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.2")},
 	}
 
 	result := flattenNetworkInterfacesPrivateIPAddesses(expanded)
@@ -524,8 +524,8 @@ func TestflattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
 
 func TestflattenGroupIdentifiers(t *testing.T) {
 	expanded := []*ec2.GroupIdentifier{
-		&ec2.GroupIdentifier{GroupID: aws.String("sg-001")},
-		&ec2.GroupIdentifier{GroupID: aws.String("sg-002")},
+		&ec2.GroupIdentifier{GroupId: aws.String("sg-001")},
+		&ec2.GroupIdentifier{GroupId: aws.String("sg-002")},
 	}
 
 	result := flattenGroupIdentifiers(expanded)
@@ -558,20 +558,20 @@ func TestexpandPrivateIPAddesses(t *testing.T) {
 		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
 	}
 
-	if *result[0].PrivateIPAddress != "192.168.0.1" || !*result[0].Primary {
-		t.Fatalf("expected ip to be 192.168.0.1 and Primary, but got %v, %t", *result[0].PrivateIPAddress, *result[0].Primary)
+	if *result[0].PrivateIpAddress != "192.168.0.1" || !*result[0].Primary {
+		t.Fatalf("expected ip to be 192.168.0.1 and Primary, but got %v, %t", *result[0].PrivateIpAddress, *result[0].Primary)
 	}
 
-	if *result[1].PrivateIPAddress != "192.168.0.2" || *result[1].Primary {
-		t.Fatalf("expected ip to be 192.168.0.2 and not Primary, but got %v, %t", *result[1].PrivateIPAddress, *result[1].Primary)
+	if *result[1].PrivateIpAddress != "192.168.0.2" || *result[1].Primary {
+		t.Fatalf("expected ip to be 192.168.0.2 and not Primary, but got %v, %t", *result[1].PrivateIpAddress, *result[1].Primary)
 	}
 }
 
 func TestflattenAttachment(t *testing.T) {
 	expanded := &ec2.NetworkInterfaceAttachment{
-		InstanceID:   aws.String("i-00001"),
+		InstanceId:   aws.String("i-00001"),
 		DeviceIndex:  aws.Int64(int64(1)),
-		AttachmentID: aws.String("at-002"),
+		AttachmentId: aws.String("at-002"),
 	}
 
 	result := flattenAttachment(expanded)

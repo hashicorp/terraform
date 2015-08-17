@@ -165,7 +165,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	function := getFunctionOutput.Configuration
 	// TODO error checking / handling on the Set() calls.
-	d.Set("arn", function.FunctionARN)
+	d.Set("arn", function.FunctionArn)
 	d.Set("description", function.Description)
 	d.Set("handler", function.Handler)
 	d.Set("memory_size", function.MemorySize)

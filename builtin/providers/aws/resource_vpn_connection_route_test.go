@@ -85,7 +85,7 @@ func testAccAwsVpnConnectionRoute(
 
 		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
-		_, err := ec2conn.DescribeVPNConnections(&ec2.DescribeVPNConnectionsInput{
+		_, err := ec2conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
 			Filters: routeFilters,
 		})
 		if err != nil {

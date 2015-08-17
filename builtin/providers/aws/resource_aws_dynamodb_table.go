@@ -579,7 +579,7 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("global_secondary_index", gsiList)
-	d.Set("arn", table.TableARN)
+	d.Set("arn", table.TableArn)
 
 	return nil
 }

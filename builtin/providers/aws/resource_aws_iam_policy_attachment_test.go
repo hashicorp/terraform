@@ -55,7 +55,7 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int64, out *iam.ListEntit
 		arn := rs.Primary.Attributes["policy_arn"]
 
 		resp, err := conn.GetPolicy(&iam.GetPolicyInput{
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return fmt.Errorf("Error: Policy (%s) not found", n)
@@ -64,7 +64,7 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int64, out *iam.ListEntit
 			return fmt.Errorf("Error: Policy (%s) has wrong number of entities attached on initial creation", n)
 		}
 		resp2, err := conn.ListEntitiesForPolicy(&iam.ListEntitiesForPolicyInput{
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return fmt.Errorf("Error: Failed to get entities for Policy (%s)", arn)

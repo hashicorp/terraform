@@ -57,7 +57,7 @@ func resourceAwsElasticacheSubnetGroupCreate(d *schema.ResourceData, meta interf
 	req := &elasticache.CreateCacheSubnetGroupInput{
 		CacheSubnetGroupDescription: aws.String(desc),
 		CacheSubnetGroupName:        aws.String(name),
-		SubnetIDs:                   subnetIds,
+		SubnetIds:                   subnetIds,
 	}
 
 	_, err := conn.CreateCacheSubnetGroup(req)
@@ -122,7 +122,7 @@ func resourceAwsElasticacheSubnetGroupUpdate(d *schema.ResourceData, meta interf
 		_, err := conn.ModifyCacheSubnetGroup(&elasticache.ModifyCacheSubnetGroupInput{
 			CacheSubnetGroupName:        aws.String(d.Get("name").(string)),
 			CacheSubnetGroupDescription: aws.String(d.Get("description").(string)),
-			SubnetIDs:                   subnets,
+			SubnetIds:                   subnets,
 		})
 		if err != nil {
 			return err

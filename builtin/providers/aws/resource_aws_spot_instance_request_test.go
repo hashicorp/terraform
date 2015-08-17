@@ -44,7 +44,7 @@ func testAccCheckAWSSpotInstanceRequestDestroy(s *terraform.State) error {
 		}
 
 		req := &ec2.DescribeSpotInstanceRequestsInput{
-			SpotInstanceRequestIDs: []*string{aws.String(rs.Primary.ID)},
+			SpotInstanceRequestIds: []*string{aws.String(rs.Primary.ID)},
 		}
 
 		resp, err := conn.DescribeSpotInstanceRequests(req)
@@ -66,7 +66,7 @@ func testAccCheckAWSSpotInstanceRequestDestroy(s *terraform.State) error {
 		// Now check if the associated Spot Instance was also destroyed
 		instId := rs.Primary.Attributes["spot_instance_id"]
 		instResp, instErr := conn.DescribeInstances(&ec2.DescribeInstancesInput{
-			InstanceIDs: []*string{aws.String(instId)},
+			InstanceIds: []*string{aws.String(instId)},
 		})
 		if instErr == nil {
 			if len(instResp.Reservations) > 0 {
@@ -104,7 +104,7 @@ func testAccCheckAWSSpotInstanceRequestExists(
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 		params := &ec2.DescribeSpotInstanceRequestsInput{
-			SpotInstanceRequestIDs: []*string{&rs.Primary.ID},
+			SpotInstanceRequestIds: []*string{&rs.Primary.ID},
 		}
 		resp, err := conn.DescribeSpotInstanceRequests(params)
 
