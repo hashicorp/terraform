@@ -113,17 +113,26 @@ is placed in the right place in your $GOPATH.
     * Secondary (slave) zones supported
 
 ## Setup records in those zones
-    * A, MX and CNAME records are supported.
+    * A, MX, ALIAS and CNAME records are supported.
     * Other record types MAY work, but are untested.
     * Allows records to be linked to other records
-    * Allows multiple answers, each of which can be linked to a data feed
+    * Allows multiple answers, each of which can be linked to data feeds
+    * Add filter chains to records, with config
+    * Add regions to answers, and the record. Some (not all!) region metadata fields are supported.
 
 ## Data sources
     * Can create datasources with arbitrary config
-    * This *should* work for all datasource types, but only nsone_v1 is tested
+    * This *should* work for all datasource types, but only nsone_v1 and nsone_monitoring are tested
 
 ## Data feeds
     * Create data feeds linked to a data source with a label
+
+## NSOne monitoring
+    * Create and manage monitoring jobs.
+    * Link these to data feeds and use them to control record up/down status.
+
+## Users / Account management / API keys
+  * Creation of users, API keys and teams is fully supported
 
 # Unsupported features
 
@@ -131,14 +140,12 @@ is placed in the right place in your $GOPATH.
   * Setting up secondary servers to AXFR is currently unsupported
 
 ## Records
-  * Static metadata (not linked to a feed) is not yet supported
-  * Filter chains are currently unsupported (Terraform will ignore them if present however - so you can set these up manually)
+  * Static metadata (not linked to a feed) in answers is not yet supported
+  * Metadata support in regions is limited
+  * Record wide metadata is unsupported
 
 ## NSOne monitoring
-  * No support
-
-## Users / Account management / API keys
-  * No support
+  * Notification is not supported
 
 # Support / contributions
 
