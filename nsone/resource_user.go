@@ -24,6 +24,11 @@ func userResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"notify": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeBool},
+			},
 			"teams": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -120,6 +125,7 @@ func userToResourceData(d *schema.ResourceData, u *nsone.User) error {
 	d.Set("name", u.Name)
 	d.Set("email", u.Email)
 	d.Set("teams", u.Teams)
+	d.Set("notify", u.Notify)
 	d.Set("dns_viewzones", u.Permissions.Dns.ViewZones)
 	d.Set("dns_managezones", u.Permissions.Dns.ManageZones)
 	d.Set("dns_zones_allow_by_default", u.Permissions.Dns.ZonesAllowByDefault)
@@ -154,6 +160,12 @@ func resourceDataToUser(u *nsone.User, d *schema.ResourceData) error {
 		}
 	} else {
 		u.Teams = make([]string, 0)
+	}
+	u.Notify = make(map[string]bool)
+	if notify_raw, ok := d.GetOk("notify"); ok {
+		for key, b := range notify_raw.(map[string]interface{}) {
+			u.Notify[key] = b.(bool)
+		}
 	}
 	if v, ok := d.GetOk("dns_viewzones"); ok {
 		u.Permissions.Dns.ViewZones = v.(bool)
