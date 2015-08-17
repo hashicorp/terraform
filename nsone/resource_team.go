@@ -16,11 +16,11 @@ func teamResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"dns_viewzones": &schema.Schema{
+			"dns_view_zones": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"dns_managezones": &schema.Schema{
+			"dns_manage_zones": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
@@ -105,8 +105,8 @@ func teamResource() *schema.Resource {
 func teamToResourceData(d *schema.ResourceData, u *nsone.Team) error {
 	d.SetId(u.Id)
 	d.Set("name", u.Name)
-	d.Set("dns_viewzones", u.Permissions.Dns.ViewZones)
-	d.Set("dns_managezones", u.Permissions.Dns.ManageZones)
+	d.Set("dns_view_zones", u.Permissions.Dns.ViewZones)
+	d.Set("dns_manage_zones", u.Permissions.Dns.ManageZones)
 	d.Set("dns_zones_allow_by_default", u.Permissions.Dns.ZonesAllowByDefault)
 	d.Set("dns_zones_deny", u.Permissions.Dns.ZonesDeny)
 	d.Set("dns_zones_allow", u.Permissions.Dns.ZonesAllow)
@@ -130,64 +130,7 @@ func teamToResourceData(d *schema.ResourceData, u *nsone.Team) error {
 func resourceDataToTeam(u *nsone.Team, d *schema.ResourceData) error {
 	u.Id = d.Id()
 	u.Name = d.Get("name").(string)
-	//d.Set("teams", u.Teams)
-	if v, ok := d.GetOk("dns_viewzones"); ok {
-		u.Permissions.Dns.ViewZones = v.(bool)
-	}
-	if v, ok := d.GetOk("dns_managezones"); ok {
-		u.Permissions.Dns.ManageZones = v.(bool)
-	}
-	if v, ok := d.GetOk("dns_zones_allow_by_default"); ok {
-		u.Permissions.Dns.ZonesAllowByDefault = v.(bool)
-	}
-	/*	if v, ok := d.GetOk("dns_zones_deny"); ok {
-			d.Set("dns_zones_deny", u.Permissions.Dns.ZonesDeny)
-		}
-		if v, ok := d.GetOk("dns_zones_allow"); ok {
-			d.Set("dns_zones_allow", u.Permissions.Dns.ZonesAllow)
-		} */
-	if v, ok := d.GetOk("data_push_to_datafeeds"); ok {
-		u.Permissions.Data.PushToDatafeeds = v.(bool)
-	}
-	if v, ok := d.GetOk("data_manage_datasources"); ok {
-		u.Permissions.Data.ManageDatasources = v.(bool)
-	}
-	if v, ok := d.GetOk("data_manage_datafeeds"); ok {
-		u.Permissions.Data.ManageDatafeeds = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_users"); ok {
-		u.Permissions.Account.ManageUsers = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_payment_methods"); ok {
-		u.Permissions.Account.ManagePaymentMethods = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_plan"); ok {
-		u.Permissions.Account.ManagePlan = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_teams"); ok {
-		u.Permissions.Account.ManageTeams = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_apikeys"); ok {
-		u.Permissions.Account.ManageApikeys = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_account_settings"); ok {
-		u.Permissions.Account.ManageAccountSettings = v.(bool)
-	}
-	if v, ok := d.GetOk("account_view_activity_log"); ok {
-		u.Permissions.Account.ViewActivityLog = v.(bool)
-	}
-	if v, ok := d.GetOk("account_view_invoices"); ok {
-		u.Permissions.Account.ViewInvoices = v.(bool)
-	}
-	if v, ok := d.GetOk("monitoring_manage_lists"); ok {
-		u.Permissions.Monitoring.ManageLists = v.(bool)
-	}
-	if v, ok := d.GetOk("monitoring_manage_jobs"); ok {
-		u.Permissions.Monitoring.ManageJobs = v.(bool)
-	}
-	if v, ok := d.GetOk("monitoring_view_jobs"); ok {
-		u.Permissions.Monitoring.ViewJobs = v.(bool)
-	}
+	u.Permissions = resourceDataToPermissions(d)
 	return nil
 }
 
