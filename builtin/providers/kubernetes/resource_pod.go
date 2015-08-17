@@ -148,6 +148,7 @@ func expandPodSpec(input string) (spec api.PodSpec, err error) {
 	if err != nil {
 		return
 	}
+	spec = setDefaultPodSpecValues(&spec)
 	return
 }
 
@@ -170,7 +171,7 @@ func normalizePodSpec(input string) (string, error) {
 		return "", err
 	}
 
-	// TODO: Add/ignore default structures, e.g. resources.limits.cpu = 100m
+	spec = setDefaultPodSpecValues(&spec)
 
 	b, err := json.Marshal(spec)
 	if err != nil {
@@ -178,4 +179,34 @@ func normalizePodSpec(input string) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+// This is to prevent detecting change when there's nothing to change
+func setDefaultPodSpecValues(spec *api.PodSpec) api.PodSpec {
+	if spec.ServiceAccountName == "" {
+		spec.ServiceAccountName = "default"
+	}
+	if spec.RestartPolicy == "" {
+		spec.RestartPolicy = "Always"
+	}
+	if spec.DNSPolicy == "" {
+		spec.DNSPolicy = "ClusterFirst"
+	}
+
+	for k, c := range spec.Containers {
+		if c.ImagePullPolicy == "" {
+			spec.Containers[k].ImagePullPolicy = "IfNotPresent"
+		}
+		if c.TerminationMessagePath == "" {
+			spec.Containers[k].TerminationMessagePath = "/dev/termination-log"
+		}
+
+		for _, p := range c.Ports {
+			if p.Protocol == "" {
+				p.Protocol = "TCP"
+			}
+		}
+	}
+
+	return *spec
 }
