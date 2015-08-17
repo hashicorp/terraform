@@ -141,7 +141,15 @@ func apikeyToResourceData(d *schema.ResourceData, u *nsone.Apikey) error {
 func resourceDataToApikey(u *nsone.Apikey, d *schema.ResourceData) error {
 	u.Id = d.Id()
 	u.Name = d.Get("name").(string)
-	//d.Set("teams", u.Teams)
+	if v, ok := f.GetOk("teams"); ok {
+		teams_raw := v.([]interface{})
+		u.Teams = make([]string, len(teams_raw))
+		for i, team := range teams_raw {
+			u.Teams[i] = team.(string)
+		}
+	} else {
+		u.Teams = make([]string, 0)
+	}
 	if v, ok := d.GetOk("dns_viewzones"); ok {
 		u.Permissions.Dns.ViewZones = v.(bool)
 	}

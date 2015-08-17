@@ -26,7 +26,7 @@ func userResource() *schema.Resource {
 			},
 			"teams": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dns_viewzones": &schema.Schema{
@@ -146,7 +146,15 @@ func resourceDataToUser(u *nsone.User, d *schema.ResourceData) error {
 	u.Name = d.Get("name").(string)
 	u.Username = d.Get("username").(string)
 	u.Email = d.Get("email").(string)
-	//d.Set("teams", u.Teams)
+	if v, ok := f.GetOk("teams"); ok {
+		teams_raw := v.([]interface{})
+		u.Teams = make([]string, len(teams_raw))
+		for i, team := range teams_raw {
+			u.Teams[i] = team.(string)
+		}
+	} else {
+		u.Teams = make([]string, 0)
+	}
 	if v, ok := d.GetOk("dns_viewzones"); ok {
 		u.Permissions.Dns.ViewZones = v.(bool)
 	}
