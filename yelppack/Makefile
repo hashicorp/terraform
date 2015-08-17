@@ -36,7 +36,7 @@ $(PACKAGE_FILE): .docker_container_id
 
 clean:
 	$(CLEAN_CONTAINER)
-	rm .docker_image_id
+	rm -f .docker_image_id
 	rm -rf ../dist
 
 shell: .docker_image_id
