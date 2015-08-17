@@ -186,11 +186,16 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 
 	if len(res.ReplicationGroups) == 1 {
 		c := res.ReplicationGroups[0]
+		if *c.Status != "available" {
+			return nil
+		}
 		d.Set("replication_group_id", c.ReplicationGroupID)
 		d.Set("description", c.Description)
 		d.Set("automatic_failover", c.AutomaticFailover)
 		d.Set("num_cache_clusters", len(c.MemberClusters))
-		d.Set("primary_endpoint", res.ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Address)
+		if len(c.NodeGroups) >= 1 && c.NodeGroups[0].PrimaryEndpoint != nil {
+			d.Set("primary_endpoint", c.NodeGroups[0].PrimaryEndpoint.Address)
+		}
 	}
 
 	return nil
