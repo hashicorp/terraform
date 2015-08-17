@@ -167,17 +167,25 @@ func answersToHash(v interface{}) int {
 	if a["region"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", a["region"].(string)))
 	}
-	ms := a["meta"].(*schema.Set)
-	metas := make([]int, ms.Len())
-	for _, meta := range ms.List() {
-		metas = append(metas, metaToHash(meta))
+	metas := make([]int, 0)
+	switch t := a["meta"].(type) {
+	default:
+		panic(fmt.Sprintf("unexpected type %T", t))
+	case *schema.Set:
+		for _, meta := range t.List() {
+			metas = append(metas, metaToHash(meta))
+		}
+	case []map[string]interface{}:
+		for _, meta := range t {
+			metas = append(metas, metaToHash(meta))
+		}
 	}
 	sort.Ints(metas)
 	for _, metahash := range metas {
 		buf.WriteString(fmt.Sprintf("%d-", metahash))
 	}
 	hash := hashcode.String(buf.String())
-	log.Println("Generated answersToHash %d from %+v", hash, ms)
+	log.Println("Generated answersToHash %d from %+v", hash, a)
 	return hash
 }
 

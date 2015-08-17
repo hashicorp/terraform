@@ -8,6 +8,9 @@ install: terraform-provider-nsone
 terraform-provider-nsone:
 	go build .
 
+fmt:
+	go fmt ./...
+
 test: .git/hooks/pre-commit
 	cd nsone ; go test -v .
 
