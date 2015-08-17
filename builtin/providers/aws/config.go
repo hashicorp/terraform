@@ -214,17 +214,17 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 
 	out, err := iamconn.GetUser(nil)
 
-  if err != nil {
-    awsErr, _ := err.(awserr.Error)
-    if awsErr.Code() == "ValidationError" {
-      log.Printf("[WARN] ValidationError with iam.GetUser, assuming its an IAM profile")
-      // User may be an IAM instance profile, so fail silently.
-      // If it is an IAM instance profile
-      // validating account might be superfluous
-    } else {
-		  return fmt.Errorf("Failed getting account ID from IAM: %s", err)
-      // return error if the account id is explicitly not authorised
-    }
+	if err != nil {
+		awsErr, _ := err.(awserr.Error)
+		if awsErr.Code() == "ValidationError" {
+			log.Printf("[WARN] ValidationError with iam.GetUser, assuming its an IAM profile")
+			// User may be an IAM instance profile, so fail silently.
+			// If it is an IAM instance profile
+			// validating account might be superfluous
+		} else {
+			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
+			// return error if the account id is explicitly not authorised
+		}
 	}
 
 	account_id := strings.Split(*out.User.ARN, ":")[4]
