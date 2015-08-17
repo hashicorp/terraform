@@ -32,8 +32,9 @@ resource "atlas_artifact" "web" {
 }
 
 # Start our instance with the dynamic ami value
+# Remember to include the AWS region as it is part of the full ID
 resource "aws_instance" "app" {
-    ami = "${atlas_artifact.web.id}"
+    ami = "${atlas_artifact.web.metadata_full.region-eu-west-1}"
     ...
 }
 ```
@@ -82,4 +83,3 @@ The following attributes are exported:
   For example, the "region.us-east-1" key will become "region-us-east-1".
 * `version_real` - The matching version of the artifact
 * `slug` - The artifact slug in Atlas
-
