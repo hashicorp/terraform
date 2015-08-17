@@ -22,7 +22,7 @@ func apikeyResource() *schema.Resource {
 			},
 			"teams": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"dns_viewzones": &schema.Schema{
