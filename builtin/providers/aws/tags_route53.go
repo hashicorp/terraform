@@ -24,7 +24,7 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData, resourceType stri
 		}
 		log.Printf("[DEBUG] Changing tags: \n\tadding: %#v\n\tremoving:%#v", create, remove)
 		req := &route53.ChangeTagsForResourceInput{
-			ResourceID:   aws.String(d.Id()),
+			ResourceId:   aws.String(d.Id()),
 			ResourceType: aws.String(resourceType),
 		}
 

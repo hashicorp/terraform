@@ -86,7 +86,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.CreateNetworkInterfaceInput{
-		SubnetID: aws.String(d.Get("subnet_id").(string)),
+		SubnetId: aws.String(d.Get("subnet_id").(string)),
 	}
 
 	security_groups := d.Get("security_groups").(*schema.Set).List()
@@ -96,7 +96,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 
 	private_ips := d.Get("private_ips").(*schema.Set).List()
 	if len(private_ips) != 0 {
-		request.PrivateIPAddresses = expandPrivateIPAddesses(private_ips)
+		request.PrivateIpAddresses = expandPrivateIPAddesses(private_ips)
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
@@ -105,7 +105,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating ENI: %s", err)
 	}
 
-	d.SetId(*resp.NetworkInterface.NetworkInterfaceID)
+	d.SetId(*resp.NetworkInterface.NetworkInterfaceId)
 	log.Printf("[INFO] ENI ID: %s", d.Id())
 	return resourceAwsNetworkInterfaceUpdate(d, meta)
 }
@@ -114,7 +114,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	conn := meta.(*AWSClient).ec2conn
 	describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
-		NetworkInterfaceIDs: []*string{aws.String(d.Id())},
+		NetworkInterfaceIds: []*string{aws.String(d.Id())},
 	}
 	describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
@@ -132,8 +132,8 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	eni := describeResp.NetworkInterfaces[0]
-	d.Set("subnet_id", eni.SubnetID)
-	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
+	d.Set("subnet_id", eni.SubnetId)
+	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIpAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 	d.Set("source_dest_check", eni.SourceDestCheck)
 
@@ -154,7 +154,7 @@ func networkInterfaceAttachmentRefreshFunc(conn *ec2.EC2, id string) resource.St
 	return func() (interface{}, string, error) {
 
 		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
-			NetworkInterfaceIDs: []*string{aws.String(id)},
+			NetworkInterfaceIds: []*string{aws.String(id)},
 		}
 		describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
@@ -175,7 +175,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 	if oa != nil && len(oa.List()) > 0 {
 		old_attachment := oa.List()[0].(map[string]interface{})
 		detach_request := &ec2.DetachNetworkInterfaceInput{
-			AttachmentID: aws.String(old_attachment["attachment_id"].(string)),
+			AttachmentId: aws.String(old_attachment["attachment_id"].(string)),
 			Force:        aws.Bool(true),
 		}
 		conn := meta.(*AWSClient).ec2conn
@@ -218,8 +218,8 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 			di := new_attachment["device_index"].(int)
 			attach_request := &ec2.AttachNetworkInterfaceInput{
 				DeviceIndex:        aws.Int64(int64(di)),
-				InstanceID:         aws.String(new_attachment["instance"].(string)),
-				NetworkInterfaceID: aws.String(d.Id()),
+				InstanceId:         aws.String(new_attachment["instance"].(string)),
+				NetworkInterfaceId: aws.String(d.Id()),
 			}
 			_, attach_err := conn.AttachNetworkInterface(attach_request)
 			if attach_err != nil {
@@ -231,7 +231,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	request := &ec2.ModifyNetworkInterfaceAttributeInput{
-		NetworkInterfaceID: aws.String(d.Id()),
+		NetworkInterfaceId: aws.String(d.Id()),
 		SourceDestCheck:    &ec2.AttributeBooleanValue{Value: aws.Bool(d.Get("source_dest_check").(bool))},
 	}
 
@@ -244,7 +244,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("security_groups") {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{
-			NetworkInterfaceID: aws.String(d.Id()),
+			NetworkInterfaceId: aws.String(d.Id()),
 			Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		}
 
@@ -278,7 +278,7 @@ func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	deleteEniOpts := ec2.DeleteNetworkInterfaceInput{
-		NetworkInterfaceID: aws.String(d.Id()),
+		NetworkInterfaceId: aws.String(d.Id()),
 	}
 	if _, err := conn.DeleteNetworkInterface(&deleteEniOpts); err != nil {
 		return fmt.Errorf("Error deleting ENI: %s", err)

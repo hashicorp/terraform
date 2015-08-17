@@ -37,7 +37,7 @@ func testAccCheckAWSSNSTopicDestroy(s *terraform.State) error {
 
 		// Check if the topic exists by fetching its attributes
 		params := &sns.GetTopicAttributesInput{
-			TopicARN: aws.String(rs.Primary.ID),
+			TopicArn: aws.String(rs.Primary.ID),
 		}
 		_, err := conn.GetTopicAttributes(params)
 		if err == nil {
@@ -68,7 +68,7 @@ func testAccCheckAWSSNSTopicExists(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).snsconn
 
 		params := &sns.GetTopicAttributesInput{
-			TopicARN: aws.String(rs.Primary.ID),
+			TopicArn: aws.String(rs.Primary.ID),
 		}
 		_, err := conn.GetTopicAttributes(params)
 
