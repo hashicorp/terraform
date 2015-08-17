@@ -159,12 +159,24 @@ func resourceDataToApikey(u *nsone.Apikey, d *schema.ResourceData) error {
 	if v, ok := d.GetOk("dns_zones_allow_by_default"); ok {
 		u.Permissions.Dns.ZonesAllowByDefault = v.(bool)
 	}
-	/*	if v, ok := d.GetOk("dns_zones_deny"); ok {
-			d.Set("dns_zones_deny", u.Permissions.Dns.ZonesDeny)
+	if v, ok := d.GetOk("dns_zones_deny"); ok {
+		deny_raw := v.([]interface{})
+		u.Permissions.Dns.ZonesDeny = make([]string, len(deny_raw))
+		for i, deny := range deny_raw {
+			u.Permissions.Dns.ZonesDeny[i] = deny.(string)
 		}
-		if v, ok := d.GetOk("dns_zones_allow"); ok {
-			d.Set("dns_zones_allow", u.Permissions.Dns.ZonesAllow)
-		} */
+	} else {
+		u.Permissions.Dns.ZonesDeny = make([]string, 0)
+	}
+	if v, ok := d.GetOk("dns_zones_allow"); ok {
+		allow_raw := v.([]interface{})
+		u.Permissions.Dns.ZonesAllow = make([]string, len(allow_raw))
+		for i, allow := range allow_raw {
+			u.Permissions.Dns.ZonesAllow[i] = allow.(string)
+		}
+	} else {
+		u.Permissions.Dns.ZonesAllow = make([]string, 0)
+	}
 	if v, ok := d.GetOk("data_push_to_datafeeds"); ok {
 		u.Permissions.Data.PushToDatafeeds = v.(bool)
 	}
