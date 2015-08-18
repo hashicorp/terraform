@@ -147,6 +147,104 @@ is placed in the right place in your $GOPATH.
 ## NSOne monitoring
   * Notification is not supported
 
+# Resources provided
+
+## nsone_zone
+
+Declares a zone in nsone.
+
+### Inputs
+
+  * zone - The name of the zone to define [Required]
+  * link - The name of another zone to link this zone to (so that they serve the same answers) [Optional]
+  * ttl - The default TTL for records in this zone [Optional]
+  * nx_ttl - The TTL for NXDOMAIN answers in this zone [Optional]
+  * retry - [Optional]
+  * expiry - [Optional]
+  * primary - The master server to AXFR this zone from, creates a secondary zone. [Optional]
+
+### Outputs
+
+  * id - The internal ID for the zone in the NSOne API
+  * hostmaster - The hostmaster for the zone
+
+## nsone_record
+
+### Inputs
+
+  * zone - The name of the zone that this record lives in [Required]
+  * domain - The full domain name of this record [Required]
+  * ttl - A TTL specific to this record [Optional]
+  * type - The type of the record [Required]
+  * meta - ??? [Optional]
+  * link - The domain of a record to link this record to (so that they serve the same answers) [Optional]
+  * answers - The set of answers that it's possible to return. This stanza can be repeated.
+    * answer - The answer to return. FIXME - Test/fix other record types. [Required]
+    * region - The name of the region (from 'regions', below) to assign this answer to. This is used for subsequent geo-filtering. [Optional]
+    * meta - Add metadata to this answer, used for filtering. [Optional]
+      * field - The metadata field name to update from a feed. [Required]
+      * feed - The id of the feed which updates this field. [Required]
+      * FIXME - Add ability to have static values here
+  * regions - The set of regions to which you can add static metadata, and then associate with answers. This stanza can be repeated.
+    * name - The name of this region (the name provided in an answer) [Required]
+    * georegion - The name of the geographic region which corresponds to this region. Allowed values are: US-WEST, US-EAST, US-CENTRAL, EUROPE, AFRICA, ASIAPAC, SOUTH-AMERICA. [Optional]
+    * country - The name of the country which corresponds to this region. FIXME countries? [Optional]
+    * us_state - The name of the US state which corresponds to this region. FIXME states? [Optional]
+    * FIXME - Add the rest!
+    * FIXME - Add support for having feeds at the region level!
+  * filters - The list of filters to apply to results. This stanza can be repeated. [Optional]
+    * filter - The name of this filter. Get possible names from FIXME [Required]
+    * disabled - If this filter should be disabled. [Optional]
+    * config - A map of configuration speciic to this filter. Get the possible/required keys and values from FIXME [Optional]
+
+### Outputs
+
+  * id - The internal NSOne ID for this record
+  * ttl - The record's TTL
+
+## nsone_datasource
+
+### Inputs
+
+  * name - The name to associate with this data source. [Required]
+  * sourcetype - The type of data source to create. FIXME URL for valid types. [Required]
+
+### Outputs
+
+  * id - The internal NSOne id of this data source. This is used when associating feeds with this source (nsone_datafeed's source_id).
+
+## nsone_datafeed
+
+### Inputs
+
+  * source_id - The internal NSOne id of the data source this feed is getting data from. [Required]
+  * name - The friendly name for this feed [Required]
+  * config - A map of configuration for this feed. The keys and values required vary depending on the type of source. See the information at FIXME for more details. [Optional]
+
+### Outputs
+
+  * id - The internal NSOne id of this data feed. This is passed into resource_record's answer.meta.feed field
+
+## nsone_monitoringjob
+
+### Inputs
+
+  * name -
+  * active - [Required]
+  * regions - [Required]
+  * job_type - [Required]
+  * frequency - [Required]
+  * rapid_recheck - [Required]
+  * policy - [Required]
+
+### Outputs
+
+## nsone_user
+
+## nsone_apikey
+
+## nsone_team
+
 # Support / contributions
 
 I'm planning to continue developing and supporting this code for my use-cases,
