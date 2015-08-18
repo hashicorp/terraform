@@ -148,6 +148,8 @@ func expandServiceSpec(input string) (spec api.ServiceSpec, err error) {
 	if err != nil {
 		return
 	}
+
+	spec = setDefaultServiceSpecValues(&spec)
 	return
 }
 
@@ -170,7 +172,7 @@ func normalizeServiceSpec(input string) (string, error) {
 		return "", err
 	}
 
-	// TODO: Add/ignore default structures, e.g. clusterIP
+	spec = setDefaultServiceSpecValues(&spec)
 
 	b, err := json.Marshal(spec)
 	if err != nil {
@@ -178,4 +180,14 @@ func normalizeServiceSpec(input string) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func setDefaultServiceSpecValues(spec *api.ServiceSpec) api.ServiceSpec {
+	if spec.Type == "" {
+		spec.Type = "ClusterIP"
+	}
+	if spec.SessionAffinity == "" {
+		spec.SessionAffinity = "None"
+	}
+	return *spec
 }
