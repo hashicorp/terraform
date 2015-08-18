@@ -88,7 +88,7 @@ func testAccCheckAWSLambdaAttributes(function *lambda.GetFunctionOutput) resourc
 			return fmt.Errorf("Expected function name %s, got %s", expectedName, *c.FunctionName)
 		}
 
-		if *c.FunctionARN == "" {
+		if *c.FunctionArn == "" {
 			return fmt.Errorf("Could not read Lambda Function's ARN")
 		}
 

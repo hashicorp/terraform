@@ -10,6 +10,8 @@ description: |-
 
 Attaches a Managed IAM Policy to user(s), role(s), and/or group(s)
 
+~> **NOTE:** The aws_iam_policy_attachment resource is only meant to be used once for each managed policy. All of the users/roles/groups that a single policy is being attached to should be declared by a single aws_iam_policy_attachment resource.
+
 ```
 resource "aws_iam_user" "user" {
     name = "test-user"

@@ -56,7 +56,7 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 	return resourceAwsIamAccessKeyReadResult(d, &iam.AccessKeyMetadata{
-		AccessKeyID: createResp.AccessKey.AccessKeyID,
+		AccessKeyId: createResp.AccessKey.AccessKeyId,
 		CreateDate:  createResp.AccessKey.CreateDate,
 		Status:      createResp.AccessKey.Status,
 		UserName:    createResp.AccessKey.UserName,
@@ -81,7 +81,7 @@ func resourceAwsIamAccessKeyRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	for _, key := range getResp.AccessKeyMetadata {
-		if key.AccessKeyID != nil && *key.AccessKeyID == d.Id() {
+		if key.AccessKeyId != nil && *key.AccessKeyId == d.Id() {
 			return resourceAwsIamAccessKeyReadResult(d, key)
 		}
 	}
@@ -92,7 +92,7 @@ func resourceAwsIamAccessKeyRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsIamAccessKeyReadResult(d *schema.ResourceData, key *iam.AccessKeyMetadata) error {
-	d.SetId(*key.AccessKeyID)
+	d.SetId(*key.AccessKeyId)
 	if err := d.Set("user", key.UserName); err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func resourceAwsIamAccessKeyDelete(d *schema.ResourceData, meta interface{}) err
 	iamconn := meta.(*AWSClient).iamconn
 
 	request := &iam.DeleteAccessKeyInput{
-		AccessKeyID: aws.String(d.Id()),
+		AccessKeyId: aws.String(d.Id()),
 		UserName:    aws.String(d.Get("user").(string)),
 	}
 

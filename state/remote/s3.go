@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -55,7 +56,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 		}},
 		&credentials.EnvProvider{},
 		&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-		&credentials.EC2RoleProvider{},
+		&ec2rolecreds.EC2RoleProvider{},
 	})
 
 	// Make sure we got some sort of working credentials.

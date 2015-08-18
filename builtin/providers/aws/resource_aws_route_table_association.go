@@ -41,8 +41,8 @@ func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interfa
 		d.Get("route_table_id").(string))
 
 	resp, err := conn.AssociateRouteTable(&ec2.AssociateRouteTableInput{
-		RouteTableID: aws.String(d.Get("route_table_id").(string)),
-		SubnetID:     aws.String(d.Get("subnet_id").(string)),
+		RouteTableId: aws.String(d.Get("route_table_id").(string)),
+		SubnetId:     aws.String(d.Get("subnet_id").(string)),
 	})
 
 	if err != nil {
@@ -50,7 +50,7 @@ func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interfa
 	}
 
 	// Set the ID and return
-	d.SetId(*resp.AssociationID)
+	d.SetId(*resp.AssociationId)
 	log.Printf("[INFO] Association ID: %s", d.Id())
 
 	return nil
@@ -73,9 +73,9 @@ func resourceAwsRouteTableAssociationRead(d *schema.ResourceData, meta interface
 	// Inspect that the association exists
 	found := false
 	for _, a := range rt.Associations {
-		if *a.RouteTableAssociationID == d.Id() {
+		if *a.RouteTableAssociationId == d.Id() {
 			found = true
-			d.Set("subnet_id", *a.SubnetID)
+			d.Set("subnet_id", *a.SubnetId)
 			break
 		}
 	}
@@ -97,8 +97,8 @@ func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interfa
 		d.Get("route_table_id").(string))
 
 	req := &ec2.ReplaceRouteTableAssociationInput{
-		AssociationID: aws.String(d.Id()),
-		RouteTableID:  aws.String(d.Get("route_table_id").(string)),
+		AssociationId: aws.String(d.Id()),
+		RouteTableId:  aws.String(d.Get("route_table_id").(string)),
 	}
 	resp, err := conn.ReplaceRouteTableAssociation(req)
 
@@ -113,7 +113,7 @@ func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	// Update the ID
-	d.SetId(*resp.NewAssociationID)
+	d.SetId(*resp.NewAssociationId)
 	log.Printf("[INFO] Association ID: %s", d.Id())
 
 	return nil
@@ -124,7 +124,7 @@ func resourceAwsRouteTableAssociationDelete(d *schema.ResourceData, meta interfa
 
 	log.Printf("[INFO] Deleting route table association: %s", d.Id())
 	_, err := conn.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{
-		AssociationID: aws.String(d.Id()),
+		AssociationId: aws.String(d.Id()),
 	})
 	if err != nil {
 		ec2err, ok := err.(awserr.Error)

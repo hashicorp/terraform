@@ -34,6 +34,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 		Delete: resourceAwsDynamoDbTableDelete,
 
 		Schema: map[string]*schema.Schema{
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -575,6 +579,7 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("global_secondary_index", gsiList)
+	d.Set("arn", table.TableArn)
 
 	return nil
 }

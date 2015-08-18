@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
@@ -167,6 +168,27 @@ func resourceState(resourceType, resourceID string) *ResourceState {
 		Primary: &InstanceState{
 			ID: resourceID,
 		},
+	}
+}
+
+// Test helper that gives a function 3 seconds to finish, assumes deadlock and
+// fails test if it does not.
+func testCheckDeadlock(t *testing.T, f func()) {
+	timeout := make(chan bool, 1)
+	done := make(chan bool, 1)
+	go func() {
+		time.Sleep(3 * time.Second)
+		timeout <- true
+	}()
+	go func(f func(), done chan bool) {
+		defer func() { done <- true }()
+		f()
+	}(f, done)
+	select {
+	case <-timeout:
+		t.Fatalf("timed out! probably deadlock")
+	case <-done:
+		// ok
 	}
 }
 

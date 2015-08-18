@@ -219,7 +219,7 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group) resourc
 			Value:             aws.String("foo-bar"),
 			PropagateAtLaunch: aws.Bool(true),
 			ResourceType:      aws.String("auto-scaling-group"),
-			ResourceID:        group.AutoScalingGroupName,
+			ResourceId:        group.AutoScalingGroupName,
 		}
 
 		if !reflect.DeepEqual(group.Tags[0], t) {

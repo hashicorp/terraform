@@ -69,7 +69,7 @@ func resourceAwsIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
 	request := &iam.GetPolicyInput{
-		PolicyARN: aws.String(d.Id()),
+		PolicyArn: aws.String(d.Id()),
 	}
 
 	response, err := iamconn.GetPolicy(request)
@@ -95,7 +95,7 @@ func resourceAwsIamPolicyUpdate(d *schema.ResourceData, meta interface{}) error 
 		return nil
 	}
 	request := &iam.CreatePolicyVersionInput{
-		PolicyARN:      aws.String(d.Id()),
+		PolicyArn:      aws.String(d.Id()),
 		PolicyDocument: aws.String(d.Get("policy").(string)),
 		SetAsDefault:   aws.Bool(true),
 	}
@@ -114,7 +114,7 @@ func resourceAwsIamPolicyDelete(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	request := &iam.DeletePolicyInput{
-		PolicyARN: aws.String(d.Id()),
+		PolicyArn: aws.String(d.Id()),
 	}
 
 	_, err := iamconn.DeletePolicy(request)
@@ -155,7 +155,7 @@ func iamPolicyPruneVersions(arn string, iamconn *iam.IAM) error {
 		}
 	}
 
-	if err := iamPolicyDeleteVersion(arn, *oldestVersion.VersionID, iamconn); err != nil {
+	if err := iamPolicyDeleteVersion(arn, *oldestVersion.VersionId, iamconn); err != nil {
 		return err
 	}
 	return nil
@@ -171,7 +171,7 @@ func iamPolicyDeleteNondefaultVersions(arn string, iamconn *iam.IAM) error {
 		if *version.IsDefaultVersion {
 			continue
 		}
-		if err := iamPolicyDeleteVersion(arn, *version.VersionID, iamconn); err != nil {
+		if err := iamPolicyDeleteVersion(arn, *version.VersionId, iamconn); err != nil {
 			return err
 		}
 	}
@@ -181,8 +181,8 @@ func iamPolicyDeleteNondefaultVersions(arn string, iamconn *iam.IAM) error {
 
 func iamPolicyDeleteVersion(arn, versionID string, iamconn *iam.IAM) error {
 	request := &iam.DeletePolicyVersionInput{
-		PolicyARN: aws.String(arn),
-		VersionID: aws.String(versionID),
+		PolicyArn: aws.String(arn),
+		VersionId: aws.String(versionID),
 	}
 
 	_, err := iamconn.DeletePolicyVersion(request)
@@ -194,7 +194,7 @@ func iamPolicyDeleteVersion(arn, versionID string, iamconn *iam.IAM) error {
 
 func iamPolicyListVersions(arn string, iamconn *iam.IAM) ([]*iam.PolicyVersion, error) {
 	request := &iam.ListPolicyVersionsInput{
-		PolicyARN: aws.String(arn),
+		PolicyArn: aws.String(arn),
 	}
 
 	response, err := iamconn.ListPolicyVersions(request)
@@ -205,7 +205,7 @@ func iamPolicyListVersions(arn string, iamconn *iam.IAM) ([]*iam.PolicyVersion, 
 }
 
 func readIamPolicy(d *schema.ResourceData, policy *iam.Policy) error {
-	d.SetId(*policy.ARN)
+	d.SetId(*policy.Arn)
 	if policy.Description != nil {
 		// the description isn't present in the response to CreatePolicy.
 		if err := d.Set("description", *policy.Description); err != nil {
@@ -218,7 +218,7 @@ func readIamPolicy(d *schema.ResourceData, policy *iam.Policy) error {
 	if err := d.Set("name", *policy.PolicyName); err != nil {
 		return err
 	}
-	if err := d.Set("arn", *policy.ARN); err != nil {
+	if err := d.Set("arn", *policy.Arn); err != nil {
 		return err
 	}
 	// TODO: set policy

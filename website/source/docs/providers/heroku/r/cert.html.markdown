@@ -20,13 +20,13 @@ resource "heroku_app" "default" {
 
 # Add-on SSL to application
 resource "heroku_addon" "ssl" {
-    app = "${heroku_app.service.name}"
+    app = "${heroku_app.default.name}"
     plan = "ssl"
 }
 
 # Establish certificate for a given application
 resource "heroku_cert" "ssl_certificate" {
-    app = "${heroku_app.service.name}"
+    app = "${heroku_app.default.name}"
     certificate_chain = "${file("server.crt")}"
     private_key = "${file("server.key")}"
     depends_on = "heroku_addon.ssl"

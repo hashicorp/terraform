@@ -48,8 +48,8 @@ func resourceAwsCustomerGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).ec2conn
 
 	createOpts := &ec2.CreateCustomerGatewayInput{
-		BGPASN:   aws.Int64(int64(d.Get("bgp_asn").(int))),
-		PublicIP: aws.String(d.Get("ip_address").(string)),
+		BgpAsn:   aws.Int64(int64(d.Get("bgp_asn").(int))),
+		PublicIp: aws.String(d.Get("ip_address").(string)),
 		Type:     aws.String(d.Get("type").(string)),
 	}
 
@@ -62,14 +62,14 @@ func resourceAwsCustomerGatewayCreate(d *schema.ResourceData, meta interface{}) 
 
 	// Store the ID
 	customerGateway := resp.CustomerGateway
-	d.SetId(*customerGateway.CustomerGatewayID)
-	log.Printf("[INFO] Customer gateway ID: %s", *customerGateway.CustomerGatewayID)
+	d.SetId(*customerGateway.CustomerGatewayId)
+	log.Printf("[INFO] Customer gateway ID: %s", *customerGateway.CustomerGatewayId)
 
 	// Wait for the CustomerGateway to be available.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "available",
-		Refresh:    customerGatewayRefreshFunc(conn, *customerGateway.CustomerGatewayID),
+		Refresh:    customerGatewayRefreshFunc(conn, *customerGateway.CustomerGatewayId),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -79,7 +79,7 @@ func resourceAwsCustomerGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	if stateErr != nil {
 		return fmt.Errorf(
 			"Error waiting for customer gateway (%s) to become ready: %s",
-			*customerGateway.CustomerGatewayID, err)
+			*customerGateway.CustomerGatewayId, err)
 	}
 
 	// Create tags.
@@ -145,8 +145,8 @@ func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	customerGateway := resp.CustomerGateways[0]
-	d.Set("bgp_asn", customerGateway.BGPASN)
-	d.Set("ip_address", customerGateway.IPAddress)
+	d.Set("bgp_asn", customerGateway.BgpAsn)
+	d.Set("ip_address", customerGateway.IpAddress)
 	d.Set("type", customerGateway.Type)
 	d.Set("tags", tagsToMap(customerGateway.Tags))
 
@@ -170,7 +170,7 @@ func resourceAwsCustomerGatewayDelete(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).ec2conn
 
 	_, err := conn.DeleteCustomerGateway(&ec2.DeleteCustomerGatewayInput{
-		CustomerGatewayID: aws.String(d.Id()),
+		CustomerGatewayId: aws.String(d.Id()),
 	})
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidCustomerGatewayID.NotFound" {

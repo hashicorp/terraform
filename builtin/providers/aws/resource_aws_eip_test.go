@@ -87,13 +87,13 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 		}
 
 		req := &ec2.DescribeAddressesInput{
-			PublicIPs: []*string{aws.String(rs.Primary.ID)},
+			PublicIps: []*string{aws.String(rs.Primary.ID)},
 		}
 		describe, err := conn.DescribeAddresses(req)
 
 		if err == nil {
 			if len(describe.Addresses) != 0 &&
-				*describe.Addresses[0].PublicIP == rs.Primary.ID {
+				*describe.Addresses[0].PublicIp == rs.Primary.ID {
 				return fmt.Errorf("EIP still exists")
 			}
 		}
@@ -114,7 +114,7 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 
 func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *conf.PublicIP == "" {
+		if *conf.PublicIp == "" {
 			return fmt.Errorf("empty public_ip")
 		}
 
@@ -124,7 +124,7 @@ func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 
 func testAccCheckAWSEIPAssociated(conf *ec2.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *conf.AssociationID == "" {
+		if *conf.AssociationId == "" {
 			return fmt.Errorf("empty association_id")
 		}
 
@@ -147,7 +147,7 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 
 		if strings.Contains(rs.Primary.ID, "eipalloc") {
 			req := &ec2.DescribeAddressesInput{
-				AllocationIDs: []*string{aws.String(rs.Primary.ID)},
+				AllocationIds: []*string{aws.String(rs.Primary.ID)},
 			}
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
@@ -155,14 +155,14 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 			}
 
 			if len(describe.Addresses) != 1 ||
-				*describe.Addresses[0].AllocationID != rs.Primary.ID {
+				*describe.Addresses[0].AllocationId != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
 			*res = *describe.Addresses[0]
 
 		} else {
 			req := &ec2.DescribeAddressesInput{
-				PublicIPs: []*string{aws.String(rs.Primary.ID)},
+				PublicIps: []*string{aws.String(rs.Primary.ID)},
 			}
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
@@ -170,7 +170,7 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 			}
 
 			if len(describe.Addresses) != 1 ||
-				*describe.Addresses[0].PublicIP != rs.Primary.ID {
+				*describe.Addresses[0].PublicIp != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
 			*res = *describe.Addresses[0]

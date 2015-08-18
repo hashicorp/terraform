@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -683,6 +684,100 @@ func TestContext2Refresh_vars(t *testing.T) {
 			t.Fatalf("no type: %#v", r)
 		}
 	}
+}
+
+func TestContext2Refresh_orphanModule(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-module-orphan")
+
+	// Create a custom refresh function to track the order they were visited
+	var order []string
+	var orderLock sync.Mutex
+	p.RefreshFn = func(
+		info *InstanceInfo,
+		is *InstanceState) (*InstanceState, error) {
+		orderLock.Lock()
+		defer orderLock.Unlock()
+
+		order = append(order, is.ID)
+		return is, nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Primary: &InstanceState{
+							ID: "i-abc123",
+							Attributes: map[string]string{
+								"childid":      "i-bcd234",
+								"grandchildid": "i-cde345",
+							},
+						},
+						Dependencies: []string{
+							"module.child",
+							"module.child",
+						},
+					},
+				},
+			},
+			&ModuleState{
+				Path: append(rootModulePath, "child"),
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Primary: &InstanceState{
+							ID: "i-bcd234",
+							Attributes: map[string]string{
+								"grandchildid": "i-cde345",
+							},
+						},
+						Dependencies: []string{
+							"module.grandchild",
+						},
+					},
+				},
+				Outputs: map[string]string{
+					"id":            "i-bcd234",
+					"grandchild_id": "i-cde345",
+				},
+			},
+			&ModuleState{
+				Path: append(rootModulePath, "child", "grandchild"),
+				Resources: map[string]*ResourceState{
+					"aws_instance.baz": &ResourceState{
+						Primary: &InstanceState{
+							ID: "i-cde345",
+						},
+					},
+				},
+				Outputs: map[string]string{
+					"id": "i-cde345",
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	testCheckDeadlock(t, func() {
+		_, err := ctx.Refresh()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// TODO: handle order properly for orphaned modules / resources
+		// expected := []string{"i-abc123", "i-bcd234", "i-cde345"}
+		// if !reflect.DeepEqual(order, expected) {
+		// 	t.Fatalf("expected: %#v, got: %#v", expected, order)
+		// }
+	})
 }
 
 func TestContext2Validate(t *testing.T) {

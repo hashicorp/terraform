@@ -65,11 +65,11 @@ func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	log.Printf("New subscription ARN: %s", *output.SubscriptionARN)
-	d.SetId(*output.SubscriptionARN)
+	log.Printf("New subscription ARN: %s", *output.SubscriptionArn)
+	d.SetId(*output.SubscriptionArn)
 
 	// Write the ARN to the 'arn' field for export
-	d.Set("arn", *output.SubscriptionARN)
+	d.Set("arn", *output.SubscriptionArn)
 
 	return resourceAwsSnsTopicSubscriptionUpdate(d, meta)
 }
@@ -82,7 +82,7 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 		log.Printf("[DEBUG] Updating subscription %s", d.Id())
 		// Unsubscribe
 		_, err := snsconn.Unsubscribe(&sns.UnsubscribeInput{
-			SubscriptionARN: aws.String(d.Id()),
+			SubscriptionArn: aws.String(d.Id()),
 		})
 
 		if err != nil {
@@ -91,7 +91,7 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 
 		// Re-subscribe and set id
 		output, err := subscribeToSNSTopic(d, snsconn)
-		d.SetId(*output.SubscriptionARN)
+		d.SetId(*output.SubscriptionArn)
 
 	}
 
@@ -105,7 +105,7 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 		}
 
 		req := &sns.SetSubscriptionAttributesInput{
-			SubscriptionARN: aws.String(d.Id()),
+			SubscriptionArn: aws.String(d.Id()),
 			AttributeName:   aws.String("RawMessageDelivery"),
 			AttributeValue:  aws.String(attrValue),
 		}
@@ -125,7 +125,7 @@ func resourceAwsSnsTopicSubscriptionRead(d *schema.ResourceData, meta interface{
 	log.Printf("[DEBUG] Loading subscription %s", d.Id())
 
 	attributeOutput, err := snsconn.GetSubscriptionAttributes(&sns.GetSubscriptionAttributesInput{
-		SubscriptionARN: aws.String(d.Id()),
+		SubscriptionArn: aws.String(d.Id()),
 	})
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func resourceAwsSnsTopicSubscriptionDelete(d *schema.ResourceData, meta interfac
 
 	log.Printf("[DEBUG] SNS delete topic subscription: %s", d.Id())
 	_, err := snsconn.Unsubscribe(&sns.UnsubscribeInput{
-		SubscriptionARN: aws.String(d.Id()),
+		SubscriptionArn: aws.String(d.Id()),
 	})
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 	req := &sns.SubscribeInput{
 		Protocol: aws.String(protocol),
 		Endpoint: aws.String(endpoint),
-		TopicARN: aws.String(topic_arn),
+		TopicArn: aws.String(topic_arn),
 	}
 
 	output, err = snsconn.Subscribe(req)
