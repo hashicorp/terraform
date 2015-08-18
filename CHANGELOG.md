@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
   * core: Add a function to find the index of an element in a list. [GH-2704]
   * core: Print all outputs when `terraform output` is called with no arguments [GH-2920]
+  * provider/aws: Add `instance_initiated_shutdown_behavior` to AWS Instance [GH-2887]
 
 ## 0.6.3 (August 11, 2015)
 
