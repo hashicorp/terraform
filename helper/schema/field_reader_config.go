@@ -201,7 +201,7 @@ func (r *ConfigFieldReader) readSet(
 	address []string, schema *Schema) (FieldReadResult, map[int]int, error) {
 	indexMap := make(map[int]int)
 	// Create the set that will be our result
-	set := &Set{F: schema.Set}
+	set := schema.ZeroValue().(*Set)
 
 	raw, err := readListField(&nestedConfigFieldReader{r}, address, schema)
 	if err != nil {
