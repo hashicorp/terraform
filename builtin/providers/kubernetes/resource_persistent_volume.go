@@ -138,6 +138,8 @@ func expandPersistentVolumeSpec(input string) (spec api.PersistentVolumeSpec, er
 	if err != nil {
 		return
 	}
+
+	spec = setDefaultVolumeSpecValues(&spec)
 	return
 }
 
@@ -160,7 +162,7 @@ func normalizePersistentVolumeSpec(input string) (string, error) {
 		return "", err
 	}
 
-	// TODO: Add/ignore default structures, e.g. persistentVolumeReclaimPolicy
+	spec = setDefaultVolumeSpecValues(&spec)
 
 	b, err := json.Marshal(spec)
 	if err != nil {
@@ -168,4 +170,11 @@ func normalizePersistentVolumeSpec(input string) (string, error) {
 	}
 
 	return string(b), nil
+}
+
+func setDefaultVolumeSpecValues(spec *api.PersistentVolumeSpec) api.PersistentVolumeSpec {
+	if spec.PersistentVolumeReclaimPolicy == "" {
+		spec.PersistentVolumeReclaimPolicy = "Retain"
+	}
+	return *spec
 }
