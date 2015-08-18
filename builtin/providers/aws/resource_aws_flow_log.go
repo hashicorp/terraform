@@ -85,9 +85,9 @@ func resourceAwsLogFlowCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	opts := &ec2.CreateFlowLogsInput{
-		DeliverLogsPermissionARN: aws.String(d.Get("iam_role_arn").(string)),
+		DeliverLogsPermissionArn: aws.String(d.Get("iam_role_arn").(string)),
 		LogGroupName:             aws.String(d.Get("log_group_name").(string)),
-		ResourceIDs:              []*string{aws.String(resourceId)},
+		ResourceIds:              []*string{aws.String(resourceId)},
 		ResourceType:             aws.String(resourceType),
 		TrafficType:              aws.String(d.Get("traffic_type").(string)),
 	}
@@ -99,11 +99,11 @@ func resourceAwsLogFlowCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating Flow Log for (%s), error: %s", resourceId, err)
 	}
 
-	if len(resp.FlowLogIDs) > 1 {
+	if len(resp.FlowLogIds) > 1 {
 		return fmt.Errorf("Error: multiple Flow Logs created for (%s)", resourceId)
 	}
 
-	d.SetId(*resp.FlowLogIDs[0])
+	d.SetId(*resp.FlowLogIds[0])
 
 	return resourceAwsLogFlowRead(d, meta)
 }
@@ -112,7 +112,7 @@ func resourceAwsLogFlowRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	opts := &ec2.DescribeFlowLogsInput{
-		FlowLogIDs: []*string{aws.String(d.Id())},
+		FlowLogIds: []*string{aws.String(d.Id())},
 	}
 
 	resp, err := conn.DescribeFlowLogs(opts)
@@ -132,7 +132,7 @@ func resourceAwsLogFlowRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("traffic_type", fl.TrafficType)
 	d.Set("log_group_name", fl.LogGroupName)
-	d.Set("iam_role_arn", fl.DeliverLogsPermissionARN)
+	d.Set("iam_role_arn", fl.DeliverLogsPermissionArn)
 
 	return nil
 }
@@ -143,7 +143,7 @@ func resourceAwsLogFlowDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf(
 		"[DEBUG] Flow Log Destroy: %s", d.Id())
 	_, err := conn.DeleteFlowLogs(&ec2.DeleteFlowLogsInput{
-		FlowLogIDs: []*string{aws.String(d.Id())},
+		FlowLogIds: []*string{aws.String(d.Id())},
 	})
 
 	if err != nil {

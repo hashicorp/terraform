@@ -13,72 +13,72 @@ import (
 )
 
 func TestIpPermissionIDHash(t *testing.T) {
-	simple := &ec2.IPPermission{
-		IPProtocol: aws.String("tcp"),
+	simple := &ec2.IpPermission{
+		IpProtocol: aws.String("tcp"),
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
-		IPRanges: []*ec2.IPRange{
-			&ec2.IPRange{
-				CIDRIP: aws.String("10.0.0.0/8"),
+		IpRanges: []*ec2.IpRange{
+			&ec2.IpRange{
+				CidrIp: aws.String("10.0.0.0/8"),
 			},
 		},
 	}
 
-	egress := &ec2.IPPermission{
-		IPProtocol: aws.String("tcp"),
+	egress := &ec2.IpPermission{
+		IpProtocol: aws.String("tcp"),
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
-		IPRanges: []*ec2.IPRange{
-			&ec2.IPRange{
-				CIDRIP: aws.String("10.0.0.0/8"),
+		IpRanges: []*ec2.IpRange{
+			&ec2.IpRange{
+				CidrIp: aws.String("10.0.0.0/8"),
 			},
 		},
 	}
 
-	egress_all := &ec2.IPPermission{
-		IPProtocol: aws.String("-1"),
-		IPRanges: []*ec2.IPRange{
-			&ec2.IPRange{
-				CIDRIP: aws.String("10.0.0.0/8"),
+	egress_all := &ec2.IpPermission{
+		IpProtocol: aws.String("-1"),
+		IpRanges: []*ec2.IpRange{
+			&ec2.IpRange{
+				CidrIp: aws.String("10.0.0.0/8"),
 			},
 		},
 	}
 
-	vpc_security_group_source := &ec2.IPPermission{
-		IPProtocol: aws.String("tcp"),
+	vpc_security_group_source := &ec2.IpPermission{
+		IpProtocol: aws.String("tcp"),
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
-		UserIDGroupPairs: []*ec2.UserIDGroupPair{
-			&ec2.UserIDGroupPair{
-				UserID:  aws.String("987654321"),
-				GroupID: aws.String("sg-12345678"),
+		UserIdGroupPairs: []*ec2.UserIdGroupPair{
+			&ec2.UserIdGroupPair{
+				UserId:  aws.String("987654321"),
+				GroupId: aws.String("sg-12345678"),
 			},
-			&ec2.UserIDGroupPair{
-				UserID:  aws.String("123456789"),
-				GroupID: aws.String("sg-987654321"),
+			&ec2.UserIdGroupPair{
+				UserId:  aws.String("123456789"),
+				GroupId: aws.String("sg-987654321"),
 			},
-			&ec2.UserIDGroupPair{
-				UserID:  aws.String("123456789"),
-				GroupID: aws.String("sg-12345678"),
+			&ec2.UserIdGroupPair{
+				UserId:  aws.String("123456789"),
+				GroupId: aws.String("sg-12345678"),
 			},
 		},
 	}
 
-	security_group_source := &ec2.IPPermission{
-		IPProtocol: aws.String("tcp"),
+	security_group_source := &ec2.IpPermission{
+		IpProtocol: aws.String("tcp"),
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
-		UserIDGroupPairs: []*ec2.UserIDGroupPair{
-			&ec2.UserIDGroupPair{
-				UserID:    aws.String("987654321"),
+		UserIdGroupPairs: []*ec2.UserIdGroupPair{
+			&ec2.UserIdGroupPair{
+				UserId:    aws.String("987654321"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIDGroupPair{
-				UserID:    aws.String("123456789"),
+			&ec2.UserIdGroupPair{
+				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIDGroupPair{
-				UserID:    aws.String("123456789"),
+			&ec2.UserIdGroupPair{
+				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-other-security-group"),
 			},
 		},
@@ -86,7 +86,7 @@ func TestIpPermissionIDHash(t *testing.T) {
 
 	// hardcoded hashes, to detect future change
 	cases := []struct {
-		Input  *ec2.IPPermission
+		Input  *ec2.IpPermission
 		Type   string
 		Output string
 	}{
@@ -109,12 +109,12 @@ func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testRuleCount := func(*terraform.State) error {
-		if len(group.IPPermissions) != 1 {
+		if len(group.IpPermissions) != 1 {
 			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
-				1, len(group.IPPermissions))
+				1, len(group.IpPermissions))
 		}
 
-		rule := group.IPPermissions[0]
+		rule := group.IpPermissions[0]
 		if *rule.FromPort != int64(80) {
 			return fmt.Errorf("Wrong Security Group port setting, expected %d, got %d",
 				80, int(*rule.FromPort))
@@ -146,12 +146,12 @@ func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testRuleCount := func(*terraform.State) error {
-		if len(group.IPPermissions) != 1 {
+		if len(group.IpPermissions) != 1 {
 			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
-				1, len(group.IPPermissions))
+				1, len(group.IpPermissions))
 		}
 
-		rule := group.IPPermissions[0]
+		rule := group.IpPermissions[0]
 		if *rule.FromPort != int64(80) {
 			return fmt.Errorf("Wrong Security Group port setting, expected %d, got %d",
 				80, int(*rule.FromPort))
@@ -183,13 +183,13 @@ func TestAccAWSSecurityGroupRule_MultiIngress(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testMultiRuleCount := func(*terraform.State) error {
-		if len(group.IPPermissions) != 2 {
+		if len(group.IpPermissions) != 2 {
 			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
-				2, len(group.IPPermissions))
+				2, len(group.IpPermissions))
 		}
 
-		var rule *ec2.IPPermission
-		for _, r := range group.IPPermissions {
+		var rule *ec2.IpPermission
+		for _, r := range group.IpPermissions {
 			if *r.FromPort == int64(80) {
 				rule = r
 			}
@@ -266,11 +266,11 @@ func testAccCheckAWSSecurityGroupRuleDestroy(s *terraform.State) error {
 
 		// Retrieve our group
 		req := &ec2.DescribeSecurityGroupsInput{
-			GroupIDs: []*string{aws.String(rs.Primary.ID)},
+			GroupIds: []*string{aws.String(rs.Primary.ID)},
 		}
 		resp, err := conn.DescribeSecurityGroups(req)
 		if err == nil {
-			if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupID == rs.Primary.ID {
+			if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupId == rs.Primary.ID {
 				return fmt.Errorf("Security Group (%s) still exists.", rs.Primary.ID)
 			}
 
@@ -303,14 +303,14 @@ func testAccCheckAWSSecurityGroupRuleExists(n string, group *ec2.SecurityGroup) 
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		req := &ec2.DescribeSecurityGroupsInput{
-			GroupIDs: []*string{aws.String(rs.Primary.ID)},
+			GroupIds: []*string{aws.String(rs.Primary.ID)},
 		}
 		resp, err := conn.DescribeSecurityGroups(req)
 		if err != nil {
 			return err
 		}
 
-		if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupID == rs.Primary.ID {
+		if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupId == rs.Primary.ID {
 			*group = *resp.SecurityGroups[0]
 			return nil
 		}
@@ -321,17 +321,17 @@ func testAccCheckAWSSecurityGroupRuleExists(n string, group *ec2.SecurityGroup) 
 
 func testAccCheckAWSSecurityGroupRuleAttributes(group *ec2.SecurityGroup, ruleType string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		p := &ec2.IPPermission{
+		p := &ec2.IpPermission{
 			FromPort:   aws.Int64(80),
 			ToPort:     aws.Int64(8000),
-			IPProtocol: aws.String("tcp"),
-			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
+			IpProtocol: aws.String("tcp"),
+			IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("10.0.0.0/8")}},
 		}
-		var rules []*ec2.IPPermission
+		var rules []*ec2.IpPermission
 		if ruleType == "ingress" {
-			rules = group.IPPermissions
+			rules = group.IpPermissions
 		} else {
-			rules = group.IPPermissionsEgress
+			rules = group.IpPermissionsEgress
 		}
 
 		if len(rules) == 0 {

@@ -134,8 +134,8 @@ func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
 
 func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfiguration) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *conf.ImageID != "ami-21f78e11" {
-			return fmt.Errorf("Bad image_id: %s", *conf.ImageID)
+		if *conf.ImageId != "ami-21f78e11" {
+			return fmt.Errorf("Bad image_id: %s", *conf.ImageId)
 		}
 
 		if !strings.HasPrefix(*conf.LaunchConfigurationName, "terraform-") {

@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccAWSVpcEndpoint_basic(t *testing.T) {
-	var endpoint ec2.VPCEndpoint
+	var endpoint ec2.VpcEndpoint
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -30,7 +30,7 @@ func TestAccAWSVpcEndpoint_basic(t *testing.T) {
 }
 
 func TestAccAWSVpcEndpoint_withRouteTableAndPolicy(t *testing.T) {
-	var endpoint ec2.VPCEndpoint
+	var endpoint ec2.VpcEndpoint
 	var routeTable ec2.RouteTable
 
 	resource.Test(t, resource.TestCase{
@@ -65,12 +65,12 @@ func testAccCheckVpcEndpointDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the VPC
-		input := &ec2.DescribeVPCEndpointsInput{
-			VPCEndpointIDs: []*string{aws.String(rs.Primary.ID)},
+		input := &ec2.DescribeVpcEndpointsInput{
+			VpcEndpointIds: []*string{aws.String(rs.Primary.ID)},
 		}
-		resp, err := conn.DescribeVPCEndpoints(input)
+		resp, err := conn.DescribeVpcEndpoints(input)
 
-		if len(resp.VPCEndpoints) > 0 {
+		if len(resp.VpcEndpoints) > 0 {
 			return fmt.Errorf("VPC Endpoints still exist.")
 		}
 
@@ -80,7 +80,7 @@ func testAccCheckVpcEndpointDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVpcEndpointExists(n string, endpoint *ec2.VPCEndpoint) resource.TestCheckFunc {
+func testAccCheckVpcEndpointExists(n string, endpoint *ec2.VpcEndpoint) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -92,18 +92,18 @@ func testAccCheckVpcEndpointExists(n string, endpoint *ec2.VPCEndpoint) resource
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		input := &ec2.DescribeVPCEndpointsInput{
-			VPCEndpointIDs: []*string{aws.String(rs.Primary.ID)},
+		input := &ec2.DescribeVpcEndpointsInput{
+			VpcEndpointIds: []*string{aws.String(rs.Primary.ID)},
 		}
-		resp, err := conn.DescribeVPCEndpoints(input)
+		resp, err := conn.DescribeVpcEndpoints(input)
 		if err != nil {
 			return err
 		}
-		if len(resp.VPCEndpoints) == 0 {
+		if len(resp.VpcEndpoints) == 0 {
 			return fmt.Errorf("VPC Endpoint not found")
 		}
 
-		*endpoint = *resp.VPCEndpoints[0]
+		*endpoint = *resp.VpcEndpoints[0]
 
 		return nil
 	}

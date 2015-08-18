@@ -38,7 +38,7 @@ func testAccCheckAWSSNSTopicSubscriptionDestroy(s *terraform.State) error {
 
 		// Try to find key pair
 		req := &sns.GetSubscriptionAttributesInput{
-			SubscriptionARN: aws.String(rs.Primary.ID),
+			SubscriptionArn: aws.String(rs.Primary.ID),
 		}
 
 		_, err := conn.GetSubscriptionAttributes(req)
@@ -71,7 +71,7 @@ func testAccCheckAWSSNSTopicSubscriptionExists(n string) resource.TestCheckFunc 
 		conn := testAccProvider.Meta().(*AWSClient).snsconn
 
 		params := &sns.GetSubscriptionAttributesInput{
-			SubscriptionARN: aws.String(rs.Primary.ID),
+			SubscriptionArn: aws.String(rs.Primary.ID),
 		}
 		_, err := conn.GetSubscriptionAttributes(params)
 

@@ -37,7 +37,7 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 		}
 
 		if v, ok := data["ssl_certificate_id"]; ok {
-			l.SSLCertificateID = aws.String(v.(string))
+			l.SSLCertificateId = aws.String(v.(string))
 		}
 
 		listeners = append(listeners, l)
@@ -109,24 +109,24 @@ func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
 // if it finds invalid permissions input, namely a protocol of "-1" with either
 // to_port or from_port set to a non-zero value.
 func expandIPPerms(
-	group *ec2.SecurityGroup, configured []interface{}) ([]*ec2.IPPermission, error) {
-	vpc := group.VPCID != nil
+	group *ec2.SecurityGroup, configured []interface{}) ([]*ec2.IpPermission, error) {
+	vpc := group.VpcId != nil
 
-	perms := make([]*ec2.IPPermission, len(configured))
+	perms := make([]*ec2.IpPermission, len(configured))
 	for i, mRaw := range configured {
-		var perm ec2.IPPermission
+		var perm ec2.IpPermission
 		m := mRaw.(map[string]interface{})
 
 		perm.FromPort = aws.Int64(int64(m["from_port"].(int)))
 		perm.ToPort = aws.Int64(int64(m["to_port"].(int)))
-		perm.IPProtocol = aws.String(m["protocol"].(string))
+		perm.IpProtocol = aws.String(m["protocol"].(string))
 
 		// When protocol is "-1", AWS won't store any ports for the
 		// rule, but also won't error if the user specifies ports other
 		// than '0'. Force the user to make a deliberate '0' port
 		// choice when specifying a "-1" protocol, and tell them about
 		// AWS's behavior in the error message.
-		if *perm.IPProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
+		if *perm.IpProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
 			return nil, fmt.Errorf(
 				"from_port (%d) and to_port (%d) must both be 0 to use the the 'ALL' \"-1\" protocol!",
 				*perm.FromPort, *perm.ToPort)
@@ -141,31 +141,31 @@ func expandIPPerms(
 		}
 		if v, ok := m["self"]; ok && v.(bool) {
 			if vpc {
-				groups = append(groups, *group.GroupID)
+				groups = append(groups, *group.GroupId)
 			} else {
 				groups = append(groups, *group.GroupName)
 			}
 		}
 
 		if len(groups) > 0 {
-			perm.UserIDGroupPairs = make([]*ec2.UserIDGroupPair, len(groups))
+			perm.UserIdGroupPairs = make([]*ec2.UserIdGroupPair, len(groups))
 			for i, name := range groups {
 				ownerId, id := "", name
 				if items := strings.Split(id, "/"); len(items) > 1 {
 					ownerId, id = items[0], items[1]
 				}
 
-				perm.UserIDGroupPairs[i] = &ec2.UserIDGroupPair{
-					GroupID: aws.String(id),
+				perm.UserIdGroupPairs[i] = &ec2.UserIdGroupPair{
+					GroupId: aws.String(id),
 				}
 
 				if ownerId != "" {
-					perm.UserIDGroupPairs[i].UserID = aws.String(ownerId)
+					perm.UserIdGroupPairs[i].UserId = aws.String(ownerId)
 				}
 
 				if !vpc {
-					perm.UserIDGroupPairs[i].GroupID = nil
-					perm.UserIDGroupPairs[i].GroupName = aws.String(id)
+					perm.UserIdGroupPairs[i].GroupId = nil
+					perm.UserIdGroupPairs[i].GroupName = aws.String(id)
 				}
 			}
 		}
@@ -173,7 +173,7 @@ func expandIPPerms(
 		if raw, ok := m["cidr_blocks"]; ok {
 			list := raw.([]interface{})
 			for _, v := range list {
-				perm.IPRanges = append(perm.IPRanges, &ec2.IPRange{CIDRIP: aws.String(v.(string))})
+				perm.IpRanges = append(perm.IpRanges, &ec2.IpRange{CidrIp: aws.String(v.(string))})
 			}
 		}
 
@@ -248,10 +248,10 @@ func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 }
 
 // Flattens an array of UserSecurityGroups into a []string
-func flattenSecurityGroups(list []*ec2.UserIDGroupPair) []string {
+func flattenSecurityGroups(list []*ec2.UserIdGroupPair) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
-		result = append(result, *g.GroupID)
+		result = append(result, *g.GroupId)
 	}
 	return result
 }
@@ -260,7 +260,7 @@ func flattenSecurityGroups(list []*ec2.UserIDGroupPair) []string {
 func flattenInstances(list []*elb.Instance) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
-		result = append(result, *i.InstanceID)
+		result = append(result, *i.InstanceId)
 	}
 	return result
 }
@@ -269,7 +269,7 @@ func flattenInstances(list []*elb.Instance) []string {
 func expandInstanceString(list []interface{}) []*elb.Instance {
 	result := make([]*elb.Instance, 0, len(list))
 	for _, i := range list {
-		result = append(result, &elb.Instance{InstanceID: aws.String(i.(string))})
+		result = append(result, &elb.Instance{InstanceId: aws.String(i.(string))})
 	}
 	return result
 }
@@ -297,8 +297,8 @@ func flattenListeners(list []*elb.ListenerDescription) []map[string]interface{} 
 			"lb_protocol":       strings.ToLower(*i.Listener.Protocol),
 		}
 		// SSLCertificateID is optional, and may be nil
-		if i.Listener.SSLCertificateID != nil {
-			l["ssl_certificate_id"] = *i.Listener.SSLCertificateID
+		if i.Listener.SSLCertificateId != nil {
+			l["ssl_certificate_id"] = *i.Listener.SSLCertificateId
 		}
 		result = append(result, l)
 	}
@@ -378,10 +378,10 @@ func expandStringList(configured []interface{}) []*string {
 }
 
 //Flattens an array of private ip addresses into a []string, where the elements returned are the IP strings e.g. "192.168.0.0"
-func flattenNetworkInterfacesPrivateIPAddesses(dtos []*ec2.NetworkInterfacePrivateIPAddress) []string {
+func flattenNetworkInterfacesPrivateIPAddesses(dtos []*ec2.NetworkInterfacePrivateIpAddress) []string {
 	ips := make([]string, 0, len(dtos))
 	for _, v := range dtos {
-		ip := *v.PrivateIPAddress
+		ip := *v.PrivateIpAddress
 		ips = append(ips, ip)
 	}
 	return ips
@@ -391,18 +391,18 @@ func flattenNetworkInterfacesPrivateIPAddesses(dtos []*ec2.NetworkInterfacePriva
 func flattenGroupIdentifiers(dtos []*ec2.GroupIdentifier) []string {
 	ids := make([]string, 0, len(dtos))
 	for _, v := range dtos {
-		group_id := *v.GroupID
+		group_id := *v.GroupId
 		ids = append(ids, group_id)
 	}
 	return ids
 }
 
 //Expands an array of IPs into a ec2 Private IP Address Spec
-func expandPrivateIPAddesses(ips []interface{}) []*ec2.PrivateIPAddressSpecification {
-	dtos := make([]*ec2.PrivateIPAddressSpecification, 0, len(ips))
+func expandPrivateIPAddesses(ips []interface{}) []*ec2.PrivateIpAddressSpecification {
+	dtos := make([]*ec2.PrivateIpAddressSpecification, 0, len(ips))
 	for i, v := range ips {
-		new_private_ip := &ec2.PrivateIPAddressSpecification{
-			PrivateIPAddress: aws.String(v.(string)),
+		new_private_ip := &ec2.PrivateIpAddressSpecification{
+			PrivateIpAddress: aws.String(v.(string)),
 		}
 
 		new_private_ip.Primary = aws.Bool(i == 0)
@@ -415,9 +415,9 @@ func expandPrivateIPAddesses(ips []interface{}) []*ec2.PrivateIPAddressSpecifica
 //Flattens network interface attachment into a map[string]interface
 func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{} {
 	att := make(map[string]interface{})
-	att["instance"] = *a.InstanceID
+	att["instance"] = *a.InstanceId
 	att["device_index"] = *a.DeviceIndex
-	att["attachment_id"] = *a.AttachmentID
+	att["attachment_id"] = *a.AttachmentId
 	return att
 }
 

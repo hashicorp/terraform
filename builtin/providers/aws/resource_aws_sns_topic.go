@@ -70,10 +70,10 @@ func resourceAwsSnsTopicCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating SNS topic: %s", err)
 	}
 
-	d.SetId(*output.TopicARN)
+	d.SetId(*output.TopicArn)
 
 	// Write the ARN to the 'arn' field for export
-	d.Set("arn", *output.TopicARN)
+	d.Set("arn", *output.TopicArn)
 
 	return resourceAwsSnsTopicUpdate(d, meta)
 }
@@ -92,7 +92,7 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 				if !(k == "policy" && n == "") {
 					// Make API call to update attributes
 					req := &sns.SetTopicAttributesInput{
-						TopicARN:       aws.String(d.Id()),
+						TopicArn:       aws.String(d.Id()),
 						AttributeName:  aws.String(attrKey),
 						AttributeValue: aws.String(n.(string)),
 					}
@@ -109,7 +109,7 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
 	attributeOutput, err := snsconn.GetTopicAttributes(&sns.GetTopicAttributesInput{
-		TopicARN: aws.String(d.Id()),
+		TopicArn: aws.String(d.Id()),
 	})
 
 	if err != nil {
@@ -143,7 +143,7 @@ func resourceAwsSnsTopicDelete(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] SNS Delete Topic: %s", d.Id())
 	_, err := snsconn.DeleteTopic(&sns.DeleteTopicInput{
-		TopicARN: aws.String(d.Id()),
+		TopicArn: aws.String(d.Id()),
 	})
 	if err != nil {
 		return err

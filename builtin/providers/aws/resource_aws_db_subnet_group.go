@@ -72,7 +72,7 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 	createOpts := rds.CreateDBSubnetGroupInput{
 		DBSubnetGroupName:        aws.String(d.Get("name").(string)),
 		DBSubnetGroupDescription: aws.String(d.Get("description").(string)),
-		SubnetIDs:                subnetIds,
+		SubnetIds:                subnetIds,
 	}
 
 	log.Printf("[DEBUG] Create DB Subnet Group: %#v", createOpts)
