@@ -63,7 +63,7 @@ The following arguments are supported:
   * `type` - One of: S, N, or B for (S)tring, (N)umber or (B)inary data
 * `local_secondary_index` - (Optional) Describe an LSI on the table;
   these can only be allocated *at creation* so you cannot change this
-definition after you have created the resource. 
+definition after you have created the resource.
 * `global_secondary_index` - (Optional) Describe a GSO for the table;
   subject to the normal limits on the number of GSIs, projected
 attributes, etc.  
@@ -79,10 +79,10 @@ the following properties are supported:
    where *ALL* projects every attribute into the index, *KEYS_ONLY*
     projects just the hash and range key into the index, and *INCLUDE*
     projects only the keys specified in the _non_key_attributes_
-parameter. 
+parameter.
 * `non_key_attributes` - (Optional) Only required with *INCLUDE* as a
   projection type; a list of attributes to project into the index. These
-do not need to be defined as attributes on the table. 
+do not need to be defined as attributes on the table.
 
 For `global_secondary_index` objects only, you need to specify
 `write_capacity` and `read_capacity` in the same way you would for the
@@ -95,13 +95,13 @@ Only define attributes on the table object that are going to be used as:
 * Table hash key or range key
 * LSI or GSI hash key or range key
 
-The DynamoDB API expects attribute structure (name and type) to be 
-passed along when creating or updating GSI/LSIs or creating the initial 
-table. In these cases it expects the Hash / Range keys to be provided; 
-because these get re-used in numerous places (i.e the table's range key 
-could be a part of one or more GSIs), they are stored on the table 
-object to prevent duplication and increase consistency. If you add 
-attributes here that are not used in these scenarios it can cause an 
+The DynamoDB API expects attribute structure (name and type) to be
+passed along when creating or updating GSI/LSIs or creating the initial
+table. In these cases it expects the Hash / Range keys to be provided;
+because these get re-used in numerous places (i.e the table's range key
+could be a part of one or more GSIs), they are stored on the table
+object to prevent duplication and increase consistency. If you add
+attributes here that are not used in these scenarios it can cause an
 infinite loop in planning.  
 
 
@@ -109,5 +109,6 @@ infinite loop in planning.
 
 The following attributes are exported:
 
+* `arn` - The arn of the table
 * `id` - The name of the table
 

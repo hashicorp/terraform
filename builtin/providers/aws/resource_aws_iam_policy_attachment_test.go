@@ -2,11 +2,12 @@ package aws
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"testing"
 )
 
 func TestAccAWSPolicyAttachment_basic(t *testing.T) {
@@ -20,14 +21,14 @@ func TestAccAWSPolicyAttachment_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSPolicyAttachConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attachment", 3, &out),
+					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attach", 3, &out),
 					testAccCheckAWSPolicyAttachmentAttributes([]string{"test-user"}, []string{"test-role"}, []string{"test-group"}, &out),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSPolicyAttachConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attachment", 6, &out),
+					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attach", 6, &out),
 					testAccCheckAWSPolicyAttachmentAttributes([]string{"test-user3", "test-user3"}, []string{"test-role2", "test-role3"}, []string{"test-group2", "test-group3"}, &out),
 				),
 			},
@@ -54,7 +55,7 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int64, out *iam.ListEntit
 		arn := rs.Primary.Attributes["policy_arn"]
 
 		resp, err := conn.GetPolicy(&iam.GetPolicyInput{
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return fmt.Errorf("Error: Policy (%s) not found", n)
@@ -63,7 +64,7 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int64, out *iam.ListEntit
 			return fmt.Errorf("Error: Policy (%s) has wrong number of entities attached on initial creation", n)
 		}
 		resp2, err := conn.ListEntitiesForPolicy(&iam.ListEntitiesForPolicyInput{
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return fmt.Errorf("Error: Failed to get entities for Policy (%s)", arn)
@@ -93,7 +94,7 @@ func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, g
 				}
 			}
 		}
-		for _, g := range users {
+		for _, g := range groups {
 			for _, pg := range out.PolicyGroups {
 				if g == *pg.GroupName {
 					gc--
@@ -113,7 +114,23 @@ resource "aws_iam_user" "user" {
 }
 resource "aws_iam_role" "role" {
     name = "test-role"
+	  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
 }
+EOF
+}
+
 resource "aws_iam_group" "group" {
     name = "test-group"
 }
@@ -158,12 +175,60 @@ resource "aws_iam_user" "user3" {
 }
 resource "aws_iam_role" "role" {
     name = "test-role"
+	  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
 }
+EOF
+}
+
 resource "aws_iam_role" "role2" {
     name = "test-role2"
+	  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+
 }
 resource "aws_iam_role" "role3" {
     name = "test-role3"
+	  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+
 }
 resource "aws_iam_group" "group" {
     name = "test-group"

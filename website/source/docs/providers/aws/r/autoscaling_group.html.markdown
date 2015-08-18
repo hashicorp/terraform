@@ -47,7 +47,7 @@ The following arguments are supported:
     (See also [Waiting for Capacity](#waiting-for-capacity) below.)
 * `availability_zones` - (Optional) A list of AZs to launch resources in.
    Required only if you do not specify any `vpc_zone_identifier`
-* `launch_configuration` - (Required) The ID of the launch configuration to use.
+* `launch_configuration` - (Required) The name of the launch configuration to use.
 * `health_check_grace_period` - (Optional) Time after instance comes into service before checking health.
 * `health_check_type` - (Optional) "EC2" or "ELB". Controls how health checking is done.
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that

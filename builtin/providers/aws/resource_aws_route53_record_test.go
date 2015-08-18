@@ -235,7 +235,7 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 		rType := parts[2]
 
 		lopts := &route53.ListResourceRecordSetsInput{
-			HostedZoneID:    aws.String(cleanZoneID(zone)),
+			HostedZoneId:    aws.String(cleanZoneID(zone)),
 			StartRecordName: aws.String(name),
 			StartRecordType: aws.String(rType),
 		}
@@ -275,7 +275,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		en := expandRecordName(name, "notexample.com")
 
 		lopts := &route53.ListResourceRecordSetsInput{
-			HostedZoneID:    aws.String(cleanZoneID(zone)),
+			HostedZoneId:    aws.String(cleanZoneID(zone)),
 			StartRecordName: aws.String(en),
 			StartRecordType: aws.String(rType),
 		}

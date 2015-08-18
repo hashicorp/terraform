@@ -41,20 +41,20 @@ func resourceAwsVpnConnectionRoute() *schema.Resource {
 func resourceAwsVpnConnectionRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	createOpts := &ec2.CreateVPNConnectionRouteInput{
-		DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
-		VPNConnectionID:      aws.String(d.Get("vpn_connection_id").(string)),
+	createOpts := &ec2.CreateVpnConnectionRouteInput{
+		DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
+		VpnConnectionId:      aws.String(d.Get("vpn_connection_id").(string)),
 	}
 
 	// Create the route.
 	log.Printf("[DEBUG] Creating VPN connection route")
-	_, err := conn.CreateVPNConnectionRoute(createOpts)
+	_, err := conn.CreateVpnConnectionRoute(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating VPN connection route: %s", err)
 	}
 
 	// Store the ID by the only two data we have available to us.
-	d.SetId(fmt.Sprintf("%s:%s", *createOpts.DestinationCIDRBlock, *createOpts.VPNConnectionID))
+	d.SetId(fmt.Sprintf("%s:%s", *createOpts.DestinationCidrBlock, *createOpts.VpnConnectionId))
 
 	return resourceAwsVpnConnectionRouteRead(d, meta)
 }
@@ -79,7 +79,7 @@ func resourceAwsVpnConnectionRouteRead(d *schema.ResourceData, meta interface{})
 	// from its ID, but we still want to catch cases where it changes
 	// outside of terraform and results in a stale state file. Hence,
 	// conduct a read.
-	resp, err := conn.DescribeVPNConnections(&ec2.DescribeVPNConnectionsInput{
+	resp, err := conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
 		Filters: routeFilters,
 	})
 	if err != nil {
@@ -91,20 +91,20 @@ func resourceAwsVpnConnectionRouteRead(d *schema.ResourceData, meta interface{})
 			return err
 		}
 	}
-	if resp == nil || len(resp.VPNConnections) == 0 {
+	if resp == nil || len(resp.VpnConnections) == 0 {
 		// This is kind of a weird edge case. I'd rather return an error
 		// instead of just blindly setting the ID to ""... since I don't know
 		// what might cause this.
 		return fmt.Errorf("No VPN connections returned")
 	}
 
-	vpnConnection := resp.VPNConnections[0]
+	vpnConnection := resp.VpnConnections[0]
 
 	var found bool
 	for _, r := range vpnConnection.Routes {
-		if *r.DestinationCIDRBlock == cidrBlock {
-			d.Set("destination_cidr_block", *r.DestinationCIDRBlock)
-			d.Set("vpn_connection_id", *vpnConnection.VPNConnectionID)
+		if *r.DestinationCidrBlock == cidrBlock {
+			d.Set("destination_cidr_block", *r.DestinationCidrBlock)
+			d.Set("vpn_connection_id", *vpnConnection.VpnConnectionId)
 			found = true
 		}
 	}
@@ -119,9 +119,9 @@ func resourceAwsVpnConnectionRouteRead(d *schema.ResourceData, meta interface{})
 func resourceAwsVpnConnectionRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	_, err := conn.DeleteVPNConnectionRoute(&ec2.DeleteVPNConnectionRouteInput{
-		DestinationCIDRBlock: aws.String(d.Get("destination_cidr_block").(string)),
-		VPNConnectionID:      aws.String(d.Get("vpn_connection_id").(string)),
+	_, err := conn.DeleteVpnConnectionRoute(&ec2.DeleteVpnConnectionRouteInput{
+		DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
+		VpnConnectionId:      aws.String(d.Get("vpn_connection_id").(string)),
 	})
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {

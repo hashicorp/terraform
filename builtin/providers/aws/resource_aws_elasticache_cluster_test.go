@@ -57,7 +57,7 @@ func testAccCheckAWSElasticacheClusterDestroy(s *terraform.State) error {
 			continue
 		}
 		res, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
-			CacheClusterID: aws.String(rs.Primary.ID),
+			CacheClusterId: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
 			return err
@@ -82,7 +82,7 @@ func testAccCheckAWSElasticacheClusterExists(n string) resource.TestCheckFunc {
 
 		conn := testAccProvider.Meta().(*AWSClient).elasticacheconn
 		_, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
-			CacheClusterID: aws.String(rs.Primary.ID),
+			CacheClusterId: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
 			return fmt.Errorf("Elasticache error: %v", err)

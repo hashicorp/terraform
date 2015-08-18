@@ -116,7 +116,7 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating SQS queue: %s", err)
 	}
 
-	d.SetId(*output.QueueURL)
+	d.SetId(*output.QueueUrl)
 
 	return resourceAwsSqsQueueUpdate(d, meta)
 }
@@ -143,7 +143,7 @@ func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if len(attributes) > 0 {
 		req := &sqs.SetQueueAttributesInput{
-			QueueURL:   aws.String(d.Id()),
+			QueueUrl:   aws.String(d.Id()),
 			Attributes: attributes,
 		}
 		sqsconn.SetQueueAttributes(req)
@@ -156,7 +156,7 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	sqsconn := meta.(*AWSClient).sqsconn
 
 	attributeOutput, err := sqsconn.GetQueueAttributes(&sqs.GetQueueAttributesInput{
-		QueueURL:       aws.String(d.Id()),
+		QueueUrl:       aws.String(d.Id()),
 		AttributeNames: []*string{aws.String("All")},
 	})
 
@@ -191,7 +191,7 @@ func resourceAwsSqsQueueDelete(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] SQS Delete Queue: %s", d.Id())
 	_, err := sqsconn.DeleteQueue(&sqs.DeleteQueueInput{
-		QueueURL: aws.String(d.Id()),
+		QueueUrl: aws.String(d.Id()),
 	})
 	if err != nil {
 		return err

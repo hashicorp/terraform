@@ -72,8 +72,8 @@ func testAccAwsVpnConnection(
 
 		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
-		_, err := ec2conn.DescribeVPNConnections(&ec2.DescribeVPNConnectionsInput{
-			VPNConnectionIDs: []*string{aws.String(connection.Primary.ID)},
+		_, err := ec2conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
+			VpnConnectionIds: []*string{aws.String(connection.Primary.ID)},
 		})
 
 		if err != nil {

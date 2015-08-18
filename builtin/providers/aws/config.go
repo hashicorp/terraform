@@ -36,6 +36,8 @@ type Config struct {
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
+
+	DynamoDBEndpoint string
 }
 
 type AWSClient struct {
@@ -57,7 +59,7 @@ type AWSClient struct {
 	lambdaconn      *lambda.Lambda
 }
 
-// Client configures and returns a fully initailized AWSClient
+// Client configures and returns a fully initialized AWSClient
 func (c *Config) Client() (interface{}, error) {
 	var client AWSClient
 
@@ -94,8 +96,15 @@ func (c *Config) Client() (interface{}, error) {
 			errs = append(errs, err)
 		}
 
+		awsDynamoDBConfig := &aws.Config{
+			Credentials: creds,
+			Region:      aws.String(c.Region),
+			MaxRetries:  aws.Int(c.MaxRetries),
+			Endpoint:    aws.String(c.DynamoDBEndpoint),
+		}
+
 		log.Println("[INFO] Initializing DynamoDB connection")
-		client.dynamodbconn = dynamodb.New(awsConfig)
+		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(awsConfig)
@@ -171,11 +180,21 @@ func (c *Config) ValidateRegion() error {
 	return fmt.Errorf("Not a valid region: %s", c.Region)
 }
 
-// Validate credentials early and fail before we do any graph walking
+// Validate credentials early and fail before we do any graph walking.
+// In the case of an IAM role/profile with insuffecient privileges, fail
+// silently
 func (c *Config) ValidateCredentials(iamconn *iam.IAM) error {
 	_, err := iamconn.GetUser(nil)
 
 	if awsErr, ok := err.(awserr.Error); ok {
+
+		if awsErr.Code() == "AccessDenied" || awsErr.Code() == "ValidationError" {
+			log.Printf("[WARN] AccessDenied Error with iam.GetUser, assuming IAM profile")
+			// User may be an IAM instance profile, or otherwise IAM role without the
+			// GetUser permissions, so fail silently
+			return nil
+		}
+
 		if awsErr.Code() == "SignatureDoesNotMatch" {
 			return fmt.Errorf("Failed authenticating with AWS: please verify credentials")
 		}
@@ -198,7 +217,7 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 		return fmt.Errorf("Failed getting account ID from IAM: %s", err)
 	}
 
-	account_id := strings.Split(*out.User.ARN, ":")[4]
+	account_id := strings.Split(*out.User.Arn, ":")[4]
 
 	if c.ForbiddenAccountIds != nil {
 		for _, id := range c.ForbiddenAccountIds {

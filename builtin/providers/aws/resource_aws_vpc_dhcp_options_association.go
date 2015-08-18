@@ -40,9 +40,9 @@ func resourceAwsVpcDhcpOptionsAssociationCreate(d *schema.ResourceData, meta int
 	optsID := aws.String(d.Get("dhcp_options_id").(string))
 	vpcID := aws.String(d.Get("vpc_id").(string))
 
-	if _, err := conn.AssociateDHCPOptions(&ec2.AssociateDHCPOptionsInput{
-		DHCPOptionsID: optsID,
-		VPCID:         vpcID,
+	if _, err := conn.AssociateDhcpOptions(&ec2.AssociateDhcpOptionsInput{
+		DhcpOptionsId: optsID,
+		VpcId:         vpcID,
 	}); err != nil {
 		return err
 	}
@@ -67,8 +67,8 @@ func resourceAwsVpcDhcpOptionsAssociationRead(d *schema.ResourceData, meta inter
 		return nil
 	}
 
-	vpc := vpcRaw.(*ec2.VPC)
-	if *vpc.VPCID != d.Get("vpc_id") || *vpc.DHCPOptionsID != d.Get("dhcp_options_id") {
+	vpc := vpcRaw.(*ec2.Vpc)
+	if *vpc.VpcId != d.Get("vpc_id") || *vpc.DhcpOptionsId != d.Get("dhcp_options_id") {
 		log.Printf("[INFO] It seems the DHCP Options association is gone. Deleting reference from Graph...")
 		d.SetId("")
 	}
@@ -87,9 +87,9 @@ func resourceAwsVpcDhcpOptionsAssociationDelete(d *schema.ResourceData, meta int
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Disassociating DHCP Options Set %s from VPC %s...", d.Get("dhcp_options_id"), d.Get("vpc_id"))
-	if _, err := conn.AssociateDHCPOptions(&ec2.AssociateDHCPOptionsInput{
-		DHCPOptionsID: aws.String("default"),
-		VPCID:         aws.String(d.Get("vpc_id").(string)),
+	if _, err := conn.AssociateDhcpOptions(&ec2.AssociateDhcpOptionsInput{
+		DhcpOptionsId: aws.String("default"),
+		VpcId:         aws.String(d.Get("vpc_id").(string)),
 	}); err != nil {
 		return err
 	}

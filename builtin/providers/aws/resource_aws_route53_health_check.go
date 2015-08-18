@@ -64,7 +64,7 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).r53conn
 
 	updateHealthCheck := &route53.UpdateHealthCheckInput{
-		HealthCheckID: aws.String(d.Id()),
+		HealthCheckId: aws.String(d.Id()),
 	}
 
 	if d.HasChange("failure_threshold") {
@@ -139,7 +139,7 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.SetId(*resp.HealthCheck.ID)
+	d.SetId(*resp.HealthCheck.Id)
 
 	if err := setTagsR53(conn, d, "healthcheck"); err != nil {
 		return err
@@ -151,7 +151,7 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	read, err := conn.GetHealthCheck(&route53.GetHealthCheckInput{HealthCheckID: aws.String(d.Id())})
+	read, err := conn.GetHealthCheck(&route53.GetHealthCheckInput{HealthCheckId: aws.String(d.Id())})
 	if err != nil {
 		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHealthCheck" {
 			d.SetId("")
@@ -177,7 +177,7 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 
 	// read the tags
 	req := &route53.ListTagsForResourceInput{
-		ResourceID:   aws.String(d.Id()),
+		ResourceId:   aws.String(d.Id()),
 		ResourceType: aws.String("healthcheck"),
 	}
 
@@ -202,7 +202,7 @@ func resourceAwsRoute53HealthCheckDelete(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).r53conn
 
 	log.Printf("[DEBUG] Deleteing Route53 health check: %s", d.Id())
-	_, err := conn.DeleteHealthCheck(&route53.DeleteHealthCheckInput{HealthCheckID: aws.String(d.Id())})
+	_, err := conn.DeleteHealthCheck(&route53.DeleteHealthCheckInput{HealthCheckId: aws.String(d.Id())})
 	if err != nil {
 		return err
 	}

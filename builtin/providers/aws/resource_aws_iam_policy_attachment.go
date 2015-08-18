@@ -58,7 +58,7 @@ func resourceAwsIamPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 	roles := expandStringList(d.Get("roles").(*schema.Set).List())
 	groups := expandStringList(d.Get("groups").(*schema.Set).List())
 
-	if len(users) > 0 && len(roles) > 0 && len(groups) > 0 {
+	if len(users) == 0 && len(roles) == 0 && len(groups) == 0 {
 		return fmt.Errorf("[WARN] No Users, Roles, or Groups specified for IAM Policy Attachment %s", name)
 	} else {
 		var userErr, roleErr, groupErr error
@@ -85,7 +85,7 @@ func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 	name := d.Get("name").(string)
 
 	_, err := conn.GetPolicy(&iam.GetPolicyInput{
-		PolicyARN: aws.String(arn),
+		PolicyArn: aws.String(arn),
 	})
 
 	if err != nil {
@@ -99,7 +99,7 @@ func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 	}
 
 	policyEntities, err := conn.ListEntitiesForPolicy(&iam.ListEntitiesForPolicyInput{
-		PolicyARN: aws.String(arn),
+		PolicyArn: aws.String(arn),
 	})
 
 	if err != nil {
@@ -191,7 +191,7 @@ func attachPolicyToUsers(conn *iam.IAM, users []*string, arn string) error {
 	for _, u := range users {
 		_, err := conn.AttachUserPolicy(&iam.AttachUserPolicyInput{
 			UserName:  u,
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return err
@@ -203,7 +203,7 @@ func attachPolicyToRoles(conn *iam.IAM, roles []*string, arn string) error {
 	for _, r := range roles {
 		_, err := conn.AttachRolePolicy(&iam.AttachRolePolicyInput{
 			RoleName:  r,
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return err
@@ -215,7 +215,7 @@ func attachPolicyToGroups(conn *iam.IAM, groups []*string, arn string) error {
 	for _, g := range groups {
 		_, err := conn.AttachGroupPolicy(&iam.AttachGroupPolicyInput{
 			GroupName: g,
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return err
@@ -294,7 +294,7 @@ func detachPolicyFromUsers(conn *iam.IAM, users []*string, arn string) error {
 	for _, u := range users {
 		_, err := conn.DetachUserPolicy(&iam.DetachUserPolicyInput{
 			UserName:  u,
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return err
@@ -306,7 +306,7 @@ func detachPolicyFromRoles(conn *iam.IAM, roles []*string, arn string) error {
 	for _, r := range roles {
 		_, err := conn.DetachRolePolicy(&iam.DetachRolePolicyInput{
 			RoleName:  r,
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return err
@@ -318,7 +318,7 @@ func detachPolicyFromGroups(conn *iam.IAM, groups []*string, arn string) error {
 	for _, g := range groups {
 		_, err := conn.DetachGroupPolicy(&iam.DetachGroupPolicyInput{
 			GroupName: g,
-			PolicyARN: aws.String(arn),
+			PolicyArn: aws.String(arn),
 		})
 		if err != nil {
 			return err

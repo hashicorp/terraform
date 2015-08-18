@@ -90,7 +90,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 				Config: testAccInstanceConfig,
 				Check: func(*terraform.State) error {
 					conn := testAccProvider.Meta().(*AWSClient).ec2conn
-					_, err := conn.DeleteVolume(&ec2.DeleteVolumeInput{VolumeID: vol.VolumeID})
+					_, err := conn.DeleteVolume(&ec2.DeleteVolumeInput{VolumeId: vol.VolumeId})
 					return err
 				},
 			},
@@ -237,13 +237,13 @@ func TestAccAWSInstance_disableApiTermination(t *testing.T) {
 		return func(*terraform.State) error {
 			conn := testAccProvider.Meta().(*AWSClient).ec2conn
 			r, err := conn.DescribeInstanceAttribute(&ec2.DescribeInstanceAttributeInput{
-				InstanceID: v.InstanceID,
+				InstanceId: v.InstanceId,
 				Attribute:  aws.String("disableApiTermination"),
 			})
 			if err != nil {
 				return err
 			}
-			got := *r.DisableAPITermination.Value
+			got := *r.DisableApiTermination.Value
 			if got != expected {
 				return fmt.Errorf("expected: %t, got: %t", expected, got)
 			}
@@ -403,8 +403,8 @@ func TestAccAWSInstance_privateIP(t *testing.T) {
 
 	testCheckPrivateIP := func() resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if *v.PrivateIPAddress != "10.1.1.42" {
-				return fmt.Errorf("bad private IP: %s", *v.PrivateIPAddress)
+			if *v.PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", *v.PrivateIpAddress)
 			}
 
 			return nil
@@ -432,8 +432,8 @@ func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 
 	testCheckPrivateIP := func() resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if *v.PrivateIPAddress != "10.1.1.42" {
-				return fmt.Errorf("bad private IP: %s", *v.PrivateIPAddress)
+			if *v.PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", *v.PrivateIpAddress)
 			}
 
 			return nil
@@ -539,7 +539,7 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 		// Try to find the resource
 		var err error
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
-			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
+			InstanceIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.Reservations) > 0 {
@@ -585,7 +585,7 @@ func testAccCheckInstanceExistsWithProviders(n string, i *ec2.Instance, provider
 
 			conn := provider.Meta().(*AWSClient).ec2conn
 			resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
-				InstanceIDs: []*string{aws.String(rs.Primary.ID)},
+				InstanceIds: []*string{aws.String(rs.Primary.ID)},
 			})
 			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
 				continue

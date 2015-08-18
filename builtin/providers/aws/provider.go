@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/awslabs/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -39,7 +40,7 @@ func Provider() terraform.ResourceProvider {
 		conn, err := net.DialTimeout("tcp", "169.254.169.254:80", 100*time.Millisecond)
 		if err == nil {
 			conn.Close()
-			providers = append(providers, &credentials.EC2RoleProvider{})
+			providers = append(providers, &ec2rolecreds.EC2RoleProvider{})
 		}
 
 		credVal, credErr = credentials.NewChainCredentials(providers).Get()
@@ -145,6 +146,13 @@ func Provider() terraform.ResourceProvider {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"dynamodb_endpoint": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["dynamodb_endpoint"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -201,6 +209,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_route_table":                  resourceAwsRouteTable(),
 			"aws_route_table_association":      resourceAwsRouteTableAssociation(),
 			"aws_s3_bucket":                    resourceAwsS3Bucket(),
+			"aws_s3_bucket_object":             resourceAwsS3BucketObject(),
 			"aws_security_group":               resourceAwsSecurityGroup(),
 			"aws_security_group_rule":          resourceAwsSecurityGroupRule(),
 			"aws_spot_instance_request":        resourceAwsSpotInstanceRequest(),
@@ -242,16 +251,20 @@ func init() {
 		"max_retries": "The maximum number of times an AWS API request is\n" +
 			"being executed. If the API request still fails, an error is\n" +
 			"thrown.",
+
+		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
+			"It's typically used to connect to dynamodb-local.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey:  d.Get("access_key").(string),
-		SecretKey:  d.Get("secret_key").(string),
-		Token:      d.Get("token").(string),
-		Region:     d.Get("region").(string),
-		MaxRetries: d.Get("max_retries").(int),
+		AccessKey:        d.Get("access_key").(string),
+		SecretKey:        d.Get("secret_key").(string),
+		Token:            d.Get("token").(string),
+		Region:           d.Get("region").(string),
+		MaxRetries:       d.Get("max_retries").(int),
+		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
