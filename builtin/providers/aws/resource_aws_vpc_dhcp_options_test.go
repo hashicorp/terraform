@@ -12,7 +12,7 @@ import (
 )
 
 func TestAccAWSDHCPOptions_basic(t *testing.T) {
-	var d ec2.DHCPOptions
+	var d ec2.DhcpOptions
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -45,13 +45,13 @@ func testAccCheckDHCPOptionsDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeDHCPOptions(&ec2.DescribeDHCPOptionsInput{
-			DHCPOptionsIDs: []*string{
+		resp, err := conn.DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
+			DhcpOptionsIds: []*string{
 				aws.String(rs.Primary.ID),
 			},
 		})
 		if err == nil {
-			if len(resp.DHCPOptions) > 0 {
+			if len(resp.DhcpOptions) > 0 {
 				return fmt.Errorf("still exist.")
 			}
 
@@ -71,7 +71,7 @@ func testAccCheckDHCPOptionsDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDHCPOptionsExists(n string, d *ec2.DHCPOptions) resource.TestCheckFunc {
+func testAccCheckDHCPOptionsExists(n string, d *ec2.DhcpOptions) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -83,19 +83,19 @@ func testAccCheckDHCPOptionsExists(n string, d *ec2.DHCPOptions) resource.TestCh
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeDHCPOptions(&ec2.DescribeDHCPOptionsInput{
-			DHCPOptionsIDs: []*string{
+		resp, err := conn.DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
+			DhcpOptionsIds: []*string{
 				aws.String(rs.Primary.ID),
 			},
 		})
 		if err != nil {
 			return err
 		}
-		if len(resp.DHCPOptions) == 0 {
+		if len(resp.DhcpOptions) == 0 {
 			return fmt.Errorf("DHCP Options not found")
 		}
 
-		*d = *resp.DHCPOptions[0]
+		*d = *resp.DhcpOptions[0]
 
 		return nil
 	}

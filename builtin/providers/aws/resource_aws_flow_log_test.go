@@ -64,7 +64,7 @@ func testAccCheckFlowLogExists(n string, flowLog *ec2.FlowLog) resource.TestChec
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		describeOpts := &ec2.DescribeFlowLogsInput{
-			FlowLogIDs: []*string{aws.String(rs.Primary.ID)},
+			FlowLogIds: []*string{aws.String(rs.Primary.ID)},
 		}
 		resp, err := conn.DescribeFlowLogs(describeOpts)
 		if err != nil {

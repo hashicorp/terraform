@@ -52,15 +52,15 @@ func resourceAwsMainRouteTableAssociationCreate(d *schema.ResourceData, meta int
 	}
 
 	resp, err := conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationInput{
-		AssociationID: mainAssociation.RouteTableAssociationID,
-		RouteTableID:  aws.String(routeTableId),
+		AssociationId: mainAssociation.RouteTableAssociationId,
+		RouteTableId:  aws.String(routeTableId),
 	})
 	if err != nil {
 		return err
 	}
 
-	d.Set("original_route_table_id", mainAssociation.RouteTableID)
-	d.SetId(*resp.NewAssociationID)
+	d.Set("original_route_table_id", mainAssociation.RouteTableId)
+	d.SetId(*resp.NewAssociationId)
 	log.Printf("[INFO] New main route table association ID: %s", d.Id())
 
 	return nil
@@ -76,7 +76,7 @@ func resourceAwsMainRouteTableAssociationRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	if mainAssociation == nil || *mainAssociation.RouteTableAssociationID != d.Id() {
+	if mainAssociation == nil || *mainAssociation.RouteTableAssociationId != d.Id() {
 		// It seems it doesn't exist anymore, so clear the ID
 		d.SetId("")
 	}
@@ -95,14 +95,14 @@ func resourceAwsMainRouteTableAssociationUpdate(d *schema.ResourceData, meta int
 	log.Printf("[INFO] Updating main route table association: %s => %s", vpcId, routeTableId)
 
 	resp, err := conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationInput{
-		AssociationID: aws.String(d.Id()),
-		RouteTableID:  aws.String(routeTableId),
+		AssociationId: aws.String(d.Id()),
+		RouteTableId:  aws.String(routeTableId),
 	})
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.NewAssociationID)
+	d.SetId(*resp.NewAssociationId)
 	log.Printf("[INFO] New main route table association ID: %s", d.Id())
 
 	return nil
@@ -118,14 +118,14 @@ func resourceAwsMainRouteTableAssociationDelete(d *schema.ResourceData, meta int
 		originalRouteTableId)
 
 	resp, err := conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationInput{
-		AssociationID: aws.String(d.Id()),
-		RouteTableID:  aws.String(originalRouteTableId),
+		AssociationId: aws.String(d.Id()),
+		RouteTableId:  aws.String(originalRouteTableId),
 	})
 	if err != nil {
 		return err
 	}
 
-	log.Printf("[INFO] Resulting Association ID: %s", *resp.NewAssociationID)
+	log.Printf("[INFO] Resulting Association ID: %s", *resp.NewAssociationId)
 
 	return nil
 }

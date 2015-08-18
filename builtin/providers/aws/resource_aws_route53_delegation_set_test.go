@@ -58,7 +58,7 @@ func testAccCheckRoute53DelegationSetDestroy(s *terraform.State, provider *schem
 			continue
 		}
 
-		_, err := conn.GetReusableDelegationSet(&route53.GetReusableDelegationSetInput{ID: aws.String(rs.Primary.ID)})
+		_, err := conn.GetReusableDelegationSet(&route53.GetReusableDelegationSetInput{Id: aws.String(rs.Primary.ID)})
 		if err == nil {
 			return fmt.Errorf("Delegation set still exists")
 		}
@@ -79,14 +79,14 @@ func testAccCheckRoute53DelegationSetExists(n string) resource.TestCheckFunc {
 		}
 
 		out, err := conn.GetReusableDelegationSet(&route53.GetReusableDelegationSetInput{
-			ID: aws.String(rs.Primary.ID),
+			Id: aws.String(rs.Primary.ID),
 		})
 
 		if err != nil {
 			return fmt.Errorf("Delegation set does not exist: %#v", rs.Primary.ID)
 		}
 
-		setID := cleanDelegationSetId(*out.DelegationSet.ID)
+		setID := cleanDelegationSetId(*out.DelegationSet.Id)
 		if setID != rs.Primary.ID {
 			return fmt.Errorf("Delegation set ID does not match:\nExpected: %#v\nReturned: %#v", rs.Primary.ID, setID)
 		}
@@ -104,7 +104,7 @@ func testAccCheckRoute53NameServersMatch(delegationSetName, zoneName string) res
 			return fmt.Errorf("Not found: %s", delegationSetName)
 		}
 		delegationSet, err := conn.GetReusableDelegationSet(&route53.GetReusableDelegationSetInput{
-			ID: aws.String(delegationSetLocal.Primary.ID),
+			Id: aws.String(delegationSetLocal.Primary.ID),
 		})
 		if err != nil {
 			return fmt.Errorf("Delegation set does not exist: %#v", delegationSetLocal.Primary.ID)
@@ -115,7 +115,7 @@ func testAccCheckRoute53NameServersMatch(delegationSetName, zoneName string) res
 			return fmt.Errorf("Not found: %s", zoneName)
 		}
 		hostedZone, err := conn.GetHostedZone(&route53.GetHostedZoneInput{
-			ID: aws.String(hostedZoneLocal.Primary.ID),
+			Id: aws.String(hostedZoneLocal.Primary.ID),
 		})
 		if err != nil {
 			return fmt.Errorf("Delegation set does not exist: %#v", hostedZoneLocal.Primary.ID)

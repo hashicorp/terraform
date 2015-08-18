@@ -101,13 +101,13 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 	if err := d.Set("name", role.RoleName); err != nil {
 		return err
 	}
-	if err := d.Set("arn", role.ARN); err != nil {
+	if err := d.Set("arn", role.Arn); err != nil {
 		return err
 	}
 	if err := d.Set("path", role.Path); err != nil {
 		return err
 	}
-	if err := d.Set("unique_id", role.RoleID); err != nil {
+	if err := d.Set("unique_id", role.RoleId); err != nil {
 		return err
 	}
 	return nil

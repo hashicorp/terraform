@@ -205,7 +205,7 @@ func instanceProfileReadResult(d *schema.ResourceData, result *iam.InstanceProfi
 	if err := d.Set("name", result.InstanceProfileName); err != nil {
 		return err
 	}
-	if err := d.Set("arn", result.ARN); err != nil {
+	if err := d.Set("arn", result.Arn); err != nil {
 		return err
 	}
 	if err := d.Set("path", result.Path); err != nil {

@@ -55,7 +55,7 @@ func resourceAwsRoute53DelegationSetCreate(d *schema.ResourceData, meta interfac
 	log.Printf("[DEBUG] Route53 reusable delegation set created: %#v", out)
 
 	set := out.DelegationSet
-	d.SetId(cleanDelegationSetId(*set.ID))
+	d.SetId(cleanDelegationSetId(*set.Id))
 	d.Set("name_servers", expandNameServers(set.NameServers))
 	return nil
 }
@@ -64,7 +64,7 @@ func resourceAwsRoute53DelegationSetRead(d *schema.ResourceData, meta interface{
 	r53 := meta.(*AWSClient).r53conn
 
 	input := &route53.GetReusableDelegationSetInput{
-		ID: aws.String(cleanDelegationSetId(d.Id())),
+		Id: aws.String(cleanDelegationSetId(d.Id())),
 	}
 	log.Printf("[DEBUG] Reading Route53 reusable delegation set: %#v", input)
 	out, err := r53.GetReusableDelegationSet(input)
@@ -75,7 +75,7 @@ func resourceAwsRoute53DelegationSetRead(d *schema.ResourceData, meta interface{
 
 	set := out.DelegationSet
 
-	d.SetId(cleanDelegationSetId(*set.ID))
+	d.SetId(cleanDelegationSetId(*set.Id))
 	d.Set("name_servers", expandNameServers(set.NameServers))
 
 	return nil
@@ -85,7 +85,7 @@ func resourceAwsRoute53DelegationSetDelete(d *schema.ResourceData, meta interfac
 	r53 := meta.(*AWSClient).r53conn
 
 	input := &route53.DeleteReusableDelegationSetInput{
-		ID: aws.String(cleanDelegationSetId(d.Id())),
+		Id: aws.String(cleanDelegationSetId(d.Id())),
 	}
 	log.Printf("[DEBUG] Deleting Route53 reusable delegation set: %#v", input)
 	_, err := r53.DeleteReusableDelegationSet(input)

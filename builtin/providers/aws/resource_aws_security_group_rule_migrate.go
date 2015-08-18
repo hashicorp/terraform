@@ -44,8 +44,8 @@ func migrateSGRuleStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceS
 	return is, nil
 }
 
-func migrateExpandIPPerm(attrs map[string]string) (*ec2.IPPermission, error) {
-	var perm ec2.IPPermission
+func migrateExpandIPPerm(attrs map[string]string) (*ec2.IpPermission, error) {
+	var perm ec2.IpPermission
 	tp, err := strconv.Atoi(attrs["to_port"])
 	if err != nil {
 		return nil, fmt.Errorf("Error converting to_port in Security Group migration")
@@ -58,7 +58,7 @@ func migrateExpandIPPerm(attrs map[string]string) (*ec2.IPPermission, error) {
 
 	perm.ToPort = aws.Int64(int64(tp))
 	perm.FromPort = aws.Int64(int64(fp))
-	perm.IPProtocol = aws.String(attrs["protocol"])
+	perm.IpProtocol = aws.String(attrs["protocol"])
 
 	groups := make(map[string]bool)
 	if attrs["self"] == "true" {
@@ -70,7 +70,7 @@ func migrateExpandIPPerm(attrs map[string]string) (*ec2.IPPermission, error) {
 	}
 
 	if len(groups) > 0 {
-		perm.UserIDGroupPairs = make([]*ec2.UserIDGroupPair, len(groups))
+		perm.UserIdGroupPairs = make([]*ec2.UserIdGroupPair, len(groups))
 		// build string list of group name/ids
 		var gl []string
 		for k, _ := range groups {
@@ -78,8 +78,8 @@ func migrateExpandIPPerm(attrs map[string]string) (*ec2.IPPermission, error) {
 		}
 
 		for i, name := range gl {
-			perm.UserIDGroupPairs[i] = &ec2.UserIDGroupPair{
-				GroupID: aws.String(name),
+			perm.UserIdGroupPairs[i] = &ec2.UserIdGroupPair{
+				GroupId: aws.String(name),
 			}
 		}
 	}
@@ -91,9 +91,9 @@ func migrateExpandIPPerm(attrs map[string]string) (*ec2.IPPermission, error) {
 		}
 	}
 	if len(cb) > 0 {
-		perm.IPRanges = make([]*ec2.IPRange, len(cb))
+		perm.IpRanges = make([]*ec2.IpRange, len(cb))
 		for i, v := range cb {
-			perm.IPRanges[i] = &ec2.IPRange{CIDRIP: aws.String(v)}
+			perm.IpRanges[i] = &ec2.IpRange{CidrIp: aws.String(v)}
 		}
 	}
 
