@@ -33,7 +33,7 @@ resource "atlas_artifact" "web" {
 
 # Start our instance with the dynamic ami value
 resource "aws_instance" "app" {
-    ami = "${atlas_artifact.web.id}"
+    ami = "${atlas_artifact.web.metadata_full.region-us-east-1}"
     ...
 }
 ```
