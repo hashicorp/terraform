@@ -116,7 +116,12 @@ resource "nsone_monitoringjob" "useast" {
     config {
         send = "HEAD / HTTP/1.0\r\n\r\n"
         port = 80
-        host = "85.214.55.250"
+        host = "example-elb-useast1.aws.amazon.com"
+    }
+    rules {
+        value = "200 OK"
+        comparison =  "contains"
+        key = "output"
     }
 }
 
@@ -132,7 +137,7 @@ resource "nsone_monitoringjob" "uswest" {
     config {
         send = "HEAD / HTTP/1.0\r\n\r\n"
         port = 80
-        host = "85.214.55.250"
+        host = "example-elb-uswest1.aws.amazon.com"
     }
     rules {
         value = "200 OK"
