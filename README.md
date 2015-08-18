@@ -207,7 +207,7 @@ Declares a zone in nsone.
 ### Inputs
 
   * name - The name to associate with this data source. [Required]
-  * sourcetype - The type of data source to create. FIXME URL for valid types. [Required]
+  * sourcetype - The type of data source to create. FIXME URL for valid types. nsone_v1, nsone_monitoring are currently tested. [Required]
 
 ### Outputs
 
@@ -229,21 +229,88 @@ Declares a zone in nsone.
 
 ### Inputs
 
-  * name -
-  * active - [Required]
-  * regions - [Required]
-  * job_type - [Required]
-  * frequency - [Required]
-  * rapid_recheck - [Required]
-  * policy - [Required]
+  * name - The friendly name of this monitoring job [Required]
+  * active - If the job is active [Bool, Required]
+  * regions - Regions to run the job in. List of valid regions from FIXME [Required]
+  * job_type - One of the job types from FIXME. [Required]
+  * frequency - How often to run the job in seconds [Int, Required]
+  * rapid_recheck - If the check should be immediately re-run if it fails [Bool, Required]
+  * policy - The policy of how many regions need to fail to make the check fail, this is one of: quorum, one, all. [Required]
+  * notes - Notes about what this monitoring job does.
+  * config - A map of configuration for this job_type, see FIXME for more info on job types [Required]
+  * notify_delay - How long this job needs to be failing for before notifying [Integer]
+  * notify_repeat - How often to repeat the notification if unfixed [Integer]
+  * notify_failback - Notify when fixed [Bool]
+  * notify_regional - Notify (when using multiple regions, and quorum or all policies) if an individual region fails checks [Bool]
+  * notify_list - List of FIXMEs to notify when this monitoring job fails
+  * rules
+    * value
+    * comparison
+    * key
 
 ### Outputs
 
+  * id - The internal NSOne id of this monitoring check. This is passed into resource_datafeed's config.jobid
+
 ## nsone_user
+
+### Inputs
+
+N.B. This *also* has all the inputs from the nsone_team resource, which you can use *instead* of assigning to key to one or more teams.
+
+ * username - The user's login username [Required]
+ * email - The user's email address [Required]
+ * name - The user's full name [Required]
+ * notify
+   * billing 
+ * teams - List of the nsone_team s to attach to this user's permissions.
+
+### Outputs
+
+  * id - The internal NSOne id of this user.
+  * FIXME - Add current registration/login status?
 
 ## nsone_apikey
 
+### Inputs
+
+N.B. This *also* has all the inputs from the nsone_team resource, which you can use *instead* of assigning to key to one or more teams.
+
+ * teams - List of the nsone_team s to attach to this API key's permissions.
+
+### Outputs
+
+ * key - The API key that has been generated.
+ * id - The internal NSOne id of this api key.
+
 ## nsone_team
+
+### Inputs
+
+  * name - The name of this team. [Required]
+  * dns_view_zones [Bool]
+  * dns_manage_zones [Bool]
+  * dns_zones_allow_by_default [Bool]
+  * dns_zones_deny - List of zones [Optional]
+  * dns_zones_allow - List of zones [Optional]
+  * data_push_to_datafeeds [Bool]
+  * data_manage_datasources [Bool]
+  * data_manage_datafeeds [Bool]
+  * account_manage_users [Bool]
+  * account_manage_payment_methods [Bool]
+  * account_manage_plan [Bool]
+  * account_manage_teams [Bool]
+  * account_manage_apikeys [Bool]
+  * account_manage_account_settings [Bool]
+  * account_view_activity_log [Bool]
+  * account_view_invoices [Bool]
+  * monitoring_manage_lists [Bool]
+  * monitoring_manage_jobs [Bool]
+  * monitoring_view_jobs [Bool]
+
+### Outputs
+
+  * id - The internal NSOne id of this team.
 
 # Support / contributions
 
