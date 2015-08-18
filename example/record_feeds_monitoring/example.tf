@@ -1,6 +1,7 @@
+# This example sets up a 
+
 provider "nsone" {
 }
-
 
 variable "tld" {
     default = "terraform.testing.example"
@@ -40,7 +41,7 @@ resource "nsone_zone" "tld" {
 resource "nsone_record" "www" {
     zone = "${nsone_zone.tld.zone}"
     domain = "www.${var.tld}"
-    type = "CNAME" # Note, normally we'd use ALIAS here
+    type = "ALIAS"
     answers {
       answer = "example-elb-uswest1.aws.amazon.com"
       region = "uswest"
@@ -92,6 +93,12 @@ resource "nsone_record" "www" {
     filters {
         filter = "up"
         disabled = true
+    }
+    filters { 
+        filter = "shed_load"
+        config {
+            metric = "connections"
+        }
     }
     filters {
         filter = "shuffle"
