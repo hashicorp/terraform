@@ -307,4 +307,3 @@ resource "google_compute_instance_group_manager" "igm-update" {
 	zone = "us-central1-c"
 	target_size = 3
 }`
-

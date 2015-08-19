@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -116,7 +116,7 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 		Name:             d.Get("name").(string),
 		BaseInstanceName: d.Get("base_instance_name").(string),
 		InstanceTemplate: d.Get("instance_template").(string),
-		TargetSize: target_size,
+		TargetSize:       target_size,
 	}
 
 	// Set optional fields
