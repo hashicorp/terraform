@@ -1,4 +1,12 @@
-# This example sets up a 
+# 'simple' example of 2 regions (us-east-1 and us-west-1) balancing traffic
+# between both, with geotargeting (so requests go to the 'nearest' datacenter),
+# monitoring (so that if a dc fails, it gets disabled), and an API endpoint you
+# can push data to to do load shedding.
+
+# More complex configs than this are possible, but this is near enough to
+# a real case to be interesting.
+
+# Additional comments inline.
 
 provider "nsone" {
 }
@@ -11,6 +19,18 @@ resource "nsone_datasource" "api" {
     name = "terraform_example_api"
     sourcetype = "nsone_v1"
 }
+
+output datafeed-uri {
+    value = "https://api.nsone.net/v1/feed/${nsone_datasource.api.id}"
+}
+
+# Setup the datacenters as equal capacity:
+# curl -X POST -H 'X-NSONE-Key: ...' -d '{"useast1": {"high_watermark":100, "low_watermark": 70}' $(terraform output datafeed-uri)
+# curl -X POST -H 'X-NSONE-Key: ...' -d '{"uswest1": {"high_watermark":100, "low_watermark": 70}' $(terraform output datafeed-uri)
+# Scale useast1 up?
+# curl -X POST -H 'X-NSONE-Key: ...' -d '{"useast1": {"high_watermark":200, "low_watermark": 150}' $(terraform output datafeed-uri)
+# You get load shedding when you push a connection count above the low watermark:
+# curl -X POST -H 'X-NSONE-Key: ...' -d '{"uswest1": {"connections": 75}' $(terraform output datafeed-uri)
 
 resource "nsone_datasource" "monitoring" {
     name = "terraform_example_monitoring"
@@ -37,6 +57,17 @@ resource "nsone_zone" "tld" {
     zone = "${var.tld}"
     ttl = 60
 }
+
+# In real life, you may want to get the ELB names from other terraform config, for example:
+# resource "terraform_remote_state" "uswest1" {
+#    backend = "_local"
+#    config {
+#        path = "../uswest1/terraform.tfstate"
+#    }
+#  }
+#
+# and then below:
+# answer = "${terraform_remote_state.uswest1.output.elb_dns_name}"
 
 resource "nsone_record" "www" {
     zone = "${nsone_zone.tld.zone}"
@@ -92,13 +123,19 @@ resource "nsone_record" "www" {
     }
     filters {
         filter = "up"
-        disabled = true
+        disabled = true # This disables the nsone monitoring from setting things as down
     }
-    filters { 
+    filters {
         filter = "shed_load"
         config {
             metric = "connections"
         }
+    }
+    filters {
+        filter = "geotarget_regional"
+    }
+    filters {
+      filter = "select_first_region"
     }
     filters {
         filter = "shuffle"
@@ -114,12 +151,11 @@ resource "nsone_record" "www" {
 resource "nsone_monitoringjob" "useast" {
     name = "useast"
     active = true
-    regions = [ "lga" ]
+    regions = [ "lga" ] # You may want more regions than this if you pay nsone money
     job_type = "tcp"
     frequency = 60
     rapid_recheck = true
-    policy = "quorum"
-    notes = "foo"
+    policy = "quorum" # Doesn't take effect until you monitor from 3 regions
     config {
         send = "HEAD / HTTP/1.0\r\n\r\n"
         port = 80
@@ -140,7 +176,6 @@ resource "nsone_monitoringjob" "uswest" {
     frequency = 60
     rapid_recheck = true
     policy = "quorum"
-    notes = "foo"
     config {
         send = "HEAD / HTTP/1.0\r\n\r\n"
         port = 80
