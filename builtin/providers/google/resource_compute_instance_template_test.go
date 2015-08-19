@@ -269,6 +269,7 @@ resource "google_compute_instance_template" "foobar" {
 	disk {
 		source_image = "debian-7-wheezy-v20140814"
 		auto_delete = true
+		disk_size_gb = 100
 		boot = true
 	}
 

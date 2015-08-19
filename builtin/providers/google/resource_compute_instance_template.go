@@ -261,7 +261,7 @@ func buildDisks(d *schema.ResourceData, meta interface{}) ([]*compute.AttachedDi
 				disk.InitializeParams.DiskName = v.(string)
 			}
 			if v, ok := d.GetOk(prefix + ".disk_size_gb"); ok {
-				disk.InitializeParams.DiskSizeGb = v.(int64)
+				disk.InitializeParams.DiskSizeGb = int64(v.(int))
 			}
 			disk.InitializeParams.DiskType = "pd-standard"
 			if v, ok := d.GetOk(prefix + ".disk_type"); ok {
