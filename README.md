@@ -98,6 +98,8 @@ records with the (NSOne)[http://nsone.net/] API.
       }
     }
 
+See the examples/ folder in the repository for more detailed examples.
+
 # Installing
 
     make install
