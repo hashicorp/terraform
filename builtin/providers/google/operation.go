@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"google.golang.org/api/compute/v1"
 	"github.com/hashicorp/terraform/helper/resource"
+	"google.golang.org/api/compute/v1"
 )
 
 // OperationWaitType is an enum specifying what type of operation
@@ -77,4 +77,3 @@ func (e OperationError) Error() string {
 
 	return buf.String()
 }
-
