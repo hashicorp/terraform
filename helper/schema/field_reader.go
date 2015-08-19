@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 )
@@ -270,6 +271,22 @@ func stringToPrimitive(
 		returnVal = int(v)
 	case TypeString:
 		returnVal = value
+	case TypeJSON:
+		if value == "" {
+			returnVal = map[string]interface{}{}
+			break
+		}
+		if computed {
+			break
+		}
+
+		returnMap := map[string]interface{}{}
+		err := json.Unmarshal([]byte(value), &returnMap)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding JSON: %s", err)
+		}
+
+		returnVal = returnMap
 	default:
 		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
 	}

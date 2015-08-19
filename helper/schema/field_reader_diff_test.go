@@ -361,6 +361,18 @@ func TestDiffFieldReader(t *testing.T) {
 						Old: "",
 						New: "bar",
 					},
+
+					"json": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: `
+                            {
+                                "hello_json": true,
+                                "nested": {
+                                    "number": 2
+                                }
+                            }
+                        `,
+					},
 				},
 			},
 

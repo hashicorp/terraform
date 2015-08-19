@@ -239,6 +239,9 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 				return a.(int)
 			},
 		},
+
+		// JSON
+		"json": &Schema{Type: TypeJSON},
 	}
 
 	cases := map[string]struct {
@@ -382,6 +385,21 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 			},
 			false,
 		},
+
+		"json": {
+			[]string{"json"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"hello_json": true,
+					"nested": map[string]interface{}{
+						"number": float64(2),
+					},
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
 	}
 
 	for name, tc := range cases {
@@ -395,7 +413,7 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 			out.Value = s.List()
 		}
 		if !reflect.DeepEqual(tc.Result, out) {
-			t.Fatalf("%s: bad: %#v", name, out)
+			t.Fatalf("%s: bad: %#v; want %#v", name, out, tc.Result)
 		}
 	}
 }

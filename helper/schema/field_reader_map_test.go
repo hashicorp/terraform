@@ -41,6 +41,15 @@ func TestMapFieldReader(t *testing.T) {
 				"setDeep.10.value": "foo",
 				"setDeep.50.index": "50",
 				"setDeep.50.value": "bar",
+
+				"json": `
+                    {
+                        "hello_json": true,
+                        "nested": {
+                            "number": 2
+                        }
+                    }
+                `,
 			}),
 		}
 	})

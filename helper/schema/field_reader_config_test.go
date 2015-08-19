@@ -45,6 +45,13 @@ func TestConfigFieldReader(t *testing.T) {
 						"value": "bar",
 					},
 				},
+
+				"json": map[string]interface{}{
+					"hello_json": true,
+					"nested": map[string]interface{}{
+						"number": float64(2),
+					},
+				},
 			}),
 		}
 	})

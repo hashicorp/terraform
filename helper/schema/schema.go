@@ -12,6 +12,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -40,6 +41,7 @@ type Schema struct {
 	//   TypeList - []interface{}
 	//   TypeMap - map[string]interface{}
 	//   TypeSet - *schema.Set
+	//   TypeJSON - map[string]interface{} structured like encoding/json would
 	//
 	Type ValueType
 
@@ -543,6 +545,8 @@ func (m schemaMap) diff(
 		err = m.diffMap(k, schema, diff, d, all)
 	case TypeSet:
 		err = m.diffSet(k, schema, diff, d, all)
+	case TypeJSON:
+		err = m.diffJSON(k, schema, diff, d, all)
 	default:
 		err = fmt.Errorf("%s: unknown type %#v", k, schema.Type)
 	}
@@ -943,6 +947,66 @@ func (m schemaMap) diffString(
 	return nil
 }
 
+func (m schemaMap) diffJSON(
+	k string,
+	schema *Schema,
+	diff *terraform.InstanceDiff,
+	d *ResourceData,
+	all bool) error {
+
+	o, n, _, _ := d.diffChange(k)
+	var os, ns string
+
+	if o == nil {
+		os = ""
+	} else {
+		ob, err := json.Marshal(o)
+		if err != nil {
+			return err
+		}
+		os = string(ob)
+	}
+
+	if n == nil {
+		ns = ""
+	} else {
+		nb, err := json.Marshal(n)
+		if err != nil {
+			return err
+		}
+		ns = string(nb)
+	}
+
+	if os == ns && !all {
+		// They're the same value. If there old value is not blank or we
+		// have an ID, then return right away since we're already setup.
+		if os != "" || d.Id() != "" {
+			return nil
+		}
+
+		// Otherwise, only continue if we're computed
+		if !schema.Computed {
+			return nil
+		}
+	}
+
+	removed := false
+	if o != nil && n == nil {
+		removed = true
+	}
+	if removed && schema.Computed {
+		return nil
+	}
+
+	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+		Old: os,
+		New: ns,
+		NewRemoved: removed,
+	})
+
+	return nil
+}
+
 func (m schemaMap) inputString(
 	input terraform.UIInput,
 	k string,
@@ -1180,6 +1244,28 @@ func (m schemaMap) validatePrimitive(
 			return nil, []error{err}
 		}
 		decoded = n
+	case TypeJSON:
+		// Must either be a map[string]interface{} or a string containing
+		// some JSON.
+		switch v := raw.(type) {
+		case []map[string]interface{}:
+			decoded = v[0]
+		default:
+			var s string
+			err := mapstructure.WeakDecode(raw, &s)
+			if err != nil {
+				return nil, []error{err}
+			}
+
+			var m map[string]interface{}
+			err = json.Unmarshal([]byte(s), &m)
+			if err != nil {
+				return nil, []error{err}
+			}
+
+			decoded = m
+		}
+
 	default:
 		panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
 	}
@@ -1239,6 +1325,8 @@ func (t ValueType) Zero() interface{} {
 		return map[string]interface{}{}
 	case TypeSet:
 		return new(Set)
+	case TypeJSON:
+		return map[string]interface{}{}
 	case typeObject:
 		return map[string]interface{}{}
 	default:
