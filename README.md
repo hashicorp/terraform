@@ -142,7 +142,6 @@ is placed in the right place in your $GOPATH.
   * Setting up secondary servers to AXFR is currently unsupported
 
 ## Records
-  * Static metadata (not linked to a feed) in answers is not yet supported
   * Metadata support in regions is limited
   * Record wide metadata is unsupported
 
@@ -185,8 +184,8 @@ Declares a zone in nsone.
     * region - The name of the region (from 'regions', below) to assign this answer to. This is used for subsequent geo-filtering. [Optional]
     * meta - Add metadata to this answer, used for filtering. [Optional]
       * field - The metadata field name to update from a feed. [Required]
-      * feed - The id of the feed which updates this field. [Required]
-      * FIXME - Add ability to have static values here
+      * feed - The id of the feed which updates this field. [Optional, conflicts with value]
+      * value - The static value to set for this metadata field. [Optional, conflicts with feed]
   * regions - The set of regions to which you can add static metadata, and then associate with answers. This stanza can be repeated.
     * name - The name of this region (the name provided in an answer) [Required]
     * georegion - The name of the geographic region which corresponds to this region. Allowed values are: US-WEST, US-EAST, US-CENTRAL, EUROPE, AFRICA, ASIAPAC, SOUTH-AMERICA. [Optional]

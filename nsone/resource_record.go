@@ -80,6 +80,12 @@ func recordResource() *schema.Resource {
 									"feed": &schema.Schema{
 										Type:     schema.TypeString,
 										Optional: true,
+										//ConflictsWith: []string{"value"},
+									},
+									"value": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+										//ConflictsWith: []string{"feed"},
 									},
 								},
 							},
@@ -277,7 +283,12 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 		for k, v := range a.Meta {
 			meta := make(map[string]interface{})
 			meta["field"] = k
-			meta["feed"] = v.Feed
+			switch t := v.(type) {
+			case map[string]interface{}:
+				meta["feed"] = t["feed"].(string)
+			case string:
+				meta["feed"] = t
+			}
 			metas.Add(meta)
 		}
 		m["meta"] = metas
@@ -305,8 +316,12 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 				for _, meta_raw := range metas.List() {
 					meta := meta_raw.(map[string]interface{})
 					key := meta["field"].(string)
-					value := meta["feed"].(string)
-					a.Meta[key] = nsone.NewMetaFeed(value)
+					if value, ok := meta["feed"]; ok {
+						a.Meta[key] = nsone.NewMetaFeed(value.(string))
+					}
+					if value, ok := meta["value"]; ok {
+						a.Meta[key] = value.(string)
+					}
 				}
 			}
 			al[i] = a
