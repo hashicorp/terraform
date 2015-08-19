@@ -8,7 +8,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * google: Crashes with interface conversion in GCE Instance Template [GH-2901]
+  * google: Crashes with interface conversion in GCE Instance Template [GH-3027]
 
 ## 0.6.3 (August 11, 2015)
 
