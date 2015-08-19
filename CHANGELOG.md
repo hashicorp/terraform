@@ -6,6 +6,10 @@ IMPROVEMENTS:
   * core: Print all outputs when `terraform output` is called with no arguments [GH-2920]
   * provider/aws: Add `instance_initiated_shutdown_behavior` to AWS Instance [GH-2887]
 
+BUG FIXES:
+
+  * google: Crashes with interface conversion in GCE Instance Template [GH-2901]
+
 ## 0.6.3 (August 11, 2015)
 
 BUG FIXES:
