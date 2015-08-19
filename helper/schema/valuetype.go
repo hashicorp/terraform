@@ -14,6 +14,7 @@ const (
 	TypeList
 	TypeMap
 	TypeSet
+	TypeJSON // arbitrary JSON-serializable data structure
 	typeObject
 )
 

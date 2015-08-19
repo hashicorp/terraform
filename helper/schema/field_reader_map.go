@@ -21,7 +21,7 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 
 	schema := schemaList[len(schemaList)-1]
 	switch schema.Type {
-	case TypeBool, TypeInt, TypeFloat, TypeString:
+	case TypeBool, TypeInt, TypeFloat, TypeString, TypeJSON:
 		return r.readPrimitive(address, schema)
 	case TypeList:
 		return readListField(r, address, schema)

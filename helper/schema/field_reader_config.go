@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -89,6 +90,8 @@ func (r *ConfigFieldReader) readField(
 	case TypeSet:
 		result, _, err := r.readSet(address, schema)
 		return result, err
+	case TypeJSON:
+		return r.readJSON(k)
 	case typeObject:
 		return readObjectField(
 			&nestedConfigFieldReader{r},
@@ -239,6 +242,52 @@ func (r *ConfigFieldReader) readSet(
 		Value:  set,
 		Exists: true,
 	}, indexMap, nil
+}
+
+func (r *ConfigFieldReader) readJSON(k string) (FieldReadResult, error) {
+	// In config, a JSON field can either be a string containing a JSON
+	// serialization of an object (useful for loading fixed data from a file)
+	// or an inline arbitrary data structure that has an object at its
+	// root (useful for building a data structure with interpolations).
+
+	raw, ok := r.Config.GetRaw(k)
+	if !ok {
+		return FieldReadResult{}, nil
+	}
+
+	var value map[string]interface{}
+	computed := r.Config.IsComputed(k)
+
+	if ! computed {
+		value = make(map[string]interface{})
+		switch raw.(type) {
+		case string:
+			jsonStrI, _ := r.Config.Get(k)
+			err := json.Unmarshal([]byte(jsonStrI.(string)), &value)
+			if err != nil {
+				return FieldReadResult{}, fmt.Errorf(
+					"%s: error decoding JSON: %s",
+					k, err,
+				)
+			}
+		case []map[string]interface{}:
+			cmI, _ := r.Config.Get(k)
+			for k, v := range cmI.([]map[string]interface{})[0] {
+				value[k] = v
+			}
+		default:
+			return FieldReadResult{}, fmt.Errorf(
+				"%s: must be either map or string containing a JSON object",
+				k,
+			)
+		}
+	}
+
+	return FieldReadResult{
+		Value: value,
+		Exists: true,
+		Computed: computed,
+	}, nil
 }
 
 // hasComputedSubKeys walks through a schema and returns whether or not the
