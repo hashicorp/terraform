@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -217,6 +218,40 @@ func TestRefresh_defaultState(t *testing.T) {
 	expected = originalState.RootModule().Resources["test_instance.foo"].Primary
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestRefresh_input(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = bytes.NewBufferString("foo\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh-input"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.InputCalled {
+		t.Fatal("input should be called")
 	}
 }
 
