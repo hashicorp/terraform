@@ -119,7 +119,19 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob)
 	d.Set("regions", r.Regions)
 	d.Set("frequency", r.Frequency)
 	d.Set("rapid_recheck", r.RapidRecheck)
-	d.Set("config", r.Config)
+	config := make(map[string]string)
+	for k, v := range r.Config {
+		switch t := v.(type) {
+		case string:
+			config[k] = t
+		case float64:
+			config[k] = strconv.FormatFloat(t, 'f', -1, 64)
+		}
+	}
+	err := d.Set("config", config)
+	if err != nil {
+		panic(fmt.Errorf("[DEBUG] Error setting Config error: %#v %#v", r.Config, err))
+	}
 	d.Set("policy", r.Policy)
 	d.Set("notes", r.Notes)
 	d.Set("frequency", r.Frequency)

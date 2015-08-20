@@ -199,7 +199,12 @@ func metaToHash(v interface{}) int {
 	var buf bytes.Buffer
 	s := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", s["field"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", s["feed"].(string)))
+	if v, ok := s["feed"]; ok && v.(string) != "" {
+		buf.WriteString(fmt.Sprintf("feed%s-", v.(string)))
+	}
+	if v, ok := s["value"]; ok && v.(string) != "" {
+		buf.WriteString(fmt.Sprintf("value%s-", v.(string)))
+	}
 
 	hash := hashcode.String(buf.String())
 	log.Println("Generated metaToHash %d from %+v", hash, s)
@@ -287,7 +292,7 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 			case map[string]interface{}:
 				meta["feed"] = t["feed"].(string)
 			case string:
-				meta["feed"] = t
+				meta["value"] = t
 			}
 			metas.Add(meta)
 		}
@@ -316,10 +321,10 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 				for _, meta_raw := range metas.List() {
 					meta := meta_raw.(map[string]interface{})
 					key := meta["field"].(string)
-					if value, ok := meta["feed"]; ok {
+					if value, ok := meta["feed"]; ok && value.(string) != "" {
 						a.Meta[key] = nsone.NewMetaFeed(value.(string))
 					}
-					if value, ok := meta["value"]; ok {
+					if value, ok := meta["value"]; ok && value.(string) != "" {
 						a.Meta[key] = value.(string)
 					}
 				}

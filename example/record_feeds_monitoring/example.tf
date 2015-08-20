@@ -77,6 +77,10 @@ resource "nsone_record" "www" {
       answer = "example-elb-uswest1.aws.amazon.com"
       region = "uswest"
       meta {
+        field = "note"
+        value = "foo"
+      }
+      meta {
         field = "up"
         feed = "${nsone_datafeed.uswest1_monitoring.id}"
       }
