@@ -3,6 +3,7 @@ package google
 import (
 	"bytes"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"google.golang.org/api/compute/v1"
@@ -51,6 +52,8 @@ func (w *OperationWaiter) RefreshFunc() resource.StateRefreshFunc {
 		if err != nil {
 			return nil, "", err
 		}
+
+		log.Printf("[DEBUG] Got %q when asking for operation %q", op.Status, w.Op.Name)
 
 		return op, op.Status, nil
 	}
