@@ -61,6 +61,12 @@ func resourceCloudStackDisk() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -73,6 +79,17 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 
 	// Create a new parameter struct
 	p := cs.Volume.NewCreateVolumeParams(name)
+
+	// If there is a project supplied, we retreive and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project UUID
+		projectid, e := retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
+	}
 
 	// Retrieve the disk_offering UUID
 	diskofferingid, e := retrieveUUID(cs, "disk_offering", d.Get("disk_offering").(string))
@@ -144,6 +161,7 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 
 	setValueOrUUID(d, "disk_offering", v.Diskofferingname, v.Diskofferingid)
 	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
+	setValueOrUUID(d, "project", v.Project, v.Projectid)
 
 	if v.Attached != "" {
 		// Get the virtual machine details
