@@ -143,15 +143,6 @@ func (c *AtlasClient) Put(state []byte) error {
 	hash := md5.Sum(state)
 	b64 := base64.StdEncoding.EncodeToString(hash[:])
 
-	/*
-		// Set the force query parameter if needed
-		if force {
-			values := base.Query()
-			values.Set("force", "true")
-			base.RawQuery = values.Encode()
-		}
-	*/
-
 	// Make the HTTP client and request
 	req, err := http.NewRequest("PUT", base.String(), bytes.NewReader(state))
 	if err != nil {
