@@ -25,6 +25,23 @@ func TestAccContainerCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_withNodeConfig(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_node_config"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckContainerClusterDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -81,5 +98,28 @@ resource "google_container_cluster" "primary" {
 	master_auth {
 		username = "mr.yoda"
 		password = "adoy.rm"
+	}
+}`
+
+const testAccContainerCluster_withNodeConfig = `
+resource "google_container_cluster" "with_node_config" {
+	name = "terraform-foo-bar-with-nodeconfig"
+	zone = "us-central1-f"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	node_config {
+		machine_type = "f1-micro"
+		disk_size_gb = 15
+		oauth_scopes = [
+			"https://www.googleapis.com/auth/compute",
+			"https://www.googleapis.com/auth/devstorage.read_only",
+			"https://www.googleapis.com/auth/logging.write",
+			"https://www.googleapis.com/auth/monitoring"
+		]
 	}
 }`
