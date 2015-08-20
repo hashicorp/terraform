@@ -253,7 +253,7 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		if v, ok = nodeConfig["disk_size_gb"]; ok {
-			cluster.NodeConfig.DiskSizeGb = v.(int64)
+			cluster.NodeConfig.DiskSizeGb = int64(v.(int))
 		}
 
 		if v, ok := nodeConfig["oauth_scopes"]; ok {
