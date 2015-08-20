@@ -51,6 +51,11 @@ func atlasFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("malformed name '%s', expected format '<account>/<name>'", name)
 	}
 
+	// If it exists, add the `ATLAS_RUN_ID` environment
+	// variable as a param, which is injected during Atlas Terraform
+	// runs. This is completely optional.
+	client.RunId = os.Getenv("ATLAS_RUN_ID")
+
 	client.Server = server
 	client.ServerURL = url
 	client.AccessToken = token
@@ -67,6 +72,7 @@ type AtlasClient struct {
 	User        string
 	Name        string
 	AccessToken string
+	RunId       string
 }
 
 func (c *AtlasClient) Get() (*Payload, error) {
@@ -218,10 +224,15 @@ func (c *AtlasClient) readBody(b io.Reader) string {
 }
 
 func (c *AtlasClient) url() *url.URL {
+	values := url.Values{}
+
+	values.Add("atlas_run_id", c.RunId)
+	values.Add("access_token", c.AccessToken)
+
 	return &url.URL{
 		Scheme:   c.ServerURL.Scheme,
 		Host:     c.ServerURL.Host,
 		Path:     path.Join("api/v1/terraform/state", c.User, c.Name),
-		RawQuery: fmt.Sprintf("access_token=%s", c.AccessToken),
+		RawQuery: values.Encode(),
 	}
 }
