@@ -1,6 +1,8 @@
 Terraform
 =========
 
+[![Build Status](https://travis-ci.org/hashicorp/terraform.svg?branch=master)](https://travis-ci.org/hashicorp/terraform)
+
 -	Website: http://www.terraform.io
 -	IRC: `#terraform-tool` on Freenode
 -	Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
