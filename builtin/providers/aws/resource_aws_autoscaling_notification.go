@@ -76,9 +76,9 @@ func resourceAwsAutoscalingNotificationRead(d *schema.ResourceData, meta interfa
 	err := conn.DescribeNotificationConfigurationsPages(opts, func(resp *autoscaling.DescribeNotificationConfigurationsOutput, lastPage bool) bool {
 		if resp != nil {
 			i++
-			log.Println("[DEBUG] Paging DescribeNotificationConfigurations for (%s), page: %d", d.Id(), i)
+			log.Printf("[DEBUG] Paging DescribeNotificationConfigurations for (%s), page: %d", d.Id(), i)
 		} else {
-			log.Println("[DEBUG] Paging finished for DescribeNotificationConfigurations (%s)", d.Id())
+			log.Printf("[DEBUG] Paging finished for DescribeNotificationConfigurations (%s)", d.Id())
 		}
 
 		for _, n := range resp.NotificationConfigurations {
