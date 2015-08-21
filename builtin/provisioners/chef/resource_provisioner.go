@@ -200,16 +200,23 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		return nil, err
 	}
 
-	// We need to decode this twice. Once for the Raw config and once
-	// for the parsed Config. This makes sure that all values are there
-	// even if some still need to be interpolated later on.
-	// Without this the validation will fail when using a variable for
-	// a required parameter (the node_name for example).
-	if err := dec.Decode(c.Raw); err != nil {
-		return nil, err
+	// We need to merge both configs into a single map first. Order is
+	// important as we need to make sure interpolated values are used
+	// over raw values. This makes sure that all values are there even
+	// if some still need to be interpolated later on. Without this
+	// the validation will fail when using a variable for a required
+	// parameter (the node_name for example).
+	m := make(map[string]interface{})
+
+	for k, v := range c.Raw {
+		m[k] = v
 	}
 
-	if err := dec.Decode(c.Config); err != nil {
+	for k, v := range c.Config {
+		m[k] = v
+	}
+
+	if err := dec.Decode(m); err != nil {
 		return nil, err
 	}
 
