@@ -6,104 +6,28 @@ import (
 )
 
 func apikeyResource() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"key": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"teams": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"dns_view_zones": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"dns_manage_zones": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"dns_zones_allow_by_default": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"dns_zones_deny": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"dns_zones_allow": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"data_push_to_datafeeds": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"data_manage_datasources": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"data_manage_datafeeds": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_manage_users": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_manage_payment_methods": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_manage_plan": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_manage_teams": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_manage_apikeys": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_manage_account_settings": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_view_activity_log": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"account_view_invoices": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"monitoring_manage_lists": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"monitoring_manage_jobs": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"monitoring_view_jobs": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
+	s := map[string]*schema.Schema{
+		"id": &schema.Schema{
+			Type:     schema.TypeString,
+			Computed: true,
 		},
+		"name": &schema.Schema{
+			Type:     schema.TypeString,
+			Required: true,
+		},
+		"key": &schema.Schema{
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"teams": &schema.Schema{
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+	}
+	s = addPermsSchema(s)
+	return &schema.Resource{
+		Schema: s,
 		Create: ApikeyCreate,
 		Read:   ApikeyRead,
 		Update: ApikeyUpdate,
