@@ -171,7 +171,9 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
         p := expandIPPerm(d, sg)
 
         if len(rules) == 0 {
-                return fmt.Errorf("No IPPerms")
+                return fmt.Errorf(
+                        "[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
+                        ruleType, *sg.GroupName, d.Id())
         }
 
         for _, r := range rules {
@@ -198,7 +200,7 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 
                 if remaining > 0 {
                         continue
-		}
+                }
 
                 remaining = len(p.UserIdGroupPairs)
                 for _, ip := range p.UserIdGroupPairs {
@@ -211,7 +213,7 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 
                 if remaining > 0 {
                         continue
-                }
+		}
 
                 log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), r)
                 rule = r
