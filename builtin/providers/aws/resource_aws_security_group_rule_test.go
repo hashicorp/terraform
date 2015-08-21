@@ -257,7 +257,7 @@ func TestAccAWSSecurityGroupRule_SelfReference(t *testing.T) {
 }
 
 // testing partial match implementation
-func TestAccAWSSecurityGroupRule_PartialMatching_Basic(t *testing.T) {
+func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
         var group ec2.SecurityGroup
 
         p := ec2.IpPermission{
