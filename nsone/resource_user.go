@@ -133,6 +133,28 @@ func userResource() *schema.Resource {
 	}
 }
 
+func permissionsToResourceData(d *schema.ResourceData, permissions nsone.PermissionsMap) {
+	d.Set("dns_view_zones", permissions.Dns.ViewZones)
+	d.Set("dns_manage_zones", permissions.Dns.ManageZones)
+	d.Set("dns_zones_allow_by_default", permissions.Dns.ZonesAllowByDefault)
+	d.Set("dns_zones_deny", permissions.Dns.ZonesDeny)
+	d.Set("dns_zones_allow", permissions.Dns.ZonesAllow)
+	d.Set("data_push_to_datafeeds", permissions.Data.PushToDatafeeds)
+	d.Set("data_manage_datasources", permissions.Data.ManageDatasources)
+	d.Set("data_manage_datafeeds", permissions.Data.ManageDatafeeds)
+	d.Set("account_manage_users", permissions.Account.ManageUsers)
+	d.Set("account_manage_payment_methods", permissions.Account.ManagePaymentMethods)
+	d.Set("account_manage_plan", permissions.Account.ManagePlan)
+	d.Set("account_manage_teams", permissions.Account.ManageTeams)
+	d.Set("account_manage_apikeys", permissions.Account.ManageApikeys)
+	d.Set("account_manage_account_settings", permissions.Account.ManageAccountSettings)
+	d.Set("account_view_activity_log", permissions.Account.ViewActivityLog)
+	d.Set("account_view_invoices", permissions.Account.ViewInvoices)
+	d.Set("monitoring_manage_lists", permissions.Monitoring.ManageLists)
+	d.Set("monitoring_manage_jobs", permissions.Monitoring.ManageJobs)
+	d.Set("monitoring_view_jobs", permissions.Monitoring.ViewJobs)
+}
+
 func userToResourceData(d *schema.ResourceData, u *nsone.User) error {
 	d.SetId(u.Username)
 	d.Set("name", u.Name)
@@ -141,25 +163,7 @@ func userToResourceData(d *schema.ResourceData, u *nsone.User) error {
 	notify := make(map[string]bool)
 	notify["billing"] = u.Notify.Billing
 	d.Set("notify", notify)
-	d.Set("dns_view_zones", u.Permissions.Dns.ViewZones)
-	d.Set("dns_manage_zones", u.Permissions.Dns.ManageZones)
-	d.Set("dns_zones_allow_by_default", u.Permissions.Dns.ZonesAllowByDefault)
-	d.Set("dns_zones_deny", u.Permissions.Dns.ZonesDeny)
-	d.Set("dns_zones_allow", u.Permissions.Dns.ZonesAllow)
-	d.Set("data_push_to_datafeeds", u.Permissions.Data.PushToDatafeeds)
-	d.Set("data_manage_datasources", u.Permissions.Data.ManageDatasources)
-	d.Set("data_manage_datafeeds", u.Permissions.Data.ManageDatafeeds)
-	d.Set("account_manage_users", u.Permissions.Account.ManageUsers)
-	d.Set("account_manage_payment_methods", u.Permissions.Account.ManagePaymentMethods)
-	d.Set("account_manage_plan", u.Permissions.Account.ManagePlan)
-	d.Set("account_manage_teams", u.Permissions.Account.ManageTeams)
-	d.Set("account_manage_apikeys", u.Permissions.Account.ManageApikeys)
-	d.Set("account_manage_account_settings", u.Permissions.Account.ManageAccountSettings)
-	d.Set("account_view_activity_log", u.Permissions.Account.ViewActivityLog)
-	d.Set("account_view_invoices", u.Permissions.Account.ViewInvoices)
-	d.Set("monitoring_manage_lists", u.Permissions.Monitoring.ManageLists)
-	d.Set("monitoring_manage_jobs", u.Permissions.Monitoring.ManageJobs)
-	d.Set("monitoring_view_jobs", u.Permissions.Monitoring.ViewJobs)
+	permissionsToResourceData(d, u.Permissions)
 	return nil
 }
 
