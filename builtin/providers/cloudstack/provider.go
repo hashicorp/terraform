@@ -46,6 +46,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudstack_firewall":             resourceCloudStackFirewall(),
 			"cloudstack_instance":             resourceCloudStackInstance(),
 			"cloudstack_ipaddress":            resourceCloudStackIPAddress(),
+			"cloudstack_loadbalancer_rule":    resourceCloudStackLoadBalancerRule(),
 			"cloudstack_network":              resourceCloudStackNetwork(),
 			"cloudstack_network_acl":          resourceCloudStackNetworkACL(),
 			"cloudstack_network_acl_rule":     resourceCloudStackNetworkACLRule(),
