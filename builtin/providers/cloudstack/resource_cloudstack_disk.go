@@ -56,15 +56,15 @@ func resourceCloudStackDisk() *schema.Resource {
 				Optional: true,
 			},
 
-			"zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
+			},
+
+			"zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 				ForceNew: true,
 			},
 		},
@@ -80,17 +80,6 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	// Create a new parameter struct
 	p := cs.Volume.NewCreateVolumeParams(name)
 
-	// If there is a project supplied, we retreive and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project UUID
-		projectid, e := retrieveUUID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
-	}
-
 	// Retrieve the disk_offering UUID
 	diskofferingid, e := retrieveUUID(cs, "disk_offering", d.Get("disk_offering").(string))
 	if e != nil {
@@ -102,6 +91,17 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	if d.Get("size").(int) != 0 {
 		// Set the volume size
 		p.SetSize(int64(d.Get("size").(int)))
+	}
+
+	// If there is a project supplied, we retreive and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project UUID
+		projectid, e := retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
 	}
 
 	// Retrieve the zone UUID
@@ -125,6 +125,7 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	d.SetPartial("disk_offering")
 	d.SetPartial("size")
 	d.SetPartial("virtual_machine")
+	d.SetPartial("project")
 	d.SetPartial("zone")
 
 	if d.Get("attach").(bool) {
@@ -160,8 +161,8 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("size", int(v.Size/(1024*1024*1024))) // Needed to get GB's again
 
 	setValueOrUUID(d, "disk_offering", v.Diskofferingname, v.Diskofferingid)
-	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
 	setValueOrUUID(d, "project", v.Project, v.Projectid)
+	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
 
 	if v.Attached != "" {
 		// Get the virtual machine details
@@ -319,12 +320,12 @@ func resourceCloudStackDiskAttach(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	// Attach the new volume
-	r, err := cs.Volume.AttachVolume(p)
+	r, err := Retry(4, retryableAttachVolumeFunc(cs, p))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(r.Id)
+	d.SetId(r.(*cloudstack.AttachVolumeResponse).Id)
 
 	return nil
 }
@@ -386,6 +387,18 @@ func isAttached(cs *cloudstack.CloudStackClient, id string) (bool, error) {
 	return v.Attached != "", nil
 }
 
+func retryableAttachVolumeFunc(
+	cs *cloudstack.CloudStackClient,
+	p *cloudstack.AttachVolumeParams) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		r, err := cs.Volume.AttachVolume(p)
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
+	}
+}
+
 func retrieveDeviceID(device string) int64 {
 	switch device {
 	case "/dev/xvdb", "D:":
@@ -426,87 +439,73 @@ func retrieveDeviceName(device int64, os string) string {
 	case 1:
 		if os == "Windows" {
 			return "D:"
-		} else {
-			return "/dev/xvdb"
 		}
+		return "/dev/xvdb"
 	case 2:
 		if os == "Windows" {
 			return "E:"
-		} else {
-			return "/dev/xvdc"
 		}
+		return "/dev/xvdc"
 	case 4:
 		if os == "Windows" {
 			return "F:"
-		} else {
-			return "/dev/xvde"
 		}
+		return "/dev/xvde"
 	case 5:
 		if os == "Windows" {
 			return "G:"
-		} else {
-			return "/dev/xvdf"
 		}
+		return "/dev/xvdf"
 	case 6:
 		if os == "Windows" {
 			return "H:"
-		} else {
-			return "/dev/xvdg"
 		}
+		return "/dev/xvdg"
 	case 7:
 		if os == "Windows" {
 			return "I:"
-		} else {
-			return "/dev/xvdh"
 		}
+		return "/dev/xvdh"
 	case 8:
 		if os == "Windows" {
 			return "J:"
-		} else {
-			return "/dev/xvdi"
 		}
+		return "/dev/xvdi"
 	case 9:
 		if os == "Windows" {
 			return "K:"
-		} else {
-			return "/dev/xvdj"
 		}
+		return "/dev/xvdj"
 	case 10:
 		if os == "Windows" {
 			return "L:"
-		} else {
-			return "/dev/xvdk"
 		}
+		return "/dev/xvdk"
 	case 11:
 		if os == "Windows" {
 			return "M:"
-		} else {
-			return "/dev/xvdl"
 		}
+		return "/dev/xvdl"
 	case 12:
 		if os == "Windows" {
 			return "N:"
-		} else {
-			return "/dev/xvdm"
 		}
+		return "/dev/xvdm"
 	case 13:
 		if os == "Windows" {
 			return "O:"
-		} else {
-			return "/dev/xvdn"
 		}
+		return "/dev/xvdn"
 	case 14:
 		if os == "Windows" {
 			return "P:"
-		} else {
-			return "/dev/xvdo"
 		}
+		return "/dev/xvdo"
 	case 15:
 		if os == "Windows" {
 			return "Q:"
-		} else {
-			return "/dev/xvdp"
 		}
+		return "/dev/xvdp"
 	default:
 		return "unknown"
 	}

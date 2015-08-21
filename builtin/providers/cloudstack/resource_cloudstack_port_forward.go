@@ -224,10 +224,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 		// Delete all expected UUIDs from the uuids map
 		for _, forward := range forwards.List() {
 			forward := forward.(map[string]interface{})
-
-			for _, id := range forward["uuids"].(map[string]interface{}) {
-				delete(uuids, id.(string))
-			}
+			delete(uuids, forward["uuid"].(string))
 		}
 
 		for uuid := range uuids {
