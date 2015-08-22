@@ -1,10 +1,15 @@
 ## 0.6.4 (unreleased)
 
+FEATURES:
+
+  * **New resource: `cloudstack_loadbalancer_rule`** [GH-2934]
+
 IMPROVEMENTS:
 
   * core: Add a function to find the index of an element in a list. [GH-2704]
   * core: Print all outputs when `terraform output` is called with no arguments [GH-2920]
   * provider/aws: Add `instance_initiated_shutdown_behavior` to AWS Instance [GH-2887]
+  * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
 
 BUG FIXES:
 
