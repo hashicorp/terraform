@@ -10,9 +10,17 @@ import (
 
 func resourceRemoteState() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceRemoteStateCreate,
+		Create: resourceRemoteStateRead,
 		Read:   resourceRemoteStateRead,
 		Delete: resourceRemoteStateDelete,
+
+		SetInitialState: func(d *schema.ResourceData, meta interface {}) error {
+			// Just need to set the id to *something* non-empty, and then
+			// we'll get an opportunity to fill the initial state for real
+			// when the "Read" function is called.
+			d.SetId(time.Now().UTC().String())
+			return nil
+		},
 
 		Schema: map[string]*schema.Schema{
 			"backend": &schema.Schema{
@@ -33,10 +41,6 @@ func resourceRemoteState() *schema.Resource {
 			},
 		},
 	}
-}
-
-func resourceRemoteStateCreate(d *schema.ResourceData, meta interface{}) error {
-	return resourceRemoteStateRead(d, meta)
 }
 
 func resourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
