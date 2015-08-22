@@ -14,7 +14,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * google: Crashes with interface conversion in GCE Instance Template [GH-3027]
-  * google: Convert int to int64 when building the cluster.NodeConfig struct [GH-2978]
+  * google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
 
 ## 0.6.3 (August 11, 2015)
 
