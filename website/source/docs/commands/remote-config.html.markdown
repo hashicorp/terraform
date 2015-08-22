@@ -54,7 +54,7 @@ The following backends are supported:
   Requires the `bucket` and `key` variables. Supports and honors the standard
   AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
   and `AWS_DEFAULT_REGION`. These can optionally be provided as parameters
-  in the `aws_access_key`, `aws_secret_key` and `region` variables
+  in the `access_key`, `secret_key` and `region` variables
   respectively, but passing credentials this way is not recommended since they
   will be included in cleartext inside the persisted state.
 
