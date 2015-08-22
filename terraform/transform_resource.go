@@ -263,9 +263,25 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &resourceConfig,
+				},
 				&EvalGetProvider{
 					Name:   n.ProvidedBy()[0],
 					Output: &provider,
+				},
+				&EvalSetInitialState{
+					Name:         n.stateId(),
+					Info:         info,
+					ResourceType: n.Resource.Type,
+					Config:       &resourceConfig,
+					Provider:     &provider,
+					ProviderName: n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
+					Output:       &state,
 				},
 				&EvalReadState{
 					Name:   n.stateId(),

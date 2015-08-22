@@ -66,6 +66,11 @@ type ResourceProvider interface {
 		*InstanceState,
 		*ResourceConfig) (*InstanceDiff, error)
 
+	// InitialState produces an initial state for a new resource instance
+	// using its configuration alone. It may return a nil *InstanceState
+	// if the state cannot be determined until its first Apply.
+	InitialState(*InstanceInfo, *ResourceConfig) (*InstanceState, error)
+
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)

@@ -254,6 +254,15 @@ func (m schemaMap) Data(
 	}, nil
 }
 
+// ConfigData returns a ResourceData for the given config.
+func (m schemaMap) ConfigData(
+	c *terraform.ResourceConfig) (*ResourceData, error) {
+	return &ResourceData{
+		schema: m,
+		config: c,
+	}, nil
+}
+
 // Diff returns the diff for a resource given the schema map,
 // state, and configuration.
 func (m schemaMap) Diff(

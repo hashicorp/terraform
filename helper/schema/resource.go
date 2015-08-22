@@ -50,6 +50,30 @@ type Resource struct {
 	// needs to make any remote API calls.
 	MigrateState StateMigrateFunc
 
+	// SetInitialState is an optional function to pre-set the state for a
+	// new resource instance. It is provided a ResourceData for the
+	// configuration and it may mutate that ResourceData; if an Id is set
+	// when this function returns, the resource data will be written into
+	// the state so that it can be considered when refreshing and planning.
+	//
+	// The function must not make any network requests. It may only
+	// read the configuration and set any initial state that is needed
+	// to retrieve the *true* remote state once "Read" is called.
+	//
+	// Use this, for example, if the resource configuration includes a
+	// unique id that might already be in use in the remote system. By
+	// pre-setting the Id, Terraform can check if there is an existing
+	// resource to update, and in that case use the "Update" function
+	// rather than "Create" when "terraform apply" is run.
+	//
+	// You don't need to use this if the id for your resource is a computed
+	// value issued by the target system when the resource is first created.
+	//
+	// The "Read" function may subsequently set the Id back to "" to indicate
+	// that the resource doesn't exist after all, in which case
+	// "terraform apply" will try to create it as normal.
+	SetInitialState InitialStateFunc
+
 	// The functions below are the CRUD operations for this resource.
 	//
 	// The only optional operation is Update. If Update is not implemented,
@@ -94,6 +118,9 @@ type DeleteFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type ExistsFunc func(*ResourceData, interface{}) (bool, error)
+
+// See Resource documentation.
+type InitialStateFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type StateMigrateFunc func(
@@ -165,6 +192,35 @@ func (r *Resource) Diff(
 // Validate validates the resource configuration against the schema.
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return schemaMap(r.Schema).Validate(c)
+}
+
+// InitialState uses the configuration to potentially determine an initial
+// state for a new instance.
+func (r *Resource) InitialState(
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.InstanceState, error) {
+
+	if r.SetInitialState == nil {
+		return nil, nil
+	}
+
+	data, err := schemaMap(r.Schema).ConfigData(c)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.SetInitialState(data, meta)
+	if err != nil {
+		return nil, err
+	}
+
+	// Resource implementation will set the id in order to signal that it wants
+	// to prime the initial state with whatever's in the resource data.
+	if data.Id() != "" {
+		return data.State(), nil
+	} else {
+		return nil, nil
+	}
 }
 
 // Refresh refreshes the state of the resource.
