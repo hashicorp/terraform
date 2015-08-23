@@ -359,6 +359,8 @@ resource "aws_ecs_service" "ghost" {
     container_name = "ghost"
     container_port = "2368"
   }
+
+  depends_on = ["aws_iam_role_policy.ecs_service"]
 }
 `
 
