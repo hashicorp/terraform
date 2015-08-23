@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -105,7 +106,30 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
-	out, err := conn.CreateService(&input)
+
+	// Retry due to AWS IAM policy eventual consistency
+	// See https://github.com/hashicorp/terraform/issues/2869
+	var out *ecs.CreateServiceOutput
+	var err error
+	err = resource.Retry(2*time.Minute, func() error {
+		out, err = conn.CreateService(&input)
+
+		if err != nil {
+			ec2err, ok := err.(awserr.Error)
+			if !ok {
+				return &resource.RetryError{Err: err}
+			}
+			if ec2err.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to create ECS service again: %q",
+					ec2err.Message())
+				return err
+			}
+
+			return &resource.RetryError{Err: err}
+		}
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
