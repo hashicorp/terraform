@@ -101,6 +101,35 @@ func resourceAwsElb() *schema.Resource {
 				Default:  300,
 			},
 
+                        "access_logs": &schema.Schema{
+                                Type:     schema.TypeSet,
+                                Optional: true,
+                                Elem: &schema.Resource{
+                                        Schema: map[string]*schema.Schema{
+                                                "enabled": &schema.Schema{
+                                                        Type:     schema.TypeBool,
+                                                        Required: true,
+                                                        Default:  false,
+                                                },
+                                                "interval": &schema.Schema{
+                                                        Type:     schema.TypeInt,
+                                                        Optional: true,
+                                                        Default:  60,
+                                                },
+                                                "bucket": &schema.Schema{
+                                                        Type:     schema.TypeString,
+                                                        Required: true,
+                                                        Default:  "",
+                                                },
+                                                "bucket_prefix": &schema.Schema{
+                                                        Type:     schema.TypeString,
+                                                        Optional: true,
+                                                        Default:  "",
+                                                },
+                                        },
+                                },
+                        },
+
 			"listener": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -305,6 +334,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
+        d.Set("access_logs", lbAttrs.AccessLog)
 
 	resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
 		LoadBalancerNames: []*string{lb.LoadBalancerName},
@@ -405,7 +435,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("instances")
 	}
 
-	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") {
+        if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") || d.HasChange("access_logs") {
 		attrs := elb.ModifyLoadBalancerAttributesInput{
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
@@ -417,6 +447,18 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				},
 			},
 		}
+
+                logs := d.Get("access_logs").(*schema.Set).List()
+                if len(logs) > 0 {
+                        log := logs[0].(map[string]interface{})
+                        accessLogs := &elb.AccessLog{
+                                Enabled:      aws.Bool(log["enabled"].(bool)),
+                                EmitInterval: aws.Int64(log["interval"].(int64)),
+                                S3BucketName: aws.String(log["bucket"].(string)),
+                                S3BucketPrefix: aws.String(log["bucket"].(string)),
+                        }
+                        attrs.LoadBalancerAttributes.AccessLog = accessLogs
+                }
 
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
