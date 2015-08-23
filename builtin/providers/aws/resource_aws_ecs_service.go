@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -305,38 +304,6 @@ func resourceAwsEcsLoadBalancerHash(v interface{}) int {
 
 func buildFamilyAndRevisionFromARN(arn string) string {
 	return strings.Split(arn, "/")[1]
-}
-
-func buildTaskDefinitionARN(taskDefinition string, meta interface{}) (string, error) {
-	// If it's already an ARN, just return it
-	if strings.HasPrefix(taskDefinition, "arn:aws:ecs:") {
-		return taskDefinition, nil
-	}
-
-	// Parse out family & revision
-	family, revision, err := parseTaskDefinition(taskDefinition)
-	if err != nil {
-		return "", err
-	}
-
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", fmt.Errorf("GetUser ERROR: %#v", err)
-	}
-
-	// arn:aws:iam::0123456789:user/username
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-
-	// arn:aws:ecs:us-west-2:01234567890:task-definition/mongodb:3
-	arn := fmt.Sprintf("arn:aws:ecs:%s:%s:task-definition/%s:%s",
-		region, accountID, family, revision)
-	log.Printf("[DEBUG] Built task definition ARN: %s", arn)
-	return arn, nil
 }
 
 func buildIamRoleNameFromARN(arn string) string {
