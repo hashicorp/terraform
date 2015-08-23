@@ -178,8 +178,14 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("desired_count", *service.DesiredCount)
 	d.Set("cluster", *service.ClusterArn)
 
+	// Save IAM role in the same format
 	if service.RoleArn != nil {
-		d.Set("iam_role", *service.RoleArn)
+		if strings.HasPrefix(d.Get("iam_role").(string), "arn:aws:iam:") {
+			d.Set("iam_role", *service.RoleArn)
+		} else {
+			roleARN := buildIamRoleNameFromARN(*service.RoleArn)
+			d.Set("iam_role", roleARN)
+		}
 	}
 
 	if service.LoadBalancers != nil {
@@ -331,6 +337,11 @@ func buildTaskDefinitionARN(taskDefinition string, meta interface{}) (string, er
 		region, accountID, family, revision)
 	log.Printf("[DEBUG] Built task definition ARN: %s", arn)
 	return arn, nil
+}
+
+func buildIamRoleNameFromARN(arn string) string {
+	// arn:aws:iam::0123456789:role/EcsService
+	return strings.Split(arn, "/")[1]
 }
 
 func parseTaskDefinition(taskDefinition string) (string, string, error) {
