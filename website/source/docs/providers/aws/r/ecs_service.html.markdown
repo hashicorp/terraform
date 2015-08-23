@@ -8,6 +8,8 @@ description: |-
 
 # aws\_ecs\_service
 
+-> **Note:** To prevent race condition during service deletion, make sure to set `depends_on` to related `aws_iam_role_policy`, otherwise policy may be destroyed too soon and ECS service will then stuck in `DRAINING` state.
+
 Provides an ECS service - effectively a task that is expected to run until an error occures or user terminates it (typically a webserver or a database). 
 
 See [ECS Services section in AWS developer guide](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html).
@@ -21,6 +23,7 @@ resource "aws_ecs_service" "mongo" {
   task_definition = "${aws_ecs_task_definition.mongo.arn}"
   desired_count = 3
   iam_role = "${aws_iam_role.foo.arn}"
+  depends_on = ["aws_iam_role_policy.foo"]
 
   load_balancer {
     elb_name = "${aws_elb.foo.id}"
