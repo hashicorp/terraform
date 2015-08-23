@@ -19,6 +19,11 @@ func resourceAwsIamRole() *schema.Resource {
 		//Update: resourceAwsIamRoleUpdate,
 		Delete: resourceAwsIamRoleDelete,
 
+		SetInitialState: func(d *schema.ResourceData, meta interface {}) error {
+			d.SetId(d.Get("name").(string))
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -108,6 +113,9 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 		return err
 	}
 	if err := d.Set("unique_id", role.RoleId); err != nil {
+		return err
+	}
+	if err := d.Set("assume_role_policy", role.AssumeRolePolicyDocument); err != nil {
 		return err
 	}
 	return nil

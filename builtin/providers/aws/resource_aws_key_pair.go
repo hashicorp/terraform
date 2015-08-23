@@ -18,6 +18,22 @@ func resourceAwsKeyPair() *schema.Resource {
 		Update: nil,
 		Delete: resourceAwsKeyPairDelete,
 
+		SetInitialState: func(d *schema.ResourceData, meta interface {}) error {
+			// If the configuration is forcing a particular key name
+			// then we'll prime our initial state with it so that
+			// we can determine if we're going to collide with an
+			// existing key.
+			keyName := d.Get("key_name").(string)
+			if keyName != "" {
+				d.SetId(keyName)
+
+				// Don't set the public_key since we don't actually know
+				// what the remote state says, and Read can't fetch it.
+				d.Set("public_key", "")
+			}
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"key_name": &schema.Schema{
 				Type:     schema.TypeString,

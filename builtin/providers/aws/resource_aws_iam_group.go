@@ -18,6 +18,11 @@ func resourceAwsIamGroup() *schema.Resource {
 		//Update: resourceAwsIamGroupUpdate,
 		Delete: resourceAwsIamGroupDelete,
 
+		SetInitialState: func(d *schema.ResourceData, meta interface {}) error {
+			d.SetId(d.Get("name").(string))
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
