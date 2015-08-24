@@ -40,14 +40,15 @@ func resourceCloudStackVPC() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
+			},
+
+			"zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 				ForceNew: true,
 			},
 		},
@@ -80,7 +81,7 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 	// Create a new parameter struct
 	p := cs.VPC.NewCreateVPCParams(d.Get("cidr").(string), displaytext.(string), name, vpcofferingid, zoneid)
 
-    // If there is a project supplied, we retreive and set the project id
+	// If there is a project supplied, we retreive and set the project id
 	if project, ok := d.GetOk("project"); ok {
 		// Retrieve the project UUID
 		projectid, e := retrieveUUID(cs, "project", project.(string))
@@ -122,8 +123,6 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("display_text", v.Displaytext)
 	d.Set("cidr", v.Cidr)
 
-	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
-
 	// Get the VPC offering details
 	o, _, err := cs.VPC.GetVPCOfferingByID(v.Vpcofferingid)
 	if err != nil {
@@ -132,6 +131,7 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 
 	setValueOrUUID(d, "vpc_offering", o.Name, v.Vpcofferingid)
 	setValueOrUUID(d, "project", v.Project, v.Projectid)
+	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
 
 	return nil
 }
