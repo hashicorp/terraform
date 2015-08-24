@@ -140,8 +140,11 @@ func resourceAwsDbInstance() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				StateFunc: func(v interface{}) string {
-					value := v.(string)
-					return strings.ToLower(value)
+					if v != nil {
+						value := v.(string)
+						return strings.ToLower(value)
+					}
+					return ""
 				},
 			},
 
