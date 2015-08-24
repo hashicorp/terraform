@@ -18,6 +18,7 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDbSubnetGroupCreate,
 		Read:   resourceAwsDbSubnetGroupRead,
+		Update: resourceAwsDbSubnetGroupUpdate,
 		Delete: resourceAwsDbSubnetGroupDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -52,7 +53,6 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 			"subnet_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -131,6 +131,32 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("subnet_ids", subnets)
 
 	return nil
+}
+
+func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
+	if d.HasChange("subnet_ids") {
+		_, n := d.GetChange("subnet_ids")
+		if n == nil {
+			n = new(schema.Set)
+		}
+		ns := n.(*schema.Set)
+
+		var sIds []*string
+		for _, s := range ns.List() {
+			sIds = append(sIds, aws.String(s.(string)))
+		}
+
+		_, err := conn.ModifyDBSubnetGroup(&rds.ModifyDBSubnetGroupInput{
+			DBSubnetGroupName: aws.String(d.Id()),
+			SubnetIds:         sIds,
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+	return resourceAwsDbSubnetGroupRead(d, meta)
 }
 
 func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
