@@ -28,15 +28,15 @@ func resourceCloudStackIPAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"ipaddress": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -51,17 +51,6 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 
 	// Create a new parameter struct
 	p := cs.Address.NewAssociateIpAddressParams()
-
-	// If there is a project supplied, we retreive and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project UUID
-		projectid, e := retrieveUUID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
-	}
 
 	if network, ok := d.GetOk("network"); ok {
 		// Retrieve the network UUID
@@ -83,6 +72,17 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 
 		// Set the vpcid
 		p.SetVpcid(vpcid)
+	}
+
+	// If there is a project supplied, we retreive and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project UUID
+		projectid, e := retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
 	}
 
 	// Associate a new IP address
