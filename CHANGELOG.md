@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New resource: `cloudstack_loadbalancer_rule`** [GH-2934]
+  * **New resource: `google_compute_project_metadata`** [GH-3065]
 
 IMPROVEMENTS:
 
