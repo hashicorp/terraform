@@ -43,6 +43,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_instance":               resourceComputeInstance(),
 			"google_compute_instance_template":      resourceComputeInstanceTemplate(),
 			"google_compute_network":                resourceComputeNetwork(),
+			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
 			"google_compute_route":                  resourceComputeRoute(),
 			"google_compute_target_pool":            resourceComputeTargetPool(),
 			"google_container_cluster":              resourceContainerCluster(),
