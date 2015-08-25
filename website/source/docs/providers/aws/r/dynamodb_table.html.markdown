@@ -43,6 +43,10 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
       projection_type = "INCLUDE"
       non_key_attributes = [ "UserId" ]
     }
+    stream_specification {
+      enabled = true
+      view_type = "NEW_AND_OLD_IMAGES"
+    }
 }
 ```
 
@@ -67,6 +71,8 @@ definition after you have created the resource.
 * `global_secondary_index` - (Optional) Describe a GSO for the table;
   subject to the normal limits on the number of GSIs, projected
 attributes, etc.  
+* `stream_specification` - (Optional) A stream_specification block. Stream 
+Specification documented below.
 
 For both `local_secondary_index` and `global_secondary_index` objects,
 the following properties are supported:
@@ -87,6 +93,13 @@ do not need to be defined as attributes on the table.
 For `global_secondary_index` objects only, you need to specify
 `write_capacity` and `read_capacity` in the same way you would for the
 table as they have separate I/O capacity.
+
+Stream Specification supports the following:
+
+* `enabled` - (Required) Whether or not to enable a new DynamoDB Stream
+* `view_type` - (Required) One of "KEYS_ONLY", "NEW_IMAGE", "OLD_IMAGE" or 
+"NEW_AND_OLD_IMAGES"
+
 
 ### A note about attributes
 

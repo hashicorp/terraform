@@ -81,6 +81,26 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 					return hashcode.String(buf.String())
 				},
 			},
+
+			"stream_specification": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"view_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceAwsDynamoDBTableStreamSpecificationHash,
+			},
+
 			"local_secondary_index": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -210,8 +230,22 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		req.AttributeDefinitions = attributes
 	}
 
+	if streamspecificationdata, ok := d.GetOk("stream_specification"); ok {
+		log.Printf("[DEBUG] Adding StreamSpecification data to the table")
+		streamspecificationSet := streamspecificationdata.(*schema.Set)
+		if len(streamspecificationSet.List()) > 0 {
+			// Grab the first element
+			spec := streamspecificationSet.List()[0].(map[string]interface{})
+			streamSpecification := &dynamodb.StreamSpecification{
+				StreamEnabled:  aws.Bool(spec["enabled"].(bool)),
+				StreamViewType: aws.String(spec["view_type"].(string)),
+			}
+			req.StreamSpecification = streamSpecification
+		}
+	}
+
 	if lsidata, ok := d.GetOk("local_secondary_index"); ok {
-		fmt.Printf("[DEBUG] Adding LSI data to the table")
+		log.Printf("[DEBUG] Adding LSI data to the table")
 
 		lsiSet := lsidata.(*schema.Set)
 		localSecondaryIndexes := []*dynamodb.LocalSecondaryIndex{}
@@ -248,7 +282,7 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 
 		req.LocalSecondaryIndexes = localSecondaryIndexes
 
-		fmt.Printf("[DEBUG] Added %d LSI definitions", len(localSecondaryIndexes))
+		log.Printf("[DEBUG] Added %d LSI definitions", len(localSecondaryIndexes))
 	}
 
 	if gsidata, ok := d.GetOk("global_secondary_index"); ok {
@@ -316,17 +350,36 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Range key can only be specified at creation, you cannot modify it.")
 	}
 
-	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
-		req := &dynamodb.UpdateTableInput{
-			TableName: aws.String(d.Id()),
-		}
+	updateTable := false
+	req := &dynamodb.UpdateTableInput{
+		TableName: aws.String(d.Id()),
+	}
 
+	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
 		throughput := &dynamodb.ProvisionedThroughput{
 			ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
 			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
 		}
 		req.ProvisionedThroughput = throughput
+		updateTable = true
+	}
 
+	if d.HasChange("stream_specification") {
+		log.Printf("[DEBUG] Changed Stream Specification")
+
+		vs := d.Get("stream_specification").(*schema.Set).List()
+		if len(vs) > 0 {
+			spec := vs[0].(map[string]interface{})
+			streamSpecification := &dynamodb.StreamSpecification{
+				StreamEnabled:  aws.Bool(bool(spec["enabled"].(bool))),
+				StreamViewType: aws.String(string(spec["view_type"].(string))),
+			}
+			req.StreamSpecification = streamSpecification
+			updateTable = true
+		}
+	}
+
+	if updateTable { // Only update the table when changes have been made
 		_, err := dynamodbconn.UpdateTable(req)
 
 		if err != nil {
@@ -581,6 +634,18 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("global_secondary_index", gsiList)
 	d.Set("arn", table.TableArn)
 
+	// There's only one stream specification, so save that to state as we
+	// currently can
+	if table.StreamSpecification != nil {
+		d.Set("stream_specification", flattenDynamoDBStreamSpecification(table.StreamSpecification))
+	} else {
+		log.Printf("[DEBUG] StreamSpecification does not exist - will populate as false")
+		disabledStreamSpecification := &dynamodb.StreamSpecification{
+			StreamEnabled:  aws.Bool(false),
+			StreamViewType: aws.String(""),
+		}
+		d.Set("stream_specification", flattenDynamoDBStreamSpecification(disabledStreamSpecification))
+	}
 	return nil
 }
 
@@ -737,4 +802,12 @@ func waitForTableToBeActive(tableName string, meta interface{}) error {
 
 	return nil
 
+}
+
+func resourceAwsDynamoDBTableStreamSpecificationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", map[bool]string{true: "true", false: "false"}[m["enabled"].(bool)]))
+	buf.WriteString(fmt.Sprintf("%s-", m["view_type"].(string)))
+	return hashcode.String(buf.String())
 }
