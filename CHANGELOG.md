@@ -10,12 +10,14 @@ IMPROVEMENTS:
   * core: Add a function to find the index of an element in a list. [GH-2704]
   * core: Print all outputs when `terraform output` is called with no arguments [GH-2920]
   * provider/aws: Add `instance_initiated_shutdown_behavior` to AWS Instance [GH-2887]
+  * provider/aws: Support IAM role names (previously just ARNs) in `aws_ecs_service.iam_role` [GH-3061]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
 
 BUG FIXES:
 
-  * google: Crashes with interface conversion in GCE Instance Template [GH-3027]
-  * google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
+  * provider/google: Crashes with interface conversion in GCE Instance Template [GH-3027]
+  * provider/google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
+  * provider/aws: Retry creation of `aws_ecs_service` if IAM policy isn't ready yet [GH-3061]
 
 ## 0.6.3 (August 11, 2015)
 
