@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -105,7 +105,30 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
-	out, err := conn.CreateService(&input)
+
+	// Retry due to AWS IAM policy eventual consistency
+	// See https://github.com/hashicorp/terraform/issues/2869
+	var out *ecs.CreateServiceOutput
+	var err error
+	err = resource.Retry(2*time.Minute, func() error {
+		out, err = conn.CreateService(&input)
+
+		if err != nil {
+			ec2err, ok := err.(awserr.Error)
+			if !ok {
+				return &resource.RetryError{Err: err}
+			}
+			if ec2err.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to create ECS service again: %q",
+					ec2err.Message())
+				return err
+			}
+
+			return &resource.RetryError{Err: err}
+		}
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -154,8 +177,14 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("desired_count", *service.DesiredCount)
 	d.Set("cluster", *service.ClusterArn)
 
+	// Save IAM role in the same format
 	if service.RoleArn != nil {
-		d.Set("iam_role", *service.RoleArn)
+		if strings.HasPrefix(d.Get("iam_role").(string), "arn:aws:iam:") {
+			d.Set("iam_role", *service.RoleArn)
+		} else {
+			roleARN := buildIamRoleNameFromARN(*service.RoleArn)
+			d.Set("iam_role", roleARN)
+		}
 	}
 
 	if service.LoadBalancers != nil {
@@ -277,36 +306,9 @@ func buildFamilyAndRevisionFromARN(arn string) string {
 	return strings.Split(arn, "/")[1]
 }
 
-func buildTaskDefinitionARN(taskDefinition string, meta interface{}) (string, error) {
-	// If it's already an ARN, just return it
-	if strings.HasPrefix(taskDefinition, "arn:aws:ecs:") {
-		return taskDefinition, nil
-	}
-
-	// Parse out family & revision
-	family, revision, err := parseTaskDefinition(taskDefinition)
-	if err != nil {
-		return "", err
-	}
-
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", fmt.Errorf("GetUser ERROR: %#v", err)
-	}
-
-	// arn:aws:iam::0123456789:user/username
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-
-	// arn:aws:ecs:us-west-2:01234567890:task-definition/mongodb:3
-	arn := fmt.Sprintf("arn:aws:ecs:%s:%s:task-definition/%s:%s",
-		region, accountID, family, revision)
-	log.Printf("[DEBUG] Built task definition ARN: %s", arn)
-	return arn, nil
+func buildIamRoleNameFromARN(arn string) string {
+	// arn:aws:iam::0123456789:role/EcsService
+	return strings.Split(arn, "/")[1]
 }
 
 func parseTaskDefinition(taskDefinition string) (string, string, error) {
