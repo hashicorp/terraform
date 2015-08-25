@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -243,6 +244,20 @@ func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 	chk["interval"] = *check.Interval
 
 	result = append(result, chk)
+
+	return result
+}
+
+// Flattens a stream specification into something that flatmap.Flatten()
+// can handle
+func flattenDynamoDBStreamSpecification(spec *dynamodb.StreamSpecification) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	spc := make(map[string]interface{})
+	spc["enabled"] = *spec.StreamEnabled
+	spc["view_type"] = *spec.StreamViewType
+
+	result = append(result, spc)
 
 	return result
 }
