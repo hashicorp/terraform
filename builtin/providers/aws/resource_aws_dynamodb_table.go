@@ -350,22 +350,32 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Range key can only be specified at creation, you cannot modify it.")
 	}
 
-	updateTable := false
-	req := &dynamodb.UpdateTableInput{
-		TableName: aws.String(d.Id()),
-	}
-
 	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
+		req := &dynamodb.UpdateTableInput{
+			TableName: aws.String(d.Id()),
+		}
+
 		throughput := &dynamodb.ProvisionedThroughput{
 			ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
 			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
 		}
 		req.ProvisionedThroughput = throughput
-		updateTable = true
+
+		// Updates for capacity needs to be done before updating
+		// the streamspecification - it cannot be done in the same call
+		_, err := dynamodbconn.UpdateTable(req)
+		if err != nil {
+			return err
+		}
+
+		waitForTableToBeActive(d.Id(), meta)
 	}
 
 	if d.HasChange("stream_specification") {
 		log.Printf("[DEBUG] Changed Stream Specification")
+		req := &dynamodb.UpdateTableInput{
+			TableName: aws.String(d.Id()),
+		}
 
 		vs := d.Get("stream_specification").(*schema.Set).List()
 		if len(vs) > 0 {
@@ -375,13 +385,9 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 				StreamViewType: aws.String(string(spec["view_type"].(string))),
 			}
 			req.StreamSpecification = streamSpecification
-			updateTable = true
 		}
-	}
 
-	if updateTable { // Only update the table when changes have been made
 		_, err := dynamodbconn.UpdateTable(req)
-
 		if err != nil {
 			return err
 		}
