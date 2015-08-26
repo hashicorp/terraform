@@ -1,0 +1,79 @@
+package chef
+
+import (
+	"io/ioutil"
+	"os"
+	"time"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/terraform"
+
+	chefc "github.com/go-chef/chef"
+)
+
+func Provider() terraform.ResourceProvider {
+	return &schema.Provider{
+		Schema: map[string]*schema.Schema{
+			"server_url": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CHEF_SERVER_URL", nil),
+				Description: "URL of the root of the target Chef server or organization.",
+			},
+			"client_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CHEF_CLIENT_NAME", nil),
+				Description: "Name of a registered client within the Chef server.",
+			},
+			"private_key_pem": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: providerPrivateKeyEnvDefault,
+				Description: "PEM-formatted private key for client authentication.",
+			},
+			"allow_unverified_ssl": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If set, the Chef client will permit unverifiable SSL certificates.",
+			},
+		},
+
+		ResourcesMap: map[string]*schema.Resource{
+			//"chef_acl":           resourceChefAcl(),
+			//"chef_client":        resourceChefClient(),
+			//"chef_cookbook":      resourceChefCookbook(),
+			//"chef_data_bag":      resourceChefDataBag(),
+			//"chef_data_bag_item": resourceChefDataBagItem(),
+			//"chef_environment":   resourceChefEnvironment(),
+			//"chef_node":          resourceChefNode(),
+			//"chef_role":          resourceChefRole(),
+		},
+
+		ConfigureFunc: providerConfigure,
+	}
+}
+
+func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	config := &chefc.Config{
+		Name:    d.Get("client_name").(string),
+		Key:     d.Get("private_key_pem").(string),
+		BaseURL: d.Get("server_url").(string),
+		SkipSSL: d.Get("allow_unverified_ssl").(bool),
+		Timeout: 10 * time.Second,
+	}
+
+	return chefc.NewClient(config)
+}
+
+func providerPrivateKeyEnvDefault() (interface{}, error) {
+	if fn := os.Getenv("CHEF_PRIVATE_KEY_FILE"); fn != "" {
+		contents, err := ioutil.ReadFile(fn)
+		if err != nil {
+			return nil, err
+		}
+		return string(contents), nil
+	}
+
+	return nil, nil
+}
