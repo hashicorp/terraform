@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
@@ -51,6 +52,7 @@ type Config struct {
 
 type AWSClient struct {
 	cfconn             *cloudformation.CloudFormation
+	cloudtrailconn     *cloudtrail.CloudTrail
 	cloudwatchconn     *cloudwatch.CloudWatch
 	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
 	dsconn             *directoryservice.DirectoryService
@@ -187,6 +189,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
 		client.cloudwatchconn = cloudwatch.New(awsConfig)
+
+		log.Println("[INFO] Initializing CloudTrail connection")
+		client.cloudtrailconn = cloudtrail.New(awsConfig)
 
 		log.Println("[INFO] Initializing CloudWatch Logs connection")
 		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
