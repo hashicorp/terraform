@@ -2,7 +2,10 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -327,6 +330,11 @@ func (i *Interpolater) computeResourceVariable(
 		return attr, nil
 	}
 
+	// computed list attribute
+	if _, ok := r.Primary.Attributes[v.Field+".#"]; ok {
+		return i.interpolateListAttribute(v.Field, r.Primary.Attributes)
+	}
+
 	// At apply time, we can't do the "maybe has it" check below
 	// that we need for plans since parent elements might be computed.
 	// Therefore, it is an error and we're missing the key.
@@ -410,8 +418,8 @@ func (i *Interpolater) computeResourceMultiVariable(
 	}
 
 	var values []string
-	for i := 0; i < count; i++ {
-		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
+	for j := 0; j < count; j++ {
+		id := fmt.Sprintf("%s.%d", v.ResourceId(), j)
 
 		// If we're dealing with only a single resource, then the
 		// ID doesn't have a trailing index.
@@ -430,6 +438,21 @@ func (i *Interpolater) computeResourceMultiVariable(
 
 		attr, ok := r.Primary.Attributes[v.Field]
 		if !ok {
+			// computed list attribute
+			_, ok := r.Primary.Attributes[v.Field+".#"]
+			if !ok {
+				continue
+			}
+			attr, err = i.interpolateListAttribute(v.Field, r.Primary.Attributes)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		if config.IsStringList(attr) {
+			for _, s := range config.StringList(attr).Slice() {
+				values = append(values, s)
+			}
 			continue
 		}
 
@@ -459,6 +482,26 @@ func (i *Interpolater) computeResourceMultiVariable(
 	}
 
 	return config.NewStringList(values).String(), nil
+}
+
+func (i *Interpolater) interpolateListAttribute(
+	resourceID string,
+	attributes map[string]string) (string, error) {
+
+	attr := attributes[resourceID+".#"]
+	log.Printf("[DEBUG] Interpolating computed list attribute %s (%s)",
+		resourceID, attr)
+
+	var members []string
+	numberedListMember := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
+	for id, value := range attributes {
+		if numberedListMember.MatchString(id) {
+			members = append(members, value)
+		}
+	}
+
+	sort.Strings(members)
+	return config.NewStringList(members).String(), nil
 }
 
 func (i *Interpolater) resourceVariableInfo(
