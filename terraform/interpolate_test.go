@@ -210,6 +210,208 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	})
 }
 
+func TestInterpolator_resourceMultiAttributes(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "AAABBBCCCDDDEEE",
+							Attributes: map[string]string{
+								"name_servers.#": "4",
+								"name_servers.0": "ns-1334.awsdns-38.org",
+								"name_servers.1": "ns-1680.awsdns-18.co.uk",
+								"name_servers.2": "ns-498.awsdns-62.com",
+								"name_servers.3": "ns-601.awsdns-11.net",
+								"listeners.#":    "1",
+								"listeners.0":    "red",
+								"tags.#":         "1",
+								"tags.Name":      "reindeer",
+								"nothing.#":      "0",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: lock,
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	name_servers := []string{
+		"ns-1334.awsdns-38.org",
+		"ns-1680.awsdns-18.co.uk",
+		"ns-498.awsdns-62.com",
+		"ns-601.awsdns-11.net",
+	}
+	expectedNameServers := config.NewStringList(name_servers).String()
+
+	// More than 1 element
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
+		Value: expectedNameServers,
+		Type:  ast.TypeString,
+	})
+
+	// Exactly 1 element
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.listeners", ast.Variable{
+		Value: config.NewStringList([]string{"red"}).String(),
+		Type:  ast.TypeString,
+	})
+
+	// Zero elements
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.nothing", ast.Variable{
+		Value: config.NewStringList([]string{}).String(),
+		Type:  ast.TypeString,
+	})
+
+	// Maps still need to work
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.tags.Name", ast.Variable{
+		Value: "reindeer",
+		Type:  ast.TypeString,
+	})
+}
+
+func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
+	i := getInterpolaterFixture(t)
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	name_servers := []string{
+		"ns-1334.awsdns-38.org",
+		"ns-1680.awsdns-18.co.uk",
+		"ns-498.awsdns-62.com",
+		"ns-601.awsdns-11.net",
+		"ns-000.awsdns-38.org",
+		"ns-444.awsdns-18.co.uk",
+		"ns-666.awsdns-11.net",
+		"ns-999.awsdns-62.com",
+	}
+
+	// More than 1 element
+	expectedNameServers := config.NewStringList(name_servers[0:4]).String()
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.name_servers", ast.Variable{
+		Value: expectedNameServers,
+		Type:  ast.TypeString,
+	})
+	// More than 1 element in both
+	expectedNameServers = config.NewStringList(name_servers).String()
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.name_servers", ast.Variable{
+		Value: expectedNameServers,
+		Type:  ast.TypeString,
+	})
+
+	// Exactly 1 element
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.listeners", ast.Variable{
+		Value: config.NewStringList([]string{"red"}).String(),
+		Type:  ast.TypeString,
+	})
+	// Exactly 1 element in both
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.listeners", ast.Variable{
+		Value: config.NewStringList([]string{"red", "blue"}).String(),
+		Type:  ast.TypeString,
+	})
+
+	// Zero elements
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.nothing", ast.Variable{
+		Value: config.NewStringList([]string{}).String(),
+		Type:  ast.TypeString,
+	})
+	// Zero + zero elements
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.nothing", ast.Variable{
+		Value: config.NewStringList([]string{"", ""}).String(),
+		Type:  ast.TypeString,
+	})
+	// Zero + 1 element
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.special", ast.Variable{
+		Value: config.NewStringList([]string{"extra"}).String(),
+		Type:  ast.TypeString,
+	})
+
+	// Maps still need to work
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.tags.Name", ast.Variable{
+		Value: "reindeer",
+		Type:  ast.TypeString,
+	})
+	// Maps still need to work in both
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.tags.Name", ast.Variable{
+		Value: config.NewStringList([]string{"reindeer", "white-hart"}).String(),
+		Type:  ast.TypeString,
+	})
+}
+
+func getInterpolaterFixture(t *testing.T) *Interpolater {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.terra.0": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "AAABBBCCCDDDEEE",
+							Attributes: map[string]string{
+								"name_servers.#": "4",
+								"name_servers.0": "ns-1334.awsdns-38.org",
+								"name_servers.1": "ns-1680.awsdns-18.co.uk",
+								"name_servers.2": "ns-498.awsdns-62.com",
+								"name_servers.3": "ns-601.awsdns-11.net",
+								"listeners.#":    "1",
+								"listeners.0":    "red",
+								"tags.#":         "1",
+								"tags.Name":      "reindeer",
+								"nothing.#":      "0",
+							},
+						},
+					},
+					"aws_route53_zone.terra.1": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "EEEFFFGGGHHHIII",
+							Attributes: map[string]string{
+								"name_servers.#": "4",
+								"name_servers.0": "ns-000.awsdns-38.org",
+								"name_servers.1": "ns-444.awsdns-18.co.uk",
+								"name_servers.2": "ns-999.awsdns-62.com",
+								"name_servers.3": "ns-666.awsdns-11.net",
+								"listeners.#":    "1",
+								"listeners.0":    "blue",
+								"special.#":      "1",
+								"special.0":      "extra",
+								"tags.#":         "1",
+								"tags.Name":      "white-hart",
+								"nothing.#":      "0",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: lock,
+		State:     state,
+	}
+}
+
 func testInterpolate(
 	t *testing.T, i *Interpolater,
 	scope *InterpolationScope,
@@ -230,6 +432,6 @@ func testInterpolate(
 		"foo": expectedVar,
 	}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("%q: actual: %#v\nexpected: %#v", n, actual, expected)
 	}
 }
