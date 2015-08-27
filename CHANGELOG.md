@@ -15,6 +15,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * core: Fix problems referencing list attributes in interpolations [GH-2157]
   * provider/google: Crashes with interface conversion in GCE Instance Template [GH-3027]
   * provider/google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
   * provider/aws: Retry creation of `aws_ecs_service` if IAM policy isn't ready yet [GH-3061]
