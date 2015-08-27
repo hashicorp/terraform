@@ -1,6 +1,7 @@
 package chef
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"time"
@@ -44,7 +45,7 @@ func Provider() terraform.ResourceProvider {
 			//"chef_client":        resourceChefClient(),
 			//"chef_cookbook":      resourceChefCookbook(),
 			"chef_data_bag":      resourceChefDataBag(),
-			//"chef_data_bag_item": resourceChefDataBagItem(),
+			"chef_data_bag_item": resourceChefDataBagItem(),
 			//"chef_environment":   resourceChefEnvironment(),
 			//"chef_node":          resourceChefNode(),
 			//"chef_role":          resourceChefRole(),
@@ -76,4 +77,21 @@ func providerPrivateKeyEnvDefault() (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+func jsonStateFunc(value interface{}) string {
+	// Parse and re-stringify the JSON to make sure it's always kept
+	// in a normalized form.
+	in, ok := value.(string)
+	if !ok {
+		return "null"
+	}
+	var tmp map[string]interface{}
+
+	// Assuming the value must be valid JSON since it passed okay through
+	// our prepareDataBagItemContent function earlier.
+	json.Unmarshal([]byte(in), &tmp)
+
+	jsonValue, _ := json.Marshal(&tmp)
+	return string(jsonValue)
 }
