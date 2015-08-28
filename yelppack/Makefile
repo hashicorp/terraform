@@ -1,9 +1,13 @@
 .PHONY: itest_% clean shell
 PROJECT = terraform-provider-nsone
 
-BUILD_NUMBER ?= 0
-REAL_BUILD_NUMBER ?= $(upstream_build_number)
-REAL_BUILD_NUMBER ?= $(BUILD_NUMBER)
+
+BUILD_NUMBER?=0
+ifdef upstream_build_number
+	REAL_BUILD_NUMBER=$(upstream_build_number)
+else
+	REAL_BUILD_NUMBER?=$(BUILD_NUMBER)
+endif
 VERSION = 0.2
 ITERATION = yelp$(REAL_BUILD_NUMBER)
 ARCH := $(shell facter architecture)
