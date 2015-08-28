@@ -2,8 +2,10 @@ package chef
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -48,7 +50,7 @@ func Provider() terraform.ResourceProvider {
 			"chef_data_bag_item": resourceChefDataBagItem(),
 			"chef_environment":   resourceChefEnvironment(),
 			//"chef_node":          resourceChefNode(),
-			//"chef_role":          resourceChefRole(),
+			"chef_role":          resourceChefRole(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -94,4 +96,17 @@ func jsonStateFunc(value interface{}) string {
 
 	jsonValue, _ := json.Marshal(&tmp)
 	return string(jsonValue)
+}
+
+func runListEntryStateFunc(value interface{}) string {
+	// Recipes in run lists can either be naked, like "foo", or can
+	// be explicitly qualified as "recipe[foo]". Whichever form we use,
+	// the server will always normalize to the explicit form,
+	// so we'll normalize too and then we won't generate unnecessary
+	// diffs when we refresh.
+	in := value.(string)
+	if !strings.Contains(in, "[") {
+		return fmt.Sprintf("recipe[%s]", in)
+	}
+	return in
 }
