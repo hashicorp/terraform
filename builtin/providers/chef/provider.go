@@ -46,7 +46,7 @@ func Provider() terraform.ResourceProvider {
 			//"chef_cookbook":      resourceChefCookbook(),
 			"chef_data_bag":      resourceChefDataBag(),
 			"chef_data_bag_item": resourceChefDataBagItem(),
-			//"chef_environment":   resourceChefEnvironment(),
+			"chef_environment":   resourceChefEnvironment(),
 			//"chef_node":          resourceChefNode(),
 			//"chef_role":          resourceChefRole(),
 		},
