@@ -46,7 +46,7 @@ The following backends are supported:
   variables. The `address` variable can optionally be provided.
 
 * Consul - Stores the state in the KV store at a given path.
-  Requires the `path` variable. The `address` and `access-token`
+  Requires the `path` variable. The `address` and `access_token`
   variables can optionally be provided. Address is assumed to be the
   local agent if not provided.
 
@@ -93,5 +93,6 @@ should use your own private Consul server:
 $ terraform remote config \
     -backend=consul \
     -backend-config="address=demo.consul.io:80" \
-    -backend-config="path=tf"
+    -backend-config="path=tf" \
+    -backend-config="access_token=1234567890abcdefgh1234567890"
 ```
