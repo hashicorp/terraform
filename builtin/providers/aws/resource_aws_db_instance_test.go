@@ -183,6 +183,12 @@ resource "aws_db_instance" "bar" {
 	password = "barbarbarbar"
 	username = "foo"
 
+
+	# Maintenance Window is stored in lower case in the API, though not strictly 
+	# documented. Terraform will downcase this to match (as opposed to throw a 
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"

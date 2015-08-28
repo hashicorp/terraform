@@ -139,6 +139,13 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				StateFunc: func(v interface{}) string {
+					if v != nil {
+						value := v.(string)
+						return strings.ToLower(value)
+					}
+					return ""
+				},
 			},
 
 			"multi_az": &schema.Schema{
@@ -250,6 +257,12 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"auto_minor_version_upgrade": &schema.Schema{
+				Type:     schema.TypeBool,
+				Computed: false,
+				Optional: true,
+			},
+
+			"allow_major_version_upgrade": &schema.Schema{
 				Type:     schema.TypeBool,
 				Computed: false,
 				Optional: true,
@@ -616,6 +629,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		req.AllocatedStorage = aws.Int64(int64(d.Get("allocated_storage").(int)))
 		requestUpdate = true
 	}
+	if d.HasChange("allow_major_version_upgrade") {
+		d.SetPartial("allow_major_version_upgrade")
+		req.AllowMajorVersionUpgrade = aws.Bool(d.Get("allow_major_version_upgrade").(bool))
+		requestUpdate = true
+	}
 	if d.HasChange("backup_retention_period") {
 		d.SetPartial("backup_retention_period")
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
@@ -728,6 +746,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 	d.Partial(false)
+
 	return resourceAwsDbInstanceRead(d, meta)
 }
 
@@ -742,7 +761,6 @@ func resourceAwsDbInstanceRetrieve(
 	log.Printf("[DEBUG] DB Instance describe configuration: %#v", opts)
 
 	resp, err := conn.DescribeDBInstances(&opts)
-
 	if err != nil {
 		dbinstanceerr, ok := err.(awserr.Error)
 		if ok && dbinstanceerr.Code() == "DBInstanceNotFound" {
