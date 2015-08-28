@@ -11,6 +11,7 @@ IMPROVEMENTS:
   * core: Print all outputs when `terraform output` is called with no arguments [GH-2920]
   * provider/aws: Add `instance_initiated_shutdown_behavior` to AWS Instance [GH-2887]
   * provider/aws: Support IAM role names (previously just ARNs) in `aws_ecs_service.iam_role` [GH-3061]
+  * provider/aws: Add update method to RDS Subnet groups, can modify subnets without recreating  [GH-3053]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
 
 BUG FIXES:
@@ -19,6 +20,8 @@ BUG FIXES:
   * provider/google: Crashes with interface conversion in GCE Instance Template [GH-3027]
   * provider/google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
   * provider/aws: Retry creation of `aws_ecs_service` if IAM policy isn't ready yet [GH-3061]
+  * provider/aws: Fix issue with mixed capitalization for RDS Instances  [GH-3053]
+  * provider/aws: Fix issue with RDS to allow major version upgrades [GH-3053]
 
 ## 0.6.3 (August 11, 2015)
 
