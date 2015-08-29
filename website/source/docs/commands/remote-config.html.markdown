@@ -93,5 +93,6 @@ should use your own private Consul server:
 $ terraform remote config \
     -backend=consul \
     -backend-config="address=demo.consul.io:80" \
-    -backend-config="path=tf"
+    -backend-config="path=tf" \
+    -backend-config="access_token=1234567890abcdefgh1234567890"
 ```
