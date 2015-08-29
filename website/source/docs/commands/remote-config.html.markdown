@@ -46,7 +46,7 @@ The following backends are supported:
   variables. The `address` variable can optionally be provided.
 
 * Consul - Stores the state in the KV store at a given path.
-  Requires the `path` variable. The `address` and `access-token`
+  Requires the `path` variable. The `address` and `access_token`
   variables can optionally be provided. Address is assumed to be the
   local agent if not provided.
 
