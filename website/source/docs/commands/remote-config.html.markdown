@@ -42,7 +42,7 @@ to a local file. This defaults to the `-state` path during restore.
 
 The following backends are supported:
 
-* Atlas - Stores the state in Atlas. Requires the `name` and `access-token`
+* Atlas - Stores the state in Atlas. Requires the `name` and `access_token`
   variables. The `address` variable can optionally be provided.
 
 * Consul - Stores the state in the KV store at a given path.
