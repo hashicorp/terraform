@@ -131,7 +131,7 @@ func formatPlanModuleExpand(
 
 			newResource := ""
 			if attrDiff.RequiresNew && rdiff.Destroy {
-				newResource = " (forces new resource)"
+				newResource = opts.Color.Color(" [red](forces new resource)")
 			}
 
 			buf.WriteString(fmt.Sprintf(
