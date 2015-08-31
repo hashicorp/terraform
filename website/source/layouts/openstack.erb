@@ -10,12 +10,18 @@
           <a href="/docs/providers/openstack/index.html">OpenStack Provider</a>
         </li>
 
-        <li<%= sidebar_current(/^docs-openstack-resource/) %>>
-          <a href="#">Resources</a>
+        <li<%= sidebar_current(/^docs-openstack-resource-blockstorage/) %>>
+          <a href="#">Block Storage Resources</a>
           <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-openstack-resource-blockstorage-volume-v1") %>>
               <a href="/docs/providers/openstack/r/blockstorage_volume_v1.html">openstack_blockstorage_volume_v1</a>
             </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current(/^docs-openstack-resource-compute/) %>>
+          <a href="#">Compute Resources</a>
+          <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-openstack-resource-compute-floatingip-v2") %>>
               <a href="/docs/providers/openstack/r/compute_floatingip_v2.html">openstack_compute_floatingip_v2</a>
             </li>
@@ -31,24 +37,12 @@
             <li<%= sidebar_current("docs-openstack-resource-compute-servergroup-v2") %>>
               <a href="/docs/providers/openstack/r/compute_servergroup_v2.html">openstack_compute_servergroup_v2</a>
             </li>
-            <li<%= sidebar_current("docs-openstack-resource-fw-firewall-v1") %>>
-              <a href="/docs/providers/openstack/r/fw_firewall_v1.html">openstack_fw_firewall_v1</a>
-            </li>
-            <li<%= sidebar_current("docs-openstack-resource-fw-policy-v1") %>>
-              <a href="/docs/providers/openstack/r/fw_policy_v1.html">openstack_fw_policy_v1</a>
-            </li>
-            <li<%= sidebar_current("docs-openstack-resource-fw-rule-v1") %>>
-              <a href="/docs/providers/openstack/r/fw_rule_v1.html">openstack_fw_rule_v1</a>
-            </li>
-            <li<%= sidebar_current("docs-openstack-resource-lb-monitor-v1") %>>
-              <a href="/docs/providers/openstack/r/lb_monitor_v1.html">openstack_lb_monitor_v1</a>
-            </li>
-            <li<%= sidebar_current("docs-openstack-resource-lb-pool-v1") %>>
-              <a href="/docs/providers/openstack/r/lb_pool_v1.html">openstack_lb_pool_v1</a>
-            </li>
-            <li<%= sidebar_current("docs-openstack-resource-lb-vip-v1") %>>
-              <a href="/docs/providers/openstack/r/lb_vip_v1.html">openstack_lb_vip_v1</a>
-            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current(/^docs-openstack-resource-networking/) %>>
+          <a href="#">Networking Resources</a>
+          <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-openstack-resource-networking-floatingip-v2") %>>
               <a href="/docs/providers/openstack/r/networking_floatingip_v2.html">openstack_networking_floatingip_v2</a>
             </li>
@@ -64,11 +58,48 @@
             <li<%= sidebar_current("docs-openstack-resource-networking-subnet-v2") %>>
               <a href="/docs/providers/openstack/r/networking_subnet_v2.html">openstack_networking_subnet_v2</a>
             </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current(/^docs-openstack-resource-lb/) %>>
+          <a href="#">Load Balancer Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-openstack-resource-lb-monitor-v1") %>>
+              <a href="/docs/providers/openstack/r/lb_monitor_v1.html">openstack_lb_monitor_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-lb-pool-v1") %>>
+              <a href="/docs/providers/openstack/r/lb_pool_v1.html">openstack_lb_pool_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-lb-vip-v1") %>>
+              <a href="/docs/providers/openstack/r/lb_vip_v1.html">openstack_lb_vip_v1</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current(/^docs-openstack-resource-fw/) %>>
+          <a href="#">Firewall Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-openstack-resource-fw-firewall-v1") %>>
+              <a href="/docs/providers/openstack/r/fw_firewall_v1.html">openstack_fw_firewall_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-fw-policy-v1") %>>
+              <a href="/docs/providers/openstack/r/fw_policy_v1.html">openstack_fw_policy_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-fw-rule-v1") %>>
+              <a href="/docs/providers/openstack/r/fw_rule_v1.html">openstack_fw_rule_v1</a>
+            </li>
+          </ul>
+        </li>
+
+        <li<%= sidebar_current(/^docs-openstack-resource-objectstorage/) %>>
+          <a href="#">Object Storage Resources</a>
+          <ul class="nav nav-visible">
             <li<%= sidebar_current("docs-openstack-resource-objectstorage-container-v1") %>>
               <a href="/docs/providers/openstack/r/objectstorage_container_v1.html">openstack_objectstorage_container_v1</a>
             </li>
           </ul>
         </li>
+
       </ul>
     </div>
   <% end %>
