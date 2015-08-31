@@ -5,25 +5,25 @@ import (
 	"log"
 	"time"
 
-//	"github.com/hashicorp/terraform/helper/hashcode"
+	//	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-//	"google.golang.org/api/googleapi"
+	//	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeProjectMetadata() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeProjectMetadataCreate,
-		Read: resourceComputeProjectMetadataRead,
+		Read:   resourceComputeProjectMetadataRead,
 		Update: resourceComputeProjectMetadataUpdate,
 		Delete: resourceComputeProjectMetadataDelete,
 
 		SchemaVersion: 0,
 
 		Schema: map[string]*schema.Schema{
-			"metadata": &schema.Schema {
-				Elem:	  schema.TypeString,
-				Type:	  schema.TypeMap,
+			"metadata": &schema.Schema{
+				Elem:     schema.TypeString,
+				Type:     schema.TypeMap,
 				Required: true,
 			},
 		},
@@ -74,24 +74,25 @@ func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface
 
 		newMDMap := d.Get("metadata").(map[string]interface{})
 		// Ensure that we aren't overwriting entries that already exist
-		for _, kv := range(md.Items) {
+		for _, kv := range md.Items {
 			if _, ok := newMDMap[kv.Key]; ok {
 				return fmt.Errorf("Error, key '%s' already exists in project '%s'", kv.Key, config.Project)
 			}
 		}
 
 		// Append new metadata to existing metadata
-		for key, val := range(newMDMap) {
-			md.Items = append(md.Items, &compute.MetadataItems {
+		for key, val := range newMDMap {
+			v := val.(string)
+			md.Items = append(md.Items, &compute.MetadataItems{
 				Key:   key,
-				Value: val.(string),
+				Value: &v,
 			})
 		}
 
 		op, err := config.clientCompute.Projects.SetCommonInstanceMetadata(config.Project, md).Do()
 
 		if err != nil {
-			return fmt.Errorf("SetCommonInstanceMetadata failed: %s", err);
+			return fmt.Errorf("SetCommonInstanceMetadata failed: %s", err)
 		}
 
 		log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
@@ -126,12 +127,12 @@ func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}
 
 	newMD := make(map[string]interface{})
 
-	for _, kv := range(md.Items) {
+	for _, kv := range md.Items {
 		newMD[kv.Key] = kv.Value
 	}
 
 	if err = d.Set("metadata", newMD); err != nil {
-		return fmt.Errorf("Error setting metadata: %s", err);
+		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
 	d.SetId("common_metadata")
@@ -160,36 +161,38 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 
 			curMDMap := make(map[string]string)
 			// Load metadata on server into map
-			for _, kv := range(md.Items) {
-				// If the server state has a key that we had in our old 
+			for _, kv := range md.Items {
+				// If the server state has a key that we had in our old
 				// state, but not in our new state, we should delete it
 				_, okOld := oMDMap[kv.Key]
 				_, okNew := nMDMap[kv.Key]
 				if okOld && !okNew {
 					continue
 				} else {
-					curMDMap[kv.Key] = kv.Value
+					if kv.Value != nil {
+						curMDMap[kv.Key] = *kv.Value
+					}
 				}
 			}
 
 			// Insert new metadata into existing metadata (overwriting when needed)
-			for key, val := range(nMDMap) {
+			for key, val := range nMDMap {
 				curMDMap[key] = val.(string)
 			}
 
 			// Reformat old metadata into a list
 			md.Items = nil
-			for key, val := range(curMDMap) {
-				md.Items = append(md.Items, &compute.MetadataItems {
+			for key, val := range curMDMap {
+				md.Items = append(md.Items, &compute.MetadataItems{
 					Key:   key,
-					Value: val,
+					Value: &val,
 				})
 			}
 
 			op, err := config.clientCompute.Projects.SetCommonInstanceMetadata(config.Project, md).Do()
 
 			if err != nil {
-				return fmt.Errorf("SetCommonInstanceMetadata failed: %s", err);
+				return fmt.Errorf("SetCommonInstanceMetadata failed: %s", err)
 			}
 
 			log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
