@@ -150,13 +150,13 @@ func testAccCheckComputeProjectMetadataContains(project *compute.Project, key st
 			return fmt.Errorf("Error, failed to load project service for %s: %s", config.Project, err)
 		}
 
-		for _, kv := range(project.CommonInstanceMetadata.Items) {
+		for _, kv := range project.CommonInstanceMetadata.Items {
 			if kv.Key == key {
-				if (kv.Value == value) {
+				if kv.Value != nil && *kv.Value == value {
 					return nil
 				} else {
 					return fmt.Errorf("Error, key value mismatch, wanted (%s, %s), got (%s, %s)",
-						key, value, kv.Key, kv.Value);
+						key, value, kv.Key, *kv.Value)
 				}
 			}
 		}
@@ -174,7 +174,7 @@ func testAccCheckComputeProjectMetadataSize(project *compute.Project, size int) 
 		}
 
 		if size > len(project.CommonInstanceMetadata.Items) {
-			return fmt.Errorf("Error, expected at least %d metadata items, got %d", size, 
+			return fmt.Errorf("Error, expected at least %d metadata items, got %d", size,
 				len(project.CommonInstanceMetadata.Items))
 		}
 
