@@ -23,6 +23,7 @@ BUG FIXES:
   * provider/aws: Retry creation of `aws_ecs_service` if IAM policy isn't ready yet [GH-3061]
   * provider/aws: Fix issue with mixed capitalization for RDS Instances  [GH-3053]
   * provider/aws: Fix issue with RDS to allow major version upgrades [GH-3053]
+  * provider/aws: Fix issue with `key_name` and using VPCs with spot instance requests [GH-2954]
 
 ## 0.6.3 (August 11, 2015)
 
