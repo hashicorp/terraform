@@ -128,7 +128,7 @@ func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}
 	newMD := make(map[string]interface{})
 
 	for _, kv := range md.Items {
-		newMD[kv.Key] = kv.Value
+		newMD[kv.Key] = *kv.Value
 	}
 
 	if err = d.Set("metadata", newMD); err != nil {
