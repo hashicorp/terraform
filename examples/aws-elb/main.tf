@@ -1,63 +1,61 @@
 # Specify the provider and access details
 provider "aws" {
-    region = "${var.aws_region}"
+  region = "${var.aws_region}"
 }
 
 # Our default security group to access
 # the instances over SSH and HTTP
 resource "aws_security_group" "default" {
-    name = "instance_sg"
-    description = "Used in the terraform"
+  name = "instance_sg"
+  description = "Used in the terraform"
 
-    # SSH access from anywhere
-    ingress {
-        from_port = 22
-        to_port = 22
-        protocol = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  # SSH access from anywhere
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-    # HTTP access from anywhere
-    ingress {
-        from_port = 80
-        to_port = 80
-        protocol = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  # HTTP access from anywhere
+  ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-    # outbound internet access
-    egress {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  # outbound internet access
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 # Our elb security group to access
 # the ELB over HTTP
 resource "aws_security_group" "elb" {
-    name = "elb_sg"
-    description = "Used in the terraform"
+  name = "elb_sg"
+  description = "Used in the terraform"
 
-    # HTTP access from anywhere
-    ingress {
-        from_port = 80
-        to_port = 80
-        protocol = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  # HTTP access from anywhere
+  ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-    # outbound internet access
-    egress {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-  
+  # outbound internet access
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
-
 
 resource "aws_elb" "web" {
   name = "example-elb"
@@ -117,7 +115,7 @@ resource "aws_instance" "web" {
 
   user_data = "${file("userdata.sh")}"
   #Instance tags
-    tags {
-        Name = "elb-example"
-    }
+  tags {
+    Name = "elb-example"
+ }
 }
