@@ -90,7 +90,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			Placement:           instanceOpts.SpotPlacement,
 			SecurityGroupIds:    instanceOpts.SecurityGroupIDs,
 			SecurityGroups:      instanceOpts.SecurityGroups,
-			SubnetID:            instanceOpts.SubnetID,
+			SubnetId:            instanceOpts.SubnetID,
 			UserData:            instanceOpts.UserData64,
 		},
 	}
