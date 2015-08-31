@@ -82,7 +82,6 @@ func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) erro
 	conn := meta.(*AWSClient).kinesisconn
 	describeOpts := &kinesis.DescribeStreamInput{
 		StreamName: aws.String(d.Get("name").(string)),
-		Limit:      aws.Int64(1),
 	}
 	resp, err := conn.DescribeStream(describeOpts)
 	if err != nil {
@@ -138,7 +137,6 @@ func streamStateRefreshFunc(conn *kinesis.Kinesis, sn string) resource.StateRefr
 	return func() (interface{}, string, error) {
 		describeOpts := &kinesis.DescribeStreamInput{
 			StreamName: aws.String(sn),
-			Limit:      aws.Int64(1),
 		}
 		resp, err := conn.DescribeStream(describeOpts)
 		if err != nil {
