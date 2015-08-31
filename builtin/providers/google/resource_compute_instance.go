@@ -809,9 +809,10 @@ func resourceInstanceMetadata(d *schema.ResourceData) (*compute.Metadata, error)
 	if len(mdMap) > 0 {
 		m.Items = make([]*compute.MetadataItems, 0, len(mdMap))
 		for key, val := range mdMap {
+			v := val.(string)
 			m.Items = append(m.Items, &compute.MetadataItems{
 				Key:   key,
-				Value: val.(string),
+				Value: &v,
 			})
 		}
 
