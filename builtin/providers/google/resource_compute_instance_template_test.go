@@ -132,11 +132,11 @@ func testAccCheckComputeInstanceTemplateMetadata(
 				continue
 			}
 
-			if v == item.Value {
+			if item.Value != nil && v == *item.Value {
 				return nil
 			}
 
-			return fmt.Errorf("bad value for %s: %s", k, item.Value)
+			return fmt.Errorf("bad value for %s: %s", k, *item.Value)
 		}
 
 		return fmt.Errorf("metadata not found: %s", k)
