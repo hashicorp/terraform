@@ -21,6 +21,6 @@ resource "dnsimple_record" "web" {
 # to the heroku application after we have assigned the domain
 # in DNSimple
 resource "heroku_domain" "foobar" {
-    app = "${heroku_app.web.name}"
-    hostname = "${dnsimple_record.web.hostname}"
+  app = "${heroku_app.web.name}"
+  hostname = "${dnsimple_record.web.hostname}"
 }
