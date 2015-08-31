@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -64,22 +65,32 @@ func resourceAwsAutoscalingNotificationRead(d *schema.ResourceData, meta interfa
 		AutoScalingGroupNames: gl,
 	}
 
-	resp, err := conn.DescribeNotificationConfigurations(opts)
-	if err != nil {
-		return fmt.Errorf("Error describing notifications")
-	}
-
 	topic := d.Get("topic_arn").(string)
 	// Grab all applicable notifcation configurations for this Topic.
 	// Each NotificationType will have a record, so 1 Group with 3 Types results
 	// in 3 records, all with the same Group name
 	gRaw := make(map[string]bool)
 	nRaw := make(map[string]bool)
-	for _, n := range resp.NotificationConfigurations {
-		if *n.TopicARN == topic {
-			gRaw[*n.AutoScalingGroupName] = true
-			nRaw[*n.NotificationType] = true
+
+	i := 0
+	err := conn.DescribeNotificationConfigurationsPages(opts, func(resp *autoscaling.DescribeNotificationConfigurationsOutput, lastPage bool) bool {
+		if resp != nil {
+			i++
+			log.Printf("[DEBUG] Paging DescribeNotificationConfigurations for (%s), page: %d", d.Id(), i)
+		} else {
+			log.Printf("[DEBUG] Paging finished for DescribeNotificationConfigurations (%s)", d.Id())
 		}
+
+		for _, n := range resp.NotificationConfigurations {
+			if *n.TopicARN == topic {
+				gRaw[*n.AutoScalingGroupName] = true
+				nRaw[*n.NotificationType] = true
+			}
+		}
+		return true // return false to stop paging
+	})
+	if err != nil {
+		return err
 	}
 
 	// Grab the keys here as the list of Groups
