@@ -181,7 +181,7 @@ func testAccCheckAWSSpotInstanceRequestAttributes(
 func testAccCheckAWSSpotInstanceRequestAttributesVPC(
 	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if sir.LaunchSpecification.SubnetID == nil {
+		if sir.LaunchSpecification.SubnetId == nil {
 			return fmt.Errorf("SubnetID was not passed, but should have been for this instance to belong to a VPC")
 		}
 		return nil
