@@ -343,7 +343,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// and then delete the group. This bypasses that and leaves
 	// resources potentially dangling.
 	if d.Get("force_delete").(bool) {
-		deleteopts.ForceDelete = aws.Boolean(true)
+		deleteopts.ForceDelete = aws.Bool(true)
 	}
 
 	// We retry the delete operation to handle InUse/InProgress errors coming
@@ -564,7 +564,7 @@ func getInstanceSystemStatus(instance_id *string, meta interface{}) (string, err
 
 	input := &ec2.DescribeInstanceStatusInput{
 		InstanceIds:         ids,
-		IncludeAllInstances: aws.Boolean(true),
+		IncludeAllInstances: aws.Bool(true),
 	}
 
 	output, err := ec2conn.DescribeInstanceStatus(input)
