@@ -182,7 +182,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	d.SetId(d.Get("name").(string))
-	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
+	log.Printf("[INFO] AutoScaling Group Id: %s", d.Id())
 
 	if err := waitForASGCapacity(d, meta); err != nil {
 		return err
@@ -481,7 +481,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 		haveELB := 0
 
 		for _, i := range g.Instances {
-			if i.HealthStatus == nil || i.InstanceID == nil || i.LifecycleState == nil {
+			if i.HealthStatus == nil || i.InstanceId == nil || i.LifecycleState == nil {
 				continue
 			}
 
@@ -493,13 +493,13 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 				continue
 			}
 
-			status, err := getInstanceSystemStatus(i.InstanceID, meta)
+			status, err := getInstanceSystemStatus(i.InstanceId, meta)
 			if err != nil {
-				log.Printf("[WARN] Error getting %s InstanceStatus: %s", *i.InstanceID, err)
+				log.Printf("[WARN] Error getting %s InstanceStatus: %s", *i.InstanceId, err)
 				return resource.RetryError{Err: err}
 			}
 
-			log.Printf("[DEBUG] Instance [%s] Instance SystemStatus is %s", *i.InstanceID, status)
+			log.Printf("[DEBUG] Instance [%s] Instance SystemStatus is %s", *i.InstanceId, status)
 			if status != "ok" {
 				continue
 			}
@@ -509,7 +509,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 			if wantELB > 0 {
 				inAllLbs := true
 				for _, states := range lbis {
-					state, ok := states[*i.InstanceID]
+					state, ok := states[*i.InstanceId]
 					if !ok || !strings.EqualFold(state, "InService") {
 						inAllLbs = false
 					}
@@ -547,10 +547,10 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 			return nil, err
 		}
 		for _, is := range r.InstanceStates {
-			if is.InstanceID == nil || is.State == nil {
+			if is.InstanceId == nil || is.State == nil {
 				continue
 			}
-			lbInstanceStates[*lbName][*is.InstanceID] = *is.State
+			lbInstanceStates[*lbName][*is.InstanceId] = *is.State
 		}
 	}
 
@@ -563,7 +563,7 @@ func getInstanceSystemStatus(instance_id *string, meta interface{}) (string, err
 	ids := []*string{instance_id}
 
 	input := &ec2.DescribeInstanceStatusInput{
-		InstanceIDs:         ids,
+		InstanceIds:         ids,
 		IncludeAllInstances: aws.Boolean(true),
 	}
 
