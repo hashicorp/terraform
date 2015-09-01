@@ -325,6 +325,10 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		} else {
 			// No error, set ID and return
 			d.SetId(*output.TableDescription.TableName)
+			// TODO: What if StreamSpecification is nil?
+			if *output.TableDescription.StreamSpecification.StreamEnabled {
+				d.Set("latest_stream_arn", *output.TableDescription.LatestStreamArn)
+			}
 			return nil
 		}
 	}

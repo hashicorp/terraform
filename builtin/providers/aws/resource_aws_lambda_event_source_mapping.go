@@ -1,14 +1,14 @@
 package aws
 
 import (
-//	"bytes"
-//	"fmt"
+	"bytes"
+	"fmt"
 	"log"
 
-//	"github.com/aws/aws-sdk-go/aws"
-//	"github.com/aws/aws-sdk-go/aws/awserr"
-//	"github.com/aws/aws-sdk-go/service/lambda"
-//	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -16,7 +16,7 @@ func resourceAwsLambdaEventSourceMapping() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsLambdaEventSourceMappingCreate,
 		Read:   resourceAwsLambdaEventSourceMappingRead,
-		Update: resourceAwsLambdaEventSourceMappingUpdate,
+//		Update: resourceAwsLambdaEventSourceMappingUpdate,
 		Delete: resourceAwsLambdaEventSourceMappingDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -45,37 +45,46 @@ func resourceAwsLambdaEventSourceMapping() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"uuid": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta interface{}) error {
-//	conn := meta.(*AWSClient).lambdaconn
+	conn := meta.(*AWSClient).lambdaconn
 
-//	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
-//
- 	log.Printf("[DEBUG] Creating EventSourceMapping")
-//	_, err := conn.PutSubscriptionFilter(&params)
-//	if err != nil {
-//		if awsErr, ok := err.(awserr.Error); ok {
-//			return fmt.Errorf("[WARN] Error creating SubscriptionFilter (%s) for LogGroup (%s), message: \"%s\", code: \"%s\"",
-//				d.Get("name").(string), d.Get("log_group").(string), awsErr.Message(), awsErr.Code())
-//		}
-//		return err
-//	}
-//
-//	d.SetId(LambdaEventSourceMappingId(d))
-//	return resourceAwsLambdaEventSourceMappingRead(d, meta)
-	return nil
+	params := getAwsLambdaCreateEventSourceMappingInput(d)
+
+ 	log.Printf("[DEBUG] Creating EventSourceMapping %#v", params)
+	resp, err := conn.CreateEventSourceMapping(&params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return fmt.Errorf("[WARN] Error creating EventSourceMapping for arn %s message: \"%s\", code: \"%s\"",
+				d.Get("event_source_arn").(string), awsErr.Message(), awsErr.Code())
+		}
+		return err
+	}
+
+ 	log.Printf("[DEBUG] Created EventSourceMapping %#v", params)
+
+	d.SetId(LambdaEventSourceMappingId(d))
+	d.Set("uuid",&resp.UUID)
+
+ 	log.Printf("[DEBUG] Created EventSourceMapping with uuid %s", &resp.UUID)
+
+	return resourceAwsLambdaEventSourceMappingRead(d, meta)
 }
 
-func resourceAwsLambdaEventSourceMappingUpdate(d *schema.ResourceData, meta interface{}) error {
-//	conn := meta.(*AWSClient).cloudwatchlogsconn
+//func resourceAwsLambdaEventSourceMappingUpdate(d *schema.ResourceData, meta interface{}) error {
+//	conn := meta.(*AWSClient).lambdaconn
 //
-//	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
+//	params := getAwsLambdaCreateEventSourceMappingInput(d)
 //
- 	log.Printf("[DEBUG] Updating EventSourceMapping")
-//	_, err := conn.PutSubscriptionFilter(&params)
+// 	log.Printf("[DEBUG] Updating EventSourceMapping")
+//	_, err := conn.UpdateEventSourceMapping(&params)
 //	if err != nil {
 //		if awsErr, ok := err.(awserr.Error); ok {
 //			return fmt.Errorf("[WARN] Error updating SubscriptionFilter (%s) for LogGroup (%s), message: \"%s\", code: \"%s\"",
@@ -86,63 +95,46 @@ func resourceAwsLambdaEventSourceMappingUpdate(d *schema.ResourceData, meta inte
 //
 //	d.SetId(LambdaEventSourceMappingId(d))
 //	return resourceAwsLambdaEventSourceMappingRead(d, meta)
-	return nil
-}
-
-//func getAwsCloudWatchLogsSubscriptionFilterInput(d *schema.ResourceData) cloudwatchlogs.PutSubscriptionFilterInput {
-//	name := d.Get("name").(string)
-//	destination := d.Get("destination").(string)
-//	filter_pattern := d.Get("filter_pattern").(string)
-//	log_group := d.Get("log_group").(string)
-//
-//	params := cloudwatchlogs.PutSubscriptionFilterInput{
-//		FilterName:     aws.String(name),
-//		DestinationArn: aws.String(destination),
-//		FilterPattern:  aws.String(filter_pattern),
-//		LogGroupName:   aws.String(log_group),
-//	}
-//
-//	if _, ok := d.GetOk("role"); ok {
-//		params.RoleArn = aws.String(d.Get("role").(string))
-//	}
-//
-//	return params
 //}
 
+func getAwsLambdaCreateEventSourceMappingInput(d *schema.ResourceData) lambda.CreateEventSourceMappingInput {
+	event_source_arn := d.Get("event_source_arn").(string)
+	function_name := d.Get("function_name").(string)
+	starting_position := d.Get("starting_position").(string)
+
+	params := lambda.CreateEventSourceMappingInput{
+		EventSourceArn: aws.String(event_source_arn),
+		FunctionName: aws.String(function_name),
+		StartingPosition:  aws.String(starting_position),
+	}
+
+//	if _, ok := d.GetOk("batch_size"); ok {
+//		params.BatchSize = aws.Int64(d.Get("batch_size").(int64))
+//	}
+
+	if _, ok := d.GetOk("enabled"); ok {
+		params.Enabled = aws.Bool(d.Get("enabled").(bool))
+	}
+
+	return params
+}
+
 func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interface{}) error {
-//	conn := meta.(*AWSClient).cloudwatchlogsconn
+  	conn := meta.(*AWSClient).lambdaconn
 
  	log.Printf("[DEBUG] Reading EventSourceMapping")
 
-//
-//	log_group := d.Get("log_group").(string)
-//
-//	req := &cloudwatchlogs.DescribeSubscriptionFiltersInput{
-//		LogGroupName: aws.String(d.Get("log_group").(string)), // Required
-//	}
-//
-//	if _, ok := d.GetOk("name"); ok {
-//		req.FilterNamePrefix = aws.String(d.Get("name").(string))
-//	}
-//
-//	resp, err := conn.DescribeSubscriptionFilters(req)
-//	if err != nil {
-//		return fmt.Errorf("Error reading SubscriptionFilters for log group %s with name prefix %s: %#v", log_group, d.Get("name").(string), err)
-//	}
-//
-//	for _, subscriptionFilter := range resp.SubscriptionFilters {
-//		if *subscriptionFilter.LogGroupName == log_group {
-//			if name, ok := d.GetOk("name"); ok {
-//				if *subscriptionFilter.FilterName == name.(string) {
-//					return nil // OK, matching subscription filter found
-//				}
-//			} else {
-//				return nil // OK, matching subscription filter found - name not given
-//			}
-//		}
-//	}
-//
-//	return fmt.Errorf("Subscription filter for log group %s with name prefix %s not found!", log_group, d.Get("name").(string))
+	uuid := d.Get("uuid").(string)
+	params := &lambda.GetEventSourceMappingInput{
+		UUID: &uuid,
+	}
+	_, err := conn.GetEventSourceMapping(params)
+
+	if err != nil {
+		return fmt.Errorf("Error reading EventSourceMapping for uuid %s: %#v", uuid, err)
+	}
+
+	// TODO: Might need setting of d-values?
 	return nil
 }
 
@@ -167,18 +159,21 @@ func resourceAwsLambdaEventSourceMappingDelete(d *schema.ResourceData, meta inte
 	return nil
 }
 
-//func LambdaEventSourceMappingId(d *schema.ResourceData) string {
-//	var buf bytes.Buffer
-//
-//	name := d.Get("name").(string)
-//	destination := d.Get("destination").(string)
-//	filter_pattern := d.Get("filter_pattern").(string)
-//	log_group := d.Get("log_group").(string)
-//
-//	buf.WriteString(fmt.Sprintf("%s-", name))
-//	buf.WriteString(fmt.Sprintf("%s-", destination))
-//	buf.WriteString(fmt.Sprintf("%s-", log_group))
-//	buf.WriteString(fmt.Sprintf("%s-", filter_pattern))
-//
-//	return fmt.Sprintf("cwlsf-%d", hashcode.String(buf.String()))
-//}
+func LambdaEventSourceMappingId(d *schema.ResourceData) string {
+	var buf bytes.Buffer
+
+	event_source_arn := d.Get("event_source_arn").(string)
+	function_name := d.Get("function_name").(string)
+	starting_position := d.Get("starting_position").(string)
+	batch_size := d.Get("batch_size").(string)
+	enabled := d.Get("enabled").(string)
+
+
+	buf.WriteString(fmt.Sprintf("%s-", event_source_arn))
+	buf.WriteString(fmt.Sprintf("%s-", function_name))
+	buf.WriteString(fmt.Sprintf("%s-", starting_position))
+	buf.WriteString(fmt.Sprintf("%d-", batch_size))
+	buf.WriteString(fmt.Sprintf("%v-", enabled))
+
+	return fmt.Sprintf("lesm-%d", hashcode.String(buf.String()))
+}
