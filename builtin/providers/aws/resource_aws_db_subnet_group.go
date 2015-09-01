@@ -139,7 +139,7 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	conn := meta.(*AWSClient).rdsconn
 	arn, err := buildRDSARN(d, meta)
 	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for DB Subnet Group, not setting Tags for group %s", subnetGroup.DBSubnetGroupName)
+		log.Printf("[DEBUG] Error building ARN for DB Subnet Group, not setting Tags for group %s", *subnetGroup.DBSubnetGroupName)
 	} else {
 		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
 			ResourceName: aws.String(arn),
@@ -182,6 +182,15 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			return err
 		}
 	}
+
+	if arn, err := buildRDSARN(d, meta); err == nil {
+		if err := setTagsRDS(conn, d, arn); err != nil {
+			return err
+		} else {
+			d.SetPartial("tags")
+		}
+	}
+
 	return resourceAwsDbSubnetGroupRead(d, meta)
 }
 
