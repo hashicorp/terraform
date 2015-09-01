@@ -38,6 +38,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"latest_stream_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -644,6 +648,9 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	// currently can
 	if table.StreamSpecification != nil {
 		d.Set("stream_specification", flattenDynamoDBStreamSpecification(table.StreamSpecification))
+		if *(table.StreamSpecification.StreamEnabled) {
+			d.Set("latest_stream_arn", table.LatestStreamArn)
+		}
 	} else {
 		log.Printf("[DEBUG] StreamSpecification does not exist - will populate as false")
 		disabledStreamSpecification := &dynamodb.StreamSpecification{
