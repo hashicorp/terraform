@@ -75,6 +75,44 @@ func TestAccDynRecord_Updated(t *testing.T) {
 	})
 }
 
+func TestAccDynRecord_Multiple(t *testing.T) {
+	var record dynect.Record
+	zone := os.Getenv("DYN_ZONE")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDynRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckDynRecordConfig_multiple, zone, zone, zone),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDynRecordExists("dyn_record.foobar1", &record),
+					testAccCheckDynRecordAttributes(&record),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar1", "name", "terraform1"),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar1", "zone", zone),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar1", "value", "192.168.0.10"),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar2", "name", "terraform2"),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar2", "zone", zone),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar2", "value", "192.168.1.10"),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar3", "name", "terraform3"),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar3", "zone", zone),
+					resource.TestCheckResourceAttr(
+						"dyn_record.foobar3", "value", "192.168.2.10"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDynRecordDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*dynect.ConvenientClient)
 
@@ -173,6 +211,29 @@ resource "dyn_record" "foobar" {
 	zone = "%s"
 	name = "terraform"
 	value = "192.168.0.11"
+	type = "A"
+	ttl = 3600
+}`
+
+const testAccCheckDynRecordConfig_multiple = `
+resource "dyn_record" "foobar1" {
+	zone = "%s"
+	name = "terraform1"
+	value = "192.168.0.10"
+	type = "A"
+	ttl = 3600
+}
+resource "dyn_record" "foobar2" {
+	zone = "%s"
+	name = "terraform2"
+	value = "192.168.1.10"
+	type = "A"
+	ttl = 3600
+}
+resource "dyn_record" "foobar3" {
+	zone = "%s"
+	name = "terraform3"
+	value = "192.168.2.10"
 	type = "A"
 	ttl = 3600
 }`
