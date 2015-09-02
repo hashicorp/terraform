@@ -34,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/firehose"
@@ -71,36 +72,37 @@ type Config struct {
 }
 
 type AWSClient struct {
+	autoscalingconn      *autoscaling.AutoScaling
 	cfconn               *cloudformation.CloudFormation
 	cloudtrailconn       *cloudtrail.CloudTrail
 	cloudwatchconn       *cloudwatch.CloudWatch
-	cloudwatchlogsconn   *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn *cloudwatchevents.CloudWatchEvents
+	cloudwatchlogsconn   *cloudwatchlogs.CloudWatchLogs
+	codecommitconn       *codecommit.CodeCommit
+	codedeployconn       *codedeploy.CodeDeploy
 	dsconn               *directoryservice.DirectoryService
 	dynamodbconn         *dynamodb.DynamoDB
 	ec2conn              *ec2.EC2
 	ecrconn              *ecr.ECR
 	ecsconn              *ecs.ECS
 	efsconn              *efs.EFS
+	elasticacheconn      *elasticache.ElastiCache
+	elasticbeanstalkconn *elasticbeanstalk.ElasticBeanstalk
 	elbconn              *elb.ELB
 	esconn               *elasticsearch.ElasticsearchService
-	autoscalingconn      *autoscaling.AutoScaling
-	s3conn               *s3.S3
-	sqsconn              *sqs.SQS
-	snsconn              *sns.SNS
-	redshiftconn         *redshift.Redshift
-	r53conn              *route53.Route53
-	region               string
-	rdsconn              *rds.RDS
+	firehoseconn         *firehose.Firehose
+	glacierconn          *glacier.Glacier
 	iamconn              *iam.IAM
 	kinesisconn          *kinesis.Kinesis
-	firehoseconn         *firehose.Firehose
-	elasticacheconn      *elasticache.ElastiCache
 	lambdaconn           *lambda.Lambda
 	opsworksconn         *opsworks.OpsWorks
-	glacierconn          *glacier.Glacier
-	codedeployconn       *codedeploy.CodeDeploy
-	codecommitconn       *codecommit.CodeCommit
+	r53conn              *route53.Route53
+	rdsconn              *rds.RDS
+	redshiftconn         *redshift.Redshift
+	region               string
+	s3conn               *s3.S3
+	snsconn              *sns.SNS
+	sqsconn              *sqs.SQS
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -211,6 +213,9 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Kinesis Connection")
 		kinesisSess := session.New(&awsKinesisConfig)
 		client.kinesisconn = kinesis.New(kinesisSess)
+
+		log.Println("[INFO] Initializing Elastic Beanstalk Connection")
+		client.elasticbeanstalkconn = elasticbeanstalk.New(awsConfig)
 
 		authErr := c.ValidateAccountId(client.iamconn)
 		if authErr != nil {
