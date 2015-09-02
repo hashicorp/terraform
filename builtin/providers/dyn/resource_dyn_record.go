@@ -3,10 +3,13 @@ package dyn
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/nesv/go-dynect/dynect"
 )
+
+var mutex = &sync.Mutex{}
 
 func resourceDynRecord() *schema.Resource {
 	return &schema.Resource{
@@ -54,6 +57,8 @@ func resourceDynRecord() *schema.Resource {
 }
 
 func resourceDynRecordCreate(d *schema.ResourceData, meta interface{}) error {
+	mutex.Lock()
+
 	client := meta.(*dynect.ConvenientClient)
 
 	record := &dynect.Record{
@@ -68,26 +73,33 @@ func resourceDynRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	// create the record
 	err := client.CreateRecord(record)
 	if err != nil {
+		mutex.Unlock()
 		return fmt.Errorf("Failed to create Dyn record: %s", err)
 	}
 
 	// publish the zone
 	err = client.PublishZone(record.Zone)
 	if err != nil {
+		mutex.Unlock()
 		return fmt.Errorf("Failed to publish Dyn zone: %s", err)
 	}
 
 	// get the record ID
 	err = client.GetRecordID(record)
 	if err != nil {
+		mutex.Unlock()
 		return fmt.Errorf("%s", err)
 	}
 	d.SetId(record.ID)
 
+	mutex.Unlock()
 	return resourceDynRecordRead(d, meta)
 }
 
 func resourceDynRecordRead(d *schema.ResourceData, meta interface{}) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	client := meta.(*dynect.ConvenientClient)
 
 	record := &dynect.Record{
@@ -115,6 +127,8 @@ func resourceDynRecordRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDynRecordUpdate(d *schema.ResourceData, meta interface{}) error {
+	mutex.Lock()
+
 	client := meta.(*dynect.ConvenientClient)
 
 	record := &dynect.Record{
@@ -129,26 +143,33 @@ func resourceDynRecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	// update the record
 	err := client.UpdateRecord(record)
 	if err != nil {
+		mutex.Unlock()
 		return fmt.Errorf("Failed to update Dyn record: %s", err)
 	}
 
 	// publish the zone
 	err = client.PublishZone(record.Zone)
 	if err != nil {
+		mutex.Unlock()
 		return fmt.Errorf("Failed to publish Dyn zone: %s", err)
 	}
 
 	// get the record ID
 	err = client.GetRecordID(record)
 	if err != nil {
+		mutex.Unlock()
 		return fmt.Errorf("%s", err)
 	}
 	d.SetId(record.ID)
 
+	mutex.Unlock()
 	return resourceDynRecordRead(d, meta)
 }
 
 func resourceDynRecordDelete(d *schema.ResourceData, meta interface{}) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	client := meta.(*dynect.ConvenientClient)
 
 	record := &dynect.Record{
