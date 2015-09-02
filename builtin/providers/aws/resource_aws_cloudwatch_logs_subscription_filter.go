@@ -52,6 +52,9 @@ func resourceAwsCloudwatchLogsSubscriptionFilter() *schema.Resource {
 func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
 
+	log_group := d.Get("log_group").(string)
+	createLogGroupIfNeeded(conn, log_group)
+
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
 
 	log.Printf("[DEBUG] Creating SubscriptionFilter %#v", params)
@@ -59,12 +62,12 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return fmt.Errorf("[WARN] Error creating SubscriptionFilter (%s) for LogGroup (%s), message: \"%s\", code: \"%s\"",
-				d.Get("name").(string), d.Get("log_group").(string), awsErr.Message(), awsErr.Code())
+				d.Get("name").(string), log_group, awsErr.Message(), awsErr.Code())
 		}
 		return err
 	}
 
-	d.SetId(CloudwatchLogsSubscriptionFilterId(d))
+	d.SetId(cloudwatchLogsSubscriptionFilterId(d.Get("log_group").(string)))
 	return resourceAwsCloudwatchLogsSubscriptionFilterRead(d, meta)
 }
 
@@ -83,7 +86,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterUpdate(d *schema.ResourceData, m
 		return err
 	}
 
-	d.SetId(CloudwatchLogsSubscriptionFilterId(d))
+	d.SetId(cloudwatchLogsSubscriptionFilterId(d.Get("log_group").(string)))
 	return resourceAwsCloudwatchLogsSubscriptionFilterRead(d, meta)
 }
 
@@ -111,13 +114,11 @@ func resourceAwsCloudwatchLogsSubscriptionFilterRead(d *schema.ResourceData, met
 	conn := meta.(*AWSClient).cloudwatchlogsconn
 
 	log_group := d.Get("log_group").(string)
+	name := d.Get("name").(string) // "name" is a required field in the schema
 
 	req := &cloudwatchlogs.DescribeSubscriptionFiltersInput{
-		LogGroupName: aws.String(d.Get("log_group").(string)), // Required
-	}
-
-	if _, ok := d.GetOk("name"); ok {
-		req.FilterNamePrefix = aws.String(d.Get("name").(string))
+		LogGroupName: aws.String(log_group),
+		FilterNamePrefix: aws.String(name),
 	}
 
 	resp, err := conn.DescribeSubscriptionFilters(req)
@@ -127,13 +128,8 @@ func resourceAwsCloudwatchLogsSubscriptionFilterRead(d *schema.ResourceData, met
 
 	for _, subscriptionFilter := range resp.SubscriptionFilters {
 		if *subscriptionFilter.LogGroupName == log_group {
-			if name, ok := d.GetOk("name"); ok {
-				if *subscriptionFilter.FilterName == name.(string) {
-					return nil // OK, matching subscription filter found
-				}
-			} else {
-				return nil // OK, matching subscription filter found - name not given
-			}
+			d.SetId(cloudwatchLogsSubscriptionFilterId(log_group))
+			return nil // OK, matching subscription filter found
 		}
 	}
 
@@ -160,18 +156,51 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 	return nil
 }
 
-func CloudwatchLogsSubscriptionFilterId(d *schema.ResourceData) string {
+func createLogGroupIfNeeded(conn *cloudwatchlogs.CloudWatchLogs, log_group_name string) error {
+
+	log.Printf("[DEBUG] Make sure that LogGroup exists %s", log_group_name)
+	log_group_search_params := &cloudwatchlogs.DescribeLogGroupsInput{
+		LogGroupNamePrefix: aws.String(log_group_name),
+	}
+	log_groups_response, log_groups_err := conn.DescribeLogGroups(log_group_search_params)
+	if log_groups_err != nil {
+		if awsErr, ok := log_groups_err.(awserr.Error); ok {
+			return fmt.Errorf("[WARN] Error searching for LogGroup %s, message: \"%s\", code: \"%s\"",
+				log_group_name, awsErr.Message(), awsErr.Code())
+		}
+		return log_groups_err
+	}
+
+	var log_group_exists bool = false
+	for _, l := range log_groups_response.LogGroups {
+		if *l.LogGroupName == log_group_name {
+			log_group_exists = true
+			break
+		}
+	}
+
+	if log_group_exists == false {
+		log.Printf("[DEBUG] Creating LogGroup %s", log_group_name)
+		params := &cloudwatchlogs.CreateLogGroupInput{
+			LogGroupName: aws.String(log_group_name),
+		}
+		_, err := conn.CreateLogGroup(params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return fmt.Errorf("[WARN] Error creating LogGroup %s, message: \"%s\", code: \"%s\"",
+					log_group_name, awsErr.Message(), awsErr.Code())
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func cloudwatchLogsSubscriptionFilterId(log_group string) string {
 	var buf bytes.Buffer
 
-	name := d.Get("name").(string)
-	destination := d.Get("destination").(string)
-	filter_pattern := d.Get("filter_pattern").(string)
-	log_group := d.Get("log_group").(string)
-
-	buf.WriteString(fmt.Sprintf("%s-", name))
-	buf.WriteString(fmt.Sprintf("%s-", destination))
-	buf.WriteString(fmt.Sprintf("%s-", log_group))
-	buf.WriteString(fmt.Sprintf("%s-", filter_pattern))
+	buf.WriteString(fmt.Sprintf("%s-", log_group)) // only one filter allowed per log_group at the moment
 
 	return fmt.Sprintf("cwlsf-%d", hashcode.String(buf.String()))
 }
