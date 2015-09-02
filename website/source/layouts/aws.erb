@@ -39,7 +39,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|elastic-beanstalk|eip|instance|launch|lb|proxy|spot|volume)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -81,6 +81,14 @@
 
                         <li<%= sidebar_current("docs-aws-resource-elb") %>>
                             <a href="/docs/providers/aws/r/elb.html">aws_elb</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-application") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_application.html">aws_elastic_beanstalk_application</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-environment") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_environment.html">aws_elastic_beanstalk_environment</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-instance") %>>
