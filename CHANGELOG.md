@@ -13,6 +13,7 @@ IMPROVEMENTS:
   * provider/aws: Support IAM role names (previously just ARNs) in `aws_ecs_service.iam_role` [GH-3061]
   * provider/aws: Add update method to RDS Subnet groups, can modify subnets without recreating  [GH-3053]
   * provider/aws: Paginate notifications returned for ASG Notifications [GH-3043]
+  * provider/aws: add `ses_smtp_password` to `aws_iam_access_key` [GH-3165]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
 
 BUG FIXES:
