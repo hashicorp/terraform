@@ -469,6 +469,13 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("public_ip", instance.PublicIpAddress)
 	d.Set("private_dns", instance.PrivateDnsName)
 	d.Set("private_ip", instance.PrivateIpAddress)
+
+	if instance.IamInstanceProfile != nil {
+		d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile.Arn))
+	} else if _, ok := d.GetOk("iam_instance_profile"); ok {
+		d.Set("iam_instance_profile", "")
+	}
+
 	if len(instance.NetworkInterfaces) > 0 {
 		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetId)
 	} else {
@@ -1069,4 +1076,8 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 	}
 
 	return nil
+}
+
+func iamInstanceProfileArnToName(arn *string) string {
+	return strings.Split(*arn, "/")[1]
 }
