@@ -52,6 +52,7 @@ func Provider() terraform.ResourceProvider {
 			"google_dns_record_set":                 resourceDnsRecordSet(),
 			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
 			"google_storage_bucket":                 resourceStorageBucket(),
+			"google_storage_bucket_object":          resourceStorageBucketObject(),
 		},
 
 		ConfigureFunc: providerConfigure,
