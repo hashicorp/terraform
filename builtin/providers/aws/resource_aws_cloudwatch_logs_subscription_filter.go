@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -51,9 +55,14 @@ func resourceAwsCloudwatchLogsSubscriptionFilter() *schema.Resource {
 
 func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
+	kinesis_conn := meta.(*AWSClient).kinesisconn
 
 	log_group := d.Get("log_group").(string)
+	destination_arn_sliced := strings.Split(d.Get("destination").(string), "/")
+	destination_name := destination_arn_sliced[len(destination_arn_sliced)-1]
+
 	createLogGroupIfNeeded(conn, log_group)
+	waitForKinesisStreamToActivate(kinesis_conn, destination_name)
 
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
 
@@ -117,7 +126,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterRead(d *schema.ResourceData, met
 	name := d.Get("name").(string) // "name" is a required field in the schema
 
 	req := &cloudwatchlogs.DescribeSubscriptionFiltersInput{
-		LogGroupName: aws.String(log_group),
+		LogGroupName:     aws.String(log_group),
 		FilterNamePrefix: aws.String(name),
 	}
 
@@ -153,6 +162,36 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 			"Error deleting Subscription Filter from log group: %s with name filter name %s", log_group, name)
 	}
 	d.SetId("")
+	return nil
+}
+
+func waitForKinesisStreamToActivate(conn *kinesis.Kinesis, stream_name string) error {
+	// If destination is Kinesis stream, then it must be ACTIVE before creating SubscriptionFilter
+	log.Printf("[DEBUG] Checking if Kinesis stream %s is ACTIVE", stream_name)
+	wait := resource.StateChangeConf{
+		Pending:    []string{"CREATING", "UPDATING", "DELETING"},
+		Target:     "ACTIVE",
+		Timeout:    5 * time.Minute,
+		MinTimeout: 1 * time.Second,
+		Refresh: func() (interface{}, string, error) {
+			log.Printf("[DEBUG] Checking if Kinesis stream %s is ACTIVE", stream_name)
+			resp, err := conn.DescribeStream(&kinesis.DescribeStreamInput{
+				StreamName: aws.String(stream_name),
+			})
+			if err != nil {
+				return resp, "FAILED", err
+			}
+			stream_status := *resp.StreamDescription.StreamStatus
+			log.Printf("[DEBUG] Kinesis stream %s is %s checking for ACTIVE", stream_name, stream_status)
+			return resp, stream_status, nil
+		},
+	}
+
+	_, err := wait.WaitForState()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
