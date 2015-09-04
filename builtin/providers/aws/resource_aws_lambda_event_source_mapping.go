@@ -114,11 +114,11 @@ func getAwsLambdaCreateEventSourceMappingInput(d *schema.ResourceData) lambda.Cr
 		StartingPosition:  aws.String(starting_position),
 	}
 
-	/* TODO : terraform chrashes
 	if _, ok := d.GetOk("batch_size"); ok {
-		params.BatchSize = aws.Int64(d.Get("batch_size").(int64))
+		batch_size := d.Get("batch_size").(int)
+		params.BatchSize = aws.Int64(int64(batch_size))
 	}
-    */
+
 	if _, ok := d.GetOk("enabled"); ok {
 		params.Enabled = aws.Bool(d.Get("enabled").(bool))
 	}
