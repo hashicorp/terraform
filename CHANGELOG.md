@@ -6,6 +6,7 @@ FEATURES:
   * **New resource: `cloudstack_loadbalancer_rule`** [GH-2934]
   * **New resource: `google_compute_project_metadata`** [GH-3065]
   * **New resources: `aws_ami`, `aws_ami_copy`, `aws_ami_from_instance`** [GH-2874]
+  * **New resources: `google_compute_vpn_tunnel`, `google_compute_vpn_gateway`** [GH-3211]
 
 IMPROVEMENTS:
 
