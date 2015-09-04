@@ -136,9 +136,9 @@ func (c *PlanCommand) Run(args []string) int {
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 		"[reset][bold]Plan:[reset] "+
 			"%d to add, %d to change, %d to destroy.",
-		countHook.ToAdd,
-		(countHook.ToChange + countHook.ToRemoveAndAdd),
-		countHook.ToRemove)))
+		countHook.ToAdd+countHook.ToRemoveAndAdd,
+		countHook.ToChange,
+		countHook.ToRemove+countHook.ToRemoveAndAdd)))
 
 	if detailed {
 		return 2
