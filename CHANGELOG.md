@@ -28,6 +28,8 @@ BUG FIXES:
   * provider/aws: Fix issue with RDS to allow major version upgrades [GH-3053]
   * provider/aws: Fix shard_count in `aws_kinesis_stream` [GH-2986]
   * provider/aws: Fix issue with `key_name` and using VPCs with spot instance requests [GH-2954]
+  * provider/aws: Fix unresolvable diffs coming from `aws_elasticache_cluster` names being downcased
+      by AWS [GH-3120]
 
 ## 0.6.3 (August 11, 2015)
 
