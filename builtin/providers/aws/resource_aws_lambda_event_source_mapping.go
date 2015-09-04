@@ -59,6 +59,7 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 	params := getAwsLambdaCreateEventSourceMappingInput(d)
 
  	log.Printf("[DEBUG] Creating EventSourceMapping %#v", params)
+
 	resp, err := conn.CreateEventSourceMapping(&params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -71,9 +72,9 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
  	log.Printf("[DEBUG] Created EventSourceMapping %#v", params)
 
 	d.SetId(LambdaEventSourceMappingId(d))
-	d.Set("uuid",&resp.UUID)
+	d.Set("uuid",*resp.UUID)
 
- 	log.Printf("[DEBUG] Created EventSourceMapping with uuid %s", &resp.UUID)
+ 	log.Printf("[DEBUG] Created EventSourceMapping with uuid %s", *resp.UUID)
 
 	return resourceAwsLambdaEventSourceMappingRead(d, meta)
 }
@@ -82,6 +83,11 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 //	conn := meta.(*AWSClient).lambdaconn
 //
 //	params := getAwsLambdaCreateEventSourceMappingInput(d)
+//  tager UUID og de variable parametre:
+//		BatchSize:    aws.Int64(1),
+//		Enabled:      aws.Bool(true),
+//		FunctionName: aws.String("FunctionName"),
+
 //
 // 	log.Printf("[DEBUG] Updating EventSourceMapping")
 //	_, err := conn.UpdateEventSourceMapping(&params)
@@ -108,10 +114,11 @@ func getAwsLambdaCreateEventSourceMappingInput(d *schema.ResourceData) lambda.Cr
 		StartingPosition:  aws.String(starting_position),
 	}
 
-//	if _, ok := d.GetOk("batch_size"); ok {
-//		params.BatchSize = aws.Int64(d.Get("batch_size").(int64))
-//	}
-
+	/* TODO : terraform chrashes
+	if _, ok := d.GetOk("batch_size"); ok {
+		params.BatchSize = aws.Int64(d.Get("batch_size").(int64))
+	}
+    */
 	if _, ok := d.GetOk("enabled"); ok {
 		params.Enabled = aws.Bool(d.Get("enabled").(bool))
 	}
@@ -128,6 +135,7 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 	params := &lambda.GetEventSourceMappingInput{
 		UUID: &uuid,
 	}
+
 	_, err := conn.GetEventSourceMapping(params)
 
 	if err != nil {
@@ -139,23 +147,32 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 }
 
 func resourceAwsLambdaEventSourceMappingDelete(d *schema.ResourceData, meta interface{}) error {
-//	conn := meta.(*AWSClient).cloudwatchlogsconn
-//
- 	log.Printf("[DEBUG] Deleting EventSourceMapping")
-//	log_group := d.Get("log_group").(string)
-//	name := d.Get("name").(string)
-//
-//	params := &cloudwatchlogs.DeleteSubscriptionFilterInput{
-//		FilterName:   aws.String(name),      // Required
-//		LogGroupName: aws.String(log_group), // Required
-//	}
-//	_, err := conn.DeleteSubscriptionFilter(params)
-//
-//	if err != nil {
-//		return fmt.Errorf(
-//			"Error deleting Subscription Filter from log group: %s with name filter name %s", log_group, name)
-//	}
-//	d.SetId("")
+	conn := meta.(*AWSClient).lambdaconn
+
+	log.Printf("[DEBUG] Deleting EventSourceMapping")
+
+	uuid := d.Get("uuid").(string)
+	params := &lambda.DeleteEventSourceMappingInput{
+		UUID: &uuid, // Required
+	}
+
+	log.Printf("[TRACE] ------------------------------------------------------------------------------------------ D E L E T E ------- %s", uuid)
+
+	// Doit
+	resp, err := conn.DeleteEventSourceMapping(params)
+
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+ 		// Message from an error.
+		if awsErr, ok := err.(awserr.Error); ok {
+			return fmt.Errorf("[WARN] Error deleting EventSourceMapping for arn %s message: \"%s\", code: \"%s\"",
+				d.Get("event_source_arn").(string), awsErr.Message(), awsErr.Code())
+		}
+ 		return err
+ 	}
+
+	log.Printf("[DEBUG] Deleted EventSourceMapping with uuid %s", *resp.UUID)
+
 	return nil
 }
 
@@ -165,8 +182,8 @@ func LambdaEventSourceMappingId(d *schema.ResourceData) string {
 	event_source_arn := d.Get("event_source_arn").(string)
 	function_name := d.Get("function_name").(string)
 	starting_position := d.Get("starting_position").(string)
-	batch_size := d.Get("batch_size").(string)
-	enabled := d.Get("enabled").(string)
+	batch_size := d.Get("batch_size").(int)
+	enabled := d.Get("enabled").(bool)
 
 
 	buf.WriteString(fmt.Sprintf("%s-", event_source_arn))
