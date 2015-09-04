@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
   * core: Add a function to find the index of an element in a list. [GH-2704]
   * core: Print all outputs when `terraform output` is called with no arguments [GH-2920]
+  * core: In plan output summary, count resource replacement as Add/Remove instead of Change [GH-3173]
   * provider/aws: Add `instance_initiated_shutdown_behavior` to AWS Instance [GH-2887]
   * provider/aws: Support IAM role names (previously just ARNs) in `aws_ecs_service.iam_role` [GH-3061]
   * provider/aws: Add update method to RDS Subnet groups, can modify subnets without recreating  [GH-3053]
