@@ -66,6 +66,12 @@ func resourceComputeRoute() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"next_hop_vpn_tunnel": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"priority": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
@@ -101,12 +107,16 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// Next hop data
-	var nextHopInstance, nextHopIp, nextHopNetwork, nextHopGateway string
+	var nextHopInstance, nextHopIp, nextHopNetwork, nextHopGateway,
+		nextHopVpnTunnel string
 	if v, ok := d.GetOk("next_hop_ip"); ok {
 		nextHopIp = v.(string)
 	}
 	if v, ok := d.GetOk("next_hop_gateway"); ok {
 		nextHopGateway = v.(string)
+	}
+	if v, ok := d.GetOk("next_hop_vpn_tunnel"); ok {
+		nextHopVpnTunnel = v.(string)
 	}
 	if v, ok := d.GetOk("next_hop_instance"); ok {
 		nextInstance, err := config.clientCompute.Instances.Get(
@@ -140,15 +150,16 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 
 	// Build the route parameter
 	route := &compute.Route{
-		Name:            d.Get("name").(string),
-		DestRange:       d.Get("dest_range").(string),
-		Network:         network.SelfLink,
-		NextHopInstance: nextHopInstance,
-		NextHopIp:       nextHopIp,
-		NextHopNetwork:  nextHopNetwork,
-		NextHopGateway:  nextHopGateway,
-		Priority:        int64(d.Get("priority").(int)),
-		Tags:            tags,
+		Name:             d.Get("name").(string),
+		DestRange:        d.Get("dest_range").(string),
+		Network:          network.SelfLink,
+		NextHopInstance:  nextHopInstance,
+		NextHopVpnTunnel: nextHopVpnTunnel,
+		NextHopIp:        nextHopIp,
+		NextHopNetwork:   nextHopNetwork,
+		NextHopGateway:   nextHopGateway,
+		Priority:         int64(d.Get("priority").(int)),
+		Tags:             tags,
 	}
 	log.Printf("[DEBUG] Route insert request: %#v", route)
 	op, err := config.clientCompute.Routes.Insert(
