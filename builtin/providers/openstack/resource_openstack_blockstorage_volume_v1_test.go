@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -12,6 +13,15 @@ import (
 
 func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 	var volume volumes.Volume
+
+	var testAccBlockStorageV1Volume_bootable = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			region = "%s"
+			name = "tf-test-volume-bootable"
+			size = 5
+			image_id = "%s"
+		}`,
+		os.Getenv("OS_REGION_NAME"), os.Getenv("OS_IMAGE_ID"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -31,6 +41,12 @@ func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-updated"),
 					testAccCheckBlockStorageV1VolumeMetadata(&volume, "foo", "bar"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBlockStorageV1Volume_bootable,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-bootable"),
 				),
 			},
 		},
