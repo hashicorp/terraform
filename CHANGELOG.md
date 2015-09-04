@@ -31,6 +31,8 @@ BUG FIXES:
   * provider/aws: Fix issue with `key_name` and using VPCs with spot instance requests [GH-2954]
   * provider/aws: Fix unresolvable diffs coming from `aws_elasticache_cluster` names being downcased
       by AWS [GH-3120]
+  * provider/openstack: add state 'downloading' to list of expected states in
+      `blockstorage_volume_v1` creation [GH-2866]
 
 ## 0.6.3 (August 11, 2015)
 
