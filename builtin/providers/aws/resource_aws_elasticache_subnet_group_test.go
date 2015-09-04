@@ -150,7 +150,10 @@ resource "aws_subnet" "foo" {
 }
 
 resource "aws_elasticache_subnet_group" "bar" {
-    name = "tf-test-cache-subnet-%03d"
+    // Including uppercase letters in this name to ensure
+    // that we correctly handle the fact that the API
+    // normalizes names to lowercase.
+    name = "tf-TEST-cache-subnet-%03d"
     description = "tf-test-cache-subnet-group-descr"
     subnet_ids = ["${aws_subnet.foo.id}"]
 }
