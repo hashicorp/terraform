@@ -17,6 +17,7 @@ IMPROVEMENTS:
   * provider/aws: Add update method to RDS Subnet groups, can modify subnets without recreating  [GH-3053]
   * provider/aws: Paginate notifications returned for ASG Notifications [GH-3043]
   * provider/aws: add `ses_smtp_password` to `aws_iam_access_key` [GH-3165]
+  * provider/aws: read `iam_instance_profile` for `aws_instance` and save to state [GH-3167]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
 
 BUG FIXES:
