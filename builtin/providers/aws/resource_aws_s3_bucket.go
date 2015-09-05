@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hashicorp/terraform/helper/hashcode"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -89,9 +91,24 @@ func resourceAwsS3Bucket() *schema.Resource {
 			},
 
 			"versioning": &schema.Schema{
-				Type:     schema.TypeBool,
+				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%d-", m["enabled"].(bool)))
+
+					return hashcode.String(buf.String())
+				},
 			},
 
 			"tags": tagsSchema(),
@@ -238,14 +255,16 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	log.Printf("[DEBUG] S3 Bucket: %s, versioning: %v", d.Id(), versioning)
-	if versioning.Status != nil {
-		var versioningStatus bool
+	if versioning.Status != nil && *versioning.Status == s3.BucketVersioningStatusEnabled {
+		vcl := make([]map[string]interface{}, 0, 1)
+		vc := make(map[string]interface{})
 		if *versioning.Status == s3.BucketVersioningStatusEnabled {
-			versioningStatus = true
+			vc["enabled"] = true
 		} else {
-			versioningStatus = false
+			vc["enabled"] = false
 		}
-		if err := d.Set("versioning", versioningStatus); err != nil {
+		vcl = append(vcl, vc)
+		if err := d.Set("versioning", vcl); err != nil {
 			return err
 		}
 	}
@@ -492,15 +511,22 @@ func WebsiteDomainUrl(region string) string {
 }
 
 func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
-	v := d.Get("versioning").(bool)
+	v := d.Get("versioning").(*schema.Set).List()
 	bucket := d.Get("bucket").(string)
-
 	vc := &s3.VersioningConfiguration{}
-	if v {
-		vc.Status = aws.String(s3.BucketVersioningStatusEnabled)
+
+	if len(v) > 0 {
+		c := v[0].(map[string]interface{})
+
+		if c["enabled"].(bool) {
+			vc.Status = aws.String(s3.BucketVersioningStatusEnabled)
+		} else {
+			vc.Status = aws.String(s3.BucketVersioningStatusSuspended)
+		}
 	} else {
 		vc.Status = aws.String(s3.BucketVersioningStatusSuspended)
 	}
+
 	i := &s3.PutBucketVersioningInput{
 		Bucket:                  aws.String(bucket),
 		VersioningConfiguration: vc,

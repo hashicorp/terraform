@@ -437,7 +437,9 @@ var testAccAWSS3BucketConfigWithVersioning = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
-	versioning = true
+	versioning {
+	  enabled = true
+	}
 }
 `, randInt)
 
@@ -445,6 +447,8 @@ var testAccAWSS3BucketConfigWithDisableVersioning = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
-	versioning = false
+	versioning {
+	  enabled = false
+	}
 }
 `, randInt)
