@@ -41,6 +41,18 @@ resource "aws_s3_bucket" "b" {
 }
 ```
 
+### Using versioning
+
+```
+resource "aws_s3_bucket" "b" {
+    bucket = "my_tf_test_bucket"
+    acl = "private"
+    versioning {
+        enabled = true
+    }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -52,12 +64,17 @@ The following arguments are supported:
 * `tags` - (Optional) A mapping of tags to assign to the bucket.
 * `force_destroy` - (Optional, Default:false ) A boolean that indicates all objects should be deleted from the bucket so that the bucket can be destroyed without error. These objects are *not* recoverable.
 * `website` - (Optional) A website object (documented below).
+* `versioning` - (Optional) A state of [versioning](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) (documented below)
 
 The website object supports the following:
 
 * `index_document` - (Required, unless using `redirect_all_requests_to`) Amazon S3 returns this index document when requests are made to the root domain or any of the subfolders.
 * `error_document` - (Optional) An absolute path to the document to return in case of a 4XX error.
 * `redirect_all_requests_to` - (Optional) A hostname to redirect all website requests for this bucket to.
+
+The versioning supports the following:
+
+* `enabled` - (Optional) Enable versioning. Once you version-enable a bucket, it can never return to an unversioned state. You can, however, suspend versioning on that bucket.
 
 ## Attributes Reference
 

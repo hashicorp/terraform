@@ -154,6 +154,40 @@ func TestAccAWSS3Bucket_shouldFailNotFound(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_Versioning(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketVersioning(
+						"aws_s3_bucket.bucket", ""),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithVersioning,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketVersioning(
+						"aws_s3_bucket.bucket", s3.BucketVersioningStatusEnabled),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithDisableVersioning,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketVersioning(
+						"aws_s3_bucket.bucket", s3.BucketVersioningStatusSuspended),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).s3conn
 
@@ -310,6 +344,33 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, 
 	}
 }
 
+func testAccCheckAWSS3BucketVersioning(n string, versioningStatus string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketVersioning(&s3.GetBucketVersioningInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			return fmt.Errorf("GetBucketVersioning error: %v", err)
+		}
+
+		if v := out.Status; v == nil {
+			if versioningStatus != "" {
+				return fmt.Errorf("bad error versioning status, found nil, expected: %s", versioningStatus)
+			}
+		} else {
+			if *v != versioningStatus {
+				return fmt.Errorf("bad error versioning status, expected: %s, got %s", versioningStatus, *v)
+			}
+		}
+
+		return nil
+	}
+}
+
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
 var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
@@ -372,3 +433,22 @@ resource "aws_s3_bucket" "bucket" {
 	acl = "public-read"
 }
 `, destroyedName)
+var testAccAWSS3BucketConfigWithVersioning = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	versioning {
+	  enabled = true
+	}
+}
+`, randInt)
+
+var testAccAWSS3BucketConfigWithDisableVersioning = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	versioning {
+	  enabled = false
+	}
+}
+`, randInt)

@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hashicorp/terraform/helper/hashcode"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -88,6 +90,27 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Computed: true,
 			},
 
+			"versioning": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
+
+					return hashcode.String(buf.String())
+				},
+			},
+
 			"tags": tagsSchema(),
 
 			"force_destroy": &schema.Schema{
@@ -147,6 +170,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("website") {
 		if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("versioning") {
+		if err := resourceAwsS3BucketVersioningUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -216,6 +245,28 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if err := d.Set("website", websites); err != nil {
 		return err
+	}
+
+	// Read the versioning configuration
+	versioning, err := s3conn.GetBucketVersioning(&s3.GetBucketVersioningInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, versioning: %v", d.Id(), versioning)
+	if versioning.Status != nil && *versioning.Status == s3.BucketVersioningStatusEnabled {
+		vcl := make([]map[string]interface{}, 0, 1)
+		vc := make(map[string]interface{})
+		if *versioning.Status == s3.BucketVersioningStatusEnabled {
+			vc["enabled"] = true
+		} else {
+			vc["enabled"] = false
+		}
+		vcl = append(vcl, vc)
+		if err := d.Set("versioning", vcl); err != nil {
+			return err
+		}
 	}
 
 	// Add the region as an attribute
@@ -457,6 +508,37 @@ func WebsiteDomainUrl(region string) string {
 	}
 
 	return fmt.Sprintf("s3-website-%s.amazonaws.com", region)
+}
+
+func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	v := d.Get("versioning").(*schema.Set).List()
+	bucket := d.Get("bucket").(string)
+	vc := &s3.VersioningConfiguration{}
+
+	if len(v) > 0 {
+		c := v[0].(map[string]interface{})
+
+		if c["enabled"].(bool) {
+			vc.Status = aws.String(s3.BucketVersioningStatusEnabled)
+		} else {
+			vc.Status = aws.String(s3.BucketVersioningStatusSuspended)
+		}
+	} else {
+		vc.Status = aws.String(s3.BucketVersioningStatusSuspended)
+	}
+
+	i := &s3.PutBucketVersioningInput{
+		Bucket:                  aws.String(bucket),
+		VersioningConfiguration: vc,
+	}
+	log.Printf("[DEBUG] S3 put bucket versioning: %#v", i)
+
+	_, err := s3conn.PutBucketVersioning(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 versioning: %s", err)
+	}
+
+	return nil
 }
 
 func normalizeJson(jsonString interface{}) string {
