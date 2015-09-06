@@ -117,9 +117,6 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("CLOUDSTACK_PUBLIC_IPADDRESS"); v == "" {
 		t.Fatal("CLOUDSTACK_PUBLIC_IPADDRESS must be set for acceptance tests")
 	}
-	if v := os.Getenv("CLOUDSTACK_SSH_KEYPAIR"); v == "" {
-		t.Fatal("CLOUDSTACK_SSH_KEYPAIR must be set for acceptance tests")
-	}
 	if v := os.Getenv("CLOUDSTACK_SSH_PUBLIC_KEY"); v == "" {
 		t.Fatal("CLOUDSTACK_SSH_PUBLIC_KEY must be set for acceptance tests")
 	}
@@ -146,30 +143,77 @@ func testAccPreCheck(t *testing.T) {
 	}
 }
 
-var CLOUDSTACK_2ND_NIC_IPADDRESS = os.Getenv("CLOUDSTACK_2ND_NIC_IPADDRESS")
-var CLOUDSTACK_2ND_NIC_NETWORK = os.Getenv("CLOUDSTACK_2ND_NIC_NETWORK")
+// Name of a valid disk offering
 var CLOUDSTACK_DISK_OFFERING_1 = os.Getenv("CLOUDSTACK_DISK_OFFERING_1")
+
+// Name of a disk offering that CLOUDSTACK_DISK_OFFERING_1 can resize to
 var CLOUDSTACK_DISK_OFFERING_2 = os.Getenv("CLOUDSTACK_DISK_OFFERING_2")
-var CLOUDSTACK_HYPERVISOR = os.Getenv("CLOUDSTACK_HYPERVISOR")
+
+// Name of a valid service offering
 var CLOUDSTACK_SERVICE_OFFERING_1 = os.Getenv("CLOUDSTACK_SERVICE_OFFERING_1")
+
+// Name of a service offering that CLOUDSTACK_SERVICE_OFFERING_1 can resize to
 var CLOUDSTACK_SERVICE_OFFERING_2 = os.Getenv("CLOUDSTACK_SERVICE_OFFERING_2")
+
+// Name of a network that already exists
 var CLOUDSTACK_NETWORK_1 = os.Getenv("CLOUDSTACK_NETWORK_1")
+
+// A valid IP address in CLOUDSTACK_NETWORK_1
 var CLOUDSTACK_NETWORK_1_IPADDRESS = os.Getenv("CLOUDSTACK_NETWORK_1_IPADDRESS")
+
+// Name for a network that will be created
 var CLOUDSTACK_NETWORK_2 = os.Getenv("CLOUDSTACK_NETWORK_2")
+
+// Any range
 var CLOUDSTACK_NETWORK_2_CIDR = os.Getenv("CLOUDSTACK_NETWORK_2_CIDR")
+
+// Name of an available network offering with specifyvlan=false
 var CLOUDSTACK_NETWORK_2_OFFERING = os.Getenv("CLOUDSTACK_NETWORK_2_OFFERING")
+
+// An IP address in CLOUDSTACK_NETWORK_2_CIDR
 var CLOUDSTACK_NETWORK_2_IPADDRESS = os.Getenv("CLOUDSTACK_NETWORK_2_IPADDRESS")
+
+// A network that already exists and isnt CLOUDSTACK_NETWORK_1
+var CLOUDSTACK_2ND_NIC_NETWORK = os.Getenv("CLOUDSTACK_2ND_NIC_NETWORK")
+
+// An IP address in CLOUDSTACK_2ND_NIC_NETWORK
+var CLOUDSTACK_2ND_NIC_IPADDRESS = os.Getenv("CLOUDSTACK_2ND_NIC_IPADDRESS")
+
+// Any range
 var CLOUDSTACK_VPC_CIDR_1 = os.Getenv("CLOUDSTACK_VPC_CIDR_1")
+
+// Any range that doesn't overlap to CLOUDSTACK_VPC_CIDR_1, will be VPNed
 var CLOUDSTACK_VPC_CIDR_2 = os.Getenv("CLOUDSTACK_VPC_CIDR_2")
+
+// An available VPC offering
 var CLOUDSTACK_VPC_OFFERING = os.Getenv("CLOUDSTACK_VPC_OFFERING")
+
+// A sub-range of CLOUDSTACK_VPC_CIDR_1 with same starting point
 var CLOUDSTACK_VPC_NETWORK_CIDR = os.Getenv("CLOUDSTACK_VPC_NETWORK_CIDR")
+
+// Name of an available network offering with forvpc=true
 var CLOUDSTACK_VPC_NETWORK_OFFERING = os.Getenv("CLOUDSTACK_VPC_NETWORK_OFFERING")
+
+// Path to a public IP that exists for CLOUDSTACK_NETWORK_1
 var CLOUDSTACK_PUBLIC_IPADDRESS = os.Getenv("CLOUDSTACK_PUBLIC_IPADDRESS")
+
+// Path to a public key on local disk
 var CLOUDSTACK_SSH_PUBLIC_KEY = os.Getenv("CLOUDSTACK_SSH_PUBLIC_KEY")
+
+// Name of a template that exists already for building VMs
 var CLOUDSTACK_TEMPLATE = os.Getenv("CLOUDSTACK_TEMPLATE")
+
+// Details of a template that will be added
 var CLOUDSTACK_TEMPLATE_FORMAT = os.Getenv("CLOUDSTACK_TEMPLATE_FORMAT")
+var CLOUDSTACK_HYPERVISOR = os.Getenv("CLOUDSTACK_HYPERVISOR")
 var CLOUDSTACK_TEMPLATE_URL = os.Getenv("CLOUDSTACK_TEMPLATE_URL")
 var CLOUDSTACK_TEMPLATE_OS_TYPE = os.Getenv("CLOUDSTACK_TEMPLATE_OS_TYPE")
+
+// Name of a project that exists already
 var CLOUDSTACK_PROJECT_NAME = os.Getenv("CLOUDSTACK_PROJECT_NAME")
+
+// Name of a network that exists already in CLOUDSTACK_PROJECT_NAME
 var CLOUDSTACK_PROJECT_NETWORK = os.Getenv("CLOUDSTACK_PROJECT_NETWORK")
+
+// Name of a zone that exists already
 var CLOUDSTACK_ZONE = os.Getenv("CLOUDSTACK_ZONE")
