@@ -79,6 +79,9 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		d.Get("public_port").(int),
 	)
 
+	// Don't autocreate a firewall rule, use a resource if needed
+	p.SetOpenfirewall(false)
+
 	// Set the description
 	if description, ok := d.GetOk("description"); ok {
 		p.SetDescription(description.(string))
@@ -160,14 +163,16 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	d.Set("public_port", lb.Publicport)
 	d.Set("private_port", lb.Privateport)
 
-	// Get the network details
-	network, _, err := cs.Network.GetNetworkByID(lb.Networkid)
-	if err != nil {
-		return err
-	}
-
 	setValueOrUUID(d, "ipaddress", lb.Publicip, lb.Publicipid)
-	setValueOrUUID(d, "network", network.Name, lb.Networkid)
+
+	// Only set network if user specified it to avoid spurious diffs
+	if _, ok := d.GetOk("network"); ok {
+		network, _, err := cs.Network.GetNetworkByID(lb.Networkid)
+		if err != nil {
+			return err
+		}
+		setValueOrUUID(d, "network", network.Name, lb.Networkid)
+	}
 
 	return nil
 }
