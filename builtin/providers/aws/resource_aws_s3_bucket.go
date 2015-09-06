@@ -105,7 +105,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Set: func(v interface{}) int {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%d-", m["enabled"].(bool)))
+					buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
 
 					return hashcode.String(buf.String())
 				},
