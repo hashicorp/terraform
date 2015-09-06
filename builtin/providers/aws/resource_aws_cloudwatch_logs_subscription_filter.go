@@ -16,6 +16,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+// Number of times to retry if a throttling- or test message exception occurs
+const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES = 5
+
+// How long to sleep when a throttle-event happens
+const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP = 5 * time.Second
+
 func resourceAwsCloudwatchLogsSubscriptionFilter() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsCloudwatchLogsSubscriptionFilterCreate,
@@ -57,6 +63,8 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	conn := meta.(*AWSClient).cloudwatchlogsconn
 	kinesis_conn := meta.(*AWSClient).kinesisconn
 
+	name := d.Get("name").(string)
+
 	log_group := d.Get("log_group").(string)
 	destination_arn_sliced := strings.Split(d.Get("destination").(string), "/")
 	destination_name := destination_arn_sliced[len(destination_arn_sliced)-1]
@@ -67,17 +75,33 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
 
 	log.Printf("[DEBUG] Creating SubscriptionFilter %#v", params)
-	_, err := conn.PutSubscriptionFilter(&params)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error creating SubscriptionFilter (%s) for LogGroup (%s), message: \"%s\", code: \"%s\"",
-				d.Get("name").(string), log_group, awsErr.Message(), awsErr.Code())
+
+	attemptCount := 1
+	for attemptCount <= CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES {
+		_, err := conn.PutSubscriptionFilter(&params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "InvalidParameterException" {
+					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back put request", attemptCount, CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES)
+					time.Sleep(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP)
+					attemptCount += 1
+				} else {
+					// Some other non-retryable exception occurred
+					return fmt.Errorf("[WARN] Error creating SubscriptionFilter (%s) for LogGroup (%s) to destination (%s), message: \"%s\", code: \"%s\"",
+						name, log_group, destination_name, awsErr.Message(), awsErr.Code())
+				}
+			} else {
+				// Non-AWS exception occurred, give up
+				return fmt.Errorf("Error creating Cloudwatch logs subscription filter: %s", name, err)
+			}
+		} else {
+			d.SetId(cloudwatchLogsSubscriptionFilterId(d.Get("log_group").(string)))
+			return resourceAwsCloudwatchLogsSubscriptionFilterRead(d, meta)
 		}
-		return err
 	}
 
-	d.SetId(cloudwatchLogsSubscriptionFilterId(d.Get("log_group").(string)))
-	return resourceAwsCloudwatchLogsSubscriptionFilterRead(d, meta)
+	// Too many throttling events occurred, give up
+	return fmt.Errorf("Unable to create Cloudwatch logs subscription filter '%s' after %d attempts", name, attemptCount)
 }
 
 func resourceAwsCloudwatchLogsSubscriptionFilterUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -167,7 +191,6 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 
 func waitForKinesisStreamToActivate(conn *kinesis.Kinesis, stream_name string) error {
 	// If destination is Kinesis stream, then it must be ACTIVE before creating SubscriptionFilter
-	log.Printf("[DEBUG] Checking if Kinesis stream %s is ACTIVE", stream_name)
 	wait := resource.StateChangeConf{
 		Pending:    []string{"CREATING", "UPDATING", "DELETING"},
 		Target:     "ACTIVE",

@@ -675,13 +675,39 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 
-	_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
-		TableName: aws.String(d.Id()),
-	})
-	if err != nil {
-		return err
+	attemptCount := 1
+	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
+		_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
+			TableName: aws.String(d.Id()),
+		})
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "ThrottlingException" {
+					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
+					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
+					attemptCount += 1
+				} else if awsErr.Code() == "LimitExceededException" {
+					log.Printf("[DEBUG] Limit on concurrent table deletion hit, sleeping for a bit")
+					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
+					attemptCount += 1
+				} else if awsErr.Code() == "ResourceNotFoundException" {
+					log.Printf("[DEBUG] Table no longer exists - that's actually OK")
+					return nil
+				} else {
+					// Some other non-retryable exception occurred
+					return fmt.Errorf("AWS Error deleting DynamoDB table: %s", err)
+				}
+			} else {
+				// Non-AWS exception occurred, give up
+				return fmt.Errorf("Error deleting DynamoDB table: %s", err)
+			}
+		} else {
+			return nil
+		}
 	}
-	return nil
+
+	// Too many throttling events occurred, give up
+	return fmt.Errorf("Unable to delete DynamoDB table '%s' after %d attempts", d.Id(), attemptCount)
 }
 
 func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryIndex {
