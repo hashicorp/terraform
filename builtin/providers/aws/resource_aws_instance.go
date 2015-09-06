@@ -1074,7 +1074,7 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 }
 
 func iamInstanceProfileArnToName(ip *ec2.IamInstanceProfile) string {
-	if ip == nil && ip.Arn == nil {
+	if ip == nil || ip.Arn == nil {
 		return ""
 	}
 	return strings.Split(*ip.Arn, "/")[1]
