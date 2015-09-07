@@ -135,6 +135,10 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
 				time.Sleep(2 * time.Second)
 				continue
+			} else if awsErr.Code() == "TooManyRequestsException" {
+				log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", i, 5)
+				time.Sleep(2 * time.Second)
+				continue
 			}
 		}
 		break

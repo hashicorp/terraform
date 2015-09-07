@@ -17,7 +17,7 @@ import (
 )
 
 // Number of times to retry if a throttling- or test message exception occurs
-const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES = 5
+const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES = 10
 
 // How long to sleep when a throttle-event happens
 const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP = 5 * time.Second

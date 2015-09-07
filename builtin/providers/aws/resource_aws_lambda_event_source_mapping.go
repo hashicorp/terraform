@@ -13,7 +13,7 @@ import (
 )
 
 // Number of times to retry if a throttling-related exception occurs
-const LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES = 5
+const LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES = 10
 
 // How long to sleep when a throttle-event happens
 const LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP = 2 * time.Second
