@@ -2,10 +2,10 @@ package ultradns
 
 import (
 	"fmt"
+	"github.com/Ensighten/udnssdk"
+	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"strconv"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/Ensighten/udnssdk"
 )
 
 func resourceUltraDNSRecord() *schema.Resource {
@@ -98,10 +98,10 @@ func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error 
 	} else {
 		if string(rec.OwnerName[len(rec.OwnerName)-1]) == "." {
 			d.Set("hostname", rec.OwnerName)
-		}	else {
-		d.Set("hostname", fmt.Sprintf("%s.%s", rec.OwnerName, d.Get("zone").(string)))
+		} else {
+			d.Set("hostname", fmt.Sprintf("%s.%s", rec.OwnerName, d.Get("zone").(string)))
+		}
 	}
-}
 	return nil
 }
 
@@ -125,7 +125,7 @@ func resourceUltraDNSRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 			rdatas[i] = j.(string)
 		}
 		updateRecord.RData = rdatas
-		}
+	}
 
 	if attr, ok := d.GetOk("ttl"); ok {
 		updateRecord.TTL, _ = strconv.Atoi(attr.(string))
