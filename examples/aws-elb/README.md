@@ -6,6 +6,6 @@ To run, configure your AWS provider as described in https://www.terraform.io/doc
 
 Run this example using:
 
-    terraform apply -var 'key_name={your_key_name}}' 
+    terraform apply -var 'key_name=YOUR_KEY_NAME'
 
 Wait a couple of minutes for the EC2 userdata to install nginx, and then type the ELB DNS Name from outputs in your browser and see the nginx welcome page
