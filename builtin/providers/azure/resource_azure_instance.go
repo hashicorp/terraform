@@ -170,6 +170,30 @@ func resourceAzureInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"domain_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"domain_username": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"domain_password": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"domain_ou": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -272,6 +296,19 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		)
 		if err != nil {
 			return fmt.Errorf("Error configuring %s for Windows: %s", name, err)
+		}
+		
+		if domain_name, ok := d.GetOk("domain_name"); ok {
+			err = vmutils.ConfigureWindowsToJoinDomain(
+				&role, 
+				d.Get("domain_username").(string), 
+				d.Get("domain_password").(string), 
+				domain_name.(string), 
+				d.Get("domain_ou").(string),
+			) 
+			if err != nil {
+				return fmt.Errorf("Error configuring %s for WindowsToJoinDomain: %s", name, err)
+			}
 		}
 	}
 
