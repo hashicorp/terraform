@@ -120,6 +120,25 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"wait_for_capacity_timeout": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "10m",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					duration, err := time.ParseDuration(value)
+					if err != nil {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be parsed as a duration: %s", k, err))
+					}
+					if duration < 0 {
+						errors = append(errors, fmt.Errorf(
+							"%q must be greater than zero", k))
+					}
+					return
+				},
+			},
+
 			"tag": autoscalingTagsSchema(),
 		},
 	}
@@ -445,8 +464,6 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	})
 }
 
-var waitForASGCapacityTimeout = 10 * time.Minute
-
 // Waits for a minimum number of healthy instances to show up as healthy in the
 // ASG before continuing. Waits up to `waitForASGCapacityTimeout` for
 // "desired_capacity", or "min_size" if desired capacity is not specified.
@@ -461,9 +478,20 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	}
 	wantELB := d.Get("min_elb_capacity").(int)
 
-	log.Printf("[DEBUG] Waiting for capacity: %d ASG, %d ELB", wantASG, wantELB)
+	wait, err := time.ParseDuration(d.Get("wait_for_capacity_timeout").(string))
+	if err != nil {
+		return err
+	}
 
-	return resource.Retry(waitForASGCapacityTimeout, func() error {
+	if wait == 0 {
+		log.Printf("[DEBUG] Capacity timeout set to 0, skipping capacity waiting.")
+		return nil
+	}
+
+	log.Printf("[DEBUG] Waiting %s for capacity: %d ASG, %d ELB",
+		wait, wantASG, wantELB)
+
+	return resource.Retry(wait, func() error {
 		g, err := getAwsAutoscalingGroup(d, meta)
 		if err != nil {
 			return resource.RetryError{Err: err}
