@@ -66,6 +66,7 @@ IMPROVEMENTS:
   * provider/aws: Allow configuration of the DynamoDB Endpoint [GH-2825]
   * provider/aws: Compute private ip addresses of ENIs if they are not specified [GH-2743]
   * provider/aws: Add `arn` attribute for DynamoDB tables [GH-2924]
+  * provider/aws: Fail silently when account validation fails while from instance profile [GH-3001]
   * provider/azure: Allow `settings_file` to accept XML string [GH-2922]
   * provider/azure: Provide a simpler error when using a Platform Image without a
       Storage Service [GH-2861]
