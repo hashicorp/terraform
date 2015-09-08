@@ -26,7 +26,7 @@ func Provider() terraform.ResourceProvider {
 			"baseurl": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ULTRADNS_BASEURL", udnssdk.DefaultTestBaseURL),
+				DefaultFunc: schema.EnvDefaultFunc("ULTRADNS_BASEURL", nil),
 				Description: "UltraDNS Base Url(defaults to testing)",
 			},
 		},
