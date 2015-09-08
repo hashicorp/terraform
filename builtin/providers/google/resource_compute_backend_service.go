@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -132,7 +131,6 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 
 	service := compute.BackendService{
 		Name:         d.Get("name").(string),
-		Fingerprint:  resource.PrefixedUniqueId("tf-gce-bs-"),
 		HealthChecks: healthChecks,
 	}
 
