@@ -65,9 +65,8 @@ func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) erro
 		rdatas[i] = j.(string)
 	}
 	newRecord.RData = rdatas
-	if ttl, ok := d.GetOk("ttl"); ok {
-		newRecord.TTL, _ = strconv.Atoi(ttl.(string))
-	}
+	ttl := d.Get("ttl").(string)
+	newRecord.TTL, _ = strconv.Atoi(ttl)
 
 	log.Printf("[DEBUG] UltraDNS RRSet create configuration: %#v", newRecord)
 
