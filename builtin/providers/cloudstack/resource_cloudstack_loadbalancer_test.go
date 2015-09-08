@@ -19,7 +19,7 @@ func TestAccCloudStackLoadBalancerRule_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
 					resource.TestCheckResourceAttr(
@@ -35,7 +35,8 @@ func TestAccCloudStackLoadBalancerRule_basic(t *testing.T) {
 }
 
 func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
-	id := ""
+	var id string
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -44,15 +45,7 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
-					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["cloudstack_loadbalancer_rule.foo"]
-						if !ok {
-							return fmt.Errorf("Not found: cloudstack_loadbalancer_rule.foo")
-						}
-						id = rs.Primary.ID
-						return nil
-					},
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", &id),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
 					resource.TestCheckResourceAttr(
@@ -67,17 +60,7 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
-					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["cloudstack_loadbalancer_rule.foo"]
-						if !ok {
-							return fmt.Errorf("Not found: cloudstack_loadbalancer_rule.foo")
-						}
-						if id != rs.Primary.ID {
-							return fmt.Errorf("Resource has changed!")
-						}
-						return nil
-					},
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", &id),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb-update"),
 					resource.TestCheckResourceAttr(
@@ -101,7 +84,7 @@ func TestAccCloudStackLoadBalancerRule_forcenew(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
 					resource.TestCheckResourceAttr(
@@ -116,7 +99,7 @@ func TestAccCloudStackLoadBalancerRule_forcenew(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_forcenew,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb-update"),
 					resource.TestCheckResourceAttr(
@@ -140,7 +123,7 @@ func TestAccCloudStackLoadBalancerRule_vpc(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_vpc,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
 					resource.TestCheckResourceAttr(
@@ -164,7 +147,7 @@ func TestAccCloudStackLoadBalancerRule_vpc_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_vpc,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
 					resource.TestCheckResourceAttr(
@@ -179,7 +162,7 @@ func TestAccCloudStackLoadBalancerRule_vpc_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_vpc_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb-update"),
 					resource.TestCheckResourceAttr(
@@ -194,7 +177,7 @@ func TestAccCloudStackLoadBalancerRule_vpc_update(t *testing.T) {
 	})
 }
 
-func testAccCheckCloudStackLoadBalancerRuleExist(n string) resource.TestCheckFunc {
+func testAccCheckCloudStackLoadBalancerRuleExist(n string, id *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -205,21 +188,23 @@ func testAccCheckCloudStackLoadBalancerRuleExist(n string) resource.TestCheckFun
 			return fmt.Errorf("No loadbalancer rule ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuid") {
-				continue
+		if id != nil {
+			if *id != "" && *id != rs.Primary.ID {
+				return fmt.Errorf("Resource ID has changed!")
 			}
 
-			cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-			_, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(uuid)
+			*id = rs.Primary.ID
+		}
 
-			if err != nil {
-				return err
-			}
+		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
+		_, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(rs.Primary.ID)
 
-			if count == 0 {
-				return fmt.Errorf("Loadbalancer rule for %s not found", k)
-			}
+		if err != nil {
+			return err
+		}
+
+		if count == 0 {
+			return fmt.Errorf("Loadbalancer rule %s not found", n)
 		}
 
 		return nil
