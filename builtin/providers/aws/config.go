@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -72,6 +73,7 @@ type AWSClient struct {
 	opsworksconn       *opsworks.OpsWorks
 	glacierconn        *glacier.Glacier
 	codedeployconn     *codedeploy.CodeDeploy
+	kmsconn            *kms.KMS
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -197,6 +199,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CodeDeploy Connection")
 		client.codedeployconn = codedeploy.New(awsConfig)
+
+		log.Println("[INFO] Initializing KMS connection")
+		client.kmsconn = kms.New(awsConfig)
 	}
 
 	if len(errs) > 0 {

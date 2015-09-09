@@ -207,6 +207,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_internet_gateway":             resourceAwsInternetGateway(),
 			"aws_key_pair":                     resourceAwsKeyPair(),
 			"aws_kinesis_stream":               resourceAwsKinesisStream(),
+			"aws_kms_alias":                    resourceAwsKmsAlias(),
+			"aws_kms_key":                      resourceAwsKmsKey(),
 			"aws_lambda_function":              resourceAwsLambdaFunction(),
 			"aws_launch_configuration":         resourceAwsLaunchConfiguration(),
 			"aws_lb_cookie_stickiness_policy":  resourceAwsLBCookieStickinessPolicy(),
