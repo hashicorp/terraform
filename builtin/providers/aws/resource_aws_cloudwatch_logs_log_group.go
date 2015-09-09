@@ -78,7 +78,7 @@ func resourceAwsCloudwatchLogsLogGroupRead(d *schema.ResourceData, meta interfac
 	name := d.Get("name").(string) // "name" is a required field in the schema
 
 	resp, err := conn.DescribeLogGroups(&cloudwatchlogs.DescribeLogGroupsInput{
-		name: aws.String(name),
+		LogGroupNamePrefix: aws.String(name),
 	})
 
 	if err != nil {
@@ -101,7 +101,7 @@ func resourceAwsCloudwatchLogsLogGroupDelete(d *schema.ResourceData, meta interf
 	name := d.Get("name").(string)
 
 	_, err := conn.DeleteLogGroup(&cloudwatchlogs.DeleteLogGroupInput{
-		LogGroupName: name,
+		LogGroupName: &name,
 	})
 
 	if err != nil {
