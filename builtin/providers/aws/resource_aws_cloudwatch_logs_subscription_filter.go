@@ -69,7 +69,6 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	destination_arn_sliced := strings.Split(d.Get("destination").(string), "/")
 	destination_name := destination_arn_sliced[len(destination_arn_sliced)-1]
 
-	createLogGroupIfNeeded(conn, log_group)
 	waitForKinesisStreamToActivate(kinesis_conn, destination_name)
 
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
@@ -213,47 +212,6 @@ func waitForKinesisStreamToActivate(conn *kinesis.Kinesis, stream_name string) e
 	_, err := wait.WaitForState()
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func createLogGroupIfNeeded(conn *cloudwatchlogs.CloudWatchLogs, log_group_name string) error {
-
-	log.Printf("[DEBUG] Make sure that LogGroup exists %s", log_group_name)
-	log_group_search_params := &cloudwatchlogs.DescribeLogGroupsInput{
-		LogGroupNamePrefix: aws.String(log_group_name),
-	}
-	log_groups_response, log_groups_err := conn.DescribeLogGroups(log_group_search_params)
-	if log_groups_err != nil {
-		if awsErr, ok := log_groups_err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error searching for LogGroup %s, message: \"%s\", code: \"%s\"",
-				log_group_name, awsErr.Message(), awsErr.Code())
-		}
-		return log_groups_err
-	}
-
-	var log_group_exists bool = false
-	for _, l := range log_groups_response.LogGroups {
-		if *l.LogGroupName == log_group_name {
-			log_group_exists = true
-			break
-		}
-	}
-
-	if log_group_exists == false {
-		log.Printf("[DEBUG] Creating LogGroup %s", log_group_name)
-		params := &cloudwatchlogs.CreateLogGroupInput{
-			LogGroupName: aws.String(log_group_name),
-		}
-		_, err := conn.CreateLogGroup(params)
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				return fmt.Errorf("[WARN] Error creating LogGroup %s, message: \"%s\", code: \"%s\"",
-					log_group_name, awsErr.Message(), awsErr.Code())
-			}
-			return err
-		}
 	}
 
 	return nil
