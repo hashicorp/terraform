@@ -52,6 +52,7 @@ func resourceAwsCloudwatchLogsLogGroupCreate(d *schema.ResourceData, meta interf
 
 	for _, l := range log_groups_response.LogGroups {
 		if *l.LogGroupName == name {
+			d.SetId(name)
 			return nil // log group exists, do nothing
 		}
 	}
