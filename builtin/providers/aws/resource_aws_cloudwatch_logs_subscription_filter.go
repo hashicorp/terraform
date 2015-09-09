@@ -92,7 +92,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 				}
 			} else {
 				// Non-AWS exception occurred, give up
-				return fmt.Errorf("Error creating Cloudwatch logs subscription filter: %s", name, err)
+				return fmt.Errorf("Error creating Cloudwatch logs subscription filter %s: %#v", name, err)
 			}
 		} else {
 			d.SetId(cloudwatchLogsSubscriptionFilterId(d.Get("log_group").(string)))

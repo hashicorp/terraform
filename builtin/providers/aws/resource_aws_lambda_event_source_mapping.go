@@ -97,7 +97,7 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 		}
 	}
 
-	return fmt.Errorf("Error creating EventSourceMapping %#v", params, err)
+	return fmt.Errorf("Error creating EventSourceMapping %#v: %#v", params, err)
 }
 
 //func resourceAwsLambdaEventSourceMappingUpdate(d *schema.ResourceData, meta interface{}) error {
