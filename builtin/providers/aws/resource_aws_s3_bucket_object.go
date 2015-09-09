@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"io"
+        "bytes"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -34,9 +36,17 @@ func resourceAwsS3BucketObject() *schema.Resource {
 
 			"source": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				ConflictsWith: []string{"content"},
 			},
+
+                        "content": &schema.Schema{
+                                Type:     schema.TypeString,
+                                Optional: true,
+                                ForceNew: true,
+				ConflictsWith: []string{"source"},
+                        },
 
 			"etag": &schema.Schema{
 				Type:     schema.TypeString,
@@ -51,19 +61,28 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
-	source := d.Get("source").(string)
+	var body io.ReadSeeker
 
-	file, err := os.Open(source)
+	if v, ok := d.GetOk("source"); ok {
+		source := v.(string)
+		file, err := os.Open(source)
+		if err != nil {
+			return fmt.Errorf("Error opening S3 bucket object source (%s): %s", source, err)
+		}
 
-	if err != nil {
-		return fmt.Errorf("Error opening S3 bucket object source (%s): %s", source, err)
+		body = file
+	} else if v, ok := d.GetOk("content"); ok {
+		content := v.(string)
+		body = bytes.NewReader([]byte(content))
+	} else {
+		return fmt.Errorf("Must specify \"source\" or \"content\" field")
 	}
 
 	resp, err := s3conn.PutObject(
 		&s3.PutObjectInput{
 			Bucket: aws.String(bucket),
 			Key:    aws.String(key),
-			Body:   file,
+			Body:   body,
 		})
 
 	if err != nil {
