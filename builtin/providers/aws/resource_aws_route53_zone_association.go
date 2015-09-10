@@ -76,7 +76,7 @@ func resourceAwsRoute53ZoneAssociationCreate(d *schema.ResourceData, meta interf
 		MinTimeout: 2 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			changeRequest := &route53.GetChangeInput{
-				Id: aws.String(cleanChangeID(*resp.ChangeInfo.Id)),
+				Id: aws.String(cleanChangeId(*resp.ChangeInfo.Id)),
 			}
 			return resourceAwsGoRoute53Wait(r53, changeRequest)
 		},

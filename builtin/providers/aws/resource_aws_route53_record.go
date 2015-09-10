@@ -125,7 +125,7 @@ func resourceAwsRoute53RecordUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
-	zone := cleanZoneID(d.Get("zone_id").(string))
+	zone := cleanZoneId(d.Get("zone_id").(string))
 
 	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
@@ -153,7 +153,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	req := &route53.ChangeResourceRecordSetsInput{
-		HostedZoneId: aws.String(cleanZoneID(*zoneRecord.HostedZone.Id)),
+		HostedZoneId: aws.String(cleanZoneId(*zoneRecord.HostedZone.Id)),
 		ChangeBatch:  changeBatch,
 	}
 
@@ -209,7 +209,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			changeRequest := &route53.GetChangeInput{
-				Id: aws.String(cleanChangeID(*changeInfo.Id)),
+				Id: aws.String(cleanChangeId(*changeInfo.Id)),
 			}
 			return resourceAwsGoRoute53Wait(conn, changeRequest)
 		},
@@ -225,7 +225,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	zone := cleanZoneID(d.Get("zone_id").(string))
+	zone := cleanZoneId(d.Get("zone_id").(string))
 
 	// get expanded name
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
@@ -237,7 +237,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("fqdn", en)
 
 	lopts := &route53.ListResourceRecordSetsInput{
-		HostedZoneId:    aws.String(cleanZoneID(zone)),
+		HostedZoneId:    aws.String(cleanZoneId(zone)),
 		StartRecordName: aws.String(en),
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
@@ -288,7 +288,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	zone := cleanZoneID(d.Get("zone_id").(string))
+	zone := cleanZoneId(d.Get("zone_id").(string))
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
 	var err error
@@ -314,7 +314,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	req := &route53.ChangeResourceRecordSetsInput{
-		HostedZoneId: aws.String(cleanZoneID(zone)),
+		HostedZoneId: aws.String(cleanZoneId(zone)),
 		ChangeBatch:  changeBatch,
 	}
 

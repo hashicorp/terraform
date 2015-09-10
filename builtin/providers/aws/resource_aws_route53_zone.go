@@ -65,6 +65,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Computed: true,
 			},
 
+			"force_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -101,7 +107,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	// Store the zone_id
-	zone := cleanZoneID(*resp.HostedZone.Id)
+	zone := cleanZoneId(*resp.HostedZone.Id)
 	d.Set("zone_id", zone)
 	d.SetId(zone)
 
@@ -114,7 +120,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		MinTimeout: 2 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			changeRequest := &route53.GetChangeInput{
-				Id: aws.String(cleanChangeID(*resp.ChangeInfo.Id)),
+				Id: aws.String(cleanChangeId(*resp.ChangeInfo.Id)),
 			}
 			return resourceAwsGoRoute53Wait(r53, changeRequest)
 		},
@@ -209,10 +215,22 @@ func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
 
-	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (ID: %s)",
+	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (Id: %s)",
 		d.Get("name").(string), d.Id())
+
+	if ok := d.Get("force_destroy").(bool); ok {
+		err := deleteZoneRecordSets(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err := r53.DeleteHostedZone(&route53.DeleteHostedZoneInput{Id: aws.String(d.Id())})
+
 	if err != nil {
+		if awserr, ok := err.(awserr.Error); ok {
+			log.Printf("[DEBUG] AWS Error deleting hosted zone %s", awserr)
+		}
 		return err
 	}
 
@@ -228,22 +246,22 @@ func resourceAwsGoRoute53Wait(r53 *route53.Route53, ref *route53.GetChangeInput)
 	return true, *status.ChangeInfo.Status, nil
 }
 
-// cleanChangeID is used to remove the leading /change/
-func cleanChangeID(ID string) string {
-	return cleanPrefix(ID, "/change/")
+// cleanChangeId is used to remove the leading /change/
+func cleanChangeId(Id string) string {
+	return cleanPrefix(Id, "/change/")
 }
 
-// cleanZoneID is used to remove the leading /hostedzone/
-func cleanZoneID(ID string) string {
-	return cleanPrefix(ID, "/hostedzone/")
+// cleanZoneId is used to remove the leading /hostedzone/
+func cleanZoneId(Id string) string {
+	return cleanPrefix(Id, "/hostedzone/")
 }
 
-// cleanPrefix removes a string prefix from an ID
-func cleanPrefix(ID, prefix string) string {
-	if strings.HasPrefix(ID, prefix) {
-		ID = strings.TrimPrefix(ID, prefix)
+// cleanPrefix removes a string prefix from an Id
+func cleanPrefix(Id, prefix string) string {
+	if strings.HasPrefix(Id, prefix) {
+		Id = strings.TrimPrefix(Id, prefix)
 	}
-	return ID
+	return Id
 }
 
 func getNameServers(zoneId string, zoneName string, r53 *route53.Route53) ([]string, error) {
@@ -264,4 +282,115 @@ func getNameServers(zoneId string, zoneName string, r53 *route53.Route53) ([]str
 	}
 	sort.Strings(ns)
 	return ns, nil
+}
+
+func deleteZoneRecordSets(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).r53conn
+
+	zone := cleanZoneId(d.Get("zone_id").(string))
+	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
+		zone, d.Get("name").(string))
+
+	// Get the records
+	recs, err := readRecordSets(d, meta)
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Read %d resource records for zone: %s", len(recs), zone)
+
+	recs = filterRequiredRecords(recs)
+
+	log.Printf("[DEBUG] Have %d resource records after filter", len(recs))
+
+	if len(recs) == 0 {
+		return nil
+	}
+
+	changes := make([]*route53.Change, len(recs))
+	for i, r := range recs {
+		c := &route53.Change{
+			Action:            aws.String("DELETE"),
+			ResourceRecordSet: r,
+		}
+		changes[i] = c
+	}
+
+	// ChangeBatch for deletes
+	changeBatch := &route53.ChangeBatch{
+		Comment: aws.String("Deleted by Terraform"),
+		Changes: changes,
+	}
+
+	req := &route53.ChangeResourceRecordSetsInput{
+		HostedZoneId: aws.String(zone),
+		ChangeBatch:  changeBatch,
+	}
+
+	wait := resource.StateChangeConf{
+		Pending:    []string{"rejected"},
+		Target:     "accepted",
+		Timeout:    5 * time.Minute,
+		MinTimeout: 1 * time.Second,
+		Refresh: func() (interface{}, string, error) {
+			_, err := conn.ChangeResourceRecordSets(req)
+			if err != nil {
+				if r53err, ok := err.(awserr.Error); ok {
+					if r53err.Code() == "PriorRequestNotComplete" {
+						// There is some pending operation, so just retry
+						// in a bit.
+						return 42, "rejected", nil
+					}
+
+					if r53err.Code() == "InvalidChangeBatch" {
+						// This means that the record is already gone.
+						return 42, "accepted", nil
+					}
+				}
+
+				return 42, "failure", err
+			}
+
+			return 42, "accepted", nil
+		},
+	}
+
+	if _, err := wait.WaitForState(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readRecordSets(d *schema.ResourceData, meta interface{}) ([]*route53.ResourceRecordSet, error) {
+	conn := meta.(*AWSClient).r53conn
+
+	zone := cleanZoneId(d.Get("zone_id").(string))
+
+	// get expanded name
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
+	if err != nil {
+		return nil, err
+	}
+	en := expandRecordName(zone, *zoneRecord.HostedZone.Name)
+	log.Printf("[DEBUG] Expanded record name: %s", en)
+
+	lopts := &route53.ListResourceRecordSetsInput{
+		HostedZoneId: aws.String(zone),
+	}
+
+	resp, err := conn.ListResourceRecordSets(lopts)
+	if err != nil {
+		return nil, err
+	}
+	return resp.ResourceRecordSets, nil
+}
+
+func filterRequiredRecords(rrs []*route53.ResourceRecordSet) []*route53.ResourceRecordSet {
+	filtered := make([]*route53.ResourceRecordSet, 0)
+	for _, rr := range rrs {
+		if *rr.Type != "NS" && *rr.Type != "SOA" {
+			filtered = append(filtered, rr)
+		}
+	}
+	return filtered
 }
