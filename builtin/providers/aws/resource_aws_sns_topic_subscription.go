@@ -55,20 +55,20 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	if d.Get("protocol") == "email" {
-		return fmt.Errorf("Email endpoints are not supported!")
-	}
-
 	output, err := subscribeToSNSTopic(d, snsconn)
 
 	if err != nil {
 		return err
 	}
 
-	log.Printf("New subscription ARN: %s", *output.SubscriptionArn)
+	if "pending confirmation" == *output.SubscriptionArn {
+		return nil
+	}
+
+	log.Printf("New subscription Arn: %s", *output.SubscriptionArn)
 	d.SetId(*output.SubscriptionArn)
 
-	// Write the ARN to the 'arn' field for export
+	// Write the Arn to the 'arn' field for export
 	d.Set("arn", *output.SubscriptionArn)
 
 	return resourceAwsSnsTopicSubscriptionUpdate(d, meta)
@@ -124,6 +124,10 @@ func resourceAwsSnsTopicSubscriptionRead(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Loading subscription %s", d.Id())
 
+	if "pending confirmation" == d.Id() {
+		return nil
+	}
+
 	attributeOutput, err := snsconn.GetSubscriptionAttributes(&sns.GetSubscriptionAttributesInput{
 		SubscriptionArn: aws.String(d.Id()),
 	})
@@ -146,6 +150,10 @@ func resourceAwsSnsTopicSubscriptionRead(d *schema.ResourceData, meta interface{
 
 func resourceAwsSnsTopicSubscriptionDelete(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
+
+	if "pending confirmation" == d.Id() {
+		return nil
+	}
 
 	log.Printf("[DEBUG] SNS delete topic subscription: %s", d.Id())
 	_, err := snsconn.Unsubscribe(&sns.UnsubscribeInput{

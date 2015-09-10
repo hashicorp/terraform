@@ -97,4 +97,10 @@ resource "aws_sns_topic_subscription" "test_subscription" {
     protocol = "sqs"
     endpoint = "${aws_sqs_queue.test_queue.arn}"
 }
+
+# resource "aws_sns_topic_subscription" "test_email_subscription" {
+#     topic_arn = "${aws_sns_topic.test_topic.arn}"
+#     protocol = "sms"
+#     endpoint = "<1-800-555-1212>"
+# }
 `
