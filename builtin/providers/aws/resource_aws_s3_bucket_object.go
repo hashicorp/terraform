@@ -1,11 +1,11 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"io"
-        "bytes"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -35,18 +35,18 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			},
 
 			"source": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
 				ConflictsWith: []string{"content"},
 			},
 
-                        "content": &schema.Schema{
-                                Type:     schema.TypeString,
-                                Optional: true,
-                                ForceNew: true,
+			"content": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
 				ConflictsWith: []string{"source"},
-                        },
+			},
 
 			"etag": &schema.Schema{
 				Type:     schema.TypeString,
@@ -138,3 +138,4 @@ func resourceAwsS3BucketObjectDelete(d *schema.ResourceData, meta interface{}) e
 	}
 	return nil
 }
+

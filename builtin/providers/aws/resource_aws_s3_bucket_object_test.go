@@ -107,22 +107,19 @@ func testAccCheckAWSS3BucketObjectExists(n string) resource.TestCheckFunc {
 var randomBucket = randInt
 var testAccAWSS3BucketObjectConfigSource = fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
-	bucket = "tf-object-test-bucket-%d"
+    bucket = "tf-object-test-bucket-%d"
 }
-
 resource "aws_s3_bucket_object" "object" {
-	bucket = "${aws_s3_bucket.object_bucket.bucket}"
-	key = "test-key"
-	source = "%s"
+    bucket = "${aws_s3_bucket.object_bucket.bucket}"
+    key = "test-key"
+    source = "%s"
 }
 `, randomBucket, tf.Name())
-
 
 var testAccAWSS3BucketObjectConfigContent = fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
         bucket = "tf-object-test-bucket-%d"
 }
-
 resource "aws_s3_bucket_object" "object" {
         bucket = "${aws_s3_bucket.object_bucket.bucket}"
         key = "test-key"
