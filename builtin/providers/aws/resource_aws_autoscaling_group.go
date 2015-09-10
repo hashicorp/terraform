@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 )
 
@@ -181,7 +182,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	d.SetId(d.Get("name").(string))
-	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
+	log.Printf("[INFO] AutoScaling Group Id: %s", d.Id())
 
 	if err := waitForASGCapacity(d, meta); err != nil {
 		return err
@@ -492,6 +493,17 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 				continue
 			}
 
+			status, err := getInstanceSystemStatus(i.InstanceId, meta)
+			if err != nil {
+				log.Printf("[WARN] Error getting %s InstanceStatus: %s", *i.InstanceId, err)
+				return resource.RetryError{Err: err}
+			}
+
+			log.Printf("[DEBUG] Instance [%s] Instance SystemStatus is %s", *i.InstanceId, status)
+			if status != "ok" {
+				continue
+			}
+
 			haveASG++
 
 			if wantELB > 0 {
@@ -543,6 +555,29 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 	}
 
 	return lbInstanceStates, nil
+}
+
+func getInstanceSystemStatus(instance_id *string, meta interface{}) (string, error) {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	ids := []*string{instance_id}
+
+	input := &ec2.DescribeInstanceStatusInput{
+		InstanceIds:         ids,
+		IncludeAllInstances: aws.Bool(true),
+	}
+
+	output, err := ec2conn.DescribeInstanceStatus(input)
+	if err != nil {
+		return "", err
+	}
+
+	if len(output.InstanceStatuses) != 1 || output.InstanceStatuses[0].SystemStatus == nil {
+		return "", fmt.Errorf("Unexpected response while trying to describe instance status: %s", output)
+	}
+
+	status := output.InstanceStatuses[0]
+	return *status.SystemStatus.Status, nil
 }
 
 func expandVpcZoneIdentifiers(list []interface{}) *string {
