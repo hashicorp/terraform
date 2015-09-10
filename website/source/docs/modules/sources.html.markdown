@@ -81,6 +81,30 @@ You can use the same parameters to GitHub repositories as you can generic
 Git repositories (such as tags or branches). See the documentation for generic
 Git repositories for more information.
 
+#### Private GitHub Repos<a id="private-github-repos"></a>
+
+If you need Terraform to be able to fetch modules from private GitHub repos on
+a remote machine (like a Atlas or a CI server), you'll need to provide
+Terraform with credentials that can be used to authenticate as a user with read
+access to the private repo.
+
+First, create a [machine
+user](https://developer.github.com/guides/managing-deploy-keys/#machine-users)
+with access to read from the private repo in question, then embed this user's
+credentials into the source field:
+
+```
+module "private-infra" {
+  source = "git::https://MACHINE-USER:MACHINE-PASS@github.com/org/privatemodules//modules/foo"
+}
+```
+
+Note that Terraform does not yet support interpolations in the `source` field,
+so the machine username and password will have to be embedded directly into the
+source string. You can track
+[GH-1439](https://github.com/hashicorp/terraform/issues/1439) to learn when this
+limitation is lifted.
+
 ## BitBucket
 
 Terraform will automatically recognize BitBucket URLs and turn them into
