@@ -28,7 +28,11 @@ The following arguments are supported:
 
 * `bucket` - (Required) The name of the bucket to put the file in.
 * `key` - (Required) The name of the object once it is in the bucket.
-* `source` - (Required) The path to the source file being uploaded to the bucket.
+* `source` - (Required unless `content` given) The path to the source file being uploaded to the bucket.
+* `content` - (Required unless `source` given) The literal content being uploaded to the bucket.
+
+Either `source` or `content` must be provided to specify the bucket content.
+These two arguments are mutually-exclusive.
 
 ## Attributes Reference
 
