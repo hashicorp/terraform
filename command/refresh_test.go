@@ -202,7 +202,7 @@ func TestRefresh_defaultState(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 
-	f, err = os.Open(statePath + DefaultBackupExtention)
+	f, err = os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -286,7 +286,7 @@ func TestRefresh_outPath(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 
-	f, err = os.Open(outPath + DefaultBackupExtention)
+	f, err = os.Open(outPath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -575,7 +575,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	}
 
 	// Ensure there is no backup
-	_, err = os.Stat(outPath + DefaultBackupExtention)
+	_, err = os.Stat(outPath + DefaultBackupExtension)
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}

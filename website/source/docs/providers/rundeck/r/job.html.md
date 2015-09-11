@@ -113,7 +113,7 @@ The following arguments are supported:
   from the set of predefined values. Defaults to `false`, meaning that the user may choose only
   one value.
 
-* `multi_value_delimeter`: (Optional) Delimeter used to join together multiple values into a single
+* `multi_value_delimiter`: (Optional) Delimiter used to join together multiple values into a single
   string when `allow_multiple_values` is set and the user chooses multiple values.
 
 * `obscure_input`: (Optional) Boolean controlling whether the value of this option should be obscured

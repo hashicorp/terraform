@@ -149,7 +149,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
-	// Setup the state hook for continous state updates
+	// Setup the state hook for continuous state updates
 	{
 		state, err := c.State()
 		if err != nil {

@@ -791,7 +791,7 @@ func (m schemaMap) diffSet(
 	ns := n.(*Set)
 
 	// If the new value was set, compare the listCode's to determine if
-	// the two are equal. Comparing listCode's instead of the actuall values
+	// the two are equal. Comparing listCode's instead of the actual values
 	// is needed because there could be computed values in the set which
 	// would result in false positives while comparing.
 	if !all && nSet && reflect.DeepEqual(os.listCode(), ns.listCode()) {

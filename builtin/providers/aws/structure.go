@@ -378,7 +378,7 @@ func expandStringList(configured []interface{}) []*string {
 }
 
 //Flattens an array of private ip addresses into a []string, where the elements returned are the IP strings e.g. "192.168.0.0"
-func flattenNetworkInterfacesPrivateIPAddesses(dtos []*ec2.NetworkInterfacePrivateIpAddress) []string {
+func flattenNetworkInterfacesPrivateIPAddresses(dtos []*ec2.NetworkInterfacePrivateIpAddress) []string {
 	ips := make([]string, 0, len(dtos))
 	for _, v := range dtos {
 		ip := *v.PrivateIpAddress
@@ -398,7 +398,7 @@ func flattenGroupIdentifiers(dtos []*ec2.GroupIdentifier) []string {
 }
 
 //Expands an array of IPs into a ec2 Private IP Address Spec
-func expandPrivateIPAddesses(ips []interface{}) []*ec2.PrivateIpAddressSpecification {
+func expandPrivateIPAddresses(ips []interface{}) []*ec2.PrivateIpAddressSpecification {
 	dtos := make([]*ec2.PrivateIpAddressSpecification, 0, len(ips))
 	for i, v := range ips {
 		new_private_ip := &ec2.PrivateIpAddressSpecification{

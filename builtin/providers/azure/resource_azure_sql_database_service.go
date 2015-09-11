@@ -137,7 +137,7 @@ func resourceAzureSqlDatabaseServiceUpdate(d *schema.ResourceData, meta interfac
 	sqlClient := azureClient.sqlClient
 	serverName := d.Get("database_server_name").(string)
 
-	// changes to the name must occur seperately from changes to the attributes:
+	// changes to the name must occur separately from changes to the attributes:
 	if d.HasChange("name") {
 		oldv, newv := d.GetChange("name")
 
@@ -188,7 +188,7 @@ func resourceAzureSqlDatabaseServiceUpdate(d *schema.ResourceData, meta interfac
 		log.Println("[INFO] Issuing Azure Database Service parameter update.")
 		reqID, err := sqlClient.UpdateDatabase(serverName, name, updateParams)
 		if err != nil {
-			return fmt.Errorf("Failed issuing Azure SQL Service paramater update: %s", err)
+			return fmt.Errorf("Failed issuing Azure SQL Service parameter update: %s", err)
 		}
 
 		log.Println("[INFO] Waiting for Azure SQL Database Service parameter update.")

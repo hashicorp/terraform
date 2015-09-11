@@ -71,7 +71,7 @@ resource "google_compute_autoscaler" "foobar" {
 }
 ```
 
-## Argument Refernce
+## Argument Reference
 
 The following arguments are supported:
 

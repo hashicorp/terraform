@@ -125,7 +125,7 @@ func resourceAzureStorageBlobRead(d *schema.ResourceData, meta interface{}) erro
 // resourceAzureStorageBlobUpdate does all the necessary API calls to
 // update a blob on Azure.
 func resourceAzureStorageBlobUpdate(d *schema.ResourceData, meta interface{}) error {
-	// NOTE: although empty as most paramters have ForceNew set; this is
+	// NOTE: although empty as most parameters have ForceNew set; this is
 	// still required in case of changes to the storage_service_key
 
 	// run the ExistsFunc beforehand to ensure the resource's existence nonetheless:

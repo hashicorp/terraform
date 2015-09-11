@@ -26,7 +26,7 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
 }
 ```
 
-## Example in Conjuction with Scaling Policies
+## Example in Conjunction with Scaling Policies
 ```
 resource "aws_autoscaling_policy" "bat" {
     name = "foobar3-terraform-test"

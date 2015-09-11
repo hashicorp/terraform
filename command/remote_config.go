@@ -295,7 +295,7 @@ func (c *RemoteConfigCommand) enableRemoteState() int {
 	if backupPath != "-" {
 		// Provide default backup path if none provided
 		if backupPath == "" {
-			backupPath = c.conf.statePath + DefaultBackupExtention
+			backupPath = c.conf.statePath + DefaultBackupExtension
 		}
 
 		log.Printf("[INFO] Writing backup state to: %s", backupPath)

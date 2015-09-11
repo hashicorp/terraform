@@ -295,7 +295,7 @@ func testIngressRuleLength(networkAcl *ec2.NetworkAcl, length int) resource.Test
 			}
 		}
 		// There is always a default rule (ALL Traffic ... DENY)
-		// so we have to increase the lenght by 1
+		// so we have to increase the length by 1
 		if len(ingressEntries) != length+1 {
 			return fmt.Errorf("Invalid number of ingress entries found; count = %d", len(ingressEntries))
 		}

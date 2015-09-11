@@ -58,7 +58,7 @@ type Meta struct {
 	// be overriden.
 	//
 	// backupPath is used to backup the state file before writing a modified
-	// version. It defaults to stateOutPath + DefaultBackupExtention
+	// version. It defaults to stateOutPath + DefaultBackupExtension
 	statePath    string
 	stateOutPath string
 	backupPath   string
@@ -74,7 +74,7 @@ func (m *Meta) initStatePaths() {
 		m.stateOutPath = m.statePath
 	}
 	if m.backupPath == "" {
-		m.backupPath = m.stateOutPath + DefaultBackupExtention
+		m.backupPath = m.stateOutPath + DefaultBackupExtension
 	}
 }
 

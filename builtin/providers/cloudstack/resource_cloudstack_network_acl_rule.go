@@ -417,7 +417,7 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 
 		// Then loop through all the currently configured rules and create the new ones
 		for _, rule := range nrs.List() {
-			// When succesfully deleted, re-create it again if it still exists
+			// When successfully deleted, re-create it again if it still exists
 			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
