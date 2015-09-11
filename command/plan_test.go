@@ -88,7 +88,7 @@ func TestPlan_destroy(t *testing.T) {
 		}
 	}
 
-	f, err := os.Open(statePath + DefaultBackupExtention)
+	f, err := os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -561,7 +561,7 @@ func TestPlan_disableBackup(t *testing.T) {
 	}
 
 	// Ensure there is no backup
-	_, err = os.Stat(statePath + DefaultBackupExtention)
+	_, err = os.Stat(statePath + DefaultBackupExtension)
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}

@@ -603,7 +603,7 @@ func loadProvisionersHcl(os *hclobj.Object, connInfo map[string]interface{}) ([]
 			return nil, err
 		}
 
-		// Delete the "connection" section, handle seperately
+		// Delete the "connection" section, handle separately
 		delete(config, "connection")
 
 		rawConfig, err := NewRawConfig(config)

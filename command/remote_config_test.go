@@ -419,7 +419,7 @@ func testRemoteLocal(t *testing.T, exists bool) {
 }
 
 func testRemoteLocalBackup(t *testing.T, exists bool) {
-	_, err := os.Stat(DefaultStateFilename + DefaultBackupExtention)
+	_, err := os.Stat(DefaultStateFilename + DefaultBackupExtension)
 	if os.IsNotExist(err) && !exists {
 		return
 	}

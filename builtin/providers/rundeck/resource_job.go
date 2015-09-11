@@ -500,7 +500,7 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 				"decription":                option.Description,
 				"required":                  option.IsRequired,
 				"allow_multiple_values":     option.AllowsMultipleValues,
-				"multi_value_delimeter":     option.MultiValueDelimiter,
+				"multi_value_delimiter":     option.MultiValueDelimiter,
 				"obscure_input":             option.ObscureInput,
 				"exposed_to_scripts":        option.ValueIsExposedToScripts,
 			}

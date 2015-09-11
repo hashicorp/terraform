@@ -96,7 +96,7 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 	rec, err := client.RetrieveRecord(domain, d.Id())
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
-		// succesfully gone
+		// successfully gone
 		if strings.Contains(err.Error(), "404 Not Found") {
 			d.SetId("")
 			return nil
@@ -152,7 +152,7 @@ func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) 
 	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
-		// succesfully gone
+		// successfully gone
 		if strings.Contains(err.Error(), "404 Not Found") {
 			return nil
 		}

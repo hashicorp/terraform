@@ -73,7 +73,7 @@ The following arguments are supported:
 
 * `os_type (string)` - (Optional) The OS type of the node. Valid options are: `linux` and
   `windows`. If not supplied the connection type will be used to determine the OS type (`ssh`
-  will asume `linux` and `winrm` will assume `windows`).
+  will assume `linux` and `winrm` will assume `windows`).
 
 * `prevent_sudo (boolean)` - (Optional) Prevent the use of sudo while installing, configuring
   and running the initial Chef Client run. This option is only used with `ssh` type

@@ -52,7 +52,7 @@ func TestAccAzureInstance_separateHostedService(t *testing.T) {
 		CheckDestroy: testAccCheckAzureInstanceDestroyed(testAccHostedServiceName),
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureInstance_seperateHostedService,
+				Config: testAccAzureInstance_separateHostedService,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
 						"azure_instance.foo", testAccHostedServiceName, &dpmt),
@@ -384,7 +384,7 @@ resource "azure_instance" "foo" {
     }
 }`, instanceName, testAccStorageServiceName)
 
-var testAccAzureInstance_seperateHostedService = fmt.Sprintf(`
+var testAccAzureInstance_separateHostedService = fmt.Sprintf(`
 resource "azure_hosted_service" "foo" {
 	name = "%s"
 	location = "West US"

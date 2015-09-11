@@ -115,7 +115,7 @@ The following arguments are supported:
 
 * `domain_name` - (Optional) The name of an Active Directory domain to join.
 
-* `domain_ou` - (Optional) Specifies the LDAP Organisational Unit to place the 
+* `domain_ou` - (Optional) Specifies the LDAP Organizational Unit to place the 
     instance in.
 
 * `domain_username` - (Optional) The username of an account with permission to

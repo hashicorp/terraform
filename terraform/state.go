@@ -83,7 +83,7 @@ func (s *State) AddModule(path []string) *ModuleState {
 }
 
 // ModuleByPath is used to lookup the module state for the given path.
-// This should be the prefered lookup mechanism as it allows for future
+// This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
 func (s *State) ModuleByPath(path []string) *ModuleState {
 	if s == nil {

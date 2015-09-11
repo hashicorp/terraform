@@ -532,7 +532,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 		}
 
 		var dt []*rds.Tag
@@ -716,7 +716,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	// seperate request to promote a database
+	// separate request to promote a database
 	if d.HasChange("replicate_source_db") {
 		if d.Get("replicate_source_db").(string) == "" {
 			// promote
