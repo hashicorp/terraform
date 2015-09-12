@@ -176,7 +176,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: true,
 			},
 			"block_device": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -201,12 +201,22 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 					},
+				},
+				Set: func(v interface{}) int {
+					// there can only be one bootable block device; no need to hash anything
+					return 0
 				},
 			},
 			"volume": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": &schema.Schema{
@@ -215,7 +225,8 @@ func resourceComputeInstanceV2() *schema.Resource {
 						},
 						"volume_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 						"device": &schema.Schema{
 							Type:     schema.TypeString,
@@ -325,11 +336,19 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if blockDeviceRaw, ok := d.Get("block_device").(map[string]interface{}); ok && blockDeviceRaw != nil {
-		blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
-		createOpts = &bootfromvolume.CreateOptsExt{
-			createOpts,
-			blockDevice,
+	if v, ok := d.GetOk("block_device"); ok {
+		vL := v.(*schema.Set).List()
+		if len(vL) > 1 {
+			return fmt.Errorf("Can only specify one block device to boot from.")
+		}
+		for _, v := range vL {
+			blockDeviceRaw := v.(map[string]interface{})
+			blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
+			createOpts = &bootfromvolume.CreateOptsExt{
+				createOpts,
+				blockDevice,
+			}
+			log.Printf("[DEBUG] Create BFV Options: %+v", createOpts)
 		}
 	}
 
@@ -340,6 +359,23 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		createOpts = &schedulerhints.CreateOptsExt{
 			createOpts,
 			schedulerHints,
+		}
+	}
+
+	// Boot From Volume makes the root volume/disk appear as an attached volume.
+	// Because of that, and in order to accurately report volume status, the volume_id
+	// of the "volume" parameter must be computed and optional.
+	// However, a volume_id, of course, is required to attach a volume. We do the check
+	// here to fail early (before the instance is created) if a volume_id was not specified.
+	if v := d.Get("volume"); v != nil {
+		vols := v.(*schema.Set).List()
+		if len(vols) > 0 {
+			for _, v := range vols {
+				va := v.(map[string]interface{})
+				if va["volume_id"].(string) == "" {
+					return fmt.Errorf("A volume_id must be specified when attaching volumes.")
+				}
+			}
 		}
 	}
 
@@ -388,6 +424,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 			if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
 				return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
 			} else {
+
 				if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), vols); err != nil {
 					return err
 				}
@@ -919,11 +956,12 @@ func resourceInstanceBlockDeviceV2(d *schema.ResourceData, bd map[string]interfa
 	sourceType := bootfromvolume.SourceType(bd["source_type"].(string))
 	bfvOpts := []bootfromvolume.BlockDevice{
 		bootfromvolume.BlockDevice{
-			UUID:            bd["uuid"].(string),
-			SourceType:      sourceType,
-			VolumeSize:      bd["volume_size"].(int),
-			DestinationType: bd["destination_type"].(string),
-			BootIndex:       bd["boot_index"].(int),
+			UUID:                bd["uuid"].(string),
+			SourceType:          sourceType,
+			VolumeSize:          bd["volume_size"].(int),
+			DestinationType:     bd["destination_type"].(string),
+			BootIndex:           bd["boot_index"].(int),
+			DeleteOnTermination: bd["delete_on_termination"].(bool),
 		},
 	}
 
@@ -1046,6 +1084,7 @@ func resourceComputeVolumeAttachmentHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["volume_id"].(string)))
+
 	return hashcode.String(buf.String())
 }
 
