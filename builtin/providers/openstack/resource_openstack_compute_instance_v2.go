@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -45,18 +46,16 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"image_id": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Computed:    true,
-				DefaultFunc: envDefaultFunc("OS_IMAGE_ID"),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 			"image_name": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				Computed:    true,
-				DefaultFunc: envDefaultFunc("OS_IMAGE_NAME"),
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
 			},
 			"flavor_id": &schema.Schema{
 				Type:        schema.TypeString,
@@ -297,7 +296,11 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	var createOpts servers.CreateOptsBuilder
 
-	imageId, err := getImageID(computeClient, d)
+	// Determines the Image ID using the following rules:
+	// If a bootable block_device was specified, ignore the image altogether.
+	// If an image_id was specified, use it.
+	// If an image_name was specified, look up the image ID, report if error.
+	imageId, err := getImageIDFromConfig(computeClient, d)
 	if err != nil {
 		return err
 	}
@@ -372,7 +375,16 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	server, err := servers.Create(computeClient, createOpts).Extract()
+
+	// If a block_device is used, use the bootfromvolume.Create function as it allows an empty ImageRef.
+	// Otherwise, use the normal servers.Create function.
+	var server *servers.Server
+	if _, ok := d.GetOk("block_device"); ok {
+		server, err = bootfromvolume.Create(computeClient, createOpts).Extract()
+	} else {
+		server, err = servers.Create(computeClient, createOpts).Extract()
+	}
+
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack server: %s", err)
 	}
@@ -554,17 +566,10 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	}
 	d.Set("flavor_name", flavor.Name)
 
-	imageId, ok := server.Image["id"].(string)
-	if !ok {
-		return fmt.Errorf("Error setting OpenStack server's image: %v", server.Image)
-	}
-	d.Set("image_id", imageId)
-
-	image, err := images.Get(computeClient, imageId).Extract()
-	if err != nil {
+	// Set the instance's image information appropriately
+	if err := setImageInformation(computeClient, server, d); err != nil {
 		return err
 	}
-	d.Set("image_name", image.Name)
 
 	// volume attachments
 	if err := getVolumeAttachments(computeClient, d); err != nil {
@@ -980,44 +985,72 @@ func resourceInstanceSchedulerHintsV2(d *schema.ResourceData, schedulerHintsRaw 
 	return schedulerHints
 }
 
-func getImageID(client *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
-	imageId := d.Get("image_id").(string)
+func getImageIDFromConfig(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
+	// If block_device was used, an Image does not need to be specified.
+	// If an Image was specified, ignore it
+	if _, ok := d.GetOk("block_device"); ok {
+		return "", nil
+	}
 
-	if imageId != "" {
+	if imageId := d.Get("image_id").(string); imageId != "" {
+		return imageId, nil
+	} else {
+		// try the OS_IMAGE_ID environment variable
+		if v := os.Getenv("OS_IMAGE_ID"); v != "" {
+			return v, nil
+		}
+	}
+
+	imageName := d.Get("image_name").(string)
+	if imageName == "" {
+		// try the OS_IMAGE_NAME environment variable
+		if v := os.Getenv("OS_IMAGE_NAME"); v != "" {
+			imageName = v
+		}
+	}
+
+	if imageName != "" {
+		imageId, err := images.IDFromName(computeClient, imageName)
+		if err != nil {
+			return "", err
+		}
 		return imageId, nil
 	}
 
-	imageCount := 0
-	imageName := d.Get("image_name").(string)
-	if imageName != "" {
-		pager := images.ListDetail(client, &images.ListOpts{
-			Name: imageName,
-		})
-		pager.EachPage(func(page pagination.Page) (bool, error) {
-			imageList, err := images.ExtractImages(page)
-			if err != nil {
-				return false, err
-			}
+	return "", fmt.Errorf("Neither a boot device, image ID, or image name were able to be determined.")
+}
 
-			for _, i := range imageList {
-				if i.Name == imageName {
-					imageCount++
-					imageId = i.ID
-				}
-			}
-			return true, nil
-		})
+func setImageInformation(computeClient *gophercloud.ServiceClient, server *servers.Server, d *schema.ResourceData) error {
+	// If block_device was used, an Image does not need to be specified.
+	// If an Image was specified, ignore it
+	if _, ok := d.GetOk("block_device"); ok {
+		d.Set("image_id", "Attempt to boot from volume - no image supplied")
+		return nil
+	}
 
-		switch imageCount {
-		case 0:
-			return "", fmt.Errorf("Unable to find image: %s", imageName)
-		case 1:
-			return imageId, nil
-		default:
-			return "", fmt.Errorf("Found %d images matching %s", imageCount, imageName)
+	imageId := server.Image["id"].(string)
+	if imageId != "" {
+		d.Set("image_id", imageId)
+		if image, err := images.Get(computeClient, imageId).Extract(); err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return err
+			}
+			if errCode.Actual == 404 {
+				// If the image name can't be found, set the value to "Image not found".
+				// The most likely scenario is that the image no longer exists in the Image Service
+				// but the instance still has a record from when it existed.
+				d.Set("image_name", "Image not found")
+				return nil
+			} else {
+				return err
+			}
+		} else {
+			d.Set("image_name", image.Name)
 		}
 	}
-	return "", fmt.Errorf("Neither an image ID nor an image name were able to be determined.")
+
+	return nil
 }
 
 func getFlavorID(client *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
