@@ -102,6 +102,39 @@ func TestAccComputeV2Instance_floatingIPAttach(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_bootFromVolume(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_bootFromVolume = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				volume_size = 5
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_bootFromVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceBootVolumeAttachment(&instance),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeV2InstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)
@@ -205,6 +238,34 @@ func testAccCheckComputeV2InstanceVolumeAttachment(
 		}
 
 		return fmt.Errorf("Volume not found: %s", volume.ID)
+	}
+}
+
+func testAccCheckComputeV2InstanceBootVolumeAttachment(
+	instance *servers.Server) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		var attachments []volumeattach.VolumeAttachment
+
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
+		if err != nil {
+			return err
+		}
+		err = volumeattach.List(computeClient, instance.ID).EachPage(func(page pagination.Page) (bool, error) {
+			actual, err := volumeattach.ExtractVolumeAttachments(page)
+			if err != nil {
+				return false, fmt.Errorf("Unable to lookup attachment: %s", err)
+			}
+
+			attachments = actual
+			return true, nil
+		})
+
+		if len(attachments) == 1 {
+			return nil
+		}
+
+		return fmt.Errorf("No attached volume found.")
 	}
 }
 
