@@ -26,6 +26,13 @@ func TestAccAWSUser_basic(t *testing.T) {
 					testAccCheckAWSUserAttributes(&conf),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSUserConfig2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSUserExists("aws_iam_user.user", &conf),
+					testAccCheckAWSUserAttributes(&conf),
+				),
+			},
 		},
 	})
 }
@@ -103,5 +110,11 @@ const testAccAWSUserConfig = `
 resource "aws_iam_user" "user" {
 	name = "test-user"
 	path = "/"
+}
+`
+const testAccAWSUserConfig2 = `
+resource "aws_iam_user" "user" {
+	name = "test-user2"
+	path = "/balls/"
 }
 `
