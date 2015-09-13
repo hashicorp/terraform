@@ -170,6 +170,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_db_parameter_group":           resourceAwsDbParameterGroup(),
 			"aws_db_security_group":            resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":              resourceAwsDbSubnetGroup(),
+			"aws_directory_service_directory":  resourceAwsDirectoryServiceDirectory(),
 			"aws_dynamodb_table":               resourceAwsDynamoDbTable(),
 			"aws_ebs_volume":                   resourceAwsEbsVolume(),
 			"aws_ecs_cluster":                  resourceAwsEcsCluster(),
