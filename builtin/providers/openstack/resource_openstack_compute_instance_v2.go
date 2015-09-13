@@ -175,7 +175,12 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: true,
 			},
 			"block_device": &schema.Schema{
-				Type:     schema.TypeList,
+				// TODO: This is a set because we don't support singleton
+				//       sub-resources today. We'll enforce that the set only ever has
+				//       length zero or one below. When TF gains support for
+				//       sub-resources this can be converted.
+				//       As referenced in resource_aws_instance.go
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -200,12 +205,22 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
 					},
+				},
+				Set: func(v interface{}) int {
+					// there can only be one bootable block device; no need to hash anything
+					return 0
 				},
 			},
 			"volume": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": &schema.Schema{
@@ -214,7 +229,8 @@ func resourceComputeInstanceV2() *schema.Resource {
 						},
 						"volume_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 						"device": &schema.Schema{
 							Type:     schema.TypeString,
@@ -295,6 +311,13 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	// determine if volume/block_device configuration is correct
+	// this includes ensuring volume_ids are set
+	// and if only one block_device was specified.
+	if err := checkVolumeConfig(d); err != nil {
+		return err
+	}
+
 	networks := make([]servers.Network, len(networkDetails))
 	for i, net := range networkDetails {
 		networks[i] = servers.Network{
@@ -324,11 +347,16 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if blockDeviceRaw, ok := d.Get("block_device").(map[string]interface{}); ok && blockDeviceRaw != nil {
-		blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
-		createOpts = &bootfromvolume.CreateOptsExt{
-			createOpts,
-			blockDevice,
+	if v, ok := d.GetOk("block_device"); ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			blockDeviceRaw := v.(map[string]interface{})
+			blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
+			createOpts = &bootfromvolume.CreateOptsExt{
+				createOpts,
+				blockDevice,
+			}
+			log.Printf("[DEBUG] Create BFV Options: %+v", createOpts)
 		}
 	}
 
@@ -380,16 +408,14 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	// were volume attachments specified?
-	if v := d.Get("volume"); v != nil {
+	// if volumes were specified, attach them after the instance has launched.
+	if v, ok := d.GetOk("volume"); ok {
 		vols := v.(*schema.Set).List()
-		if len(vols) > 0 {
-			if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
-				return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
-			} else {
-				if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), vols); err != nil {
-					return err
-				}
+		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+			return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
+		} else {
+			if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), vols); err != nil {
+				return err
 			}
 		}
 	}
@@ -540,20 +566,8 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("image_name", image.Name)
 
 	// volume attachments
-	vas, err := getVolumeAttachments(computeClient, d.Id())
-	if err != nil {
+	if err := getVolumeAttachments(computeClient, d); err != nil {
 		return err
-	}
-	if len(vas) > 0 {
-		attachments := make([]map[string]interface{}, len(vas))
-		for i, attachment := range vas {
-			attachments[i] = make(map[string]interface{})
-			attachments[i]["id"] = attachment.ID
-			attachments[i]["volume_id"] = attachment.VolumeID
-			attachments[i]["device"] = attachment.Device
-		}
-		log.Printf("[INFO] Volume attachments: %v", attachments)
-		d.Set("volume", attachments)
 	}
 
 	return nil
@@ -665,30 +679,31 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if d.HasChange("volume") {
+		// ensure the volume configuration is correct
+		if err := checkVolumeConfig(d); err != nil {
+			return err
+		}
+
 		// old attachments and new attachments
 		oldAttachments, newAttachments := d.GetChange("volume")
 
 		// for each old attachment, detach the volume
 		oldAttachmentSet := oldAttachments.(*schema.Set).List()
-		if len(oldAttachmentSet) > 0 {
-			if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+			return err
+		} else {
+			if err := detachVolumesFromInstance(computeClient, blockClient, d.Id(), oldAttachmentSet); err != nil {
 				return err
-			} else {
-				if err := detachVolumesFromInstance(computeClient, blockClient, d.Id(), oldAttachmentSet); err != nil {
-					return err
-				}
 			}
 		}
 
 		// for each new attachment, attach the volume
 		newAttachmentSet := newAttachments.(*schema.Set).List()
-		if len(newAttachmentSet) > 0 {
-			if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+			return err
+		} else {
+			if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), newAttachmentSet); err != nil {
 				return err
-			} else {
-				if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), newAttachmentSet); err != nil {
-					return err
-				}
 			}
 		}
 
@@ -919,11 +934,12 @@ func resourceInstanceBlockDeviceV2(d *schema.ResourceData, bd map[string]interfa
 	sourceType := bootfromvolume.SourceType(bd["source_type"].(string))
 	bfvOpts := []bootfromvolume.BlockDevice{
 		bootfromvolume.BlockDevice{
-			UUID:            bd["uuid"].(string),
-			SourceType:      sourceType,
-			VolumeSize:      bd["volume_size"].(int),
-			DestinationType: bd["destination_type"].(string),
-			BootIndex:       bd["boot_index"].(int),
+			UUID:                bd["uuid"].(string),
+			SourceType:          sourceType,
+			VolumeSize:          bd["volume_size"].(int),
+			DestinationType:     bd["destination_type"].(string),
+			BootIndex:           bd["boot_index"].(int),
+			DeleteOnTermination: bd["delete_on_termination"].(bool),
 		},
 	}
 
@@ -1046,6 +1062,7 @@ func resourceComputeVolumeAttachmentHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["volume_id"].(string)))
+
 	return hashcode.String(buf.String())
 }
 
@@ -1073,81 +1090,78 @@ func resourceComputeSchedulerHintsHash(v interface{}) int {
 }
 
 func attachVolumesToInstance(computeClient *gophercloud.ServiceClient, blockClient *gophercloud.ServiceClient, serverId string, vols []interface{}) error {
-	if len(vols) > 0 {
-		for _, v := range vols {
-			va := v.(map[string]interface{})
-			volumeId := va["volume_id"].(string)
-			device := va["device"].(string)
+	for _, v := range vols {
+		va := v.(map[string]interface{})
+		volumeId := va["volume_id"].(string)
+		device := va["device"].(string)
 
-			s := ""
-			if serverId != "" {
-				s = serverId
-			} else if va["server_id"] != "" {
-				s = va["server_id"].(string)
-			} else {
-				return fmt.Errorf("Unable to determine server ID to attach volume.")
-			}
-
-			vaOpts := &volumeattach.CreateOpts{
-				Device:   device,
-				VolumeID: volumeId,
-			}
-
-			if _, err := volumeattach.Create(computeClient, s, vaOpts).Extract(); err != nil {
-				return err
-			}
-
-			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"attaching", "available"},
-				Target:     "in-use",
-				Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
-				Timeout:    30 * time.Minute,
-				Delay:      5 * time.Second,
-				MinTimeout: 2 * time.Second,
-			}
-
-			if _, err := stateConf.WaitForState(); err != nil {
-				return err
-			}
-
-			log.Printf("[INFO] Attached volume %s to instance %s", volumeId, serverId)
+		s := ""
+		if serverId != "" {
+			s = serverId
+		} else if va["server_id"] != "" {
+			s = va["server_id"].(string)
+		} else {
+			return fmt.Errorf("Unable to determine server ID to attach volume.")
 		}
+
+		vaOpts := &volumeattach.CreateOpts{
+			Device:   device,
+			VolumeID: volumeId,
+		}
+
+		if _, err := volumeattach.Create(computeClient, s, vaOpts).Extract(); err != nil {
+			return err
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"attaching", "available"},
+			Target:     "in-use",
+			Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
+			Timeout:    30 * time.Minute,
+			Delay:      5 * time.Second,
+			MinTimeout: 2 * time.Second,
+		}
+
+		if _, err := stateConf.WaitForState(); err != nil {
+			return err
+		}
+
+		log.Printf("[INFO] Attached volume %s to instance %s", volumeId, serverId)
 	}
 	return nil
 }
 
 func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockClient *gophercloud.ServiceClient, serverId string, vols []interface{}) error {
-	if len(vols) > 0 {
-		for _, v := range vols {
-			va := v.(map[string]interface{})
-			aId := va["id"].(string)
+	for _, v := range vols {
+		va := v.(map[string]interface{})
+		aId := va["id"].(string)
 
-			if err := volumeattach.Delete(computeClient, serverId, aId).ExtractErr(); err != nil {
-				return err
-			}
-
-			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"detaching", "in-use"},
-				Target:     "available",
-				Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
-				Timeout:    30 * time.Minute,
-				Delay:      5 * time.Second,
-				MinTimeout: 2 * time.Second,
-			}
-
-			if _, err := stateConf.WaitForState(); err != nil {
-				return err
-			}
-			log.Printf("[INFO] Detached volume %s from instance %s", va["volume_id"], serverId)
+		if err := volumeattach.Delete(computeClient, serverId, aId).ExtractErr(); err != nil {
+			return err
 		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"detaching", "in-use"},
+			Target:     "available",
+			Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
+			Timeout:    30 * time.Minute,
+			Delay:      5 * time.Second,
+			MinTimeout: 2 * time.Second,
+		}
+
+		if _, err := stateConf.WaitForState(); err != nil {
+			return err
+		}
+		log.Printf("[INFO] Detached volume %s from instance %s", va["volume_id"], serverId)
 	}
 
 	return nil
 }
 
-func getVolumeAttachments(computeClient *gophercloud.ServiceClient, serverId string) ([]volumeattach.VolumeAttachment, error) {
+func getVolumeAttachments(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) error {
 	var attachments []volumeattach.VolumeAttachment
-	err := volumeattach.List(computeClient, serverId).EachPage(func(page pagination.Page) (bool, error) {
+
+	err := volumeattach.List(computeClient, d.Id()).EachPage(func(page pagination.Page) (bool, error) {
 		actual, err := volumeattach.ExtractVolumeAttachments(page)
 		if err != nil {
 			return false, err
@@ -1158,8 +1172,45 @@ func getVolumeAttachments(computeClient *gophercloud.ServiceClient, serverId str
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return attachments, nil
+	vols := make([]map[string]interface{}, len(attachments))
+	for i, attachment := range attachments {
+		vols[i] = make(map[string]interface{})
+		vols[i]["id"] = attachment.ID
+		vols[i]["volume_id"] = attachment.VolumeID
+		vols[i]["device"] = attachment.Device
+	}
+	log.Printf("[INFO] Volume attachments: %v", vols)
+	d.Set("volume", vols)
+
+	return nil
+}
+
+func checkVolumeConfig(d *schema.ResourceData) error {
+	// Although a volume_id is required to attach a volume, in order to be able to report
+	// the attached volumes of an instance, it must be "computed" and thus "optional".
+	// This accounts for situations such as "boot from volume" as well as volumes being
+	// attached to the instance outside of Terraform.
+	if v := d.Get("volume"); v != nil {
+		vols := v.(*schema.Set).List()
+		if len(vols) > 0 {
+			for _, v := range vols {
+				va := v.(map[string]interface{})
+				if va["volume_id"].(string) == "" {
+					return fmt.Errorf("A volume_id must be specified when attaching volumes.")
+				}
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("block_device"); ok {
+		vL := v.(*schema.Set).List()
+		if len(vL) > 1 {
+			return fmt.Errorf("Can only specify one block device to boot from.")
+		}
+	}
+
+	return nil
 }
