@@ -128,8 +128,8 @@ func resourceAwsElb() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"enabled": &schema.Schema{
 							Type:     schema.TypeBool,
-							Required: true,
-							Default:  false,
+							Optional: true,
+							Default:  true,
 						},
 						"interval": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -139,15 +139,14 @@ func resourceAwsElb() *schema.Resource {
 						"bucket": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							Default:  "",
 						},
 						"bucket_prefix": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "",
 						},
 					},
 				},
+				Set: resourceAwsElbAccessLogsHash,
 			},
 
 			"listener": &schema.Schema{
@@ -475,8 +474,12 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				Enabled:      aws.Bool(log["enabled"].(bool)),
 				EmitInterval: aws.Int64(log["interval"].(int64)),
 				S3BucketName: aws.String(log["bucket"].(string)),
-				S3BucketPrefix: aws.String(log["bucket"].(string)),
 			}
+
+			if log["bucket_prefix"] != "" {
+				accessLogs.S3BucketPrefix = aws.String(log["bucket_prefix"].(string))
+			}
+
 			attrs.LoadBalancerAttributes.AccessLog = accessLogs
 		}
 
@@ -608,6 +611,20 @@ func resourceAwsElbHealthCheckHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsElbAccessLogsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
+	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-",
+		strings.ToLower(m["bucket"].(string))))
+	if v, ok := m["bucket_prefix"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(v.(string))))
+	}
 
 	return hashcode.String(buf.String())
 }
