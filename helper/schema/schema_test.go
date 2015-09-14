@@ -2920,7 +2920,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			if tc.Err {
 				t.Fatalf("%d: Expected error did not occur:\n\n%#v", i, tc.In)
 			}
-			t.Fatalf("%d: Unexpected error occured:\n\n%#v", i, tc.In)
+			t.Fatalf("%d: Unexpected error occurred:\n\n%#v", i, tc.In)
 		}
 	}
 

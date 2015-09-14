@@ -68,7 +68,7 @@ func resourceDigitalOceanSSHKeyRead(d *schema.ResourceData, meta interface{}) er
 	key, err := client.RetrieveSSHKey(d.Id())
 	if err != nil {
 		// If the key is somehow already destroyed, mark as
-		// succesfully gone
+		// successfully gone
 		if strings.Contains(err.Error(), "404 Not Found") {
 			d.SetId("")
 			return nil

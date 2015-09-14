@@ -261,7 +261,7 @@ Options:
                        automatically loaded if this flag is not specified.
 
   -vcs=true            If true (default), push will upload only files
-                       comitted to your VCS, if detected.
+                       committed to your VCS, if detected.
 
   -no-color           If specified, output won't contain any color.
 

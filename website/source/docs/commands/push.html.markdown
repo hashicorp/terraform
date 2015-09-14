@@ -67,7 +67,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-var-file=foo` - Set the value of variables using a variable file.
 
 * `-vcs=true` - If true (default), then Terraform will detect if a VCS
-  is in use, such as Git, and will only upload files that are comitted to
+  is in use, such as Git, and will only upload files that are committed to
   version control. If no version control system is detected, Terraform will
   upload all files in `path` (parameter to the command).
 
@@ -77,7 +77,7 @@ The files that are uploaded and packaged with a `push` are all the
 files in the `path` given as the parameter to the command, recursively.
 By default (unless `-vcs=false` is specified), Terraform will automatically
 detect when a VCS such as Git is being used, and in that case will only
-upload the files that are comitted. Because of this built-in intelligence,
+upload the files that are committed. Because of this built-in intelligence,
 you don't have to worry about excluding folders such as ".git" or ".hg" usually.
 
 If Terraform doesn't detect a VCS, it will upload all files.

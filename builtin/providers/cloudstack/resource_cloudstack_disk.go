@@ -93,7 +93,7 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 		p.SetSize(int64(d.Get("size").(int)))
 	}
 
-	// If there is a project supplied, we retreive and set the project id
+	// If there is a project supplied, we retrieve and set the project id
 	if project, ok := d.GetOk("project"); ok {
 		// Retrieve the project UUID
 		projectid, e := retrieveUUID(cs, "project", project.(string))

@@ -190,7 +190,7 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		// This error usualy means that the policy is attached
+		// This error usually means that the policy is attached
 		// to a firewall. At this point, the firewall is probably
 		// being delete. So, we retry a few times.
 

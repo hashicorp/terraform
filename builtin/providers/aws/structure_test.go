@@ -189,7 +189,7 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 	}
 
 	// Now test the error case. This *should* error when either from_port
-	// or to_port is not zero, but protocal is "-1".
+	// or to_port is not zero, but protocol is "-1".
 	errorCase := []interface{}{
 		map[string]interface{}{
 			"protocol":    "-1",
@@ -497,13 +497,13 @@ func TestexpandInstanceString(t *testing.T) {
 	}
 }
 
-func TestflattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
+func TestflattenNetworkInterfacesPrivateIPAddresses(t *testing.T) {
 	expanded := []*ec2.NetworkInterfacePrivateIpAddress{
 		&ec2.NetworkInterfacePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.1")},
 		&ec2.NetworkInterfacePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.2")},
 	}
 
-	result := flattenNetworkInterfacesPrivateIPAddesses(expanded)
+	result := flattenNetworkInterfacesPrivateIPAddresses(expanded)
 
 	if result == nil {
 		t.Fatal("result was nil")
@@ -543,7 +543,7 @@ func TestflattenGroupIdentifiers(t *testing.T) {
 	}
 }
 
-func TestexpandPrivateIPAddesses(t *testing.T) {
+func TestexpandPrivateIPAddresses(t *testing.T) {
 
 	ip1 := "192.168.0.1"
 	ip2 := "192.168.0.2"
@@ -552,7 +552,7 @@ func TestexpandPrivateIPAddesses(t *testing.T) {
 		ip2,
 	}
 
-	result := expandPrivateIPAddesses(flattened)
+	result := expandPrivateIPAddresses(flattened)
 
 	if len(result) != 2 {
 		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))

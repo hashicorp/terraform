@@ -81,7 +81,7 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 	// Create a new parameter struct
 	p := cs.VPC.NewCreateVPCParams(d.Get("cidr").(string), displaytext.(string), name, vpcofferingid, zoneid)
 
-	// If there is a project supplied, we retreive and set the project id
+	// If there is a project supplied, we retrieve and set the project id
 	if project, ok := d.GetOk("project"); ok {
 		// Retrieve the project UUID
 		projectid, e := retrieveUUID(cs, "project", project.(string))

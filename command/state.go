@@ -150,7 +150,7 @@ func State(opts *StateOpts) (*StateResult, error) {
 
 	// If we have a result, make sure to back it up
 	if result.State != nil {
-		backupPath := result.StatePath + DefaultBackupExtention
+		backupPath := result.StatePath + DefaultBackupExtension
 		if opts.BackupPath != "" {
 			backupPath = opts.BackupPath
 		}
@@ -194,7 +194,7 @@ func StateFromPlan(
 	// If we have a result, make sure to back it up
 	result = &state.BackupState{
 		Real: result,
-		Path: resultPath + DefaultBackupExtention,
+		Path: resultPath + DefaultBackupExtension,
 	}
 
 	return result, resultPath, nil

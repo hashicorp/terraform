@@ -96,7 +96,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 
 	private_ips := d.Get("private_ips").(*schema.Set).List()
 	if len(private_ips) != 0 {
-		request.PrivateIpAddresses = expandPrivateIPAddesses(private_ips)
+		request.PrivateIpAddresses = expandPrivateIPAddresses(private_ips)
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
@@ -133,7 +133,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	eni := describeResp.NetworkInterfaces[0]
 	d.Set("subnet_id", eni.SubnetId)
-	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIpAddresses))
+	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddresses(eni.PrivateIpAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 	d.Set("source_dest_check", eni.SourceDestCheck)
 
