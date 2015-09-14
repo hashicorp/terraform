@@ -41,7 +41,7 @@ func (d *Diff) AddModule(path []string) *ModuleDiff {
 }
 
 // ModuleByPath is used to lookup the module diff for the given path.
-// This should be the prefered lookup mechanism as it allows for future
+// This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
 func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
 	if d == nil {
@@ -459,7 +459,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 
 			// This is a little tricky, but when a diff contains a computed list
 			// or set that can only be interpolated after the apply command has
-			// created the dependant resources, it could turn out that the result
+			// created the dependent resources, it could turn out that the result
 			// is actually the same as the existing state which would remove the
 			// key from the diff.
 			if diffOld.NewComputed && strings.HasSuffix(k, ".#") {

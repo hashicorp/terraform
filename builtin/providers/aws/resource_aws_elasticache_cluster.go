@@ -253,7 +253,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 			})
 
 			if err != nil {
-				log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+				log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 			}
 
 			var et []*elasticache.Tag

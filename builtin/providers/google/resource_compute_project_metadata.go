@@ -97,7 +97,7 @@ func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface
 
 		log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-		// Optimistic locking requires the fingerprint recieved to match
+		// Optimistic locking requires the fingerprint received to match
 		// the fingerprint we send the server, if there is a mismatch then we
 		// are working on old data, and must retry
 		err = resourceOperationWaitGlobal(config, op, "SetCommonMetadata")
@@ -197,7 +197,7 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 
 			log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-			// Optimistic locking requires the fingerprint recieved to match
+			// Optimistic locking requires the fingerprint received to match
 			// the fingerprint we send the server, if there is a mismatch then we
 			// are working on old data, and must retry
 			err = resourceOperationWaitGlobal(config, op, "SetCommonMetadata")

@@ -599,7 +599,7 @@ func TestApply_refresh(t *testing.T) {
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtention)
+	f, err = os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -787,7 +787,7 @@ func TestApply_state(t *testing.T) {
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtention)
+	f, err = os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1161,7 +1161,7 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 
 	// Ensure there is no backup
-	_, err = os.Stat(statePath + DefaultBackupExtention)
+	_, err = os.Stat(statePath + DefaultBackupExtension)
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}

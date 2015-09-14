@@ -74,7 +74,7 @@ func TestApply_destroy(t *testing.T) {
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtention)
+	f, err = os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -188,7 +188,7 @@ func TestApply_destroyTargeted(t *testing.T) {
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtention)
+	f, err = os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
