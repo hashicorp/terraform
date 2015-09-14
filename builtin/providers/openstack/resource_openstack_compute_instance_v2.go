@@ -535,9 +535,21 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	image, err := images.Get(computeClient, imageId).Extract()
 	if err != nil {
-		return err
+		errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+		if !ok {
+			return err
+		}
+		if errCode.Actual == 404 {
+			// If the image name can't be found, set the value to "Image not found".
+			// The most likely scenario is that the image no longer exists in the Image Service
+			// but the instance still has a record from when it existed.
+			d.Set("image_name", "Image not found")
+		} else {
+			return err
+		}
+	} else {
+		d.Set("image_name", image.Name)
 	}
-	d.Set("image_name", image.Name)
 
 	// volume attachments
 	vas, err := getVolumeAttachments(computeClient, d.Id())
