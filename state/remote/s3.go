@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 
@@ -45,6 +46,11 @@ func s3Factory(conf map[string]string) (Client, error) {
 		serverSideEncryption = v
 	}
 
+	acl := ""
+	if raw, ok := conf["acl"]; ok {
+		acl = raw
+	}
+
 	accessKeyId := conf["access_key"]
 	secretAccessKey := conf["secret_key"]
 
@@ -77,6 +83,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 		bucketName:           bucketName,
 		keyName:              keyName,
 		serverSideEncryption: serverSideEncryption,
+		acl:                  acl,
 	}, nil
 }
 
@@ -85,6 +92,7 @@ type S3Client struct {
 	bucketName           string
 	keyName              string
 	serverSideEncryption bool
+	acl                  string
 }
 
 func (c *S3Client) Get() (*Payload, error) {
@@ -139,6 +147,12 @@ func (c *S3Client) Put(data []byte) error {
 	if c.serverSideEncryption {
 		i.ServerSideEncryption = aws.String("AES256")
 	}
+
+	if c.acl != "" {
+		i.ACL = aws.String(c.acl)
+	}
+
+	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
 
 	if _, err := c.nativeClient.PutObject(i); err == nil {
 		return nil
