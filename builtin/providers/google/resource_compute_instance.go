@@ -256,6 +256,23 @@ func resourceComputeInstance() *schema.Resource {
 	}
 }
 
+func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, error) {
+	instance, err := config.clientCompute.Instances.Get(
+		config.Project, d.Get("zone").(string), d.Id()).Do()
+	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil, fmt.Errorf("Resource %s no longer exists", config.Project)
+		}
+
+		return nil, fmt.Errorf("Error reading instance: %s", err)
+	}
+
+	return instance, nil
+}
+
 func resourceOperationWaitZone(
 	config *Config, op *compute.Operation, zone string, activity string) error {
 
@@ -517,17 +534,16 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	instance, err := config.clientCompute.Instances.Get(
-		config.Project, d.Get("zone").(string), d.Id()).Do()
+	instance, err := getInstance(config, d);
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			d.SetId("")
+		return err
+	}
 
-			return nil
-		}
+	// Synch metadata 
+	md := instance.Metadata
 
-		return fmt.Errorf("Error reading instance: %s", err)
+	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
+		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
 	d.Set("can_ip_forward", instance.CanIpForward)
@@ -655,17 +671,9 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	zone := d.Get("zone").(string)
 
-	instance, err := config.clientCompute.Instances.Get(
-		config.Project, zone, d.Id()).Do()
+	instance, err := getInstance(config, d);
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
-		return fmt.Errorf("Error reading instance: %s", err)
+		return err
 	}
 
 	// Enable partial mode for the resource since it is possible
@@ -673,23 +681,38 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
-		metadata, err := resourceInstanceMetadata(d)
-		if err != nil {
-			return fmt.Errorf("Error updating metadata: %s", err)
-		}
-		op, err := config.clientCompute.Instances.SetMetadata(
-			config.Project, zone, d.Id(), metadata).Do()
-		if err != nil {
-			return fmt.Errorf("Error updating metadata: %s", err)
+		o, n := d.GetChange("metadata")
+
+		updateMD := func() error {
+			// Reload the instance in the case of a fingerprint mismatch
+			instance, err = getInstance(config, d);
+			if err != nil {
+				return err
+			}
+
+			md := instance.Metadata
+
+			MetadataUpdate(o.(map[string]interface{}), n.(map[string]interface{}), md)
+
+			if err != nil {
+				return fmt.Errorf("Error updating metadata: %s", err)
+			}
+			op, err := config.clientCompute.Instances.SetMetadata(
+				config.Project, zone, d.Id(), md).Do()
+			if err != nil {
+				return fmt.Errorf("Error updating metadata: %s", err)
+			}
+
+			opErr := resourceOperationWaitZone(config, op, zone, "metadata to update")
+			if opErr != nil {
+				return opErr
+			}
+
+			d.SetPartial("metadata")
+			return nil
 		}
 
-		// 1 5 2
-		opErr := resourceOperationWaitZone(config, op, zone, "metadata to update")
-		if opErr != nil {
-			return opErr
-		}
-
-		d.SetPartial("metadata")
+		MetadataRetryWrapper(updateMD)
 	}
 
 	if d.HasChange("tags") {
