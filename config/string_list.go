@@ -74,3 +74,16 @@ func (sl StringList) String() string {
 func IsStringList(s string) bool {
 	return strings.Contains(s, stringListDelim)
 }
+
+func CompactStringList(sl StringList) StringList {
+	parts := sl.Slice()
+
+	var newlist []string
+	// drop the empty strings
+	for i := range parts {
+		if parts[i] != "" {
+			newlist = append(newlist,  parts[i])
+		}
+	}
+	return NewStringList(newlist)
+}
