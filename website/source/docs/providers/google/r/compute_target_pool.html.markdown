@@ -49,6 +49,7 @@ The following arguments are supported:
 
 * `session_affinity` - (Optional) How to distribute load.  Options are "NONE" (no affinity).  "CLIENT\_IP" (hash of the source/dest addresses / ports), and "CLIENT\_IP\_PROTO" also includes the protocol (default "NONE").
 
+* `region` - (Optional) Where the target pool resides. Defaults to project region.
 
 ## Attributes Reference
 
