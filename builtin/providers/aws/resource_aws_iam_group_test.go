@@ -26,6 +26,13 @@ func TestAccAWSIAMGroup_basic(t *testing.T) {
 					testAccCheckAWSGroupAttributes(&conf),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSGroupConfig2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSGroupExists("aws_iam_group.group", &conf),
+					testAccCheckAWSGroupAttributes(&conf),
+				),
+			},
 		},
 	})
 }
@@ -103,5 +110,11 @@ const testAccAWSGroupConfig = `
 resource "aws_iam_group" "group" {
 	name = "test-group"
 	path = "/"
+}
+`
+const testAccAWSGroupConfig2 = `
+resource "aws_iam_group" "group" {
+	name = "test-group2"
+	path = "/funnypath/"
 }
 `
