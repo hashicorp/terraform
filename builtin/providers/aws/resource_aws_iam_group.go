@@ -14,8 +14,7 @@ func resourceAwsIamGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsIamGroupCreate,
 		Read:   resourceAwsIamGroupRead,
-		// TODO
-		//Update: resourceAwsIamGroupUpdate,
+		Update: resourceAwsIamGroupUpdate,
 		Delete: resourceAwsIamGroupDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -30,13 +29,11 @@ func resourceAwsIamGroup() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
-				ForceNew: true,
 			},
 		},
 	}
@@ -45,9 +42,10 @@ func resourceAwsIamGroup() *schema.Resource {
 func resourceAwsIamGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 	name := d.Get("name").(string)
+	path := d.Get("path").(string)
 
 	request := &iam.CreateGroupInput{
-		Path:      aws.String(d.Get("path").(string)),
+		Path:      aws.String(path),
 		GroupName: aws.String(name),
 	}
 
@@ -60,9 +58,10 @@ func resourceAwsIamGroupCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsIamGroupRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
+	name := d.Get("name").(string)
 
 	request := &iam.GetGroupInput{
-		GroupName: aws.String(d.Id()),
+		GroupName: aws.String(name),
 	}
 
 	getResp, err := iamconn.GetGroup(request)
@@ -89,6 +88,30 @@ func resourceAwsIamGroupReadResult(d *schema.ResourceData, group *iam.Group) err
 	}
 	if err := d.Set("unique_id", group.GroupId); err != nil {
 		return err
+	}
+	return nil
+}
+
+func resourceAwsIamGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	if d.HasChange("name") || d.HasChange("path") {
+		iamconn := meta.(*AWSClient).iamconn
+		on, nn := d.GetChange("name")
+		op, np := d.GetChange("path")
+		fmt.Println(on, nn, op, np)
+		request := &iam.UpdateGroupInput{
+			GroupName:    aws.String(on.(string)),
+			NewGroupName: aws.String(nn.(string)),
+			NewPath:      aws.String(np.(string)),
+		}
+		_, err := iamconn.UpdateGroup(request)
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error updating IAM Group %s: %s", d.Id(), err)
+		}
+		return resourceAwsIamGroupRead(d, meta)
 	}
 	return nil
 }
