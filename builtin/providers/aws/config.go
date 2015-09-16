@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -41,6 +42,7 @@ type Config struct {
 }
 
 type AWSClient struct {
+	cloudfrontconn  *cloudfront.CloudFront
 	cloudwatchconn  *cloudwatch.CloudWatch
 	dynamodbconn    *dynamodb.DynamoDB
 	ec2conn         *ec2.EC2
@@ -102,6 +104,7 @@ func (c *Config) Client() (interface{}, error) {
 			MaxRetries:  aws.Int(c.MaxRetries),
 			Endpoint:    aws.String(c.DynamoDBEndpoint),
 		}
+
 		// Some services exist only in us-east-1, e.g. because they manage
 		// resources that can span across multiple regions, or because
 		// signature format v4 requires region to be us-east-1 for global
@@ -109,9 +112,12 @@ func (c *Config) Client() (interface{}, error) {
 		// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		usEast1AwsConfig := &aws.Config{
 			Credentials: creds,
-			Region:      "us-east-1",
-			MaxRetries:  c.MaxRetries,
+			Region:      aws.String("us-east-1"),
+			MaxRetries:  aws.Int(c.MaxRetries),
 		}
+
+		log.Println("[INFO] Initializing CloudFront connection")
+		client.cloudfrontconn = cloudfront.New(usEast1AwsConfig)
 
 		log.Println("[INFO] Initializing DynamoDB connection")
 		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
