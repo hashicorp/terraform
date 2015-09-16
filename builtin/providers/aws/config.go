@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -41,22 +42,23 @@ type Config struct {
 }
 
 type AWSClient struct {
-	cloudwatchconn  *cloudwatch.CloudWatch
-	dynamodbconn    *dynamodb.DynamoDB
-	ec2conn         *ec2.EC2
-	ecsconn         *ecs.ECS
-	elbconn         *elb.ELB
-	autoscalingconn *autoscaling.AutoScaling
-	s3conn          *s3.S3
-	sqsconn         *sqs.SQS
-	snsconn         *sns.SNS
-	r53conn         *route53.Route53
-	region          string
-	rdsconn         *rds.RDS
-	iamconn         *iam.IAM
-	kinesisconn     *kinesis.Kinesis
-	elasticacheconn *elasticache.ElastiCache
-	lambdaconn      *lambda.Lambda
+	cloudwatchconn     *cloudwatch.CloudWatch
+	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
+	dynamodbconn       *dynamodb.DynamoDB
+	ec2conn            *ec2.EC2
+	ecsconn            *ecs.ECS
+	elbconn            *elb.ELB
+	autoscalingconn    *autoscaling.AutoScaling
+	s3conn             *s3.S3
+	sqsconn            *sqs.SQS
+	snsconn            *sns.SNS
+	r53conn            *route53.Route53
+	region             string
+	rdsconn            *rds.RDS
+	iamconn            *iam.IAM
+	kinesisconn        *kinesis.Kinesis
+	elasticacheconn    *elasticache.ElastiCache
+	lambdaconn         *lambda.Lambda
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -156,6 +158,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
 		client.cloudwatchconn = cloudwatch.New(awsConfig)
+
+		log.Println("[INFO] Initializing CloudWatch Logs connection")
+		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
