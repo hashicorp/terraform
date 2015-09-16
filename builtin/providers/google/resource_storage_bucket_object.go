@@ -34,7 +34,7 @@ func resourceStorageBucketObject() *schema.Resource {
 			},
 			"predefined_acl": &schema.Schema{
 				Type:     schema.TypeString,
-				Default:  "projectPrivate",
+				Deprecated: "Please use resource \"storage_object_acl.predefined_acl\" instead.",
 				Optional: true,
 				ForceNew: true,
 			},
@@ -60,7 +60,6 @@ func resourceStorageBucketObjectCreate(d *schema.ResourceData, meta interface{})
 	bucket := d.Get("bucket").(string)
 	name := d.Get("name").(string)
 	source := d.Get("source").(string)
-	acl := d.Get("predefined_acl").(string)
 
 	file, err := os.Open(source)
 	if err != nil {
@@ -73,7 +72,10 @@ func resourceStorageBucketObjectCreate(d *schema.ResourceData, meta interface{})
 	insertCall := objectsService.Insert(bucket, object)
 	insertCall.Name(name)
 	insertCall.Media(file)
-	insertCall.PredefinedAcl(acl)
+	if v, ok := d.GetOk("predefined_acl"); ok {
+		insertCall.PredefinedAcl(v.(string))
+	}
+
 
 	_, err = insertCall.Do()
 
