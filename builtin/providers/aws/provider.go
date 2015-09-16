@@ -163,6 +163,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_group":            resourceAwsAutoscalingGroup(),
 			"aws_autoscaling_notification":     resourceAwsAutoscalingNotification(),
 			"aws_autoscaling_policy":           resourceAwsAutoscalingPolicy(),
+			"aws_cloudwatch_log_group":         resourceAwsCloudWatchLogGroup(),
 			"aws_cloudwatch_metric_alarm":      resourceAwsCloudWatchMetricAlarm(),
 			"aws_customer_gateway":             resourceAwsCustomerGateway(),
 			"aws_db_instance":                  resourceAwsDbInstance(),
