@@ -47,7 +47,7 @@ func interpolationFuncCompact() ast.Function {
 			if !IsStringList(args[0].(string)) {
 				return args[0].(string), nil
 			}
-			return CompactStringList(StringList(args[0].(string))).String(), nil
+			return StringList(args[0].(string)).Compact().String(), nil
 		},
 	}
 }

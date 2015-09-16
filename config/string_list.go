@@ -25,7 +25,7 @@ type StringList string
 const stringListDelim = `B780FFEC-B661-4EB8-9236-A01737AD98B6`
 
 // Takes a Stringlist and returns one without empty strings in it
-func (sl StringList) CompactStringList() StringList {
+func (sl StringList) Compact() StringList {
 	parts := sl.Slice()
 
 	var newlist []string
