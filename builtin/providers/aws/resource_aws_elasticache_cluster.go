@@ -105,6 +105,10 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
+						"configuration_endpoint": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -233,6 +237,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		if c.ConfigurationEndpoint != nil {
 			d.Set("port", c.ConfigurationEndpoint.Port)
 		}
+
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
 		d.Set("security_group_names", c.CacheSecurityGroups)
 		d.Set("security_group_ids", c.SecurityGroups)
@@ -353,6 +358,7 @@ func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error
 			"id":      *node.CacheNodeId,
 			"address": *node.Endpoint.Address,
 			"port":    int(*node.Endpoint.Port),
+			"configuration_endpoint": fmt.Sprintf("%s:%d", *node.Endpoint.Address, *node.Endpoint.Port),
 		})
 	}
 

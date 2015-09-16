@@ -80,7 +80,7 @@ Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 
 The following attributes are exported:
 
-* `cache_nodes` - List of node objects including `id`, `address` and `port`.
+* `cache_nodes` - List of node objects including `id`, `address`, `port` and `configuration_endpoint`.
    Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
 
 [1]: http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html
