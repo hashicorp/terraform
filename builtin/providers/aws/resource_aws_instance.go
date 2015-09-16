@@ -477,6 +477,9 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("subnet_id", instance.SubnetId)
 	}
 	d.Set("ebs_optimized", instance.EbsOptimized)
+	if instance.SubnetId != nil && *instance.SubnetId != "" {
+		d.Set("source_dest_check", instance.SourceDestCheck)
+	}
 
 	if instance.Monitoring != nil && instance.Monitoring.State != nil {
 		monitoringState := *instance.Monitoring.State
