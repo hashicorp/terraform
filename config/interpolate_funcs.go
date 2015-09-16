@@ -20,19 +20,35 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
-		"concat":       interpolationFuncConcat(),
-		"element":      interpolationFuncElement(),
-		"file":         interpolationFuncFile(),
-		"format":       interpolationFuncFormat(),
-		"formatlist":   interpolationFuncFormatList(),
-		"index":        interpolationFuncIndex(),
-		"join":         interpolationFuncJoin(),
-		"length":       interpolationFuncLength(),
-		"replace":      interpolationFuncReplace(),
-		"split":        interpolationFuncSplit(),
 		"compact":    interpolationFuncCompact(),
+		"concat":     interpolationFuncConcat(),
+		"element":    interpolationFuncElement(),
+		"file":       interpolationFuncFile(),
+		"format":     interpolationFuncFormat(),
+		"formatlist": interpolationFuncFormatList(),
+		"index":      interpolationFuncIndex(),
+		"join":       interpolationFuncJoin(),
+		"length":     interpolationFuncLength(),
+		"replace":    interpolationFuncReplace(),
+		"split":      interpolationFuncSplit(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
+	}
+}
+
+// interpolationFuncCompact strips a list of multi-variable values
+// (e.g. as returned by "split") of any empty strings.
+func interpolationFuncCompact() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			if !IsStringList(args[0].(string)) {
+				return args[0].(string), nil
+			}
+			return CompactStringList(StringList(args[0].(string))).String(), nil
+		},
 	}
 }
 
@@ -276,22 +292,6 @@ func interpolationFuncSplit() ast.Function {
 			sep := args[0].(string)
 			s := args[1].(string)
 			return NewStringList(strings.Split(s, sep)).String(), nil
-		},
-	}
-}
-
-// interpolationFuncCompact strips a list of values (e.g. as returned by
-// "split") of any empty strings
-func interpolationFuncCompact() ast.Function {
-	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString},
-		ReturnType: ast.TypeString,
-		Variadic:   false,
-		Callback: func(args []interface{}) (interface{}, error) {
-			if !IsStringList(args[0].(string)) {
-				return args[0].(string), nil
-			}
-			return CompactStringList(StringList(args[0].(string))).String(), nil
 		},
 	}
 }
