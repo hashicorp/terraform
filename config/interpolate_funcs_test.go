@@ -17,15 +17,15 @@ func TestInterpolateFuncCompact(t *testing.T) {
 		Cases: []testFunctionCase{
 			// empty string within array
 			{
-				`${compact(split(",", "b,,c"))}`,
-				NewStringList([]string{"b", "c"}).String(),
+				`${compact(split(",", "a,,b"))}`,
+				NewStringList([]string{"a", "b"}).String(),
 				false,
 			},
 
 			// empty string at the end of array
 			{
-				`${compact(split(",", "b,c,"))}`,
-				NewStringList([]string{"b", "c"}).String(),
+				`${compact(split(",", "a,b,"))}`,
+				NewStringList([]string{"a", "b"}).String(),
 				false,
 			},
 
