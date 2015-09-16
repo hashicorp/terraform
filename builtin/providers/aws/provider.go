@@ -153,6 +153,13 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["dynamodb_endpoint"],
 			},
+
+			"kinesis_endpoint": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["kinesis_endpoint"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -279,6 +286,9 @@ func init() {
 
 		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to dynamodb-local.",
+
+		"kinesis_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
+			"It's typically used to connect to kinesalite.",
 	}
 }
 
@@ -290,6 +300,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Region:           d.Get("region").(string),
 		MaxRetries:       d.Get("max_retries").(int),
 		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
+		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
