@@ -207,7 +207,8 @@ func (w *MapFieldWriter) setPrimitive(
 	k := strings.Join(addr, ".")
 
 	if v == nil {
-		delete(w.result, k)
+		// The empty string here means the value is removed.
+		w.result[k] = ""
 		return nil
 	}
 
