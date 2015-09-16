@@ -24,6 +24,20 @@ type StringList string
 // ["", ""]       => SLDSLDSLD
 const stringListDelim = `B780FFEC-B661-4EB8-9236-A01737AD98B6`
 
+// Takes a Stringlist and returns one without empty strings in it
+func (sl StringList) CompactStringList() StringList {
+	parts := sl.Slice()
+
+	var newlist []string
+	// drop the empty strings
+	for i := range parts {
+		if parts[i] != "" {
+			newlist = append(newlist,  parts[i])
+		}
+	}
+	return NewStringList(newlist)
+}
+
 // Build a StringList from a slice
 func NewStringList(parts []string) StringList {
 	// We have to special case the empty list representation
@@ -73,17 +87,4 @@ func (sl StringList) String() string {
 // Determines if a given string represents a StringList
 func IsStringList(s string) bool {
 	return strings.Contains(s, stringListDelim)
-}
-
-func CompactStringList(sl StringList) StringList {
-	parts := sl.Slice()
-
-	var newlist []string
-	// drop the empty strings
-	for i := range parts {
-		if parts[i] != "" {
-			newlist = append(newlist,  parts[i])
-		}
-	}
-	return NewStringList(newlist)
 }
