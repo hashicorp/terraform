@@ -10,14 +10,21 @@ description: |-
 
 Provides a Glacier Vault Resource. You can refer to the [Glacier Developer Guide](http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-vaults.html) for a full explanation of the Glacier Vault functionality
 
+~> **NOTE:** When trying to remove a Glacier Vault, the Vault must be empty. 
+
 ## Example Usage
 
 ```
+
+resource "aws_sns_topic" "aws_sns_topic" {
+  name = "glacier-sns-topic"
+}
+
 resource "aws_glacier_vault" "my_archive" {
     name = "MyArchive"
     
     notification {
-      sns_topic = "arn:aws:sns:us-west-2:432981146916:MyArchiveTopic"
+      sns_topic = "${aws_sns_topic.aws_sns_topic.arn}"
       events = ["ArchiveRetrievalCompleted","InventoryRetrievalCompleted"]
     }
     
@@ -51,15 +58,15 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Vault. Names can be between 1 and 255 characters long and the valid characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), and '.' (period).
-* `access_policy` - (Required) The policy document. This is a JSON formatted string.
-  The heredoc syntax or `file` function is helpful here.
-* `notification` - (Required) The notifications for the Vault. Fields documented below.
+* `name` - (Required) The name of the Vault. Names can be between 1 and 255 characters long and the valid characters are a-z, A-Z, 0-9, '\_' (underscore), '-' (hyphen), and '.' (period).
+* `access_policy` - (Optional) The policy document. This is a JSON formatted string.
+  The heredoc syntax or `file` function is helpful here. Use the [Glacier Developer Guide](https://docs.aws.amazon.com/amazonglacier/latest/dev/vault-access-policy.html) for more information on Glacier Vault Policy
+* `notification` - (Optional) The notifications for the Vault. Fields documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 **notification** supports the following:
 
-* `events` - (Required) You can configure a vault to public a notification for `ArchiveRetrievalCompleted` and `InventoryRetrievalCompleted` events.
+* `events` - (Required) You can configure a vault to publish a notification for `ArchiveRetrievalCompleted` and `InventoryRetrievalCompleted` events.
 * `sns_topic` - (Required) The SNS Topic ARN.
 
 The following attributes are exported:
