@@ -3,12 +3,12 @@ layout: "azure"
 page_title: "Azure: azure_local_network_connection"
 sidebar_current: "docs-azure-resource-local-network-connection"
 description: |-
-  Defines a new connection to a remote network throguh a VPN tunnel.
+  Defines a new connection to a remote network through a VPN tunnel.
 ---
 
 # azure\_local\_network\_connection
 
-Defines a new connection to a remote network throguh a VPN tunnel.
+Defines a new connection to a remote network through a VPN tunnel.
 
 ## Example Usage
 
