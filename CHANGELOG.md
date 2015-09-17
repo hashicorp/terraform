@@ -21,6 +21,7 @@ IMPROVEMENTS:
   * provider/aws: add `ses_smtp_password` to `aws_iam_access_key` [GH-3165]
   * provider/aws: read `iam_instance_profile` for `aws_instance` and save to state [GH-3167]
   * provider/aws: Add `versioning` option to `aws_s3_bucket` [GH-2942]
+  * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
 
 BUG FIXES:
