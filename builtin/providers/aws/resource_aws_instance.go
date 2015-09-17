@@ -132,6 +132,11 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"instance_state": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"private_dns": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -449,10 +454,14 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	instance := resp.Reservations[0].Instances[0]
 
-	// If the instance is terminated, then it is gone
-	if *instance.State.Name == "terminated" {
-		d.SetId("")
-		return nil
+	if instance.State != nil {
+		// If the instance is terminated, then it is gone
+		if *instance.State.Name == "terminated" {
+			d.SetId("")
+			return nil
+		}
+
+		d.Set("instance_state", instance.State.Name)
 	}
 
 	if instance.Placement != nil {
