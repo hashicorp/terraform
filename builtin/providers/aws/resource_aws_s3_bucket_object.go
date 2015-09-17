@@ -26,6 +26,31 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"cache_control": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"content_disposition": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"content_encoding": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"content_language": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"content_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -52,6 +77,11 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
 	source := d.Get("source").(string)
+	encoding := d.Get("content_encoding").(string)
+	contentType := d.Get("content_type").(string)
+	cacheControl := d.Get("cache_control").(string)
+	contentLanguage := d.Get("content_language").(string)
+	contentDisposition := d.Get("content_disposition").(string)
 
 	file, err := os.Open(source)
 
@@ -61,9 +91,14 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	resp, err := s3conn.PutObject(
 		&s3.PutObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-			Body:   file,
+			Bucket:             aws.String(bucket),
+			Key:                aws.String(key),
+			Body:               file,
+			CacheControl:       aws.String(cacheControl),
+			ContentDisposition: aws.String(contentDisposition),
+			ContentEncoding:    aws.String(encoding),
+			ContentLanguage:    aws.String(contentLanguage),
+			ContentType:        aws.String(contentType),
 		})
 
 	if err != nil {
@@ -98,6 +133,12 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 		}
 		return err
 	}
+
+	d.Set("cache_control", resp.CacheControl)
+	d.Set("content_disposition", resp.ContentDisposition)
+	d.Set("content_encoding", resp.ContentEncoding)
+	d.Set("content_language", resp.ContentLanguage)
+	d.Set("content_type", resp.ContentType)
 
 	log.Printf("[DEBUG] Reading S3 Bucket Object meta: %s", resp)
 	return nil
