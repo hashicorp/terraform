@@ -143,7 +143,7 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 		VaultName: aws.String(d.Id()),
 	})
 
-	if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ResourceNotFoundException" {
+	if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
 		d.Set("access_policy", "")
 	} else if pol != nil {
 		d.Set("access_policy", normalizeJson(*pol.Policy.Policy))
@@ -152,10 +152,13 @@ func resourceAwsGlacierVaultRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	notifications, err := getGlacierVaultNotification(glacierconn, d.Id())
-	if err != nil {
+	if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
+		d.Set("notification", "")
+	} else if pol != nil {
+		d.Set("notification", notifications)
+	} else {
 		return err
 	}
-	d.Set("notification", notifications)
 
 	return nil
 }
@@ -179,17 +182,12 @@ func resourceAwsGlacierVaultNotificationUpdate(glacierconn *glacier.Glacier, d *
 		settings := v.([]interface{})
 
 		if len(settings) > 1 {
-			return fmt.Errorf("Only a single Notification setup is allowed for Glacier Vault")
+			return fmt.Errorf("Only a single Notification Block is allowed for Glacier Vault")
 		} else if len(settings) == 1 {
 			s := settings[0].(map[string]interface{})
 			var events []*string
 			for _, id := range s["events"].(*schema.Set).List() {
-				event := id.(string)
-				if event != "ArchiveRetrievalCompleted" && event != "InventoryRetrievalCompleted" {
-					return fmt.Errorf("Glacier Vault Notification Events can only be 'ArchiveRetrievalCompleted' or 'InventoryRetrievalCompleted'")
-				} else {
-					events = append(events, aws.String(event))
-				}
+				events = append(events, aws.String(id.(string)))
 			}
 
 			_, err := glacierconn.SetVaultNotifications(&glacier.SetVaultNotificationsInput{
@@ -204,6 +202,15 @@ func resourceAwsGlacierVaultNotificationUpdate(glacierconn *glacier.Glacier, d *
 				return fmt.Errorf("Error Updating Glacier Vault Notifications: %s", err.Error())
 			}
 		}
+	} else {
+		_, err := glacierconn.DeleteVaultNotifications(&glacier.DeleteVaultNotificationsInput{
+			VaultName: aws.String(d.Id()),
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error Removing Glacier Vault Notifications: %s", err.Error())
+		}
+
 	}
 
 	return nil
@@ -315,7 +322,7 @@ func getGlacierVaultTags(glacierconn *glacier.Glacier, vaultName string) (map[st
 
 	log.Printf("[DEBUG] Getting the tags: for %s", vaultName)
 	response, err := glacierconn.ListTagsForVault(request)
-	if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "NoSuchTagSet" {
+	if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "NoSuchTagSet" {
 		return map[string]string{}, nil
 	} else if err != nil {
 		return nil, err
