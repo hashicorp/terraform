@@ -29,6 +29,10 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"configuration_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -232,7 +236,9 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("engine_version", c.EngineVersion)
 		if c.ConfigurationEndpoint != nil {
 			d.Set("port", c.ConfigurationEndpoint.Port)
+			d.Set("configuration_endpoint", aws.String(fmt.Sprintf("%s:%d", *c.ConfigurationEndpoint.Address, *c.ConfigurationEndpoint.Port)))
 		}
+
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
 		d.Set("security_group_names", c.CacheSecurityGroups)
 		d.Set("security_group_ids", c.SecurityGroups)
