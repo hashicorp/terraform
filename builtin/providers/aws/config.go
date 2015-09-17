@@ -161,9 +161,12 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
 		client.cloudwatchconn = cloudwatch.New(awsConfig)
 
+<<<<<<< HEAD
 		log.Println("[INFO] Initializing CloudWatch Logs connection")
 		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
 
+=======
+>>>>>>> Gofmt of the aws glacier vault resource
 		log.Println("[INFO] Initializing Glacier connection")
 		client.glacierconn = glacier.New(awsConfig)
 	}
