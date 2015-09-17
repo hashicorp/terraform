@@ -36,6 +36,7 @@ BUG FIXES:
   * provider/aws: Fix unresolvable diffs coming from `aws_elasticache_cluster` names being downcased
       by AWS [GH-3120]
   * provider/aws: Read instance source_dest_check and save to state [GH-3152]
+  * provider/aws: Allow `weight = 0` in Route53 records [GH-3196]
   * provider/openstack: add state 'downloading' to list of expected states in
       `blockstorage_volume_v1` creation [GH-2866]
 
