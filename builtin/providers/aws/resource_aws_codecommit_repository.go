@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codecommit"
@@ -108,7 +109,7 @@ func resourceAwsCodeCommitRepositoryUpdate(d *schema.ResourceData, meta interfac
 		}
 	}
 
-	return nil
+	return resourceAwsCodeCommitRepositoryRead(d, meta)
 }
 
 func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{}) error {
@@ -127,12 +128,24 @@ func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{
 	d.Set("arn", *out.RepositoryMetadata.Arn)
 	d.Set("clone_url_http", *out.RepositoryMetadata.CloneUrlHttp)
 	d.Set("clone_url_ssh", *out.RepositoryMetadata.CloneUrlSsh)
-	d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+	if out.RepositoryMetadata.DefaultBranch != nil {
+		d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+	}
 
 	return nil
 }
 
 func resourceAwsCodeCommitRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
+	codecommitconn := meta.(*AWSClient).codecommitconn
+
+	log.Printf("[DEBUG] CodeCommit Delete Repository: %s", d.Id())
+	_, err := codecommitconn.DeleteRepository(&codecommit.DeleteRepositoryInput{
+		RepositoryName: aws.String(d.Id()),
+	})
+	if err != nil {
+		return fmt.Errorf("Error deleting CodeCommit Repository: %s", err.Error())
+	}
+
 	return nil
 }
 
