@@ -29,6 +29,11 @@ The following arguments are supported:
 * `bucket` - (Required) The name of the bucket to put the file in.
 * `key` - (Required) The name of the object once it is in the bucket.
 * `source` - (Required) The path to the source file being uploaded to the bucket.
+* `cache_control` - (Optional) Specifies caching behavior along the request/reply chain.
+* `content_disposition` - (Optional) Specifies presentational information for the object.
+* `content_encoding` - (Optional) Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field.
+* `content_language` - (Optional) The language the content is in.
+* `content_type` - (Optional) A standard MIME type describing the format of the object data.
 
 ## Attributes Reference
 
