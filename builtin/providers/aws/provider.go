@@ -221,6 +221,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_lambda_function":                  resourceAwsLambdaFunction(),
 			"aws_launch_configuration":             resourceAwsLaunchConfiguration(),
 			"aws_lb_cookie_stickiness_policy":      resourceAwsLBCookieStickinessPolicy(),
+                        "aws_load_balancer_policy":             resourceAwsLoadBalancerPolicy(),
 			"aws_main_route_table_association":     resourceAwsMainRouteTableAssociation(),
 			"aws_network_acl":                      resourceAwsNetworkAcl(),
 			"aws_network_interface":                resourceAwsNetworkInterface(),
