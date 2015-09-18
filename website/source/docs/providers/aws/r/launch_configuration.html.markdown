@@ -24,8 +24,8 @@ resource "aws_launch_configuration" "as_conf" {
 
 Launch Configurations cannot be updated after creation with the Amazon
 Web Service API. In order to update a Launch Configuration, Terraform will 
-destroy the existing resource and create a replacement. If order to effectively 
-use a Launch Configuration resource with an[AutoScaling Group resource][1], 
+destroy the existing resource and create a replacement. In order to effectively 
+use a Launch Configuration resource with an [AutoScaling Group resource][1], 
 it's recommend to omit the Launch Configuration `name` attribute, and 
 specify `create_before_destroy` in a [lifecycle][2] block, as shown:
 
