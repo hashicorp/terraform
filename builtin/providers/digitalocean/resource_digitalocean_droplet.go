@@ -39,6 +39,10 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 			"size": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				StateFunc: func(val interface{}) string {
+					// DO API V2 size slug is always lowercase
+					return strings.ToLower(val.(string))
+				},
 			},
 
 			"status": &schema.Schema{
