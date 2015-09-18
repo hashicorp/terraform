@@ -284,6 +284,15 @@ func (p *ResourceProvider) DataSources() []terraform.DataSource {
 	return result
 }
 
+func (p *ResourceProvider) Export() (terraform.ResourceSchema, error) {
+	var result terraform.ResourceSchema
+	err := p.Client.Call("Plugin.Export", new(interface{}), &result)
+	if err != nil {
+		// TODO: panic, log, what?
+	}
+	return result, err
+}
+
 func (p *ResourceProvider) Close() error {
 	return p.Client.Close()
 }
@@ -546,5 +555,14 @@ func (s *ResourceProviderServer) DataSources(
 	nothing interface{},
 	result *[]terraform.DataSource) error {
 	*result = s.Provider.DataSources()
+	return nil
+}
+
+func (s *ResourceProviderServer) Export(nothing interface{}, result *terraform.ResourceSchema) error {
+	r, err := s.Provider.Export()
+	if err != nil {
+		return err
+	}
+	*result = r
 	return nil
 }

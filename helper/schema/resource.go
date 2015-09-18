@@ -361,6 +361,16 @@ func (r *Resource) TestResourceData() *ResourceData {
 	}
 }
 
+// ExportSchema should be called to export the structure
+// of the resource.
+//
+// Provider.ExportSchema() will automatically call this for all of
+// the resources it manages, so you don't need to call this manually if it
+// is part of a Provider.
+func (r *Resource) Export() terraform.ResourceSchemaInfo {
+	return schemaMap(r.Schema).Export()
+}
+
 // Returns true if the resource is "top level" i.e. not a sub-resource.
 func (r *Resource) isTopLevel() bool {
 	// TODO: This is a heuristic; replace with a definitive attribute?

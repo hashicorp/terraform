@@ -126,6 +126,9 @@ type ResourceProvider interface {
 	// ReadDataApply initializes a data instance using the configuration
 	// in a diff produced by ReadDataDiff.
 	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
+
+	// Export exports provider and resources schema
+	Export() (ResourceSchema, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
@@ -136,13 +139,27 @@ type ResourceProviderCloser interface {
 
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
-	Name       string // Name of the resource, example "instance" (no provider prefix)
-	Importable bool   // Whether this resource supports importing
+	Name       string `json:"name"`       // Name of the resource, example "instance" (no provider prefix)
+	Importable bool   `json:"importable"` // Whether this resource supports importing
 }
 
 // DataSource is a data source that a resource provider implements.
 type DataSource struct {
-	Name string
+	Name string `json:"name"`
+}
+
+type ResourceSchemaElement struct {
+	Name      string `json:"name"`
+	Type      string `json:"type"`
+	Interface string `json:"interface"`
+}
+
+type ResourceSchemaInfo map[string][]ResourceSchemaElement
+
+// ResourceSchema
+type ResourceSchema struct {
+	Provider  ResourceSchemaInfo            `json:"provider"`
+	Resources map[string]ResourceSchemaInfo `json:"resources"`
 }
 
 // ResourceProviderFactory is a function type that creates a new instance

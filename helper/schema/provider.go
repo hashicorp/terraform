@@ -91,6 +91,21 @@ func (p *Provider) InternalValidate() error {
 	return validationErrors
 }
 
+// ExportSchema should be called to export the structure
+// of the provider.
+func (p *Provider) Export() (terraform.ResourceSchema, error) {
+	result := terraform.ResourceSchema{}
+
+	result.Provider = schemaMap(p.Schema).Export()
+	result.Resources = make(map[string]terraform.ResourceSchemaInfo)
+
+	for k, r := range p.ResourcesMap {
+		result.Resources[k] = r.Export()
+	}
+
+	return result, nil
+}
+
 // Meta returns the metadata associated with this provider that was
 // returned by the Configure call. It will be nil until Configure is called.
 func (p *Provider) Meta() interface{} {

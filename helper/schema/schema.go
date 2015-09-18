@@ -619,6 +619,31 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 	return nil
 }
 
+// Export exports the format of this schema.
+func (m schemaMap) Export() terraform.ResourceSchemaInfo {
+	result := make(terraform.ResourceSchemaInfo)
+	for k, v := range m {
+		item := []terraform.ResourceSchemaElement{}
+		s := reflect.ValueOf(v).Elem()
+		typeOfV := s.Type()
+		for i := 0; i < s.NumField(); i++ {
+			f := s.Field(i)
+			var iv string
+			f.Type().Kind()
+			if f.Interface() != nil {
+				iv = fmt.Sprintf("%v", f.Interface())
+			} else {
+				iv = ""
+			}
+			el := terraform.ResourceSchemaElement{typeOfV.Field(i).Name, fmt.Sprintf("%s", f.Type()), iv}
+			item = append(item, el)
+		}
+		result[k] = item
+	}
+
+	return result
+}
+
 func (m schemaMap) diff(
 	k string,
 	schema *Schema,
