@@ -26,6 +26,32 @@ func TestAccAWSCodeCommitRepository_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSCodeCommitRepository_withChanges(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCodeCommitRepositoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCodeCommitRepository_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
+					resource.TestCheckResourceAttr(
+						"aws_codecommit_repository.test", "description", "This is a test description"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCodeCommitRepository_withChanges,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
+					resource.TestCheckResourceAttr(
+						"aws_codecommit_repository.test", "description", "This is a test description - with changes"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCodeCommitRepositoryExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
@@ -72,5 +98,12 @@ const testAccCodeCommitRepository_basic = `
 resource "aws_codecommit_repository" "test" {
   repository_name = "my_test_repository"
   description = "This is a test description"
+}
+`
+
+const testAccCodeCommitRepository_withChanges = `
+resource "aws_codecommit_repository" "test" {
+  repository_name = "my_test_repository"
+  description = "This is a test description - with changes"
 }
 `
