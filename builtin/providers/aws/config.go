@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -139,6 +140,7 @@ type AWSClient struct {
 	glacierconn           *glacier.Glacier
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	configserviceconn     *configservice.ConfigService
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
 }
@@ -239,6 +241,7 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	}
 
+<<<<<<< HEAD
 	if !c.SkipRequestingAccountId {
 		partition, accountId, err := GetAccountInfo(client.iamconn, client.stsconn, cp.ProviderName)
 		if err == nil {
