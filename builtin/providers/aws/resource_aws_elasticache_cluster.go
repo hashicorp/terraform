@@ -177,7 +177,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		CacheSecurityGroupNames: securityNames,
 		SecurityGroupIds:        securityIds,
 		Tags:                    tags,
-		ReplicationGroupID:      aws.String(replicationGroupID),
+		ReplicationGroupId:      aws.String(replicationGroupID),
 	}
 
 	// parameter groups are optional and can be defaulted by AWS

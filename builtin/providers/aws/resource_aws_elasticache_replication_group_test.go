@@ -35,7 +35,7 @@ func testAccCheckAWSEcacheReplicationGroupDestroy(s *terraform.State) error {
 			continue
 		}
 		res, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
-			ReplicationGroupID: aws.String(rs.Primary.ID),
+			ReplicationGroupId: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
 			return err
@@ -56,7 +56,7 @@ func testAccCheckAWSEcacheReplicationGroupExists(n string) resource.TestCheckFun
 
 		conn := testAccProvider.Meta().(*AWSClient).elasticacheconn
 		res, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
-			ReplicationGroupID: aws.String(rs.Primary.ID),
+			ReplicationGroupId: aws.String(rs.Primary.ID),
 		})
 
 		if err != nil {
@@ -64,7 +64,7 @@ func testAccCheckAWSEcacheReplicationGroupExists(n string) resource.TestCheckFun
 		}
 
 		if len(res.ReplicationGroups) != 1 ||
-			*res.ReplicationGroups[0].ReplicationGroupID != rs.Primary.ID {
+			*res.ReplicationGroups[0].ReplicationGroupId != rs.Primary.ID {
 			return fmt.Errorf("Replication group not found")
 		}
 		log.Printf("[DEBUG] Rep group found")

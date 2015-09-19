@@ -117,17 +117,17 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	prefferedAZs := expandStringList(prefferedCacheClusterAZs.List())
 
 	req := &elasticache.CreateReplicationGroupInput{
-		ReplicationGroupID:          aws.String(replicationGroupID),
+		ReplicationGroupId:          aws.String(replicationGroupID),
 		ReplicationGroupDescription: aws.String(description),
 		CacheNodeType:               aws.String(cacheNodeType),
 		AutomaticFailoverEnabled:    aws.Bool(automaticFailover),
 		NumCacheClusters:            aws.Int64(int64(numCacheClusters)),
-		PrimaryClusterID:            aws.String(primaryClusterID),
+		PrimaryClusterId:            aws.String(primaryClusterID),
 		Engine:                      aws.String(engine),
 		CacheSubnetGroupName:        aws.String(subnetGroupName),
 		EngineVersion:               aws.String(engineVersion),
 		CacheSecurityGroupNames:     securityNames,
-		SecurityGroupIDs:            securityIds,
+		SecurityGroupIds:            securityIds,
 		PreferredCacheClusterAZs:    prefferedAZs,
 	}
 
@@ -170,7 +170,7 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 	conn := meta.(*AWSClient).elasticacheconn
 
 	req := &elasticache.DescribeReplicationGroupsInput{
-		ReplicationGroupID: aws.String(d.Id()),
+		ReplicationGroupId: aws.String(d.Id()),
 	}
 
 	res, err := conn.DescribeReplicationGroups(req)
@@ -189,7 +189,7 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		if *c.Status != "available" {
 			return nil
 		}
-		d.Set("replication_group_id", c.ReplicationGroupID)
+		d.Set("replication_group_id", c.ReplicationGroupId)
 		d.Set("description", c.Description)
 		d.Set("automatic_failover", c.AutomaticFailover)
 		d.Set("num_cache_clusters", len(c.MemberClusters))
@@ -206,7 +206,7 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 
 	req := &elasticache.ModifyReplicationGroupInput{
 		ApplyImmediately:   aws.Bool(true),
-		ReplicationGroupID: aws.String(d.Id()),
+		ReplicationGroupId: aws.String(d.Id()),
 	}
 
 	if d.HasChange("automatic_failover") {
@@ -227,7 +227,7 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 	if d.HasChange("security_group_ids") {
 		securityIDSet := d.Get("security_group_ids").(*schema.Set)
 		securityIds := expandStringList(securityIDSet.List())
-		req.SecurityGroupIDs = securityIds
+		req.SecurityGroupIds = securityIds
 	}
 
 	if d.HasChange("security_group_names") {
@@ -248,7 +248,7 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 	conn := meta.(*AWSClient).elasticacheconn
 
 	req := &elasticache.DeleteReplicationGroupInput{
-		ReplicationGroupID: aws.String(d.Id()),
+		ReplicationGroupId: aws.String(d.Id()),
 	}
 
 	_, err := conn.DeleteReplicationGroup(req)
@@ -283,7 +283,7 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 func replicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupID, givenState string, pending []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
-			ReplicationGroupID: aws.String(replicationGroupID),
+			ReplicationGroupId: aws.String(replicationGroupID),
 		})
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
