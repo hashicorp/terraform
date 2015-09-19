@@ -1,8 +1,8 @@
 package google
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -13,7 +13,6 @@ func resourceStorageBucketObject() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceStorageBucketObjectCreate,
 		Read:   resourceStorageBucketObjectRead,
-		Update: resourceStorageBucketObjectUpdate,
 		Delete: resourceStorageBucketObjectDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -104,12 +103,6 @@ func resourceStorageBucketObjectRead(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(objectGetId(res))
 
-	return nil
-}
-
-func resourceStorageBucketObjectUpdate(d *schema.ResourceData, meta interface{}) error {
-	// The Cloud storage API doesn't support updating object data contents,
-	// only metadata. So once we implement metadata we'll have work to do here
 	return nil
 }
 
