@@ -16,8 +16,6 @@ func resourceAwsAppCookieStickinessPolicy() *schema.Resource {
 		// There is no concept of "updating" an App Stickiness policy in
 		// the AWS API.
 		Create: resourceAwsAppCookieStickinessPolicyCreate,
-		Update: resourceAwsAppCookieStickinessPolicyCreate,
-
 		Read:   resourceAwsAppCookieStickinessPolicyRead,
 		Delete: resourceAwsAppCookieStickinessPolicyDelete,
 
