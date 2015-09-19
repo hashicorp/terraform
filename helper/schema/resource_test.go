@@ -335,6 +335,36 @@ func TestResourceInternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		// Update undefined for non-ForceNew field
+		{
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"boo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			true,
+		},
+
+		// Update defined for ForceNew field
+		{
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+						ForceNew: true,
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for i, tc := range cases {
