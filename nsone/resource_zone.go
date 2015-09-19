@@ -32,6 +32,11 @@ func zoneResource() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"refresh": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+			},
 			"retry": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -65,6 +70,7 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	d.Set("hostmaster", z.Hostmaster)
 	d.Set("ttl", z.Ttl)
 	d.Set("nx_ttl", z.Nx_ttl)
+	d.Set("refresh", z.Refresh)
 	d.Set("retry", z.Retry)
 	d.Set("expiry", z.Expiry)
 	if z.Secondary != nil && z.Secondary.Enabled {
@@ -85,6 +91,9 @@ func resourceToZoneData(z *nsone.Zone, d *schema.ResourceData) {
 	}
 	if v, ok := d.GetOk("nx_ttl"); ok {
 		z.Nx_ttl = v.(int)
+	}
+	if v, ok := d.GetOk("refresh"); ok {
+		z.Refresh = v.(int)
 	}
 	if v, ok := d.GetOk("retry"); ok {
 		z.Retry = v.(int)

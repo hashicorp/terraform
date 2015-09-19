@@ -1,7 +1,8 @@
 # Synopsis
 
-This is a *experimental* provider which allows Terraform to create and update domains and domain
-records with the (NSOne)[http://nsone.net/] API.
+This is an *experimental* provider which allows Terraform to create
+and update DNS zones, records, monitoring jobs, data sources and
+feeds, and other resources with the (NSONE)[http://nsone.net/] API.
 
 # Example use
 
@@ -109,67 +110,70 @@ is placed in the right place in your $GOPATH.
 
 # Supported features
 
-## Setup zones
+## Create and manage DNS zones
     * Normal primary zones supported
-    * Links to other zones supported
+    * Linked zones supported
     * Secondary (slave) zones supported
 
-## Setup records in those zones
-    * A, MX, ALIAS and CNAME records are supported.
+## Manage records in your zones
+    * A, MX, ALIAS and CNAME record types are supported.
     * Other record types MAY work, but are untested.
-    * Allows records to be linked to other records
-    * Allows multiple answers, each of which can be linked to data feeds
+    * Supports NSONE's Linked Records
+    * Supports multiple answers, each of which can be connected to data feeds
     * Add filter chains to records, with config
-    * Add regions to answers, and the record. Some (not all!) region metadata fields are supported.
+    * Add regions to answers, and the record. Some (not all!) region metadata types are supported.
 
 ## Data sources
     * Can create datasources with arbitrary config
     * This *should* work for all datasource types, but only nsone_v1 and nsone_monitoring are tested
 
 ## Data feeds
-    * Create data feeds linked to a data source with a label
+    * Create data feeds connected to a data source with a label
 
-## NSOne monitoring
+## NSONE monitoring
     * Create and manage monitoring jobs.
-    * Link these to data feeds and use them to control record up/down status.
+    * Connect monitoring notifications to data feeds and use monitors to control record up/down status.
 
 ## Users / Account management / API keys
   * Creation of users, API keys and teams is fully supported
 
 # Unsupported features
 
-# Zones
-  * Setting up secondary servers to AXFR is currently unsupported
+## Zones
+  * Whitelisting of secondary servers to allow AXFR is currently unsupported
 
 ## Records
   * Metadata support in regions is limited
-  * Record wide metadata is unsupported
+  * Record-wide metadata is unsupported
 
-## NSOne monitoring
-  * Notification is not supported
+## NSONE monitoring
+  * Notification list management is not supported
 
 # Resources provided
 
 ## nsone_zone
 
-Declares a zone in nsone.
+Creates a DNS zone in NSONE.
 
 ### Inputs
 
   * zone - The name of the zone to define [Required]
-  * link - The name of another zone to link this zone to (so that they serve the same answers) [Optional]
-  * ttl - The default TTL for records in this zone [Optional]
+  * link - The name of another zone to link this zone to (so that they serve the same DNS records) [Optional]
+  * ttl - The TTL for the SOA record for this zone [Optional]
   * nx_ttl - The TTL for NXDOMAIN answers in this zone [Optional]
-  * retry - [Optional]
-  * expiry - [Optional]
-  * primary - The master server to AXFR this zone from, creates a secondary zone. [Optional]
+  * refresh - Frequency for slaves to try to refresh this zone [Optional]
+  * retry - Time between slave retries if "refresh" has expired [Optional]
+  * expiry - Time after an expired "refresh" to keep "retrying" before giving up [Optional]
+  * primary - The master nameserver hostname to AXFR this zone from, creates a secondary zone. [Optional]
 
 ### Outputs
 
-  * id - The internal ID for the zone in the NSOne API
+  * id - The internal ID for the zone in the NSONE API
   * hostmaster - The hostmaster for the zone
 
 ## nsone_record
+
+Creates a DNS record and optional traffic management config in NSONE.
 
 ### Inputs
 
@@ -177,81 +181,87 @@ Declares a zone in nsone.
   * domain - The full domain name of this record [Required]
   * ttl - A TTL specific to this record [Optional]
   * type - The type of the record [Required]
-  * meta - ??? [Optional]
+  * meta - Record wide metadata [Currently unsupported]
   * link - The domain of a record to link this record to (so that they serve the same answers) [Optional]
   * answers - The set of answers that it's possible to return. This stanza can be repeated.
-    * answer - The answer to return. FIXME - Test/fix other record types. [Required]
-    * region - The name of the region (from 'regions', below) to assign this answer to. This is used for subsequent geo-filtering. [Optional]
-    * meta - Add metadata to this answer, used for filtering. [Optional]
+    * answer - The DNS RDATA of the answer to return (e.g. "1.2.3.4" for an A record, or "some.example.com" for a CNAME). FIXME - Test/fix other record types. [Required]
+    * region - The name of the region (from 'regions', below) to assign this answer to. Regions may be used to specify metadata that should apply across all answers in the region. [Optional]
+    * meta - Add metadata key/value pairs to this answer, used for filtering.  This stanza can be repeated. Get the current set of supported metadata types from the /metatypes NSONE API endpoint. [Optional]
       * field - The metadata field name to update from a feed. [Required]
-      * feed - The id of the feed which updates this field. [Optional, conflicts with value]
+      * feed - The id of the data feed which updates this field. [Optional, conflicts with value]
       * value - The static value to set for this metadata field. [Optional, conflicts with feed]
-  * regions - The set of regions to which you can add static metadata, and then associate with answers. This stanza can be repeated.
+  * regions - The set of regions into which answers may be grouped.  Each region has its own metadata. This stanza can be repeated. [Optional]
     * name - The name of this region (the name provided in an answer) [Required]
     * georegion - The name of the geographic region which corresponds to this region. Allowed values are: US-WEST, US-EAST, US-CENTRAL, EUROPE, AFRICA, ASIAPAC, SOUTH-AMERICA. [Optional]
     * country - The name of the country which corresponds to this region. FIXME countries? [Optional]
     * us_state - The name of the US state which corresponds to this region. FIXME states? [Optional]
     * FIXME - Add the rest!
     * FIXME - Add support for having feeds at the region level!
-  * filters - The list of filters to apply to results. This stanza can be repeated. [Optional]
-    * filter - The name of this filter. Get possible names from FIXME [Required]
+  * filters - The Filter Chain to apply to the answers, consisting of a list of filter algorithms. This stanza can be repeated. Order matters when creating a Filter Chain. [Optional]
+    * filter - The type of this filter. Get possible filters from the /filtertypes NSONE API endpoint. [Required]
     * disabled - If this filter should be disabled. [Optional]
-    * config - A map of configuration speciic to this filter. Get the possible/required keys and values from FIXME [Optional]
+    * config - A map of configuration key/value pairs specific to this filter. Get the possible/required keys and values from the /filtertypes NSONE API endpoint. [Optional]
 
 ### Outputs
 
-  * id - The internal NSOne ID for this record
+  * id - The internal NSONE ID for this record
   * ttl - The record's TTL
 
 ## nsone_datasource
 
+NSONE Data Sources are conduits for pushing updates to DNS record/answer metadata through individual data feeds to NSONE's platform.
+
 ### Inputs
 
   * name - The name to associate with this data source. [Required]
-  * sourcetype - The type of data source to create. FIXME URL for valid types. nsone_v1, nsone_monitoring are currently tested. [Required]
+  * sourcetype - The type of data source to create. Get the current set of supported data source types from the /data/sourcetypes NSONE API endpoint. nsone_v1, nsone_monitoring are currently tested. [Required]
 
 ### Outputs
 
-  * id - The internal NSOne id of this data source. This is used when associating feeds with this source (nsone_datafeed's source_id).
+  * id - The internal NSONE id of this data source. This is used when associating feeds with this source (nsone_datafeed's source_id).
 
 ## nsone_datafeed
 
+Multiple data feeds may be associated with an NSONE Data Source -- for example, feeds keyed to individual servers, monitoring jobs, etc.
+
 ### Inputs
 
-  * source_id - The internal NSOne id of the data source this feed is getting data from. [Required]
-  * name - The friendly name for this feed [Required]
-  * config - A map of configuration for this feed. The keys and values required vary depending on the type of source. See the information at FIXME for more details. [Optional]
+  * source_id - The internal NSONE id of the data source this feed is attached to. [Required]
+  * name - The user friendly name for this feed [Required]
+  * config - A map of configuration key/value pairs for this data feed. The keys and values required vary depending on the type of source. Get the current set of supported config keys from the /data/sourcetypes NSONE API endpoint. [Optional]
 
 ### Outputs
 
-  * id - The internal NSOne id of this data feed. This is passed into resource_record's answer.meta.feed field
+  * id - The internal NSONE id of this data feed. This is passed into resource_record's answer.meta.feed field
 
 ## nsone_monitoringjob
+
+NSONE's Monitoring jobs enable up/down monitoring of your different service endpoints, and can feed directly into DNS records to drive DNS failover.
 
 ### Inputs
 
   * name - The friendly name of this monitoring job [Required]
   * active - If the job is active [Bool, Required]
-  * regions - Regions to run the job in. List of valid regions from FIXME [Required]
-  * job_type - One of the job types from FIXME. [Required]
+  * regions - NSONE Monitoring regions to run the job in. List of valid regions is available from the /monitoring/regions NSONE API endpoint. [Required]
+  * job_type - One of the job types from the /monitoring/jobtypes NSONE API endpoint. [Required]
   * frequency - How often to run the job in seconds [Int, Required]
   * rapid_recheck - If the check should be immediately re-run if it fails [Bool, Required]
   * policy - The policy of how many regions need to fail to make the check fail, this is one of: quorum, one, all. [Required]
-  * notes - Notes about what this monitoring job does.
-  * config - A map of configuration for this job_type, see FIXME for more info on job types [Required]
-  * notify_delay - How long this job needs to be failing for before notifying [Integer]
-  * notify_repeat - How often to repeat the notification if unfixed [Integer]
-  * notify_failback - Notify when fixed [Bool]
-  * notify_regional - Notify (when using multiple regions, and quorum or all policies) if an individual region fails checks [Bool]
-  * notify_list - List of FIXMEs to notify when this monitoring job fails
-  * rules
-    * value
-    * comparison
-    * key
+  * notes - Operator notes about what this monitoring job does. [Optional]
+  * config - A map of configuration for this job_type, see the /monitoring/jobtypes NSONE API endpoint for more info. [Required]
+  * notify_delay - How long this job needs to be failing for before notifying [Int, Optional]
+  * notify_repeat - How often to repeat the notification if unfixed [Int, Optional]
+  * notify_failback - Notify when fixed [Bool, Optional]
+  * notify_regional - Notify (when using multiple regions, and quorum or all policies) if an individual region fails checks [Bool, Optional]
+  * notify_list - Notification list id to send notifications to when this monitoring job fails [Optional]
+  * rules - List of rules determining failure conditions.  Each entry must have the following inputs: [Optional]
+    * value - Value to compare to [Required]
+    * comparison - Type of comparison to perform [Required]
+    * key - The output key from the job, to which the value will be compared - see the /monitoring/jobtypes NSONE API endpoint for list of valid keys for each job type [Required]
 
 ### Outputs
 
-  * id - The internal NSOne id of this monitoring check. This is passed into resource_datafeed's config.jobid
+  * id - The internal NSONE id of this monitoring job. This is passed into resource_datafeed's config.jobid
 
 ## nsone_user
 
@@ -263,12 +273,12 @@ N.B. This *also* has all the inputs from the nsone_team resource, which you can 
  * email - The user's email address [Required]
  * name - The user's full name [Required]
  * notify
-   * billing 
- * teams - List of the nsone_team s to attach to this user's permissions.
+   * billing - Whether the user should receive billing notifications [Bool, Optional]
+ * teams - List of the nsone_team ids to attach to this user's permissions. [Optional]
 
 ### Outputs
 
-  * id - The internal NSOne id of this user.
+  * id - The internal NSONE id of this user.
   * FIXME - Add current registration/login status?
 
 ## nsone_apikey
@@ -277,14 +287,16 @@ N.B. This *also* has all the inputs from the nsone_team resource, which you can 
 
 N.B. This *also* has all the inputs from the nsone_team resource, which you can use *instead* of assigning to key to one or more teams.
 
- * teams - List of the nsone_team s to attach to this API key's permissions.
+ * teams - List of the nsone_team ids to attach to this API key's permissions.
 
 ### Outputs
 
  * key - The API key that has been generated.
- * id - The internal NSOne id of this api key.
+ * id - The internal NSONE id of this api key.
 
 ## nsone_team
+
+Permissions are all optional -- by default, a user is granted an unspecified permission.
 
 ### Inputs
 
@@ -311,7 +323,7 @@ N.B. This *also* has all the inputs from the nsone_team resource, which you can 
 
 ### Outputs
 
-  * id - The internal NSOne id of this team.
+  * id - The internal NSONE id of this team.
 
 # Support / contributions
 
@@ -323,7 +335,7 @@ Also, please be warned that I am *not* a competent Go programmer, so please expe
 to find hideous / insane / non-idiomatic code if you look at the source. I'd be
 extremely happy to accept patches or suggestions from anyone more experience than me:)
 
-Please *feel free* to contract me via github issues or Twitter or irc in #terraform (t0m)
+Please *feel free* to contact me via github issues or Twitter or irc in #terraform (t0m)
 if you have *any* issues with, or would like advice on using this code.
 
 # Copyright
