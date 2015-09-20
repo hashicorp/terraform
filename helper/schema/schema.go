@@ -623,25 +623,60 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 func (m schemaMap) Export() terraform.ResourceSchemaInfo {
 	result := make(terraform.ResourceSchemaInfo)
 	for k, v := range m {
-		item := []terraform.ResourceSchemaElement{}
-		s := reflect.ValueOf(v).Elem()
-		typeOfV := s.Type()
-		for i := 0; i < s.NumField(); i++ {
-			f := s.Field(i)
-			var iv string
-			f.Type().Kind()
-			if f.Interface() != nil {
-				iv = fmt.Sprintf("%v", f.Interface())
-			} else {
-				iv = ""
-			}
-			el := terraform.ResourceSchemaElement{typeOfV.Field(i).Name, fmt.Sprintf("%s", f.Type()), iv}
-			item = append(item, el)
-		}
+		item := export(v)
 		result[k] = item
 	}
-
 	return result
+}
+
+var myDefaultSchema = Schema{}
+
+func export(v *Schema) terraform.ResourceSchemaElements {
+	item := terraform.ResourceSchemaElements{}
+	s := reflect.ValueOf(v).Elem()
+	dd := reflect.ValueOf(&myDefaultSchema).Elem()
+	typeOfV := s.Type()
+	typeOfDD := dd.Type()
+	for i := 0; i < typeOfV.NumField(); i++ {
+		name := typeOfV.Field(i).Name
+		if !exportable(name) {
+			continue
+		}
+		f := s.Field(i)
+		value := f.Interface()
+		defValue := dd.Field(i).Interface()
+		if typeOfDD != typeOfV || value != defValue {
+			el := exportValue(value, name, fmt.Sprintf("%s", f.Type()))
+			item = append(item, el)
+		}
+	}
+	return item
+}
+
+func exportValue(value interface{}, name string, t string) terraform.ResourceSchemaElement {
+	s2, ok := value.(*Schema)
+	if ok {
+		return terraform.ResourceSchemaElement{Name: name, Type: "ResourceSchemaElements", Value: export(s2)}
+	}
+	r2, ok := value.(*Resource)
+	if ok {
+		return terraform.ResourceSchemaElement{Name: name, Type: "ResourceSchemaInfo", Value: r2.Export()}
+	}
+	if value != nil {
+		return terraform.ResourceSchemaElement{Name: name, Type: t, Value: fmt.Sprintf("%v", value)}
+	}
+	return terraform.ResourceSchemaElement{Name: name, Type: t, Value: ""}
+}
+
+var myExportable = []string{"Type", "Optional", "Required", "Description", "Deprecated", "Removed", "Default", "Elem"}
+
+func init() {
+	sort.Strings(myExportable)
+}
+
+func exportable(name string) bool {
+	i := sort.SearchStrings(myExportable, name)
+	return (i < len(myExportable) && myExportable[i] == name)
 }
 
 func (m schemaMap) diff(

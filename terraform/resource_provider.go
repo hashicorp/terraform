@@ -1,5 +1,7 @@
 package terraform
 
+import "encoding/gob"
+
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
@@ -149,17 +151,25 @@ type DataSource struct {
 }
 
 type ResourceSchemaElement struct {
-	Name      string `json:"name"`
-	Type      string `json:"type"`
-	Interface string `json:"interface"`
+	Name  string      `json:"name"`
+	Type  string      `json:"type"`
+	Value interface{} `json:"value"`
 }
 
-type ResourceSchemaInfo map[string][]ResourceSchemaElement
+type ResourceSchemaElements []ResourceSchemaElement
+
+type ResourceSchemaInfo map[string]ResourceSchemaElements
 
 // ResourceSchema
 type ResourceSchema struct {
 	Provider  ResourceSchemaInfo            `json:"provider"`
 	Resources map[string]ResourceSchemaInfo `json:"resources"`
+}
+
+func init() {
+	// Required to return such elements from ResourceSchemaElement#Value
+	gob.Register(make(ResourceSchemaElements, 0))
+	gob.Register(ResourceSchemaInfo{})
 }
 
 // ResourceProviderFactory is a function type that creates a new instance
