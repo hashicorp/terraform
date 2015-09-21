@@ -437,6 +437,42 @@ func TestResourceAwsElbListenerHash(t *testing.T) {
 	}
 }
 
+func TestAccAWSELB_validateElbNameCannotBeginWithHyphen(t *testing.T) {
+	var elbName = "-Testing123"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestAccAWSELB_validateElbNameCannotBeLongerThen32Characters(t *testing.T) {
+	var elbName = "Testing123dddddddddddddddddddvvvv"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestAccAWSELB_validateElbNameCannotHaveSpecialCharacters(t *testing.T) {
+	var elbName = "Testing123%%"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestAccAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
+	var elbName = "Testing123-"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elbconn
 
