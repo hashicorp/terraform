@@ -437,7 +437,7 @@ func TestResourceAwsElbListenerHash(t *testing.T) {
 	}
 }
 
-func TestAccAWSELB_validateElbNameCannotBeginWithHyphen(t *testing.T) {
+func TestResourceAWSELB_validateElbNameCannotBeginWithHyphen(t *testing.T) {
 	var elbName = "-Testing123"
 	_, errors := validateElbName(elbName, "SampleKey")
 
@@ -446,7 +446,7 @@ func TestAccAWSELB_validateElbNameCannotBeginWithHyphen(t *testing.T) {
 	}
 }
 
-func TestAccAWSELB_validateElbNameCannotBeLongerThen32Characters(t *testing.T) {
+func TestResourceAWSELB_validateElbNameCannotBeLongerThen32Characters(t *testing.T) {
 	var elbName = "Testing123dddddddddddddddddddvvvv"
 	_, errors := validateElbName(elbName, "SampleKey")
 
@@ -455,7 +455,7 @@ func TestAccAWSELB_validateElbNameCannotBeLongerThen32Characters(t *testing.T) {
 	}
 }
 
-func TestAccAWSELB_validateElbNameCannotHaveSpecialCharacters(t *testing.T) {
+func TestResourceAWSELB_validateElbNameCannotHaveSpecialCharacters(t *testing.T) {
 	var elbName = "Testing123%%"
 	_, errors := validateElbName(elbName, "SampleKey")
 
@@ -464,7 +464,7 @@ func TestAccAWSELB_validateElbNameCannotHaveSpecialCharacters(t *testing.T) {
 	}
 }
 
-func TestAccAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
+func TestResourceAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
 	var elbName = "Testing123-"
 	_, errors := validateElbName(elbName, "SampleKey")
 
