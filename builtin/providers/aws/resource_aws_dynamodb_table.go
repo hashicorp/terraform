@@ -571,14 +571,23 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 			}
 		}
 
-		gsi["projection_type"] = *gsiObject.Projection.ProjectionType
-		gsi["non_key_attributes"] = gsiObject.Projection.NonKeyAttributes
+		gsi["projection_type"] = *(gsiObject.Projection.ProjectionType)
+
+		nonKeyAttrs := make([]string, 0, len(gsiObject.Projection.NonKeyAttributes))
+		for _, nonKeyAttr := range gsiObject.Projection.NonKeyAttributes {
+			nonKeyAttrs = append(nonKeyAttrs, *nonKeyAttr)
+		}
+		gsi["non_key_attributes"] = nonKeyAttrs
 
 		gsiList = append(gsiList, gsi)
 		log.Printf("[DEBUG] Added GSI: %s - Read: %d / Write: %d", gsi["name"], gsi["read_capacity"], gsi["write_capacity"])
 	}
 
-	d.Set("global_secondary_index", gsiList)
+	err = d.Set("global_secondary_index", gsiList)
+	if err != nil {
+		return err
+	}
+
 	d.Set("arn", table.TableArn)
 
 	return nil
