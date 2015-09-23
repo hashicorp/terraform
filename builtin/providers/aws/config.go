@@ -227,9 +227,9 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
 			// return error if the account id is explicitly not authorised
 		}
+	} else {
+		account_id := strings.Split(*out.User.Arn, ":")[4]
 	}
-
-	account_id := strings.Split(*out.User.Arn, ":")[4]
 
 	if c.ForbiddenAccountIds != nil {
 		for _, id := range c.ForbiddenAccountIds {
