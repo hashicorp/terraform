@@ -226,7 +226,7 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 			// User may be an IAM instance profile, so fail silently.
 			// If it is an IAM instance profile
 			// validating account might be superfluous
-      return nil
+			return nil
 		} else {
 			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
 			// return error if the account id is explicitly not authorised
