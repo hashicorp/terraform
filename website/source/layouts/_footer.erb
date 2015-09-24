@@ -7,6 +7,9 @@
 						<li class="li-under"><a href="/intro/index.html">Intro</a></li>
 						<li class="active li-under"><a href="/docs/index.html">Docs</a></li>
 		        <li class="li-under"><a href="/community.html">Community</a></li>
+            <% if current_page.url != '/' %>
+              <li class="li-under"><a href="https://github.com/hashicorp/terraform/<%= github_path current_page %>">Edit this page</a></li>
+            <% end %>
 					</ul>
 				</div>
 				<div class="footer-hashi col-sm-5 col-xs-12">
