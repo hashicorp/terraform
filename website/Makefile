@@ -1,11 +1,11 @@
 all:
-	build
+  build
 
 init:
-	bundle
+  bundle
 
 dev: init
-			bundle exec middleman server
+      bundle exec middleman server
 
 build: init
-				bundle exec middleman build
+        bundle exec middleman build
