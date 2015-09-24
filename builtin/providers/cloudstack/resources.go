@@ -10,7 +10,8 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-const IS_GLOBAL_RESOURCE = "-1"
+// CloudStack uses a "special" ID of -1 to define an unlimited resource
+const UnlimitedResourceID = "-1"
 
 type retrieveError struct {
 	name  string
@@ -55,7 +56,7 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 	case "network":
 		uuid, err = cs.Network.GetNetworkID(value)
 	case "zone":
-		if value == IS_GLOBAL_RESOURCE {
+		if value == UnlimitedResourceID {
 			return value, nil
 		}
 		uuid, err = cs.Zone.GetZoneID(value)
