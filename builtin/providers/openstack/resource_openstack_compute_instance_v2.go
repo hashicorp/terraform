@@ -610,13 +610,6 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		log.Printf("[DEBUG] Security groups to remove: %v", secgroupsToRemove)
 
-		for _, g := range secgroupsToAdd.List() {
-			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
-			if err != nil {
-				return fmt.Errorf("Error adding security group to OpenStack server (%s): %s", d.Id(), err)
-			}
-			log.Printf("[DEBUG] Added security group (%s) to instance (%s)", g.(string), d.Id())
-		}
 
 		for _, g := range secgroupsToRemove.List() {
 			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
@@ -634,6 +627,14 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 				log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g.(string), d.Id())
 			}
 		}
+		for _, g := range secgroupsToAdd.List() {
+			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error adding security group to OpenStack server (%s): %s", d.Id(), err)
+			}
+			log.Printf("[DEBUG] Added security group (%s) to instance (%s)", g.(string), d.Id())
+		}
+
 	}
 
 	if d.HasChange("admin_pass") {
