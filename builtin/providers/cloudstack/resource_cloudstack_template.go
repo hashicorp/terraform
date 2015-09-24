@@ -130,17 +130,6 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 		return e.Error()
 	}
 
-	// If there is a project supplied, we retrieve and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project UUID
-		projectid, e := retrieveUUID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
-	}
-
 	// Retrieve the zone UUID
 	zoneid, e := retrieveUUID(cs, "zone", d.Get("zone").(string))
 	if e != nil {
@@ -176,6 +165,17 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 
 	if v, ok := d.GetOk("password_enabled"); ok {
 		p.SetPasswordenabled(v.(bool))
+	}
+
+	// If there is a project supplied, we retrieve and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project UUID
+		projectid, e := retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
 	}
 
 	// Create the new template
