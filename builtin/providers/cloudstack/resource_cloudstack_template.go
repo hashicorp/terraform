@@ -51,6 +51,12 @@ func resourceCloudStackTemplate() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -122,6 +128,17 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 	ostypeid, e := retrieveUUID(cs, "os_type", d.Get("os_type").(string))
 	if e != nil {
 		return e.Error()
+	}
+
+	// If there is a project supplied, we retrieve and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project UUID
+		projectid, e := retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
 	}
 
 	// Retrieve the zone UUID
@@ -218,6 +235,8 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("is_public", t.Ispublic)
 	d.Set("password_enabled", t.Passwordenabled)
 	d.Set("is_ready", t.Isready)
+
+	setValueOrUUID(d, "project", t.Project, t.Projectid)
 
 	if t.Zoneid == IS_GLOBAL_RESOURCE {
 		setValueOrUUID(d, "zone", t.Zonename, IS_GLOBAL_RESOURCE)
