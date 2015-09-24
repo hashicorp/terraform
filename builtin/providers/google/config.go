@@ -19,6 +19,7 @@ import (
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/storage/v1"
+	"google.golang.org/api/sqladmin/v1beta4"
 )
 
 // Config is the configuration structure used to instantiate the Google
@@ -32,6 +33,7 @@ type Config struct {
 	clientContainer *container.Service
 	clientDns       *dns.Service
 	clientStorage   *storage.Service
+	clientSqlAdmin  *sqladmin.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -84,6 +86,7 @@ func (c *Config) loadAndValidate() error {
 			"https://www.googleapis.com/auth/cloud-platform",
 			"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
 			"https://www.googleapis.com/auth/devstorage.full_control",
+			"https://www.googleapis.com/auth/sqlservice.admin",
 		}
 
 		// Get the token for use in our requests
@@ -156,6 +159,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientStorage.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google SqlAdmin Client...")
+	c.clientSqlAdmin, err = sqladmin.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientSqlAdmin.UserAgent = userAgent
 
 	return nil
 }

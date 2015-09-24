@@ -3,9 +3,7 @@ package google
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -213,7 +211,7 @@ func testAccGoogleStorageDestroy(s *terraform.State) error {
 	return nil
 }
 
-var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+var randInt = genRandInt()
 
 var testGoogleStorageBucketsReaderDefaults = fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {

@@ -1,7 +1,11 @@
 ---
 layout: "google"
 page_title: "Google: google_storage_object_acl"
+<<<<<<< HEAD
 sidebar_current: "docs-google-resource-storage-acl"
+=======
+sidebar_current: "docs-google-storage-object-acl"
+>>>>>>> 089a9f0... Cloud SQL Database instances, databases, documentation, tests implemented
 description: |-
   Creates a new object ACL in Google Cloud Storage.
 ---

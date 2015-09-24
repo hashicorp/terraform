@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_dns_managed_zone"
-sidebar_current: "docs-google-resource-dns-managed-zone"
+sidebar_current: "docs-google-dns-managed-zone"
 description: |-
   Manages a zone within Google Cloud DNS.
 ---
