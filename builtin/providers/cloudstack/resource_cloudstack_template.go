@@ -219,9 +219,14 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("password_enabled", t.Passwordenabled)
 	d.Set("is_ready", t.Isready)
 
+	if t.Zoneid == "" {
+		d.Set("zone", "-1")
+	} else {
+		setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
+	}
+	
 	setValueOrUUID(d, "os_type", t.Ostypename, t.Ostypeid)
-	setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
-
+	
 	return nil
 }
 
