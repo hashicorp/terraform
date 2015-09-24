@@ -1,5 +1,4 @@
-all:
-	build
+all: build
 
 init:
 	bundle
