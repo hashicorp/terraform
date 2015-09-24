@@ -238,8 +238,8 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 
 	setValueOrUUID(d, "project", t.Project, t.Projectid)
 
-	if t.Zoneid == IS_GLOBAL_RESOURCE {
-		setValueOrUUID(d, "zone", t.Zonename, IS_GLOBAL_RESOURCE)
+	if t.Zoneid == UnlimitedResourceID {
+		setValueOrUUID(d, "zone", t.Zonename, UnlimitedResourceID)
 	} else {
 		setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
 	}
