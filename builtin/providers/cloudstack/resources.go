@@ -53,6 +53,9 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 	case "network":
 		uuid, err = cs.Network.GetNetworkID(value)
 	case "zone":
+		if value == "-1" {
+			return value, nil
+		}
 		uuid, err = cs.Zone.GetZoneID(value)
 	case "ipaddress":
 		p := cs.Address.NewListPublicIpAddressesParams()
