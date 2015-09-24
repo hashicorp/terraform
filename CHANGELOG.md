@@ -40,6 +40,8 @@ BUG FIXES:
   * provider/aws: Allow `weight = 0` in Route53 records [GH-3196]
   * provider/openstack: add state 'downloading' to list of expected states in
       `blockstorage_volume_v1` creation [GH-2866]
+  * provider/openstack: remove security groups (by name) before adding security
+      groups (by id) [GH-2008]
 
 ## 0.6.3 (August 11, 2015)
 
