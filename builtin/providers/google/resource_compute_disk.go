@@ -3,7 +3,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
@@ -128,37 +127,10 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	// It probably maybe worked, so store the ID now
 	d.SetId(disk.Name)
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Zone:    d.Get("zone").(string),
-		Type:    OperationWaitZone,
-	}
-	state := w.Conf()
-
-	if disk.SourceSnapshot != "" {
-		//creating disk from snapshot takes some time
-		state.Timeout = 10 * time.Minute
-	} else {
-		state.Timeout = 2 * time.Minute
-	}
-
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Creating Disk")
 	if err != nil {
-		return fmt.Errorf("Error waiting for disk to create: %s", err)
+		return err
 	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
-
-		// Return the error
-		return OperationError(*op.Error)
-	}
-
 	return resourceComputeDiskRead(d, meta)
 }
 
@@ -193,25 +165,10 @@ func resourceComputeDiskDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error deleting disk: %s", err)
 	}
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Zone:    d.Get("zone").(string),
-		Type:    OperationWaitZone,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	zone := d.Get("zone").(string)
+	err = computeOperationWaitZone(config, op, zone, "Creating Disk")
 	if err != nil {
-		return fmt.Errorf("Error waiting for disk to delete: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	d.SetId("")

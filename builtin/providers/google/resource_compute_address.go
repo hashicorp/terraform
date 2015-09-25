@@ -3,7 +3,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
@@ -65,28 +64,9 @@ func resourceComputeAddressCreate(d *schema.ResourceData, meta interface{}) erro
 	// It probably maybe worked, so store the ID now
 	d.SetId(addr.Name)
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Region:  region,
-		Type:    OperationWaitRegion,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitRegion(config, op, region, "Creating Address")
 	if err != nil {
-		return fmt.Errorf("Error waiting for address to create: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
-
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	return resourceComputeAddressRead(d, meta)
@@ -128,25 +108,9 @@ func resourceComputeAddressDelete(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error deleting address: %s", err)
 	}
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Region:  region,
-		Type:    OperationWaitRegion,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitRegion(config, op, region, "Deleting Address")
 	if err != nil {
-		return fmt.Errorf("Error waiting for address to delete: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	d.SetId("")
