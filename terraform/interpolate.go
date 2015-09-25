@@ -378,7 +378,13 @@ MISSING:
 	// be unknown. Instead, we return that the value is computed so
 	// that the graph can continue to refresh other nodes. It doesn't
 	// matter because the config isn't interpolated anyways.
-	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy {
+	//
+	// For a Destroy, we're also fine with computed values, since our goal is
+	// only to get destroy nodes for existing resources.
+	//
+	// For an input walk, computed values are okay to return because we're only
+	// looking for missing variables to prompt the user for.
+	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkInput {
 		return config.UnknownVariableValue, nil
 	}
 
@@ -469,7 +475,13 @@ func (i *Interpolater) computeResourceMultiVariable(
 		// be unknown. Instead, we return that the value is computed so
 		// that the graph can continue to refresh other nodes. It doesn't
 		// matter because the config isn't interpolated anyways.
-		if i.Operation == walkRefresh || i.Operation == walkPlanDestroy {
+		//
+		// For a Destroy, we're also fine with computed values, since our goal is
+		// only to get destroy nodes for existing resources.
+		//
+		// For an input walk, computed values are okay to return because we're only
+		// looking for missing variables to prompt the user for.
+		if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkInput {
 			return config.UnknownVariableValue, nil
 		}
 
