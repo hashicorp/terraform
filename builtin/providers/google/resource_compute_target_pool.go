@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
@@ -79,26 +78,6 @@ func convertStringArr(ifaceArr []interface{}) []string {
 	return arr
 }
 
-func waitOp(config *Config, op *compute.Operation,
-	resource string, action string) (*compute.Operation, error) {
-
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Region:  config.Region,
-		Project: config.Project,
-		Type:    OperationWaitRegion,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return nil, fmt.Errorf("Error waiting for %s to %s: %s", resource, action, err)
-	}
-	return opRaw.(*compute.Operation), nil
-}
-
 // Healthchecks need to exist before being referred to from the target pool.
 func convertHealthChecks(config *Config, names []string) ([]string, error) {
 	urls := make([]string, len(names))
@@ -171,15 +150,9 @@ func resourceComputeTargetPoolCreate(d *schema.ResourceData, meta interface{}) e
 	// It probably maybe worked, so store the ID now
 	d.SetId(tpool.Name)
 
-	op, err = waitOp(config, op, "TargetPool", "create")
+	err = computeOperationWaitRegion(config, op, config.Region, "Creating Target Pool")
 	if err != nil {
 		return err
-	}
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
-		// Return the error
-		return OperationError(*op.Error)
 	}
 
 	return resourceComputeTargetPoolRead(d, meta)
@@ -246,14 +219,11 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			return fmt.Errorf("Error updating health_check: %s", err)
 		}
-		op, err = waitOp(config, op, "TargetPool", "removing HealthChecks")
+
+		err = computeOperationWaitRegion(config, op, config.Region, "Updating Target Pool")
 		if err != nil {
 			return err
 		}
-		if op.Error != nil {
-			return OperationError(*op.Error)
-		}
-
 		addReq := &compute.TargetPoolsAddHealthCheckRequest{
 			HealthChecks: make([]*compute.HealthCheckReference, len(add)),
 		}
@@ -265,14 +235,11 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			return fmt.Errorf("Error updating health_check: %s", err)
 		}
-		op, err = waitOp(config, op, "TargetPool", "adding HealthChecks")
+
+		err = computeOperationWaitRegion(config, op, config.Region, "Updating Target Pool")
 		if err != nil {
 			return err
 		}
-		if op.Error != nil {
-			return OperationError(*op.Error)
-		}
-
 		d.SetPartial("health_checks")
 	}
 
@@ -302,14 +269,11 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			return fmt.Errorf("Error updating instances: %s", err)
 		}
-		op, err = waitOp(config, op, "TargetPool", "adding instances")
+
+		err = computeOperationWaitRegion(config, op, config.Region, "Updating Target Pool")
 		if err != nil {
 			return err
 		}
-		if op.Error != nil {
-			return OperationError(*op.Error)
-		}
-
 		removeReq := &compute.TargetPoolsRemoveInstanceRequest{
 			Instances: make([]*compute.InstanceReference, len(remove)),
 		}
@@ -321,14 +285,11 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			return fmt.Errorf("Error updating instances: %s", err)
 		}
-		op, err = waitOp(config, op, "TargetPool", "removing instances")
+
+		err = computeOperationWaitRegion(config, op, config.Region, "Updating Target Pool")
 		if err != nil {
 			return err
 		}
-		if op.Error != nil {
-			return OperationError(*op.Error)
-		}
-
 		d.SetPartial("instances")
 	}
 
@@ -343,14 +304,10 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 			return fmt.Errorf("Error updating backup_pool: %s", err)
 		}
 
-		op, err = waitOp(config, op, "TargetPool", "updating backup_pool")
+		err = computeOperationWaitRegion(config, op, config.Region, "Updating Target Pool")
 		if err != nil {
 			return err
 		}
-		if op.Error != nil {
-			return OperationError(*op.Error)
-		}
-
 		d.SetPartial("backup_pool")
 	}
 
@@ -390,14 +347,10 @@ func resourceComputeTargetPoolDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error deleting TargetPool: %s", err)
 	}
 
-	op, err = waitOp(config, op, "TargetPool", "delete")
+	err = computeOperationWaitRegion(config, op, config.Region, "Deleting Target Pool")
 	if err != nil {
 		return err
 	}
-	if op.Error != nil {
-		return OperationError(*op.Error)
-	}
-
 	d.SetId("")
 	return nil
 }
