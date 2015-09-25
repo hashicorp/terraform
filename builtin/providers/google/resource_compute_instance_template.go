@@ -304,11 +304,9 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 	for i := 0; i < networksCount; i++ {
 		prefix := fmt.Sprintf("network_interface.%d", i)
 
-		source := "global/networks/default"
+		source := "global/networks/"
 		if v, ok := d.GetOk(prefix + ".network"); ok {
-			if v.(string) != "default" {
-				source = v.(string)
-			}
+			source += v.(string)
 		}
 
 		// Build the networkInterface
