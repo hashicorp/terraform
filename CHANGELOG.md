@@ -30,6 +30,7 @@ BUG FIXES:
   * core: don't error on computed value during input walk [GH-2988]
   * provider/google: Crashes with interface conversion in GCE Instance Template [GH-3027]
   * provider/google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
+  * provider/google: google_compute_instance_template.network_interface.network should be a URL [GH-3226]
   * provider/aws: Retry creation of `aws_ecs_service` if IAM policy isn't ready yet [GH-3061]
   * provider/aws: Fix issue with mixed capitalization for RDS Instances  [GH-3053]
   * provider/aws: Fix issue with RDS to allow major version upgrades [GH-3053]
