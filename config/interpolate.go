@@ -86,6 +86,13 @@ type UserVariable struct {
 	key string
 }
 
+// A Timestamp variable, used to generate a timestamp. Possibly useful for things
+// like naming and such.
+// "$(timestamp)"
+type TimestampVariable struct {
+	key string
+}
+
 func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 	if strings.HasPrefix(v, "count.") {
 		return NewCountVariable(v)
@@ -97,6 +104,8 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
 		return NewModuleVariable(v)
+	} else if strings.HasPrefix(v, "timestamp") {
+		return NewTimestampVariable(v)
 	} else {
 		return NewResourceVariable(v)
 	}
@@ -249,6 +258,16 @@ func (v *UserVariable) FullKey() string {
 
 func (v *UserVariable) GoString() string {
 	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewTimestampVariable(key string) (*TimestampVariable, error) {
+	return &TimestampVariable{
+		key: key,
+	}, nil
+}
+
+func (v *TimestampVariable) FullKey() string {
+	return v.key
 }
 
 // DetectVariables takes an AST root and returns all the interpolated
