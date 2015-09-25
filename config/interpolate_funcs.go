@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -29,6 +30,8 @@ func init() {
 		"length":     interpolationFuncLength(),
 		"replace":    interpolationFuncReplace(),
 		"split":      interpolationFuncSplit(),
+		"base64enc":  interpolationFuncBase64Encode(),
+		"base64dec":  interpolationFuncBase64Decode(),
 	}
 }
 
@@ -389,6 +392,36 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 			}
 
 			return NewStringList(vals).String(), nil
+		},
+	}
+}
+
+// interpolationFuncBase64Encode implements the "base64enc" function that allows
+// Base64 encoding.
+func interpolationFuncBase64Encode() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			return base64.StdEncoding.EncodeToString([]byte(s)), nil
+		},
+	}
+}
+
+// interpolationFuncBase64Decode implements the "base64dec" function that allows
+// Base64 decoding.
+func interpolationFuncBase64Decode() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			sDec, err := base64.StdEncoding.DecodeString(s)
+			if err != nil {
+				return "", fmt.Errorf("failed to decode base64 data '%s'", s)
+			}
+			return string(sDec), nil
 		},
 	}
 }
