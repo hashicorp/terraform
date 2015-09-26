@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -78,6 +79,7 @@ type Config struct {
 
 type AWSClient struct {
 	cfconn               *cloudformation.CloudFormation
+	cloudfrontconn       *cloudfront.CloudFront
 	cloudtrailconn       *cloudtrail.CloudTrail
 	cloudwatchconn       *cloudwatch.CloudWatch
 	cloudwatchlogsconn   *cloudwatchlogs.CloudWatchLogs
@@ -137,8 +139,8 @@ func (c *Config) Client() (interface{}, error) {
 		_, err = creds.Get()
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
-				errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS Provider. 
-  Please see https://terraform.io/docs/providers/aws/index.html for more information on 
+				errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS Provider.
+  Please see https://terraform.io/docs/providers/aws/index.html for more information on
   providing credentials for the AWS Provider`))
 			} else {
 				errs = append(errs, fmt.Errorf("Error loading credentials for AWS Provider: %s", err))
@@ -187,6 +189,9 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing DynamoDB connection")
 		dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
 		client.dynamodbconn = dynamodb.New(dynamoSess)
+
+		log.Println("[INFO] Initializing Cloudfront connection")
+		client.cloudfrontconn = cloudfront.New(sess)
 
 		log.Println("[INFO] Initializing ELB connection")
 		awsElbSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.ElbEndpoint)})
