@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/pearkes/digitalocean"
 )
 
 func TestAccDigitalOceanDomain_Basic(t *testing.T) {
-	var domain digitalocean.Domain
+	var domain godo.Domain
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -33,7 +33,7 @@ func TestAccDigitalOceanDomain_Basic(t *testing.T) {
 }
 
 func testAccCheckDigitalOceanDomainDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*digitalocean.Client)
+	client := testAccProvider.Meta().(*godo.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "digitalocean_domain" {
@@ -41,17 +41,17 @@ func testAccCheckDigitalOceanDomainDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the domain
-		_, err := client.RetrieveDomain(rs.Primary.ID)
+		_, _, err := client.Domains.Get(rs.Primary.ID)
 
 		if err == nil {
-			fmt.Errorf("Domain still exists")
+			return fmt.Errorf("Domain still exists")
 		}
 	}
 
 	return nil
 }
 
-func testAccCheckDigitalOceanDomainAttributes(domain *digitalocean.Domain) resource.TestCheckFunc {
+func testAccCheckDigitalOceanDomainAttributes(domain *godo.Domain) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if domain.Name != "foobar-test-terraform.com" {
@@ -62,7 +62,7 @@ func testAccCheckDigitalOceanDomainAttributes(domain *digitalocean.Domain) resou
 	}
 }
 
-func testAccCheckDigitalOceanDomainExists(n string, domain *digitalocean.Domain) resource.TestCheckFunc {
+func testAccCheckDigitalOceanDomainExists(n string, domain *godo.Domain) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -74,9 +74,9 @@ func testAccCheckDigitalOceanDomainExists(n string, domain *digitalocean.Domain)
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.Meta().(*digitalocean.Client)
+		client := testAccProvider.Meta().(*godo.Client)
 
-		foundDomain, err := client.RetrieveDomain(rs.Primary.ID)
+		foundDomain, _, err := client.Domains.Get(rs.Primary.ID)
 
 		if err != nil {
 			return err
@@ -86,7 +86,7 @@ func testAccCheckDigitalOceanDomainExists(n string, domain *digitalocean.Domain)
 			return fmt.Errorf("Record not found")
 		}
 
-		*domain = foundDomain
+		*domain = *foundDomain
 
 		return nil
 	}
