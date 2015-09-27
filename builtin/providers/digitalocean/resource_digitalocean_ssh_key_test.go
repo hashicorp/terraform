@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/pearkes/digitalocean"
 )
 
 func TestAccDigitalOceanSSHKey_Basic(t *testing.T) {
-	var key digitalocean.SSHKey
+	var key godo.Key
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -35,15 +35,20 @@ func TestAccDigitalOceanSSHKey_Basic(t *testing.T) {
 }
 
 func testAccCheckDigitalOceanSSHKeyDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*digitalocean.Client)
+	client := testAccProvider.Meta().(*godo.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "digitalocean_ssh_key" {
 			continue
 		}
 
+		id, err := strconv.Atoi(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		// Try to find the key
-		_, err := client.RetrieveSSHKey(rs.Primary.ID)
+		_, _, err = client.Keys.GetByID(id)
 
 		if err == nil {
 			fmt.Errorf("SSH key still exists")
@@ -53,7 +58,7 @@ func testAccCheckDigitalOceanSSHKeyDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDigitalOceanSSHKeyAttributes(key *digitalocean.SSHKey) resource.TestCheckFunc {
+func testAccCheckDigitalOceanSSHKeyAttributes(key *godo.Key) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if key.Name != "foobar" {
@@ -64,7 +69,7 @@ func testAccCheckDigitalOceanSSHKeyAttributes(key *digitalocean.SSHKey) resource
 	}
 }
 
-func testAccCheckDigitalOceanSSHKeyExists(n string, key *digitalocean.SSHKey) resource.TestCheckFunc {
+func testAccCheckDigitalOceanSSHKeyExists(n string, key *godo.Key) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -76,19 +81,25 @@ func testAccCheckDigitalOceanSSHKeyExists(n string, key *digitalocean.SSHKey) re
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.Meta().(*digitalocean.Client)
+		client := testAccProvider.Meta().(*godo.Client)
 
-		foundKey, err := client.RetrieveSSHKey(rs.Primary.ID)
+		id, err := strconv.Atoi(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		// Try to find the key
+		foundKey, _, err := client.Keys.GetByID(id)
 
 		if err != nil {
 			return err
 		}
 
-		if strconv.Itoa(int(foundKey.Id)) != rs.Primary.ID {
+		if strconv.Itoa(foundKey.ID) != rs.Primary.ID {
 			return fmt.Errorf("Record not found")
 		}
 
-		*key = foundKey
+		*key = *foundKey
 
 		return nil
 	}
