@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/mitchellh/mapstructure"
 	"github.com/mitchellh/reflectwalk"
 )
