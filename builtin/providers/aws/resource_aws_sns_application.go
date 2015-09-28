@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -9,6 +10,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 )
+
+var SupportedPlatforms = map[string]bool{
+	"ADM":          true,  // (Amazon Device Messaging)
+	"APNS":         true,  // (Apple Push Notification Service)
+	"APNS_SANDBOX": true,  // (Apple Push Notification Service)
+	"GCM":          false, // (Google Cloud Messaging).
+}
 
 // Mutable attributes
 // http://docs.aws.amazon.com/sns/latest/api/API_SetPlatformApplicationAttributes.html
@@ -98,21 +106,30 @@ func resourceAwsSnsApplication() *schema.Resource {
 func resourceAwsSnsApplicationCreate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
+	attributes := make(map[string]*string)
 	name := d.Get("name").(string)
+	platform := d.Get("platform").(string)
+	principal := d.Get("principal").(string)
+
+	if _, ok := SupportedPlatforms[platform]; !ok {
+		return errors.New(fmt.Sprintf("Platform %s is not supported", platform))
+	}
+
+	if value, _ := SupportedPlatforms[platform]; value {
+		if principal == "" {
+			return errors.New(fmt.Sprintf("Principal is required for %s", platform))
+		} else {
+			attributes["PlatformPrincipal"] = aws.String(principal)
+		}
+	}
+
+	attributes["PlatformCredential"] = aws.String(d.Get("credential").(string))
 
 	log.Printf("[DEBUG] SNS create application: %s", name)
 
-	attributes := make(map[string]*string)
-
-	attributes["PlatformCredential"] = d.Get("credential").(*string)
-
-	if v := d.Get("principal").(*string); v != nil {
-		attributes["PlatformPrincipal"] = v
-	}
-
 	req := &sns.CreatePlatformApplicationInput{
 		Name:       aws.String(name),
-		Platform:   aws.String(d.Get("platform").(string)),
+		Platform:   aws.String(platform),
 		Attributes: attributes,
 	}
 
@@ -141,7 +158,7 @@ func resourceAwsSnsApplicationUpdate(d *schema.ResourceData, meta interface{}) e
 			if d.HasChange(k) {
 				log.Printf("[DEBUG] Updating %s", attrKey)
 				_, n := d.GetChange(k)
-				attributes[attrKey] = n.(*string)
+				attributes[attrKey] = aws.String(n.(string))
 			}
 		}
 	}
