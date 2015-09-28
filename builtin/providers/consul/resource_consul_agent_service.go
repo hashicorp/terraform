@@ -103,7 +103,7 @@ func resourceConsulAgentServiceRead(d *schema.ResourceData, meta interface{}) er
 	if services, err := agent.Services(); err != nil {
 		return fmt.Errorf("Failed to get services from Consul agent: %v", err)
 	} else if service, ok := services[name]; !ok {
-		return fmt.Errorf("Failed to get service '%s' from Consul agent: %v", name, err)
+		return fmt.Errorf("Failed to get service '%s' from Consul agent", name)
 	} else {
 		d.Set("address", service.Address)
 		d.Set("name", service.Service)
