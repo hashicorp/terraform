@@ -124,9 +124,11 @@ func (d *Diff) init() {
 // ModuleDiff tracks the differences between resources to apply within
 // a single module.
 type ModuleDiff struct {
-	Path      []string
-	Resources map[string]*InstanceDiff
-	Destroy   bool // Set only by the destroy plan
+	Path      []string                 `json:"path"`
+	Resources map[string]*InstanceDiff `json:"resources"`
+
+	// Set only by the destroy plan
+	Destroy bool `json:"destroy"`
 }
 
 func (d *ModuleDiff) init() {
@@ -270,20 +272,20 @@ func (d *ModuleDiff) String() string {
 
 // InstanceDiff is the diff of a resource from some state to another.
 type InstanceDiff struct {
-	Attributes     map[string]*ResourceAttrDiff
-	Destroy        bool
-	DestroyTainted bool
+	Attributes     map[string]*ResourceAttrDiff `json:"attributes"`
+	Destroy        bool                         `json:"destroy"`
+	DestroyTainted bool                         `json:"tainted"`
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {
-	Old         string      // Old Value
-	New         string      // New Value
-	NewComputed bool        // True if new value is computed (unknown currently)
-	NewRemoved  bool        // True if this attribute is being removed
-	NewExtra    interface{} // Extra information for the provider
-	RequiresNew bool        // True if change requires new resource
-	Type        DiffAttrType
+	Old         string       `json:"old"`          // Old Value
+	New         string       `json:"new"`          // New Value
+	NewComputed bool         `json:"new_computed"` // True if new value is computed (unknown currently)
+	NewRemoved  bool         `json:"new_removed"`  // True if this attribute is being removed
+	NewExtra    interface{}  `json:"new_extra"`    // Extra information for the provider
+	RequiresNew bool         `json:"requires_new"` // True if change requires new resource
+	Type        DiffAttrType `json:"-"`
 }
 
 func (d *ResourceAttrDiff) GoString() string {

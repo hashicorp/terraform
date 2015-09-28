@@ -16,7 +16,7 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh, detailed bool
+	var destroy, refresh, detailed, outJson bool
 	var outPath string
 	var moduleDepth int
 
@@ -27,6 +27,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
+	cmdFlags.BoolVar(&outJson, "out-json", false, "out-json")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
@@ -111,7 +112,11 @@ func (c *PlanCommand) Run(args []string) int {
 		f, err := os.Create(outPath)
 		if err == nil {
 			defer f.Close()
-			err = terraform.WritePlan(plan, f)
+			if outJson {
+				err = terraform.WriteJsonPlan(plan, f)
+			} else {
+				err = terraform.WritePlan(plan, f)
+			}
 		}
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error writing plan file: %s", err))

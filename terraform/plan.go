@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -113,6 +114,23 @@ func ReadPlan(src io.Reader) (*Plan, error) {
 	}
 
 	return result, nil
+}
+
+// WriteJsonPlan writes a plan somewhere in a JSON format.
+func WriteJsonPlan(d *Plan, dst io.Writer) error {
+
+	// Encode the data in a human-friendly way
+	data, err := json.MarshalIndent(d.Diff.Modules, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	// We append a newline to the data because MarshalIndent doesn't
+	data = append(data, '\n')
+
+	_, err = dst.Write(data)
+
+	return err
 }
 
 // WritePlan writes a plan somewhere in a binary format.
