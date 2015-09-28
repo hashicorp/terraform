@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"log"
@@ -22,7 +23,6 @@ var SupportedPlatforms = map[string]bool{
 // http://docs.aws.amazon.com/sns/latest/api/API_SetPlatformApplicationAttributes.html
 var SNSPlatformAppAttributeMap = map[string]string{
 	"principal":           "PlatformPrincipal",
-	"credential":          "PlatformCredential",
 	"created_topic":       "EventEndpointCreated",
 	"deleted_topic":       "EventEndpointDeleted",
 	"updated_topic":       "EventEndpointUpdated",
@@ -50,14 +50,15 @@ func resourceAwsSnsApplication() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"credential": &schema.Schema{
+				Type:      schema.TypeString,
+				Required:  true,
+				ForceNew:  false,
+				StateFunc: hashSum,
+			},
 			"principal": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
-			},
-			"credential": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
 				ForceNew: false,
 			},
 			"created_topic": &schema.Schema{
@@ -111,6 +112,8 @@ func resourceAwsSnsApplicationCreate(d *schema.ResourceData, meta interface{}) e
 	platform := d.Get("platform").(string)
 	principal := d.Get("principal").(string)
 
+	attributes["PlatformCredential"] = aws.String(d.Get("credential").(string))
+
 	if _, ok := SupportedPlatforms[platform]; !ok {
 		return errors.New(fmt.Sprintf("Platform %s is not supported", platform))
 	}
@@ -122,8 +125,6 @@ func resourceAwsSnsApplicationCreate(d *schema.ResourceData, meta interface{}) e
 			attributes["PlatformPrincipal"] = aws.String(principal)
 		}
 	}
-
-	attributes["PlatformCredential"] = aws.String(d.Get("credential").(string))
 
 	log.Printf("[DEBUG] SNS create application: %s", name)
 
@@ -160,6 +161,16 @@ func resourceAwsSnsApplicationUpdate(d *schema.ResourceData, meta interface{}) e
 				_, n := d.GetChange(k)
 				attributes[attrKey] = aws.String(n.(string))
 			}
+		}
+	}
+
+	if d.HasChange("credential") {
+		attributes["PlatformCredential"] = aws.String(d.Get("credential").(string))
+		// If the platform requires a principal it must also be specified, even if it didn't change
+		// since credential is stored as a hash, the only way to update principal is to update both
+		// as they must be specified together in the request.
+		if v, _ := SupportedPlatforms[d.Get("platform").(string)]; v {
+			attributes["PlatformPrincipal"] = aws.String(d.Get("principal").(string))
 		}
 	}
 
@@ -221,4 +232,8 @@ func resourceAwsSnsApplicationDelete(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 	return nil
+}
+
+func hashSum(contents interface{}) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(contents.(string))))
 }
