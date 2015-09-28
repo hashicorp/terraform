@@ -76,6 +76,10 @@ func testAccCheckCloudStackVPCAttributes(
 			return fmt.Errorf("Bad VPC CIDR: %s", vpc.Cidr)
 		}
 
+		if vpc.Networkdomain != "terraform-domain" {
+			return fmt.Errorf("Bad network domain: %s", vpc.Networkdomain)
+		}
+
 		return nil
 	}
 }
@@ -107,6 +111,7 @@ resource "cloudstack_vpc" "foo" {
   display_text = "terraform-vpc-text"
   cidr = "%s"
   vpc_offering = "%s"
+	network_domain = "terraform-domain"
   zone = "%s"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
