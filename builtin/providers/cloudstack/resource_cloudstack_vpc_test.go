@@ -111,7 +111,7 @@ resource "cloudstack_vpc" "foo" {
   display_text = "terraform-vpc-text"
   cidr = "%s"
   vpc_offering = "%s"
-	network_domain = "terraform-domain"
+  network_domain = "terraform-domain"
   zone = "%s"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
