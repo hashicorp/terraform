@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
@@ -13,6 +14,28 @@ import (
 // SchemaSetFunc you want.
 func HashString(v interface{}) int {
 	return hashcode.String(v.(string))
+}
+
+// HashResource hashes complex structures that are described using
+// a *Resource. This is the default set implementation used when a set's
+// element type is a full resource.
+func HashResource(resource *Resource) SchemaSetFunc {
+	return func(v interface{}) int {
+		var buf bytes.Buffer
+		SerializeResourceForHash(&buf, v, resource)
+		return hashcode.String(buf.String())
+	}
+}
+
+// HashSchema hashes values that are described using a *Schema. This is the
+// default set implementation used when a set's element type is a single
+// schema.
+func HashSchema(schema *Schema) SchemaSetFunc {
+	return func(v interface{}) int {
+		var buf bytes.Buffer
+		SerializeValueForHash(&buf, v, schema)
+		return hashcode.String(buf.String())
+	}
 }
 
 // Set is a set data structure that is returned for elements of type
