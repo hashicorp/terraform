@@ -198,30 +198,8 @@ func (c *RefreshCommand) Run(args []string) int {
 			return 1
 		}
 
-		log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-		// TODO: Would be ncie to avoid persisting the state here and
-		// reload the Context to get our chanes. There doesn't appear to be
-		// a way to do that as things currently work, but seems doable
-		if err := c.Meta.PersistState(s); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
-			return 1
-		}
-
-		ctx, _, err = c.Context(contextOpts{
-			Path:      configPath,
-			StatePath: c.Meta.statePath,
-		})
-		if err != nil {
-			c.Ui.Error(err.Error())
-			return 1
-		}
-		if !validateContext(ctx, c.Ui) {
-			return 1
-		}
-		if err := ctx.Input(c.InputMode()); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
-			return 1
-		}
+		log.Printf("[INFO] Updating context state")
+		ctx.UpdateState(s)
 	}
 
 	newState, err := ctx.Refresh()
