@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -16,35 +17,37 @@ type RefreshCommand struct {
 	Meta
 }
 
-func (c *RefreshCommand) importResource(s *terraform.State, module string, name string, id string) bool {
-	// Find our target module
-	mod := s.ModuleByPath(strings.Split(module, "."))
-	if mod == nil {
-		c.Ui.Error(fmt.Sprintf("Failed to find module %s", module))
-		return false
+func walkModule(parent string, mod *module.Tree, resources map[string]bool) {
+	var modName string
+	if parent == "" {
+		modName = mod.Name()
+	} else {
+		modName = fmt.Sprintf("%s.%s", parent, mod.Name())
 	}
-
-	// Ignore resources that already exist
-	if _, ok := mod.Resources[name]; ok {
-		log.Printf("[INFO] resource %s already exists in module %s, skipping",
-			name, module)
-		return true
+	for _, resource := range mod.Config().Resources {
+		key := fmt.Sprintf("%s/%s.%s", modName, resource.Type, resource.Name)
+		resources[key] = true
 	}
-
-	// TODO: Ignore resources that aren't present in the current
-	// configuration
-
-	mod.Resources[name] = &terraform.ResourceState{
-		Type: strings.Split(name, ".")[0],
-		Primary: &terraform.InstanceState{
-			ID: id,
-		},
+	for _, child := range mod.Children() {
+		walkModule(modName, child, resources)
 	}
-
-	return true
 }
 
-func (c *RefreshCommand) importResources(s *terraform.State, importPath string) bool {
+// Builds a "set" of module/resource so that we can easily lookup what's
+// configured
+func (c *RefreshCommand) findConfiguredResources(ctx *terraform.Context) map[string]bool {
+	ret := make(map[string]bool)
+
+	mod := ctx.Module()
+	walkModule("", mod, ret)
+
+	return ret
+}
+
+// Import existing (configured) resources by minimally adding them to their
+// module's resources so that a subsequent refresh will pull down their
+// details.
+func (c *RefreshCommand) importResources(s *terraform.State, configuredResources map[string]bool, importPath string) bool {
 	f, err := os.Open(importPath)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error opening import file (%s): %s",
@@ -56,19 +59,37 @@ func (c *RefreshCommand) importResources(s *terraform.State, importPath string) 
 	for scanner.Scan() {
 		line := scanner.Text()
 		pieces := strings.Split(line, " ")
-		switch len(pieces) {
-		case 2:
-			if !c.importResource(s, "root", pieces[0], pieces[1]) {
-				return false
-			}
-		case 3:
-			if !c.importResource(s, pieces[2], pieces[0], pieces[1]) {
-				return false
-			}
-		default:
-			c.Ui.Error(fmt.Sprintf("Error malformed import line %s",
-				line))
+		if len(pieces) != 3 {
+			c.Ui.Error(fmt.Sprintf("Error malformed import line %s", line))
 			return false
+		}
+		// Make sure we have a config for this resource
+		key := fmt.Sprintf("%s/%s", pieces[0], pieces[1])
+		if _, ok := configuredResources[key]; ok {
+			// if so try adding it
+			log.Printf("[INFO] adding %s -> %s", key, pieces[2])
+
+			// Find our target module
+			mod := s.ModuleByPath(strings.Split(pieces[0], "."))
+			if mod == nil {
+				c.Ui.Error(fmt.Sprintf("Failed to find module %s", pieces[0]))
+				return false
+			}
+
+			// Ignore resources that already exist
+			if _, ok := mod.Resources[pieces[1]]; ok {
+				log.Printf("[INFO] resource %s already exists in module %s, skipping",
+					pieces[1], pieces[0])
+				continue
+			}
+
+			// Minimally add it
+			mod.Resources[pieces[1]] = &terraform.ResourceState{
+				Type: strings.Split(pieces[1], ".")[0],
+				Primary: &terraform.InstanceState{
+					ID: pieces[2],
+				},
+			}
 		}
 	}
 	if err = scanner.Err(); err != nil {
@@ -147,25 +168,6 @@ func (c *RefreshCommand) Run(args []string) int {
 		}
 	}
 
-	if importPath != "" {
-		s := state.State()
-		log.Printf("[INFO] Importing resources from %s", importPath)
-		if !c.importResources(s, importPath) {
-			// importResources will have provided an error message
-			return 1
-		}
-
-		log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-		// TODO: Would be ncie to avoid persisting the state here and
-		// just have the Context use the modified version. There
-		// doesn't appear to be a way to do that with Meta.Context( as
-		// it currently works.
-		if err := c.Meta.PersistState(s); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
-			return 1
-		}
-	}
-
 	// Build the context based on the arguments given
 	ctx, _, err := c.Context(contextOpts{
 		Path:        configPath,
@@ -182,6 +184,44 @@ func (c *RefreshCommand) Run(args []string) int {
 	if err := ctx.Input(c.InputMode()); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 		return 1
+	}
+
+	if importPath != "" {
+		log.Printf("[INFO] Importing resources from %s", importPath)
+
+		configuredResources := c.findConfiguredResources(ctx)
+
+		s := state.State()
+		resourceMappings := c.importResources(s, configuredResources, importPath)
+		if !resourceMappings {
+			// importResources will have provided an error message
+			return 1
+		}
+
+		log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
+		// TODO: Would be ncie to avoid persisting the state here and
+		// reload the Context to get our chanes. There doesn't appear to be
+		// a way to do that as things currently work, but seems doable
+		if err := c.Meta.PersistState(s); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+			return 1
+		}
+
+		ctx, _, err = c.Context(contextOpts{
+			Path:      configPath,
+			StatePath: c.Meta.statePath,
+		})
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+		if !validateContext(ctx, c.Ui) {
+			return 1
+		}
+		if err := ctx.Input(c.InputMode()); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
+			return 1
+		}
 	}
 
 	newState, err := ctx.Refresh()
@@ -221,14 +261,13 @@ Options:
                       ".backup" extension. Set to "-" to disable backup.
 
   -import=path        Path to a file containing a mapping, one per line,
-                      between resource name, identifier, and module to
-                      allow bringing exiting resources under terraform
-                      management. Module defaults to "root" if not
-                      specified E.g.
+                      between module, resource, and identifier to allow
+                      bringing exiting resources under terraform
+                      management. E.g.
 
-		          resource_name resource_id [module]
-                          aws_vpc.primary subnet-24ba370e
-                          aws_subnet.public subnet-42ba370e
+                          module resource id
+                          root aws_vpc.primary vpc-24bd392c
+                          root aws_subnet.public subnet-42ba370e
 
   -input=true         Ask for input for variables if not directly set.
 
