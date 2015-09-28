@@ -48,7 +48,7 @@ The following arguments are supported:
 * `availability_zones` - (Optional) A list of AZs to launch resources in.
    Required only if you do not specify any `vpc_zone_identifier`
 * `launch_configuration` - (Required) The name of the launch configuration to use.
-* `health_check_grace_period` - (Optional) Time after instance comes into service before checking health.
+* `health_check_grace_period` - (Optional) Time after instance comes into service before checking health. 
 * `health_check_type` - (Optional) "EC2" or "ELB". Controls how health checking is done.
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that
     should be running in the group. (See also [Waiting for
@@ -88,6 +88,8 @@ The following attributes are exported:
 * `vpc_zone_identifier` - The VPC zone identifier
 * `load_balancers` (Optional) The load balancer names associated with the
    autoscaling group.
+   
+~> **NOTE:** When using `ELB` as the health_check_type, `health_check_grace_period` is required.
 
 <a id="waiting-for-capacity"></a>
 ## Waiting for Capacity
