@@ -788,6 +788,10 @@
 			"Rev": "df949784da9ed028ee76df44652e42d37a09d7e4"
 		},
 		{
+			"ImportPath": "github.com/henrikhodne/go-librato/librato",
+			"Rev": "613abdebf4922c4d9d46bcb4bcf14ee18c08d7de"
+		},
+		{
 			"ImportPath": "github.com/hmrc/vmware-govcd",
 			"Comment": "v0.0.2-37-g5cd82f0",
 			"Rev": "5cd82f01aa1c97afa9b23ef6f4f42a60f3106003"
