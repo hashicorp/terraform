@@ -41,6 +41,12 @@ chef_server_url         "{{ .ServerURL }}"
 validation_client_name  "{{ .ValidationClientName }}"
 node_name               "{{ .NodeName }}"
 
+{{ if .UsePolicyfile }}
+use_policyfile true
+policy_group 	 "{{ .PolicyGroup }}"
+policy_name 	 "{{ .PolicyName }}"
+{{ end }}
+
 {{ if .HTTPProxy }}
 http_proxy          "{{ .HTTPProxy }}"
 ENV['http_proxy'] = "{{ .HTTPProxy }}"
@@ -62,6 +68,9 @@ type Provisioner struct {
 	Attributes           interface{} `mapstructure:"attributes"`
 	Environment          string      `mapstructure:"environment"`
 	LogToFile            bool        `mapstructure:"log_to_file"`
+	UsePolicyfile        bool        `mapstructure:"use_policyfile"`
+	PolicyGroup          string      `mapstructure:"policy_group"`
+	PolicyName           string      `mapstructure:"policy_name"`
 	HTTPProxy            string      `mapstructure:"http_proxy"`
 	HTTPSProxy           string      `mapstructure:"https_proxy"`
 	NOProxy              []string    `mapstructure:"no_proxy"`
@@ -183,6 +192,12 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	if p.ValidationKeyPath == "" {
 		es = append(es, fmt.Errorf("Key not found: validation_key_path"))
 	}
+	if p.UsePolicyfile && p.PolicyName == "" {
+		es = append(es, fmt.Errorf("Policyfile enabled but key not found: policy_name"))
+	}
+	if p.UsePolicyfile && p.PolicyGroup == "" {
+		es = append(es, fmt.Errorf("Policyfile enabled but key not found: policy_group"))
+	}
 
 	return ws, es
 }
@@ -302,7 +317,15 @@ func (p *Provisioner) runChefClientFunc(
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
 		fb := path.Join(confDir, firstBoot)
-		cmd := fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
+		var cmd string
+
+		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
+		if p.UsePolicyfile {
+			cmd = fmt.Sprintf("%s -j %q", chefCmd, fb)
+		} else {
+			cmd = fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
+		}
+
 
 		if p.LogToFile {
 			if err := os.MkdirAll(logfileDir, 0755); err != nil {
@@ -413,7 +436,9 @@ func (p *Provisioner) deployConfigFiles(
 	}
 
 	// Add the initial runlist to the first boot settings
-	fb["run_list"] = p.RunList
+	if !p.UsePolicyfile {
+		fb["run_list"] = p.RunList
+	}
 
 	// Marshal the first boot settings to JSON
 	d, err := json.Marshal(fb)
