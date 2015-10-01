@@ -32,8 +32,9 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	username := d.Get("username").(string)
-	apiKey := d.Get("apikey").(string)
-
-	return statuscake.New(apiKey, username), nil
+	auth := statuscake.Auth{
+		Username: d.Get("username").(string),
+		Apikey:   d.Get("apikey").(string),
+	}
+	return statuscake.New(auth)
 }
