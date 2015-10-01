@@ -81,6 +81,15 @@ func (p *ResourceProvisioner) Close() error {
 	return p.Client.Close()
 }
 
+func (p *ResourceProvisioner) Export() (terraform.ResourceSchemaInfo, error) {
+	var result terraform.ResourceSchemaInfo
+	err := p.Client.Call("Plugin.Export", new(interface{}), &result)
+	if err != nil {
+		// TODO: panic, log, what?
+	}
+	return result, err
+}
+
 type ResourceProvisionerValidateArgs struct {
 	Config *terraform.ResourceConfig
 }
@@ -141,5 +150,14 @@ func (s *ResourceProvisionerServer) Validate(
 		Warnings: warns,
 		Errors:   berrs,
 	}
+	return nil
+}
+
+func (s *ResourceProvisionerServer) Export(nothing interface{}, result *terraform.ResourceSchemaInfo) error {
+	r, err := s.Provisioner.Export()
+	if err != nil {
+		return err
+	}
+	*result = r
 	return nil
 }

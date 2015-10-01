@@ -21,6 +21,9 @@ type ResourceProvisioner interface {
 	// is provided since provisioners only run after a resource has been
 	// newly created.
 	Apply(UIOutput, *InstanceState, *ResourceConfig) error
+
+	// Export exports provisioner schema
+	Export() (ResourceSchemaInfo, error)
 }
 
 // ResourceProvisionerCloser is an interface that provisioners that can close

@@ -14,9 +14,16 @@ type SchemasCommand struct {
 	Meta
 }
 
-type extendedResourceSchema struct {
+type providerResourceSchema struct {
 	terraform.ResourceSchema
 	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type provisionerResourceSchemaInfo struct {
+	terraform.ResourceSchemaInfo `json:"provisioner"`
+	Name                         string `json:"name"`
+	Type                         string `json:"type"`
 }
 
 func (c *SchemasCommand) Run(args []string) int {
@@ -51,7 +58,7 @@ func (c *SchemasCommand) Run(args []string) int {
 				fmt.Printf("Cannot get schema for provider '%s': %s\n", k, err)
 				continue
 			}
-			extended := extendedResourceSchema{export, k}
+			extended := providerResourceSchema{export, k, "provider"}
 			var ser []byte
 			var err2 error
 			if indent {
@@ -64,6 +71,33 @@ func (c *SchemasCommand) Run(args []string) int {
 				continue
 			}
 			fmt.Println(string(ser))
+			break
+		}
+	}
+	for k, v := range c.Meta.ContextOpts.Provisioners {
+		if len(args) == 1 && args[0] != k {
+			continue
+		}
+		if provisioner, err := v(); err == nil {
+			export, err := provisioner.Export()
+			if err != nil {
+				fmt.Printf("Cannot get schema for provisioner '%s': %s\n", k, err)
+				continue
+			}
+			extended := provisionerResourceSchemaInfo{export, k, "provisioner"}
+			var ser []byte
+			var err2 error
+			if indent {
+				ser, err2 = json.MarshalIndent(extended, "", "  ")
+			} else {
+				ser, err2 = json.Marshal(extended)
+			}
+			if err2 != nil {
+				fmt.Printf("Cannot serialize schema for provisioner '%s': %s\n", k, err)
+				continue
+			}
+			fmt.Println(string(ser))
+			break
 		}
 	}
 
@@ -75,8 +109,8 @@ func (c *SchemasCommand) Help() string {
 	helpText := `
 Usage: terraform schemas [options] name
 
-  Reads and outputs the schema of specified ('name') Terraform provider
-  or resource in machine- or human-readable form.
+  Reads and outputs the schema of specified ('name') Terraform provider,
+  provisioner or resource in machine- or human-readable form.
 
 Options:
 
