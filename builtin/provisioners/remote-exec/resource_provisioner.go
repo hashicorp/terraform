@@ -12,12 +12,35 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
 
 // ResourceProvisioner represents a remote exec provisioner
-type ResourceProvisioner struct{}
+type ResourceProvisioner struct {
+	schema.Provisioner
+}
+
+func Provisioner() terraform.ResourceProvisioner {
+	return &ResourceProvisioner{
+		schema.Provisioner{Schema: map[string]*schema.Schema{
+			"script": {
+				Type:          schema.TypeString,
+				ConflictsWith: []string{"scripts", "inline"},
+			},
+			"scripts": {
+				Type:          schema.TypeList,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"script", "inline"},
+			},
+			"inline": {
+				Type:          schema.TypeString,
+				ConflictsWith: []string{"script", "scripts"},
+			},
+		}},
+	}
+}
 
 // Apply executes the remote exec provisioner
 func (p *ResourceProvisioner) Apply(

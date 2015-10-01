@@ -8,12 +8,31 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/helper/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 )
 
 // ResourceProvisioner represents a file provisioner
-type ResourceProvisioner struct{}
+type ResourceProvisioner struct {
+	schema.Provisioner
+}
+
+func Provisioner() terraform.ResourceProvisioner {
+	return &ResourceProvisioner{
+		schema.Provisioner{Schema: map[string]*schema.Schema{
+			"source": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"destination": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		}},
+	}
+}
 
 // Apply executes the file provisioner
 func (p *ResourceProvisioner) Apply(
