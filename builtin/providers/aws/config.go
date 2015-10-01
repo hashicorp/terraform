@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
@@ -51,6 +52,7 @@ type AWSClient struct {
 	ecsconn            *ecs.ECS
 	efsconn            *efs.EFS
 	elbconn            *elb.ELB
+	esconn             *elasticsearch.ElasticsearchService
 	autoscalingconn    *autoscaling.AutoScaling
 	s3conn             *s3.S3
 	sqsconn            *sqs.SQS
@@ -156,6 +158,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing EFS Connection")
 		client.efsconn = efs.New(awsConfig)
+
+		log.Println("[INFO] Initializing ElasticSearch Connection")
+		client.esconn = elasticsearch.New(awsConfig)
 
 		log.Println("[INFO] Initializing Route 53 connection")
 		client.r53conn = route53.New(usEast1AwsConfig)
