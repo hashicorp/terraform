@@ -35,7 +35,8 @@ The following arguments are supported:
   as is shown in the example above.
 
 * `command` - (Optional, list of strings) The command to use to start the
-    container.
+    container. For example, to run `/usr/bin/myprogram -f baz.conf` set the
+    command to be `["/usr/bin/myprogram", "-f", "baz.conf"]`.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
 * `links` - (Optional, set of strings) Set of links for link based
