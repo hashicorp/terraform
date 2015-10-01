@@ -133,7 +133,7 @@ func (c *S3Client) Get() (*Payload, error) {
 }
 
 func (c *S3Client) Put(data []byte) error {
-	contentType := "application/octet-stream"
+	contentType := "application/json"
 	contentLength := int64(len(data))
 
 	i := &s3.PutObjectInput{
