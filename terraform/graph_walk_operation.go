@@ -13,4 +13,5 @@ const (
 	walkPlanDestroy
 	walkRefresh
 	walkValidate
+	walkDestroy
 )

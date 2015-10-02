@@ -62,7 +62,7 @@ func (n *graphNodeOrphanOutput) Name() string {
 
 func (n *graphNodeOrphanOutput) EvalTree() EvalNode {
 	return &EvalOpFilter{
-		Ops: []walkOperation{walkApply, walkRefresh},
+		Ops: []walkOperation{walkApply, walkDestroy, walkRefresh},
 		Node: &EvalDeleteOutput{
 			Name: n.OutputName,
 		},
@@ -90,7 +90,7 @@ func (n *graphNodeOrphanOutputFlat) Name() string {
 
 func (n *graphNodeOrphanOutputFlat) EvalTree() EvalNode {
 	return &EvalOpFilter{
-		Ops: []walkOperation{walkApply, walkRefresh},
+		Ops: []walkOperation{walkApply, walkDestroy, walkRefresh},
 		Node: &EvalDeleteOutput{
 			Name: n.OutputName,
 		},
