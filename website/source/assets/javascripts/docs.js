@@ -2,7 +2,7 @@
 
 var Init = {
 
-  start: function(){ 
+  start: function(){
     var classname = this.hasClass(document.body, 'page-sub');
 
     if (classname) {
@@ -36,7 +36,7 @@ var Init = {
     if(withMinHeight >  bodyHeight ){
       var newHeight = (vp - (hHeight+fHeight)) + 'px';
       main.style.height = newHeight;
-    }    
+    }
   }
 
 };
