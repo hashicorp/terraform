@@ -114,7 +114,7 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 	// Apply
 	var diff *InstanceDiff
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
-		Ops: []walkOperation{walkApply},
+		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{
