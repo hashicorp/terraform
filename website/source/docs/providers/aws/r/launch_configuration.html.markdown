@@ -23,10 +23,10 @@ resource "aws_launch_configuration" "as_conf" {
 ## Using with AutoScaling Groups
 
 Launch Configurations cannot be updated after creation with the Amazon
-Web Service API. In order to update a Launch Configuration, Terraform will 
-destroy the existing resource and create a replacement. In order to effectively 
-use a Launch Configuration resource with an [AutoScaling Group resource][1], 
-it's recommend to omit the Launch Configuration `name` attribute, and 
+Web Service API. In order to update a Launch Configuration, Terraform will
+destroy the existing resource and create a replacement. If order to effectively
+use a Launch Configuration resource with an[AutoScaling Group resource][1],
+it's recommend to omit the Launch Configuration `name` attribute, and
 specify `create_before_destroy` in a [lifecycle][2] block, as shown:
 
 ```
@@ -69,7 +69,12 @@ The following arguments are supported:
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `enable_monitoring` - (Optional) Enables/disables detailed monitoring. This is enabled by default.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be EBS-optimized.
-* `block_device_mapping` - (Optional) A list of block devices to add. Their keys are documented below.
+* `root_block_device` - (Optional) Customize details about the root block
+  device of the instance. See [Block Devices](#block-devices) below for details.
+* `ebs_block_device` - (Optional) Additional EBS block devices to attach to the
+  instance.  See [Block Devices](#block-devices) below for details.
+* `ephemeral_block_device` - (Optional) Customize Ephemeral (also known as
+  "Instance Store") volumes on the instance. See [Block Devices](#block-devices) below for details.
 
 <a id="block-devices"></a>
 ## Block devices
