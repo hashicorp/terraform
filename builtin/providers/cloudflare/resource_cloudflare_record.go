@@ -76,9 +76,20 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] CloudFlare Record create configuration: %#v", newRecord)
 
 	rec, err := client.CreateRecord(d.Get("domain").(string), newRecord)
-
 	if err != nil {
-		return fmt.Errorf("Failed to create CloudFlare Record: %s", err)
+		if strings.Contains(err.Error(), "record already exists") {
+			log.Printf("[DEBUG] CloudFlare says record already exists. Attempting to find by name")
+			recs, recserr := client.RetrieveRecordsByName(d.Get("domain").(string), d.Get("name").(string), false)
+			if recserr != nil {
+				log.Printf("[DEBUG] CloudFlare unable to find by name. Treating as a failure")
+				return fmt.Errorf("Failed to create CloudFlare Record: %s", err)
+			} else {
+				log.Printf("[DEBUG] Found a matching result. Attempting to use: %#v", recs)
+				rec = &recs[0]
+			}
+		} else {
+			return fmt.Errorf("Failed to create CloudFlare Record: %s", err)
+		}
 	}
 
 	d.SetId(rec.Id)
@@ -89,14 +100,12 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.Client)
-
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			d.SetId("")
 			return nil
 		}
-
 		return fmt.Errorf(
 			"Couldn't find CloudFlare Record ID (%s) for domain (%s): %s",
 			d.Id(), d.Get("domain").(string), err)
