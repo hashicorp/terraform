@@ -292,7 +292,11 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Do the walk
-	_, err = c.walk(graph, walkApply)
+	if c.destroy {
+		_, err = c.walk(graph, walkDestroy)
+	} else {
+		_, err = c.walk(graph, walkApply)
+	}
 
 	// Clean out any unused things
 	c.state.prune()
