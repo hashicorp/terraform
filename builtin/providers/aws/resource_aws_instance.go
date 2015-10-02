@@ -414,11 +414,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		})
 	}
 
-	// Set our attributes
-	if err := resourceAwsInstanceRead(d, meta); err != nil {
-		return err
-	}
-
 	// Update if we need to
 	return resourceAwsInstanceUpdate(d, meta)
 }
@@ -548,16 +543,23 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// SourceDestCheck can only be set on VPC instances
-	if d.Get("subnet_id").(string) != "" {
-		log.Printf("[INFO] Modifying instance %s", d.Id())
-		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
-			InstanceId: aws.String(d.Id()),
-			SourceDestCheck: &ec2.AttributeBooleanValue{
-				Value: aws.Bool(d.Get("source_dest_check").(bool)),
-			},
-		})
-		if err != nil {
-			return err
+	// AWS will return an error of InvalidParameterCombination if we attempt
+	// to modify the source_dest_check of an instance in EC2 Classic
+	log.Printf("[INFO] Modifying instance %s", d.Id())
+	_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+		InstanceId: aws.String(d.Id()),
+		SourceDestCheck: &ec2.AttributeBooleanValue{
+			Value: aws.Bool(d.Get("source_dest_check").(bool)),
+		},
+	})
+	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok {
+			// Toloerate InvalidParameterCombination error in Classic, otherwise
+			// return the error
+			if "InvalidParameterCombination" != ec2err.Code() {
+				return err
+			}
+			log.Printf("[WARN] Attempted to modify SourceDestCheck on non VPC instance: %s", ec2err.Message())
 		}
 	}
 
