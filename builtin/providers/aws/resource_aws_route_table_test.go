@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -215,8 +216,13 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 // TODO: re-enable this test.
 // VPC Peering connections are prefixed with pcx
 // Right now there is no VPC Peering resource
-func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
+func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 	var v ec2.RouteTable
+
+	acctId := os.Getenv("TF_ACC_ID")
+	if acctId == "" {
+		t.Fatal("Error: Test TestAccAWSRouteTable_vpcPeering requires an Account ID in TF_ACC_ID ")
+	}
 
 	testCheck := func(*terraform.State) error {
 		if len(v.Routes) != 2 {
@@ -243,7 +249,7 @@ func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 		CheckDestroy: testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRouteTableVpcPeeringConfig,
+				Config: testAccRouteTableVpcPeeringConfig(acctId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
 						"aws_route_table.foo", &v),
@@ -395,11 +401,10 @@ resource "aws_route_table" "foo" {
 }
 `
 
-// TODO: re-enable this test.
 // VPC Peering connections are prefixed with pcx
-// Right now there is no VPC Peering resource
-const testAccRouteTableVpcPeeringConfig = `
-resource "aws_vpc" "foo" {
+// This test requires an ENV var, TF_ACC_ID, with a valid AWS Account ID
+func testAccRouteTableVpcPeeringConfig(acc string) string {
+	cfg := `resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
 
@@ -407,15 +412,34 @@ resource "aws_internet_gateway" "foo" {
 	vpc_id = "${aws_vpc.foo.id}"
 }
 
+resource "aws_vpc" "bar" {
+	cidr_block = "10.3.0.0/16"
+}
+
+resource "aws_internet_gateway" "bar" {
+	vpc_id = "${aws_vpc.bar.id}"
+}
+
+resource "aws_vpc_peering_connection" "foo" {
+		vpc_id = "${aws_vpc.foo.id}"
+		peer_vpc_id = "${aws_vpc.bar.id}"
+		peer_owner_id = "%s"
+		tags {
+			foo = "bar"
+		}
+}
+
 resource "aws_route_table" "foo" {
 	vpc_id = "${aws_vpc.foo.id}"
 
 	route {
 		cidr_block = "10.2.0.0/16"
-        vpc_peering_connection_id = "pcx-12345"
+		vpc_peering_connection_id = "${aws_vpc_peering_connection.foo.id}"
 	}
 }
 `
+	return fmt.Sprintf(cfg, acc)
+}
 
 const testAccRouteTableVgwRoutePropagationConfig = `
 resource "aws_vpc" "foo" {
