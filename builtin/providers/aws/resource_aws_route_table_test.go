@@ -213,7 +213,6 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 	}
 }
 
-// TODO: re-enable this test.
 // VPC Peering connections are prefixed with pcx
 // Right now there is no VPC Peering resource
 func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
