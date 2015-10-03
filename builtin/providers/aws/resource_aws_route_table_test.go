@@ -219,7 +219,7 @@ func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 	var v ec2.RouteTable
 
 	acctId := os.Getenv("TF_ACC_ID")
-	if acctId == "" {
+	if acctId == "" && os.Getenv(resource.TestEnvVar) != "" {
 		t.Fatal("Error: Test TestAccAWSRouteTable_vpcPeering requires an Account ID in TF_ACC_ID ")
 	}
 
