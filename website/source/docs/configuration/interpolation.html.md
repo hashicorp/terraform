@@ -74,6 +74,12 @@ are documented below.
 
 The supported built-in functions are:
 
+  * `base64dec(string)` - Given a base64-encoded string, decodes it and
+    returns the original string.
+
+  * `base64enc(string)` - Returns a base64-encoded representation of the
+    given string.
+
   * `concat(list1, list2)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 

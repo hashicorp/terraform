@@ -584,6 +584,39 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBase64Encode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Regular base64 encoding
+			{
+				`${base64enc("abc123!?$*&()'-=@~")}`,
+				"YWJjMTIzIT8kKiYoKSctPUB+",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBase64Decode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Regular base64 decoding
+			{
+				`${base64dec("YWJjMTIzIT8kKiYoKSctPUB+")}`,
+				"abc123!?$*&()'-=@~",
+				false,
+			},
+
+			// Invalid base64 data decoding
+			{
+				`${base64dec("this-is-an-invalid-base64-data")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
