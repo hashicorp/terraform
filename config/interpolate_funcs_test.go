@@ -589,7 +589,7 @@ func TestInterpolateFuncBase64Encode(t *testing.T) {
 		Cases: []testFunctionCase{
 			// Regular base64 encoding
 			{
-				`${base64enc("abc123!?$*&()'-=@~")}`,
+				`${base64encode("abc123!?$*&()'-=@~")}`,
 				"YWJjMTIzIT8kKiYoKSctPUB+",
 				false,
 			},
@@ -602,14 +602,14 @@ func TestInterpolateFuncBase64Decode(t *testing.T) {
 		Cases: []testFunctionCase{
 			// Regular base64 decoding
 			{
-				`${base64dec("YWJjMTIzIT8kKiYoKSctPUB+")}`,
+				`${base64decode("YWJjMTIzIT8kKiYoKSctPUB+")}`,
 				"abc123!?$*&()'-=@~",
 				false,
 			},
 
 			// Invalid base64 data decoding
 			{
-				`${base64dec("this-is-an-invalid-base64-data")}`,
+				`${base64decode("this-is-an-invalid-base64-data")}`,
 				nil,
 				true,
 			},

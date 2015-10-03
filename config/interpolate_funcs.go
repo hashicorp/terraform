@@ -20,18 +20,18 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
-		"concat":     interpolationFuncConcat(),
-		"element":    interpolationFuncElement(),
-		"file":       interpolationFuncFile(),
-		"format":     interpolationFuncFormat(),
-		"formatlist": interpolationFuncFormatList(),
-		"index":      interpolationFuncIndex(),
-		"join":       interpolationFuncJoin(),
-		"length":     interpolationFuncLength(),
-		"replace":    interpolationFuncReplace(),
-		"split":      interpolationFuncSplit(),
-		"base64enc":  interpolationFuncBase64Encode(),
-		"base64dec":  interpolationFuncBase64Decode(),
+		"concat":       interpolationFuncConcat(),
+		"element":      interpolationFuncElement(),
+		"file":         interpolationFuncFile(),
+		"format":       interpolationFuncFormat(),
+		"formatlist":   interpolationFuncFormatList(),
+		"index":        interpolationFuncIndex(),
+		"join":         interpolationFuncJoin(),
+		"length":       interpolationFuncLength(),
+		"replace":      interpolationFuncReplace(),
+		"split":        interpolationFuncSplit(),
+		"base64encode": interpolationFuncBase64Encode(),
+		"base64decode": interpolationFuncBase64Decode(),
 	}
 }
 
@@ -396,8 +396,8 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 	}
 }
 
-// interpolationFuncBase64Encode implements the "base64enc" function that allows
-// Base64 encoding.
+// interpolationFuncBase64Encode implements the "base64encode" function that
+// allows Base64 encoding.
 func interpolationFuncBase64Encode() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
@@ -409,8 +409,8 @@ func interpolationFuncBase64Encode() ast.Function {
 	}
 }
 
-// interpolationFuncBase64Decode implements the "base64dec" function that allows
-// Base64 decoding.
+// interpolationFuncBase64Decode implements the "base64decode" function that
+// allows Base64 decoding.
 func interpolationFuncBase64Decode() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
