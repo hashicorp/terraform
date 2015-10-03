@@ -6,7 +6,7 @@ import (
 
 	"log"
 
-	"github.com/DreamItGetIT/statuscake"
+	wtf "github.com/DreamItGetIT/statuscake"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -49,29 +49,24 @@ func resourceStatusCakeTest() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"timeout": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func CreateTest(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*statuscake.Client)
+	client := meta.(*wtf.Client)
 
-	newTest := &statuscake.Test{
-		WebsiteName: "posters.dreamitget.it",
-		WebsiteURL:  "https://posters.dreamitget.it",
-		TestType:    "HTTP",
-		CheckRate:   500,
+	newTest := &wtf.Test{
+		WebsiteName: d.Get("website_name").(string),
+		WebsiteURL:  d.Get("website_url").(string),
+		TestType:    d.Get("test_type").(string),
+		CheckRate:   d.Get("check_rate").(int),
 	}
 
-	//	newTest := &statuscake.Test{
-	//		WebsiteName: d.Get("website_name").(string),
-	//		WebsiteURL:  d.Get("website_url").(string),
-	//		TestType:    d.Get("test_type").(string),
-	//		CheckRate:   500,
-	//	}
-
-	log.Printf("[DEBUG] Check Rate: %d", d.Get("check_rate").(int))
-	log.Printf("[DEBUG] TestType: %s", d.Get("test_type").(string))
 	log.Printf("[DEBUG] Creating new StatusCake Test: %s", d.Get("website_name").(string))
 
 	response, err := client.Tests().Put(newTest)
@@ -82,24 +77,31 @@ func CreateTest(d *schema.ResourceData, meta interface{}) error {
 	d.Set("test_id", fmt.Sprintf("%d", response.TestID))
 	d.SetId(fmt.Sprintf("%d", response.TestID))
 
-	return UpdateTest(d, meta)
+	return ReadTest(d, meta)
 }
 
 func UpdateTest(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*wtf.Client)
+
+	params := getStatusCakeTestInput(d)
+
+	log.Printf("[DEBUG] StatusCake Test Update for %s", d.Id())
+	_, err := client.Tests().Put(params)
+	if err != nil {
+		return fmt.Errorf("Error Updating StatusCake Test: %s", err.Error())
+	}
 	return nil
 }
 
 func DeleteTest(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*statuscake.Client)
+	client := meta.(*wtf.Client)
 
 	testId, parseErr := strconv.Atoi(d.Id())
 	if parseErr != nil {
 		return parseErr
 	}
-	testIntId := int(testId)
-
 	log.Printf("[DEBUG] Deleting StatusCake Test: %s", d.Id())
-	err := client.Tests().Delete(testIntId)
+	err := client.Tests().Delete(testId)
 	if err != nil {
 		return err
 	}
@@ -108,5 +110,46 @@ func DeleteTest(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ReadTest(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*wtf.Client)
+
+	testId, parseErr := strconv.Atoi(d.Id())
+	if parseErr != nil {
+		return parseErr
+	}
+	testResp, err := client.Tests().Details(testId)
+	if err != nil {
+		return fmt.Errorf("Error Getting StatusCake Test Details for %s: Error: %s", d.Id(), err)
+	}
+	d.Set("check_rate", testResp.CheckRate)
+
 	return nil
+}
+
+func getStatusCakeTestInput(d *schema.ResourceData) *wtf.Test {
+	testId, parseErr := strconv.Atoi(d.Id())
+	if parseErr != nil {
+		log.Printf("[DEBUG] Error Parsing StatusCake TestID: %s", d.Id())
+	}
+	test := &wtf.Test{
+		TestID: testId,
+	}
+	if v, ok := d.GetOk("website_name"); ok {
+		test.WebsiteName = v.(string)
+	}
+	if v, ok := d.GetOk("website_url"); ok {
+		test.WebsiteURL = v.(string)
+	}
+	if v, ok := d.GetOk("check_rate"); ok {
+		test.CheckRate = v.(int)
+	}
+	if v, ok := d.GetOk("test_type"); ok {
+		test.TestType = v.(string)
+	}
+	if v, ok := d.GetOk("paused"); ok {
+		test.Paused = v.(bool)
+	}
+	if v, ok := d.GetOk("timeout"); ok {
+		test.Timeout = v.(int)
+	}
+	return test
 }
