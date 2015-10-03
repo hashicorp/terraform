@@ -40,6 +40,12 @@ func resourceCloudStackVPC() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"network_domain": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -84,7 +90,19 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Create a new parameter struct
-	p := cs.VPC.NewCreateVPCParams(d.Get("cidr").(string), displaytext.(string), name, vpcofferingid, zoneid)
+	p := cs.VPC.NewCreateVPCParams(
+		d.Get("cidr").(string),
+		displaytext.(string),
+		name,
+		vpcofferingid,
+		zoneid,
+	)
+
+	// If there is a network domain supplied, make sure to add it to the request
+	if networkDomain, ok := d.GetOk("network_domain"); ok {
+		// Set the network domain
+		p.SetNetworkdomain(networkDomain.(string))
+	}
 
 	// If there is a project supplied, we retrieve and set the project id
 	if project, ok := d.GetOk("project"); ok {
@@ -127,6 +145,7 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", v.Name)
 	d.Set("display_text", v.Displaytext)
 	d.Set("cidr", v.Cidr)
+	d.Set("network_domain", v.Networkdomain)
 
 	// Get the VPC offering details
 	o, _, err := cs.VPC.GetVPCOfferingByID(v.Vpcofferingid)
