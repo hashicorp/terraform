@@ -29,6 +29,7 @@ BUG FIXES:
 
   * core: Fix problems referencing list attributes in interpolations [GH-2157]
   * core: don't error on computed value during input walk [GH-2988]
+  * core: Ignore missing variables during destroy phase [GH-3393]
   * provider/google: Crashes with interface conversion in GCE Instance Template [GH-3027]
   * provider/google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
   * provider/google: google_compute_instance_template.network_interface.network should be a URL [GH-3226]
