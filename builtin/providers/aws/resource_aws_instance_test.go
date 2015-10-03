@@ -190,6 +190,9 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 
 	testCheck := func(enabled bool) resource.TestCheckFunc {
 		return func(*terraform.State) error {
+			if v.SourceDestCheck == nil {
+				return fmt.Errorf("bad source_dest_check: got nil")
+			}
 			if *v.SourceDestCheck != enabled {
 				return fmt.Errorf("bad source_dest_check: %#v", *v.SourceDestCheck)
 			}

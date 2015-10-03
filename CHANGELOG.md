@@ -6,6 +6,7 @@ FEATURES:
   * **New resource: `cloudstack_loadbalancer_rule`** [GH-2934]
   * **New resource: `google_compute_project_metadata`** [GH-3065]
   * **New resources: `aws_ami`, `aws_ami_copy`, `aws_ami_from_instance`** [GH-2874]
+  * **New resources: `aws_cloudwatch_log_group`** [GH-2415]
   * **New resource: `google_storage_bucket_object`** [GH-3192]
   * **New resources: `google_compute_vpn_gateway`, `google_compute_vpn_tunnel`** [GH-3213]
 
@@ -27,8 +28,10 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: Fix problems referencing list attributes in interpolations [GH-2157]
+  * core: don't error on computed value during input walk [GH-2988]
   * provider/google: Crashes with interface conversion in GCE Instance Template [GH-3027]
   * provider/google: Convert int to int64 when building the GKE cluster.NodeConfig struct [GH-2978]
+  * provider/google: google_compute_instance_template.network_interface.network should be a URL [GH-3226]
   * provider/aws: Retry creation of `aws_ecs_service` if IAM policy isn't ready yet [GH-3061]
   * provider/aws: Fix issue with mixed capitalization for RDS Instances  [GH-3053]
   * provider/aws: Fix issue with RDS to allow major version upgrades [GH-3053]

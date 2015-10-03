@@ -2,7 +2,6 @@ package google
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -66,31 +65,6 @@ func resourceComputeVpnTunnel() *schema.Resource {
 	}
 }
 
-func resourceOperationWaitRegion(config *Config, op *compute.Operation, region, activity string) error {
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitRegion,
-		Region:  region,
-	}
-
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return fmt.Errorf("Error waiting for %s: %s", activity, err)
-	}
-
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		return OperationError(*op.Error)
-	}
-
-	return nil
-}
-
 func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -125,7 +99,7 @@ func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error Inserting VPN Tunnel %s : %s", name, err)
 	}
 
-	err = resourceOperationWaitRegion(config, op, region, "Inserting VPN Tunnel")
+	err = computeOperationWaitRegion(config, op, region, "Inserting VPN Tunnel")
 	if err != nil {
 		return fmt.Errorf("Error Waiting to Insert VPN Tunnel %s: %s", name, err)
 	}
@@ -169,7 +143,7 @@ func resourceComputeVpnTunnelDelete(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error Reading VPN Tunnel %s: %s", name, err)
 	}
 
-	err = resourceOperationWaitRegion(config, op, region, "Deleting VPN Tunnel")
+	err = computeOperationWaitRegion(config, op, region, "Deleting VPN Tunnel")
 	if err != nil {
 		return fmt.Errorf("Error Waiting to Delete VPN Tunnel %s: %s", name, err)
 	}
