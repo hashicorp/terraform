@@ -702,8 +702,10 @@ test_instance.foo:
 `
 
 const importFile = `
-# this is a comment
+# this is an actual instance we care about
 root test_instance.foo 42
+# this is some junk that'll be ignored
+root test_instance.unknown 53
 `
 
 const testRefreshImportState = `
