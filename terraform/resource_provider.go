@@ -130,7 +130,7 @@ type ResourceProvider interface {
 	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
 
 	// Export exports provider and resources schema
-	Export() (ResourceSchema, error)
+	Export() (ResourceProviderSchema, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
@@ -150,26 +150,25 @@ type DataSource struct {
 	Name string `json:"name"`
 }
 
-type ResourceSchemaElement struct {
+type SchemaElement struct {
 	Name  string      `json:"name"`
 	Type  string      `json:"type"`
 	Value interface{} `json:"value"`
 }
 
-type ResourceSchemaElements []ResourceSchemaElement
+type SchemaElements []SchemaElement
 
-type ResourceSchemaInfo map[string]ResourceSchemaElements
+type SchemaInfo map[string]SchemaElements
 
-// ResourceSchema
-type ResourceSchema struct {
-	Provider  ResourceSchemaInfo            `json:"provider"`
-	Resources map[string]ResourceSchemaInfo `json:"resources"`
+type ResourceProviderSchema struct {
+	Schema    SchemaInfo            `json:"schema"`
+	Resources map[string]SchemaInfo `json:"resources"`
 }
 
 func init() {
 	// Required to return such elements from ResourceSchemaElement#Value
-	gob.Register(make(ResourceSchemaElements, 0))
-	gob.Register(ResourceSchemaInfo{})
+	gob.Register(make(SchemaElements, 0))
+	gob.Register(SchemaInfo{})
 }
 
 // ResourceProviderFactory is a function type that creates a new instance

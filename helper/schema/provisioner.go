@@ -8,6 +8,9 @@ type Provisioner struct {
 	Schema map[string]*Schema
 }
 
-func (p *Provisioner) Export() (terraform.ResourceSchemaInfo, error) {
-	return schemaMap(p.Schema).Export(), nil
+func (p *Provisioner) Export() (terraform.ResourceProvisionerSchema, error) {
+	schema := schemaMap(p.Schema).Export()
+	result := terraform.ResourceProvisionerSchema{}
+	result.Schema = schema
+	return result, nil
 }

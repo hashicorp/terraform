@@ -284,8 +284,8 @@ func (p *ResourceProvider) DataSources() []terraform.DataSource {
 	return result
 }
 
-func (p *ResourceProvider) Export() (terraform.ResourceSchema, error) {
-	var result terraform.ResourceSchema
+func (p *ResourceProvider) Export() (terraform.ResourceProviderSchema, error) {
+	var result terraform.ResourceProviderSchema
 	err := p.Client.Call("Plugin.Export", new(interface{}), &result)
 	if err != nil {
 		// TODO: panic, log, what?
@@ -558,7 +558,7 @@ func (s *ResourceProviderServer) DataSources(
 	return nil
 }
 
-func (s *ResourceProviderServer) Export(nothing interface{}, result *terraform.ResourceSchema) error {
+func (s *ResourceProviderServer) Export(nothing interface{}, result *terraform.ResourceProviderSchema) error {
 	r, err := s.Provider.Export()
 	if err != nil {
 		return err

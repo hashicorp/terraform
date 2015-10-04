@@ -15,15 +15,15 @@ type SchemasCommand struct {
 }
 
 type providerResourceSchema struct {
-	terraform.ResourceSchema
+	terraform.ResourceProviderSchema
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
 type provisionerResourceSchemaInfo struct {
-	terraform.ResourceSchemaInfo `json:"provisioner"`
-	Name                         string `json:"name"`
-	Type                         string `json:"type"`
+	terraform.ResourceProvisionerSchema
+	Name string `json:"name"`
+	Type string `json:"type"`
 }
 
 func (c *SchemasCommand) Run(args []string) int {
@@ -47,6 +47,8 @@ func (c *SchemasCommand) Run(args []string) int {
 		cmdFlags.Usage()
 		return 1
 	}
+
+	// TODO: Use c.Ui.Output(FormatSchema ...
 
 	for k, v := range c.Meta.ContextOpts.Providers {
 		if len(args) == 1 && args[0] != k {

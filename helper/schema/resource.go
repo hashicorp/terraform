@@ -367,7 +367,7 @@ func (r *Resource) TestResourceData() *ResourceData {
 // Provider.ExportSchema() will automatically call this for all of
 // the resources it manages, so you don't need to call this manually if it
 // is part of a Provider.
-func (r *Resource) Export() terraform.ResourceSchemaInfo {
+func (r *Resource) Export() terraform.SchemaInfo {
 	return schemaMap(r.Schema).Export()
 }
 
