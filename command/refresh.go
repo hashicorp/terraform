@@ -58,6 +58,10 @@ func (c *RefreshCommand) importResources(s *terraform.State, configuredResources
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
+		if line == "" || line[0] == '#' {
+			// blank line or comment
+			continue
+		}
 		pieces := strings.Split(line, " ")
 		if len(pieces) != 3 {
 			c.Ui.Error(fmt.Sprintf("Error malformed import line %s", line))
