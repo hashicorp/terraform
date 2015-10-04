@@ -48,6 +48,10 @@ BUG FIXES:
   * provider/openstack: remove security groups (by name) before adding security
       groups (by id) [GH-2008]
 
+INTERNAL IMPROVEMENTS:
+
+  * helper/schema: Don't allow ``Update`` func if no attributes can actually be updated, per schema.
+
 ## 0.6.3 (August 11, 2015)
 
 BUG FIXES:
