@@ -52,7 +52,7 @@ func TestRefresh(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(newState.String())
-	expected := strings.TrimSpace(testRefreshStr)
+	expected := strings.TrimSpace(testRefreshState)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
@@ -610,15 +610,104 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	}
 }
 
+// emptyState returns an empty State structure that we use for the import test
+func emptyState() *terraform.State {
+	return &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path:      []string{"root"},
+				Resources: map[string]*terraform.ResourceState{},
+			},
+		},
+	}
+}
+
+func TestRefresh_import(t *testing.T) {
+	state := emptyState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	p.RefreshFn = nil
+	attributes := map[string]string{"key": "value"}
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes", Attributes: attributes}
+
+	importFilePath := testTempFile(t)
+	if err := ioutil.WriteFile(importFilePath, []byte(importFile), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// if we call without -import refresh doesn't happen (no resources)
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh-import"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
+	}
+
+	// calling with import will ipmort the resource and the refresh
+	args = []string{
+		"-import", importFilePath,
+		"-state", statePath,
+		testFixturePath("refresh-import"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	newState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(newState.String())
+	expected := strings.TrimSpace(testRefreshImportState)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 const refreshVarFile = `
 foo = "bar"
 `
 
-const testRefreshStr = `
+const testRefreshState = `
 test_instance.foo:
   ID = yes
 `
 const testRefreshCwdStr = `
 test_instance.foo:
   ID = yes
+`
+
+const importFile = `
+# this is a comment
+root test_instance.foo 42
+`
+
+const testRefreshImportState = `
+test_instance.foo:
+  ID = yes
+  key = value
 `
