@@ -53,8 +53,8 @@ BUG FIXES:
 
 INTERNAL IMPROVEMENTS:
 
-  * helper/schema: Don't allow ``Update`` func if no attributes can actually be updated, per schema.
-  * helper/multierror: Remove in favor of [github.com/hashicorp/go-multierror](http://github.com/hashicorp/go-multierror).
+  * helper/schema: Don't allow ``Update`` func if no attributes can actually be updated, per schema. [GH-3288]
+  * helper/multierror: Remove in favor of [github.com/hashicorp/go-multierror](http://github.com/hashicorp/go-multierror). [GH-3336]
 
 ## 0.6.3 (August 11, 2015)
 
