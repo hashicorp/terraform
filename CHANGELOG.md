@@ -9,6 +9,7 @@ FEATURES:
   * **New resources: `aws_cloudwatch_log_group`** [GH-2415]
   * **New resource: `google_storage_bucket_object`** [GH-3192]
   * **New resources: `google_compute_vpn_gateway`, `google_compute_vpn_tunnel`** [GH-3213]
+  * **New resource: `aws_iam_saml_provider`** [GH-3156]
 
 IMPROVEMENTS:
 
