@@ -26,6 +26,7 @@ IMPROVEMENTS:
   * provider/aws: Add `versioning` option to `aws_s3_bucket` [GH-2942]
   * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
+  * remote/s3: Allow canned ACLs to be set on state objects. [GH-3233]
 
 BUG FIXES:
 
