@@ -16,7 +16,6 @@ func resource() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceCreate,
 		Read:   resourceRead,
-		Update: resourceUpdate,
 		Delete: resourceDelete,
 
 		Schema: map[string]*schema.Schema{},
@@ -29,10 +28,6 @@ func resourceCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-
-func resourceUpdate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
