@@ -186,7 +186,7 @@ Options:
   -out=path           Write a plan file to the given path. This can be used as
                       input to the "apply" command.
 
-  -parallelism=#      Limit the number of concurrent operations. Defaults to 10.
+  -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
 
   -refresh=true       Update state prior to checking for differences.
 
