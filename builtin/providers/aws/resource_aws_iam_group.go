@@ -105,10 +105,6 @@ func resourceAwsIamGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 		_, err := iamconn.UpdateGroup(request)
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
-				d.SetId("")
-				return nil
-			}
 			return fmt.Errorf("Error updating IAM Group %s: %s", d.Id(), err)
 		}
 		return resourceAwsIamGroupRead(d, meta)
