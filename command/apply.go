@@ -326,6 +326,9 @@ Options:
 
   -no-color              If specified, output won't contain any color.
 
+  -parallelism=n         Limit the number of concurrent operations.
+                         Defaults to 10.
+
   -refresh=true          Update state prior to checking for differences. This
                          has no effect if a plan file is given to apply.
 
