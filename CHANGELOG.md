@@ -27,6 +27,7 @@ IMPROVEMENTS:
   * provider/aws: Add `versioning` option to `aws_s3_bucket` [GH-2942]
   * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
+  * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
   * remote/s3: Allow canned ACLs to be set on state objects. [GH-3233]
 
 BUG FIXES:
@@ -49,7 +50,6 @@ BUG FIXES:
   * provider/aws: Normalize aws_elasticache_cluster id to lowercase, allowing convergence. [GH-3235]
   * provider/openstack: add state 'downloading' to list of expected states in
       `blockstorage_volume_v1` creation [GH-2866]
-  * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
   * provider/openstack: remove security groups (by name) before adding security
       groups (by id) [GH-2008]
 
