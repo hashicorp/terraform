@@ -124,14 +124,14 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 		displaytext = name
 	}
 
-	// Retrieve the os_type UUID
-	ostypeid, e := retrieveUUID(cs, "os_type", d.Get("os_type").(string))
+	// Retrieve the os_type ID
+	ostypeid, e := retrieveID(cs, "os_type", d.Get("os_type").(string))
 	if e != nil {
 		return e.Error()
 	}
 
-	// Retrieve the zone UUID
-	zoneid, e := retrieveUUID(cs, "zone", d.Get("zone").(string))
+	// Retrieve the zone ID
+	zoneid, e := retrieveID(cs, "zone", d.Get("zone").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -169,8 +169,8 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 
 	// If there is a project supplied, we retrieve and set the project id
 	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project UUID
-		projectid, e := retrieveUUID(cs, "project", project.(string))
+		// Retrieve the project ID
+		projectid, e := retrieveID(cs, "project", project.(string))
 		if e != nil {
 			return e.Error()
 		}
@@ -236,16 +236,10 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("password_enabled", t.Passwordenabled)
 	d.Set("is_ready", t.Isready)
 
-	setValueOrUUID(d, "project", t.Project, t.Projectid)
+	setValueOrID(d, "os_type", t.Ostypename, t.Ostypeid)
+	setValueOrID(d, "project", t.Project, t.Projectid)
+	setValueOrID(d, "zone", t.Zonename, t.Zoneid)
 
-	if t.Zoneid == "" {
-		setValueOrUUID(d, "zone", UnlimitedResourceID, UnlimitedResourceID)
-	} else {
-		setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
-	}
-
-	setValueOrUUID(d, "os_type", t.Ostypename, t.Ostypeid)
-	
 	return nil
 }
 
@@ -273,7 +267,7 @@ func resourceCloudStackTemplateUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("os_type") {
-		ostypeid, e := retrieveUUID(cs, "os_type", d.Get("os_type").(string))
+		ostypeid, e := retrieveID(cs, "os_type", d.Get("os_type").(string))
 		if e != nil {
 			return e.Error()
 		}
@@ -302,7 +296,7 @@ func resourceCloudStackTemplateDelete(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Deleting template: %s", d.Get("name").(string))
 	_, err := cs.Template.DeleteTemplate(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {

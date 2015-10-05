@@ -43,8 +43,8 @@ func resourceCloudStackNetworkACLCreate(d *schema.ResourceData, meta interface{}
 
 	name := d.Get("name").(string)
 
-	// Retrieve the vpc UUID
-	vpcid, e := retrieveUUID(cs, "vpc", d.Get("vpc").(string))
+	// Retrieve the vpc ID
+	vpcid, e := retrieveID(cs, "vpc", d.Get("vpc").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -95,7 +95,7 @@ func resourceCloudStackNetworkACLRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	setValueOrUUID(d, "vpc", v.Name, v.Id)
+	setValueOrID(d, "vpc", v.Name, v.Id)
 
 	return nil
 }
@@ -109,7 +109,7 @@ func resourceCloudStackNetworkACLDelete(d *schema.ResourceData, meta interface{}
 	// Delete the network ACL list
 	_, err := cs.NetworkACL.DeleteNetworkACLList(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {
