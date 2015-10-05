@@ -220,7 +220,7 @@ func resourceCloudInitConfigPartHash(v interface{}) int {
 	m := v.(map[string]interface{})
 
 	if v, ok := m["order"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(int)))
+		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
 	}
 	if v, ok := m["content_type"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
