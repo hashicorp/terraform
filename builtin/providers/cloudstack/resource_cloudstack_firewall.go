@@ -89,8 +89,8 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	// Retrieve the ipaddress UUID
-	ipaddressid, e := retrieveUUID(cs, "ipaddress", d.Get("ipaddress").(string))
+	// Retrieve the ipaddress ID
+	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -222,7 +222,7 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 
 				// Get the rule
 				r, count, err := cs.Firewall.GetFirewallRuleByID(id.(string))
-				// If the count == 0, there is no object found for this UUID
+				// If the count == 0, there is no object found for this ID
 				if err != nil {
 					if count == 0 {
 						delete(uuids, "icmp")
@@ -415,7 +415,7 @@ func resourceCloudStackFirewallDeleteRule(
 		// Delete the rule
 		if _, err := cs.Firewall.DeleteFirewallRule(p); err != nil {
 
-			// This is a very poor way to be told the UUID does no longer exist :(
+			// This is a very poor way to be told the ID does no longer exist :(
 			if strings.Contains(err.Error(), fmt.Sprintf(
 				"Invalid parameter id value=%s due to incorrect long value format, "+
 					"or entity does not exist", id.(string))) {
