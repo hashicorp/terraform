@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -61,6 +62,7 @@ type AWSClient struct {
 	kinesisconn        *kinesis.Kinesis
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
+	glacierconn        *glacier.Glacier
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -166,6 +168,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CloudWatch Logs connection")
 		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
+
+		log.Println("[INFO] Initializing Glacier connection")
+		client.glacierconn = glacier.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
