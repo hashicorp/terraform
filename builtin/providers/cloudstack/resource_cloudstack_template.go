@@ -51,6 +51,12 @@ func resourceCloudStackTemplate() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -161,6 +167,17 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetPasswordenabled(v.(bool))
 	}
 
+	// If there is a project supplied, we retrieve and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project UUID
+		projectid, e := retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
+	}
+
 	// Create the new template
 	r, err := cs.Template.RegisterTemplate(p)
 	if err != nil {
@@ -219,9 +236,16 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("password_enabled", t.Passwordenabled)
 	d.Set("is_ready", t.Isready)
 
-	setValueOrUUID(d, "os_type", t.Ostypename, t.Ostypeid)
-	setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
+	setValueOrUUID(d, "project", t.Project, t.Projectid)
 
+	if t.Zoneid == "" {
+		setValueOrUUID(d, "zone", UnlimitedResourceID, UnlimitedResourceID)
+	} else {
+		setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
+	}
+
+	setValueOrUUID(d, "os_type", t.Ostypename, t.Ostypeid)
+	
 	return nil
 }
 

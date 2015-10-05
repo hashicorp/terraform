@@ -10,6 +10,9 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
+// CloudStack uses a "special" ID of -1 to define an unlimited resource
+const UnlimitedResourceID = "-1"
+
 type retrieveError struct {
 	name  string
 	value string
@@ -53,6 +56,9 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 	case "network":
 		uuid, err = cs.Network.GetNetworkID(value)
 	case "zone":
+		if value == UnlimitedResourceID {
+			return value, nil
+		}
 		uuid, err = cs.Zone.GetZoneID(value)
 	case "ipaddress":
 		p := cs.Address.NewListPublicIpAddressesParams()
