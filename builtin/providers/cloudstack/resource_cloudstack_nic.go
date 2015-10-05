@@ -41,14 +41,14 @@ func resourceCloudStackNIC() *schema.Resource {
 func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Retrieve the network UUID
-	networkid, e := retrieveUUID(cs, "network", d.Get("network").(string))
+	// Retrieve the network ID
+	networkid, e := retrieveID(cs, "network", d.Get("network").(string))
 	if e != nil {
 		return e.Error()
 	}
 
-	// Retrieve the virtual_machine UUID
-	virtualmachineid, e := retrieveUUID(cs, "virtual_machine", d.Get("virtual_machine").(string))
+	// Retrieve the virtual_machine ID
+	virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -103,8 +103,8 @@ func resourceCloudStackNICRead(d *schema.ResourceData, meta interface{}) error {
 	for _, n := range vm.Nic {
 		if n.Id == d.Id() {
 			d.Set("ipaddress", n.Ipaddress)
-			setValueOrUUID(d, "network", n.Networkname, n.Networkid)
-			setValueOrUUID(d, "virtual_machine", vm.Name, vm.Id)
+			setValueOrID(d, "network", n.Networkname, n.Networkid)
+			setValueOrID(d, "virtual_machine", vm.Name, vm.Id)
 			found = true
 			break
 		}
@@ -121,8 +121,8 @@ func resourceCloudStackNICRead(d *schema.ResourceData, meta interface{}) error {
 func resourceCloudStackNICDelete(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Retrieve the virtual_machine UUID
-	virtualmachineid, e := retrieveUUID(cs, "virtual_machine", d.Get("virtual_machine").(string))
+	// Retrieve the virtual_machine ID
+	virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -133,7 +133,7 @@ func resourceCloudStackNICDelete(d *schema.ResourceData, meta interface{}) error
 	// Remove the NIC
 	_, err := cs.VirtualMachine.RemoveNicFromVirtualMachine(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {
