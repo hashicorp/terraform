@@ -22,6 +22,7 @@ func TestAccAWSAutoscalingLifecycleHook_basic(t *testing.T) {
 				Config: testAccAWSAutoscalingLifecycleHookConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLifecycleHookExists("aws_autoscaling_lifecycle_hook.foobar", &hook),
+					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "autoscaling_group_name", "terraform-test-foobar5"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "default_result", "CONTINUE"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "heartbeat_timeout", "2000"),
 					resource.TestCheckResourceAttr("aws_autoscaling_lifecycle_hook.foobar", "lifecycle_transition", "autoscaling:EC2_INSTANCE_LAUNCHING"),
@@ -110,6 +111,7 @@ resource "aws_autoscaling_group" "foobar" {
 
 resource "aws_autoscaling_lifecycle_hook" "foobar" {
     name = "foobar"
+    autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
     default_result = "CONTINUE"
     heartbeat_timeout = 2000
     lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
