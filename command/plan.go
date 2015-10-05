@@ -27,6 +27,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
@@ -57,9 +58,10 @@ func (c *PlanCommand) Run(args []string) int {
 	c.Meta.extraHooks = []terraform.Hook{countHook}
 
 	ctx, _, err := c.Context(contextOpts{
-		Destroy:   destroy,
-		Path:      path,
-		StatePath: c.Meta.statePath,
+		Destroy:     destroy,
+		Path:        path,
+		StatePath:   c.Meta.statePath,
+		Parallelism: c.Meta.parallelism,
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
