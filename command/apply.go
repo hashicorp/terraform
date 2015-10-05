@@ -39,7 +39,8 @@ func (c *ApplyCommand) Run(args []string) int {
 		cmdFlags.BoolVar(&destroyForce, "force", false, "force")
 	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
+	cmdFlags.IntVar(
+		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
@@ -280,7 +281,8 @@ Options:
 
   -no-color              If specified, output won't contain any color.
 
-  -parallelism=#         Limit the number of concurrent operations.
+  -parallelism=n         Limit the number of concurrent operations.
+                         Defaults to 10.
 
   -refresh=true          Update state prior to checking for differences. This
                          has no effect if a plan file is given to apply.
