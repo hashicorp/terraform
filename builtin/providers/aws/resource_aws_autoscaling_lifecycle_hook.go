@@ -22,6 +22,10 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"autoscaling_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"default_result": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
