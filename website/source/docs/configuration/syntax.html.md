@@ -54,6 +54,11 @@ Basic bullet point reference:
     is
     [documented here](/docs/configuration/interpolation.html).
 
+  * Multiline strings can use shell-style "here doc" syntax, with
+    the string starting with a marker like `<<EOT` and then the
+    string ending with `EOT` on a line of its own. The lines of
+    the string and the end marker must *not* be indented.
+
   * Numbers are assumed to be base 10. If you prefix a number with
     `0x`, it is treated as a hexadecimal number.
 
