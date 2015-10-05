@@ -161,7 +161,7 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	p := cs.Address.NewListPublicIpAddressesParams()
 	p.SetVpcid(d.Id())
 	p.SetIssourcenat(true)
-	if project, ok := d.GetOk("project"); ok {
+	if _, ok := d.GetOk("project"); ok {
 		p.SetProjectid(v.Projectid)
 	}
 
