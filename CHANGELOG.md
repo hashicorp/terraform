@@ -48,6 +48,7 @@ BUG FIXES:
   * provider/aws: Normalize aws_elasticache_cluster id to lowercase, allowing convergence. [GH-3235]
   * provider/openstack: add state 'downloading' to list of expected states in
       `blockstorage_volume_v1` creation [GH-2866]
+  * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
   * provider/openstack: remove security groups (by name) before adding security
       groups (by id) [GH-2008]
 
