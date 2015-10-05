@@ -10,6 +10,7 @@ FEATURES:
   * **New resource: `google_storage_bucket_object`** [GH-3192]
   * **New resources: `google_compute_vpn_gateway`, `google_compute_vpn_tunnel`** [GH-3213]
   * **New resource: `aws_iam_saml_provider`** [GH-3156]
+  * **New resources: `aws_efs_file_system` and `aws_efs_mount_target`** [GH-2196]
 
 IMPROVEMENTS:
 
