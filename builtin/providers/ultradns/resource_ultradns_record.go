@@ -90,7 +90,10 @@ func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Couldn't find UltraDNS RRSet: %s", err)
 	}
 	rec := rrsets[0]
-	d.Set("rdata", rec.RData)
+	err := d.Set("rdata", rec.RData)
+	if err != nil {
+		return fmt.Errorf("[DEBUG] Error setting records: %#v", err)
+	}
 	d.Set("ttl", rec.TTL)
 
 	if rec.OwnerName == "" {
