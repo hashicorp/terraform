@@ -12,6 +12,7 @@ FEATURES:
   * **New resources: `google_storage_bucket_acl`, `google_storage_object_acl`** [GH-3272]
   * **New resource: `aws_iam_saml_provider`** [GH-3156]
   * **New resources: `aws_efs_file_system` and `aws_efs_mount_target`** [GH-2196]
+  * **New resources: `aws_opsworks_*`** [GH-2162]
 
 IMPROVEMENTS:
 
