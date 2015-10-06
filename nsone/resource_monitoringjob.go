@@ -35,10 +35,6 @@ func monitoringJobResource() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"ssl": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
 			"frequency": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
@@ -123,11 +119,6 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob)
 	d.Set("regions", r.Regions)
 	d.Set("frequency", r.Frequency)
 	d.Set("rapid_recheck", r.RapidRecheck)
-	if r.Ssl == 1 {
-		d.Set("ssl", true)
-	} else {
-		d.Set("ssl", false)
-	}
 	config := make(map[string]string)
 	for k, v := range r.Config {
 		switch t := v.(type) {
@@ -171,11 +162,6 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	r.Regions = make([]string, len(raw_regions))
 	for i, v := range raw_regions {
 		r.Regions[i] = v.(string)
-	}
-	if v, ok := d.GetOk("ssl"); ok {
-		if v.(bool) == true {
-			r.Ssl = 1
-		}
 	}
 	r.Frequency = d.Get("frequency").(int)
 	r.RapidRecheck = d.Get("rapid_recheck").(bool)
