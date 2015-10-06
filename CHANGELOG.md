@@ -9,6 +9,7 @@ FEATURES:
   * **New resources: `aws_cloudwatch_log_group`** [GH-2415]
   * **New resource: `google_storage_bucket_object`** [GH-3192]
   * **New resources: `google_compute_vpn_gateway`, `google_compute_vpn_tunnel`** [GH-3213]
+  * **New resources: `google_storage_bucket_acl`, `google_storage_object_acl`** [GH-3272]
   * **New resource: `aws_iam_saml_provider`** [GH-3156]
   * **New resources: `aws_efs_file_system` and `aws_efs_mount_target`** [GH-2196]
 
@@ -27,6 +28,7 @@ IMPROVEMENTS:
   * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
   * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
+  * provider/google: Can now do multi-region deployments without using multiple providers [GH-3258]
   * remote/s3: Allow canned ACLs to be set on state objects. [GH-3233]
 
 BUG FIXES:
