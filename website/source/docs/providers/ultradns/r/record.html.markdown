@@ -25,6 +25,8 @@ resource "ultradns_record" "foobar" {
 
 ## Argument Reference
 
+See [related part of UltraDNS Docs](https://restapi.ultradns.com/v1/docs#post-rrset) for details about valid values.
+
 The following arguments are supported:
 
 * `zone` - (Required) The domain to add the record to
