@@ -54,6 +54,13 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
                                 Computed: true,
                         },
 
+                        "publicly_accessible": &schema.Schema{
+                                Type:     schema.TypeBool,
+                                Optional: true,
+                                Default:  false,
+                                ForceNew: true,
+                        },
+
                         "instance_class": &schema.Schema{
                                 Type:     schema.TypeString,
                                 Required: true,
@@ -73,6 +80,7 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
                 DBInstanceClass:     aws.String(d.Get("instance_class").(string)),
                 DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
                 Engine:              aws.String("aurora"),
+                PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
                 Tags:                tags,
         }
 
@@ -153,6 +161,8 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
                 d.Set("endpoint", db.Endpoint.Address)
                 d.Set("port", db.Endpoint.Port)
         }
+
+        d.Set("publicly_accessible", db.PubliclyAccessible)
 
         // Fetch and save tags
         arn, err := buildRDSARN(d, meta)

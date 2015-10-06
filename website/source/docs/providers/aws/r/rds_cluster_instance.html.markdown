@@ -60,8 +60,9 @@ and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
   - db.r3.2xlarge
   - db.r3.4xlarge
   - db.r3.8xlarge
-
-.
+* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
+Default `false`. See the documentation on [Creating DB Instances][6] for more
+details on controlling this property.
 
 ## Attributes Reference
 
@@ -85,3 +86,4 @@ this instance is a read replica
 [3]: /docs/providers/aws/r/rds_cluster.html
 [4]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html
 [5]: /docs/configuration/resources.html#count
+[6]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
