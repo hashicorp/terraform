@@ -121,11 +121,19 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob)
 	d.Set("rapid_recheck", r.RapidRecheck)
 	config := make(map[string]string)
 	for k, v := range r.Config {
-		switch t := v.(type) {
-		case string:
-			config[k] = t
-		case float64:
-			config[k] = strconv.FormatFloat(t, 'f', -1, 64)
+		if k == "ssl" {
+			if v.(bool) {
+				config[k] = "1"
+			} else {
+				config[k] = "0"
+			}
+		} else {
+			switch t := v.(type) {
+			case string:
+				config[k] = t
+			case float64:
+				config[k] = strconv.FormatFloat(t, 'f', -1, 64)
+			}
 		}
 	}
 	err := d.Set("config", config)
@@ -195,10 +203,16 @@ func resourceDataToMonitoringJob(r *nsone.MonitoringJob, d *schema.ResourceData)
 	config := make(map[string]interface{})
 	if raw_config := d.Get("config"); raw_config != nil {
 		for k, v := range raw_config.(map[string]interface{}) {
-			if i, err := strconv.Atoi(v.(string)); err == nil {
-				config[k] = i
+			if k == "ssl" {
+				if v.(string) == "1" {
+					config[k] = true
+				}
 			} else {
-				config[k] = v
+				if i, err := strconv.Atoi(v.(string)); err == nil {
+					config[k] = i
+				} else {
+					config[k] = v
+				}
 			}
 		}
 	}
