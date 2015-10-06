@@ -135,6 +135,8 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *nsone.MonitoringJob)
 			config[k] = t
 		case float64:
 			config[k] = strconv.FormatFloat(t, 'f', -1, 64)
+		case bool:
+			config[k] = t
 		}
 	}
 	err := d.Set("config", config)
