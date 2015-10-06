@@ -121,7 +121,7 @@ func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (
 
 // ID can be either a UUID or a UnlimitedResourceID
 func isID(id string) bool {
-	re := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|-1$`)
+	re := regexp.MustCompile(`^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|-1)$`)
 	return re.MatchString(id)
 }
 
