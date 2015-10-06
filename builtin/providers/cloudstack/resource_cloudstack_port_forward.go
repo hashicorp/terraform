@@ -72,8 +72,8 @@ func resourceCloudStackPortForward() *schema.Resource {
 func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Retrieve the ipaddress UUID
-	ipaddressid, e := retrieveUUID(cs, "ipaddress", d.Get("ipaddress").(string))
+	// Retrieve the ipaddress ID
+	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -115,8 +115,8 @@ func resourceCloudStackPortForwardCreateForward(
 		return err
 	}
 
-	// Retrieve the virtual_machine UUID
-	virtualmachineid, e := retrieveUUID(cs, "virtual_machine", forward["virtual_machine"].(string))
+	// Retrieve the virtual_machine ID
+	virtualmachineid, e := retrieveID(cs, "virtual_machine", forward["virtual_machine"].(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -167,7 +167,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 
 			// Get the forward
 			r, count, err := cs.Firewall.GetPortForwardingRuleByID(id.(string))
-			// If the count == 0, there is no object found for this UUID
+			// If the count == 0, there is no object found for this ID
 			if err != nil {
 				if count == 0 {
 					forward["uuid"] = ""
@@ -192,7 +192,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			forward["private_port"] = privPort
 			forward["public_port"] = pubPort
 
-			if isUUID(forward["virtual_machine"].(string)) {
+			if isID(forward["virtual_machine"].(string)) {
 				forward["virtual_machine"] = r.Virtualmachineid
 			} else {
 				forward["virtual_machine"] = r.Virtualmachinename
@@ -317,7 +317,7 @@ func resourceCloudStackPortForwardDeleteForward(
 
 	// Delete the forward
 	if _, err := cs.Firewall.DeletePortForwardingRule(p); err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if !strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", forward["uuid"].(string))) {
@@ -325,6 +325,7 @@ func resourceCloudStackPortForwardDeleteForward(
 		}
 	}
 
+	// Empty the UUID of this rule
 	forward["uuid"] = ""
 
 	return nil

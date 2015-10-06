@@ -247,7 +247,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 
 				// Get the rule
 				r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
-				// If the count == 0, there is no object found for this UUID
+				// If the count == 0, there is no object found for this ID
 				if err != nil {
 					if count == 0 {
 						delete(uuids, "icmp")
@@ -275,7 +275,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 
 				// Get the rule
 				r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
-				// If the count == 0, there is no object found for this UUID
+				// If the count == 0, there is no object found for this ID
 				if err != nil {
 					if count == 0 {
 						delete(uuids, "all")
@@ -469,7 +469,7 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 		// Delete the rule
 		if _, err := cs.NetworkACL.DeleteNetworkACL(p); err != nil {
 
-			// This is a very poor way to be told the UUID does no longer exist :(
+			// This is a very poor way to be told the ID does no longer exist :(
 			if strings.Contains(err.Error(), fmt.Sprintf(
 				"Invalid parameter id value=%s due to incorrect long value format, "+
 					"or entity does not exist", id.(string))) {
