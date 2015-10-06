@@ -123,13 +123,13 @@ func testAccCheckCloudStackEgressFirewallRulesExist(n string) resource.TestCheck
 			return fmt.Errorf("No firewall ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
+		for k, id := range rs.Primary.Attributes {
 			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 
 			cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-			_, count, err := cs.Firewall.GetEgressFirewallRuleByID(uuid)
+			_, count, err := cs.Firewall.GetEgressFirewallRuleByID(id)
 
 			if err != nil {
 				return err
@@ -156,12 +156,12 @@ func testAccCheckCloudStackEgressFirewallDestroy(s *terraform.State) error {
 			return fmt.Errorf("No instance ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
+		for k, id := range rs.Primary.Attributes {
 			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 
-			_, _, err := cs.Firewall.GetEgressFirewallRuleByID(uuid)
+			_, _, err := cs.Firewall.GetEgressFirewallRuleByID(id)
 			if err == nil {
 				return fmt.Errorf("Egress rule %s still exists", rs.Primary.ID)
 			}

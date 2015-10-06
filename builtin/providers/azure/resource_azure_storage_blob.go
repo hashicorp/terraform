@@ -13,7 +13,6 @@ func resourceAzureStorageBlob() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAzureStorageBlobCreate,
 		Read:   resourceAzureStorageBlobRead,
-		Update: resourceAzureStorageBlobUpdate,
 		Exists: resourceAzureStorageBlobExists,
 		Delete: resourceAzureStorageBlobDelete,
 
@@ -120,17 +119,6 @@ func resourceAzureStorageBlobRead(d *schema.ResourceData, meta interface{}) erro
 	// NOTE: no need to unset the ID here, as resourceAzureStorageBlobExists
 	// already should have done so if it were required.
 	return nil
-}
-
-// resourceAzureStorageBlobUpdate does all the necessary API calls to
-// update a blob on Azure.
-func resourceAzureStorageBlobUpdate(d *schema.ResourceData, meta interface{}) error {
-	// NOTE: although empty as most parameters have ForceNew set; this is
-	// still required in case of changes to the storage_service_key
-
-	// run the ExistsFunc beforehand to ensure the resource's existence nonetheless:
-	_, err := resourceAzureStorageBlobExists(d, meta)
-	return err
 }
 
 // resourceAzureStorageBlobExists does all the necessary API calls to

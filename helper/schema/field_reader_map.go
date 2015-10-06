@@ -105,7 +105,7 @@ func (r *MapFieldReader) readSet(
 	}
 
 	// Create the set that will be our result
-	set := &Set{F: schema.Set}
+	set := schema.ZeroValue().(*Set)
 
 	// If we have an empty list, then return an empty list
 	if countRaw.Computed || countRaw.Value.(int) == 0 {

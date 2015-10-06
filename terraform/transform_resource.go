@@ -369,7 +369,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	var createNew, tainted bool
 	var createBeforeDestroyEnabled bool
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
-		Ops: []walkOperation{walkApply},
+		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				// Get the saved diff for apply
@@ -591,7 +591,7 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 	var state *InstanceState
 	var err error
 	return &EvalOpFilter{
-		Ops: []walkOperation{walkApply},
+		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				// Get the saved diff for apply

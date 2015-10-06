@@ -59,9 +59,13 @@ type Meta struct {
 	//
 	// backupPath is used to backup the state file before writing a modified
 	// version. It defaults to stateOutPath + DefaultBackupExtension
+	//
+	// parallelism is used to control the number of concurrent operations
+	// allowed when walking the graph
 	statePath    string
 	stateOutPath string
 	backupPath   string
+	parallelism  int
 }
 
 // initStatePaths is used to initialize the default values for
@@ -151,6 +155,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	}
 
 	opts.Module = mod
+	opts.Parallelism = copts.Parallelism
 	opts.State = state.State()
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil
@@ -430,4 +435,7 @@ type contextOpts struct {
 
 	// Set to true when running a destroy plan/apply.
 	Destroy bool
+
+	// Number of concurrent operations allowed
+	Parallelism int
 }

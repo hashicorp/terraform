@@ -28,6 +28,12 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(val interface{}) string {
+					// Elasticache normalizes cluster ids to lowercase,
+					// so we have to do this too or else we can end up
+					// with non-converging diffs.
+					return strings.ToLower(val.(string))
+				},
 			},
 			"configuration_endpoint": &schema.Schema{
 				Type:     schema.TypeString,
@@ -194,7 +200,11 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error creating Elasticache: %s", err)
 	}
 
-	d.SetId(*resp.CacheCluster.CacheClusterId)
+	// Assign the cluster id as the resource ID
+	// Elasticache always retains the id in lower case, so we have to
+	// mimic that or else we won't be able to refresh a resource whose
+	// name contained uppercase characters.
+	d.SetId(strings.ToLower(*resp.CacheCluster.CacheClusterId))
 
 	pending := []string{"creating"}
 	stateConf := &resource.StateChangeConf{

@@ -15,10 +15,14 @@
                     <a href="#">CloudWatch Resources</a>
                     <ul class="nav nav-visible">
 
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-group") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_group.html">aws_cloudwatch_log_group</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-metric-alarm") %>>
                             <a href="/docs/providers/aws/r/cloudwatch_metric_alarm.html">aws_cloudwatch_metric_alarm</a>
                         </li>
-
+ 
                     </ul>
                 </li>
 
@@ -128,6 +132,22 @@
                 </li>
 
 
+                <li<%= sidebar_current(/^docs-aws-resource-efs/) %>>
+                    <a href="#">EFS Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-efs-file-system") %>>
+                            <a href="/docs/providers/aws/r/efs_file_system.html">aws_efs_file_system</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-efs-mount-target") %>>
+                            <a href="/docs/providers/aws/r/efs_mount_target.html">aws_efs_mount_target</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+
                 <li<%= sidebar_current(/^docs-aws-resource-elasticache/) %>>
                     <a href="#">ElastiCache Resources</a>
                     <ul class="nav nav-visible">
@@ -191,6 +211,10 @@
                             <a href="/docs/providers/aws/r/iam_role_policy.html">aws_iam_role_policy</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-iam-saml-provider") %>>
+                            <a href="/docs/providers/aws/r/iam_saml_provider.html">aws_iam_saml_provider</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-iam-server-certificate") %>>
                             <a href="/docs/providers/aws/r/iam_server_certificate.html">aws_iam_server_certificate</a>
                         </li>
@@ -225,6 +249,58 @@
 
                         <li<%= sidebar_current("docs-aws-resource-lambda-function") %>>
                             <a href="/docs/providers/aws/r/lambda_function.html">aws_lambda_function</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+
+                <li<%= sidebar_current(/^docs-aws-resource-opsworks/) %>>
+                    <a href="#">OpsWorks Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-custom-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_custom_layer.html">aws_opsworks_custom_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-ganglia-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_ganglia_layer.html">aws_opsworks_ganglia_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-haproxy-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_haproxy_layer.html">aws_opsworks_haproxy_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-java-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_java_app_layer.html">aws_opsworks_java_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-memcached-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_memcached_layer.html">aws_opsworks_memcached_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-mysql-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_mysql_layer.html">aws_opsworks_mysql_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-nodejs-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_nodejs_app_layer.html">aws_opsworks_nodejs_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-php-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_php_app_layer.html">aws_opsworks_php_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-rails-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_rails_app_layer.html">aws_opsworks_rails_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-stack") %>>
+                            <a href="/docs/providers/aws/r/opsworks_stack.html">aws_opsworks_stack</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-static-web-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_static_web_layer.html">aws_opsworks_static_web_layer</a>
                         </li>
 
                     </ul>
