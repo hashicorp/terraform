@@ -17,7 +17,6 @@ func resourceAwsLoadBalancerPolicy() *schema.Resource {
 		// There is no concept of "updating" a Load Balancer Policy in
 		// the AWS API.
 		Create: resourceAwsLoadBalancerPolicyCreate,
-		Update: resourceAwsLoadBalancerPolicyCreate,
 
 		Read:   resourceAwsLoadBalancerPolicyRead,
 		Delete: resourceAwsLoadBalancerPolicyDelete,
