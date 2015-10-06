@@ -87,10 +87,23 @@ func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error 
 
 	rrsets, _, err := client.RRSets.GetRRSets(d.Get("zone").(string), d.Get("name").(string), d.Get("type").(string))
 	if err != nil {
-		return fmt.Errorf("Couldn't find UltraDNS RRSet: %s", err)
+		uderr, ok := err.(*udnssdk.ErrorResponseList)
+		if ok {
+			for _, r := range uderr.Responses {
+				// 70002 means Records Not Found
+				if r.ErrorCode == 70002 {
+					d.SetId("")
+					return nil
+				} else {
+					return fmt.Errorf("Couldn't find UltraDNS RRSet: %s", err)
+				}
+			}
+		} else {
+			return fmt.Errorf("Couldn't find UltraDNS RRSet: %s", err)
+		}
 	}
 	rec := rrsets[0]
-	err := d.Set("rdata", rec.RData)
+	err = d.Set("rdata", rec.RData)
 	if err != nil {
 		return fmt.Errorf("[DEBUG] Error setting records: %#v", err)
 	}
