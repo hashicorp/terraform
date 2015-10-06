@@ -19,6 +19,7 @@ resource "google_compute_backend_service" "foobar" {
     port_name = "http"
     protocol = "HTTP"
     timeout_sec = 10
+    region = us-central1
 
     backend {
         group = "${google_compute_instance_group_manager.foo.instance_group}"
@@ -67,6 +68,7 @@ The following arguments are supported:
     for checking the health of the backend service.
 * `description` - (Optional) The textual description for the backend service.
 * `backend` - (Optional) The list of backends that serve this BackendService. See *Backend* below.
+* `region` - (Optional) The region the service sits in. If not specified, the project region is used.
 * `port_name` - (Optional) The name of a service that has been added to
 	an instance group in this backend. See [related docs](https://cloud.google.com/compute/docs/instance-groups/#specifying_service_endpoints)
     for details. Defaults to http.
