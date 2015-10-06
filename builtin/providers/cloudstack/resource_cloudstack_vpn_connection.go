@@ -81,7 +81,7 @@ func resourceCloudStackVPNConnectionDelete(d *schema.ResourceData, meta interfac
 	// Delete the VPN Connection
 	_, err := cs.VPN.DeleteVpnConnection(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {

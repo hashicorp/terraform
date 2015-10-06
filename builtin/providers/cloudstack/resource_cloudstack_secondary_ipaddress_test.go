@@ -64,8 +64,8 @@ func testAccCheckCloudStackSecondaryIPAddressExists(
 
 		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
 
-		// Retrieve the virtual_machine UUID
-		virtualmachineid, e := retrieveUUID(
+		// Retrieve the virtual_machine ID
+		virtualmachineid, e := retrieveID(
 			cs, "virtual_machine", rs.Primary.Attributes["virtual_machine"])
 		if e != nil {
 			return e.Error()
@@ -136,8 +136,8 @@ func testAccCheckCloudStackSecondaryIPAddressDestroy(s *terraform.State) error {
 			return fmt.Errorf("No IP address ID is set")
 		}
 
-		// Retrieve the virtual_machine UUID
-		virtualmachineid, e := retrieveUUID(
+		// Retrieve the virtual_machine ID
+		virtualmachineid, e := retrieveID(
 			cs, "virtual_machine", rs.Primary.Attributes["virtual_machine"])
 		if e != nil {
 			return e.Error()
