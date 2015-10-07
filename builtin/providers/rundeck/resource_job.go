@@ -340,10 +340,10 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		LogLevel:                  d.Get("log_level").(string),
 		AllowConcurrentExecutions: d.Get("allow_concurrent_executions").(bool),
 		Dispatch: &rundeck.JobDispatch{
-			MaxThreadCount:            d.Get("max_thread_count").(int),
-			ContinueOnError:           d.Get("continue_on_error").(bool),
-			RankAttribute:             d.Get("rank_attribute").(string),
-			RankOrder:                 d.Get("rank_order").(string),
+			MaxThreadCount:  d.Get("max_thread_count").(int),
+			ContinueOnError: d.Get("continue_on_error").(bool),
+			RankAttribute:   d.Get("rank_attribute").(string),
+			RankOrder:       d.Get("rank_order").(string),
 		},
 	}
 

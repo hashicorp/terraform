@@ -2,9 +2,9 @@ package google
 
 import (
 	"fmt"
-	"testing"
-	"math/rand"
 	"io/ioutil"
+	"math/rand"
+	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -32,7 +32,7 @@ func TestAccGoogleStorageObjectAcl_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testGoogleStorageObjectsAclBasic1,
-				Check:  resource.ComposeTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
 						testAclObjectName, roleEntityBasic1),
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
@@ -58,7 +58,7 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testGoogleStorageObjectsAclBasic1,
-				Check:  resource.ComposeTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
 						testAclObjectName, roleEntityBasic1),
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
@@ -68,7 +68,7 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 
 			resource.TestStep{
 				Config: testGoogleStorageObjectsAclBasic2,
-				Check:  resource.ComposeTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
 						testAclObjectName, roleEntityBasic2),
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
@@ -78,7 +78,7 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 
 			resource.TestStep{
 				Config: testGoogleStorageObjectsAclBasicDelete,
-				Check:  resource.ComposeTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
 						testAclObjectName, roleEntityBasic1),
 					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
@@ -106,7 +106,7 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testGoogleStorageObjectsAclBasic2,
-				Check:  resource.ComposeTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
 						testAclObjectName, roleEntityBasic2),
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
@@ -116,7 +116,7 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 
 			resource.TestStep{
 				Config: testGoogleStorageObjectsAclBasic3,
-				Check:  resource.ComposeTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
 						testAclObjectName, roleEntityBasic2),
 					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
@@ -126,7 +126,7 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 
 			resource.TestStep{
 				Config: testGoogleStorageObjectsAclBasicDelete,
-				Check:  resource.ComposeTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
 						testAclObjectName, roleEntityBasic1),
 					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
@@ -171,7 +171,7 @@ func testAccCheckGoogleStorageObjectAcl(bucket, object, roleEntityS string) reso
 			return fmt.Errorf("Error retrieving contents of acl for bucket %s: %s", bucket, err)
 		}
 
-		if (res.Role != roleEntity.Role) {
+		if res.Role != roleEntity.Role {
 			return fmt.Errorf("Error, Role mismatch %s != %s", res.Role, roleEntity.Role)
 		}
 
@@ -289,7 +289,7 @@ resource "google_storage_object_acl" "acl" {
 	role_entity = ["%s", "%s"]
 }
 `, testAclBucketName, testAclObjectName, tfObjectAcl.Name(),
-	roleEntityBasic2,  roleEntityBasic3_reader)
+	roleEntityBasic2, roleEntityBasic3_reader)
 
 var testGoogleStorageObjectsAclPredefined = fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
