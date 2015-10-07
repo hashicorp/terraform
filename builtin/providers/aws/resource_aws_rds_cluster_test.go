@@ -1,100 +1,100 @@
 package aws
 
 import (
-        "fmt"
-        "math/rand"
-        "testing"
-        "time"
+	"fmt"
+	"math/rand"
+	"testing"
+	"time"
 
-        "github.com/hashicorp/terraform/helper/resource"
-        "github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 
-        "github.com/aws/aws-sdk-go/aws"
-        "github.com/aws/aws-sdk-go/aws/awserr"
-        "github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/rds"
 )
 
 func TestAccAWSRDSCluster_basic(t *testing.T) {
-        var v rds.DBCluster
+	var v rds.DBCluster
 
-        resource.Test(t, resource.TestCase{
-                PreCheck:     func() { testAccPreCheck(t) },
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckAWSClusterDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccAWSClusterConfig,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
-                                ),
-                        },
-                },
-        })
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSClusterConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckAWSClusterDestroy(s *terraform.State) error {
-        for _, rs := range s.RootModule().Resources {
-                if rs.Type != "aws_rds_cluster" {
-                        continue
-                }
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_rds_cluster" {
+			continue
+		}
 
-                // Try to find the Group
-                conn := testAccProvider.Meta().(*AWSClient).rdsconn
-                var err error
-                resp, err := conn.DescribeDBClusters(
-                        &rds.DescribeDBClustersInput{
-                                DBClusterIdentifier: aws.String(rs.Primary.ID),
-                        })
+		// Try to find the Group
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
+		var err error
+		resp, err := conn.DescribeDBClusters(
+			&rds.DescribeDBClustersInput{
+				DBClusterIdentifier: aws.String(rs.Primary.ID),
+			})
 
-                if err == nil {
-                        if len(resp.DBClusters) != 0 &&
-                                *resp.DBClusters[0].DBClusterIdentifier == rs.Primary.ID {
-                                return fmt.Errorf("DB Cluster %s still exists", rs.Primary.ID)
-                        }
-                }
+		if err == nil {
+			if len(resp.DBClusters) != 0 &&
+				*resp.DBClusters[0].DBClusterIdentifier == rs.Primary.ID {
+				return fmt.Errorf("DB Cluster %s still exists", rs.Primary.ID)
+			}
+		}
 
-                // Return nil if the cluster is already destroyed
-                if awsErr, ok := err.(awserr.Error); ok {
-                        if awsErr.Code() == "DBClusterNotFound" {
-                                return nil
-                        }
-                }
+		// Return nil if the cluster is already destroyed
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "DBClusterNotFound" {
+				return nil
+			}
+		}
 
-                return err
-        }
+		return err
+	}
 
-        return nil
+	return nil
 }
 
 func testAccCheckAWSClusterExists(n string, v *rds.DBCluster) resource.TestCheckFunc {
-        return func(s *terraform.State) error {
-                rs, ok := s.RootModule().Resources[n]
-                if !ok {
-                        return fmt.Errorf("Not found: %s", n)
-                }
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
 
-                if rs.Primary.ID == "" {
-                        return fmt.Errorf("No DB Instance ID is set")
-                }
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No DB Instance ID is set")
+		}
 
-                conn := testAccProvider.Meta().(*AWSClient).rdsconn
-                resp, err := conn.DescribeDBClusters(&rds.DescribeDBClustersInput{
-                        DBClusterIdentifier: aws.String(rs.Primary.ID),
-                })
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
+		resp, err := conn.DescribeDBClusters(&rds.DescribeDBClustersInput{
+			DBClusterIdentifier: aws.String(rs.Primary.ID),
+		})
 
-                if err != nil {
-                        return err
-                }
+		if err != nil {
+			return err
+		}
 
-                for _, c := range resp.DBClusters {
-                        if *c.DBClusterIdentifier == rs.Primary.ID {
-                                *v = *c
-                                return nil
-                        }
-                }
+		for _, c := range resp.DBClusters {
+			if *c.DBClusterIdentifier == rs.Primary.ID {
+				*v = *c
+				return nil
+			}
+		}
 
-                return fmt.Errorf("DB Cluster (%s) not found", rs.Primary.ID)
-        }
+		return fmt.Errorf("DB Cluster (%s) not found", rs.Primary.ID)
+	}
 }
 
 // Add some random to the name, to avoid collision
