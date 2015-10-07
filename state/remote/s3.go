@@ -149,7 +149,7 @@ func (c *S3Client) Put(data []byte) error {
 
 	if c.serverSideEncryption {
 		if c.kmsKeyID != "" {
-			i.SSEKMSKeyID = &c.kmsKeyID
+			i.SSEKMSKeyId = &c.kmsKeyID
 			i.ServerSideEncryption = aws.String("aws:kms")
 		} else {
 			i.ServerSideEncryption = aws.String("AES256")
