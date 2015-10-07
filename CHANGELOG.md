@@ -52,6 +52,7 @@ BUG FIXES:
   * provider/aws: Read instance source_dest_check and save to state [GH-3152]
   * provider/aws: Allow `weight = 0` in Route53 records [GH-3196]
   * provider/aws: Normalize aws_elasticache_cluster id to lowercase, allowing convergence. [GH-3235]
+  * provider/aws: Fix ValidateAccountId for IAM Instance Profiles [GH-3313]
   * provider/openstack: add state 'downloading' to list of expected states in
       `blockstorage_volume_v1` creation [GH-2866]
   * provider/openstack: remove security groups (by name) before adding security
