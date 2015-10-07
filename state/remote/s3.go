@@ -50,7 +50,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 	if raw, ok := conf["acl"]; ok {
 		acl = raw
 	}
-	kmsKeyID := conf["kmsKeyID"]
+	kmsKeyID := conf["kms_key_id"]
 
 	accessKeyId := conf["access_key"]
 	secretAccessKey := conf["secret_key"]
