@@ -57,6 +57,11 @@ func resourceCloudStackVPC() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"source_nat_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -151,6 +156,19 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	setValueOrID(d, "vpc_offering", o.Name, v.Vpcofferingid)
 	setValueOrID(d, "project", v.Project, v.Projectid)
 	setValueOrID(d, "zone", v.Zonename, v.Zoneid)
+
+	// Grab the source NAT IP that CloudStack assigned.
+	p := cs.Address.NewListPublicIpAddressesParams()
+	p.SetVpcid(d.Id())
+	p.SetIssourcenat(true)
+	if _, ok := d.GetOk("project"); ok {
+		p.SetProjectid(v.Projectid)
+	}
+
+	l, e := cs.Address.ListPublicIpAddresses(p)
+	if (e == nil) && (l.Count == 1) {
+		d.Set("source_nat_ip", l.PublicIpAddresses[0].Ipaddress)
+	}
 
 	return nil
 }
