@@ -3,6 +3,7 @@ package aws
 import (
         "fmt"
         "log"
+        "regexp"
         "time"
 
         "github.com/aws/aws-sdk-go/aws"
@@ -67,6 +68,25 @@ func resourceAwsRDSCluster() *schema.Resource {
                         "engine": &schema.Schema{
                                 Type:     schema.TypeString,
                                 Computed: true,
+                        },
+
+                        "final_snapshot_identifier": &schema.Schema{
+                                Type:     schema.TypeString,
+                                Optional: true,
+                                ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+                                        value := v.(string)
+                                        if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+                                                es = append(es, fmt.Errorf(
+                                                        "only alphanumeric characters and hyphens allowed in %q", k))
+                                        }
+                                        if regexp.MustCompile(`--`).MatchString(value) {
+                                                es = append(es, fmt.Errorf("%q cannot contain two consecutive hyphens", k))
+                                        }
+                                        if regexp.MustCompile(`-$`).MatchString(value) {
+                                                es = append(es, fmt.Errorf("%q cannot end in a hyphen", k))
+                                        }
+                                        return
+                                },
                         },
 
                         "master_username": &schema.Schema{
@@ -167,7 +187,6 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 
         resp, err := conn.DescribeDBClusters(&rds.DescribeDBClustersInput{
                 DBClusterIdentifier: aws.String(d.Id()),
-                // final snapshot identifier
         })
 
         if err != nil {
@@ -256,11 +275,20 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
         conn := meta.(*AWSClient).rdsconn
         log.Printf("[DEBUG] Destroying RDS Cluster (%s)", d.Id())
 
-        _, err := conn.DeleteDBCluster(&rds.DeleteDBClusterInput{
+        deleteOpts := rds.DeleteDBClusterInput{
                 DBClusterIdentifier: aws.String(d.Id()),
-                SkipFinalSnapshot:   aws.Bool(true),
-                // final snapshot identifier
-        })
+        }
+
+        finalSnapshot := d.Get("final_snapshot_identifier").(string)
+        if finalSnapshot == "" {
+                deleteOpts.SkipFinalSnapshot = aws.Bool(true)
+        } else {
+                deleteOpts.FinalDBSnapshotIdentifier = aws.String(finalSnapshot)
+                deleteOpts.SkipFinalSnapshot = aws.Bool(false)
+        }
+
+        log.Printf("[DEBUG] RDS Cluster delete options: %s", deleteOpts)
+        _, err := conn.DeleteDBCluster(&deleteOpts)
 
         stateConf := &resource.StateChangeConf{
                 Pending:    []string{"deleting", "backing-up", "modifying"},
