@@ -125,38 +125,13 @@ func render(d *schema.ResourceData) (string, error) {
 	gzipOutput := d.Get("gzip").(bool)
 	base64Output := d.Get("base64_encode").(bool)
 
-	var buffer bytes.Buffer
-
-	var err error
-	if gzipOutput {
-		gzipWriter := gzip.NewWriter(&buffer)
-		err = renderToWriter(d, gzipWriter)
-		gzipWriter.Close()
-	} else {
-		err = renderToWriter(d, &buffer)
-	}
-	if err != nil {
-		return "", err
-	}
-
-	output := ""
-	if base64Output {
-		output = base64.StdEncoding.EncodeToString(buffer.Bytes())
-	} else {
-		output = buffer.String()
-	}
-
-	return output, nil
-}
-
-func renderToWriter(d *schema.ResourceData, writer io.Writer) error {
 	partsValue, hasParts := d.GetOk("part")
 	if !hasParts {
-		return fmt.Errorf("No parts found in the cloudinit resource declaration")
+		return "", fmt.Errorf("No parts found in the cloudinit resource declaration")
 	}
 	partsSet, ok := partsValue.(*schema.Set)
 	if !ok {
-		return fmt.Errorf("Parts must be a set TODO error message")
+		return "", fmt.Errorf("Parts must be a set TODO error message")
 	}
 
 	cloudInitParts := make(cloudInitParts, partsSet.Len())
@@ -182,10 +157,37 @@ func renderToWriter(d *schema.ResourceData, writer io.Writer) error {
 	}
 	sort.Sort(cloudInitParts)
 
+	var buffer bytes.Buffer
+
+	var err error
+	if gzipOutput {
+		gzipWriter := gzip.NewWriter(&buffer)
+		err = renderPartsToWriter(cloudInitParts, gzipWriter)
+		gzipWriter.Close()
+	} else {
+		err = renderPartsToWriter(cloudInitParts, &buffer)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	output := ""
+	if base64Output {
+		output = base64.StdEncoding.EncodeToString(buffer.Bytes())
+	} else {
+		output = buffer.String()
+	}
+
+	return output, nil
+}
+
+func renderPartsToWriter(parts cloudInitParts, writer io.Writer) error {
 	mimeWriter := multipart.NewWriter(writer)
 	defer mimeWriter.Close()
 
-	for _, part := range cloudInitParts {
+	writer.Write([]byte(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\n", mimeWriter.Boundary())))
+
+	for _, part := range parts {
 		header := textproto.MIMEHeader{}
 		if part.ContentType == "" {
 			header.Set("Content-Type", "text/plain")
