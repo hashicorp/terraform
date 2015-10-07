@@ -45,6 +45,9 @@ string.
 * `master_password` - (Required) Password for the master DB user. Note that this may
     show up in logs, and it will be stored in the state file
 * `master_username` - (Required) Username for the master DB user
+* `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
+    when this DB cluster is deleted. If omitted, no final snapshot will be
+    made.
 * `availability_zones` - (Optional) A list of EC2 Availability Zones that
   instances in the DB cluster can be created in
 * `backup_retention_period` - (Optional) The days to retain backups for. Default

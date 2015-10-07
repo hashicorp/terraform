@@ -11,6 +11,7 @@ import (
         "github.com/hashicorp/terraform/terraform"
 
         "github.com/aws/aws-sdk-go/aws"
+        "github.com/aws/aws-sdk-go/aws/awserr"
         "github.com/aws/aws-sdk-go/service/rds"
 )
 
@@ -54,7 +55,13 @@ func testAccCheckAWSClusterInstanceDestroy(s *terraform.State) error {
                         }
                 }
 
-                //check for an expected "Cluster not found" type error
+                // Return nil if the Cluster Instance is already destroyed
+                if awsErr, ok := err.(awserr.Error); ok {
+                        if awsErr.Code() == "DBInstanceNotFound" {
+                                return nil
+                        }
+                }
+
                 return err
 
         }
