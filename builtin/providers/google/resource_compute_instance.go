@@ -507,12 +507,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
 
-	// Synch metadata 
+	// Synch metadata
 	md := instance.Metadata
 
 	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
@@ -644,7 +644,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	zone := d.Get("zone").(string)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
@@ -658,7 +658,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 		updateMD := func() error {
 			// Reload the instance in the case of a fingerprint mismatch
-			instance, err = getInstance(config, d);
+			instance, err = getInstance(config, d)
 			if err != nil {
 				return err
 			}
