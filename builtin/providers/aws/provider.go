@@ -219,6 +219,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_opsworks_ganglia_layer":       resourceAwsOpsworksGangliaLayer(),
 			"aws_opsworks_custom_layer":        resourceAwsOpsworksCustomLayer(),
 			"aws_proxy_protocol_policy":        resourceAwsProxyProtocolPolicy(),
+                        "aws_rds_cluster":                  resourceAwsRDSCluster(),
+                        "aws_rds_cluster_instance":         resourceAwsRDSClusterInstance(),
 			"aws_route53_delegation_set":       resourceAwsRoute53DelegationSet(),
 			"aws_route53_record":               resourceAwsRoute53Record(),
 			"aws_route53_zone_association":     resourceAwsRoute53ZoneAssociation(),

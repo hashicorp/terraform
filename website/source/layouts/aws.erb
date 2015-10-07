@@ -306,8 +306,7 @@
                     </ul>
                 </li>
 
-
-                <li<%= sidebar_current(/^docs-aws-resource-db/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(db|rds)/) %>>
                     <a href="#">RDS Resources</a>
                     <ul class="nav nav-visible">
 
@@ -325,6 +324,14 @@
 
                         <li<%= sidebar_current("docs-aws-resource-db-subnet-group") %>>
                             <a href="/docs/providers/aws/r/db_subnet_group.html">aws_db_subnet_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-rds-cluster") %>>
+                            <a href="/docs/providers/aws/r/rds_cluster.html">aws_rds_cluster</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-rds-cluster-instance") %>>
+                            <a href="/docs/providers/aws/r/rds_cluster_instance.html">aws_rds_cluster_instance</a>
                         </li>
 
                     </ul>
