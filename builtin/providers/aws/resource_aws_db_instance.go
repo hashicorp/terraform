@@ -75,10 +75,10 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"identifier": &schema.Schema{
-                                Type:         schema.TypeString,
-                                Required:     true,
-                                ForceNew:     true,
-                                ValidateFunc: validateRdsId,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRdsId,
 			},
 
 			"instance_class": &schema.Schema{

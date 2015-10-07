@@ -6,7 +6,7 @@ import (
 
 func resourceAwsOpsworksGangliaLayer() *schema.Resource {
 	layerType := &opsworksLayerType{
-		TypeName: "monitoring-master",
+		TypeName:         "monitoring-master",
 		DefaultLayerName: "Ganglia",
 
 		Attributes: map[string]*opsworksLayerTypeAttribute{
