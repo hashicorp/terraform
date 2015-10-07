@@ -56,8 +56,8 @@ func resourceComputeVpnGatewayCreate(d *schema.ResourceData, meta interface{}) e
 	vpnGatewaysService := compute.NewTargetVpnGatewaysService(config.clientCompute)
 
 	vpnGateway := &compute.TargetVpnGateway{
-		Name:        name,
-		Network:     network,
+		Name:    name,
+		Network: network,
 	}
 
 	if v, ok := d.GetOk("description"); ok {

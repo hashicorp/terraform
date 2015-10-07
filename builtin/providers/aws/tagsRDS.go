@@ -1,7 +1,7 @@
 package aws
 
 import (
-        "fmt"
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,7 +20,7 @@ func setTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 
 		// Set tags
 		if len(remove) > 0 {
-                        log.Printf("[DEBUG] Removing tags: %s", remove)
+			log.Printf("[DEBUG] Removing tags: %s", remove)
 			k := make([]*string, len(remove), len(remove))
 			for i, t := range remove {
 				k[i] = t.Key
@@ -35,7 +35,7 @@ func setTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 			}
 		}
 		if len(create) > 0 {
-                        log.Printf("[DEBUG] Creating tags: %s", create)
+			log.Printf("[DEBUG] Creating tags: %s", create)
 			_, err := conn.AddTagsToResource(&rds.AddTagsToResourceInput{
 				ResourceName: aws.String(arn),
 				Tags:         create,
@@ -96,18 +96,18 @@ func tagsToMapRDS(ts []*rds.Tag) map[string]string {
 }
 
 func saveTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
-        resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-                ResourceName: aws.String(arn),
-        })
+	resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
 
-        if err != nil {
-                return fmt.Errorf("[DEBUG] Error retreiving tags for ARN: %s", arn)
-        }
+	if err != nil {
+		return fmt.Errorf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+	}
 
-        var dt []*rds.Tag
-        if len(resp.TagList) > 0 {
-                dt = resp.TagList
-        }
+	var dt []*rds.Tag
+	if len(resp.TagList) > 0 {
+		dt = resp.TagList
+	}
 
-        return d.Set("tags", tagsToMapRDS(dt))
+	return d.Set("tags", tagsToMapRDS(dt))
 }
