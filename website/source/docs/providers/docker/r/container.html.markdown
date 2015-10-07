@@ -76,7 +76,7 @@ the following:
   volume will be mounted.
 * `host_path` - (Optional, string) The path on the host where the volume
   is coming from.
-* `read_only` - (Optinal, bool) If true, this volume will be readonly.
+* `read_only` - (Optional, bool) If true, this volume will be readonly.
   Defaults to false.
 
 ## Attributes Reference
