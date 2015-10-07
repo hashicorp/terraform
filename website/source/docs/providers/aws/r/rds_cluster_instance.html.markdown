@@ -48,7 +48,7 @@ the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/Com
 The following arguments are supported:
 
 * `identifier` - (Optional) The Instance Identifier. Must be a lower case
-string. If omited, a unique identifier will be generated.
+string. If omitted, a unique identifier will be generated.
 * `cluster_identifier` - (Required) The Cluster Identifier for this Instance to
 join. Must be a lower case
 string.
