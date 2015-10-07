@@ -72,10 +72,10 @@ func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface
 
 	err := MetadataRetryWrapper(createMD)
 	if err != nil {
-		return err;
+		return err
 	}
 
-	return resourceComputeProjectMetadataRead(d, meta);
+	return resourceComputeProjectMetadataRead(d, meta)
 }
 
 func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}) error {
@@ -115,7 +115,7 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 
 			md := project.CommonInstanceMetadata
 
-		    MetadataUpdate(o.(map[string]interface{}), n.(map[string]interface{}), md)
+			MetadataUpdate(o.(map[string]interface{}), n.(map[string]interface{}), md)
 
 			op, err := config.clientCompute.Projects.SetCommonInstanceMetadata(config.Project, md).Do()
 
@@ -133,10 +133,10 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 
 		err := MetadataRetryWrapper(updateMD)
 		if err != nil {
-			return err;
+			return err
 		}
 
-		return resourceComputeProjectMetadataRead(d, meta);
+		return resourceComputeProjectMetadataRead(d, meta)
 	}
 
 	return nil

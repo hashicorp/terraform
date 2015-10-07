@@ -23,7 +23,7 @@ func MetadataRetryWrapper(update func() error) error {
 		}
 	}
 
-	return fmt.Errorf("Failed to update metadata after %d retries", attempt);
+	return fmt.Errorf("Failed to update metadata after %d retries", attempt)
 }
 
 // Update the metadata (serverMD) according to the provided diff (oldMDMap v
@@ -51,7 +51,7 @@ func MetadataUpdate(oldMDMap map[string]interface{}, newMDMap map[string]interfa
 	// Reformat old metadata into a list
 	serverMD.Items = nil
 	for key, val := range curMDMap {
-		v := val;
+		v := val
 		serverMD.Items = append(serverMD.Items, &compute.MetadataItems{
 			Key:   key,
 			Value: &v,
@@ -60,7 +60,7 @@ func MetadataUpdate(oldMDMap map[string]interface{}, newMDMap map[string]interfa
 }
 
 // Format metadata from the server data format -> schema data format
-func MetadataFormatSchema(md *compute.Metadata) (map[string]interface{}) {
+func MetadataFormatSchema(md *compute.Metadata) map[string]interface{} {
 	newMD := make(map[string]interface{})
 
 	for _, kv := range md.Items {

@@ -1,11 +1,11 @@
 package google
 
 import (
-	"fmt"
-	"testing"
-	"io/ioutil"
 	"crypto/md5"
 	"encoding/base64"
+	"fmt"
+	"io/ioutil"
+	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -48,7 +48,6 @@ func testAccCheckGoogleStorageObject(bucket, object, md5 string) resource.TestCh
 
 		objectsService := storage.NewObjectsService(config.clientStorage)
 
-
 		getCall := objectsService.Get(bucket, object)
 		res, err := getCall.Do()
 
@@ -56,7 +55,7 @@ func testAccCheckGoogleStorageObject(bucket, object, md5 string) resource.TestCh
 			return fmt.Errorf("Error retrieving contents of object %s: %s", object, err)
 		}
 
-		if (md5 != res.Md5Hash) {
+		if md5 != res.Md5Hash {
 			return fmt.Errorf("Error contents of %s garbled, md5 hashes don't match (%s, %s)", object, md5, res.Md5Hash)
 		}
 
