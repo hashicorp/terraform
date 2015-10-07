@@ -71,8 +71,7 @@ func (sl StringList) Slice() []string {
 
 	// split on an empty StringList will have a length of 2, since there is
 	// always at least one deliminator
-	switch len(parts) {
-	case 0, 1, 2:
+	if len(parts) <= 2 {
 		return []string{}
 	}
 
