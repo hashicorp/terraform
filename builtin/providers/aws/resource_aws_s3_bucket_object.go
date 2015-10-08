@@ -76,30 +76,40 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
-	source := d.Get("source").(string)
-	encoding := d.Get("content_encoding").(string)
-	contentType := d.Get("content_type").(string)
-	cacheControl := d.Get("cache_control").(string)
-	contentLanguage := d.Get("content_language").(string)
-	contentDisposition := d.Get("content_disposition").(string)
 
+	source := d.Get("source").(string)
 	file, err := os.Open(source)
 
 	if err != nil {
 		return fmt.Errorf("Error opening S3 bucket object source (%s): %s", source, err)
 	}
+	putInput := &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   file,
+	}
 
-	resp, err := s3conn.PutObject(
-		&s3.PutObjectInput{
-			Bucket:             aws.String(bucket),
-			Key:                aws.String(key),
-			Body:               file,
-			CacheControl:       aws.String(cacheControl),
-			ContentDisposition: aws.String(contentDisposition),
-			ContentEncoding:    aws.String(encoding),
-			ContentLanguage:    aws.String(contentLanguage),
-			ContentType:        aws.String(contentType),
-		})
+	if v, ok := d.GetOk("cache_control"); ok {
+		putInput.CacheControl = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("content_type"); ok {
+		putInput.ContentType = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("content_encoding"); ok {
+		putInput.ContentEncoding = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("content_language"); ok {
+		putInput.ContentLanguage = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("content_disposition"); ok {
+		putInput.ContentDisposition = aws.String(v.(string))
+	}
+
+	resp, err := s3conn.PutObject(putInput)
 
 	if err != nil {
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
