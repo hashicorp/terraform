@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -151,6 +153,15 @@ func TestResourceAWSDBParameterGroupName_trailingHyphen(t *testing.T) {
 	}
 }
 
+func TestResourceAWSDBParameterGroupName_tooManyCharacters(t *testing.T) {
+	dbParamGroupName := RandomString(256)
+	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+	}
+}
+
 func testAccCheckAWSDBParameterGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -236,6 +247,16 @@ func testAccCheckAWSDBParameterGroupExists(n string, v *rds.DBParameterGroup) re
 
 		return nil
 	}
+}
+
+func RandomString(strlen int) string {
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, strlen)
+	for i := 0; i < strlen; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
 }
 
 const testAccAWSDBParameterGroupConfig = `
