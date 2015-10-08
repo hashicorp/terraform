@@ -16,7 +16,6 @@ func resourceAwsS3BucketObject() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsS3BucketObjectPut,
 		Read:   resourceAwsS3BucketObjectRead,
-		Update: resourceAwsS3BucketObjectPut,
 		Delete: resourceAwsS3BucketObjectDelete,
 
 		Schema: map[string]*schema.Schema{
