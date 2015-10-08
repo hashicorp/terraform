@@ -237,7 +237,7 @@ func testAccCheckAWSDBParameterGroupExists(n string, v *rds.DBParameterGroup) re
 
 func randomString(strlen int) string {
 	rand.Seed(time.Now().UTC().UnixNano())
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	const chars = "abcdefghijklmnopqrstuvwxyz"
 	result := make([]byte, strlen)
 	for i := 0; i < strlen; i++ {
 		result[i] = chars[rand.Intn(len(chars))]
