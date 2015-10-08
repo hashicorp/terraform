@@ -106,6 +106,51 @@ func TestAccAWSDBParameterGroupOnly(t *testing.T) {
 	})
 }
 
+func TestResourceAWSDBParameterGroupName_uppercaseCharacter(t *testing.T) {
+	var dbParamGroupName = "tEsting123"
+	_, errors := validateDbParamGroupName(dbParamGroupName, "aws_db_parameter_group_name")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSDBParameterGroupName_specialCharacters(t *testing.T) {
+	var dbParamGroupName = "testing123!"
+	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSDBParameterGroupName_firstCharacterNumber(t *testing.T) {
+	var dbParamGroupName = "1testing123"
+	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSDBParameterGroupName_doubleHyphen(t *testing.T) {
+	var dbParamGroupName = "testing--123"
+	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSDBParameterGroupName_trailingHyphen(t *testing.T) {
+	var dbParamGroupName = "testing123-"
+	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+	}
+}
+
 func testAccCheckAWSDBParameterGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
