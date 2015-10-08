@@ -53,6 +53,7 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"key": &schema.Schema{
