@@ -827,7 +827,7 @@ func (m schemaMap) diffSet(
 	newStr := strconv.Itoa(newLen)
 
 	// If the set computed then say that the # is computed
-	if computedSet || (schema.Computed && !nSet) {
+	if computedSet || schema.Computed && !nSet {
 		// If # already exists, equals 0 and no new set is supplied, there
 		// is nothing to record in the diff
 		count, ok := d.GetOk(k + ".#")

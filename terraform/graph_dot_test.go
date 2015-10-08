@@ -210,13 +210,13 @@ digraph {
 
 	for tn, tc := range cases {
 		actual, err := GraphDot(tc.Graph(), &tc.Opts)
-		if (err == nil) && tc.Error != "" {
+		if err == nil && tc.Error != "" {
 			t.Fatalf("%s: expected err: %s, got none", tn, tc.Error)
 		}
-		if (err != nil) && (tc.Error == "") {
+		if err != nil && tc.Error == "" {
 			t.Fatalf("%s: unexpected err: %s", tn, err)
 		}
-		if (err != nil) && (tc.Error != "") {
+		if err != nil && tc.Error != "" {
 			if !strings.Contains(err.Error(), tc.Error) {
 				t.Fatalf("%s: expected err: %s\nto contain: %s", tn, err, tc.Error)
 			}
