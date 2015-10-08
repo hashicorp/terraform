@@ -66,7 +66,7 @@ The following arguments are supported:
 * `dedicated_master_enabled` - (Optional) Indicates whether dedicated master nodes are enabled for the cluster.
 * `dedicated_master_type` - (Optional) Instance type of the dedicated master nodes in the cluster.
 * `dedicated_master_count` - (Optional) Number of dedicated master nodes in the cluster
-* `zone_awarness_enabled` - (Optional) Indicates whether zone awareness is enabled.
+* `zone_awareness_enabled` - (Optional) Indicates whether zone awareness is enabled.
 
 **snapshot_options** supports the following attribute:
 
