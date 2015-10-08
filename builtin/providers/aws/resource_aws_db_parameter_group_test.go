@@ -141,6 +141,7 @@ func TestResourceAWSDBParameterGroupName_validation(t *testing.T) {
 
 	for _, tc := range cases {
 		_, errors := validateDbParamGroupName(tc.Value, "aws_db_parameter_group_name")
+
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
 		}
