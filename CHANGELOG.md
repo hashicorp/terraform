@@ -27,6 +27,7 @@ IMPROVEMENTS:
   * provider/aws: Paginate notifications returned for ASG Notifications [GH-3043]
   * provider/aws: add `ses_smtp_password` to `aws_iam_access_key` [GH-3165]
   * provider/aws: read `iam_instance_profile` for `aws_instance` and save to state [GH-3167]
+  * provider/aws: allow `instance` to be computed in `aws_eip` [GH-3036]
   * provider/aws: Add `versioning` option to `aws_s3_bucket` [GH-2942]
   * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
   * provider/aws: Add validation for `app_cookie_stickiness_policy.name` [GH-3277]
