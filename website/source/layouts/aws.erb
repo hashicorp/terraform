@@ -39,7 +39,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -93,6 +93,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-lb-cookie-stickiness-policy") %>>
                             <a href="/docs/providers/aws/r/lb_cookie_stickiness_policy.html">aws_lb_cookie_stickiness_policy</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-placement-group") %>>
+                            <a href="/docs/providers/aws/r/placement_group.html">aws_placement_group</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-proxy-protocol-policy") %>>
