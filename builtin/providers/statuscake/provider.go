@@ -1,7 +1,7 @@
 package statuscake
 
 import (
-	wtf "github.com/DreamItGetIT/statuscake"
+	"github.com/DreamItGetIT/statuscake"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -32,9 +32,9 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	auth := wtf.Auth{
+	auth := statuscake.Auth{
 		Username: d.Get("username").(string),
 		Apikey:   d.Get("apikey").(string),
 	}
-	return wtf.New(auth)
+	return statuscake.New(auth)
 }

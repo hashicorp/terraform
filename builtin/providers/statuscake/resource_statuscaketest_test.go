@@ -2,6 +2,7 @@ package statuscake
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/DreamItGetIT/statuscake"
@@ -27,7 +28,34 @@ func TestAccStatusCake_basic(t *testing.T) {
 	})
 }
 
-func testAccTestCheckExists(rn string, project *statuscake.Test) resource.TestCheckFunc {
+func TestAccStatusCake_withUpdate(t *testing.T) {
+	var test statuscake.Test
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccTestCheckDestroy(&test),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccTestConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTestCheckExists("statuscake_test.google", &test),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccTestConfig_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTestCheckExists("statuscake_test.google", &test),
+					resource.TestCheckResourceAttr("statuscake_test.google", "check_rate", "500"),
+					resource.TestCheckResourceAttr("statuscake_test.google", "paused", "true"),
+				),
+			},
+		},
+	})
+}
+
+func testAccTestCheckExists(rn string, test *statuscake.Test) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -38,31 +66,33 @@ func testAccTestCheckExists(rn string, project *statuscake.Test) resource.TestCh
 			return fmt.Errorf("TestID not set")
 		}
 
-		//		client := testAccProvider.Meta().(*statuscake.Client)
-		//		gotProject, err := client.GetProject(rs.Primary.ID)
-		//		if err != nil {
-		//			return fmt.Errorf("error getting project: %s", err)
-		//		}
-		//
-		//		*project = *gotProject
+		client := testAccProvider.Meta().(*statuscake.Client)
+		testId, parseErr := strconv.Atoi(rs.Primary.ID)
+		if parseErr != nil {
+			return fmt.Errorf("error in statuscake test CheckExists: %s", parseErr)
+		}
+
+		gotTest, err := client.Tests().Detail(testId)
+		if err != nil {
+			return fmt.Errorf("error getting project: %s", err)
+		}
+
+		*test = *gotTest
 
 		return nil
 	}
 }
 
-func testAccTestCheckDestroy(project *statuscake.Test) resource.TestCheckFunc {
-	//	return func(s *terraform.State) error {
-	//		client := testAccProvider.Meta().(*statuscake.Client)
-	//		//		_, err := client.Tests().All()
-	//		//		if err == nil {
-	//		//			return fmt.Errorf("test still exists")
-	//		//		}
-	//		//		if _, ok := err.(*statuscake.NotFoundError); !ok {
-	//		//			return fmt.Errorf("got something other than NotFoundError (%v) when getting test", err)
-	//		//		}
-	//
-	//		return nil
-	//	}
+func testAccTestCheckDestroy(test *statuscake.Test) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*statuscake.Client)
+		err := client.Tests().Delete(test.TestID)
+		if err == nil {
+			return fmt.Errorf("test still exists")
+		}
+
+		return nil
+	}
 	return nil
 }
 
@@ -72,5 +102,15 @@ resource "statuscake_test" "google" {
   website_url = "www.google.com"
   test_type = "HTTP"
   check_rate = 300
+}
+`
+
+const testAccTestConfig_update = `
+resource "statuscake_test" "google" {
+  website_name = "google.com"
+  website_url = "www.google.com"
+  test_type = "HTTP"
+  check_rate = 500
+  paused = true
 }
 `
