@@ -695,7 +695,7 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, conn *ec2.EC2) (map[st
 	instanceBlockDevices := make(map[string]*ec2.InstanceBlockDeviceMapping)
 	for _, bd := range instance.BlockDeviceMappings {
 		if bd.Ebs != nil {
-			instanceBlockDevices[*(bd.Ebs.VolumeId)] = bd
+			instanceBlockDevices[*bd.Ebs.VolumeId] = bd
 		}
 	}
 
@@ -755,9 +755,9 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, conn *ec2.EC2) (map[st
 }
 
 func blockDeviceIsRoot(bd *ec2.InstanceBlockDeviceMapping, instance *ec2.Instance) bool {
-	return (bd.DeviceName != nil &&
+	return bd.DeviceName != nil &&
 		instance.RootDeviceName != nil &&
-		*bd.DeviceName == *instance.RootDeviceName)
+		*bd.DeviceName == *instance.RootDeviceName
 }
 
 func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
