@@ -247,7 +247,7 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
 		} else {
 			nonUpdateableAttrs := make([]string, 0)
 			for k, v := range r.Schema {
-				if v.ForceNew || (v.Computed && !v.Optional) {
+				if v.ForceNew || v.Computed && !v.Optional {
 					nonUpdateableAttrs = append(nonUpdateableAttrs, k)
 				}
 			}

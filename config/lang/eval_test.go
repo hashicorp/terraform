@@ -260,7 +260,7 @@ func TestEval(t *testing.T) {
 		}
 
 		out, outType, err := Eval(node, &EvalConfig{GlobalScope: tc.Scope})
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 		if outType != tc.ResultType {

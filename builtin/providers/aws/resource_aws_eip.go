@@ -134,7 +134,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Verify AWS returned our EIP
 	if len(describeAddresses.Addresses) != 1 ||
-		(domain == "vpc" && *describeAddresses.Addresses[0].AllocationId != id) ||
+		domain == "vpc" && *describeAddresses.Addresses[0].AllocationId != id ||
 		*describeAddresses.Addresses[0].PublicIp != id {
 		if err != nil {
 			return fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)

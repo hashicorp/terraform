@@ -369,7 +369,7 @@ func TestResourceInternalValidate(t *testing.T) {
 
 	for i, tc := range cases {
 		err := tc.In.InternalValidate(schemaMap{})
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("%d: bad: %s", i, err)
 		}
 	}
@@ -585,7 +585,7 @@ func TestResourceRefresh_needsMigration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %#v", err)
 		}
-		s.Attributes["newfoo"] = strconv.Itoa((int(oldfoo * 10)))
+		s.Attributes["newfoo"] = strconv.Itoa(int(oldfoo * 10))
 		delete(s.Attributes, "oldfoo")
 
 		return s, nil
