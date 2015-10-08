@@ -2789,7 +2789,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			true,
+			false,
 		},
 
 		// Required but computed

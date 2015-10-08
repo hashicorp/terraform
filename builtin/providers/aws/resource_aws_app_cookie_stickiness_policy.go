@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,6 +24,14 @@ func resourceAwsAppCookieStickinessPolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"only alphanumeric characters and hyphens allowed in %q", k))
+					}
+					return
+				},
 			},
 
 			"load_balancer": &schema.Schema{

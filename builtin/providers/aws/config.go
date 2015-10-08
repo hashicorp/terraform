@@ -16,12 +16,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -48,6 +50,7 @@ type AWSClient struct {
 	dynamodbconn       *dynamodb.DynamoDB
 	ec2conn            *ec2.EC2
 	ecsconn            *ecs.ECS
+	efsconn            *efs.EFS
 	elbconn            *elb.ELB
 	autoscalingconn    *autoscaling.AutoScaling
 	s3conn             *s3.S3
@@ -61,6 +64,7 @@ type AWSClient struct {
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
 	glacierconn        *glacier.Glacier
+	opsworksconn       *opsworks.OpsWorks
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -106,6 +110,16 @@ func (c *Config) Client() (interface{}, error) {
 			MaxRetries:  aws.Int(c.MaxRetries),
 			Endpoint:    aws.String(c.DynamoDBEndpoint),
 		}
+		// Some services exist only in us-east-1, e.g. because they manage
+		// resources that can span across multiple regions, or because
+		// signature format v4 requires region to be us-east-1 for global
+		// endpoints:
+		// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		usEast1AwsConfig := &aws.Config{
+			Credentials: creds,
+			Region:      aws.String("us-east-1"),
+			MaxRetries:  aws.Int(c.MaxRetries),
+		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
 		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
@@ -142,15 +156,11 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing ECS Connection")
 		client.ecsconn = ecs.New(awsConfig)
 
-		// aws-sdk-go uses v4 for signing requests, which requires all global
-		// endpoints to use 'us-east-1'.
-		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		log.Println("[INFO] Initializing EFS Connection")
+		client.efsconn = efs.New(awsConfig)
+
 		log.Println("[INFO] Initializing Route 53 connection")
-		client.r53conn = route53.New(&aws.Config{
-			Credentials: creds,
-			Region:      aws.String("us-east-1"),
-			MaxRetries:  aws.Int(c.MaxRetries),
-		})
+		client.r53conn = route53.New(usEast1AwsConfig)
 
 		log.Println("[INFO] Initializing Elasticache Connection")
 		client.elasticacheconn = elasticache.New(awsConfig)
@@ -166,6 +176,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing Glacier connection")
 		client.glacierconn = glacier.New(awsConfig)
+
+		log.Println("[INFO] Initializing OpsWorks Connection")
+		client.opsworksconn = opsworks.New(usEast1AwsConfig)
 	}
 
 	if len(errs) > 0 {
@@ -231,6 +244,7 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 			// User may be an IAM instance profile, so fail silently.
 			// If it is an IAM instance profile
 			// validating account might be superfluous
+			return nil
 		} else {
 			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
 			// return error if the account id is explicitly not authorised
