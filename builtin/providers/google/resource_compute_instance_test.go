@@ -376,7 +376,7 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 		}
 
 		for _, disk := range instance.Disks {
-			if strings.LastIndex(disk.Source, "/"+source) == (len(disk.Source)-len(source)-1) && disk.AutoDelete == delete && disk.Boot == boot {
+			if strings.LastIndex(disk.Source, "/"+source) == len(disk.Source)-len(source)-1 && disk.AutoDelete == delete && disk.Boot == boot {
 				return nil
 			}
 		}

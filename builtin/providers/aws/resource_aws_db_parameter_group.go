@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -24,9 +25,10 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 		Delete: resourceAwsDbParameterGroupDelete,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Type:         schema.TypeString,
+				ForceNew:     true,
+				Required:     true,
+				ValidateFunc: validateDbParamGroupName,
 			},
 			"family": &schema.Schema{
 				Type:     schema.TypeString,
@@ -226,4 +228,30 @@ func resourceAwsDbParameterHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["value"].(string))))
 
 	return hashcode.String(buf.String())
+}
+
+func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`-$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a hyphen", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be greater than 255 characters", k))
+	}
+	return
+
 }

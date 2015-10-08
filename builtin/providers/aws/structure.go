@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -456,4 +458,135 @@ func expandResourceRecords(recs []interface{}, typeStr string) []*route53.Resour
 		}
 	}
 	return records
+}
+
+func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter", k))
+	}
+	if regexp.MustCompile(`--`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain two consecutive hyphens", k))
+	}
+	if regexp.MustCompile(`-$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot end with a hyphen", k))
+	}
+	return
+}
+
+func expandESClusterConfig(m map[string]interface{}) *elasticsearch.ElasticsearchClusterConfig {
+	config := elasticsearch.ElasticsearchClusterConfig{}
+
+	if v, ok := m["dedicated_master_enabled"]; ok {
+		isEnabled := v.(bool)
+		config.DedicatedMasterEnabled = aws.Bool(isEnabled)
+
+		if isEnabled {
+			if v, ok := m["dedicated_master_count"]; ok && v.(int) > 0 {
+				config.DedicatedMasterCount = aws.Int64(int64(v.(int)))
+			}
+			if v, ok := m["dedicated_master_type"]; ok && v.(string) != "" {
+				config.DedicatedMasterType = aws.String(v.(string))
+			}
+		}
+	}
+
+	if v, ok := m["instance_count"]; ok {
+		config.InstanceCount = aws.Int64(int64(v.(int)))
+	}
+	if v, ok := m["instance_type"]; ok {
+		config.InstanceType = aws.String(v.(string))
+	}
+
+	if v, ok := m["zone_awareness_enabled"]; ok {
+		config.ZoneAwarenessEnabled = aws.Bool(v.(bool))
+	}
+
+	return &config
+}
+
+func flattenESClusterConfig(c *elasticsearch.ElasticsearchClusterConfig) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if c.DedicatedMasterCount != nil {
+		m["dedicated_master_count"] = *c.DedicatedMasterCount
+	}
+	if c.DedicatedMasterEnabled != nil {
+		m["dedicated_master_enabled"] = *c.DedicatedMasterEnabled
+	}
+	if c.DedicatedMasterType != nil {
+		m["dedicated_master_type"] = *c.DedicatedMasterType
+	}
+	if c.InstanceCount != nil {
+		m["instance_count"] = *c.InstanceCount
+	}
+	if c.InstanceType != nil {
+		m["instance_type"] = *c.InstanceType
+	}
+	if c.ZoneAwarenessEnabled != nil {
+		m["zone_awareness_enabled"] = *c.ZoneAwarenessEnabled
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenESEBSOptions(o *elasticsearch.EBSOptions) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if o.EBSEnabled != nil {
+		m["ebs_enabled"] = *o.EBSEnabled
+	}
+	if o.Iops != nil {
+		m["iops"] = *o.Iops
+	}
+	if o.VolumeSize != nil {
+		m["volume_size"] = *o.VolumeSize
+	}
+	if o.VolumeType != nil {
+		m["volume_type"] = *o.VolumeType
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func expandESEBSOptions(m map[string]interface{}) *elasticsearch.EBSOptions {
+	options := elasticsearch.EBSOptions{}
+
+	if v, ok := m["ebs_enabled"]; ok {
+		options.EBSEnabled = aws.Bool(v.(bool))
+	}
+	if v, ok := m["iops"]; ok && v.(int) > 0 {
+		options.Iops = aws.Int64(int64(v.(int)))
+	}
+	if v, ok := m["volume_size"]; ok && v.(int) > 0 {
+		options.VolumeSize = aws.Int64(int64(v.(int)))
+	}
+	if v, ok := m["volume_type"]; ok && v.(string) != "" {
+		options.VolumeType = aws.String(v.(string))
+	}
+
+	return &options
+}
+
+func pointersMapToStringList(pointers map[string]*string) map[string]interface{} {
+	list := make(map[string]interface{}, len(pointers))
+	for i, v := range pointers {
+		list[i] = *v
+	}
+	return list
+}
+
+func stringMapToPointers(m map[string]interface{}) map[string]*string {
+	list := make(map[string]*string, len(m))
+	for i, v := range m {
+		list[i] = aws.String(v.(string))
+	}
+	return list
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func makeAwsStringList(in []interface {}) []*string {
+func makeAwsStringList(in []interface{}) []*string {
 	ret := make([]*string, len(in), len(in))
 	for i := 0; i < len(in); i++ {
 		ret[i] = aws.String(in[i].(string))
@@ -26,7 +26,7 @@ func unwrapAwsStringList(in []*string) []string {
 	ret := make([]string, len(in), len(in))
 	for i := 0; i < len(in); i++ {
 		if in[i] != nil {
-			ret[i] = *(in[i])
+			ret[i] = *in[i]
 		}
 	}
 	return ret

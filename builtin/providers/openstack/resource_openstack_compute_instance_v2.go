@@ -610,7 +610,6 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		log.Printf("[DEBUG] Security groups to remove: %v", secgroupsToRemove)
 
-
 		for _, g := range secgroupsToRemove.List() {
 			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil {

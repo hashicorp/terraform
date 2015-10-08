@@ -65,7 +65,7 @@ func resourceStorageObjectAclCreate(d *schema.ResourceData, meta interface{}) er
 	if len(predefined_acl) > 0 {
 		if len(role_entity) > 0 {
 			return fmt.Errorf("Error, you cannot specify both " +
-				"\"predefined_acl\" and \"role_entity\"");
+				"\"predefined_acl\" and \"role_entity\"")
 		}
 
 		res, err := config.clientStorage.Objects.Get(bucket, object).Do()
@@ -74,16 +74,16 @@ func resourceStorageObjectAclCreate(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("Error reading object %s: %v", bucket, err)
 		}
 
-		res, err = config.clientStorage.Objects.Update(bucket,object,
+		res, err = config.clientStorage.Objects.Update(bucket, object,
 			res).PredefinedAcl(predefined_acl).Do()
 
 		if err != nil {
 			return fmt.Errorf("Error updating object %s: %v", bucket, err)
 		}
 
-		return resourceStorageBucketAclRead(d, meta);
+		return resourceStorageBucketAclRead(d, meta)
 	} else if len(role_entity) > 0 {
-		for _, v := range(role_entity) {
+		for _, v := range role_entity {
 			pair, err := getRoleEntityPair(v.(string))
 
 			objectAccessControl := &storage.ObjectAccessControl{
@@ -101,13 +101,12 @@ func resourceStorageObjectAclCreate(d *schema.ResourceData, meta interface{}) er
 			}
 		}
 
-		return resourceStorageObjectAclRead(d, meta);
+		return resourceStorageObjectAclRead(d, meta)
 	}
 
 	return fmt.Errorf("Error, you must specify either " +
-		"\"predefined_acl\" or \"role_entity\"");
+		"\"predefined_acl\" or \"role_entity\"")
 }
-
 
 func resourceStorageObjectAclRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
@@ -121,7 +120,7 @@ func resourceStorageObjectAclRead(d *schema.ResourceData, meta interface{}) erro
 		role_entity := make([]interface{}, 0)
 		re_local := d.Get("role_entity").([]interface{})
 		re_local_map := make(map[string]string)
-		for _, v := range(re_local) {
+		for _, v := range re_local {
 			res, err := getRoleEntityPair(v.(string))
 
 			if err != nil {
@@ -138,10 +137,10 @@ func resourceStorageObjectAclRead(d *schema.ResourceData, meta interface{}) erro
 			return err
 		}
 
-		for _, v := range(res.Items) {
+		for _, v := range res.Items {
 			role := ""
 			entity := ""
-			for key, val := range (v.(map[string]interface{})) {
+			for key, val := range v.(map[string]interface{}) {
 				if key == "role" {
 					role = val.(string)
 				} else if key == "entity" {
@@ -172,7 +171,7 @@ func resourceStorageObjectAclUpdate(d *schema.ResourceData, meta interface{}) er
 		old_re, new_re := o.([]interface{}), n.([]interface{})
 
 		old_re_map := make(map[string]string)
-		for _, v := range(old_re) {
+		for _, v := range old_re {
 			res, err := getRoleEntityPair(v.(string))
 
 			if err != nil {
@@ -183,7 +182,7 @@ func resourceStorageObjectAclUpdate(d *schema.ResourceData, meta interface{}) er
 			old_re_map[res.Entity] = res.Role
 		}
 
-		for _, v := range(new_re) {
+		for _, v := range new_re {
 			pair, err := getRoleEntityPair(v.(string))
 
 			objectAccessControl := &storage.ObjectAccessControl{
@@ -209,7 +208,7 @@ func resourceStorageObjectAclUpdate(d *schema.ResourceData, meta interface{}) er
 			}
 		}
 
-		for entity, _ := range(old_re_map) {
+		for entity, _ := range old_re_map {
 			log.Printf("[DEBUG]: removing entity %s", entity)
 			err := config.clientStorage.ObjectAccessControls.Delete(bucket, object, entity).Do()
 
@@ -218,7 +217,7 @@ func resourceStorageObjectAclUpdate(d *schema.ResourceData, meta interface{}) er
 			}
 		}
 
-		return resourceStorageObjectAclRead(d, meta);
+		return resourceStorageObjectAclRead(d, meta)
 	}
 
 	return nil
@@ -231,7 +230,7 @@ func resourceStorageObjectAclDelete(d *schema.ResourceData, meta interface{}) er
 	object := d.Get("object").(string)
 
 	re_local := d.Get("role_entity").([]interface{})
-	for _, v := range(re_local) {
+	for _, v := range re_local {
 		res, err := getRoleEntityPair(v.(string))
 		if err != nil {
 			return err

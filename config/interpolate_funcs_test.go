@@ -636,7 +636,7 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 		}
 
 		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}
 

@@ -107,7 +107,7 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 		&OrphanTransformer{
 			State:     b.State,
 			Module:    b.Root,
-			Targeting: (len(b.Targets) > 0),
+			Targeting: len(b.Targets) > 0,
 		},
 
 		// Output-related transformations

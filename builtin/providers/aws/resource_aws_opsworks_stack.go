@@ -306,9 +306,9 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 
 	req := &opsworks.CreateStackInput{
 		DefaultInstanceProfileArn: aws.String(d.Get("default_instance_profile_arn").(string)),
-		Name:                    aws.String(d.Get("name").(string)),
-		Region:                  aws.String(d.Get("region").(string)),
-		ServiceRoleArn:          aws.String(d.Get("service_role_arn").(string)),
+		Name:           aws.String(d.Get("name").(string)),
+		Region:         aws.String(d.Get("region").(string)),
+		ServiceRoleArn: aws.String(d.Get("service_role_arn").(string)),
 	}
 	inVpc := false
 	if vpcId, ok := d.GetOk("vpc_id"); ok {

@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
@@ -51,6 +52,7 @@ type AWSClient struct {
 	ecsconn            *ecs.ECS
 	efsconn            *efs.EFS
 	elbconn            *elb.ELB
+	esconn             *elasticsearch.ElasticsearchService
 	autoscalingconn    *autoscaling.AutoScaling
 	s3conn             *s3.S3
 	sqsconn            *sqs.SQS
@@ -62,7 +64,7 @@ type AWSClient struct {
 	kinesisconn        *kinesis.Kinesis
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
-	opsworksconn    *opsworks.OpsWorks
+	opsworksconn       *opsworks.OpsWorks
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -157,6 +159,9 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing EFS Connection")
 		client.efsconn = efs.New(awsConfig)
 
+		log.Println("[INFO] Initializing ElasticSearch Connection")
+		client.esconn = elasticsearch.New(awsConfig)
+
 		log.Println("[INFO] Initializing Route 53 connection")
 		client.r53conn = route53.New(usEast1AwsConfig)
 
@@ -239,6 +244,7 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 			// User may be an IAM instance profile, so fail silently.
 			// If it is an IAM instance profile
 			// validating account might be superfluous
+			return nil
 		} else {
 			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
 			// return error if the account id is explicitly not authorised

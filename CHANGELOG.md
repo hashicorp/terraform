@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New provider: `rundeck`** [GH-2412]
+  * **New provider: `packet`** [GH-2260]
   * **New resource: `cloudstack_loadbalancer_rule`** [GH-2934]
   * **New resource: `google_compute_project_metadata`** [GH-3065]
   * **New resources: `aws_ami`, `aws_ami_copy`, `aws_ami_from_instance`** [GH-2784]
@@ -13,6 +14,7 @@ FEATURES:
   * **New resource: `aws_iam_saml_provider`** [GH-3156]
   * **New resources: `aws_efs_file_system` and `aws_efs_mount_target`** [GH-2196]
   * **New resources: `aws_opsworks_*`** [GH-2162]
+  * **New resource: `aws_elasticsearch_domain`** [GH-3443]
 
 IMPROVEMENTS:
 
@@ -29,6 +31,8 @@ IMPROVEMENTS:
   * provider/aws: read `iam_instance_profile` for `aws_instance` and save to state [GH-3167]
   * provider/aws: Add `versioning` option to `aws_s3_bucket` [GH-2942]
   * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
+  * provider/aws: Add validation for `app_cookie_stickiness_policy.name` [GH-3277]
+  * provider/aws: Add validation for `db_parameter_group.name` [GH-3279]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
   * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
   * provider/google: Can now do multi-region deployments without using multiple providers [GH-3258]
@@ -52,6 +56,8 @@ BUG FIXES:
   * provider/aws: Read instance source_dest_check and save to state [GH-3152]
   * provider/aws: Allow `weight = 0` in Route53 records [GH-3196]
   * provider/aws: Normalize aws_elasticache_cluster id to lowercase, allowing convergence. [GH-3235]
+  * provider/aws: Fix ValidateAccountId for IAM Instance Profiles [GH-3313]
+  * provider/docker: Fix issue preventing private images from being referenced [GH-2619]
   * provider/openstack: add state 'downloading' to list of expected states in
       `blockstorage_volume_v1` creation [GH-2866]
   * provider/openstack: remove security groups (by name) before adding security
