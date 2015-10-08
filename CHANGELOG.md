@@ -31,6 +31,7 @@ IMPROVEMENTS:
   * provider/aws: Add `versioning` option to `aws_s3_bucket` [GH-2942]
   * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
   * provider/aws: Add validation for `app_cookie_stickiness_policy.name` [GH-3277]
+  * provider/aws: Add validation for `db_parameter_group.name` [GH-3279]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
   * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
   * provider/google: Can now do multi-region deployments without using multiple providers [GH-3258]
