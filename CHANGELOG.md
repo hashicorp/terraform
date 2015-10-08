@@ -14,6 +14,7 @@ FEATURES:
   * **New resource: `aws_iam_saml_provider`** [GH-3156]
   * **New resources: `aws_efs_file_system` and `aws_efs_mount_target`** [GH-2196]
   * **New resources: `aws_opsworks_*`** [GH-2162]
+  * **New resource: `aws_elasticsearch_domain`** [GH-3443]
 
 IMPROVEMENTS:
 
