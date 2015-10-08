@@ -79,7 +79,7 @@ func TestProviderConfigure(t *testing.T) {
 		}
 
 		err = tc.P.Configure(terraform.NewResourceConfig(c))
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("%d: %s", i, err)
 		}
 	}
@@ -141,7 +141,7 @@ func TestProviderValidate(t *testing.T) {
 		}
 
 		_, es := tc.P.Validate(terraform.NewResourceConfig(c))
-		if (len(es) > 0) != tc.Err {
+		if len(es) > 0 != tc.Err {
 			t.Fatalf("%d: %#v", i, es)
 		}
 	}
@@ -180,7 +180,7 @@ func TestProviderValidateResource(t *testing.T) {
 		}
 
 		_, es := tc.P.ValidateResource(tc.Type, terraform.NewResourceConfig(c))
-		if (len(es) > 0) != tc.Err {
+		if len(es) > 0 != tc.Err {
 			t.Fatalf("%d: %#v", i, es)
 		}
 	}

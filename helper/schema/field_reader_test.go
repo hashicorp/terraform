@@ -387,7 +387,7 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 	for name, tc := range cases {
 		r := f(schema)
 		out, err := r.ReadField(tc.Addr)
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("%s: err: %s", name, err)
 		}
 		if s, ok := out.Value.(*Set); ok {

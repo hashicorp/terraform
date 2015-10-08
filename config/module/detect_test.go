@@ -41,7 +41,7 @@ func TestDetect(t *testing.T) {
 
 	for i, tc := range cases {
 		output, err := Detect(tc.Input, tc.Pwd)
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("%d: bad err: %s", i, err)
 		}
 		if output != tc.Output {

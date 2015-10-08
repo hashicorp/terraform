@@ -86,7 +86,7 @@ func TestMapFieldReader_extra(t *testing.T) {
 
 	for name, tc := range cases {
 		out, err := r.ReadField(tc.Addr)
-		if (err != nil) != tc.OutErr {
+		if err != nil != tc.OutErr {
 			t.Fatalf("%s: err: %s", name, err)
 		}
 		if out.Computed != tc.OutComputed {

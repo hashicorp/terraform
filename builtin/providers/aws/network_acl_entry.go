@@ -29,7 +29,7 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 				From: aws.Int64(int64(data["from_port"].(int))),
 				To:   aws.Int64(int64(data["to_port"].(int))),
 			},
-			Egress:     aws.Bool((entryType == "egress")),
+			Egress:     aws.Bool(entryType == "egress"),
 			RuleAction: aws.String(data["action"].(string)),
 			RuleNumber: aws.Int64(int64(data["rule_no"].(int))),
 			CidrBlock:  aws.String(data["cidr_block"].(string)),

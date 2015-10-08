@@ -431,7 +431,7 @@ func TestResourceAwsElbListenerHash(t *testing.T) {
 	for tn, tc := range cases {
 		leftHash := resourceAwsElbListenerHash(tc.Left)
 		rightHash := resourceAwsElbListenerHash(tc.Right)
-		if (leftHash == rightHash) != tc.Match {
+		if leftHash == rightHash != tc.Match {
 			t.Fatalf("%s: expected match: %t, but did not get it", tn, tc.Match)
 		}
 	}
