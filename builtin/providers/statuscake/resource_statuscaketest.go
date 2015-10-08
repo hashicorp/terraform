@@ -69,7 +69,7 @@ func CreateTest(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Creating new StatusCake Test: %s", d.Get("website_name").(string))
 
-	response, err := client.Tests().Put(newTest)
+	response, err := client.Tests().Update(newTest)
 	if err != nil {
 		return fmt.Errorf("Error creating StatusCake Test: %s", err.Error())
 	}
@@ -86,7 +86,7 @@ func UpdateTest(d *schema.ResourceData, meta interface{}) error {
 	params := getStatusCakeTestInput(d)
 
 	log.Printf("[DEBUG] StatusCake Test Update for %s", d.Id())
-	_, err := client.Tests().Put(params)
+	_, err := client.Tests().Update(params)
 	if err != nil {
 		return fmt.Errorf("Error Updating StatusCake Test: %s", err.Error())
 	}
@@ -116,7 +116,7 @@ func ReadTest(d *schema.ResourceData, meta interface{}) error {
 	if parseErr != nil {
 		return parseErr
 	}
-	testResp, err := client.Tests().Details(testId)
+	testResp, err := client.Tests().Detail(testId)
 	if err != nil {
 		return fmt.Errorf("Error Getting StatusCake Test Details for %s: Error: %s", d.Id(), err)
 	}
