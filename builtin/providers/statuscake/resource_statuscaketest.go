@@ -6,7 +6,7 @@ import (
 
 	"log"
 
-	wtf "github.com/DreamItGetIT/statuscake"
+	"github.com/DreamItGetIT/statuscake"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -58,9 +58,9 @@ func resourceStatusCakeTest() *schema.Resource {
 }
 
 func CreateTest(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*wtf.Client)
+	client := meta.(*statuscake.Client)
 
-	newTest := &wtf.Test{
+	newTest := &statuscake.Test{
 		WebsiteName: d.Get("website_name").(string),
 		WebsiteURL:  d.Get("website_url").(string),
 		TestType:    d.Get("test_type").(string),
@@ -81,7 +81,7 @@ func CreateTest(d *schema.ResourceData, meta interface{}) error {
 }
 
 func UpdateTest(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*wtf.Client)
+	client := meta.(*statuscake.Client)
 
 	params := getStatusCakeTestInput(d)
 
@@ -94,7 +94,7 @@ func UpdateTest(d *schema.ResourceData, meta interface{}) error {
 }
 
 func DeleteTest(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*wtf.Client)
+	client := meta.(*statuscake.Client)
 
 	testId, parseErr := strconv.Atoi(d.Id())
 	if parseErr != nil {
@@ -110,7 +110,7 @@ func DeleteTest(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ReadTest(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*wtf.Client)
+	client := meta.(*statuscake.Client)
 
 	testId, parseErr := strconv.Atoi(d.Id())
 	if parseErr != nil {
@@ -125,12 +125,12 @@ func ReadTest(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func getStatusCakeTestInput(d *schema.ResourceData) *wtf.Test {
+func getStatusCakeTestInput(d *schema.ResourceData) *statuscake.Test {
 	testId, parseErr := strconv.Atoi(d.Id())
 	if parseErr != nil {
 		log.Printf("[DEBUG] Error Parsing StatusCake TestID: %s", d.Id())
 	}
-	test := &wtf.Test{
+	test := &statuscake.Test{
 		TestID: testId,
 	}
 	if v, ok := d.GetOk("website_name"); ok {
