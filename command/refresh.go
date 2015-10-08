@@ -49,31 +49,23 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Verify that the state path exists. The "ContextArg" function below
+	// Verify that the state path can be read. The "ContextArg" function below
 	// will actually do this, but we want to provide a richer error message
 	// if possible.
+	// It is okay to refresh without a state since the configuration may
+	// contain logical resources or resources that do not explicitly need to
+	// be created first.
 	if !state.State().IsRemote() {
 		if _, err := os.Stat(c.Meta.statePath); err != nil {
-			if os.IsNotExist(err) {
+			if !os.IsNotExist(err) {
 				c.Ui.Error(fmt.Sprintf(
-					"The Terraform state file for your infrastructure does not\n"+
-						"exist. The 'refresh' command only works and only makes sense\n"+
-						"when there is existing state that Terraform is managing. Please\n"+
-						"double-check the value given below and try again. If you\n"+
-						"haven't created infrastructure with Terraform yet, use the\n"+
-						"'terraform apply' command.\n\n"+
-						"Path: %s",
-					c.Meta.statePath))
-				return 1
-			}
-
-			c.Ui.Error(fmt.Sprintf(
-				"There was an error reading the Terraform state that is needed\n"+
+					"There was an error reading the Terraform state that is needed\n"+
 					"for refreshing. The path and error are shown below.\n\n"+
 					"Path: %s\n\nError: %s",
-				c.Meta.statePath,
-				err))
-			return 1
+					c.Meta.statePath,
+					err))
+				return 1
+			}
 		}
 	}
 

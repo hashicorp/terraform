@@ -19,6 +19,11 @@ func resourceAwsIamUser() *schema.Resource {
 		//Update: resourceAwsIamUserUpdate,
 		Delete: resourceAwsIamUserDelete,
 
+		SetInitialState: func(d *schema.ResourceData, meta interface {}) error {
+			d.SetId(d.Get("name").(string))
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,

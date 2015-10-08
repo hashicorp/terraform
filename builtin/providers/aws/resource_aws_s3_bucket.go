@@ -21,6 +21,11 @@ func resourceAwsS3Bucket() *schema.Resource {
 		Update: resourceAwsS3BucketUpdate,
 		Delete: resourceAwsS3BucketDelete,
 
+		SetInitialState: func(d *schema.ResourceData, meta interface {}) error {
+			d.SetId(d.Get("bucket").(string))
+			return nil
+		},
+
 		Schema: map[string]*schema.Schema{
 			"bucket": &schema.Schema{
 				Type:     schema.TypeString,

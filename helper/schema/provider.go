@@ -175,6 +175,18 @@ func (p *Provider) Diff(
 	return r.Diff(s, c)
 }
 
+// InitialState implementation of terraform.ResourceProvider interface.
+func (p *Provider) InitialState(
+	info *terraform.InstanceInfo,
+	c *terraform.ResourceConfig) (*terraform.InstanceState, error) {
+	r, ok := p.ResourcesMap[info.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
+	}
+
+	return r.InitialState(c, p.meta)
+}
+
 // Refresh implementation of terraform.ResourceProvider interface.
 func (p *Provider) Refresh(
 	info *terraform.InstanceInfo,

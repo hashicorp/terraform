@@ -374,3 +374,60 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 
 	return nil, nil
 }
+
+// EvalSetInitialId is an EvalNode implementation that will try to prime a
+// resource's state with an id from the configuration if it doesn't already
+// have an id set.
+//
+// If executed before EvalRefresh, this allows a resource to be considered as
+// already-existing and skip the "create" step if a resource with the
+// configured id already exists, or if the resource is a read-only
+// data-collection resource.
+type EvalSetInitialState struct {
+	Name         string
+	ResourceType string
+	Info         *InstanceInfo
+	Provider     *ResourceProvider
+	ProviderName string
+	Config       **ResourceConfig
+	State        **InstanceState
+	Dependencies []string
+	Output       **InstanceState
+}
+
+// TODO: test
+func (n *EvalSetInitialState) Eval(ctx EvalContext) (interface{}, error) {
+	provider := *n.Provider
+	state := *n.State
+	config := *n.Config
+
+	// If we already have a state then we have nothing to do; this applies
+	// only to new resources that haven't yet been initialized.
+	if state != nil {
+		return nil, nil
+	}
+
+	// Ask the provider for a configured state.
+	newState, err := provider.InitialState(n.Info, config)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s", n.Info.Id, err.Error())
+	}
+
+	if newState != nil {
+		newState, err = writeInstanceToState(ctx, n.Name, n.ResourceType, n.ProviderName, n.Dependencies,
+			func(rs *ResourceState) error {
+				rs.Primary = newState
+				return nil
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s", n.Info.Id, err.Error())
+		}
+	}
+
+	if n.Output != nil {
+		*n.Output = newState
+	}
+
+	return nil, nil
+}
