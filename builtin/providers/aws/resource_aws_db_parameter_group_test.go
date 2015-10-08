@@ -108,57 +108,42 @@ func TestAccAWSDBParameterGroupOnly(t *testing.T) {
 	})
 }
 
-func TestResourceAWSDBParameterGroupName_uppercaseCharacter(t *testing.T) {
-	var dbParamGroupName = "tEsting123"
-	_, errors := validateDbParamGroupName(dbParamGroupName, "aws_db_parameter_group_name")
-
-	if len(errors) != 1 {
-		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+func TestResourceAWSDBParameterGroupName_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "tEsting123",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing123!",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1testing123",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing--123",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing123-",
+			ErrCount: 1,
+		},
+		{
+			Value:    randomString(256),
+			ErrCount: 1,
+		},
 	}
-}
 
-func TestResourceAWSDBParameterGroupName_specialCharacters(t *testing.T) {
-	var dbParamGroupName = "testing123!"
-	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
-
-	if len(errors) != 1 {
-		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
-	}
-}
-
-func TestResourceAWSDBParameterGroupName_firstCharacterNumber(t *testing.T) {
-	var dbParamGroupName = "1testing123"
-	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
-
-	if len(errors) != 1 {
-		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
-	}
-}
-
-func TestResourceAWSDBParameterGroupName_doubleHyphen(t *testing.T) {
-	var dbParamGroupName = "testing--123"
-	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
-
-	if len(errors) != 1 {
-		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
-	}
-}
-
-func TestResourceAWSDBParameterGroupName_trailingHyphen(t *testing.T) {
-	var dbParamGroupName = "testing123-"
-	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
-
-	if len(errors) != 1 {
-		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
-	}
-}
-
-func TestResourceAWSDBParameterGroupName_tooManyCharacters(t *testing.T) {
-	dbParamGroupName := RandomString(256)
-	_, errors := validateDbParamGroupName(dbParamGroupName, "SampleKey")
-
-	if len(errors) != 1 {
-		t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+	for _, tc := range cases {
+		_, errors := validateDbParamGroupName(tc.Value, "aws_db_parameter_group_name")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DB Parameter Group Name to trigger a validation error")
+		}
 	}
 }
 
@@ -249,7 +234,7 @@ func testAccCheckAWSDBParameterGroupExists(n string, v *rds.DBParameterGroup) re
 	}
 }
 
-func RandomString(strlen int) string {
+func randomString(strlen int) string {
 	rand.Seed(time.Now().UTC().UnixNano())
 	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
 	result := make([]byte, strlen)
