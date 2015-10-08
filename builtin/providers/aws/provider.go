@@ -182,6 +182,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_elasticache_parameter_group":  resourceAwsElasticacheParameterGroup(),
 			"aws_elasticache_security_group":   resourceAwsElasticacheSecurityGroup(),
 			"aws_elasticache_subnet_group":     resourceAwsElasticacheSubnetGroup(),
+			"aws_elasticsearch_domain":         resourceAwsElasticSearchDomain(),
 			"aws_elb":                          resourceAwsElb(),
 			"aws_flow_log":                     resourceAwsFlowLog(),
 			"aws_iam_access_key":               resourceAwsIamAccessKey(),
