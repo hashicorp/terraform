@@ -1,8 +1,9 @@
 package docker
 
 import (
-	"github.com/hashicorp/terraform/helper/resource"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccDockerImage_basic(t *testing.T) {
