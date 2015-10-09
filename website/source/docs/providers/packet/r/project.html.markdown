@@ -1,6 +1,6 @@
 ---
 layout: "packet"
-page_title: "Packet: packet_ssh_key"
+page_title: "Packet: packet_project"
 sidebar_current: "docs-packet-resource-project"
 description: |-
   Provides a Packet Project resource.
