@@ -37,9 +37,53 @@ func resourceKubernetesPod() *schema.Resource {
 				Optional: true,
 			},
 
+			"volume": genVolume(),
+
+			"container": genContainer(),
+
+			"restart_policy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"termination_grace_period_seconds": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"active_deadline_seconds": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"dns_policy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true, // required
+			},
+
+			"node_selector": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true, // required
+				Elem:     schema.TypeString,
+			},
+
+			"service_account_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"node_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"security_context": genSecurityContext(),
+
+			"image_pull_secret": genLocalObjectReference(),
+
 			"spec": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				StateFunc: func(input interface{}) string {
 					s, err := normalizePodSpec(input.(string))
 					if err != nil {
@@ -55,35 +99,41 @@ func resourceKubernetesPod() *schema.Resource {
 func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 
-	spec, err := expandPodSpec(d.Get("spec").(string))
-	if err != nil {
-		return err
+	// If the Spec is provided (as json or yaml), use that. Otherwise read
+	// attributes out by hand
+	if v, ok := d.GetOk("spec"); ok {
+		spec, err := expandPodSpec(v.(string))
+		if err != nil {
+			return err
+		}
+
+		l := d.Get("labels").(map[string]interface{})
+		labels := make(map[string]string, len(l))
+		for k, v := range l {
+			labels[k] = v.(string)
+		}
+
+		req := api.Pod{
+			ObjectMeta: api.ObjectMeta{
+				Name:   d.Get("name").(string),
+				Labels: labels,
+			},
+			Spec: spec,
+		}
+
+		ns := d.Get("namespace").(string)
+
+		pod, err := c.Pods(ns).Create(&req)
+		if err != nil {
+			return err
+		}
+
+		d.SetId(string(pod.UID))
+
+		return resourceKubernetesPodRead(d, meta)
 	}
 
-	l := d.Get("labels").(map[string]interface{})
-	labels := make(map[string]string, len(l))
-	for k, v := range l {
-		labels[k] = v.(string)
-	}
-
-	req := api.Pod{
-		ObjectMeta: api.ObjectMeta{
-			Name:   d.Get("name").(string),
-			Labels: labels,
-		},
-		Spec: spec,
-	}
-
-	ns := d.Get("namespace").(string)
-
-	pod, err := c.Pods(ns).Create(&req)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(string(pod.UID))
-
-	return resourceKubernetesPodRead(d, meta)
+	return nil
 }
 
 func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
