@@ -36,6 +36,7 @@ IMPROVEMENTS:
   * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
   * provider/google: Can now do multi-region deployments without using multiple providers [GH-3258]
   * remote/s3: Allow canned ACLs to be set on state objects. [GH-3233]
+  * remote/s3: Remote state is stored in S3 with `Content-Type: application/json` [GH-3385]
 
 BUG FIXES:
 
