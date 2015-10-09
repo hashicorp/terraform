@@ -67,6 +67,11 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.ExposedPorts = exposedPorts
 	}
 
+	extraHosts := []string{}
+	if v, ok := d.GetOk("extra_hosts"); ok {
+		extraHosts = extraHostsSetToDockerExtraHosts(v.(*schema.Set))
+	}
+
 	volumes := map[string]struct{}{}
 	binds := []string{}
 	volumesFrom := []string{}
@@ -100,7 +105,9 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	if len(portBindings) != 0 {
 		hostConfig.PortBindings = portBindings
 	}
-
+	if len(extraHosts) != 0 {
+		hostConfig.ExtraHosts = extraHosts
+	}
 	if len(binds) != 0 {
 		hostConfig.Binds = binds
 	}
@@ -310,6 +317,19 @@ func portSetToDockerPorts(ports *schema.Set) (map[dc.Port]struct{}, map[dc.Port]
 	}
 
 	return retExposedPorts, retPortBindings
+}
+
+func extraHostsSetToDockerExtraHosts(extraHosts *schema.Set) []string {
+	retExtraHosts := []string{}
+
+	for _, hostInt := range extraHosts.List() {
+		host := hostInt.(map[string]interface{})
+		ip := host["ip"].(string)
+		hostname := host["host"].(string)
+		retExtraHosts = append(retExtraHosts, hostname+":"+ip)
+	}
+
+	return retExtraHosts
 }
 
 func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []string, []string, error) {
