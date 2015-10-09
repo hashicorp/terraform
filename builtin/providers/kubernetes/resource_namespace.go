@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 func resourceKubernetesNamespace() *schema.Resource {
