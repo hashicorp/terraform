@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 )
 
@@ -90,6 +91,11 @@ func resourceAwsElasticBeanstalkApplicationRead(d *schema.ResourceData, meta int
 	})
 
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() != "InvalidBeanstalkAppID.NotFound" {
+			log.Printf("[Err] Error reading Elastic Beanstalk Application (%s): Application not found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
