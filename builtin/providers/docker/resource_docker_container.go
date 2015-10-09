@@ -130,6 +130,28 @@ func resourceDockerContainer() *schema.Resource {
 				Set:      resourceDockerPortsHash,
 			},
 
+			"hosts": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ip": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"host": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceDockerHostsHash,
+			},
+
 			"env": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -317,6 +339,21 @@ func resourceDockerPortsHash(v interface{}) int {
 	}
 
 	if v, ok := m["protocol"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceDockerHostsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["ip"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	if v, ok := m["host"]; ok {
 		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
 	}
 
