@@ -11,6 +11,33 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
+func TestInterpolateFuncCompact(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty string within array
+			{
+				`${compact(split(",", "a,,b"))}`,
+				NewStringList([]string{"a", "b"}).String(),
+				false,
+			},
+
+			// empty string at the end of array
+			{
+				`${compact(split(",", "a,b,"))}`,
+				NewStringList([]string{"a", "b"}).String(),
+				false,
+			},
+
+			// single empty string
+			{
+				`${compact(split(",", ""))}`,
+				NewStringList([]string{}).String(),
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDeprecatedConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{

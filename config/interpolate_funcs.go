@@ -20,6 +20,7 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
+		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
@@ -32,6 +33,22 @@ func init() {
 		"split":        interpolationFuncSplit(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
+	}
+}
+
+// interpolationFuncCompact strips a list of multi-variable values
+// (e.g. as returned by "split") of any empty strings.
+func interpolationFuncCompact() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			if !IsStringList(args[0].(string)) {
+				return args[0].(string), nil
+			}
+			return StringList(args[0].(string)).Compact().String(), nil
+		},
 	}
 }
 
