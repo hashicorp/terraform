@@ -20,17 +20,17 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
-		"compact":    interpolationFuncCompact(),
-		"concat":     interpolationFuncConcat(),
-		"element":    interpolationFuncElement(),
-		"file":       interpolationFuncFile(),
-		"format":     interpolationFuncFormat(),
-		"formatlist": interpolationFuncFormatList(),
-		"index":      interpolationFuncIndex(),
-		"join":       interpolationFuncJoin(),
-		"length":     interpolationFuncLength(),
-		"replace":    interpolationFuncReplace(),
-		"split":      interpolationFuncSplit(),
+		"compact":      interpolationFuncCompact(),
+		"concat":       interpolationFuncConcat(),
+		"element":      interpolationFuncElement(),
+		"file":         interpolationFuncFile(),
+		"format":       interpolationFuncFormat(),
+		"formatlist":   interpolationFuncFormatList(),
+		"index":        interpolationFuncIndex(),
+		"join":         interpolationFuncJoin(),
+		"length":       interpolationFuncLength(),
+		"replace":      interpolationFuncReplace(),
+		"split":        interpolationFuncSplit(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
 	}
