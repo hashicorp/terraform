@@ -28,11 +28,11 @@ const stringListDelim = `B780FFEC-B661-4EB8-9236-A01737AD98B6`
 func (sl StringList) Compact() StringList {
 	parts := sl.Slice()
 
-  newlist := []string{}
+	newlist := []string{}
 	// drop the empty strings
 	for i := range parts {
 		if parts[i] != "" {
-			newlist = append(newlist,  parts[i])
+			newlist = append(newlist, parts[i])
 		}
 	}
 	return NewStringList(newlist)

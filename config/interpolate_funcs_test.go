@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
-
 func TestInterpolateFuncCompact(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
