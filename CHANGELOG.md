@@ -71,6 +71,7 @@ BUG FIXES:
 
 INTERNAL IMPROVEMENTS:
 
+  * core: Makefile target "plugin-dev" for building just one plugin. [GH-3229]
   * helper/schema: Don't allow ``Update`` func if no attributes can actually be updated, per schema. [GH-3288]
   * helper/schema: Default hashing function for sets [GH-3018]
   * helper/multierror: Remove in favor of [github.com/hashicorp/go-multierror](http://github.com/hashicorp/go-multierror). [GH-3336]
