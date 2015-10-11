@@ -513,7 +513,7 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 func (c *Context) walk(
 	graph *Graph, operation walkOperation) (*ContextGraphWalker, error) {
 	// Walk the graph
-	log.Printf("[INFO] Starting graph walk: %s", operation.String())
+	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 	walker := &ContextGraphWalker{Context: c, Operation: operation}
 	return walker, graph.Walk(walker)
 }
