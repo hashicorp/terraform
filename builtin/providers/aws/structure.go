@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -589,4 +590,14 @@ func stringMapToPointers(m map[string]interface{}) map[string]*string {
 		list[i] = aws.String(v.(string))
 	}
 	return list
+}
+
+func flattenDSVpcSettings(
+	s *directoryservice.DirectoryVpcSettingsDescription) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["vpc_id"] = *s.VpcId
+
+	return []map[string]interface{}{settings}
 }
