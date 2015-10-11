@@ -24,7 +24,7 @@ IMPROVEMENTS:
   * core: In plan output summary, count resource replacement as Add/Remove instead of Change [GH-3173]
   * core: Add interpolation functions for base64 encoding and decoding. [GH-3325]
   * core: Expose parallelism as a CLI option instead of a hard-coding the default of 10 [GH-3365]
-  * core: Add interpolation function `compact`, to remove empty elements from a list. [GH-3239]
+  * core: Add interpolation function `compact`, to remove empty elements from a list. [GH-3239], [GH-3479]
   * provider/aws: Add `instance_initiated_shutdown_behavior` to AWS Instance [GH-2887]
   * provider/aws: Support IAM role names (previously just ARNs) in `aws_ecs_service.iam_role` [GH-3061]
   * provider/aws: Add update method to RDS Subnet groups, can modify subnets without recreating  [GH-3053]
