@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -47,6 +48,7 @@ type Config struct {
 type AWSClient struct {
 	cloudwatchconn     *cloudwatch.CloudWatch
 	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
+	dsconn             *directoryservice.DirectoryService
 	dynamodbconn       *dynamodb.DynamoDB
 	ec2conn            *ec2.EC2
 	ecsconn            *ecs.ECS
@@ -179,6 +181,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing OpsWorks Connection")
 		client.opsworksconn = opsworks.New(usEast1AwsConfig)
+
+		log.Println("[INFO] Initializing Directory Service connection")
+		client.dsconn = directoryservice.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
