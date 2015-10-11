@@ -16,6 +16,7 @@ var quoteReplacer = strings.NewReplacer(`"`, `\"`)
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
+			"influxdb_database": ResourceDatabase(),
 		},
 
 		Schema: map[string]*schema.Schema{
