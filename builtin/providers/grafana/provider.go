@@ -26,7 +26,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			//"grafana_dashboard":   ResourceDashboard(),
-			//"grafana_data_source": ResourceDataSource(),
+			"grafana_data_source": ResourceDataSource(),
 		},
 
 		ConfigureFunc: providerConfigure,
