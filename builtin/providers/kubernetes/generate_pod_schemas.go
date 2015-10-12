@@ -1,10 +1,22 @@
 package kubernetes
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // Pod schema components
+
+func validateIsStruct(v interface{}, k string) (ws []string, es []error) {
+	mstruct := v.([]interface{})
+	if len(mstruct) > 1 {
+		es = append(es, fmt.Errorf("%s field may be declared at most once", k))
+	}
+
+	return
+}
+
 
 func genSecretRef() *schema.Schema {
 	return &schema.Schema{
@@ -21,20 +33,21 @@ func genSecretRef() *schema.Schema {
 	}
 }
 
-func genFieldRef() *schema.Schema {
+func genObjectFieldSelector() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
+		Type:         schema.TypeList,
+		Required:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"api_version": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true,
+					Required: true,
 				},
 
 				"field_path": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true,
+					Required: true,
 				},
 			},
 		},
@@ -408,7 +421,7 @@ func genDownwardApiVolumeSource() *schema.Schema {
 								Optional: true,
 							},
 
-							"field_ref": genFieldRef(),
+							"field_ref": genObjectFieldSelector(),
 						},
 					},
 				},
@@ -519,18 +532,21 @@ func genContainerPort() *schema.Schema {
 				},
 
 				"host_port": &schema.Schema{
-					Type:     schema.TypeInt,
-					Optional: true,
+					Type:         schema.TypeInt,
+					ValidateFunc: validatePort,
+					Required:     true,
 				},
 
 				"container_port": &schema.Schema{
-					Type:     schema.TypeInt,
-					Required: true,
+					Type:         schema.TypeInt,
+					ValidateFunc: validatePort,
+					Required:     true,
 				},
 
 				"protocol": &schema.Schema{
-					Type:     schema.TypeString,
-					Required: true,
+					Type:         schema.TypeString,
+					ValidateFunc: validateProtocol,
+					Required:     true,
 				},
 
 				"host_ip": &schema.Schema{
@@ -540,6 +556,33 @@ func genContainerPort() *schema.Schema {
 			},
 		},
 	}
+}
+
+func validateUriScheme(v interface{}, k string) (ws []string, es []error) {
+	protocol := v.(string)
+	if protocol != "HTTP" && protocol != "HTTPS" {
+		es = append(es, fmt.Errorf("Scheme must be either HTTP or HTTPS"))
+	}
+
+	return
+}
+
+func validateProtocol(v interface{}, k string) (ws []string, es []error) {
+	protocol := v.(string)
+	if protocol != "TCP" && protocol != "UDP" {
+		es = append(es, fmt.Errorf("Protocol must be either TCP or UDP"))
+	}
+
+	return
+}
+
+func validatePort(v interface{}, k string) (ws []string, es []error) {
+	port := v.(int)
+	if port >= 65536 || port <= 0 {
+		es = append(es, fmt.Errorf("Port %s must statisfy 0 < port < 65536", k))
+	}
+
+	return
 }
 
 func genEnvVar() *schema.Schema {
@@ -555,15 +598,16 @@ func genEnvVar() *schema.Schema {
 
 				"value": &schema.Schema{
 					Type:     schema.TypeString,
-					Required: true,
+					Optional: true,
 				},
 
 				"value_from": &schema.Schema{
-					Type:     schema.TypeList,
-					Optional: true,
+					Type:         schema.TypeList,
+					Optional:     true,
+					ValidateFunc: validateIsStruct,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
-							"field_ref": genFieldRef(),
+							"field_ref": genObjectFieldSelector(),
 						},
 					},
 				},
@@ -581,14 +625,15 @@ func genResourceList() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeMap,
 		Optional: true,
-		Elem:     genResourceQuantity(),
+		Elem:     schema.TypeString,
 	}
 }
 
 func genResourceRequirements() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
+		Type:         schema.TypeList,
+		Optional:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"limits": genResourceList(),
@@ -626,13 +671,15 @@ func genVolumeMount() *schema.Schema {
 
 func genTcpSocketAction() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
+		Type:         schema.TypeList,
+		Optional:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"port": &schema.Schema{
-					Type:     schema.TypeString,
-					Optional: true,
+					Type:         schema.TypeInt,
+					Required:     true,
+					ValidateFunc: validatePort,
 				},
 			},
 		},
@@ -641,13 +688,14 @@ func genTcpSocketAction() *schema.Schema {
 
 func genExecAction() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
+		Type:         schema.TypeList,
+		Optional:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"command": &schema.Schema{
 					Type:     schema.TypeList,
-					Optional: true,
+					Required: true,
 					Elem:     &schema.Schema{Type: schema.TypeString},
 				},
 			},
@@ -657,8 +705,9 @@ func genExecAction() *schema.Schema {
 
 func genHttpGetAction() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
+		Type:         schema.TypeList,
+		Optional:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"path": &schema.Schema{
@@ -667,8 +716,9 @@ func genHttpGetAction() *schema.Schema {
 				},
 
 				"port": &schema.Schema{
-					Type:     schema.TypeString,
-					Optional: true,
+					Type:         schema.TypeInt,
+					Required:     true,
+					ValidateFunc: validatePort,
 				},
 
 				"host": &schema.Schema{
@@ -677,8 +727,9 @@ func genHttpGetAction() *schema.Schema {
 				},
 
 				"scheme": &schema.Schema{
-					Type:     schema.TypeString,
-					Optional: true,
+					Type:         schema.TypeString,
+					ValidateFunc: validateUriScheme,
+					Optional:     true,
 				},
 			},
 		},
@@ -687,8 +738,9 @@ func genHttpGetAction() *schema.Schema {
 
 func genLifecycle() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
+		Type:         schema.TypeList,
+		Optional:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"post_start": genHandler(),
@@ -701,8 +753,9 @@ func genLifecycle() *schema.Schema {
 
 func genHandler() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
+		Type:         schema.TypeList,
+		Required:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"exec": genExecAction(),
@@ -717,8 +770,9 @@ func genHandler() *schema.Schema {
 
 func genProbe() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeList,
-		Required: true,
+		Type:         schema.TypeList,
+		Required:     true,
+		ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"handler": genHandler(),
@@ -809,7 +863,7 @@ func genSecurityContext() *schema.Schema {
 					Optional: true,
 				},
 
-				"run_as_root": &schema.Schema{
+				"run_as_non_root": &schema.Schema{
 					Type:     schema.TypeBool,
 					Optional: true,
 				},

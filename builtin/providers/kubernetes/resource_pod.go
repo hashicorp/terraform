@@ -1,14 +1,9 @@
 package kubernetes
 
 import (
-	"encoding/json"
-	"log"
-	"strings"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util/yaml"
 )
 
 func resourceKubernetesPod() *schema.Resource {
@@ -97,11 +92,7 @@ func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	if res, err := createContainers(d.Get("container").([]interface{}); err == nil {
-		spec.Containers = res
-	} else {
-		return err
-	}
+	spec.Containers = createContainers(d.Get("container").([]interface{}))
 
 	if res, err := createDnsPolicy(d.Get("dns_policy")); err == nil {
 		spec.DNSPolicy = res
