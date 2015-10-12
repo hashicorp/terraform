@@ -26,6 +26,10 @@ const DefaultBackupExtension = ".backup"
 // by default.
 const DefaultDataDirectory = ".terraform"
 
+// DefaultParallelism is the limit Terraform places on total parallel
+// operations as it walks the dependency graph.
+const DefaultParallelism = 10
+
 func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		ui.Output(

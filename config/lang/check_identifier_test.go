@@ -134,7 +134,7 @@ func TestIdentifierCheck(t *testing.T) {
 
 		visitor := &IdentifierCheck{Scope: tc.Scope}
 		err = visitor.Visit(node)
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 	}

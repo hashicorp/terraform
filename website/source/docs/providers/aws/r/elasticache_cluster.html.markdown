@@ -27,8 +27,8 @@ resource "aws_elasticache_cluster" "bar" {
 
 The following arguments are supported:
 
-* `cluster_id` – (Required) Group identifier. This parameter is stored as a
-lowercase string
+* `cluster_id` – (Required) Group identifier. Elasticache converts
+  this name to lowercase
 
 * `engine` – (Required) Name of the cache engine to be used for this cache cluster.
  Valid values for this parameter are `memcached` or `redis`
@@ -82,5 +82,7 @@ The following attributes are exported:
 
 * `cache_nodes` - List of node objects including `id`, `address` and `port`.
    Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
+   
+* `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery
 
 [1]: http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html

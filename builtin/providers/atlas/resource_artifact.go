@@ -19,7 +19,6 @@ func resourceArtifact() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArtifactRead,
 		Read:   resourceArtifactRead,
-		Update: resourceArtifactRead,
 		Delete: resourceArtifactDelete,
 
 		Schema: map[string]*schema.Schema{

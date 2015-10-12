@@ -15,6 +15,12 @@ dev: generate
 quickdev: generate
 	@TF_QUICKDEV=1 TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
+# Shorthand for building and installing just one plugin for local testing.
+# Run as (for example): make plugin-dev PLUGIN=provider-aws
+plugin-dev: generate
+	go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
+	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
+
 release: updatedeps
 	gox -build-toolchain
 	@$(MAKE) bin

@@ -17,9 +17,8 @@ Example creating a private bucket in standard storage, in the EU region.
 
 ```
 resource "google_storage_bucket" "image-store" {
-    name = "image-store-bucket"
-    predefined_acl = "projectPrivate"
-    location = "EU"
+	name = "image-store-bucket"
+	location = "EU"
     website {
         main_page_suffix = "index.html"
         not_found_page = "404.html"
@@ -33,7 +32,8 @@ resource "google_storage_bucket" "image-store" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the bucket.
-* `predefined_acl` - (Optional, Default: 'private') The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) to apply.
+* `predefined_acl` - (Optional, Deprecated) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) to apply. Please switch
+to `google_storage_bucket_acl.predefined_acl`.
 * `location` - (Optional, Default: 'US') The [GCS location](https://cloud.google.com/storage/docs/bucket-locations) 
 * `force_destroy` - (Optional, Default: false) When deleting a bucket, this boolean option will delete all contained objects. If you try to delete a bucket that contains objects, Terraform will fail that run. 
 

@@ -40,10 +40,21 @@ func resourceCloudStackVPC() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"network_domain": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"source_nat_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"zone": &schema.Schema{
@@ -60,14 +71,14 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 
 	name := d.Get("name").(string)
 
-	// Retrieve the vpc_offering UUID
-	vpcofferingid, e := retrieveUUID(cs, "vpc_offering", d.Get("vpc_offering").(string))
+	// Retrieve the vpc_offering ID
+	vpcofferingid, e := retrieveID(cs, "vpc_offering", d.Get("vpc_offering").(string))
 	if e != nil {
 		return e.Error()
 	}
 
-	// Retrieve the zone UUID
-	zoneid, e := retrieveUUID(cs, "zone", d.Get("zone").(string))
+	// Retrieve the zone ID
+	zoneid, e := retrieveID(cs, "zone", d.Get("zone").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -79,12 +90,24 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Create a new parameter struct
-	p := cs.VPC.NewCreateVPCParams(d.Get("cidr").(string), displaytext.(string), name, vpcofferingid, zoneid)
+	p := cs.VPC.NewCreateVPCParams(
+		d.Get("cidr").(string),
+		displaytext.(string),
+		name,
+		vpcofferingid,
+		zoneid,
+	)
+
+	// If there is a network domain supplied, make sure to add it to the request
+	if networkDomain, ok := d.GetOk("network_domain"); ok {
+		// Set the network domain
+		p.SetNetworkdomain(networkDomain.(string))
+	}
 
 	// If there is a project supplied, we retrieve and set the project id
 	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project UUID
-		projectid, e := retrieveUUID(cs, "project", project.(string))
+		// Retrieve the project ID
+		projectid, e := retrieveID(cs, "project", project.(string))
 		if e != nil {
 			return e.Error()
 		}
@@ -122,6 +145,7 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", v.Name)
 	d.Set("display_text", v.Displaytext)
 	d.Set("cidr", v.Cidr)
+	d.Set("network_domain", v.Networkdomain)
 
 	// Get the VPC offering details
 	o, _, err := cs.VPC.GetVPCOfferingByID(v.Vpcofferingid)
@@ -129,9 +153,30 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	setValueOrUUID(d, "vpc_offering", o.Name, v.Vpcofferingid)
-	setValueOrUUID(d, "project", v.Project, v.Projectid)
-	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
+	setValueOrID(d, "vpc_offering", o.Name, v.Vpcofferingid)
+	setValueOrID(d, "project", v.Project, v.Projectid)
+	setValueOrID(d, "zone", v.Zonename, v.Zoneid)
+
+	// Create a new parameter struct
+	p := cs.Address.NewListPublicIpAddressesParams()
+	p.SetVpcid(d.Id())
+	p.SetIssourcenat(true)
+
+	if _, ok := d.GetOk("project"); ok {
+		p.SetProjectid(v.Projectid)
+	}
+
+	// Get the source NAT IP assigned to the VPC
+	l, err := cs.Address.ListPublicIpAddresses(p)
+	if err != nil {
+		return err
+	}
+
+	if l.Count != 1 {
+		return fmt.Errorf("Unexpected number (%d) of source NAT IPs returned", l.Count)
+	}
+
+	d.Set("source_nat_ip", l.PublicIpAddresses[0].Ipaddress)
 
 	return nil
 }
@@ -172,7 +217,7 @@ func resourceCloudStackVPCDelete(d *schema.ResourceData, meta interface{}) error
 	// Delete the VPC
 	_, err := cs.VPC.DeleteVPC(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {

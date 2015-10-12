@@ -2437,7 +2437,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 		d, err := schemaMap(tc.Schema).Diff(
 			tc.State, terraform.NewResourceConfig(c))
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("#%d err: %s", i, err)
 		}
 
@@ -2595,7 +2595,7 @@ func TestSchemaMap_Input(t *testing.T) {
 		rc.Config = make(map[string]interface{})
 
 		actual, err := schemaMap(tc.Schema).Input(input, rc)
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("#%v err: %s", i, err)
 		}
 
@@ -2789,7 +2789,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			true,
+			false,
 		},
 
 		// Required but computed
@@ -2916,7 +2916,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 	for i, tc := range cases {
 		err := schemaMap(tc.In).InternalValidate(schemaMap{})
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			if tc.Err {
 				t.Fatalf("%d: Expected error did not occur:\n\n%#v", i, tc.In)
 			}
@@ -3652,7 +3652,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 		}
 
 		ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
-		if (len(es) > 0) != tc.Err {
+		if len(es) > 0 != tc.Err {
 			if len(es) == 0 {
 				t.Errorf("%q: no errors", tn)
 			}

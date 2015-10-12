@@ -17,7 +17,7 @@ it runs commands.
 ```
 resource "rundeck_private_key" "anvils" {
     path = "anvils/id_rsa"
-    key_material = "${file(\"/id_rsa\")}"
+    key_material = "${file("/id_rsa")}"
 }
 ```
 

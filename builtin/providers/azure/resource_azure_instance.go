@@ -297,15 +297,15 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		if err != nil {
 			return fmt.Errorf("Error configuring %s for Windows: %s", name, err)
 		}
-		
+
 		if domain_name, ok := d.GetOk("domain_name"); ok {
 			err = vmutils.ConfigureWindowsToJoinDomain(
-				&role, 
-				d.Get("domain_username").(string), 
-				d.Get("domain_password").(string), 
-				domain_name.(string), 
+				&role,
+				d.Get("domain_username").(string),
+				d.Get("domain_password").(string),
+				domain_name.(string),
 				d.Get("domain_ou").(string),
-			) 
+			)
 			if err != nil {
 				return fmt.Errorf("Error configuring %s for WindowsToJoinDomain: %s", name, err)
 			}
