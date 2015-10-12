@@ -58,12 +58,12 @@ func resourceKubernetesPod() *schema.Resource {
 
 			"dns_policy": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true, // required
+				Required: true,
 			},
 
 			"node_selector": &schema.Schema{
 				Type:     schema.TypeMap,
-				Optional: true, // required
+				Required: true,
 				Elem:     schema.TypeString,
 			},
 
@@ -80,18 +80,6 @@ func resourceKubernetesPod() *schema.Resource {
 			"security_context": genSecurityContext(),
 
 			"image_pull_secret": genLocalObjectReference(),
-
-			"spec": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				StateFunc: func(input interface{}) string {
-					s, err := normalizePodSpec(input.(string))
-					if err != nil {
-						log.Printf("[ERROR] Normalising spec failed: %q", err.Error())
-					}
-					return s
-				},
-			},
 		},
 	}
 }
@@ -99,39 +87,95 @@ func resourceKubernetesPod() *schema.Resource {
 func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 
-	// If the Spec is provided (as json or yaml), use that. Otherwise read
-	// attributes out by hand
-	if v, ok := d.GetOk("spec"); ok {
-		spec, err := expandPodSpec(v.(string))
-		if err != nil {
-			return err
-		}
+	_name := d.Get("name").(string)
 
-		l := d.Get("labels").(map[string]interface{})
-		labels := make(map[string]string, len(l))
-		for k, v := range l {
-			labels[k] = v.(string)
-		}
+	spec := &api.PodSpec{}
 
-		req := api.Pod{
-			ObjectMeta: api.ObjectMeta{
-				Name:   d.Get("name").(string),
-				Labels: labels,
-			},
-			Spec: spec,
-		}
-
-		ns := d.Get("namespace").(string)
-
-		pod, err := c.Pods(ns).Create(&req)
-		if err != nil {
-			return err
-		}
-
-		d.SetId(string(pod.UID))
-
-		return resourceKubernetesPodRead(d, meta)
+	if res, err := createVolumes(d.Get("volume")); err == nil {
+		spec.Volumes = res
+	} else {
+		return err
 	}
+
+	if res, err := createContainers(d.Get("container").([]interface{}); err == nil {
+		spec.Containers = res
+	} else {
+		return err
+	}
+
+	if res, err := createDnsPolicy(d.Get("dns_policy")); err == nil {
+		spec.DNSPolicy = res
+	} else {
+		return err
+	}
+
+	if res, err := createNodeSelector(d.Get("node_selector")); err == nil {
+		spec.NodeSelector = res
+	} else {
+		return err
+	}
+
+	if v, ok := d.GetOk("restart_policy") {
+		spec.RestartPolicy = v.(string)
+	}
+
+	if v, ok := d.GetOk("termination_grace_period_seconds") {
+		spec.TeriminationGracePeriodSecons = &(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("active_deadline_seconds") {
+		spec.ActiveDeadlineSeconds = &(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("service_account_name") {
+		spec.ServiceAccountName = v.(string)
+	}
+
+	if v, ok := d.GetOk("node_name") {
+		spec.NodeName = v.(string)
+	}
+
+	if v, ok := d.GetOk("security_context") {
+		if res, err := createSecurityContext(v); err == nil {
+			spec.SecurityContext = res
+		} else {
+			return err
+		}
+	}
+
+	if v, ok := d.GetOk("image_pull_secret") {
+		if res, err := createImagePullSecret(v); err == nil {
+			sepc.ImagePullSecret = res
+		} else {
+			return err
+		}
+	}
+
+
+	_labels := d.Get("labels").(map[string]interface{})
+	labels := make(map[string]string, len(_labels))
+	for k, v := range _labels{
+		labels[k] = v.(string)
+	}
+
+	req := api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			Name:   _name,
+			Labels: labels,
+		},
+		Spec: spec,
+	}
+
+	_namespace := d.Get("namespace").(string)
+
+	pod, err := c.Pods(_namespace).Create(&req)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(string(pod.UID))
+
+	return resourceKubernetesPodRead(d, meta)
 
 	return nil
 }
@@ -188,75 +232,4 @@ func resourceKubernetesPodDelete(d *schema.ResourceData, meta interface{}) error
 	c := meta.(*client.Client)
 	err := c.Pods(d.Get("namespace").(string)).Delete(d.Get("name").(string), nil)
 	return err
-}
-
-func expandPodSpec(input string) (spec api.PodSpec, err error) {
-	r := strings.NewReader(input)
-	y := yaml.NewYAMLOrJSONDecoder(r, 4096)
-
-	err = y.Decode(&spec)
-	if err != nil {
-		return
-	}
-	spec = setDefaultPodSpecValues(&spec)
-	return
-}
-
-func flattenPodSpec(spec api.PodSpec) (string, error) {
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}
-
-func normalizePodSpec(input string) (string, error) {
-	r := strings.NewReader(input)
-	y := yaml.NewYAMLOrJSONDecoder(r, 4096)
-	spec := api.PodSpec{}
-
-	err := y.Decode(&spec)
-	if err != nil {
-		return "", err
-	}
-
-	spec = setDefaultPodSpecValues(&spec)
-
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}
-
-// This is to prevent detecting change when there's nothing to change
-func setDefaultPodSpecValues(spec *api.PodSpec) api.PodSpec {
-	if spec.ServiceAccountName == "" {
-		spec.ServiceAccountName = "default"
-	}
-	if spec.RestartPolicy == "" {
-		spec.RestartPolicy = "Always"
-	}
-	if spec.DNSPolicy == "" {
-		spec.DNSPolicy = "ClusterFirst"
-	}
-
-	for k, c := range spec.Containers {
-		if c.ImagePullPolicy == "" {
-			spec.Containers[k].ImagePullPolicy = "IfNotPresent"
-		}
-		if c.TerminationMessagePath == "" {
-			spec.Containers[k].TerminationMessagePath = "/dev/termination-log"
-		}
-
-		for _, p := range c.Ports {
-			if p.Protocol == "" {
-				p.Protocol = "TCP"
-			}
-		}
-	}
-
-	return *spec
 }

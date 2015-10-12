@@ -451,7 +451,7 @@ func genFcVolumeSource() *schema.Schema {
 func genVolumeSource() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"host_path": genHostPathVolumeSource(),
@@ -493,12 +493,12 @@ func genVolumeSource() *schema.Schema {
 func genVolume() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"volume_source": genVolumeSource(),
@@ -510,7 +510,7 @@ func genVolume() *schema.Schema {
 func genContainerPort() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": &schema.Schema{
@@ -525,12 +525,12 @@ func genContainerPort() *schema.Schema {
 
 				"container_port": &schema.Schema{
 					Type:     schema.TypeInt,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"protocol": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"host_ip": &schema.Schema{
@@ -545,17 +545,17 @@ func genContainerPort() *schema.Schema {
 func genEnvVar() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"value": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"value_from": &schema.Schema{
@@ -602,12 +602,12 @@ func genResourceRequirements() *schema.Schema {
 func genVolumeMount() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"read_only": &schema.Schema{
@@ -617,7 +617,7 @@ func genVolumeMount() *schema.Schema {
 
 				"mount_path": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 			},
 		},
@@ -685,6 +685,20 @@ func genHttpGetAction() *schema.Schema {
 	}
 }
 
+func genLifecycle() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"post_start": genHandler(),
+
+				"pre_stop": genHandler(),
+			},
+		},
+	}
+}
+
 func genHandler() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
@@ -701,10 +715,10 @@ func genHandler() *schema.Schema {
 	}
 }
 
-func genLivenessProbe() *schema.Schema {
+func genProbe() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"handler": genHandler(),
@@ -807,17 +821,17 @@ func genSecurityContext() *schema.Schema {
 func genContainer() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"image": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"command": &schema.Schema{
@@ -841,20 +855,24 @@ func genContainer() *schema.Schema {
 
 				"env": genEnvVar(),
 
+				"resources": genResourceRequirements(),
+
 				"volume_mount": genVolumeMount(),
 
-				"liveness_probe": genLivenessProbe(),
+				"liveness_probe": genProbe(),
 
-				"readiness_probe": genLivenessProbe(),
+				"readiness_probe": genProbe(),
+
+				"lifecycle": genLifecycle(),
 
 				"termination_message_path": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"image_pull_path": &schema.Schema{
 					Type:     schema.TypeString,
-					Optional: true, // required
+					Required: true,
 				},
 
 				"security_context": genSecurityContext(),
@@ -876,7 +894,7 @@ func genContainer() *schema.Schema {
 func genPodSecurityContext() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Optional: true, // required
+		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"host_network": &schema.Schema{
