@@ -61,6 +61,7 @@ BUG FIXES:
   * provider/aws: Normalize aws_elasticache_cluster id to lowercase, allowing convergence. [GH-3235]
   * provider/aws: Fix ValidateAccountId for IAM Instance Profiles [GH-3313]
   * provider/docker: Fix issue preventing private images from being referenced [GH-2619]
+  * provider/digitalocean: Fix issue causing unnecessary diffs based on droplet slugsize case [GH-3284]
   * provider/openstack: add state 'downloading' to list of expected states in
       `blockstorage_volume_v1` creation [GH-2866]
   * provider/openstack: remove security groups (by name) before adding security
