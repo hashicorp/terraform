@@ -37,7 +37,7 @@ func testAccCheckBeanstalkAppDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// Try to find the VPC
+		// Try to find the application
 		DescribeBeanstalkAppOpts := &elasticbeanstalk.DescribeApplicationsInput{
 			ApplicationNames: []*string{aws.String(rs.Primary.ID)},
 		}
