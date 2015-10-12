@@ -20,7 +20,7 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 		Read:   resourceAwsSecurityGroupRuleRead,
 		Delete: resourceAwsSecurityGroupRuleDelete,
 
-                SchemaVersion: 2,
+		SchemaVersion: 2,
 		MigrateState:  resourceAwsSecurityGroupRuleMigrateState,
 
 		Schema: map[string]*schema.Schema{
@@ -67,15 +67,15 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				Computed:      true,
-                                ConflictsWith: []string{"cidr_blocks", "self"},
+				ConflictsWith: []string{"cidr_blocks", "self"},
 			},
 
 			"self": &schema.Schema{
-                                Type:          schema.TypeBool,
-                                Optional:      true,
-                                Default:       false,
-                                ForceNew:      true,
-                                ConflictsWith: []string{"cidr_blocks"},
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       false,
+				ForceNew:      true,
+				ConflictsWith: []string{"cidr_blocks"},
 			},
 		},
 	}
@@ -143,7 +143,7 @@ information and instructions for recovery. Error message: %s`, awsErr.Message())
 			ruleType, autherr)
 	}
 
-        d.SetId(ipPermissionIDHash(sg_id, ruleType, perm))
+	d.SetId(ipPermissionIDHash(sg_id, ruleType, perm))
 
 	return resourceAwsSecurityGroupRuleRead(d, meta)
 }
@@ -159,69 +159,69 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	var rule *ec2.IpPermission
-        var rules []*ec2.IpPermission
+	var rules []*ec2.IpPermission
 	ruleType := d.Get("type").(string)
 	switch ruleType {
 	case "ingress":
-                rules = sg.IpPermissions
+		rules = sg.IpPermissions
 	default:
-                rules = sg.IpPermissionsEgress
+		rules = sg.IpPermissionsEgress
 	}
 
-        p := expandIPPerm(d, sg)
+	p := expandIPPerm(d, sg)
 
-        if len(rules) == 0 {
-                return fmt.Errorf(
-                        "[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
-                        ruleType, *sg.GroupName, d.Id())
-        }
+	if len(rules) == 0 {
+		return fmt.Errorf(
+			"[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
+			ruleType, *sg.GroupName, d.Id())
+	}
 
-        for _, r := range rules {
-                if r.ToPort != nil && *p.ToPort != *r.ToPort {
-                        continue
-                }
-
-                if r.FromPort != nil && *p.FromPort != *r.FromPort {
-                        continue
-                }
-
-                if r.IpProtocol != nil && *p.IpProtocol != *r.IpProtocol {
-                        continue
-                }
-
-                remaining := len(p.IpRanges)
-                for _, ip := range p.IpRanges {
-                        for _, rip := range r.IpRanges {
-                                if *ip.CidrIp == *rip.CidrIp {
-                                        remaining--
-                                }
-                        }
-                }
-
-                if remaining > 0 {
-                        continue
-                }
-
-                remaining = len(p.UserIdGroupPairs)
-                for _, ip := range p.UserIdGroupPairs {
-                        for _, rip := range r.UserIdGroupPairs {
-                                if *ip.GroupId == *rip.GroupId {
-                                        remaining--
-                                }
-                        }
-                }
-
-                if remaining > 0 {
-                        continue
+	for _, r := range rules {
+		if r.ToPort != nil && *p.ToPort != *r.ToPort {
+			continue
 		}
 
-                log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), r)
-                rule = r
+		if r.FromPort != nil && *p.FromPort != *r.FromPort {
+			continue
+		}
+
+		if r.IpProtocol != nil && *p.IpProtocol != *r.IpProtocol {
+			continue
+		}
+
+		remaining := len(p.IpRanges)
+		for _, ip := range p.IpRanges {
+			for _, rip := range r.IpRanges {
+				if *ip.CidrIp == *rip.CidrIp {
+					remaining--
+				}
+			}
+		}
+
+		if remaining > 0 {
+			continue
+		}
+
+		remaining = len(p.UserIdGroupPairs)
+		for _, ip := range p.UserIdGroupPairs {
+			for _, rip := range r.UserIdGroupPairs {
+				if *ip.GroupId == *rip.GroupId {
+					remaining--
+				}
+			}
+		}
+
+		if remaining > 0 {
+			continue
+		}
+
+		log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), r)
+		rule = r
 	}
 
 	if rule == nil {
-                log.Printf("[DEBUG] Unable to find matching %s Security Group Rule (%s) for Group %s",
-                        ruleType, d.Id(), sg_id)
+		log.Printf("[DEBUG] Unable to find matching %s Security Group Rule (%s) for Group %s",
+			ruleType, d.Id(), sg_id)
 		d.SetId("")
 		return nil
 	}
@@ -232,14 +232,14 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("type", ruleType)
 
 	var cb []string
-        for _, c := range p.IpRanges {
+	for _, c := range p.IpRanges {
 		cb = append(cb, *c.CidrIp)
 	}
 
 	d.Set("cidr_blocks", cb)
 
-        if len(p.UserIdGroupPairs) > 0 {
-                s := p.UserIdGroupPairs[0]
+	if len(p.UserIdGroupPairs) > 0 {
+		s := p.UserIdGroupPairs[0]
 		d.Set("source_security_group_id", *s.GroupId)
 	}
 
@@ -333,7 +333,7 @@ func (b ByGroupPair) Less(i, j int) bool {
 
 func ipPermissionIDHash(sg_id, ruleType string, ip *ec2.IpPermission) string {
 	var buf bytes.Buffer
-        buf.WriteString(fmt.Sprintf("%s-", sg_id))
+	buf.WriteString(fmt.Sprintf("%s-", sg_id))
 	if ip.FromPort != nil && *ip.FromPort > 0 {
 		buf.WriteString(fmt.Sprintf("%d-", *ip.FromPort))
 	}
@@ -373,7 +373,7 @@ func ipPermissionIDHash(sg_id, ruleType string, ip *ec2.IpPermission) string {
 		}
 	}
 
-	return fmt.Sprintf("sg-%d", hashcode.String(buf.String()))
+	return fmt.Sprintf("sgrule-%d", hashcode.String(buf.String()))
 }
 
 func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) *ec2.IpPermission {

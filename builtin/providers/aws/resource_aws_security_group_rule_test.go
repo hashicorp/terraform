@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-        "log"
+	"log"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -90,15 +90,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 		Type   string
 		Output string
 	}{
-                {simple, "ingress", "sg-3403497314"},
-                {egress, "egress", "sg-1173186295"},
-                {egress_all, "egress", "sg-766323498"},
-                {vpc_security_group_source, "egress", "sg-351225364"},
-                {security_group_source, "egress", "sg-2198807188"},
+		{simple, "ingress", "sgrule-3403497314"},
+		{egress, "egress", "sgrule-1173186295"},
+		{egress_all, "egress", "sgrule-766323498"},
+		{vpc_security_group_source, "egress", "sgrule-351225364"},
+		{security_group_source, "egress", "sgrule-2198807188"},
 	}
 
 	for _, tc := range cases {
-                actual := ipPermissionIDHash("sg-12345", tc.Type, tc.Input)
+		actual := ipPermissionIDHash("sg-12345", tc.Type, tc.Input)
 		if actual != tc.Output {
 			t.Errorf("input: %s - %s\noutput: %s", tc.Type, tc.Input, actual)
 		}
@@ -132,7 +132,7 @@ func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 				Config: testAccAWSSecurityGroupRuleIngressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
-                                        testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group_rule.ingress_1", "from_port", "80"),
 					testRuleCount,
@@ -169,7 +169,7 @@ func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 				Config: testAccAWSSecurityGroupRuleIngressClassicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
-                                        testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group_rule.ingress_1", "from_port", "80"),
 					testRuleCount,
@@ -231,7 +231,7 @@ func TestAccAWSSecurityGroupRule_Egress(t *testing.T) {
 				Config: testAccAWSSecurityGroupRuleEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
-                                        testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.egress_1", &group, nil, "egress"),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.egress_1", &group, nil, "egress"),
 				),
 			},
 		},
@@ -258,87 +258,87 @@ func TestAccAWSSecurityGroupRule_SelfReference(t *testing.T) {
 
 // testing partial match implementation
 func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
-        var group ec2.SecurityGroup
+	var group ec2.SecurityGroup
 
-        p := ec2.IpPermission{
-                FromPort:   aws.Int64(80),
-                ToPort:     aws.Int64(80),
-                IpProtocol: aws.String("tcp"),
-                IpRanges: []*ec2.IpRange{
-                        &ec2.IpRange{CidrIp: aws.String("10.0.2.0/24")},
-                        &ec2.IpRange{CidrIp: aws.String("10.0.3.0/24")},
-                        &ec2.IpRange{CidrIp: aws.String("10.0.4.0/24")},
-                },
-        }
+	p := ec2.IpPermission{
+		FromPort:   aws.Int64(80),
+		ToPort:     aws.Int64(80),
+		IpProtocol: aws.String("tcp"),
+		IpRanges: []*ec2.IpRange{
+			&ec2.IpRange{CidrIp: aws.String("10.0.2.0/24")},
+			&ec2.IpRange{CidrIp: aws.String("10.0.3.0/24")},
+			&ec2.IpRange{CidrIp: aws.String("10.0.4.0/24")},
+		},
+	}
 
-        o := ec2.IpPermission{
-                FromPort:   aws.Int64(80),
-                ToPort:     aws.Int64(80),
-                IpProtocol: aws.String("tcp"),
-                IpRanges: []*ec2.IpRange{
-                        &ec2.IpRange{CidrIp: aws.String("10.0.5.0/24")},
-                },
-        }
+	o := ec2.IpPermission{
+		FromPort:   aws.Int64(80),
+		ToPort:     aws.Int64(80),
+		IpProtocol: aws.String("tcp"),
+		IpRanges: []*ec2.IpRange{
+			&ec2.IpRange{CidrIp: aws.String("10.0.5.0/24")},
+		},
+	}
 
-        resource.Test(t, resource.TestCase{
-                PreCheck:     func() { testAccPreCheck(t) },
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccAWSSecurityGroupRulePartialMatching,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
-                                        testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress", &group, &p, "ingress"),
-                                        testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.other", &group, &o, "ingress"),
-                                        testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.nat_ingress", &group, &o, "ingress"),
-                                ),
-                        },
-                },
-        })
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRulePartialMatching,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress", &group, &p, "ingress"),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.other", &group, &o, "ingress"),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.nat_ingress", &group, &o, "ingress"),
+				),
+			},
+		},
+	})
 }
 
 func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
-        var group ec2.SecurityGroup
-        var nat ec2.SecurityGroup
-        var p ec2.IpPermission
+	var group ec2.SecurityGroup
+	var nat ec2.SecurityGroup
+	var p ec2.IpPermission
 
-        // This function creates the expected IPPermission with the group id from an
-        // external security group, needed because Security Group IDs are generated on
-        // AWS side and can't be known ahead of time.
-        setupSG := func(*terraform.State) error {
-                if nat.GroupId == nil {
-                        return fmt.Errorf("Error: nat group has nil GroupID")
-                }
+	// This function creates the expected IPPermission with the group id from an
+	// external security group, needed because Security Group IDs are generated on
+	// AWS side and can't be known ahead of time.
+	setupSG := func(*terraform.State) error {
+		if nat.GroupId == nil {
+			return fmt.Errorf("Error: nat group has nil GroupID")
+		}
 
-                p = ec2.IpPermission{
-                        FromPort:   aws.Int64(80),
-                        ToPort:     aws.Int64(80),
-                        IpProtocol: aws.String("tcp"),
-                        UserIdGroupPairs: []*ec2.UserIdGroupPair{
-                                &ec2.UserIdGroupPair{GroupId: nat.GroupId},
-                        },
-                }
+		p = ec2.IpPermission{
+			FromPort:   aws.Int64(80),
+			ToPort:     aws.Int64(80),
+			IpProtocol: aws.String("tcp"),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{GroupId: nat.GroupId},
+			},
+		}
 
-                return nil
-        }
+		return nil
+	}
 
-        resource.Test(t, resource.TestCase{
-                PreCheck:     func() { testAccPreCheck(t) },
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccAWSSecurityGroupRulePartialMatching_Source,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
-                                        testAccCheckAWSSecurityGroupRuleExists("aws_security_group.nat", &nat),
-                                        setupSG,
-                                        testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.source_ingress", &group, &p, "ingress"),
-                                ),
-                        },
-                },
-        })
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRulePartialMatching_Source,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.nat", &nat),
+					setupSG,
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.source_ingress", &group, &p, "ingress"),
+				),
+			},
+		},
+	})
 
 }
 
@@ -407,25 +407,25 @@ func testAccCheckAWSSecurityGroupRuleExists(n string, group *ec2.SecurityGroup) 
 
 func testAccCheckAWSSecurityGroupRuleAttributes(n string, group *ec2.SecurityGroup, p *ec2.IpPermission, ruleType string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-                rs, ok := s.RootModule().Resources[n]
-                if !ok {
-                        return fmt.Errorf("Security Group Rule Not found: %s", n)
-                }
-
-                if rs.Primary.ID == "" {
-                        return fmt.Errorf("No Security Group Rule is set")
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Security Group Rule Not found: %s", n)
 		}
 
-                if p == nil {
-                        p = &ec2.IpPermission{
-                                FromPort:   aws.Int64(80),
-                                ToPort:     aws.Int64(8000),
-                                IpProtocol: aws.String("tcp"),
-                                IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("10.0.0.0/8")}},
-                        }
-                }
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Security Group Rule is set")
+		}
 
-                var matchingRule *ec2.IpPermission
+		if p == nil {
+			p = &ec2.IpPermission{
+				FromPort:   aws.Int64(80),
+				ToPort:     aws.Int64(8000),
+				IpProtocol: aws.String("tcp"),
+				IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("10.0.0.0/8")}},
+			}
+		}
+
+		var matchingRule *ec2.IpPermission
 		var rules []*ec2.IpPermission
 		if ruleType == "ingress" {
 			rules = group.IpPermissions
@@ -437,53 +437,53 @@ func testAccCheckAWSSecurityGroupRuleAttributes(n string, group *ec2.SecurityGro
 			return fmt.Errorf("No IPPerms")
 		}
 
-                for _, r := range rules {
-                        if r.ToPort != nil && *p.ToPort != *r.ToPort {
-                                continue
-                        }
+		for _, r := range rules {
+			if r.ToPort != nil && *p.ToPort != *r.ToPort {
+				continue
+			}
 
-                        if r.FromPort != nil && *p.FromPort != *r.FromPort {
-                                continue
-                        }
+			if r.FromPort != nil && *p.FromPort != *r.FromPort {
+				continue
+			}
 
-                        if r.IpProtocol != nil && *p.IpProtocol != *r.IpProtocol {
-                                continue
-                        }
+			if r.IpProtocol != nil && *p.IpProtocol != *r.IpProtocol {
+				continue
+			}
 
-                        remaining := len(p.IpRanges)
-                        for _, ip := range p.IpRanges {
-                                for _, rip := range r.IpRanges {
-                                        if *ip.CidrIp == *rip.CidrIp {
-                                                remaining--
-                                        }
-                                }
-                        }
+			remaining := len(p.IpRanges)
+			for _, ip := range p.IpRanges {
+				for _, rip := range r.IpRanges {
+					if *ip.CidrIp == *rip.CidrIp {
+						remaining--
+					}
+				}
+			}
 
-                        if remaining > 0 {
-                                continue
-                        }
+			if remaining > 0 {
+				continue
+			}
 
-                        remaining = len(p.UserIdGroupPairs)
-                        for _, ip := range p.UserIdGroupPairs {
-                                for _, rip := range r.UserIdGroupPairs {
-                                        if *ip.GroupId == *rip.GroupId {
-                                                remaining--
-                                        }
-                                }
-                        }
+			remaining = len(p.UserIdGroupPairs)
+			for _, ip := range p.UserIdGroupPairs {
+				for _, rip := range r.UserIdGroupPairs {
+					if *ip.GroupId == *rip.GroupId {
+						remaining--
+					}
+				}
+			}
 
-                        if remaining > 0 {
-                                continue
-                        }
-                        matchingRule = r
+			if remaining > 0 {
+				continue
+			}
+			matchingRule = r
 		}
 
-                if matchingRule != nil {
-                        log.Printf("[DEBUG] Matching rule found : %s", matchingRule)
-                        return nil
-                }
+		if matchingRule != nil {
+			log.Printf("[DEBUG] Matching rule found : %s", matchingRule)
+			return nil
+		}
 
-                return fmt.Errorf("Error here\n\tlooking for %s, wasn't found in %s", p, rules)
+		return fmt.Errorf("Error here\n\tlooking for %s, wasn't found in %s", p, rules)
 	}
 }
 
