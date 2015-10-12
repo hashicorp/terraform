@@ -121,14 +121,14 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Default:  "Etc/UTC",
 			},
 
-			"dns_suffix": &schema.Schema{
+			"dns_suffixes": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				ForceNew: true,
 			},
 
-			"dns_server": &schema.Schema{
+			"dns_servers": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -245,83 +245,79 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		vm.timeZone = v.(string)
 	}
 
-	dns_suffix := d.Get("dns_suffix.#").(int)
-	if dns_suffix > 0 {
-		vm.dnsSuffixes = make([]string, 0, dns_suffix)
-		for i := 0; i < dns_suffix; i++ {
-			s := fmt.Sprintf("dns_suffix.%d", i)
-			vm.dnsSuffixes = append(vm.dnsSuffixes, d.Get(s).(string))
+	if raw, ok := d.GetOk("dns_suffixes"); ok {
+		for _, v := range raw.([]interface{}) {
+			vm.dnsSuffixes = append(vm.dnsSuffixes, v.(string))
 		}
 	} else {
 		vm.dnsSuffixes = DefaultDNSSuffixes
 	}
 
-	dns_server := d.Get("dns_server.#").(int)
-	if dns_server > 0 {
-		vm.dnsServers = make([]string, 0, dns_server)
-		for i := 0; i < dns_server; i++ {
-			s := fmt.Sprintf("dns_server.%d", i)
-			vm.dnsServers = append(vm.dnsServers, d.Get(s).(string))
+	if raw, ok := d.GetOk("dns_servers"); ok {
+		for _, v := range raw.([]interface{}) {
+			vm.dnsServers = append(vm.dnsServers, v.(string))
 		}
 	} else {
 		vm.dnsServers = DefaultDNSServers
 	}
 
-	networksCount := d.Get("network_interface.#").(int)
-	networks := make([]networkInterface, networksCount)
-	for i := 0; i < networksCount; i++ {
-		prefix := fmt.Sprintf("network_interface.%d", i)
-		networks[i].label = d.Get(prefix + ".label").(string)
-		if v, ok := d.GetOk(prefix + ".ip_address"); ok {
-			networks[i].ipAddress = v.(string)
+	if vL, ok := d.GetOk("network_interface"); ok {
+		networks := make([]networkInterface, len(vL.([]interface{})))
+		for i, v := range vL.([]interface{}) {
+			network := v.(map[string]interface{})
+			networks[i].label = network["label"].(string)
+			if v, ok := network["ip_address"].(string); ok && v != "" {
+				networks[i].ipAddress = v
+			}
+			if v, ok := network["subnet_mask"].(string); ok && v != "" {
+				networks[i].subnetMask = v
+			}
 		}
-		if v, ok := d.GetOk(prefix + ".subnet_mask"); ok {
-			networks[i].subnetMask = v.(string)
-		}
+		vm.networkInterfaces = networks
+		log.Printf("[DEBUG] network_interface init: %v", networks)
 	}
-	vm.networkInterfaces = networks
-	log.Printf("[DEBUG] network_interface init: %v", networks)
 
-	diskCount := d.Get("disk.#").(int)
-	disks := make([]hardDisk, diskCount)
-	for i := 0; i < diskCount; i++ {
-		prefix := fmt.Sprintf("disk.%d", i)
-		if i == 0 {
-			if v, ok := d.GetOk(prefix + ".template"); ok {
-				vm.template = v.(string)
-			} else {
-				if v, ok := d.GetOk(prefix + ".size"); ok {
-					disks[i].size = int64(v.(int))
+	if vL, ok := d.GetOk("disk"); ok {
+		disks := make([]hardDisk, len(vL.([]interface{})))
+		for i, v := range vL.([]interface{}) {
+			disk := v.(map[string]interface{})
+			if i == 0 {
+				if v, ok := disk["template"].(string); ok && v != "" {
+					vm.template = v
 				} else {
-					return fmt.Errorf("If template argument is not specified, size argument is required.")
+					if v, ok := disk["size"].(int); ok && v != 0 {
+						disks[i].size = int64(v)
+					} else {
+						return fmt.Errorf("If template argument is not specified, size argument is required.")
+					}
+				}
+				if v, ok := disk["datastore"].(string); ok && v != "" {
+					vm.datastore = v
+				}
+			} else {
+				if v, ok := disk["size"].(int); ok && v != 0 {
+					disks[i].size = int64(v)
+				} else {
+					return fmt.Errorf("Size argument is required.")
 				}
 			}
-			if v, ok := d.GetOk(prefix + ".datastore"); ok {
-				vm.datastore = v.(string)
-			}
-		} else {
-			if v, ok := d.GetOk(prefix + ".size"); ok {
-				disks[i].size = int64(v.(int))
-			} else {
-				return fmt.Errorf("Size argument is required.")
+			if v, ok := disk["iops"].(int); ok && v != 0 {
+				disks[i].iops = int64(v)
 			}
 		}
-		if v, ok := d.GetOk(prefix + ".iops"); ok {
-			disks[i].iops = int64(v.(int))
-		}
+		vm.hardDisks = disks
+		log.Printf("[DEBUG] disk init: %v", disks)
 	}
-	vm.hardDisks = disks
-	log.Printf("[DEBUG] disk init: %v", disks)
 
 	if vm.template != "" {
 		err := vm.deployVirtualMachine(client)
 		if err != nil {
-			return fmt.Errorf("error: %s", err)
+			return err
 		}
 	} else {
 		err := vm.createVirtualMachine(client)
 		if err != nil {
-			return fmt.Errorf("error: %s", err)
+			return err
 		}
 	}
 
@@ -338,7 +334,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 			_, err := stateConf.WaitForState()
 			if err != nil {
-				return fmt.Errorf("error: %s", err)
+				return err
 			}
 		}
 	}
@@ -368,7 +364,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	collector := property.DefaultCollector(client.Client)
 	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
-		log.Printf("[ERROR] %#v", err)
+		return err
 	}
 
 	log.Printf("[DEBUG] %#v", dc)
@@ -393,18 +389,21 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
-	d.Set("network_interface", networkInterfaces)
+	err = d.Set("network_interface", networkInterfaces)
+	if err != nil {
+		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
+	}
 
 	var rootDatastore string
 	for _, v := range mvm.Datastore {
 		var md mo.Datastore
 		if err := collector.RetrieveOne(context.TODO(), v, []string{"name", "parent"}, &md); err != nil {
-			log.Printf("[ERROR] %#v", err)
+			return err
 		}
 		if md.Parent.Type == "StoragePod" {
 			var msp mo.StoragePod
 			if err := collector.RetrieveOne(context.TODO(), *md.Parent, []string{"name"}, &msp); err != nil {
-				log.Printf("[ERROR] %#v", err)
+				return err
 			}
 			rootDatastore = msp.Name
 			log.Printf("[DEBUG] %#v", msp.Name)
