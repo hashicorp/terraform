@@ -73,8 +73,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"force_delete": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Default:  false,
 			},
 
 			"health_check_grace_period": &schema.Schema{
@@ -334,15 +333,9 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group destroy: %v", d.Id())
-	deleteopts := autoscaling.DeleteAutoScalingGroupInput{AutoScalingGroupName: aws.String(d.Id())}
-
-	// You can force an autoscaling group to delete
-	// even if it's in the process of scaling a resource.
-	// Normally, you would set the min-size and max-size to 0,0
-	// and then delete the group. This bypasses that and leaves
-	// resources potentially dangling.
-	if d.Get("force_delete").(bool) {
-		deleteopts.ForceDelete = aws.Bool(true)
+	deleteopts := autoscaling.DeleteAutoScalingGroupInput{
+		AutoScalingGroupName: aws.String(d.Id()),
+		ForceDelete:          aws.Bool(d.Get("force_delete").(bool)),
 	}
 
 	// We retry the delete operation to handle InUse/InProgress errors coming
@@ -413,6 +406,11 @@ func getAwsAutoscalingGroup(
 
 func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).autoscalingconn
+
+	if d.Get("force_delete").(bool) {
+		log.Printf("[DEBUG] Skipping ASG drain, force_delete was set.")
+		return nil
+	}
 
 	// First, set the capacity to zero so the group will drain
 	log.Printf("[DEBUG] Reducing autoscaling group capacity to zero")
