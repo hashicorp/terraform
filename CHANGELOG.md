@@ -32,6 +32,7 @@ IMPROVEMENTS:
   * provider/aws: Support IAM role names (previously just ARNs) in `aws_ecs_service.iam_role` [GH-3061]
   * provider/aws: Add update method to RDS Subnet groups, can modify subnets without recreating  [GH-3053]
   * provider/aws: Paginate notifications returned for ASG Notifications [GH-3043]
+  * provider/aws: Adds additional S3 Bucket Object inputs [GH-3265]
   * provider/aws: add `ses_smtp_password` to `aws_iam_access_key` [GH-3165]
   * provider/aws: read `iam_instance_profile` for `aws_instance` and save to state [GH-3167]
   * provider/aws: allow `instance` to be computed in `aws_eip` [GH-3036]
