@@ -18,6 +18,7 @@ FEATURES:
   * **New resource: `aws_elasticsearch_domain`** [GH-3443]
   * **New resource: `aws_directory_service_directory`** [GH-3228]
   * **New resource: `aws_autoscaling_lifecycle_hook`** [GH-3351]
+  * **New resource: `aws_placement_group`** [GH-3457]
 
 IMPROVEMENTS:
 
