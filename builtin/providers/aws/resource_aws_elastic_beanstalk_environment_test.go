@@ -38,7 +38,7 @@ func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// Try to find the VPC
+		// Try to find the environment
 		describeBeanstalkEnvOpts := &elasticbeanstalk.DescribeEnvironmentsInput{
 			EnvironmentIds: []*string{aws.String(rs.Primary.ID)},
 		}
