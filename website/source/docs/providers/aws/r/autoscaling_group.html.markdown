@@ -57,7 +57,10 @@ The following arguments are supported:
     for this number of healthy instances all attached load balancers.
     (See also [Waiting for Capacity](#waiting-for-capacity) below.)
 * `force_delete` - (Optional) Allows deleting the autoscaling group without waiting
-   for all instances in the pool to terminate.
+   for all instances in the pool to terminate.  You can force an autoscaling group to delete
+   even if it's in the process of scaling a resource. Normally, Terraform
+   drains all the instances before deleting the group.  This bypasses that
+   behavior and potentially leaves resources dangling.
 * `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
    group names.
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
