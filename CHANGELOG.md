@@ -68,6 +68,7 @@ BUG FIXES:
   * provider/aws: Allow `weight = 0` in Route53 records [GH-3196]
   * provider/aws: Normalize aws_elasticache_cluster id to lowercase, allowing convergence. [GH-3235]
   * provider/aws: Fix ValidateAccountId for IAM Instance Profiles [GH-3313]
+  * provider/aws: Update Security Group Rules to Version 2 [GH-3019]
   * provider/docker: Fix issue preventing private images from being referenced [GH-2619]
   * provider/digitalocean: Fix issue causing unnecessary diffs based on droplet slugsize case [GH-3284]
   * provider/openstack: add state 'downloading' to list of expected states in
