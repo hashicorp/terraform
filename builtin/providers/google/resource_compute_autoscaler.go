@@ -3,7 +3,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
@@ -224,28 +223,9 @@ func resourceComputeAutoscalerCreate(d *schema.ResourceData, meta interface{}) e
 	// It probably maybe worked, so store the ID now
 	d.SetId(scaler.Name)
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitZone,
-		Zone:    zone.Name,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitZone(config, op, zone.Name, "Creating Autoscaler")
 	if err != nil {
-		return fmt.Errorf("Error waiting for Autoscaler to create: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
-
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	return resourceComputeAutoscalerRead(d, meta)
@@ -292,25 +272,9 @@ func resourceComputeAutoscalerUpdate(d *schema.ResourceData, meta interface{}) e
 	// It probably maybe worked, so store the ID now
 	d.SetId(scaler.Name)
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitZone,
-		Zone:    zone,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitZone(config, op, zone, "Updating Autoscaler")
 	if err != nil {
-		return fmt.Errorf("Error waiting for Autoscaler to update: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	return resourceComputeAutoscalerRead(d, meta)
@@ -326,25 +290,9 @@ func resourceComputeAutoscalerDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error deleting autoscaler: %s", err)
 	}
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitZone,
-		Zone:    zone,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitZone(config, op, zone, "Deleting Autoscaler")
 	if err != nil {
-		return fmt.Errorf("Error waiting for Autoscaler to delete: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	d.SetId("")

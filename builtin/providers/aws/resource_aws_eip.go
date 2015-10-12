@@ -30,13 +30,13 @@ func resourceAwsEip() *schema.Resource {
 			"instance": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+                                Computed: true,
 			},
 
 			"network_interface": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"instance"},
+                                Type:     schema.TypeString,
+                                Optional: true,
+                                Computed: true,
 			},
 
 			"allocation_id": &schema.Schema{
@@ -134,7 +134,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Verify AWS returned our EIP
 	if len(describeAddresses.Addresses) != 1 ||
-		(domain == "vpc" && *describeAddresses.Addresses[0].AllocationId != id) ||
+		domain == "vpc" && *describeAddresses.Addresses[0].AllocationId != id ||
 		*describeAddresses.Addresses[0].PublicIp != id {
 		if err != nil {
 			return fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)

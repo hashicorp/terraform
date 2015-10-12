@@ -3,7 +3,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -273,32 +272,6 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 	return instance, nil
 }
 
-func resourceOperationWaitZone(
-	config *Config, op *compute.Operation, zone string, activity string) error {
-
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Zone:    zone,
-		Type:    OperationWaitZone,
-	}
-	state := w.Conf()
-	state.Delay = 10 * time.Second
-	state.Timeout = 10 * time.Minute
-	state.MinTimeout = 2 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return fmt.Errorf("Error waiting for %s: %s", activity, err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
-	}
-	return nil
-}
-
 func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -521,7 +494,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(instance.Name)
 
 	// Wait for the operation to complete
-	waitErr := resourceOperationWaitZone(config, op, zone.Name, "instance to create")
+	waitErr := computeOperationWaitZone(config, op, zone.Name, "instance to create")
 	if waitErr != nil {
 		// The resource didn't actually create
 		d.SetId("")
@@ -534,12 +507,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
 
-	// Synch metadata 
+	// Synch metadata
 	md := instance.Metadata
 
 	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
@@ -671,7 +644,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	zone := d.Get("zone").(string)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
@@ -685,7 +658,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 		updateMD := func() error {
 			// Reload the instance in the case of a fingerprint mismatch
-			instance, err = getInstance(config, d);
+			instance, err = getInstance(config, d)
 			if err != nil {
 				return err
 			}
@@ -703,7 +676,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				return fmt.Errorf("Error updating metadata: %s", err)
 			}
 
-			opErr := resourceOperationWaitZone(config, op, zone, "metadata to update")
+			opErr := computeOperationWaitZone(config, op, zone, "metadata to update")
 			if opErr != nil {
 				return opErr
 			}
@@ -723,7 +696,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error updating tags: %s", err)
 		}
 
-		opErr := resourceOperationWaitZone(config, op, zone, "tags to update")
+		opErr := computeOperationWaitZone(config, op, zone, "tags to update")
 		if opErr != nil {
 			return opErr
 		}
@@ -764,7 +737,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					if err != nil {
 						return fmt.Errorf("Error deleting old access_config: %s", err)
 					}
-					opErr := resourceOperationWaitZone(config, op, zone, "old access_config to delete")
+					opErr := computeOperationWaitZone(config, op, zone, "old access_config to delete")
 					if opErr != nil {
 						return opErr
 					}
@@ -783,7 +756,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					if err != nil {
 						return fmt.Errorf("Error adding new access_config: %s", err)
 					}
-					opErr := resourceOperationWaitZone(config, op, zone, "new access_config to add")
+					opErr := computeOperationWaitZone(config, op, zone, "new access_config to add")
 					if opErr != nil {
 						return opErr
 					}
@@ -809,7 +782,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// Wait for the operation to complete
-	opErr := resourceOperationWaitZone(config, op, zone, "instance to delete")
+	opErr := computeOperationWaitZone(config, op, zone, "instance to delete")
 	if opErr != nil {
 		return opErr
 	}

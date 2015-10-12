@@ -74,7 +74,7 @@ func TestFileDetector_noPwd(t *testing.T) {
 	f := new(FileDetector)
 	for i, tc := range noPwdFileTests {
 		out, ok, err := f.Detect(tc.in, tc.pwd)
-		if (err != nil) != tc.err {
+		if err != nil != tc.err {
 			t.Fatalf("%d: err: %s", i, err)
 		}
 		if !ok {

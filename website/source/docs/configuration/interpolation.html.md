@@ -74,6 +74,17 @@ are documented below.
 
 The supported built-in functions are:
 
+  * `base64decode(string)` - Given a base64-encoded string, decodes it and
+    returns the original string.
+
+  * `base64encode(string)` - Returns a base64-encoded representation of the
+    given string.
+
+  * `compact(list)` - Removes empty string elements from a list. This can be
+     useful in some cases, for example when passing joined lists as module
+     variables or when parsing module outputs.
+     Example: `compact(module.my_asg.load_balancer_names)`
+
   * `concat(list1, list2)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 

@@ -24,10 +24,10 @@ func resourceStorageBucket() *schema.Resource {
 				ForceNew: true,
 			},
 			"predefined_acl": &schema.Schema{
-				Type:     schema.TypeString,
-				Default:  "projectPrivate",
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Deprecated: "Please use resource \"storage_bucket_acl.predefined_acl\" instead.",
+				Optional:   true,
+				ForceNew:   true,
 			},
 			"location": &schema.Schema{
 				Type:     schema.TypeString,
@@ -69,7 +69,6 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 
 	// Get the bucket and acl
 	bucket := d.Get("name").(string)
-	acl := d.Get("predefined_acl").(string)
 	location := d.Get("location").(string)
 
 	// Create a bucket, setting the acl, location and name.
@@ -95,7 +94,12 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	res, err := config.clientStorage.Buckets.Insert(config.Project, sb).PredefinedAcl(acl).Do()
+	call := config.clientStorage.Buckets.Insert(config.Project, sb)
+	if v, ok := d.GetOk("predefined_acl"); ok {
+		call = call.PredefinedAcl(v.(string))
+	}
+
+	res, err := call.Do()
 
 	if err != nil {
 		fmt.Printf("Error creating bucket %s: %v", bucket, err)
@@ -124,8 +128,8 @@ func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error
 				return fmt.Errorf("At most one website block is allowed")
 			}
 
-			// Setting fields to "" to be explicit that the PATCH call will 
-			// delete this field. 
+			// Setting fields to "" to be explicit that the PATCH call will
+			// delete this field.
 			if len(websites) == 0 {
 				sb.Website.NotFoundPage = ""
 				sb.Website.MainPageSuffix = ""

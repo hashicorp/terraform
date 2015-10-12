@@ -66,7 +66,7 @@ func TestNewInterpolatedVariable(t *testing.T) {
 
 	for i, tc := range cases {
 		actual, err := NewInterpolatedVariable(tc.Input)
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("%d. Error: %s", i, err)
 		}
 		if !reflect.DeepEqual(actual, tc.Result) {

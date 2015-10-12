@@ -2,7 +2,6 @@ package google
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -305,11 +304,9 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 	for i := 0; i < networksCount; i++ {
 		prefix := fmt.Sprintf("network_interface.%d", i)
 
-		source := "global/networks/default"
+		source := "global/networks/"
 		if v, ok := d.GetOk(prefix + ".network"); ok {
-			if v.(string) != "default" {
-				source = v.(string)
-			}
+			source += v.(string)
 		}
 
 		// Build the networkInterface
@@ -401,28 +398,9 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	// Store the ID now
 	d.SetId(instanceTemplate.Name)
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitGlobal,
-	}
-	state := w.Conf()
-	state.Delay = 10 * time.Second
-	state.Timeout = 10 * time.Minute
-	state.MinTimeout = 2 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitGlobal(config, op, "Creating Instance Template")
 	if err != nil {
-		return fmt.Errorf("Error waiting for instance template to create: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
-
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	return resourceComputeInstanceTemplateRead(d, meta)
@@ -467,25 +445,9 @@ func resourceComputeInstanceTemplateDelete(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error deleting instance template: %s", err)
 	}
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitGlobal,
-	}
-	state := w.Conf()
-	state.Delay = 5 * time.Second
-	state.Timeout = 5 * time.Minute
-	state.MinTimeout = 2 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitGlobal(config, op, "Deleting Instance Template")
 	if err != nil {
-		return fmt.Errorf("Error waiting for instance template to delete: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	d.SetId("")
