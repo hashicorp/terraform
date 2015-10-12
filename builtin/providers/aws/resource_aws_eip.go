@@ -27,19 +27,19 @@ func resourceAwsEip() *schema.Resource {
 				ForceNew: true,
 			},
 
-                        "instance": &schema.Schema{
-                                Type:     schema.TypeString,
-                                Optional: true,
-                                Computed: true,
-                        },
+			"instance": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 
-                        "network_interface": &schema.Schema{
-                                Type:     schema.TypeString,
-                                Optional: true,
-                                Computed: true,
-                        },
+			"network_interface": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 
-                        "allocation_id": &schema.Schema{
+			"allocation_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
