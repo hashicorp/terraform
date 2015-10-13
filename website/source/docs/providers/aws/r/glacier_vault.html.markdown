@@ -39,9 +39,7 @@ resource "aws_glacier_vault" "my_archive" {
              "glacier:InitiateJob",
              "glacier:GetJobOutput"
           ],
-          "Resource": [
-             "arn:aws:glacier:eu-west-1:432981146916:vaults/MyArchive"
-          ]
+          "Resource": "arn:aws:glacier:eu-west-1:432981146916:vaults/MyArchive"
        }
     ]
 }
