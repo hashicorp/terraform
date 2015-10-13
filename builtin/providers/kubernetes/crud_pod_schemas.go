@@ -957,3 +957,339 @@ func createImagePullSecrets(_values []interface{}) []api.LocalObjectReference {
 
 	return values
 }
+
+func readStringList(values []string) []interface{} {
+	_values := make([]interface{}, len(values))
+	for i, v := range values {
+		_values[i] = v
+	}
+	return _values
+}
+
+
+func readVolumes(volumes []api.Volume) []interface{} {
+	_volumes := make([]interface{}, len(volumes))
+	for i, v := range volumes {
+		volume := v
+		_volume := make(map[string]interface{})
+
+		_volume["name"] = volume.Name
+
+		_volume_source := make(map[string]interface{})
+
+		if volume.HostPath != nil {
+			_volume_source["host_path"] = readHostPathVolumeSource(volume.HostPath)
+		}
+
+		if volume.EmptyDir != nil {
+			_volume_source["empty_dir"] = readEmptyDirVolumeSource(volume.EmptyDir)
+		}
+
+		if volume.GCEPersistentDisk != nil {
+			_volume_source["gce_persistent_disk"] = readGcePersistentDiskVolumeSource(volume.GCEPersistentDisk)
+		}
+
+		if volume.AWSElasticBlockStore != nil {
+			_volume_source["aws_elastic_block_store"] = readAwsElasticBlockStoreVolumeSource(volume.AWSElasticBlockStore)
+		}
+
+		if volume.GitRepo != nil {
+			_volume_source["git_repo"] = readGitRepoVolumeSource(volume.GitRepo)
+		}
+
+		if volume.Secret != nil {
+			_volume_source["secret"] = readSecretVolumeSource(volume.Secret)
+		}
+
+		if volume.NFS != nil {
+			_volume_source["nfs"] = readNfsVolumeSource(volume.NFS)
+		}
+
+		if volume.ISCSI != nil {
+			_volume_source["iscsi"] = readIscsiVolumeSource(volume.ISCSI)
+		}
+
+		if volume.Glusterfs != nil {
+			_volume_source["gluster_fs"] = readGlusterfsVolumeSource(volume.Glusterfs)
+		}
+
+		if volume.PersistentVolumeClaim != nil {
+			_volume_source["persistent_volume_claim"] = readPersistentVolumeClaimVolumeSource(volume.PersistentVolumeClaim)
+		}
+
+		if volume.Cinder != nil {
+			_volume_source["cinder"] = readCinderVolumeSource(volume.Cinder)
+		}
+
+		if volume.CephFS != nil {
+			_volume_source["ceph_fs"] = readCephFsVolumeSource(volume.CephFS)
+		}
+
+		if volume.Flocker != nil {
+			_volume_source["flocker"] = readFlockerVolumeSource(volume.Flocker)
+		}
+
+		if volume.DownwardAPI != nil {
+			_volume_source["downward_api"] = readDownwardApiVolumeSource(volume.DownwardAPI)
+		}
+
+		if volume.FC != nil {
+			_volume_source["fc"] = readFcVolumeSource(volume.FC)
+		}
+
+		_volume["volume_source"] = _volume_source
+
+		_volumes[i] = _volume
+	}
+
+	return _volumes
+}
+
+func readHostPathVolumeSource(hostPath *api.HostPathVolumeSource) []interface{} {
+	_host_path := make(map[string]interface{})
+
+	_host_path["path"] = hostPath.Path
+
+	_host_paths := make([]interface{}, 1)
+	_host_paths[0] = _host_path
+
+	return _host_paths
+}
+
+func readEmptyDirVolumeSource(emptyDir *api.EmptyDirVolumeSource) []interface{} {
+	_empty_dir := make(map[string]interface{})
+
+	_empty_dir["medium"] = emptyDir.Medium
+
+	_empty_dirs := make([]interface{}, 1)
+	_empty_dirs[0] = _empty_dir
+
+	return _empty_dirs
+}
+
+func readGcePersistentDiskVolumeSource(gcePersistentDisk *api.GCEPersistentDiskVolumeSource) []interface{} {
+	_gce_persistent_disk := make(map[string]interface{})
+
+	_gce_persistent_disk["pd_name"] = gcePersistentDisk.PDName
+	_gce_persistent_disk["fs_type"] = gcePersistentDisk.FSType
+	_gce_persistent_disk["partition"] = gcePersistentDisk.Partition
+	_gce_persistent_disk["read_only"] = gcePersistentDisk.ReadOnly
+
+	_gce_persistent_disks := make([]interface{}, 1)
+	_gce_persistent_disks[0] = _gce_persistent_disk
+
+	return _gce_persistent_disks
+}
+
+func readAwsElasticBlockStoreVolumeSource(awsElasticBlockStore *api.AWSElasticBlockStoreVolumeSource) []interface{} {
+	_aws_elastic_block_store := make(map[string]interface{})
+
+	_aws_elastic_block_store["volume_id"] = awsElasticBlockStore.VolumeID
+	_aws_elastic_block_store["fs_type"] = awsElasticBlockStore.FSType
+	_aws_elastic_block_store["partition"] = awsElasticBlockStore.Partition
+	_aws_elastic_block_store["read_only"] = awsElasticBlockStore.ReadOnly
+
+	_aws_elastic_block_stores := make([]interface{}, 1)
+	_aws_elastic_block_stores[0] = _aws_elastic_block_store
+
+	return _aws_elastic_block_stores
+}
+
+func readGitRepoVolumeSource(gitRepo *api.GitRepoVolumeSource) []interface{} {
+	_git_repo := make(map[string]interface{})
+
+	_git_repo["repository"] = gitRepo.Repository
+	_git_repo["revision"] = gitRepo.Revision
+
+	_git_repos := make([]interface{}, 1)
+	_git_repos[0] = _git_repo
+
+	return _git_repos
+}
+
+func readSecretVolumeSource(secret *api.SecretVolumeSource) []interface{} {
+	_secret := make(map[string]interface{})
+
+	_secret["secret_name"] = secret.SecretName
+
+	_secrets := make([]interface{}, 1)
+	_secrets[0] = _secret
+
+	return _secrets
+}
+
+func readNfsVolumeSource(nfs *api.NFSVolumeSource) []interface{} {
+	_nfs := make(map[string]interface{})
+
+	_nfs["server"] = nfs.Server
+	_nfs["path"] = nfs.Path
+	_nfs["read_only"] = nfs.ReadOnly
+
+	_nfss := make([]interface{}, 1)
+	_nfss[0] = _nfs
+
+	return _nfss
+}
+
+func readIscsiVolumeSource(iscsi *api.ISCSIVolumeSource) []interface{} {
+	_iscsi := make(map[string]interface{})
+
+	_iscsi["target_portal"] = iscsi.TargetPortal
+	_iscsi["iqn"] = iscsi.IQN
+	_iscsi["lun"] = iscsi.Lun
+	_iscsi["fs_type"] = iscsi.FSType
+	_iscsi["read_only"] = iscsi.ReadOnly
+
+	_iscsis := make([]interface{}, 1)
+	_iscsis[0] = _iscsi
+
+	return _iscsis
+}
+
+func readGlusterfsVolumeSource(glusterfs *api.GlusterfsVolumeSource) []interface{} {
+	_glusterfs := make(map[string]interface{})
+
+	_glusterfs["endpoints_name"] = glusterfs.EndpointsName
+	_glusterfs["path"] = glusterfs.Path
+	_glusterfs["read_only"] = glusterfs.ReadOnly
+
+	_glusterfss := make([]interface{}, 1)
+	_glusterfss[0] = _glusterfs
+
+	return _glusterfss
+}
+
+func readPersistentVolumeClaimVolumeSource(persistentVolumeClaim *api.PersistentVolumeClaimVolumeSource) []interface{} {
+	_persistent_volume_claim := make(map[string]interface{})
+
+	_persistent_volume_claim["claim_name"] = persistentVolumeClaim.ClaimName
+	_persistent_volume_claim["read_only"] = persistentVolumeClaim.ReadOnly
+
+	_persistent_volume_claims := make([]interface{}, 1)
+	_persistent_volume_claims[0] = _persistent_volume_claim
+
+	return _persistent_volume_claims
+}
+
+func readRbdVolumeSource(rbd *api.RBDVolumeSource) []interface{} {
+	_rbd := make(map[string]interface{})
+
+	_rbd["ceph_monitors"] = readStringList(rbd.CephMonitors)
+	_rbd["rbd_image"] = rbd.RBDImage
+	_rbd["fs_type"] = rbd.FSType
+	_rbd["rbd_pool"] = rbd.RBDPool
+	_rbd["rados_user"] = rbd.RadosUser
+	_rbd["keyring"] = rbd.Keyring
+	_rbd["secret_ref"] = readLocalObjectReference(rbd.SecretRef)
+	_rbd["read_only"] = rbd.ReadOnly
+
+	_rbds := make([]interface{}, 1)
+	_rbds[0] = _rbd
+
+	return _rbds
+}
+
+func readCinderVolumeSource(cinder *api.CinderVolumeSource) []interface{} {
+	_cinder := make(map[string]interface{})
+
+	_cinder["volume_id"] = cinder.VolumeID
+	_cinder["fs_type"] = cinder.FSType
+	_cinder["read_only"] = cinder.ReadOnly
+
+	_cinders := make([]interface{}, 1)
+	_cinders[0] = _cinder
+
+	return _cinders
+}
+
+func readCephFsVolumeSource(cephFs *api.CephFSVolumeSource) []interface{} {
+	_ceph_fs := make(map[string]interface{})
+
+	_ceph_fs["monitors"] = readStringList(cephFs.Monitors)
+	_ceph_fs["user"] = cephFs.User
+	_ceph_fs["secret_file"] = cephFs.SecretFile
+	_ceph_fs["secret_ref"] = readLocalObjectReference(cephFs.SecretRef)
+	_ceph_fs["read_only"] = cephFs.ReadOnly
+
+	_ceph_fss := make([]interface{}, 1)
+	_ceph_fss[0] = _ceph_fs
+
+	return _ceph_fss
+}
+
+func readFlockerVolumeSource(flocker *api.FlockerVolumeSource) []interface{} {
+	_flocker := make(map[string]interface{})
+
+	_flocker["dataset_name"] = flocker.DatasetName
+
+	_flockers := make([]interface{}, 1)
+	_flockers[0] = _flocker
+
+	return _flockers
+}
+
+func readDownwardApiVolumeSource(downwardApi *api.DownwardAPIVolumeSource) []interface{} {
+	_downward_api := make(map[string]interface{})
+
+	_downward_api["items"] = readDownwardApiVolumeFiles(downwardApi.Items)
+
+	_downward_apis := make([]interface{}, 1)
+	_downward_apis[0] = _downward_api
+
+	return _downward_apis
+}
+
+func readDownwardApiVolumeFiles(volumeFiles []api.DownwardAPIVolumeFile) []interface{} {
+	_volume_files := make([]interface{}, len(volumeFiles))
+	for i, v := range volumeFiles {
+		volumeFile := v
+		_volume_file := make(map[string]interface{})
+
+		_volume_file["path"] = volumeFile.Path
+		_volume_file["field_ref"] = readObjectFieldSelector(&volumeFile.FieldRef)
+
+		_volume_files[i] = _volume_file
+	}
+
+	return _volume_files
+}
+
+func readFcVolumeSource(fc *api.FCVolumeSource) []interface{} {
+	_fc := make(map[string]interface{})
+
+	_fc["target_wwns"] = readStringList(fc.TargetWWNs)
+	_fc["lun"] = *fc.Lun
+	_fc["fs_type"] = fc.FSType
+	_fc["read_only"] = fc.ReadOnly
+
+	_fcs := make([]interface{}, 1)
+	_fcs[0] = _fc
+
+	return _fcs
+}
+
+func readLocalObjectReference(localObjectReference *api.LocalObjectReference) []interface{} {
+	_local_object_reference := make(map[string]interface{})
+
+	_local_object_reference["name"] = localObjectReference.Name
+
+	_local_object_references := make([]interface{}, 1)
+	_local_object_references[0] = _local_object_reference
+
+	return _local_object_references
+}
+
+func readObjectFieldSelector(fieldRefs *api.ObjectFieldSelector) []interface{} {
+	if fieldRefs == nil {
+		return nil
+	} else {
+		_field_ref := make(map[string]interface{})
+		_field_ref["api_version"] = fieldRefs.APIVersion
+		_field_ref["field_path"] = fieldRefs.FieldPath
+
+		_field_refs := make([]interface{}, 1)
+		_field_refs[0] = _field_ref
+
+		return _field_refs
+	}
+}
