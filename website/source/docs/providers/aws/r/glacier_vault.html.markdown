@@ -10,24 +10,23 @@ description: |-
 
 Provides a Glacier Vault Resource. You can refer to the [Glacier Developer Guide](http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-vaults.html) for a full explanation of the Glacier Vault functionality
 
-~> **NOTE:** When trying to remove a Glacier Vault, the Vault must be empty. 
+~> **NOTE:** When trying to remove a Glacier Vault, the Vault must be empty.
 
 ## Example Usage
 
 ```
-
 resource "aws_sns_topic" "aws_sns_topic" {
   name = "glacier-sns-topic"
 }
 
 resource "aws_glacier_vault" "my_archive" {
     name = "MyArchive"
-    
+
     notification {
       sns_topic = "${aws_sns_topic.aws_sns_topic.arn}"
       events = ["ArchiveRetrievalCompleted","InventoryRetrievalCompleted"]
     }
-    
+
     access_policy = <<EOF
 {
     "Version":"2012-10-17",
@@ -49,7 +48,7 @@ resource "aws_glacier_vault" "my_archive" {
 EOF
 
     tags {
-      Test="MyArchive"
+      Test = "MyArchive"
     }
 }
 ```
