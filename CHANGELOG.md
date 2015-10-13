@@ -19,6 +19,7 @@ FEATURES:
   * **New resource: `aws_directory_service_directory`** [GH-3228]
   * **New resource: `aws_autoscaling_lifecycle_hook`** [GH-3351]
   * **New resource: `aws_placement_group`** [GH-3457]
+  * **New resource: `aws_glacier_vault`** [GH-3491]
 
 IMPROVEMENTS:
 
