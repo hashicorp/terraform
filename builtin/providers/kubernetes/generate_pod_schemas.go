@@ -18,7 +18,7 @@ func validateIsStruct(v interface{}, k string) (ws []string, es []error) {
 }
 
 
-func genSecretRef() *schema.Schema {
+func genLocalObjectReference() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
 		Optional: true,
@@ -321,7 +321,7 @@ func genRbdVolumeSource() *schema.Schema {
 					Optional: true,
 				},
 
-				"secret_ref": genSecretRef(),
+				"secret_ref": genLocalObjectReference(),
 
 				"read_only": &schema.Schema{
 					Type:     schema.TypeBool,
@@ -379,7 +379,7 @@ func genCephVolumeSource() *schema.Schema {
 					Optional: true,
 				},
 
-				"secret_ref": genSecretRef(),
+				"secret_ref": genLocalObjectReference(),
 
 				"read_only": &schema.Schema{
 					Type:     schema.TypeBool,
@@ -963,21 +963,6 @@ func genPodSecurityContext() *schema.Schema {
 
 				"host_ipc": &schema.Schema{
 					Type:     schema.TypeBool,
-					Optional: true,
-				},
-			},
-		},
-	}
-}
-
-func genLocalObjectReference() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"name": &schema.Schema{
-					Type:     schema.TypeString,
 					Optional: true,
 				},
 			},

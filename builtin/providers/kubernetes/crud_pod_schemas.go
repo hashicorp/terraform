@@ -14,6 +14,514 @@ func createStringList(_values []interface{}) []string {
 	return values
 }
 
+func createVolumes(_volumes []interface{}) []api.Volume {
+	volumes := make([]api.Volume, len(_volumes))
+	for i, v := range _volumes {
+		_volume := v.(map[string]interface{})
+		volume := api.Volume{}
+
+		volume.Name = _volume["name"].(string)
+
+		volumeSource := createVolumeSource(_volume["volume_source"].([]interface{}))
+
+		if volumeSource != nil {
+			volume.HostPath = volumeSource.HostPath
+			volume.EmptyDir = volumeSource.EmptyDir
+			volume.GCEPersistentDisk = volumeSource.GCEPersistentDisk
+			volume.AWSElasticBlockStore = volumeSource.AWSElasticBlockStore
+			volume.GitRepo = volumeSource.GitRepo
+			volume.Secret = volumeSource.Secret
+			volume.NFS = volumeSource.NFS
+			volume.ISCSI = volumeSource.ISCSI
+			volume.Glusterfs = volumeSource.Glusterfs
+			volume.PersistentVolumeClaim = volumeSource.PersistentVolumeClaim
+			volume.Cinder = volumeSource.Cinder
+			volume.CephFS = volumeSource.CephFS
+			volume.Flocker = volumeSource.Flocker
+			volume.DownwardAPI = volumeSource.DownwardAPI
+			volume.FC = volumeSource.FC
+		}
+
+		volumes[i] = volume
+	}
+
+	return volumes
+}
+
+func createVolumeSource(_volume_sources []interface{}) *api.VolumeSource {
+	if len(_volume_sources) == 0 {
+		return nil
+	} else {
+		_volume_source := _volume_sources[0].(map[string]interface{})
+		volumeSource := &api.VolumeSource{}
+
+		if val, ok := _volume_source["host_path"]; ok {
+			volumeSource.HostPath = createHostPathVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["empty_dir"]; ok {
+			volumeSource.EmptyDir = createEmptyDirVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["gce_persistent_disk"]; ok {
+			volumeSource.GCEPersistentDisk = createGcePersistentDiskVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["aws_elastic_block_store"]; ok {
+			volumeSource.AWSElasticBlockStore = createAwsElasticBlockStoreVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["git_repo"]; ok {
+			volumeSource.GitRepo = createGitRepoVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["sercret"]; ok {
+			volumeSource.Secret = createSecretVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["nfs"]; ok {
+			volumeSource.NFS = createNfsVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["iscsi"]; ok {
+			volumeSource.ISCSI = createIscsiVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["gluster_fs"]; ok {
+			volumeSource.Glusterfs = createGlusterfsVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["persistent_volume_claim"]; ok {
+			volumeSource.PersistentVolumeClaim = createPersistentVolumeClaimVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["cinder"]; ok {
+			volumeSource.Cinder = createCinderVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["cephfs"]; ok {
+			volumeSource.CephFS = createCephFsVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["flocker"]; ok {
+			volumeSource.Flocker = createFlockerVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["downward_api"]; ok {
+			volumeSource.DownwardAPI = createDownwardApiVolumeSource(val.([]interface{}))
+		}
+
+		if val, ok := _volume_source["fc"]; ok {
+			volumeSource.FC = createFcVolumeSource(val.([]interface{}))
+		}
+
+		return volumeSource
+	}
+}
+
+func createLocalObjectReference(_local_object_references []interface{}) *api.LocalObjectReference {
+	if len(_local_object_references) == 0 {
+		return nil
+	} else {
+		_local_object_reference := _local_object_references[0].(map[string]interface{})
+		localObjectReference := &api.LocalObjectReference{}
+
+		if val, ok := _local_object_reference["name"]; ok {
+			localObjectReference.Name = val.(string)
+		}
+
+		return localObjectReference
+	}
+}
+
+func createHostPathVolumeSource(_host_paths []interface{}) *api.HostPathVolumeSource {
+	if len(_host_paths) == 0 {
+		return nil
+	} else {
+		_host_path := _host_paths[0].(map[string]interface{})
+		hostPath := &api.HostPathVolumeSource{}
+
+		if val, ok := _host_path["path"]; ok {
+			hostPath.Path = val.(string)
+		}
+
+		return hostPath
+	}
+}
+
+func createEmptyDirVolumeSource(_empty_dirs []interface{}) *api.EmptyDirVolumeSource {
+	if len(_empty_dirs) == 0 {
+		return nil
+	} else {
+		_empty_dir := _empty_dirs[0].(map[string]interface{})
+		emptyDir := &api.EmptyDirVolumeSource{}
+
+		if val, ok := _empty_dir["medium"]; ok {
+			emptyDir.Medium = api.StorageMedium(val.(string))
+		}
+
+		return emptyDir
+	}
+}
+
+func createGcePersistentDiskVolumeSource(_gce_persistent_disks []interface{}) *api.GCEPersistentDiskVolumeSource {
+	if len(_gce_persistent_disks) == 0 {
+		return nil
+	} else {
+		_gce_persistent_disk := _gce_persistent_disks[0].(map[string]interface{})
+		gcePersistentDisk := &api.GCEPersistentDiskVolumeSource{}
+
+		if val, ok := _gce_persistent_disk["pd_name"]; ok {
+			gcePersistentDisk.PDName = val.(string)
+		}
+
+		if val, ok := _gce_persistent_disk["fs_type"]; ok {
+			gcePersistentDisk.FSType = val.(string)
+		}
+
+		if val, ok := _gce_persistent_disk["partition"]; ok {
+			gcePersistentDisk.Partition = val.(int)
+		}
+
+		if val, ok := _gce_persistent_disk["read_only"]; ok {
+			gcePersistentDisk.ReadOnly = val.(bool)
+		}
+
+		return gcePersistentDisk
+	}
+}
+
+func createAwsElasticBlockStoreVolumeSource(_aws_elastic_block_stores []interface{}) *api.AWSElasticBlockStoreVolumeSource {
+	if len(_aws_elastic_block_stores) == 0 {
+		return nil
+	} else {
+		_aws_elastic_block_store := _aws_elastic_block_stores[0].(map[string]interface{})
+		awsElasticBlockStore := &api.AWSElasticBlockStoreVolumeSource{}
+
+		if val, ok := _aws_elastic_block_store["volume_id"]; ok {
+			awsElasticBlockStore.VolumeID = val.(string)
+		}
+
+		if val, ok := _aws_elastic_block_store["fs_type"]; ok {
+			awsElasticBlockStore.FSType = val.(string)
+		}
+
+		if val, ok := _aws_elastic_block_store["partition"]; ok {
+			awsElasticBlockStore.Partition = val.(int)
+		}
+
+		if val, ok := _aws_elastic_block_store["read_only"]; ok {
+			awsElasticBlockStore.ReadOnly = val.(bool)
+		}
+
+		return awsElasticBlockStore
+	}
+}
+
+func createGitRepoVolumeSource(_git_repos []interface{}) *api.GitRepoVolumeSource {
+	if len(_git_repos) == 0 {
+		return nil
+	} else {
+		_git_repo := _git_repos[0].(map[string]interface{})
+		gitRepo := &api.GitRepoVolumeSource{}
+
+		if val, ok := _git_repo["repository"]; ok {
+			gitRepo.Repository = val.(string)
+		}
+
+		if val, ok := _git_repo["revision"]; ok {
+			gitRepo.Revision = val.(string)
+		}
+
+		return gitRepo
+	}
+}
+
+func createSecretVolumeSource(_secrets []interface{}) *api.SecretVolumeSource {
+	if len(_secrets) == 0 {
+		return nil
+	} else {
+		_secret := _secrets[0].(map[string]interface{})
+		secret := &api.SecretVolumeSource{}
+
+		if val, ok := _secret["secret_name"]; ok {
+			secret.SecretName = val.(string)
+		}
+
+		return secret
+	}
+}
+
+func createNfsVolumeSource(_nfss []interface{}) *api.NFSVolumeSource {
+	if len(_nfss) == 0 {
+		return nil
+	} else {
+		_nfs := _nfss[0].(map[string]interface{})
+		nfs := &api.NFSVolumeSource{}
+
+		if val, ok := _nfs["server"]; ok {
+			nfs.Server = val.(string)
+		}
+
+		if val, ok := _nfs["path"]; ok {
+			nfs.Path = val.(string)
+		}
+
+		if val, ok := _nfs["read_only"]; ok {
+			nfs.ReadOnly = val.(bool)
+		}
+
+		return nfs
+	}
+}
+
+func createIscsiVolumeSource(_iscsis []interface{}) *api.ISCSIVolumeSource {
+	if len(_iscsis) == 0 {
+		return nil
+	} else {
+		_iscsi := _iscsis[0].(map[string]interface{})
+		iscsi := &api.ISCSIVolumeSource{}
+
+		if val, ok := _iscsi["target_portal"]; ok {
+			iscsi.TargetPortal = val.(string)
+		}
+
+		if val, ok := _iscsi["iqn"]; ok {
+			iscsi.IQN = val.(string)
+		}
+
+		if val, ok := _iscsi["lun"]; ok {
+			iscsi.Lun = val.(int)
+		}
+
+		if val, ok := _iscsi["fs_type"]; ok {
+			iscsi.FSType = val.(string)
+		}
+
+		if val, ok := _iscsi["read_only"]; ok {
+			iscsi.ReadOnly = val.(bool)
+		}
+
+		return iscsi
+	}
+}
+
+func createGlusterfsVolumeSource(_glusterfss []interface{}) *api.GlusterfsVolumeSource {
+	if len(_glusterfss) == 0 {
+		return nil
+	} else {
+		_glusterfs := _glusterfss[0].(map[string]interface{})
+		glusterfs := &api.GlusterfsVolumeSource{}
+
+		if val, ok := _glusterfs["endpoints_name"]; ok {
+			glusterfs.EndpointsName = val.(string)
+		}
+
+		if val, ok := _glusterfs["path"]; ok {
+			glusterfs.Path = val.(string)
+		}
+
+		if val, ok := _glusterfs["read_only"]; ok {
+			glusterfs.ReadOnly = val.(bool)
+		}
+
+		return glusterfs
+	}
+}
+
+func createPersistentVolumeClaimVolumeSource(_persistent_volume_claims []interface{}) *api.PersistentVolumeClaimVolumeSource {
+	if len(_persistent_volume_claims) == 0 {
+		return nil
+	} else {
+		_persistent_volume_claim := _persistent_volume_claims[0].(map[string]interface{})
+		persistentVolumeClaim := &api.PersistentVolumeClaimVolumeSource{}
+
+		if val, ok := _persistent_volume_claim["claim_name"]; ok {
+			persistentVolumeClaim.ClaimName = val.(string)
+		}
+
+		if val, ok := _persistent_volume_claim["read_only"]; ok {
+			persistentVolumeClaim.ReadOnly = val.(bool)
+		}
+
+		return persistentVolumeClaim
+	}
+}
+
+func createRbdVolumeSource(_rbds []interface{}) *api.RBDVolumeSource {
+	if len(_rbds) == 0 {
+		return nil
+	} else {
+		_rbd := _rbds[0].(map[string]interface{})
+		rbd := &api.RBDVolumeSource{}
+
+		if val, ok := _rbd["ceph_monitors"]; ok {
+			rbd.CephMonitors = createStringList(val.([]interface{}))
+		}
+
+		if val, ok := _rbd["rbd_image"]; ok {
+			rbd.RBDImage = val.(string)
+		}
+
+		if val, ok := _rbd["fs_type"]; ok {
+			rbd.FSType = val.(string)
+		}
+
+		if val, ok := _rbd["rbd_pool"]; ok {
+			rbd.RBDPool = val.(string)
+		}
+
+		if val, ok := _rbd["rados_user"]; ok {
+			rbd.RadosUser = val.(string)
+		}
+
+		if val, ok := _rbd["keyring"]; ok {
+			rbd.Keyring = val.(string)
+		}
+
+		if val, ok := _rbd["secret_ref"]; ok {
+			rbd.SecretRef = createLocalObjectReference(val.([]interface{}))
+		}
+
+		if val, ok := _rbd["read_only"]; ok {
+			rbd.ReadOnly = val.(bool)
+		}
+
+		return rbd
+	}
+}
+
+func createCinderVolumeSource(_cinders []interface{}) *api.CinderVolumeSource {
+	if len(_cinders) == 0 {
+		return nil
+	} else {
+		_cinder := _cinders[0].(map[string]interface{})
+		cinder := &api.CinderVolumeSource{}
+
+		if val, ok := _cinder["volume_id"]; ok {
+			cinder.VolumeID = val.(string)
+		}
+
+		if val, ok := _cinder["fs_type"]; ok {
+			cinder.FSType = val.(string)
+		}
+
+		if val, ok := _cinder["read_only"]; ok {
+			cinder.ReadOnly = val.(bool)
+		}
+
+		return cinder
+	}
+}
+
+func createCephFsVolumeSource(_ceph_fss []interface{}) *api.CephFSVolumeSource {
+	if len(_ceph_fss) == 0 {
+		return nil
+	} else {
+		_ceph_fs := _ceph_fss[0].(map[string]interface{})
+		cephFs := &api.CephFSVolumeSource{}
+
+		if val, ok := _ceph_fs["monitors"]; ok {
+			cephFs.Monitors = createStringList(val.([]interface{}))
+		}
+
+		if val, ok := _ceph_fs["user"]; ok {
+			cephFs.User = val.(string)
+		}
+
+		if val, ok := _ceph_fs["secret_file"]; ok {
+			cephFs.SecretFile = val.(string)
+		}
+
+		if val, ok := _ceph_fs["secret_ref"]; ok {
+			cephFs.SecretRef = createLocalObjectReference(val.([]interface{}))
+		}
+
+		if val, ok := _ceph_fs["read_only"]; ok {
+			cephFs.ReadOnly = val.(bool)
+		}
+
+		return cephFs
+	}
+}
+
+func createFlockerVolumeSource(_flockers []interface{}) *api.FlockerVolumeSource {
+	if len(_flockers) == 0 {
+		return nil
+	} else {
+		_flocker := _flockers[0].(map[string]interface{})
+		flocker := &api.FlockerVolumeSource{}
+
+		if val, ok := _flocker["dataset_name"]; ok {
+			flocker.DatasetName = val.(string)
+		}
+
+		return flocker
+	}
+}
+
+func createDownwardApiVolumeSource(_downward_apis []interface{}) *api.DownwardAPIVolumeSource {
+	if len(_downward_apis) == 0 {
+		return nil
+	} else {
+		_downward_api := _downward_apis[0].(map[string]interface{})
+		downwardApi := &api.DownwardAPIVolumeSource{}
+
+		if val, ok := _downward_api["items"]; ok {
+			downwardApi.Items = createDownwardApiVolumeFiles(val.([]interface{}))
+		}
+
+		return downwardApi
+	}
+}
+
+func createDownwardApiVolumeFiles(_volume_files []interface{}) []api.DownwardAPIVolumeFile {
+	volumeFiles := make([]api.DownwardAPIVolumeFile, len(_volume_files))
+	for i, v := range _volume_files {
+		volumeFile := api.DownwardAPIVolumeFile{}
+		_volume_file := v.(map[string]interface{})
+
+		volumeFile.Path = _volume_file["path"].(string)
+
+		fieldRef := createObjectFieldSelector(_volume_file["field_ref"].([]interface{}))
+		if fieldRef != nil {
+			volumeFile.FieldRef = *fieldRef
+		}
+
+		volumeFiles[i] = volumeFile
+	}
+
+	return volumeFiles
+}
+
+func createFcVolumeSource(_fcs []interface{}) *api.FCVolumeSource {
+	if len(_fcs) == 0 {
+		return nil
+	} else {
+		_fc := _fcs[0].(map[string]interface{})
+		fc := &api.FCVolumeSource{}
+
+		if val, ok := _fc["target_wwns"]; ok {
+			fc.TargetWWNs = createStringList(val.([]interface{}))
+		}
+
+		if val, ok := _fc["lun"]; ok {
+			v := val.(int)
+			fc.Lun = &v
+		}
+
+		if val, ok := _fc["fs_type"]; ok {
+			fc.FSType = val.(string)
+		}
+
+		if val, ok := _fc["read_only"]; ok {
+			fc.ReadOnly = val.(bool)
+		}
+
+		return fc
+	}
+}
+
 func createContainers(_containers []interface{}) []api.Container {
 	containers := make([]api.Container, len(_containers))
 	for i, v := range _containers {

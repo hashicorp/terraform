@@ -86,60 +86,46 @@ func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error
 
 	spec := &api.PodSpec{}
 
-	if res, err := createVolumes(d.Get("volume")); err == nil {
-		spec.Volumes = res
-	} else {
-		return err
-	}
+	spec.Volumes = createVolumes(d.Get("volume").([]interface{}))
 
 	spec.Containers = createContainers(d.Get("container").([]interface{}))
 
-	if res, err := createDnsPolicy(d.Get("dns_policy")); err == nil {
-		spec.DNSPolicy = res
-	} else {
-		return err
+	if v, ok := d.GetOk("dns_policy"); ok {
+		spec.DNSPolicy = api.DNSPolicy(v.(string))
 	}
 
-	if res, err := createNodeSelector(d.Get("node_selector")); err == nil {
-		spec.NodeSelector = res
-	} else {
-		return err
+	if v, ok := d.GetOk("node_selector"); ok {
+		spec.NodeSelector = createNodeSelector(v.(map[string]interface{}))
 	}
 
-	if v, ok := d.GetOk("restart_policy") {
-		spec.RestartPolicy = v.(string)
+	if v, ok := d.GetOk("restart_policy"); ok {
+		spec.RestartPolicy = api.RestartPolicy(v.(string))
 	}
 
-	if v, ok := d.GetOk("termination_grace_period_seconds") {
-		spec.TeriminationGracePeriodSecons = &(int64(v.(int)))
+	if v, ok := d.GetOk("termination_grace_period_seconds"); ok {
+		val := int64(v.(int))
+		spec.TerminationGracePeriodSeconds = &val
 	}
 
-	if v, ok := d.GetOk("active_deadline_seconds") {
-		spec.ActiveDeadlineSeconds = &(int64(v.(int)))
+	if v, ok := d.GetOk("active_deadline_seconds"); ok {
+		val := int64(v.(int))
+		spec.ActiveDeadlineSeconds = &val
 	}
 
-	if v, ok := d.GetOk("service_account_name") {
+	if v, ok := d.GetOk("service_account_name"); ok {
 		spec.ServiceAccountName = v.(string)
 	}
 
-	if v, ok := d.GetOk("node_name") {
+	if v, ok := d.GetOk("node_name"); ok {
 		spec.NodeName = v.(string)
 	}
 
-	if v, ok := d.GetOk("security_context") {
-		if res, err := createSecurityContext(v); err == nil {
-			spec.SecurityContext = res
-		} else {
-			return err
-		}
+	if v, ok := d.GetOk("security_context"); ok {
+		spec.SecurityContext = createPodSecurityContext(v)
 	}
 
-	if v, ok := d.GetOk("image_pull_secret") {
-		if res, err := createImagePullSecret(v); err == nil {
-			sepc.ImagePullSecret = res
-		} else {
-			return err
-		}
+	if v, ok := d.GetOk("image_pull_secret"); ok {
+		spec.ImagePullSecret = createImagePullSecret(v)
 	}
 
 
@@ -174,17 +160,6 @@ func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error
 func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 	pod, err := c.Pods(d.Get("namespace").(string)).Get(d.Get("name").(string))
-	if err != nil {
-		return err
-	}
-
-	spec, err := flattenPodSpec(pod.Spec)
-	if err != nil {
-		return err
-	}
-	d.Set("spec", spec)
-	d.Set("labels", pod.Labels)
-	d.Set("spec", pod.Spec)
 
 	return nil
 }
@@ -192,10 +167,6 @@ func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
 func resourceKubernetesPodUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 
-	spec, err := expandPodSpec(d.Get("spec").(string))
-	if err != nil {
-		return err
-	}
 
 	l := d.Get("labels").(map[string]interface{})
 	labels := make(map[string]string, len(l))
