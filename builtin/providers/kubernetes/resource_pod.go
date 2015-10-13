@@ -84,7 +84,7 @@ func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error
 
 	_name := d.Get("name").(string)
 
-	spec := &api.PodSpec{}
+	spec := api.PodSpec{}
 
 	spec.Volumes = createVolumes(d.Get("volume").([]interface{}))
 
@@ -121,17 +121,16 @@ func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if v, ok := d.GetOk("security_context"); ok {
-		spec.SecurityContext = createPodSecurityContext(v)
+		spec.SecurityContext = createPodSecurityContext(v.([]interface{}))
 	}
 
 	if v, ok := d.GetOk("image_pull_secret"); ok {
-		spec.ImagePullSecret = createImagePullSecret(v)
+		spec.ImagePullSecrets = createImagePullSecrets(v.([]interface{}))
 	}
-
 
 	_labels := d.Get("labels").(map[string]interface{})
 	labels := make(map[string]string, len(_labels))
-	for k, v := range _labels{
+	for k, v := range _labels {
 		labels[k] = v.(string)
 	}
 
@@ -167,7 +166,6 @@ func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
 func resourceKubernetesPodUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 
-
 	l := d.Get("labels").(map[string]interface{})
 	labels := make(map[string]string, len(l))
 	for k, v := range l {
@@ -182,7 +180,7 @@ func resourceKubernetesPodUpdate(d *schema.ResourceData, meta interface{}) error
 		Spec: spec,
 	}
 
-	_, err = c.Pods(d.Get("namespace").(string)).Update(&req)
+	_, err := c.Pods(d.Get("namespace").(string)).Update(&req)
 	if err != nil {
 		return err
 	}

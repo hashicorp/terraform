@@ -17,7 +17,6 @@ func validateIsStruct(v interface{}, k string) (ws []string, es []error) {
 	return
 }
 
-
 func genLocalObjectReference() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
@@ -953,16 +952,19 @@ func genPodSecurityContext() *schema.Schema {
 			Schema: map[string]*schema.Schema{
 				"host_network": &schema.Schema{
 					Type:     schema.TypeBool,
+					Default:  false,
 					Optional: true,
 				},
 
 				"host_pid": &schema.Schema{
 					Type:     schema.TypeBool,
+					Default:  false,
 					Optional: true,
 				},
 
 				"host_ipc": &schema.Schema{
 					Type:     schema.TypeBool,
+					Default:  false,
 					Optional: true,
 				},
 			},

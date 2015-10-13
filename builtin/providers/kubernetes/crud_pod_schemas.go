@@ -689,7 +689,7 @@ func createResourceRequirements(_resource_reqs []interface{}) *api.ResourceRequi
 
 func createResourceList(_resource_list map[string]interface{}) map[api.ResourceName]resource.Quantity {
 	resource_list := make(map[api.ResourceName]resource.Quantity, len(_resource_list))
-	for k, v := range(_resource_list) {
+	for k, v := range _resource_list {
 		if q, err := resource.ParseQuantity(v.(string)); err == nil && q != nil {
 			resource_list[api.ResourceName(k)] = *q
 		}
@@ -820,9 +820,9 @@ func createLifecycle(_lifecycles []interface{}) *api.Lifecycle {
 		return nil
 	} else {
 		_lifecycle := _lifecycles[0].(map[string]interface{})
-		return &api.Lifecycle {
+		return &api.Lifecycle{
 			PostStart: createHandler(_lifecycle["post_start"].([]interface{})),
-			PreStop: createHandler(_lifecycle["pre_stop"].([]interface{})),
+			PreStop:   createHandler(_lifecycle["pre_stop"].([]interface{})),
 		}
 	}
 }
@@ -912,4 +912,48 @@ func createSeLinuxOptions(_se_linux_options []interface{}) *api.SELinuxOptions {
 
 		return seLinuxOption
 	}
+}
+
+func createNodeSelector(_node_selector map[string]interface{}) map[string]string {
+	nodeSelector := make(map[string]string, len(_node_selector))
+	for k, v := range _node_selector {
+		nodeSelector[k] = v.(string)
+	}
+
+	return nodeSelector
+}
+
+func createPodSecurityContext(_pod_security_contexts []interface{}) *api.PodSecurityContext {
+	if len(_pod_security_contexts) == 0 {
+		return nil
+	} else {
+		_pod_security_context := _pod_security_contexts[0].(map[string]interface{})
+		podSecurityContext := &api.PodSecurityContext{}
+
+		if val, ok := _pod_security_context["host_network"]; ok {
+			podSecurityContext.HostNetwork = val.(bool)
+		}
+
+		if val, ok := _pod_security_context["host_pid"]; ok {
+			podSecurityContext.HostPID = val.(bool)
+		}
+
+		if val, ok := _pod_security_context["host_ipc"]; ok {
+			podSecurityContext.HostIPC = val.(bool)
+		}
+
+		return podSecurityContext
+	}
+}
+
+func createImagePullSecrets(_values []interface{}) []api.LocalObjectReference {
+	values := make([]api.LocalObjectReference, len(_values))
+	for i, v := range _values {
+		objectReference := createLocalObjectReference(v.([]interface{}))
+		if objectReference != nil {
+			values[i] = *objectReference
+		}
+	}
+
+	return values
 }
