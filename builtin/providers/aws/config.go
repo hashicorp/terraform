@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -67,6 +68,7 @@ type AWSClient struct {
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
 	opsworksconn       *opsworks.OpsWorks
+	glacierconn        *glacier.Glacier
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -184,6 +186,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing Directory Service connection")
 		client.dsconn = directoryservice.New(awsConfig)
+
+		log.Println("[INFO] Initializing Glacier connection")
+		client.glacierconn = glacier.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
