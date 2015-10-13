@@ -64,22 +64,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Certificate:    []byte(d.Get("certificate").(string)),
 	}
 
-	settings := d.Get("settings_file").(string)
-
-	if settings != "" {
-		if ok, _ := isFile(settings); ok {
-			settingsFile, err := homedir.Expand(settings)
-			if err != nil {
-				return nil, fmt.Errorf("Error expanding the settings file path: %s", err)
-			}
-			publishSettingsContent, err := ioutil.ReadFile(settingsFile)
-			if err != nil {
-				return nil, fmt.Errorf("Error reading settings file: %s", err)
-			}
-			config.Settings = publishSettingsContent
-		} else {
-			config.Settings = []byte(settings)
-		}
+	settingsFile := d.Get("settings_file").(string)
+	if settingsFile != "" {
+		// any errors from readSettings would have been caught at the validate
+		// step, so we can avoid handling them now
+		settings, _, _ := readSettings(settingsFile)
+		config.Settings = settings
 		return config.NewClientFromSettingsData()
 	}
 
@@ -92,31 +82,39 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 			"or both a 'subscription_id' and 'certificate'.")
 }
 
-func validateSettingsFile(v interface{}, k string) (warnings []string, errors []error) {
+func validateSettingsFile(v interface{}, k string) ([]string, []error) {
 	value := v.(string)
-
 	if value == "" {
-		return
+		return nil, nil
 	}
 
-	var settings settingsData
-	if err := xml.Unmarshal([]byte(value), &settings); err != nil {
-		warnings = append(warnings, `
+	_, warnings, errors := readSettings(value)
+	return warnings, errors
+}
+
+const settingsPathWarnMsg = `
 settings_file is not valid XML, so we are assuming it is a file path. This
 support will be removed in the future. Please update your configuration to use
-${file("filename.publishsettings")} instead.`)
-	} else {
+${file("filename.publishsettings")} instead.`
+
+func readSettings(pathOrContents string) (s []byte, ws []string, es []error) {
+	var settings settingsData
+	if err := xml.Unmarshal([]byte(pathOrContents), &settings); err == nil {
+		s = []byte(pathOrContents)
 		return
 	}
 
-	if ok, err := isFile(value); !ok {
-		errors = append(errors,
-			fmt.Errorf(
-				"account_file path could not be read from '%s': %s",
-				value,
-				err))
+	ws = append(ws, settingsPathWarnMsg)
+	path, err := homedir.Expand(pathOrContents)
+	if err != nil {
+		es = append(es, fmt.Errorf("Error expanding path: %s", err))
+		return
 	}
 
+	s, err = ioutil.ReadFile(path)
+	if err != nil {
+		es = append(es, fmt.Errorf("Could not read file '%s': %s", path, err))
+	}
 	return
 }
 
