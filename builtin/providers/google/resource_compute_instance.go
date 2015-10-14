@@ -197,9 +197,10 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     schema.TypeString,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				Elem:         schema.TypeString,
+				ValidateFunc: validateInstanceMetadata,
 			},
 
 			"service_account": &schema.Schema{
@@ -516,15 +517,15 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	md := instance.Metadata
 
 	_md := MetadataFormatSchema(md)
+	delete(_md, "startup-script")
+
 	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
 		d.Set("metadata_startup_script", script)
-		delete(_md, "startup-script")
 	}
 
 	if err = d.Set("metadata", _md); err != nil {
 		return fmt.Errorf("Error setting metadata: %s", err)
 	}
-
 
 	d.Set("can_ip_forward", instance.CanIpForward)
 
@@ -671,7 +672,6 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			n.(map[string]interface{})["startup-script"] = script
 		}
 
-
 		updateMD := func() error {
 			// Reload the instance in the case of a fingerprint mismatch
 			instance, err = getInstance(config, d)
@@ -810,13 +810,8 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 func resourceInstanceMetadata(d *schema.ResourceData) (*compute.Metadata, error) {
 	m := &compute.Metadata{}
 	mdMap := d.Get("metadata").(map[string]interface{})
-	_, mapScriptExists := mdMap["startup-script"]
-	dScript, dScriptExists := d.GetOk("metadata_startup_script")
-	if mapScriptExists && dScriptExists {
-		return nil, fmt.Errorf("Not allowed to have both metadata_startup_script and metadata.startup-script")
-	}
-	if dScriptExists {
-		mdMap["startup-script"] = dScript
+	if v, ok := d.GetOk("metadata_startup_script"); ok && v.(string) != "" {
+		mdMap["startup-script"] = v
 	}
 	if len(mdMap) > 0 {
 		m.Items = make([]*compute.MetadataItems, 0, len(mdMap))
@@ -851,4 +846,13 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	}
 
 	return tags
+}
+
+func validateInstanceMetadata(v interface{}, k string) (ws []string, es []error) {
+	mdMap := v.(map[string]interface{})
+	if _, ok := mdMap["startup-script"]; ok {
+		es = append(es, fmt.Errorf(
+			"Use metadata_startup_script instead of a startup-script key in %q.", k))
+	}
+	return
 }
