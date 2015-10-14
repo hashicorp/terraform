@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/hashicorp/middleman-hashicorp
-  revision: fc131cfce2a1d5c8671812d9844a944ebb4bd92f
+  revision: b152b6436348e8e1f9990436228b25b4c5c6fcb8
   specs:
     middleman-hashicorp (0.1.0)
       bootstrap-sass (~> 3.3)
@@ -76,7 +76,7 @@ GEM
     http_parser.rb (0.6.0)
     i18n (0.7.0)
     json (1.8.3)
-    kramdown (1.8.0)
+    kramdown (1.9.0)
     less (2.6.0)
       commonjs (~> 0.2.7)
     libv8 (3.16.14.11)
@@ -148,10 +148,10 @@ GEM
     rb-fsevent (0.9.6)
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)
-    redcarpet (3.3.2)
+    redcarpet (3.3.3)
     ref (2.0.0)
     rouge (1.10.1)
-    sass (3.4.18)
+    sass (3.4.19)
     sprockets (2.12.4)
       hike (~> 1.2)
       multi_json (~> 1.0)
@@ -186,3 +186,6 @@ PLATFORMS
 
 DEPENDENCIES
   middleman-hashicorp!
+
+BUNDLED WITH
+   1.10.6
