@@ -118,13 +118,14 @@ func (p *MockResourceProvider) Apply(
 	info *InstanceInfo,
 	state *InstanceState,
 	diff *InstanceDiff) (*InstanceState, error) {
+	// We only lock while writing data. Reading is fine
 	p.Lock()
-	defer p.Unlock()
-
 	p.ApplyCalled = true
 	p.ApplyInfo = info
 	p.ApplyState = state
 	p.ApplyDiff = diff
+	p.Unlock()
+
 	if p.ApplyFn != nil {
 		return p.ApplyFn(info, state, diff)
 	}
