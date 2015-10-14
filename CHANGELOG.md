@@ -38,6 +38,7 @@ IMPROVEMENTS:
   * provider/aws: Add `configuation_endpoint` to `aws_elasticache_cluster` [GH-3250]
   * provider/aws: Add validation for `app_cookie_stickiness_policy.name` [GH-3277]
   * provider/aws: Add validation for `db_parameter_group.name` [GH-3279]
+  * provider/aws: Set DynamoDB Table ARN after creation [GH-3500]
   * provider/aws: `aws_s3_bucket_object` allows interpolated content to be set with new `content` attribute. [GH-3200]
   * provider/aws: Allow tags for `aws_kinesis_stream` resource. [GH-3397]
   * provider/aws: Configurable capacity waiting duration for ASGs [GH-3191]
