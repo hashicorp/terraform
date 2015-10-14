@@ -540,8 +540,8 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 		if v.ValidateFunc != nil {
 			switch v.Type {
-			case TypeList, TypeSet, TypeMap:
-				return fmt.Errorf("ValidateFunc is only supported on primitives.")
+			case TypeList, TypeSet:
+				return fmt.Errorf("ValidateFunc is not yet supported on lists or sets.")
 			}
 		}
 	}
@@ -1116,6 +1116,17 @@ func (m schemaMap) validateMap(
 			return nil, []error{fmt.Errorf(
 				"%s: should be a map", k)}
 		}
+	}
+
+	if schema.ValidateFunc != nil {
+		validatableMap := make(map[string]interface{})
+		for _, raw := range raws {
+			for k, v := range raw.(map[string]interface{}) {
+				validatableMap[k] = v
+			}
+		}
+
+		return schema.ValidateFunc(validatableMap, k)
 	}
 
 	return nil, nil
