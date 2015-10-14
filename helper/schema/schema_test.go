@@ -2903,7 +2903,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type:     TypeMap,
+					Type:     TypeSet,
 					Required: true,
 					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						return
