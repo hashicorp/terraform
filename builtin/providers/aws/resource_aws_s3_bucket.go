@@ -581,6 +581,9 @@ func resourceAwsS3BucketWebsiteDelete(s3conn *s3.S3, d *schema.ResourceData) err
 		return fmt.Errorf("Error deleting S3 website: %s", err)
 	}
 
+	d.Set("website_endpoint", "")
+	d.Set("website_domain", "")
+
 	return nil
 }
 
