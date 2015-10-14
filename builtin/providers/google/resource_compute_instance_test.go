@@ -32,7 +32,7 @@ func TestAccComputeInstance_basic_deprecated_network(t *testing.T) {
 	})
 }
 
-func TestAccComputeInstance_basic(t *testing.T) {
+func TestAccComputeInstance_basic1(t *testing.T) {
 	var instance compute.Instance
 
 	resource.Test(t, resource.TestCase{
