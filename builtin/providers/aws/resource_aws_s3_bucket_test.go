@@ -64,7 +64,7 @@ func TestAccAWSS3Bucket_Policy(t *testing.T) {
 	})
 }
 
-func TestAccAWSS3Bucket_Website(t *testing.T) {
+func TestAccAWSS3Bucket_Website_Simple(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
