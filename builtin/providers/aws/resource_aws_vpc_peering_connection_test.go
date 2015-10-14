@@ -36,6 +36,7 @@ func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
 
 func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 	var connection ec2.VpcPeeringConnection
+	peerId := os.Getenv("TF_PEER_ID")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -43,7 +44,7 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccVpcPeeringConfigTags,
+				Config: fmt.Sprintf(testAccVpcPeeringConfigTags, peerId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &connection),
 					testAccCheckTags(&connection.Tags, "foo", "bar"),
@@ -133,6 +134,7 @@ resource "aws_vpc" "bar" {
 resource "aws_vpc_peering_connection" "foo" {
 		vpc_id = "${aws_vpc.foo.id}"
 		peer_vpc_id = "${aws_vpc.bar.id}"
+		peer_owner_id = "%s"
 		tags {
 			foo = "bar"
 		}
