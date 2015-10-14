@@ -18,3 +18,4 @@ website/node_modules
 *.bak
 *~
 .*.swp
+config/lang/y.go
