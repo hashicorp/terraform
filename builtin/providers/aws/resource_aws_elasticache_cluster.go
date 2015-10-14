@@ -157,7 +157,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 
 	tags := tagsFromMapEC(d.Get("tags").(map[string]interface{}))
 	req := &elasticache.CreateCacheClusterInput{
-		CacheClusterID:          aws.String(clusterId),
+		CacheClusterId:          aws.String(clusterId),
 		CacheNodeType:           aws.String(nodeType),
 		NumCacheNodes:           aws.Int64(numNodes),
 		Engine:                  aws.String(engine),
@@ -165,7 +165,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		Port:                    aws.Int64(port),
 		CacheSubnetGroupName:    aws.String(subnetGroupName),
 		CacheSecurityGroupNames: securityNames,
-		SecurityGroupIDs:        securityIds,
+		SecurityGroupIds:        securityIds,
 		Tags:                    tags,
 	}
 
@@ -181,7 +181,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	snaps := d.Get("snapshot_arns").(*schema.Set).List()
 	if len(snaps) > 0 {
 		s := expandStringList(snaps)
-		req.SnapshotARNs = s
+		req.SnapshotArns = s
 		log.Printf("[DEBUG] Restoring Redis cluster from S3 snapshot: %#v", s)
 	}
 
@@ -190,7 +190,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error creating Elasticache: %s", err)
 	}
 
-	d.SetId(*resp.CacheCluster.CacheClusterID)
+	d.SetId(*resp.CacheCluster.CacheClusterId)
 
 	pending := []string{"creating"}
 	stateConf := &resource.StateChangeConf{
@@ -214,7 +214,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 	req := &elasticache.DescribeCacheClustersInput{
-		CacheClusterID:    aws.String(d.Id()),
+		CacheClusterId:    aws.String(d.Id()),
 		ShowCacheNodeInfo: aws.Bool(true),
 	}
 
@@ -225,7 +225,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 
 	if len(res.CacheClusters) == 1 {
 		c := res.CacheClusters[0]
-		d.Set("cluster_id", c.CacheClusterID)
+		d.Set("cluster_id", c.CacheClusterId)
 		d.Set("node_type", c.CacheNodeType)
 		d.Set("num_cache_nodes", c.NumCacheNodes)
 		d.Set("engine", c.Engine)
@@ -246,7 +246,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		// set tags
 		arn, err := buildECARN(d, meta)
 		if err != nil {
-			log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for cluster %s", *c.CacheClusterID)
+			log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for cluster %s", *c.CacheClusterId)
 		} else {
 			resp, err := conn.ListTagsForResource(&elasticache.ListTagsForResourceInput{
 				ResourceName: aws.String(arn),
@@ -279,14 +279,14 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	req := &elasticache.ModifyCacheClusterInput{
-		CacheClusterID:   aws.String(d.Id()),
+		CacheClusterId:   aws.String(d.Id()),
 		ApplyImmediately: aws.Bool(d.Get("apply_immediately").(bool)),
 	}
 
 	requestUpdate := false
 	if d.HasChange("security_group_ids") {
 		if attr := d.Get("security_group_ids").(*schema.Set); attr.Len() > 0 {
-			req.SecurityGroupIDs = expandStringList(attr.List())
+			req.SecurityGroupIds = expandStringList(attr.List())
 			requestUpdate = true
 		}
 	}
@@ -346,11 +346,11 @@ func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error
 	cacheNodeData := make([]map[string]interface{}, 0, len(sortedCacheNodes))
 
 	for _, node := range sortedCacheNodes {
-		if node.CacheNodeID == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil {
+		if node.CacheNodeId == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil {
 			return fmt.Errorf("Unexpected nil pointer in: %s", node)
 		}
 		cacheNodeData = append(cacheNodeData, map[string]interface{}{
-			"id":      *node.CacheNodeID,
+			"id":      *node.CacheNodeId,
 			"address": *node.Endpoint.Address,
 			"port":    int(*node.Endpoint.Port),
 		})
@@ -364,15 +364,15 @@ type byCacheNodeId []*elasticache.CacheNode
 func (b byCacheNodeId) Len() int      { return len(b) }
 func (b byCacheNodeId) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 func (b byCacheNodeId) Less(i, j int) bool {
-	return b[i].CacheNodeID != nil && b[j].CacheNodeID != nil &&
-		*b[i].CacheNodeID < *b[j].CacheNodeID
+	return b[i].CacheNodeId != nil && b[j].CacheNodeId != nil &&
+		*b[i].CacheNodeId < *b[j].CacheNodeId
 }
 
 func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
 	req := &elasticache.DeleteCacheClusterInput{
-		CacheClusterID: aws.String(d.Id()),
+		CacheClusterId: aws.String(d.Id()),
 	}
 	_, err := conn.DeleteCacheCluster(req)
 	if err != nil {
@@ -402,7 +402,7 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, givenState string, pending []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
-			CacheClusterID:    aws.String(clusterID),
+			CacheClusterId:    aws.String(clusterID),
 			ShowCacheNodeInfo: aws.Bool(true),
 		})
 		if err != nil {
@@ -423,8 +423,8 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 
 		var c *elasticache.CacheCluster
 		for _, cluster := range resp.CacheClusters {
-			if *cluster.CacheClusterID == clusterID {
-				log.Printf("[DEBUG] Found matching ElastiCache cluster: %s", *cluster.CacheClusterID)
+			if *cluster.CacheClusterId == clusterID {
+				log.Printf("[DEBUG] Found matching ElastiCache cluster: %s", *cluster.CacheClusterId)
 				c = cluster
 			}
 		}
@@ -459,7 +459,7 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 			for _, n := range c.CacheNodes {
 				log.Printf("[DEBUG] Checking cache node for status: %s", n)
 				if n.CacheNodeStatus != nil && *n.CacheNodeStatus != "available" {
-					log.Printf("[DEBUG] Node (%s) is not yet available, status: %s", *n.CacheNodeID, *n.CacheNodeStatus)
+					log.Printf("[DEBUG] Node (%s) is not yet available, status: %s", *n.CacheNodeId, *n.CacheNodeStatus)
 					return nil, "creating", nil
 				}
 				log.Printf("[DEBUG] Cache node not in expected state")
@@ -480,7 +480,7 @@ func buildECARN(d *schema.ResourceData, meta interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	userARN := *resp.User.ARN
+	userARN := *resp.User.Arn
 	accountID := strings.Split(userARN, ":")[4]
 	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountID, d.Id())
 	return arn, nil

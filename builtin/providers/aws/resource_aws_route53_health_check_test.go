@@ -68,7 +68,7 @@ func testAccCheckRoute53HealthCheckDestroy(s *terraform.State) error {
 		}
 
 		for _, check := range resp.HealthChecks {
-			if *check.ID == rs.Primary.ID {
+			if *check.Id == rs.Primary.ID {
 				return fmt.Errorf("Record still exists: %#v", check)
 			}
 
@@ -103,7 +103,7 @@ func testAccCheckRoute53HealthCheckExists(n string) resource.TestCheckFunc {
 		}
 
 		for _, check := range resp.HealthChecks {
-			if *check.ID == rs.Primary.ID {
+			if *check.Id == rs.Primary.ID {
 				return nil
 			}
 

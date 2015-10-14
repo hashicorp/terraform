@@ -604,7 +604,7 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 
 	plan, err := ctx.Plan()
 
-	expectedErr := "aws_instance.foo: plan would destroy"
+	expectedErr := "aws_instance.foo: the plan would destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		t.Fatalf("expected err would contain %q\nerr: %s\nplan: %s",
 			expectedErr, err, plan)
@@ -675,7 +675,7 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 
 	plan, err := ctx.Plan()
 
-	expectedErr := "aws_instance.foo: plan would destroy"
+	expectedErr := "aws_instance.foo: the plan would destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		t.Fatalf("expected err would contain %q\nerr: %s\nplan: %s",
 			expectedErr, err, plan)

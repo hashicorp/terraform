@@ -21,7 +21,7 @@ func TestAccAWSRouteTable_basic(t *testing.T) {
 
 		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
-			routes[*r.DestinationCIDRBlock] = r
+			routes[*r.DestinationCidrBlock] = r
 		}
 
 		if _, ok := routes["10.1.0.0/16"]; !ok {
@@ -41,7 +41,7 @@ func TestAccAWSRouteTable_basic(t *testing.T) {
 
 		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
-			routes[*r.DestinationCIDRBlock] = r
+			routes[*r.DestinationCidrBlock] = r
 		}
 
 		if _, ok := routes["10.1.0.0/16"]; !ok {
@@ -93,7 +93,7 @@ func TestAccAWSRouteTable_instance(t *testing.T) {
 
 		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
-			routes[*r.DestinationCIDRBlock] = r
+			routes[*r.DestinationCidrBlock] = r
 		}
 
 		if _, ok := routes["10.1.0.0/16"]; !ok {
@@ -161,7 +161,7 @@ func testAccCheckRouteTableDestroy(s *terraform.State) error {
 
 		// Try to find the resource
 		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
-			RouteTableIDs: []*string{aws.String(rs.Primary.ID)},
+			RouteTableIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.RouteTables) > 0 {
@@ -197,7 +197,7 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
-			RouteTableIDs: []*string{aws.String(rs.Primary.ID)},
+			RouteTableIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err
@@ -225,7 +225,7 @@ func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 
 		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
-			routes[*r.DestinationCIDRBlock] = r
+			routes[*r.DestinationCidrBlock] = r
 		}
 
 		if _, ok := routes["10.1.0.0/16"]; !ok {
@@ -256,20 +256,20 @@ func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 
 func TestAccAWSRouteTable_vgwRoutePropagation(t *testing.T) {
 	var v ec2.RouteTable
-	var vgw ec2.VPNGateway
+	var vgw ec2.VpnGateway
 
 	testCheck := func(*terraform.State) error {
-		if len(v.PropagatingVGWs) != 1 {
-			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVGWs)
+		if len(v.PropagatingVgws) != 1 {
+			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVgws)
 		}
 
-		propagatingVGWs := make(map[string]*ec2.PropagatingVGW)
-		for _, gw := range v.PropagatingVGWs {
-			propagatingVGWs[*gw.GatewayID] = gw
+		propagatingVGWs := make(map[string]*ec2.PropagatingVgw)
+		for _, gw := range v.PropagatingVgws {
+			propagatingVGWs[*gw.GatewayId] = gw
 		}
 
-		if _, ok := propagatingVGWs[*vgw.VPNGatewayID]; !ok {
-			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVGWs)
+		if _, ok := propagatingVGWs[*vgw.VpnGatewayId]; !ok {
+			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVgws)
 		}
 
 		return nil

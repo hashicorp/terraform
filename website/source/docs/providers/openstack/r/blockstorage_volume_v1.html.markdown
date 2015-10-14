@@ -53,7 +53,7 @@ The following arguments are supported:
 * `metadata` - (Optional) Metadata key/value pairs to associate with the volume.
     Changing this updates the existing volume metadata.
 
-* `volume_type` - (Optional) The type of volume to create (either SATA or SSD).
+* `volume_type` - (Optional) The type of volume to create.
     Changing this creates a new volume.
 
 ## Attributes Reference

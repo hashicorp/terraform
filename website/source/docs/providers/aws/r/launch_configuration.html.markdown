@@ -20,6 +20,39 @@ resource "aws_launch_configuration" "as_conf" {
 }
 ```
 
+## Using with AutoScaling Groups
+
+Launch Configurations cannot be updated after creation with the Amazon
+Web Service API. In order to update a Launch Configuration, Terraform will 
+destroy the existing resource and create a replacement. If order to effectively 
+use a Launch Configuration resource with an[AutoScaling Group resource][1], 
+it's recommend to omit the Launch Configuration `name` attribute, and 
+specify `create_before_destroy` in a [lifecycle][2] block, as shown:
+
+```
+resource "aws_launch_configuration" "as_conf" {
+    image_id = "ami-1234"
+    instance_type = "m1.small"
+
+    lifecycle {
+      create_before_destroy = true
+    }
+}
+
+resource "aws_autoscaling_group" "bar" {
+    name = "terraform-asg-example"
+    launch_configuration = "${aws_launch_configuration.as_conf.name}"
+
+    lifecycle {
+      create_before_destroy = true
+    }
+}
+```
+
+With this setup Terraform generates a unique name for your Launch
+Configuration and can then update the AutoScaling Group without conflict before
+destroying the previous Launch Configuration.
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -98,3 +131,6 @@ configuration, resource recreation can be manually triggered by using the
 The following attributes are exported:
 
 * `id` - The ID of the launch configuration.
+
+[1]: /docs/providers/aws/r/autoscaling_group.html
+[2]: /docs/configuration/resources.html#lifecycle

@@ -22,8 +22,8 @@ func TestAccAWSInternetGateway_basic(t *testing.T) {
 			return fmt.Errorf("IG B is not attached")
 		}
 
-		id1 := v.Attachments[0].VPCID
-		id2 := v2.Attachments[0].VPCID
+		id1 := v.Attachments[0].VpcId
+		id2 := v2.Attachments[0].VpcId
 		if id1 == id2 {
 			return fmt.Errorf("Both attachment IDs are the same")
 		}
@@ -125,7 +125,7 @@ func testAccCheckInternetGatewayDestroy(s *terraform.State) error {
 
 		// Try to find the resource
 		resp, err := conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
-			InternetGatewayIDs: []*string{aws.String(rs.Primary.ID)},
+			InternetGatewayIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.InternetGateways) > 0 {
@@ -161,7 +161,7 @@ func testAccCheckInternetGatewayExists(n string, ig *ec2.InternetGateway) resour
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
-			InternetGatewayIDs: []*string{aws.String(rs.Primary.ID)},
+			InternetGatewayIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err

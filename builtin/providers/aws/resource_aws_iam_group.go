@@ -81,13 +81,13 @@ func resourceAwsIamGroupReadResult(d *schema.ResourceData, group *iam.Group) err
 	if err := d.Set("name", group.GroupName); err != nil {
 		return err
 	}
-	if err := d.Set("arn", group.ARN); err != nil {
+	if err := d.Set("arn", group.Arn); err != nil {
 		return err
 	}
 	if err := d.Set("path", group.Path); err != nil {
 		return err
 	}
-	if err := d.Set("unique_id", group.GroupID); err != nil {
+	if err := d.Set("unique_id", group.GroupId); err != nil {
 		return err
 	}
 	return nil

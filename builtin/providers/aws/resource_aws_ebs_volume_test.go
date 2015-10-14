@@ -56,7 +56,7 @@ func testAccCheckVolumeExists(n string, v *ec2.Volume) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 		request := &ec2.DescribeVolumesInput{
-			VolumeIDs: []*string{aws.String(rs.Primary.ID)},
+			VolumeIds: []*string{aws.String(rs.Primary.ID)},
 		}
 
 		response, err := conn.DescribeVolumes(request)

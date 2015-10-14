@@ -56,8 +56,8 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 
 	opts := &ec2.AttachVolumeInput{
 		Device:     aws.String(name),
-		InstanceID: aws.String(iID),
-		VolumeID:   aws.String(vID),
+		InstanceId: aws.String(iID),
+		VolumeId:   aws.String(vID),
 	}
 
 	log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
@@ -94,7 +94,7 @@ func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, volumeID, instanceID string
 	return func() (interface{}, string, error) {
 
 		request := &ec2.DescribeVolumesInput{
-			VolumeIDs: []*string{aws.String(volumeID)},
+			VolumeIds: []*string{aws.String(volumeID)},
 			Filters: []*ec2.Filter{
 				&ec2.Filter{
 					Name:   aws.String("attachment.instance-id"),
@@ -114,7 +114,7 @@ func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, volumeID, instanceID string
 		if len(resp.Volumes) > 0 {
 			v := resp.Volumes[0]
 			for _, a := range v.Attachments {
-				if a.InstanceID != nil && *a.InstanceID == instanceID {
+				if a.InstanceId != nil && *a.InstanceId == instanceID {
 					return a, *a.State, nil
 				}
 			}
@@ -127,7 +127,7 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.DescribeVolumesInput{
-		VolumeIDs: []*string{aws.String(d.Get("volume_id").(string))},
+		VolumeIds: []*string{aws.String(d.Get("volume_id").(string))},
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("attachment.instance-id"),
@@ -155,8 +155,8 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 
 	opts := &ec2.DetachVolumeInput{
 		Device:     aws.String(d.Get("device_name").(string)),
-		InstanceID: aws.String(iID),
-		VolumeID:   aws.String(vID),
+		InstanceId: aws.String(iID),
+		VolumeId:   aws.String(vID),
 		Force:      aws.Bool(d.Get("force_detach").(bool)),
 	}
 
