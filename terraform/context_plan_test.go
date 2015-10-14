@@ -1672,3 +1672,49 @@ func TestContext2Plan_varListErr(t *testing.T) {
 		t.Fatal("should error")
 	}
 }
+
+func TestContext2Plan_ignoreChanges(t *testing.T) {
+	m := testModule(t, "plan-ignore-changes")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{"ami": "ami-abcd1234"},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "ami-1234abcd",
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(plan.Diff.RootModule().Resources) < 1 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanIgnoreChangesStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
+	}
+}
