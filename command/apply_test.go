@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -58,80 +59,60 @@ func TestApply(t *testing.T) {
 	}
 }
 
-func TestApply_parallelism1(t *testing.T) {
-	statePath := testTempFile(t)
+func TestApply_parallelism(t *testing.T) {
+	provider := testProvider()
+
+	// This blocks all the appy functions. We close it when we exit so
+	// they end quickly after this test finishes.
+	block := make(chan struct{})
+	defer close(block)
+
+	var runCount uint64
+	provider.ApplyFn = func(
+		i *terraform.InstanceInfo,
+		s *terraform.InstanceState,
+		d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		// Increment so we're counting parallelism
+		atomic.AddUint64(&runCount, 1)
+
+		// Block until we're done
+		<-block
+
+		return nil, nil
+	}
 
 	ui := new(cli.MockUi)
-	p := testProvider()
-	pr := new(terraform.MockResourceProvisioner)
-
-	pr.ApplyFn = func(*terraform.InstanceState, *terraform.ResourceConfig) error {
-		time.Sleep(time.Second)
-		return nil
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-parallelism=1",
-		testFixturePath("parallelism"),
-	}
-
 	c := &ApplyCommand{
 		Meta: Meta{
-			ContextOpts: testCtxConfigWithShell(p, pr),
+			ContextOpts: testCtxConfig(provider),
 			Ui:          ui,
 		},
 	}
 
-	start := time.Now()
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-	elapsed := time.Since(start).Seconds()
-
-	// This test should take exactly two seconds, plus some minor amount of execution time.
-	if elapsed < 2 || elapsed > 2.2 {
-		t.Fatalf("bad: %f\n\n%s", elapsed, ui.ErrorWriter.String())
-	}
-
-}
-
-func TestApply_parallelism2(t *testing.T) {
-	statePath := testTempFile(t)
-
-	ui := new(cli.MockUi)
-	p := testProvider()
-	pr := new(terraform.MockResourceProvisioner)
-
-	pr.ApplyFn = func(*terraform.InstanceState, *terraform.ResourceConfig) error {
-		time.Sleep(time.Second)
-		return nil
-	}
-
+	par := uint64(5)
 	args := []string{
-		"-state", statePath,
-		"-parallelism=2",
+		fmt.Sprintf("-parallelism=%d", par),
 		testFixturePath("parallelism"),
 	}
 
-	c := &ApplyCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfigWithShell(p, pr),
-			Ui:          ui,
-		},
+	// Run in a goroutine. We still try to catch any errors and
+	// get them on the error channel.
+	errCh := make(chan string, 1)
+	go func() {
+		if code := c.Run(args); code != 0 {
+			errCh <- ui.OutputWriter.String()
+		}
+	}()
+	select {
+	case <-time.After(1000 * time.Millisecond):
+	case err := <-errCh:
+		t.Fatalf("err: %s", err)
 	}
 
-	start := time.Now()
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	// The total in flight should equal the parallelism
+	if rc := atomic.LoadUint64(&runCount); rc != par {
+		t.Fatalf("Expected parallelism: %d, got: %d", par, rc)
 	}
-	elapsed := time.Since(start).Seconds()
-
-	// This test should take exactly one second, plus some minor amount of execution time.
-	if elapsed < 1 || elapsed > 1.2 {
-		t.Fatalf("bad: %f\n\n%s", elapsed, ui.ErrorWriter.String())
-	}
-
 }
 
 func TestApply_configInvalid(t *testing.T) {
