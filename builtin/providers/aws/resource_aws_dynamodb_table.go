@@ -291,7 +291,7 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 				return err
 			}
 
-			return nil
+			return resourceAwsDynamoDbTableRead(d, meta)
 		}
 	}
 
