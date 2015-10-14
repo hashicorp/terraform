@@ -966,7 +966,6 @@ func readStringList(values []string) []interface{} {
 	return _values
 }
 
-
 func readVolumes(volumes []api.Volume) []interface{} {
 	_volumes := make([]interface{}, len(volumes))
 	for i, v := range volumes {
@@ -1292,4 +1291,68 @@ func readObjectFieldSelector(fieldRefs *api.ObjectFieldSelector) []interface{} {
 
 		return _field_refs
 	}
+}
+
+func readContainers(containers []api.Container) []interface{} {
+	_containers := make([]interface, len(containers))
+	for i, v := range containers {
+		_container := make(map[string]interface{})
+		container := v
+
+		_container["name"] = container.Name
+		_container["image"] = container.Image
+
+		_container["command"] = readStringList(container.Command)
+
+		_container["args"] = readStringList(container.Args)
+
+		_container["working_dir"] = container.WorkingDir
+
+		_container["container_port"] = readContainerPorts(container.Ports)
+
+		_container["env"] = readEnvVars(container.Env)
+
+		if val, ok := _container["resources"]; ok {
+			resources := createResourceRequirements(val.([]interface{}))
+			if resources != nil {
+				container.Resources = *resources
+			}
+		}
+
+		if val, ok := _container["volume_mount"]; ok {
+			container.VolumeMounts = createVolumeMounts(val.([]interface{}))
+		}
+
+		if val, ok := _container["liveness_probe"]; ok {
+			container.LivenessProbe = createProbe(val.([]interface{}))
+		}
+
+		if val, ok := _container["readiness_probe"]; ok {
+			container.ReadinessProbe = createProbe(val.([]interface{}))
+		}
+
+		if val, ok := _container["lifecycle"]; ok {
+			container.Lifecycle = createLifecycle(val.([]interface{}))
+		}
+
+		container.TerminationMessagePath = _container["termination_message_path"].(string)
+
+		container.ImagePullPolicy = api.PullPolicy(_container["image_pull_policy"].(string))
+
+		if val, ok := _container["security_context"]; ok {
+			container.SecurityContext = createSecurityContext(val.([]interface{}))
+		}
+
+		if val, ok := _container["stdin"]; ok {
+			container.Stdin = val.(bool)
+		}
+
+		if val, ok := _container["tty"]; ok {
+			container.TTY = val.(bool)
+		}
+
+		containers[i] = *container
+	}
+
+	return containers
 }
