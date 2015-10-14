@@ -515,9 +515,16 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Synch metadata
 	md := instance.Metadata
 
-	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
+	_md := MetadataFormatSchema(md)
+	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+		d.Set("metadata_startup_script", script)
+		delete(_md, "startup-script")
+	}
+
+	if err = d.Set("metadata", _md); err != nil {
 		return fmt.Errorf("Error setting metadata: %s", err)
 	}
+
 
 	d.Set("can_ip_forward", instance.CanIpForward)
 
@@ -635,6 +642,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("self_link", instance.SelfLink)
+	d.SetId(instance.Name)
 
 	return nil
 }
@@ -655,6 +663,14 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
 		o, n := d.GetChange("metadata")
+		if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+			if _, ok := n.(map[string]interface{})["startup-script"]; ok {
+				return fmt.Errorf("Only one of metadata.startup-script and metadata_startup_script may be defined")
+			}
+
+			n.(map[string]interface{})["startup-script"] = script
+		}
+
 
 		updateMD := func() error {
 			// Reload the instance in the case of a fingerprint mismatch
