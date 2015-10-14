@@ -44,6 +44,8 @@ type Config struct {
 	ForbiddenAccountIds []interface{}
 
 	DynamoDBEndpoint string
+
+	SkipValidateCredentials bool
 }
 
 type AWSClient struct {
@@ -217,6 +219,9 @@ func (c *Config) ValidateRegion() error {
 // In the case of an IAM role/profile with insuffecient privileges, fail
 // silently
 func (c *Config) ValidateCredentials(iamconn *iam.IAM) error {
+	if c.SkipValidateCredentials {
+		return nil
+	}
 	_, err := iamconn.GetUser(nil)
 
 	if awsErr, ok := err.(awserr.Error); ok {

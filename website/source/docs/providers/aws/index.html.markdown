@@ -55,7 +55,11 @@ The following arguments are supported in the `provider` block:
   to prevent you mistakenly using a wrong one (and end up destroying live environment).
   Conflicts with `allowed_account_ids`.
 
-* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to dynamodb-local.
+* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint URL
+  constructed from the `region`. It's typically used to connect to dynamodb-local.
+
+* `skip_validate_credentials` - (Optional) Use this to bypass credential validation.
+  This is usefull when only using dynamodb-local without valid credentials.
 
 In addition to the above parameters, the `AWS_SESSION_TOKEN` environmental
 variable can be set to set an MFA token.
