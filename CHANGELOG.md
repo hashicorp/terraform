@@ -20,6 +20,7 @@ FEATURES:
   * **New resource: `aws_autoscaling_lifecycle_hook`** [GH-3351]
   * **New resource: `aws_placement_group`** [GH-3457]
   * **New resource: `aws_glacier_vault`** [GH-3491]
+  * **New lifecycle flag: `ignore_changes`** [GH-2525]
 
 IMPROVEMENTS:
 
