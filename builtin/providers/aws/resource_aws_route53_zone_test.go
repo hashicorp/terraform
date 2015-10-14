@@ -159,7 +159,7 @@ func testAccCheckRoute53ZoneDestroyWithProvider(s *terraform.State, provider *sc
 			continue
 		}
 
-		_, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(rs.Primary.ID)})
+		_, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(rs.Primary.ID)})
 		if err == nil {
 			return fmt.Errorf("Hosted zone still exists")
 		}
@@ -198,7 +198,7 @@ func testAccCheckRoute53ZoneExistsWithProvider(s *terraform.State, n string, zon
 	}
 
 	conn := provider.Meta().(*AWSClient).r53conn
-	resp, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(rs.Primary.ID)})
+	resp, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(rs.Primary.ID)})
 	if err != nil {
 		return fmt.Errorf("Hosted zone err: %v", err)
 	}
@@ -241,12 +241,12 @@ func testAccCheckRoute53ZoneAssociatesWithVpc(n string, zone *route53.GetHostedZ
 
 		var associatedVPC *route53.VPC
 		for _, vpc := range zone.VPCs {
-			if *vpc.VPCID == rs.Primary.ID {
+			if *vpc.VPCId == rs.Primary.ID {
 				associatedVPC = vpc
 			}
 		}
 		if associatedVPC == nil {
-			return fmt.Errorf("VPC: %v is not associated to Zone: %v", n, cleanZoneID(*zone.HostedZone.ID))
+			return fmt.Errorf("VPC: %v is not associated to Zone: %v", n, cleanZoneID(*zone.HostedZone.Id))
 		}
 		return nil
 	}
@@ -256,9 +256,9 @@ func testAccLoadTagsR53(zone *route53.GetHostedZoneOutput, td *route53.ResourceT
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).r53conn
 
-		zone := cleanZoneID(*zone.HostedZone.ID)
+		zone := cleanZoneID(*zone.HostedZone.Id)
 		req := &route53.ListTagsForResourceInput{
-			ResourceID:   aws.String(zone),
+			ResourceId:   aws.String(zone),
 			ResourceType: aws.String("hostedzone"),
 		}
 

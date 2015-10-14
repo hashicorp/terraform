@@ -87,19 +87,19 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 		instance_tenancy = v.(string)
 	}
 	// Create the VPC
-	createOpts := &ec2.CreateVPCInput{
-		CIDRBlock:       aws.String(d.Get("cidr_block").(string)),
+	createOpts := &ec2.CreateVpcInput{
+		CidrBlock:       aws.String(d.Get("cidr_block").(string)),
 		InstanceTenancy: aws.String(instance_tenancy),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
-	vpcResp, err := conn.CreateVPC(createOpts)
+	vpcResp, err := conn.CreateVpc(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating VPC: %s", err)
 	}
 
 	// Get the ID and store it
-	vpc := vpcResp.VPC
-	d.SetId(*vpc.VPCID)
+	vpc := vpcResp.Vpc
+	d.SetId(*vpc.VpcId)
 	log.Printf("[INFO] VPC ID: %s", d.Id())
 
 	// Set partial mode and say that we setup the cidr block
@@ -140,35 +140,35 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// VPC stuff
-	vpc := vpcRaw.(*ec2.VPC)
+	vpc := vpcRaw.(*ec2.Vpc)
 	vpcid := d.Id()
-	d.Set("cidr_block", vpc.CIDRBlock)
-	d.Set("dhcp_options_id", vpc.DHCPOptionsID)
+	d.Set("cidr_block", vpc.CidrBlock)
+	d.Set("dhcp_options_id", vpc.DhcpOptionsId)
 
 	// Tags
 	d.Set("tags", tagsToMap(vpc.Tags))
 
 	// Attributes
 	attribute := "enableDnsSupport"
-	DescribeAttrOpts := &ec2.DescribeVPCAttributeInput{
+	DescribeAttrOpts := &ec2.DescribeVpcAttributeInput{
 		Attribute: aws.String(attribute),
-		VPCID:     aws.String(vpcid),
+		VpcId:     aws.String(vpcid),
 	}
-	resp, err := conn.DescribeVPCAttribute(DescribeAttrOpts)
+	resp, err := conn.DescribeVpcAttribute(DescribeAttrOpts)
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_support", *resp.EnableDNSSupport)
+	d.Set("enable_dns_support", *resp.EnableDnsSupport)
 	attribute = "enableDnsHostnames"
-	DescribeAttrOpts = &ec2.DescribeVPCAttributeInput{
+	DescribeAttrOpts = &ec2.DescribeVpcAttributeInput{
 		Attribute: &attribute,
-		VPCID:     &vpcid,
+		VpcId:     &vpcid,
 	}
-	resp, err = conn.DescribeVPCAttribute(DescribeAttrOpts)
+	resp, err = conn.DescribeVpcAttribute(DescribeAttrOpts)
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_hostnames", *resp.EnableDNSHostnames)
+	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames)
 
 	// Get the main routing table for this VPC
 	// Really Ugly need to make this better - rmenn
@@ -188,7 +188,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	if v := routeResp.RouteTables; len(v) > 0 {
-		d.Set("main_route_table_id", *v[0].RouteTableID)
+		d.Set("main_route_table_id", *v[0].RouteTableId)
 	}
 
 	resourceAwsVpcSetDefaultNetworkAcl(conn, d)
@@ -205,9 +205,9 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	vpcid := d.Id()
 	if d.HasChange("enable_dns_hostnames") {
 		val := d.Get("enable_dns_hostnames").(bool)
-		modifyOpts := &ec2.ModifyVPCAttributeInput{
-			VPCID: &vpcid,
-			EnableDNSHostnames: &ec2.AttributeBooleanValue{
+		modifyOpts := &ec2.ModifyVpcAttributeInput{
+			VpcId: &vpcid,
+			EnableDnsHostnames: &ec2.AttributeBooleanValue{
 				Value: &val,
 			},
 		}
@@ -215,7 +215,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf(
 			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
 			d.Id(), modifyOpts)
-		if _, err := conn.ModifyVPCAttribute(modifyOpts); err != nil {
+		if _, err := conn.ModifyVpcAttribute(modifyOpts); err != nil {
 			return err
 		}
 
@@ -224,9 +224,9 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("enable_dns_support") {
 		val := d.Get("enable_dns_support").(bool)
-		modifyOpts := &ec2.ModifyVPCAttributeInput{
-			VPCID: &vpcid,
-			EnableDNSSupport: &ec2.AttributeBooleanValue{
+		modifyOpts := &ec2.ModifyVpcAttributeInput{
+			VpcId: &vpcid,
+			EnableDnsSupport: &ec2.AttributeBooleanValue{
 				Value: &val,
 			},
 		}
@@ -234,7 +234,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf(
 			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
 			d.Id(), modifyOpts)
-		if _, err := conn.ModifyVPCAttribute(modifyOpts); err != nil {
+		if _, err := conn.ModifyVpcAttribute(modifyOpts); err != nil {
 			return err
 		}
 
@@ -254,13 +254,13 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	vpcID := d.Id()
-	DeleteVpcOpts := &ec2.DeleteVPCInput{
-		VPCID: &vpcID,
+	DeleteVpcOpts := &ec2.DeleteVpcInput{
+		VpcId: &vpcID,
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
 
 	return resource.Retry(5*time.Minute, func() error {
-		_, err := conn.DeleteVPC(DeleteVpcOpts)
+		_, err := conn.DeleteVpc(DeleteVpcOpts)
 		if err == nil {
 			return nil
 		}
@@ -287,10 +287,10 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 // a VPC.
 func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		DescribeVpcOpts := &ec2.DescribeVPCsInput{
-			VPCIDs: []*string{aws.String(id)},
+		DescribeVpcOpts := &ec2.DescribeVpcsInput{
+			VpcIds: []*string{aws.String(id)},
 		}
-		resp, err := conn.DescribeVPCs(DescribeVpcOpts)
+		resp, err := conn.DescribeVpcs(DescribeVpcOpts)
 		if err != nil {
 			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpcID.NotFound" {
 				resp = nil
@@ -306,7 +306,7 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 			return nil, "", nil
 		}
 
-		vpc := resp.VPCs[0]
+		vpc := resp.Vpcs[0]
 		return vpc, *vpc.State, nil
 	}
 }
@@ -320,16 +320,16 @@ func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) e
 		Name:   aws.String("vpc-id"),
 		Values: []*string{aws.String(d.Id())},
 	}
-	DescribeNetworkACLOpts := &ec2.DescribeNetworkACLsInput{
+	DescribeNetworkACLOpts := &ec2.DescribeNetworkAclsInput{
 		Filters: []*ec2.Filter{filter1, filter2},
 	}
-	networkAclResp, err := conn.DescribeNetworkACLs(DescribeNetworkACLOpts)
+	networkAclResp, err := conn.DescribeNetworkAcls(DescribeNetworkACLOpts)
 
 	if err != nil {
 		return err
 	}
-	if v := networkAclResp.NetworkACLs; len(v) > 0 {
-		d.Set("default_network_acl_id", v[0].NetworkACLID)
+	if v := networkAclResp.NetworkAcls; len(v) > 0 {
+		d.Set("default_network_acl_id", v[0].NetworkAclId)
 	}
 
 	return nil
@@ -353,7 +353,7 @@ func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData
 		return err
 	}
 	if v := securityGroupResp.SecurityGroups; len(v) > 0 {
-		d.Set("default_security_group_id", v[0].GroupID)
+		d.Set("default_security_group_id", v[0].GroupId)
 	}
 
 	return nil

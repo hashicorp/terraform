@@ -9,8 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2.NetworkACLEntry, error) {
-	entries := make([]*ec2.NetworkACLEntry, 0, len(configured))
+func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2.NetworkAclEntry, error) {
+	entries := make([]*ec2.NetworkAclEntry, 0, len(configured))
 	for _, eRaw := range configured {
 		data := eRaw.(map[string]interface{})
 		protocol := data["protocol"].(string)
@@ -23,7 +23,7 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 			}
 		}
 
-		e := &ec2.NetworkACLEntry{
+		e := &ec2.NetworkAclEntry{
 			Protocol: aws.String(strconv.Itoa(p)),
 			PortRange: &ec2.PortRange{
 				From: aws.Int64(int64(data["from_port"].(int))),
@@ -32,17 +32,17 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 			Egress:     aws.Bool((entryType == "egress")),
 			RuleAction: aws.String(data["action"].(string)),
 			RuleNumber: aws.Int64(int64(data["rule_no"].(int))),
-			CIDRBlock:  aws.String(data["cidr_block"].(string)),
+			CidrBlock:  aws.String(data["cidr_block"].(string)),
 		}
 
 		// Specify additional required fields for ICMP
 		if p == 1 {
-			e.ICMPTypeCode = &ec2.ICMPTypeCode{}
+			e.IcmpTypeCode = &ec2.IcmpTypeCode{}
 			if v, ok := data["icmp_code"]; ok {
-				e.ICMPTypeCode.Code = aws.Int64(int64(v.(int)))
+				e.IcmpTypeCode.Code = aws.Int64(int64(v.(int)))
 			}
 			if v, ok := data["icmp_type"]; ok {
-				e.ICMPTypeCode.Type = aws.Int64(int64(v.(int)))
+				e.IcmpTypeCode.Type = aws.Int64(int64(v.(int)))
 			}
 		}
 
@@ -51,7 +51,7 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 	return entries, nil
 }
 
-func flattenNetworkAclEntries(list []*ec2.NetworkACLEntry) []map[string]interface{} {
+func flattenNetworkAclEntries(list []*ec2.NetworkAclEntry) []map[string]interface{} {
 	entries := make([]map[string]interface{}, 0, len(list))
 
 	for _, entry := range list {
@@ -61,7 +61,7 @@ func flattenNetworkAclEntries(list []*ec2.NetworkACLEntry) []map[string]interfac
 			"action":     *entry.RuleAction,
 			"rule_no":    *entry.RuleNumber,
 			"protocol":   *entry.Protocol,
-			"cidr_block": *entry.CIDRBlock,
+			"cidr_block": *entry.CidrBlock,
 		})
 	}
 

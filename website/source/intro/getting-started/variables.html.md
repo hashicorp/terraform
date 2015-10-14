@@ -98,6 +98,7 @@ the `TF_VAR_access_key` variable can be set to set the `access_key` variable.
 We recommend using the "terraform.tfvars" file, and ignoring it from
 version control.
 
+<a id="mappings"></a>
 ## Mappings
 
 We've replaced our sensitive strings with variables, but we still
@@ -140,13 +141,57 @@ While we don't use it in our example, it is worth noting that you
 can also do a static lookup of a mapping directly with
 `${var.amis.us-east-1}`.
 
-We set defaults, but mappings can also be overridden using the
-`-var` and `-var-file` values. For example, if the user wanted to
-specify an alternate AMI for us-east-1:
+<a id="assigning-mappings"></a>
+## Assigning Mappings
+
+We set defaults above, but mappings can also be set using the `-var` and
+`-var-file` values. For example, if the user wanted to specify an alternate AMI
+for us-east-1:
 
 ```
 $ terraform plan -var 'amis.us-east-1=foo'
 ...
+```
+
+**Note**: even if every key will be assigned as input, the variable must be
+established as a mapping by setting its default to `{}`.
+
+Here is an example of setting a mapping's keys from a file. Starting with these
+variable definitions:
+
+```
+variable "region" {}
+variable "amis" {
+  default = {}
+}
+```
+
+You can specify keys in a `terraform.tfvars` file:
+
+```
+amis.us-east-1 = "ami-abc123"
+amis.us-west-2 = "ami-def456"
+```
+
+And access them via `lookup()`:
+
+```
+output "ami" {
+  value = "${lookup(var.amis, var.region)}
+}
+```
+
+Like so:
+
+```
+$ terraform apply -var region=us-west-2
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+  ami = ami-def456
+
 ```
 
 ## Next

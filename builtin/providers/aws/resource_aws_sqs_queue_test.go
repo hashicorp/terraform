@@ -43,7 +43,7 @@ func testAccCheckAWSSQSQueueDestroy(s *terraform.State) error {
 
 		// Check if queue exists by checking for its attributes
 		params := &sqs.GetQueueAttributesInput{
-			QueueURL: aws.String(rs.Primary.ID),
+			QueueUrl: aws.String(rs.Primary.ID),
 		}
 		_, err := conn.GetQueueAttributes(params)
 		if err == nil {
@@ -74,7 +74,7 @@ func testAccCheckAWSSQSExistsWithDefaults(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).sqsconn
 
 		params := &sqs.GetQueueAttributesInput{
-			QueueURL:       aws.String(rs.Primary.ID),
+			QueueUrl:       aws.String(rs.Primary.ID),
 			AttributeNames: []*string{aws.String("All")},
 		}
 		resp, err := conn.GetQueueAttributes(params)
@@ -124,7 +124,7 @@ func testAccCheckAWSSQSExistsWithOverrides(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).sqsconn
 
 		params := &sqs.GetQueueAttributesInput{
-			QueueURL:       aws.String(rs.Primary.ID),
+			QueueUrl:       aws.String(rs.Primary.ID),
 			AttributeNames: []*string{aws.String("All")},
 		}
 		resp, err := conn.GetQueueAttributes(params)

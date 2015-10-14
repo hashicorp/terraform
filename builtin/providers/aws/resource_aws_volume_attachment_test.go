@@ -49,7 +49,7 @@ func testAccCheckVolumeAttachmentExists(n string, i *ec2.Instance, v *ec2.Volume
 
 		for _, b := range i.BlockDeviceMappings {
 			if rs.Primary.Attributes["device_name"] == *b.DeviceName {
-				if b.EBS.VolumeID != nil && rs.Primary.Attributes["volume_id"] == *b.EBS.VolumeID {
+				if b.Ebs.VolumeId != nil && rs.Primary.Attributes["volume_id"] == *b.Ebs.VolumeId {
 					// pass
 					return nil
 				}

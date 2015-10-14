@@ -42,7 +42,7 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 
 	// Get the ID and store it
 	ig := *resp.InternetGateway
-	d.SetId(*ig.InternetGatewayID)
+	d.SetId(*ig.InternetGatewayId)
 	log.Printf("[INFO] InternetGateway ID: %s", d.Id())
 
 	err = setTags(conn, d)
@@ -72,7 +72,7 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 		// Gateway exists but not attached to the VPC
 		d.Set("vpc_id", "")
 	} else {
-		d.Set("vpc_id", ig.Attachments[0].VPCID)
+		d.Set("vpc_id", ig.Attachments[0].VpcId)
 	}
 
 	d.Set("tags", tagsToMap(ig.Tags))
@@ -116,7 +116,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 
 	return resource.Retry(5*time.Minute, func() error {
 		_, err := conn.DeleteInternetGateway(&ec2.DeleteInternetGatewayInput{
-			InternetGatewayID: aws.String(d.Id()),
+			InternetGatewayId: aws.String(d.Id()),
 		})
 		if err == nil {
 			return nil
@@ -154,8 +154,8 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 		d.Get("vpc_id").(string))
 
 	_, err := conn.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
-		InternetGatewayID: aws.String(d.Id()),
-		VPCID:             aws.String(d.Get("vpc_id").(string)),
+		InternetGatewayId: aws.String(d.Id()),
+		VpcId:             aws.String(d.Get("vpc_id").(string)),
 	})
 	if err != nil {
 		return err
@@ -224,8 +224,8 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		_, err := conn.DetachInternetGateway(&ec2.DetachInternetGatewayInput{
-			InternetGatewayID: aws.String(instanceID),
-			VPCID:             aws.String(vpcID),
+			InternetGatewayId: aws.String(instanceID),
+			VpcId:             aws.String(vpcID),
 		})
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
@@ -250,7 +250,7 @@ func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.
 func IGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
-			InternetGatewayIDs: []*string{aws.String(id)},
+			InternetGatewayIds: []*string{aws.String(id)},
 		})
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
@@ -283,7 +283,7 @@ func IGAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resourc
 		}
 
 		resp, err := conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
-			InternetGatewayIDs: []*string{aws.String(id)},
+			InternetGatewayIds: []*string{aws.String(id)},
 		})
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)

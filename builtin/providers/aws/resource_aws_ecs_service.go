@@ -112,9 +112,9 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 
 	service := *out.Service
 
-	log.Printf("[DEBUG] ECS service created: %s", *service.ServiceARN)
-	d.SetId(*service.ServiceARN)
-	d.Set("cluster", *service.ClusterARN)
+	log.Printf("[DEBUG] ECS service created: %s", *service.ServiceArn)
+	d.SetId(*service.ServiceArn)
+	d.Set("cluster", *service.ClusterArn)
 
 	return resourceAwsEcsServiceUpdate(d, meta)
 }
@@ -140,7 +140,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	service := out.Services[0]
 	log.Printf("[DEBUG] Received ECS service %s", service)
 
-	d.SetId(*service.ServiceARN)
+	d.SetId(*service.ServiceArn)
 	d.Set("name", *service.ServiceName)
 
 	// Save task definition in the same format
@@ -152,10 +152,10 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("desired_count", *service.DesiredCount)
-	d.Set("cluster", *service.ClusterARN)
+	d.Set("cluster", *service.ClusterArn)
 
-	if service.RoleARN != nil {
-		d.Set("iam_role", *service.RoleARN)
+	if service.RoleArn != nil {
+		d.Set("iam_role", *service.RoleArn)
 	}
 
 	if service.LoadBalancers != nil {
@@ -259,7 +259,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	log.Printf("[DEBUG] ECS service %s deleted.", *out.Service.ServiceARN)
+	log.Printf("[DEBUG] ECS service %s deleted.", *out.Service.ServiceArn)
 	return nil
 }
 
@@ -299,7 +299,7 @@ func buildTaskDefinitionARN(taskDefinition string, meta interface{}) (string, er
 	}
 
 	// arn:aws:iam::0123456789:user/username
-	userARN := *resp.User.ARN
+	userARN := *resp.User.Arn
 	accountID := strings.Split(userARN, ":")[4]
 
 	// arn:aws:ecs:us-west-2:01234567890:task-definition/mongodb:3

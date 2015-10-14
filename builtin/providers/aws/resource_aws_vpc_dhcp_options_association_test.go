@@ -10,8 +10,8 @@ import (
 )
 
 func TestAccAWSDHCPOptionsAssociation_basic(t *testing.T) {
-	var v ec2.VPC
-	var d ec2.DHCPOptions
+	var v ec2.Vpc
+	var d ec2.DhcpOptions
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -52,7 +52,7 @@ func testAccCheckDHCPOptionsAssociationDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDHCPOptionsAssociationExist(n string, vpc *ec2.VPC) resource.TestCheckFunc {
+func testAccCheckDHCPOptionsAssociationExist(n string, vpc *ec2.Vpc) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -63,12 +63,12 @@ func testAccCheckDHCPOptionsAssociationExist(n string, vpc *ec2.VPC) resource.Te
 			return fmt.Errorf("No DHCP Options Set association ID is set")
 		}
 
-		if *vpc.DHCPOptionsID != rs.Primary.Attributes["dhcp_options_id"] {
-			return fmt.Errorf("VPC %s does not have DHCP Options Set %s associated", *vpc.VPCID, rs.Primary.Attributes["dhcp_options_id"])
+		if *vpc.DhcpOptionsId != rs.Primary.Attributes["dhcp_options_id"] {
+			return fmt.Errorf("VPC %s does not have DHCP Options Set %s associated", *vpc.VpcId, rs.Primary.Attributes["dhcp_options_id"])
 		}
 
-		if *vpc.VPCID != rs.Primary.Attributes["vpc_id"] {
-			return fmt.Errorf("DHCP Options Set %s is not associated with VPC %s", rs.Primary.Attributes["dhcp_options_id"], *vpc.VPCID)
+		if *vpc.VpcId != rs.Primary.Attributes["vpc_id"] {
+			return fmt.Errorf("DHCP Options Set %s is not associated with VPC %s", rs.Primary.Attributes["dhcp_options_id"], *vpc.VpcId)
 		}
 
 		return nil

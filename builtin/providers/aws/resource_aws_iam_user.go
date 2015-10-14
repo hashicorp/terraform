@@ -90,13 +90,13 @@ func resourceAwsIamUserReadResult(d *schema.ResourceData, user *iam.User) error 
 	if err := d.Set("name", user.UserName); err != nil {
 		return err
 	}
-	if err := d.Set("arn", user.ARN); err != nil {
+	if err := d.Set("arn", user.Arn); err != nil {
 		return err
 	}
 	if err := d.Set("path", user.Path); err != nil {
 		return err
 	}
-	if err := d.Set("unique_id", user.UserID); err != nil {
+	if err := d.Set("unique_id", user.UserId); err != nil {
 		return err
 	}
 	return nil
