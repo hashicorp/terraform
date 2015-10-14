@@ -287,7 +287,11 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		} else {
 			// No error, set ID and return
 			d.SetId(*output.TableDescription.TableName)
-			return nil
+			if err := d.Set("arn", *output.TableDescription.TableArn); err != nil {
+				return err
+			}
+
+			return resourceAwsDynamoDbTableRead(d, meta)
 		}
 	}
 
