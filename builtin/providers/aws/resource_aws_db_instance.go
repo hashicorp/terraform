@@ -356,7 +356,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			for _, v := range attr.List() {
 				s = append(s, aws.String(v.(string)))
 			}
-			log.Printf("[INFO] DB is restoring from snapshot with default security, but should be set to %s", s)
+			log.Printf("[INFO] DB is restoring from snapshot with default security, but should be set to %s", v.(string))
 			// wait for instance to get up and then modify security
 			d.SetId(d.Get("identifier").(string))
 
