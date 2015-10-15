@@ -3,14 +3,14 @@ package command
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/go-getter"
 	"github.com/mitchellh/cli"
 )
 
 // uiModuleStorage implements module.Storage and is just a proxy to output
 // to the UI any Get operations.
 type uiModuleStorage struct {
-	Storage module.Storage
+	Storage getter.Storage
 	Ui      cli.Ui
 }
 
