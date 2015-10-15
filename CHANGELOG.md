@@ -47,6 +47,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_s3_bucket_object` allows interpolated content to be set with new `content` attribute. [GH-3200]
   * provider/aws: Allow tags for `aws_kinesis_stream` resource. [GH-3397]
   * provider/aws: Configurable capacity waiting duration for ASGs [GH-3191]
+  * provider/aws: Allow non-persistent Spot Requests [GH-3311]
   * provider/cloudstack: Add `project` parameter to `cloudstack_vpc`, `cloudstack_network`, `cloudstack_ipaddress` and `cloudstack_disk` [GH-3035]
   * provider/openstack: add functionality to attach FloatingIP to Port [GH-1788]
   * provider/google: Can now do multi-region deployments without using multiple providers [GH-3258]
