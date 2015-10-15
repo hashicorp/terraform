@@ -1736,7 +1736,7 @@ func TestResourceDataSet(t *testing.T) {
 		}
 
 		err = d.Set(tc.Key, tc.Value)
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("%d err: %s", i, err)
 		}
 

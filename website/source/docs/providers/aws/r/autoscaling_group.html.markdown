@@ -57,12 +57,20 @@ The following arguments are supported:
     for this number of healthy instances all attached load balancers.
     (See also [Waiting for Capacity](#waiting-for-capacity) below.)
 * `force_delete` - (Optional) Allows deleting the autoscaling group without waiting
-   for all instances in the pool to terminate.
+   for all instances in the pool to terminate.  You can force an autoscaling group to delete
+   even if it's in the process of scaling a resource. Normally, Terraform
+   drains all the instances before deleting the group.  This bypasses that
+   behavior and potentially leaves resources dangling.
 * `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
    group names.
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
 * `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated.
 * `tag` (Optional) A list of tag blocks. Tags documented below.
+* `wait_for_capacity_timeout` (Default: "10m") A maximum
+  [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
+  wait for ASG instances to be healthy before timing out.  (See also [Waiting
+  for Capacity](#waiting-for-capacity) below.) Setting this to "0" causes
+  Terraform to skip all Capacity Waiting behavior.
 
 Tags support the following:
 
@@ -110,9 +118,12 @@ Terraform considers an instance "healthy" when the ASG reports `HealthStatus:
 Docs](https://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
 for more information on an ASG's lifecycle.
 
-Terraform will wait for healthy instances for up to 10 minutes. If ASG creation
-is taking more than a few minutes, it's worth investigating for scaling activity
-errors, which can be caused by problems with the selected Launch Configuration.
+Terraform will wait for healthy instances for up to
+`wait_for_capacity_timeout`. If ASG creation is taking more than a few minutes,
+it's worth investigating for scaling activity errors, which can be caused by
+problems with the selected Launch Configuration.
+
+Setting `wait_for_capacity_timeout` to `"0"` disables ASG Capacity waiting.
 
 #### Waiting for ELB Capacity
 
@@ -121,8 +132,9 @@ Balancers. If `min_elb_capacity` is set, Terraform will wait for that number of
 Instances to be `"InService"` in all attached `load_balancers`. This can be
 used to ensure that service is being provided before Terraform moves on.
 
-As with ASG Capacity, Terraform will wait for up to 10 minutes for
-`"InService"` instances. If ASG creation takes more than a few minutes, this
-could indicate one of a number of configuration problems. See the [AWS Docs on
-Load Balancer Troubleshooting](https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-troubleshooting.html)
+As with ASG Capacity, Terraform will wait for up to `wait_for_capacity_timeout`
+(for `"InService"` instances. If ASG creation takes more than a few minutes,
+this could indicate one of a number of configuration problems. See the [AWS
+Docs on Load Balancer
+Troubleshooting](https://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-troubleshooting.html)
 for more information.

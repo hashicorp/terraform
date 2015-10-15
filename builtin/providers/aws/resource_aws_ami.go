@@ -130,7 +130,7 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	image := res.Images[0]
-	state := *(image.State)
+	state := *image.State
 
 	if state == "pending" {
 		// This could happen if a user manually adds an image we didn't create
@@ -142,7 +142,7 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
-		state = *(image.State)
+		state = *image.State
 	}
 
 	if state == "deregistered" {
@@ -170,22 +170,22 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	for _, blockDev := range image.BlockDeviceMappings {
 		if blockDev.Ebs != nil {
 			ebsBlockDev := map[string]interface{}{
-				"device_name":           *(blockDev.DeviceName),
-				"delete_on_termination": *(blockDev.Ebs.DeleteOnTermination),
-				"encrypted":             *(blockDev.Ebs.Encrypted),
+				"device_name":           *blockDev.DeviceName,
+				"delete_on_termination": *blockDev.Ebs.DeleteOnTermination,
+				"encrypted":             *blockDev.Ebs.Encrypted,
 				"iops":                  0,
-				"snapshot_id":           *(blockDev.Ebs.SnapshotId),
-				"volume_size":           int(*(blockDev.Ebs.VolumeSize)),
-				"volume_type":           *(blockDev.Ebs.VolumeType),
+				"snapshot_id":           *blockDev.Ebs.SnapshotId,
+				"volume_size":           int(*blockDev.Ebs.VolumeSize),
+				"volume_type":           *blockDev.Ebs.VolumeType,
 			}
 			if blockDev.Ebs.Iops != nil {
-				ebsBlockDev["iops"] = int(*(blockDev.Ebs.Iops))
+				ebsBlockDev["iops"] = int(*blockDev.Ebs.Iops)
 			}
 			ebsBlockDevs = append(ebsBlockDevs, ebsBlockDev)
 		} else {
 			ephemeralBlockDevs = append(ephemeralBlockDevs, map[string]interface{}{
-				"device_name":  *(blockDev.DeviceName),
-				"virtual_name": *(blockDev.VirtualName),
+				"device_name":  *blockDev.DeviceName,
+				"virtual_name": *blockDev.VirtualName,
 			})
 		}
 	}
@@ -301,7 +301,7 @@ func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, err
 			return nil, fmt.Errorf("new AMI vanished while pending")
 		}
 
-		state := *(res.Images[0].State)
+		state := *res.Images[0].State
 
 		if state == "pending" {
 			// Give it a few seconds before we poll again.
@@ -316,7 +316,7 @@ func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, err
 
 		// If we're not pending or available then we're in one of the invalid/error
 		// states, so stop polling and bail out.
-		stateReason := *(res.Images[0].StateReason)
+		stateReason := *res.Images[0].StateReason
 		return nil, fmt.Errorf("new AMI became %s while pending: %s", state, stateReason)
 	}
 }

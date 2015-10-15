@@ -11,6 +11,33 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
+func TestInterpolateFuncCompact(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty string within array
+			{
+				`${compact(split(",", "a,,b"))}`,
+				NewStringList([]string{"a", "b"}).String(),
+				false,
+			},
+
+			// empty string at the end of array
+			{
+				`${compact(split(",", "a,b,"))}`,
+				NewStringList([]string{"a", "b"}).String(),
+				false,
+			},
+
+			// single empty string
+			{
+				`${compact(split(",", ""))}`,
+				NewStringList([]string{}).String(),
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDeprecatedConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -584,6 +611,39 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBase64Encode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Regular base64 encoding
+			{
+				`${base64encode("abc123!?$*&()'-=@~")}`,
+				"YWJjMTIzIT8kKiYoKSctPUB+",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBase64Decode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Regular base64 decoding
+			{
+				`${base64decode("YWJjMTIzIT8kKiYoKSctPUB+")}`,
+				"abc123!?$*&()'-=@~",
+				false,
+			},
+
+			// Invalid base64 data decoding
+			{
+				`${base64decode("this-is-an-invalid-base64-data")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
@@ -603,7 +663,7 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 		}
 
 		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}
 

@@ -66,6 +66,12 @@ func resourceComputeBackendService() *schema.Resource {
 				Optional: true,
 			},
 
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
+
 			"health_checks": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},

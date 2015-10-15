@@ -431,9 +431,45 @@ func TestResourceAwsElbListenerHash(t *testing.T) {
 	for tn, tc := range cases {
 		leftHash := resourceAwsElbListenerHash(tc.Left)
 		rightHash := resourceAwsElbListenerHash(tc.Right)
-		if (leftHash == rightHash) != tc.Match {
+		if leftHash == rightHash != tc.Match {
 			t.Fatalf("%s: expected match: %t, but did not get it", tn, tc.Match)
 		}
+	}
+}
+
+func TestResourceAWSELB_validateElbNameCannotBeginWithHyphen(t *testing.T) {
+	var elbName = "-Testing123"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSELB_validateElbNameCannotBeLongerThen32Characters(t *testing.T) {
+	var elbName = "Testing123dddddddddddddddddddvvvv"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSELB_validateElbNameCannotHaveSpecialCharacters(t *testing.T) {
+	var elbName = "Testing123%%"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
+	var elbName = "Testing123-"
+	_, errors := validateElbName(elbName, "SampleKey")
+
+	if len(errors) != 1 {
+		t.Fatalf("Expected the ELB Name to trigger a validation error")
 	}
 }
 

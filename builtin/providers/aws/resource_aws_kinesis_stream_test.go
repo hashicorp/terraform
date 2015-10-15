@@ -107,5 +107,8 @@ var testAccKinesisStreamConfig = fmt.Sprintf(`
 resource "aws_kinesis_stream" "test_stream" {
 	name = "terraform-kinesis-test-%d"
 	shard_count = 2
+	tags {
+		Name = "tf-test"
+	}
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())

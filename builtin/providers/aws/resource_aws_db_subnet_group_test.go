@@ -150,6 +150,9 @@ resource "aws_db_subnet_group" "foo" {
 	name = "FOO"
 	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
 }
 `
 

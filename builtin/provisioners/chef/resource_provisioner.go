@@ -326,7 +326,6 @@ func (p *Provisioner) runChefClientFunc(
 			cmd = fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
 		}
 
-
 		if p.LogToFile {
 			if err := os.MkdirAll(logfileDir, 0755); err != nil {
 				return fmt.Errorf("Error creating logfile directory %s: %v", logfileDir, err)

@@ -15,7 +15,7 @@ import (
 
 var tf, err = ioutil.TempFile("", "tf")
 
-func TestAccAWSS3BucketObject_basic(t *testing.T) {
+func TestAccAWSS3BucketObject_source(t *testing.T) {
 	// first write some data to the tempfile just so it's not 0 bytes.
 	ioutil.WriteFile(tf.Name(), []byte("{anything will do }"), 0644)
 	resource.Test(t, resource.TestCase{
@@ -29,8 +29,52 @@ func TestAccAWSS3BucketObject_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketObjectConfig,
+				Config: testAccAWSS3BucketObjectConfigSource,
 				Check:  testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
+			},
+		},
+	})
+}
+
+func TestAccAWSS3BucketObject_content(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if err != nil {
+				panic(err)
+			}
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketObjectConfigContent,
+				Check:  testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
+			},
+		},
+	})
+}
+
+func TestAccAWSS3BucketObject_withContentCharacteristics(t *testing.T) {
+	// first write some data to the tempfile just so it's not 0 bytes.
+	ioutil.WriteFile(tf.Name(), []byte("{anything will do }"), 0644)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if err != nil {
+				panic(err)
+			}
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketObjectConfig_withContentCharacteristics,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket_object.object", "content_type", "binary/octet-stream"),
+				),
 			},
 		},
 	})
@@ -86,14 +130,39 @@ func testAccCheckAWSS3BucketObjectExists(n string) resource.TestCheckFunc {
 }
 
 var randomBucket = randInt
-var testAccAWSS3BucketObjectConfig = fmt.Sprintf(`
+var testAccAWSS3BucketObjectConfigSource = fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
-	bucket = "tf-object-test-bucket-%d"
+    bucket = "tf-object-test-bucket-%d"
 }
-
 resource "aws_s3_bucket_object" "object" {
 	bucket = "${aws_s3_bucket.object_bucket.bucket}"
 	key = "test-key"
 	source = "%s"
+	content_type = "binary/octet-stream"
 }
 `, randomBucket, tf.Name())
+
+var testAccAWSS3BucketObjectConfig_withContentCharacteristics = fmt.Sprintf(`
+resource "aws_s3_bucket" "object_bucket_2" {
+	bucket = "tf-object-test-bucket-%d"
+}
+
+resource "aws_s3_bucket_object" "object" {
+	bucket = "${aws_s3_bucket.object_bucket_2.bucket}"
+	key = "test-key"
+	source = "%s"
+	content_language = "en"
+	content_type = "binary/octet-stream"
+}
+`, randomBucket, tf.Name())
+
+var testAccAWSS3BucketObjectConfigContent = fmt.Sprintf(`
+resource "aws_s3_bucket" "object_bucket" {
+        bucket = "tf-object-test-bucket-%d"
+}
+resource "aws_s3_bucket_object" "object" {
+        bucket = "${aws_s3_bucket.object_bucket.bucket}"
+        key = "test-key"
+        content = "some_bucket_content"
+}
+`, randomBucket)

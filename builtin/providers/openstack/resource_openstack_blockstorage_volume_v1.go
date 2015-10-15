@@ -136,7 +136,7 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 		v.ID)
 
 	stateConf := &resource.StateChangeConf{
-                Pending:    []string{"downloading"},
+		Pending:    []string{"downloading"},
 		Target:     "available",
 		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, v.ID),
 		Timeout:    10 * time.Minute,

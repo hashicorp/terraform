@@ -219,7 +219,7 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts {
-	rawRules := (d.Get("rule")).([]interface{})
+	rawRules := d.Get("rule").([]interface{})
 	createRuleOptsList := make([]secgroups.CreateRuleOpts, len(rawRules))
 	for i, raw := range rawRules {
 		rawMap := raw.(map[string]interface{})
