@@ -50,6 +50,7 @@ The following arguments are supported:
 * `privileged` - (Optional, bool) Run container in privileged mode.
 * `publish_all_ports` - (Optional, bool) Publish all ports of the container.
 * `volumes` - (Optional) See [Volumes](#volumes) below for details.
+* `restart_policy` - (Optional, string) One of `no`, `always`, `on-failure` or `on-failure:<n>`.
 
 <a id="ports"></a>
 ## Ports
