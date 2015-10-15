@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -26,25 +27,6 @@ type Tree struct {
 	path     []string
 	lock     sync.RWMutex
 }
-
-// GetMode is an enum that describes how modules are loaded.
-//
-// GetModeLoad says that modules will not be downloaded or updated, they will
-// only be loaded from the storage.
-//
-// GetModeGet says that modules can be initially downloaded if they don't
-// exist, but otherwise to just load from the current version in storage.
-//
-// GetModeUpdate says that modules should be checked for updates and
-// downloaded prior to loading. If there are no updates, we load the version
-// from disk, otherwise we download first and then load.
-type GetMode byte
-
-const (
-	GetModeNone GetMode = iota
-	GetModeGet
-	GetModeUpdate
-)
 
 // NewTree returns a new Tree for the given config structure.
 func NewTree(name string, c *config.Config) *Tree {
@@ -136,7 +118,7 @@ func (t *Tree) Name() string {
 // module trees inherently require the configuration to be in a reasonably
 // sane state: no circular dependencies, proper module sources, etc. A full
 // suite of validations can be done by running Validate (after loading).
-func (t *Tree) Load(s Storage, mode GetMode) error {
+func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -159,15 +141,15 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 		path = append(path, m.Name)
 
 		// Split out the subdir if we have one
-		source, subDir := getDirSubdir(m.Source)
+		source, subDir := getter.SourceDirSubdir(m.Source)
 
-		source, err := Detect(source, t.config.Dir)
+		source, err := getter.Detect(source, t.config.Dir, getter.Detectors)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
 
 		// Check if the detector introduced something new.
-		source, subDir2 := getDirSubdir(source)
+		source, subDir2 := getter.SourceDirSubdir(source)
 		if subDir2 != "" {
 			subDir = filepath.Join(subDir2, subDir)
 		}
