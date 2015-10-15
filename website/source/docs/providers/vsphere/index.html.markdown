@@ -15,6 +15,9 @@ The provider needs to be configured with the proper credentials before it can be
 
 Use the navigation to the left to read about the available resources.
 
+~> **NOTE:** The vSphere Provider currently represents _initial support_ and
+therefore may undergo significant changes as the community improves it.
+
 ## Example Usage
 
 ```
