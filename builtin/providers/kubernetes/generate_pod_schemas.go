@@ -490,7 +490,7 @@ func genVolumeSource() *schema.Schema {
 
 				"cinder": genCinderVolumeSource(),
 
-				"ceph": genCephVolumeSource(),
+				"ceph_fs": genCephVolumeSource(),
 
 				"flocker": genFlockerVolumeSource(),
 

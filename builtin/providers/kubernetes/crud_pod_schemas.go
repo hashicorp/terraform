@@ -1294,65 +1294,308 @@ func readObjectFieldSelector(fieldRefs *api.ObjectFieldSelector) []interface{} {
 }
 
 func readContainers(containers []api.Container) []interface{} {
-	_containers := make([]interface, len(containers))
+	_containers := make([]interface{}, len(containers))
 	for i, v := range containers {
 		_container := make(map[string]interface{})
 		container := v
 
 		_container["name"] = container.Name
 		_container["image"] = container.Image
-
 		_container["command"] = readStringList(container.Command)
-
 		_container["args"] = readStringList(container.Args)
-
 		_container["working_dir"] = container.WorkingDir
-
 		_container["container_port"] = readContainerPorts(container.Ports)
-
 		_container["env"] = readEnvVars(container.Env)
-
-		if val, ok := _container["resources"]; ok {
-			resources := createResourceRequirements(val.([]interface{}))
-			if resources != nil {
-				container.Resources = *resources
-			}
-		}
-
-		if val, ok := _container["volume_mount"]; ok {
-			container.VolumeMounts = createVolumeMounts(val.([]interface{}))
-		}
-
-		if val, ok := _container["liveness_probe"]; ok {
-			container.LivenessProbe = createProbe(val.([]interface{}))
-		}
-
-		if val, ok := _container["readiness_probe"]; ok {
-			container.ReadinessProbe = createProbe(val.([]interface{}))
-		}
-
-		if val, ok := _container["lifecycle"]; ok {
-			container.Lifecycle = createLifecycle(val.([]interface{}))
-		}
-
-		container.TerminationMessagePath = _container["termination_message_path"].(string)
-
-		container.ImagePullPolicy = api.PullPolicy(_container["image_pull_policy"].(string))
-
-		if val, ok := _container["security_context"]; ok {
-			container.SecurityContext = createSecurityContext(val.([]interface{}))
-		}
-
-		if val, ok := _container["stdin"]; ok {
-			container.Stdin = val.(bool)
-		}
-
-		if val, ok := _container["tty"]; ok {
-			container.TTY = val.(bool)
-		}
-
-		containers[i] = *container
+		_container["resources"] = readResourceRequirements(&container.Resources)
+		_container["volume_mount"] = readVolumeMounts(container.VolumeMounts)
+		_container["liveness_probe"] = readProbe(container.LivenessProbe)
+		_container["readiness_probe"] = readProbe(container.ReadinessProbe)
+		_container["lifecycle"] = readLifecycle(container.Lifecycle)
+		_container["termination_message_path"] = container.TerminationMessagePath
+		_container["image_pull_policy"] = container.ImagePullPolicy
+		_container["security_context"] = readSecurityContext(container.SecurityContext)
+		_container["stdin"] = container.Stdin
+		_container["tty"] = container.TTY
+		_containers[i] = _container
 	}
 
-	return containers
+	return _containers
+}
+
+func readContainerPorts(ports []api.ContainerPort) []interface{} {
+	_ports := make([]interface{}, len(ports))
+	for i, v := range ports {
+		_port := make(map[string]interface{})
+		port := v
+
+		_port["name"] = port.Name
+		_port["host_port"] = port.HostPort
+		_port["container_port"] = port.ContainerPort
+		_port["Protocol"] = port.Protocol
+		_port["host_ip"] = port.HostIP
+
+		_ports[i] = _port
+	}
+
+	return _ports
+}
+
+func readEnvVars(envVars []api.EnvVar) []interface{} {
+	_env_vars := make([]interface{}, len(envVars))
+	for i, v := range envVars {
+		_env_var := make(map[string]interface{})
+		envVar := v
+
+		_env_var["name"] = envVar.Name
+		_env_var["value"] = envVar.Value
+		_env_var["value_from"] = readEnvVarSource(envVar.ValueFrom)
+
+		_env_vars[i] = _env_var
+	}
+
+	return _env_vars
+}
+
+func readEnvVarSource(envVarSource *api.EnvVarSource) []interface{} {
+	if envVarSource == nil {
+		return nil
+	} else {
+		_env_var_sources := make([]interface{}, 1)
+		_env_var_source := make(map[string]interface{})
+
+		_env_var_source["field_ref"] = readObjectFieldSelector(envVarSource.FieldRef)
+
+		_env_var_sources[0] = _env_var_source
+		return _env_var_sources
+	}
+}
+
+func readResourceRequirements(resourceReq *api.ResourceRequirements) []interface{} {
+	if resourceReq == nil {
+		return nil
+	} else {
+		_resource_reqs := make([]interface{}, 1)
+		_resource_req := make(map[string]interface{})
+
+		_resource_req["limits"] = readResourceList(resourceReq.Limits)
+		_resource_req["requests"] = readResourceList(resourceReq.Requests)
+
+		_resource_reqs[0] = _resource_req
+		return _resource_reqs
+	}
+}
+
+func readResourceList(resourceList map[api.ResourceName]resource.Quantity) map[string]interface{} {
+	_resource_list := make(map[string]interface{}, len(resourceList))
+	for k, v := range resourceList {
+		_resource_list[string(k)] = v.String()
+	}
+	return _resource_list
+}
+
+func readVolumeMounts(volumeMounts []api.VolumeMount) []interface{} {
+	_volume_mounts := make([]interface{}, len(volumeMounts))
+	for i, v := range volumeMounts {
+		_volume_mount := make(map[string]interface{})
+		volumeMount := v
+
+		_volume_mount["mount_path"] = volumeMount.MountPath
+		_volume_mount["name"] = volumeMount.Name
+		_volume_mount["read_only"] = volumeMount.ReadOnly
+
+		_volume_mounts[i] = _volume_mount
+	}
+
+	return _volume_mounts
+}
+
+func readProbe(probe *api.Probe) []interface{} {
+	if probe == nil {
+		return nil
+	} else {
+		_probes := make([]interface{}, 1)
+		_probe := make(map[string]interface{})
+		_handler := make(map[string]interface{})
+
+		_handler["exec"] = readExecAction(probe.Exec)
+		_handler["http_get"] = readHttpGetAction(probe.HTTPGet)
+		_handler["tcp_socket"] = readTcpSocketAction(probe.TCPSocket)
+
+		_probe["handler"] = _handler
+		_probe["initial_delay_seconds"] = probe.InitialDelaySeconds
+		_probe["timeout_seconds"] = probe.TimeoutSeconds
+
+		_probes[0] = _probe
+		return _probes
+	}
+}
+
+func readExecAction(exec *api.ExecAction) []interface{} {
+	if exec == nil {
+		return nil
+	} else {
+		_execs := make([]interface{}, 1)
+		_exec := make(map[string]interface{})
+
+		_exec["command"] = readStringList(exec.Command)
+
+		_execs[0] = _exec
+		return _execs
+	}
+}
+
+func readHttpGetAction(httpGet *api.HTTPGetAction) []interface{} {
+	if httpGet == nil {
+		return nil
+	} else {
+		_http_gets := make([]interface{}, 1)
+		_http_get := make(map[string]interface{})
+
+		port, _, _ := util.GetIntOrPercentValue(&httpGet.Port)
+		_http_get["port"] = port
+		_http_get["path"] = httpGet.Path
+		_http_get["host"] = httpGet.Host
+		_http_get["scheme"] = string(httpGet.Scheme)
+
+		_http_gets[0] = _http_get
+		return _http_gets
+	}
+}
+
+func readTcpSocketAction(tcpSocket *api.TCPSocketAction) []interface{} {
+	if tcpSocket == nil {
+		return nil
+	} else {
+		_tcp_sockets := make([]interface{}, 1)
+		_tcp_socket := make(map[string]interface{})
+
+		port, _, _ := util.GetIntOrPercentValue(&tcpSocket.Port)
+		_tcp_socket["port"] = port
+
+		_tcp_sockets[0] = _tcp_socket
+		return _tcp_sockets
+	}
+}
+
+func readLifecycle(lifecycle *api.Lifecycle) []interface{} {
+	if lifecycle == nil {
+		return nil
+	} else {
+		_lifecycles := make([]interface{}, 1)
+		_lifecycle := make(map[string]interface{})
+
+		_lifecycle["post_start"] = lifecycle.PostStart
+		_lifecycle["pre_stop"] = lifecycle.PreStop
+
+		_lifecycles[0] = _lifecycle
+		return _lifecycles
+	}
+}
+
+func readSecurityContext(securityContext *api.SecurityContext) []interface{} {
+	if securityContext == nil {
+		return nil
+	} else {
+		_security_contexts := make([]interface{}, 1)
+		_security_context := make(map[string]interface{})
+
+		_security_context["capabilities"] = readCapabilities(securityContext.Capabilities)
+		_security_context["privileged"] = *securityContext.Privileged
+		_security_context["se_linux_options"] = readSeLinuxOptions(securityContext.SELinuxOptions)
+		_security_context["run_as_user"] = *securityContext.RunAsUser
+		_security_context["run_as_non_root"] = securityContext.RunAsNonRoot
+
+		_security_contexts[0] = _security_context
+		return _security_contexts
+	}
+}
+
+func readCapabilities(capabilities *api.Capabilities) []interface{} {
+	if capabilities == nil {
+		return nil
+	} else {
+		_capabilities := make([]interface{}, 1)
+		_capability := make(map[string]interface{})
+
+		_capability["add"] = readCapabilityList(capabilities.Add)
+		_capability["drop"] = readCapabilityList(capabilities.Drop)
+
+		_capabilities[0] = _capability
+		return _capabilities
+	}
+}
+
+func readCapabilityList(values []api.Capability) []interface{} {
+	_values := make([]interface{}, len(values))
+	for i, v := range values {
+		_values[i] = string(v)
+	}
+	return _values
+}
+
+func readSeLinuxOptions(seLinuxOptions *api.SELinuxOptions) []interface{} {
+	if seLinuxOptions == nil {
+		return nil
+	} else {
+		_se_linux_options := make([]interface{}, 1)
+		_se_linux_option := make(map[string]interface{}, 1)
+
+		_se_linux_option["user"] = seLinuxOptions.User
+		_se_linux_option["role"] = seLinuxOptions.Role
+		_se_linux_option["type"] = seLinuxOptions.Type
+		_se_linux_option["level"] = seLinuxOptions.Level
+
+		_se_linux_options[0] = _se_linux_option
+		return _se_linux_options
+	}
+}
+
+func readNodeSelector(nodeSelector map[string]string) map[string]interface{} {
+	_node_selector := make(map[string]interface{}, len(nodeSelector))
+	for k, v := range nodeSelector {
+		_node_selector[k] = v
+	}
+
+	return _node_selector
+}
+
+func readPodSecurityContext(podSecurityContext *api.PodSecurityContext) []interface{} {
+	if podSecurityContext == nil {
+		return nil
+	} else {
+		_pod_security_contexts := make([]interface{}, 1)
+		_pod_security_context := make(map[string]interface{})
+
+		_pod_security_context["host_network"] = podSecurityContext.HostNetwork
+		_pod_security_context["host_pid"] = podSecurityContext.HostPID
+		_pod_security_context["host_ipc"] = podSecurityContext.HostIPC
+
+		_pod_security_contexts[0] = _pod_security_context
+		return _pod_security_contexts
+	}
+}
+
+func readImagePullSecrets(values []api.LocalObjectReference) []interface{} {
+	_values := make([]interface{}, len(values))
+	for i, v := range values {
+		_values[i] = readLocalObjectReference(&v)
+	}
+
+	return _values
+}
+
+func readHandler(handler *api.Handler) []interface{} {
+	if handler == nil {
+		return nil
+	} else {
+		_handlers := make([]interface{}, 1)
+		_handler := make(map[string]interface{})
+
+		_handler["exec"] = readExecAction(handler.Exec)
+		_handler["http_get"] = readHttpGetAction(handler.HTTPGet)
+		_handler["tcp_socket"] = readTcpSocketAction(handler.TCPSocket)
+
+		_handlers[0] = _handler
+		return _handlers
+	}
 }
