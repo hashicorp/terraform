@@ -157,7 +157,7 @@ func TestMerge(t *testing.T) {
 
 	for i, tc := range cases {
 		actual, err := Merge(tc.c1, tc.c2)
-		if (err != nil) != tc.err {
+		if err != nil != tc.err {
 			t.Fatalf("%d: error fail", i)
 		}
 

@@ -32,7 +32,7 @@ func TestAccComputeInstance_basic_deprecated_network(t *testing.T) {
 	})
 }
 
-func TestAccComputeInstance_basic(t *testing.T) {
+func TestAccComputeInstance_basic1(t *testing.T) {
 	var instance compute.Instance
 
 	resource.Test(t, resource.TestCase{
@@ -376,7 +376,7 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 		}
 
 		for _, disk := range instance.Disks {
-			if strings.LastIndex(disk.Source, "/"+source) == (len(disk.Source)-len(source)-1) && disk.AutoDelete == delete && disk.Boot == boot {
+			if strings.LastIndex(disk.Source, "/"+source) == len(disk.Source)-len(source)-1 && disk.AutoDelete == delete && disk.Boot == boot {
 				return nil
 			}
 		}

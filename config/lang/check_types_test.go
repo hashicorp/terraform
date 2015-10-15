@@ -169,7 +169,7 @@ func TestTypeCheck(t *testing.T) {
 
 		visitor := &TypeCheck{Scope: tc.Scope}
 		err = visitor.Visit(node)
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 	}
@@ -247,7 +247,7 @@ func TestTypeCheck_implicit(t *testing.T) {
 		// Do the first pass...
 		visitor := &TypeCheck{Scope: tc.Scope, Implicit: implicitMap}
 		err = visitor.Visit(node)
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 		if err != nil {

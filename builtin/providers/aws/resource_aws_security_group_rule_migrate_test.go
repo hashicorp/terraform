@@ -27,7 +27,7 @@ func TestAWSSecurityGroupRuleMigrateState(t *testing.T) {
 				"from_port":                "0",
 				"source_security_group_id": "sg-11877275",
 			},
-			Expected: "sg-3766347571",
+			Expected: "sgrule-2889201120",
 		},
 		"v0_2": {
 			StateVersion: 0,
@@ -44,7 +44,7 @@ func TestAWSSecurityGroupRuleMigrateState(t *testing.T) {
 				"cidr_blocks.2":     "172.16.3.0/24",
 				"cidr_blocks.3":     "172.16.4.0/24",
 				"cidr_blocks.#":     "4"},
-			Expected: "sg-4100229787",
+			Expected: "sgrule-1826358977",
 		},
 	}
 

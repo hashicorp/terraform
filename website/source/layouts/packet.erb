@@ -1,0 +1,32 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+        </li>
+
+        <li<%= sidebar_current("docs-packet-index") %>>
+          <a href="/docs/providers/packet/index.html">Packet Provider</a>
+        </li>
+
+        <li<%= sidebar_current(/^docs-packet-resource/) %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-packet-resource-device") %>>
+              <a href="/docs/providers/packet/r/device.html">packet_device</a>
+            </li>
+            <li<%= sidebar_current("docs-packet-resource-project") %>>
+              <a href="/docs/providers/packet/r/project.html">packet_project</a>
+            </li>
+            <li<%= sidebar_current("docs-packet-resource-ssh-key") %>>
+              <a href="/docs/providers/packet/r/ssh_key.html">packet_ssh_key</a>
+            </li>            
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

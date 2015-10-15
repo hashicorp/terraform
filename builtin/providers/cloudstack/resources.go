@@ -10,6 +10,9 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
+// CloudStack uses a "special" ID of -1 to define an unlimited resource
+const UnlimitedResourceID = "-1"
+
 type retrieveError struct {
 	name  string
 	value string
@@ -17,43 +20,51 @@ type retrieveError struct {
 }
 
 func (e *retrieveError) Error() error {
-	return fmt.Errorf("Error retrieving UUID of %s %s: %s", e.name, e.value, e.err)
+	return fmt.Errorf("Error retrieving ID of %s %s: %s", e.name, e.value, e.err)
 }
 
-func setValueOrUUID(d *schema.ResourceData, key string, value string, uuid string) {
-	if isUUID(d.Get(key).(string)) {
-		d.Set(key, uuid)
+func setValueOrID(d *schema.ResourceData, key string, value string, id string) {
+	if isID(d.Get(key).(string)) {
+		// If the given id is an empty string, check if the configured value matches
+		// the UnlimitedResourceID in which case we set id to UnlimitedResourceID
+		if id == "" && d.Get(key).(string) == UnlimitedResourceID {
+			id = UnlimitedResourceID
+		}
+
+		d.Set(key, id)
 	} else {
 		d.Set(key, value)
 	}
 }
 
-func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid string, e *retrieveError) {
-	// If the supplied value isn't a UUID, try to retrieve the UUID ourselves
-	if isUUID(value) {
+func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string, e *retrieveError) {
+	// If the supplied value isn't a ID, try to retrieve the ID ourselves
+	if isID(value) {
 		return value, nil
 	}
 
-	log.Printf("[DEBUG] Retrieving UUID of %s: %s", name, value)
+	log.Printf("[DEBUG] Retrieving ID of %s: %s", name, value)
 
 	var err error
 	switch name {
 	case "disk_offering":
-		uuid, err = cs.DiskOffering.GetDiskOfferingID(value)
+		id, err = cs.DiskOffering.GetDiskOfferingID(value)
 	case "virtual_machine":
-		uuid, err = cs.VirtualMachine.GetVirtualMachineID(value)
+		id, err = cs.VirtualMachine.GetVirtualMachineID(value)
 	case "service_offering":
-		uuid, err = cs.ServiceOffering.GetServiceOfferingID(value)
+		id, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":
-		uuid, err = cs.NetworkOffering.GetNetworkOfferingID(value)
+		id, err = cs.NetworkOffering.GetNetworkOfferingID(value)
+	case "project":
+		id, err = cs.Project.GetProjectID(value)
 	case "vpc_offering":
-		uuid, err = cs.VPC.GetVPCOfferingID(value)
+		id, err = cs.VPC.GetVPCOfferingID(value)
 	case "vpc":
-		uuid, err = cs.VPC.GetVPCID(value)
+		id, err = cs.VPC.GetVPCID(value)
 	case "network":
-		uuid, err = cs.Network.GetNetworkID(value)
+		id, err = cs.Network.GetNetworkID(value)
 	case "zone":
-		uuid, err = cs.Zone.GetZoneID(value)
+		id, err = cs.Zone.GetZoneID(value)
 	case "ipaddress":
 		p := cs.Address.NewListPublicIpAddressesParams()
 		p.SetIpaddress(value)
@@ -63,10 +74,10 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 			break
 		}
 		if l.Count == 1 {
-			uuid = l.PublicIpAddresses[0].Id
+			id = l.PublicIpAddresses[0].Id
 			break
 		}
-		err = fmt.Errorf("Could not find UUID of IP address: %s", value)
+		err = fmt.Errorf("Could not find ID of IP address: %s", value)
 	case "os_type":
 		p := cs.GuestOS.NewListOsTypesParams()
 		p.SetDescription(value)
@@ -76,43 +87,42 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 			break
 		}
 		if l.Count == 1 {
-			uuid = l.OsTypes[0].Id
+			id = l.OsTypes[0].Id
 			break
 		}
-		err = fmt.Errorf("Could not find UUID of OS Type: %s", value)
-	case "project":
-		uuid, err = cs.Project.GetProjectID(value)
+		err = fmt.Errorf("Could not find ID of OS Type: %s", value)
 	default:
-		return uuid, &retrieveError{name: name, value: value,
+		return id, &retrieveError{name: name, value: value,
 			err: fmt.Errorf("Unknown request: %s", name)}
 	}
 
 	if err != nil {
-		return uuid, &retrieveError{name: name, value: value, err: err}
+		return id, &retrieveError{name: name, value: value, err: err}
 	}
 
-	return uuid, nil
+	return id, nil
 }
 
-func retrieveTemplateUUID(cs *cloudstack.CloudStackClient, zoneid, value string) (uuid string, e *retrieveError) {
-	// If the supplied value isn't a UUID, try to retrieve the UUID ourselves
-	if isUUID(value) {
+func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (id string, e *retrieveError) {
+	// If the supplied value isn't a ID, try to retrieve the ID ourselves
+	if isID(value) {
 		return value, nil
 	}
 
-	log.Printf("[DEBUG] Retrieving UUID of template: %s", value)
+	log.Printf("[DEBUG] Retrieving ID of template: %s", value)
 
-	uuid, err := cs.Template.GetTemplateID(value, "executable", zoneid)
+	id, err := cs.Template.GetTemplateID(value, "executable", zoneid)
 	if err != nil {
-		return uuid, &retrieveError{name: "template", value: value, err: err}
+		return id, &retrieveError{name: "template", value: value, err: err}
 	}
 
-	return uuid, nil
+	return id, nil
 }
 
-func isUUID(s string) bool {
-	re := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
-	return re.MatchString(s)
+// ID can be either a UUID or a UnlimitedResourceID
+func isID(id string) bool {
+	re := regexp.MustCompile(`^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|-1)$`)
+	return re.MatchString(id)
 }
 
 // RetryFunc is the function retried n times

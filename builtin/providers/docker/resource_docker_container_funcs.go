@@ -148,7 +148,7 @@ func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if container.State.Running ||
-			(!container.State.Running && !d.Get("must_run").(bool)) {
+			!container.State.Running && !d.Get("must_run").(bool) {
 			break
 		}
 

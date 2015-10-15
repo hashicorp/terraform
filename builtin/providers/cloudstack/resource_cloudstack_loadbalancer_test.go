@@ -223,12 +223,12 @@ func testAccCheckCloudStackLoadBalancerRuleDestroy(s *terraform.State) error {
 			return fmt.Errorf("No Loadbalancer rule ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
+		for k, id := range rs.Primary.Attributes {
 			if !strings.Contains(k, "uuid") {
 				continue
 			}
 
-			_, _, err := cs.LoadBalancer.GetLoadBalancerRuleByID(uuid)
+			_, _, err := cs.LoadBalancer.GetLoadBalancerRuleByID(id)
 			if err == nil {
 				return fmt.Errorf("Loadbalancer rule %s still exists", rs.Primary.ID)
 			}

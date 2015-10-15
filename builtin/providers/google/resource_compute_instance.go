@@ -197,9 +197,10 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     schema.TypeString,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				Elem:         schema.TypeString,
+				ValidateFunc: validateInstanceMetadata,
 			},
 
 			"service_account": &schema.Schema{
@@ -507,15 +508,22 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
 
-	// Synch metadata 
+	// Synch metadata
 	md := instance.Metadata
 
-	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
+	_md := MetadataFormatSchema(md)
+	delete(_md, "startup-script")
+
+	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+		d.Set("metadata_startup_script", script)
+	}
+
+	if err = d.Set("metadata", _md); err != nil {
 		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
@@ -635,6 +643,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("self_link", instance.SelfLink)
+	d.SetId(instance.Name)
 
 	return nil
 }
@@ -644,7 +653,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	zone := d.Get("zone").(string)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
@@ -655,10 +664,17 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
 		o, n := d.GetChange("metadata")
+		if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+			if _, ok := n.(map[string]interface{})["startup-script"]; ok {
+				return fmt.Errorf("Only one of metadata.startup-script and metadata_startup_script may be defined")
+			}
+
+			n.(map[string]interface{})["startup-script"] = script
+		}
 
 		updateMD := func() error {
 			// Reload the instance in the case of a fingerprint mismatch
-			instance, err = getInstance(config, d);
+			instance, err = getInstance(config, d)
 			if err != nil {
 				return err
 			}
@@ -794,13 +810,8 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 func resourceInstanceMetadata(d *schema.ResourceData) (*compute.Metadata, error) {
 	m := &compute.Metadata{}
 	mdMap := d.Get("metadata").(map[string]interface{})
-	_, mapScriptExists := mdMap["startup-script"]
-	dScript, dScriptExists := d.GetOk("metadata_startup_script")
-	if mapScriptExists && dScriptExists {
-		return nil, fmt.Errorf("Not allowed to have both metadata_startup_script and metadata.startup-script")
-	}
-	if dScriptExists {
-		mdMap["startup-script"] = dScript
+	if v, ok := d.GetOk("metadata_startup_script"); ok && v.(string) != "" {
+		mdMap["startup-script"] = v
 	}
 	if len(mdMap) > 0 {
 		m.Items = make([]*compute.MetadataItems, 0, len(mdMap))
@@ -835,4 +846,13 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	}
 
 	return tags
+}
+
+func validateInstanceMetadata(v interface{}, k string) (ws []string, es []error) {
+	mdMap := v.(map[string]interface{})
+	if _, ok := mdMap["startup-script"]; ok {
+		es = append(es, fmt.Errorf(
+			"Use metadata_startup_script instead of a startup-script key in %q.", k))
+	}
+	return
 }

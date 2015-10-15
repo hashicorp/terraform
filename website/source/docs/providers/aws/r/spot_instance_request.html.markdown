@@ -51,6 +51,9 @@ Spot Instance Requests support all the same arguments as
 * `wait_for_fulfillment` - (Optional; Default: false) If set, Terraform will
   wait for the Spot Request to be fulfilled, and will throw an error if the
   timeout of 10m is reached.
+* `spot_type` - (Optional; Default: "persistent") If set to "one-time", after
+  the instance is terminated, the spot request will be closed. Also, Terraform
+  can't manage one-time spot requests, just launch them.
 
 ## Attributes Reference
 

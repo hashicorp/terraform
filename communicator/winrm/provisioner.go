@@ -99,7 +99,7 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 
 func formatDuration(duration time.Duration) string {
 	h := int(duration.Hours())
-	m := int(duration.Minutes()) - (h * 60)
+	m := int(duration.Minutes()) - h*60
 	s := int(duration.Seconds()) - (h*3600 + m*60)
 
 	res := "PT"
