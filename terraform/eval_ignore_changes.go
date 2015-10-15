@@ -1,4 +1,5 @@
 package terraform
+
 import (
 	"github.com/hashicorp/terraform/config"
 	"strings"
@@ -9,7 +10,7 @@ import (
 // IgnoreChanges lifecycle.
 type EvalIgnoreChanges struct {
 	Resource *config.Resource
-	Diff **InstanceDiff
+	Diff     **InstanceDiff
 }
 
 func (n *EvalIgnoreChanges) Eval(ctx EvalContext) (interface{}, error) {
@@ -20,7 +21,7 @@ func (n *EvalIgnoreChanges) Eval(ctx EvalContext) (interface{}, error) {
 	diff := *n.Diff
 	ignoreChanges := n.Resource.Lifecycle.IgnoreChanges
 
-	for _, ignoredName := range	ignoreChanges {
+	for _, ignoredName := range ignoreChanges {
 		for name := range diff.Attributes {
 			if strings.HasPrefix(name, ignoredName) {
 				delete(diff.Attributes, name)
