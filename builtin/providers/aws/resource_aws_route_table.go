@@ -41,6 +41,7 @@ func resourceAwsRouteTable() *schema.Resource {
 
 			"route": &schema.Schema{
 				Type:     schema.TypeSet,
+				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
