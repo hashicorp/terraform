@@ -53,12 +53,13 @@ func resourceKubernetesPod() *schema.Resource {
 
 			"dns_policy": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "Default",
 			},
 
 			"node_selector": &schema.Schema{
 				Type:     schema.TypeMap,
-				Required: true,
+				Optional: true,
 				Elem:     schema.TypeString,
 			},
 

@@ -36,7 +36,7 @@ func genObjectFieldSelector() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Required:     true,
-		ValidateFunc: validateIsStruct,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"api_version": &schema.Schema{
@@ -533,7 +533,7 @@ func genContainerPort() *schema.Schema {
 				"host_port": &schema.Schema{
 					Type:         schema.TypeInt,
 					ValidateFunc: validatePort,
-					Required:     true,
+					Optional:     true,
 				},
 
 				"container_port": &schema.Schema{
@@ -587,7 +587,7 @@ func validatePort(v interface{}, k string) (ws []string, es []error) {
 func genEnvVar() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
-		Required: true,
+		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": &schema.Schema{
@@ -603,7 +603,7 @@ func genEnvVar() *schema.Schema {
 				"value_from": &schema.Schema{
 					Type:         schema.TypeList,
 					Optional:     true,
-					ValidateFunc: validateIsStruct,
+					// ValidateFunc: validateIsStruct,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"field_ref": genObjectFieldSelector(),
@@ -632,7 +632,7 @@ func genResourceRequirements() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Optional:     true,
-		ValidateFunc: validateIsStruct,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"limits": genResourceList(),
@@ -672,7 +672,7 @@ func genTcpSocketAction() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Optional:     true,
-		ValidateFunc: validateIsStruct,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"port": &schema.Schema{
@@ -689,7 +689,7 @@ func genExecAction() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Optional:     true,
-		ValidateFunc: validateIsStruct,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"command": &schema.Schema{
@@ -706,7 +706,7 @@ func genHttpGetAction() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Optional:     true,
-		ValidateFunc: validateIsStruct,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"path": &schema.Schema{
@@ -739,7 +739,7 @@ func genLifecycle() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Optional:     true,
-		ValidateFunc: validateIsStruct,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"post_start": genHandler(),
@@ -754,7 +754,7 @@ func genHandler() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
 		Required:     true,
-		ValidateFunc: validateIsStruct,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"exec": genExecAction(),
@@ -770,8 +770,8 @@ func genHandler() *schema.Schema {
 func genProbe() *schema.Schema {
 	return &schema.Schema{
 		Type:         schema.TypeList,
-		Required:     true,
-		ValidateFunc: validateIsStruct,
+		Optional:     true,
+		// ValidateFunc: validateIsStruct,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"handler": genHandler(),
@@ -920,10 +920,11 @@ func genContainer() *schema.Schema {
 
 				"termination_message_path": &schema.Schema{
 					Type:     schema.TypeString,
-					Required: true,
+					Optional: true,
+					Default:  "",
 				},
 
-				"image_pull_path": &schema.Schema{
+				"image_pull_policy": &schema.Schema{
 					Type:     schema.TypeString,
 					Required: true,
 				},
