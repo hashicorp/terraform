@@ -113,7 +113,7 @@ resource "google_container_cluster" "with_node_config" {
 	}
 
 	node_config {
-		machine_type = "f1-micro"
+		machine_type = "g1-small"
 		disk_size_gb = 15
 		oauth_scopes = [
 			"https://www.googleapis.com/auth/compute",
