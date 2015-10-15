@@ -1,6 +1,9 @@
 package module
 
 import (
+	"io/ioutil"
+	"os"
+
 	"github.com/hashicorp/go-getter"
 )
 
@@ -22,6 +25,36 @@ const (
 	GetModeGet
 	GetModeUpdate
 )
+
+// GetCopy is the same as Get except that it downloads a copy of the
+// module represented by source.
+//
+// This copy will omit and dot-prefixed files (such as .git/, .hg/) and
+// can't be updated on its own.
+func GetCopy(dst, src string) error {
+	// Create the temporary directory to do the real Get to
+	tmpDir, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Get to that temporary dir
+	if err := getter.Get(tmpDir, src); err != nil {
+		return err
+	}
+
+	// Make sure the destination exists
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+
+	// Copy to the final location
+	return copyDir(dst, tmpDir)
+}
 
 func getStorage(s getter.Storage, key string, src string, mode GetMode) (string, bool, error) {
 	// Get the module with the level specified if we were told to.

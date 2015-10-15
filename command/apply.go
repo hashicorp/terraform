@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -76,7 +76,7 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	if !c.Destroy && maybeInit {
 		// Do a detect to determine if we need to do an init + apply.
-		if detected, err := module.Detect(configPath, pwd); err != nil {
+		if detected, err := getter.Detect(configPath, pwd, getter.Detectors); err != nil {
 			c.Ui.Error(fmt.Sprintf(
 				"Invalid path: %s", err))
 			return 1
