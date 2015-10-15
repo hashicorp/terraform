@@ -417,8 +417,8 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) *ec2.IpPermissi
 			}
 
 			if sg.VpcId == nil || *sg.VpcId == "" {
-				perm.UserIdGroupPairs[i].GroupId = nil
-				perm.UserIdGroupPairs[i].GroupName = aws.String(id)
+				perm.UserIdGroupPairs[i].GroupId = aws.String(id)
+				perm.UserIdGroupPairs[i].GroupName = nil
 				perm.UserIdGroupPairs[i].UserId = nil
 			}
 		}
