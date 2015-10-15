@@ -180,7 +180,7 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	if p.NodeName == "" {
 		es = append(es, fmt.Errorf("Key not found: node_name"))
 	}
-	if p.RunList == nil {
+	if !p.UsePolicyfile && p.RunList == nil {
 		es = append(es, fmt.Errorf("Key not found: run_list"))
 	}
 	if p.ServerURL == "" {
