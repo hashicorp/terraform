@@ -27,7 +27,7 @@ func (c *Config) Client() (*consulapi.Client, error) {
 		config.Scheme = c.Scheme
 	}
 	if c.Token != "" {
-	    config.Token = c.Token
+		config.Token = c.Token
 	}
 	client, err := consulapi.NewClient(config)
 
