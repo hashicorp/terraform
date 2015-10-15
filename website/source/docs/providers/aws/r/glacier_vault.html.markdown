@@ -10,7 +10,7 @@ description: |-
 
 Provides a Glacier Vault Resource. You can refer to the [Glacier Developer Guide](http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-vaults.html) for a full explanation of the Glacier Vault functionality
 
-~> **NOTE:** When trying to remove a Glacier Vault, the Vault must be empty.
+~> **NOTE:** When removing a Glacier Vault, the Vault must be empty.
 
 ## Example Usage
 
@@ -65,6 +65,8 @@ The following arguments are supported:
 
 * `events` - (Required) You can configure a vault to publish a notification for `ArchiveRetrievalCompleted` and `InventoryRetrievalCompleted` events.
 * `sns_topic` - (Required) The SNS Topic ARN.
+
+## Attributes Reference
 
 The following attributes are exported:
 
