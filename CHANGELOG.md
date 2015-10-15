@@ -78,6 +78,7 @@ BUG FIXES:
   * provider/aws: Migrate KeyPair to version 1, fixing issue with using `file()` [GH-3470]
   * provider/aws: Fix force_delete on autoscaling groups [GH-3485]
   * provider/aws: Fix crash with VPC Peering connections [GH-3490]
+  * provider/aws: fix bug with reading GSIs from dynamodb [GH-3300]
   * provider/docker: Fix issue preventing private images from being referenced [GH-2619]
   * provider/digitalocean: Fix issue causing unnecessary diffs based on droplet slugsize case [GH-3284]
   * provider/openstack: add state 'downloading' to list of expected states in
