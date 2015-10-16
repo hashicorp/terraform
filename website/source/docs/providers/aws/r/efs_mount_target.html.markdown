@@ -6,10 +6,10 @@ description: |-
   Provides an EFS mount target.
 ---
 
-# aws\_efs\_file\_system
+# aws\_efs\_mount\_target
 
-Provides an EFS file system. Per [documentation](http://docs.aws.amazon.com/efs/latest/ug/limits.html)
-the limit is 1 mount target per AZ.
+Provides an EFS mount target. Per [documentation](http://docs.aws.amazon.com/efs/latest/ug/limits.html)
+the limit is 1 mount target per AZ for a single EFS file system.
 
 ## Example Usage
 
