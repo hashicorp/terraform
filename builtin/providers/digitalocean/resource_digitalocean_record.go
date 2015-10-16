@@ -3,10 +3,11 @@ package digitalocean
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
+	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/pearkes/digitalocean"
 )
 
 func resourceDigitalOceanRecord() *schema.Resource {
@@ -66,34 +67,55 @@ func resourceDigitalOceanRecord() *schema.Resource {
 }
 
 func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
-	newRecord := digitalocean.CreateRecord{
-		Type:     d.Get("type").(string),
-		Name:     d.Get("name").(string),
-		Data:     d.Get("value").(string),
-		Priority: d.Get("priority").(string),
-		Port:     d.Get("port").(string),
-		Weight:   d.Get("weight").(string),
+	newRecord := godo.DomainRecordEditRequest{
+		Type: d.Get("type").(string),
+		Name: d.Get("name").(string),
+		Data: d.Get("value").(string),
+	}
+
+	var err error
+	if priority := d.Get("priority").(string); priority != "" {
+		newRecord.Priority, err = strconv.Atoi(priority)
+		if err != nil {
+			return fmt.Errorf("Failed to parse priority as an integer: %v", err)
+		}
+	}
+	if port := d.Get("port").(string); port != "" {
+		newRecord.Port, err = strconv.Atoi(port)
+		if err != nil {
+			return fmt.Errorf("Failed to parse port as an integer: %v", err)
+		}
+	}
+	if weight := d.Get("weight").(string); weight != "" {
+		newRecord.Weight, err = strconv.Atoi(weight)
+		if err != nil {
+			return fmt.Errorf("Failed to parse weight as an integer: %v", err)
+		}
 	}
 
 	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
-	recId, err := client.CreateRecord(d.Get("domain").(string), &newRecord)
+	rec, _, err := client.Domains.CreateRecord(d.Get("domain").(string), &newRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to create record: %s", err)
 	}
 
-	d.SetId(recId)
+	d.SetId(strconv.Itoa(rec.ID))
 	log.Printf("[INFO] Record ID: %s", d.Id())
 
 	return resourceDigitalOceanRecordRead(d, meta)
 }
 
 func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 	domain := d.Get("domain").(string)
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("invalid record ID: %v", err)
+	}
 
-	rec, err := client.RetrieveRecord(domain, d.Id())
+	rec, _, err := client.Domains.Record(domain, id)
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone
@@ -120,23 +142,29 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", rec.Name)
 	d.Set("type", rec.Type)
 	d.Set("value", rec.Data)
-	d.Set("weight", rec.StringWeight())
-	d.Set("priority", rec.StringPriority())
-	d.Set("port", rec.StringPort())
+	d.Set("weight", strconv.Itoa(rec.Weight))
+	d.Set("priority", strconv.Itoa(rec.Priority))
+	d.Set("port", strconv.Itoa(rec.Port))
 
 	return nil
 }
 
 func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
-	var updateRecord digitalocean.UpdateRecord
-	if v, ok := d.GetOk("name"); ok {
-		updateRecord.Name = v.(string)
+	domain := d.Get("domain").(string)
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("invalid record ID: %v", err)
 	}
 
-	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
-	err := client.UpdateRecord(d.Get("domain").(string), d.Id(), &updateRecord)
+	var editRecord godo.DomainRecordEditRequest
+	if v, ok := d.GetOk("name"); ok {
+		editRecord.Name = v.(string)
+	}
+
+	log.Printf("[DEBUG] record update configuration: %#v", editRecord)
+	_, _, err = client.Domains.EditRecord(domain, id, &editRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to update record: %s", err)
 	}
@@ -145,11 +173,17 @@ func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
-	log.Printf(
-		"[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())
-	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
+	domain := d.Get("domain").(string)
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("invalid record ID: %v", err)
+	}
+
+	log.Printf("[INFO] Deleting record: %s, %d", domain, id)
+
+	_, err = client.Domains.DeleteRecord(domain, id)
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone
