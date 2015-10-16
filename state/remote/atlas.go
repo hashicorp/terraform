@@ -83,7 +83,8 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	}
 
 	// Request the url
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +162,8 @@ func (c *AtlasClient) Put(state []byte) error {
 	req.ContentLength = int64(len(state))
 
 	// Make the request
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to upload state: %v", err)
 	}
@@ -186,7 +188,8 @@ func (c *AtlasClient) Delete() error {
 	}
 
 	// Make the request
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to delete state: %v", err)
 	}
