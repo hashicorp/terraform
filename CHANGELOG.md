@@ -1,5 +1,9 @@
 ## 0.6.5 (Unreleased)
 
+INTERNAL IMPROVEMENTS:
+
+ * provider/digitalocean: use official Go client [GH-3333]
+
 ## 0.6.4 (October 15, 2015)
 
 FEATURES:
