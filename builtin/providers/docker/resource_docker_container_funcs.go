@@ -78,16 +78,6 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Volumes = volumes
 	}
 
-	var retContainer *dc.Container
-	if retContainer, err = client.CreateContainer(createOpts); err != nil {
-		return fmt.Errorf("Unable to create container: %s", err)
-	}
-	if retContainer == nil {
-		return fmt.Errorf("Returned container is nil")
-	}
-
-	d.SetId(retContainer.ID)
-
 	hostConfig := &dc.HostConfig{
 		Privileged:      d.Get("privileged").(bool),
 		PublishAllPorts: d.Get("publish_all_ports").(bool),
@@ -111,6 +101,17 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	if v, ok := d.GetOk("links"); ok {
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
 	}
+
+	createOpts.HostConfig = hostConfig
+	var retContainer *dc.Container
+	if retContainer, err = client.CreateContainer(createOpts); err != nil {
+		return fmt.Errorf("Unable to create container: %s", err)
+	}
+	if retContainer == nil {
+		return fmt.Errorf("Returned container is nil")
+	}
+
+	d.SetId(retContainer.ID)
 
 	creationTime = time.Now()
 	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
