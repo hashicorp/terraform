@@ -28,7 +28,7 @@ bundle exec middleman server &
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "chef/ubuntu-12.04"
+  config.vm.box = "chef/ubuntu-14.04"
   config.vm.network "private_network", ip: "33.33.30.10"
   config.vm.provision "shell", inline: $script, privileged: false
   config.vm.synced_folder ".", "/vagrant", type: "rsync"
