@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/pearkes/digitalocean"
 )
 
 func resourceDigitalOceanDomain() *schema.Resource {
@@ -32,30 +32,31 @@ func resourceDigitalOceanDomain() *schema.Resource {
 }
 
 func resourceDigitalOceanDomainCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
 	// Build up our creation options
-	opts := &digitalocean.CreateDomain{
+
+	opts := &godo.DomainCreateRequest{
 		Name:      d.Get("name").(string),
 		IPAddress: d.Get("ip_address").(string),
 	}
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
-	name, err := client.CreateDomain(opts)
+	domain, _, err := client.Domains.Create(opts)
 	if err != nil {
 		return fmt.Errorf("Error creating Domain: %s", err)
 	}
 
-	d.SetId(name)
-	log.Printf("[INFO] Domain Name: %s", name)
+	d.SetId(domain.Name)
+	log.Printf("[INFO] Domain Name: %s", domain.Name)
 
 	return resourceDigitalOceanDomainRead(d, meta)
 }
 
 func resourceDigitalOceanDomainRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
-	domain, err := client.RetrieveDomain(d.Id())
+	domain, _, err := client.Domains.Get(d.Id())
 	if err != nil {
 		// If the domain is somehow already destroyed, mark as
 		// successfully gone
@@ -73,10 +74,10 @@ func resourceDigitalOceanDomainRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceDigitalOceanDomainDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
-	err := client.DestroyDomain(d.Id())
+	_, err := client.Domains.Delete(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting Domain: %s", err)
 	}
