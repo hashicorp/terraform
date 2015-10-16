@@ -1,6 +1,9 @@
 package kubernetes
 
 import (
+	"log"
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -39,11 +42,13 @@ func resourceKubernetesPod() *schema.Resource {
 			"restart_policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "Always",
 			},
 
 			"termination_grace_period_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Default:  30,
 			},
 
 			"active_deadline_seconds": &schema.Schema{
@@ -66,11 +71,12 @@ func resourceKubernetesPod() *schema.Resource {
 			"service_account_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "default",
 			},
 
 			"node_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Computed: true,
 			},
 
 			"security_context": genSecurityContext(),
@@ -82,6 +88,7 @@ func resourceKubernetesPod() *schema.Resource {
 
 func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
+	log.Printf("[DEBUG] preparing to create pod");
 
 	_name := d.Get("name").(string)
 
@@ -117,10 +124,6 @@ func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error
 		spec.ServiceAccountName = v.(string)
 	}
 
-	if v, ok := d.GetOk("node_name"); ok {
-		spec.NodeName = v.(string)
-	}
-
 	if v, ok := d.GetOk("security_context"); ok {
 		spec.SecurityContext = createPodSecurityContext(v.([]interface{}))
 	}
@@ -147,7 +150,7 @@ func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error
 
 	_, err := c.Pods(_namespace).Create(&req)
 	if err != nil {
-		return err
+		return fmt.Errorf("[ERROR] Unable to create pod %s: %s", _name, err)
 	}
 
 	return resourceKubernetesPodRead(d, meta)
@@ -157,7 +160,7 @@ func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 	pod, err := c.Pods(d.Get("namespace").(string)).Get(d.Get("name").(string))
 	if err != nil {
-		return err
+		return fmt.Errorf("[ERROR] Unable to read pod %s: %s", d.Get("name").(string), err)
 	}
 
 	spec := pod.Spec
@@ -167,8 +170,14 @@ func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("dns_policy", spec.DNSPolicy)
 	d.Set("node_selector", readNodeSelector(spec.NodeSelector))
 	d.Set("restart_policy", spec.RestartPolicy)
-	d.Set("termination_grace_period_seconds", *spec.TerminationGracePeriodSeconds)
-	d.Set("active_deadline_seconds", *spec.ActiveDeadlineSeconds )
+	v := spec.TerminationGracePeriodSeconds
+	if v != nil {
+		d.Set("termination_grace_period_seconds", *v)
+	}
+	v = spec.ActiveDeadlineSeconds
+	if v != nil {
+		d.Set("active_deadline_seconds", *v)
+	}
 	d.Set("service_account_name", spec.ServiceAccountName)
 	d.Set("node_name", spec.NodeName)
 	d.Set("security_context", readPodSecurityContext(spec.SecurityContext))

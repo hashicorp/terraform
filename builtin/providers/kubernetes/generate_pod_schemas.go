@@ -615,11 +615,6 @@ func genEnvVar() *schema.Schema {
 	}
 }
 
-// There are two ways of doing this - either
-// 1. an explicit struct mapping each `resourcename` to a quantity schema.
-// 2. a map from `resourcename` (as a string) a quantity schema
-// I'm going with 2. for now since it's more adaptive to changes in the
-// kubernetes API
 func genResourceList() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeMap,
