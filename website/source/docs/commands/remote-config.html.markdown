@@ -50,6 +50,11 @@ The following backends are supported:
   variables can optionally be provided. Address is assumed to be the
   local agent if not provided.
 
+* Etcd - Stores the state in etcd at a given path.
+  Requires the `path` and `endpoints` variables. The `username` and `password`
+  variables can optionally be provided. `endpoints` is assumed to be a
+  space-separated list of etcd endpoints.
+
 * S3 - Stores the state as a given key in a given bucket on Amazon S3.
   Requires the `bucket` and `key` variables. Supports and honors the standard
   AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
