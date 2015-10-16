@@ -3,19 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/hashicorp/terraform/helper/schema"
 )
-
-// Number of times to retry if a throttling- or test message exception occurs
-const CLOUDWATCH_LOGS_LOG_GROUP_MAX_THROTTLE_RETRIES = 10
-
-// How long to sleep when a throttle-event happens
-const CLOUDWATCH_LOGS_LOG_GROUP_THROTTLE_SLEEP = 5 * time.Second
 
 func resourceAwsCloudwatchLogsLogGroup() *schema.Resource {
 	return &schema.Resource{

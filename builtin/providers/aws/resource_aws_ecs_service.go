@@ -270,7 +270,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if ECS service %s is INACTIVE", d.Id())
+			log.Printf("[DEBUG] Checking if ECS service %s is INACTIVE or MISSING", d.Id())
 			resp, err := conn.DescribeServices(&ecs.DescribeServicesInput{
 				Services: []*string{aws.String(d.Id())},
 				Cluster:  aws.String(d.Get("cluster").(string)),
@@ -279,7 +279,14 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 				return resp, "FAILED", err
 			}
 
-			return resp, *resp.Services[0].Status, nil
+			status := *resp.Services[0].Status
+			// both these statuses means that the service is deleted
+			if status == "MISSING" {
+				status = "INACTIVE"
+			}
+
+			log.Printf("[DEBUG] ECS service %s is %s", d.Id(), status)
+			return resp, status, nil
 		},
 	}
 

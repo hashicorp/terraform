@@ -77,7 +77,7 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 				// CreateEventSourceMapping seems to be able to cast InvalidParameterValueException in places of throttling exceptions when
 				// creating many Event Source Mappings for the same stream
 				if awsErr.Code() == "TooManyRequestsException" || (awsErr.Code() == "InvalidParameterValueException" && strings.Contains(awsErr.Message(), "Please ensure the role can perform the GetRecords, GetShardIterator, DescribeStream, and ListStreams Actions on your stream in IAM")) {
-					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
+					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
 					time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
 					attemptCount += 1
 				} else {
@@ -164,7 +164,7 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				log.Printf("[DEBUG] AWS Error getting EventSourceMapping: [%s] %s", awsErr.Code(), awsErr.Message())
-				log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
+				log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
 				time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
 				attemptCount += 1
 			} else {
@@ -198,7 +198,7 @@ func resourceAwsLambdaEventSourceMappingDelete(d *schema.ResourceData, meta inte
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "TooManyRequestsException" {
-					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back delete request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
+					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back delete request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
 					time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
 					attemptCount += 1
 				} else {

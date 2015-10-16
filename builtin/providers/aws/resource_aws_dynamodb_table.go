@@ -9,19 +9,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 )
-
-// Number of times to retry if a throttling-related exception occurs
-const DYNAMODB_MAX_THROTTLE_RETRIES = 5
-
-// How long to sleep when a throttle-event happens
-const DYNAMODB_THROTTLE_SLEEP = 5 * time.Second
-
-// How long to sleep if a limit-exceeded event happens
-const DYNAMODB_LIMIT_EXCEEDED_SLEEP = 10 * time.Second
 
 // A number of these are marked as computed because if you don't
 // provide a value, DynamoDB will provide you with defaults (which are the
@@ -301,42 +291,20 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		req.GlobalSecondaryIndexes = globalSecondaryIndexes
 	}
 
-	attemptCount := 1
-	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
-		output, err := dynamodbconn.CreateTable(req)
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "ThrottlingException" {
-					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
-					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
-					attemptCount += 1
-				} else if awsErr.Code() == "LimitExceededException" {
-					log.Printf("[DEBUG] Limit on concurrent table creations hit, sleeping for a bit")
-					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
-					attemptCount += 1
-				} else {
-					// Some other non-retryable exception occurred
-					return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
-				}
-			} else {
-				// Non-AWS exception occurred, give up
-				return fmt.Errorf("Error creating DynamoDB table: %s", err)
-			}
-		} else {
-			// No error, set ID, arn and latest_stream_arn and return
-			d.SetId(*output.TableDescription.TableName)
-			d.Set("arn", *output.TableDescription.TableArn)
-			if output.TableDescription.StreamSpecification != nil {
-				if *output.TableDescription.StreamSpecification.StreamEnabled {
-					d.Set("latest_stream_arn", *output.TableDescription.LatestStreamArn)
-				}
-			}
-			return nil
-		}
+
+	output, err := dynamodbconn.CreateTable(req)
+	if err != nil {
+		return fmt.Errorf("Unable to create DynamoDB table '%s' error: %s", name, err)
 	}
 
-	// Too many throttling events occurred, give up
-	return fmt.Errorf("Unable to create DynamoDB table '%s' after %d attempts", name, attemptCount)
+	d.SetId(*output.TableDescription.TableName)
+	d.Set("arn", *output.TableDescription.TableArn)
+	if output.TableDescription.StreamSpecification != nil {
+		if *output.TableDescription.StreamSpecification.StreamEnabled {
+			d.Set("latest_stream_arn", *output.TableDescription.LatestStreamArn)
+		}
+	}
+	return nil
 }
 
 func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -675,39 +643,14 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 
-	attemptCount := 1
-	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
-		_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
-			TableName: aws.String(d.Id()),
-		})
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "ThrottlingException" {
-					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
-					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
-					attemptCount += 1
-				} else if awsErr.Code() == "LimitExceededException" {
-					log.Printf("[DEBUG] Limit on concurrent table deletion hit, sleeping for a bit")
-					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
-					attemptCount += 1
-				} else if awsErr.Code() == "ResourceNotFoundException" {
-					log.Printf("[DEBUG] Table no longer exists - that's actually OK")
-					return nil
-				} else {
-					// Some other non-retryable exception occurred
-					return fmt.Errorf("AWS Error deleting DynamoDB table: %s", err)
-				}
-			} else {
-				// Non-AWS exception occurred, give up
-				return fmt.Errorf("Error deleting DynamoDB table: %s", err)
-			}
-		} else {
-			return nil
-		}
+	_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
+		TableName: aws.String(d.Id()),
+	})
+	if err != nil {
+		return fmt.Errorf("AWS Error deleting DynamoDB table '%s': error %s", d.Id(), err)
 	}
 
-	// Too many throttling events occurred, give up
-	return fmt.Errorf("Unable to delete DynamoDB table '%s' after %d attempts", d.Id(), attemptCount)
+	return nil
 }
 
 func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryIndex {

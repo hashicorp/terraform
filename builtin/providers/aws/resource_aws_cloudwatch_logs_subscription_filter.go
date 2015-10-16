@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	"math/rand"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -20,7 +21,7 @@ import (
 const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES = 10
 
 // How long to sleep when a throttle-event happens
-const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP = 5 * time.Second
+const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS = 5000
 
 func resourceAwsCloudwatchLogsSubscriptionFilter() *schema.Resource {
 	return &schema.Resource{
@@ -74,6 +75,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
 
 	log.Printf("[DEBUG] Creating SubscriptionFilter %#v", params)
+	sleep_randomizer := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	attemptCount := 1
 	for attemptCount <= CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES {
@@ -82,7 +84,8 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "InvalidParameterException" {
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back put request", attemptCount, CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES)
-					time.Sleep(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP)
+					// random delay 100-200% of THROTTLE_SLEEP
+					time.Sleep(time.Duration(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS + sleep_randomizer.Intn(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS/2)) * time.Millisecond)
 					attemptCount += 1
 				} else {
 					// Some other non-retryable exception occurred

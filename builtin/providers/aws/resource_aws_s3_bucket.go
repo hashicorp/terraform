@@ -66,6 +66,100 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+//			"notification": &schema.Schema{
+//				Type:     schema.TypeSet,
+//				Optional: true,
+//				Elem: &schema.Resource{
+//					Schema: map[string]*schema.Schema{
+//						"queue": &schema.Schema{
+//							Type:     schema.TypeSet,
+//							Optional: true,
+//							Elem: &schema.Resource{
+//								Schema: map[string]*schema.Schema{
+//									"id": &schema.Schema{
+//										Type:     schema.TypeString,
+//										Required: false,
+//										Computed: true,
+//									},
+//
+//									"queuearn": &schema.Schema{
+//										Type:     schema.TypeString,
+//										Required: true,
+//										Computed: false,
+//									},
+//
+//									"events": &schema.Schema{
+//										Type:     schema.TypeSet,
+//										Optional: true,
+//										Elem:     &schema.Schema{Type: schema.TypeString},
+//										Set:      schema.HashString,
+//									},
+//
+//								},
+//							},
+//						},
+//
+//						"topic": &schema.Schema{
+//							Type:     schema.TypeSet,
+//							Optional: true,
+//							Elem: &schema.Resource{
+//								Schema: map[string]*schema.Schema{
+//									"id": &schema.Schema{
+//										Type:     schema.TypeString,
+//										Required: false,
+//										Computed: true,
+//									},
+//
+//									"topicarn": &schema.Schema{
+//										Type:     schema.TypeString,
+//										Required: true,
+//										Computed: false,
+//									},
+//
+//									"events": &schema.Schema{
+//										Type:     schema.TypeSet,
+//										Optional: true,
+//										Elem:     &schema.Schema{Type: schema.TypeString},
+//										Set:      schema.HashString,
+//									},
+//
+//								},
+//							},
+//						},
+//
+//						"lambda_function": &schema.Schema{
+//							Type: schema.TypeSet,
+//							Optional: true,
+//							Elem: &schema.Resource{
+//								Schema: map[string]*schema.Schema{
+//									"id": &schema.Schema{
+//										Type:     schema.TypeString,
+//										Required: false,
+//										Computed: true,
+//									},
+//
+//									"lambda_function_arn": &schema.Schema{
+//										Type:     schema.TypeString,
+//										Required: true,
+//										Computed: false,
+//									},
+//
+//									// "filters":
+//
+//									"events": &schema.Schema{
+//										Type:     schema.TypeSet,
+//										Optional: true,
+//										Elem:     &schema.Schema{Type: schema.TypeString},
+//										Set:      schema.HashString,
+//									},
+//
+//								},
+//							},
+//						},
+//					},
+//				},
+//			},
+
 			"hosted_zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
