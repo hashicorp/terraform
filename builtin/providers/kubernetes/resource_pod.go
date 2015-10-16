@@ -1,14 +1,12 @@
 package kubernetes
 
 import (
-	"encoding/json"
 	"log"
-	"strings"
+	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util/yaml"
 )
 
 func resourceKubernetesPod() *schema.Resource {
@@ -37,51 +35,123 @@ func resourceKubernetesPod() *schema.Resource {
 				Optional: true,
 			},
 
-			"spec": &schema.Schema{
+			"volume": genVolume(),
+
+			"container": genContainer(),
+
+			"restart_policy": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				StateFunc: func(input interface{}) string {
-					s, err := normalizePodSpec(input.(string))
-					if err != nil {
-						log.Printf("[ERROR] Normalising spec failed: %q", err.Error())
-					}
-					return s
-				},
+				Optional: true,
+				Default:  "Always",
 			},
+
+			"termination_grace_period_seconds": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  30,
+			},
+
+			"active_deadline_seconds": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"dns_policy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "Default",
+			},
+
+			"node_selector": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     schema.TypeString,
+			},
+
+			"service_account_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "default",
+			},
+
+			"node_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"security_context": genSecurityContext(),
+
+			"image_pull_secret": genLocalObjectReference(),
 		},
 	}
 }
 
 func resourceKubernetesPodCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
+	log.Printf("[DEBUG] preparing to create pod");
 
-	spec, err := expandPodSpec(d.Get("spec").(string))
-	if err != nil {
-		return err
+	_name := d.Get("name").(string)
+
+	spec := api.PodSpec{}
+
+	spec.Volumes = createVolumes(d.Get("volume").([]interface{}))
+
+	spec.Containers = createContainers(d.Get("container").([]interface{}))
+
+	if v, ok := d.GetOk("dns_policy"); ok {
+		spec.DNSPolicy = api.DNSPolicy(v.(string))
 	}
 
-	l := d.Get("labels").(map[string]interface{})
-	labels := make(map[string]string, len(l))
-	for k, v := range l {
+	if v, ok := d.GetOk("node_selector"); ok {
+		spec.NodeSelector = createNodeSelector(v.(map[string]interface{}))
+	}
+
+	if v, ok := d.GetOk("restart_policy"); ok {
+		spec.RestartPolicy = api.RestartPolicy(v.(string))
+	}
+
+	if v, ok := d.GetOk("termination_grace_period_seconds"); ok {
+		val := int64(v.(int))
+		spec.TerminationGracePeriodSeconds = &val
+	}
+
+	if v, ok := d.GetOk("active_deadline_seconds"); ok {
+		val := int64(v.(int))
+		spec.ActiveDeadlineSeconds = &val
+	}
+
+	if v, ok := d.GetOk("service_account_name"); ok {
+		spec.ServiceAccountName = v.(string)
+	}
+
+	if v, ok := d.GetOk("security_context"); ok {
+		spec.SecurityContext = createPodSecurityContext(v.([]interface{}))
+	}
+
+	if v, ok := d.GetOk("image_pull_secret"); ok {
+		spec.ImagePullSecrets = createImagePullSecrets(v.([]interface{}))
+	}
+
+	_labels := d.Get("labels").(map[string]interface{})
+	labels := make(map[string]string, len(_labels))
+	for k, v := range _labels {
 		labels[k] = v.(string)
 	}
 
 	req := api.Pod{
 		ObjectMeta: api.ObjectMeta{
-			Name:   d.Get("name").(string),
+			Name:   _name,
 			Labels: labels,
 		},
 		Spec: spec,
 	}
 
-	ns := d.Get("namespace").(string)
+	_namespace := d.Get("namespace").(string)
 
-	pod, err := c.Pods(ns).Create(&req)
+	_, err := c.Pods(_namespace).Create(&req)
 	if err != nil {
-		return err
+		return fmt.Errorf("[ERROR] Unable to create pod %s: %s", _name, err)
 	}
-
-	d.SetId(string(pod.UID))
 
 	return resourceKubernetesPodRead(d, meta)
 }
@@ -90,16 +160,36 @@ func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 	pod, err := c.Pods(d.Get("namespace").(string)).Get(d.Get("name").(string))
 	if err != nil {
-		return err
+		return fmt.Errorf("[ERROR] Unable to read pod %s: %s", d.Get("name").(string), err)
 	}
 
-	spec, err := flattenPodSpec(pod.Spec)
-	if err != nil {
-		return err
+	spec := pod.Spec
+
+	d.Set("volume", readVolumes(spec.Volumes))
+	d.Set("containers", readContainers(spec.Containers))
+	d.Set("dns_policy", spec.DNSPolicy)
+	d.Set("node_selector", readNodeSelector(spec.NodeSelector))
+	d.Set("restart_policy", spec.RestartPolicy)
+	v := spec.TerminationGracePeriodSeconds
+	if v != nil {
+		d.Set("termination_grace_period_seconds", *v)
 	}
-	d.Set("spec", spec)
-	d.Set("labels", pod.Labels)
-	d.Set("spec", pod.Spec)
+	v = spec.ActiveDeadlineSeconds
+	if v != nil {
+		d.Set("active_deadline_seconds", *v)
+	}
+	d.Set("service_account_name", spec.ServiceAccountName)
+	d.Set("node_name", spec.NodeName)
+	d.Set("security_context", readPodSecurityContext(spec.SecurityContext))
+	d.Set("image_pull_secret", readImagePullSecrets(spec.ImagePullSecrets))
+
+	labels := pod.ObjectMeta.Labels
+	_labels := make(map[string]interface{}, len(labels))
+	for k, v := range labels {
+		_labels[k] = v
+	}
+
+	d.SetId(string(pod.UID))
 
 	return nil
 }
@@ -107,26 +197,69 @@ func resourceKubernetesPodRead(d *schema.ResourceData, meta interface{}) error {
 func resourceKubernetesPodUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*client.Client)
 
-	spec, err := expandPodSpec(d.Get("spec").(string))
-	if err != nil {
-		return err
+	_name := d.Get("name").(string)
+
+	spec := api.PodSpec{}
+
+	spec.Volumes = createVolumes(d.Get("volume").([]interface{}))
+
+	spec.Containers = createContainers(d.Get("container").([]interface{}))
+
+	if v, ok := d.GetOk("dns_policy"); ok {
+		spec.DNSPolicy = api.DNSPolicy(v.(string))
 	}
 
-	l := d.Get("labels").(map[string]interface{})
-	labels := make(map[string]string, len(l))
-	for k, v := range l {
+	if v, ok := d.GetOk("node_selector"); ok {
+		spec.NodeSelector = createNodeSelector(v.(map[string]interface{}))
+	}
+
+	if v, ok := d.GetOk("restart_policy"); ok {
+		spec.RestartPolicy = api.RestartPolicy(v.(string))
+	}
+
+	if v, ok := d.GetOk("termination_grace_period_seconds"); ok {
+		val := int64(v.(int))
+		spec.TerminationGracePeriodSeconds = &val
+	}
+
+	if v, ok := d.GetOk("active_deadline_seconds"); ok {
+		val := int64(v.(int))
+		spec.ActiveDeadlineSeconds = &val
+	}
+
+	if v, ok := d.GetOk("service_account_name"); ok {
+		spec.ServiceAccountName = v.(string)
+	}
+
+	if v, ok := d.GetOk("node_name"); ok {
+		spec.NodeName = v.(string)
+	}
+
+	if v, ok := d.GetOk("security_context"); ok {
+		spec.SecurityContext = createPodSecurityContext(v.([]interface{}))
+	}
+
+	if v, ok := d.GetOk("image_pull_secret"); ok {
+		spec.ImagePullSecrets = createImagePullSecrets(v.([]interface{}))
+	}
+
+	_labels := d.Get("labels").(map[string]interface{})
+	labels := make(map[string]string, len(_labels))
+	for k, v := range _labels {
 		labels[k] = v.(string)
 	}
 
 	req := api.Pod{
 		ObjectMeta: api.ObjectMeta{
-			Name:   d.Get("name").(string),
+			Name:   _name,
 			Labels: labels,
 		},
 		Spec: spec,
 	}
 
-	_, err = c.Pods(d.Get("namespace").(string)).Update(&req)
+	_namespace := d.Get("namespace").(string)
+
+	_, err := c.Pods(_namespace).Update(&req)
 	if err != nil {
 		return err
 	}
@@ -138,75 +271,4 @@ func resourceKubernetesPodDelete(d *schema.ResourceData, meta interface{}) error
 	c := meta.(*client.Client)
 	err := c.Pods(d.Get("namespace").(string)).Delete(d.Get("name").(string), nil)
 	return err
-}
-
-func expandPodSpec(input string) (spec api.PodSpec, err error) {
-	r := strings.NewReader(input)
-	y := yaml.NewYAMLOrJSONDecoder(r, 4096)
-
-	err = y.Decode(&spec)
-	if err != nil {
-		return
-	}
-	spec = setDefaultPodSpecValues(&spec)
-	return
-}
-
-func flattenPodSpec(spec api.PodSpec) (string, error) {
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}
-
-func normalizePodSpec(input string) (string, error) {
-	r := strings.NewReader(input)
-	y := yaml.NewYAMLOrJSONDecoder(r, 4096)
-	spec := api.PodSpec{}
-
-	err := y.Decode(&spec)
-	if err != nil {
-		return "", err
-	}
-
-	spec = setDefaultPodSpecValues(&spec)
-
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}
-
-// This is to prevent detecting change when there's nothing to change
-func setDefaultPodSpecValues(spec *api.PodSpec) api.PodSpec {
-	if spec.ServiceAccountName == "" {
-		spec.ServiceAccountName = "default"
-	}
-	if spec.RestartPolicy == "" {
-		spec.RestartPolicy = "Always"
-	}
-	if spec.DNSPolicy == "" {
-		spec.DNSPolicy = "ClusterFirst"
-	}
-
-	for k, c := range spec.Containers {
-		if c.ImagePullPolicy == "" {
-			spec.Containers[k].ImagePullPolicy = "IfNotPresent"
-		}
-		if c.TerminationMessagePath == "" {
-			spec.Containers[k].TerminationMessagePath = "/dev/termination-log"
-		}
-
-		for _, p := range c.Ports {
-			if p.Protocol == "" {
-				p.Protocol = "TCP"
-			}
-		}
-	}
-
-	return *spec
 }
