@@ -82,8 +82,8 @@ The following arguments are supported:
   are not allowed to be used simultaneously.
 
 * `network_interface` - (Required) Networks to attach to the instance. This can be
-    specified multiple times for multiple networks. Structure is documented
-    below.
+    specified multiple times for multiple networks, but GCE is currently limited
+    to just 1. Structure is documented below.
 
 * `network` - (DEPRECATED, Required) Networks to attach to the instance. This can be
     specified multiple times for multiple networks. Structure is documented
