@@ -10,6 +10,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
 	"github.com/rackspace/gophercloud/pagination"
+	"time"
 )
 
 func resourceLBPoolV1() *schema.Resource {
@@ -276,6 +277,16 @@ func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 	err = pools.Delete(networkingClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB Pool: %s", err)
+	}
+
+	for {
+		_, err := pools.Get(networkingClient, d.Id()).Extract()
+		if err == nil {
+			log.Printf("[DEBUG] Pool (%s) is not deleted yet, waiting for 1 second", d.Id())
+			time.Sleep(1000 * time.Millisecond)
+		} else {
+			break;
+		}
 	}
 
 	d.SetId("")
