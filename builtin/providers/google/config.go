@@ -10,8 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	// TODO(dcunnin): Use version code from version.go
-	// "github.com/hashicorp/terraform"
+	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
@@ -117,13 +116,11 @@ func (c *Config) loadAndValidate() error {
 
 	}
 
-	// Build UserAgent
-	versionString := "0.0.0"
-	// TODO(dcunnin): Use Terraform's version code from version.go
-	// versionString := main.Version
-	// if main.VersionPrerelease != "" {
-	// 	versionString = fmt.Sprintf("%s-%s", versionString, main.VersionPrerelease)
-	// }
+	versionString := terraform.Version
+	prerelease := terraform.VersionPrerelease
+	if len(prerelease) > 0 {
+		versionString = fmt.Sprintf("%s-%s", versionString, prerelease)
+	}
 	userAgent := fmt.Sprintf(
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 
