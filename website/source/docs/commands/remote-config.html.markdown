@@ -63,6 +63,11 @@ The following backends are supported:
   variables can optionally be provided. `endpoints` is assumed to be a
   space-separated list of etcd endpoints.
 
+* gcs - Stores the state in Google Storage bucket at a given path.
+  Requires the `bucket`, `path` and `project` variables. The `account_file` variable can 
+  optionally be provided if not executing terraform on a Compute instance or
+  system pre-authenticated by Google Compute SDK.
+
 * S3 - Stores the state as a given key in a given bucket on Amazon S3.
   Requires the `bucket` and `key` variables. Supports and honors the standard
   AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
