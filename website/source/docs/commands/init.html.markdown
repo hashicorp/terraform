@@ -31,17 +31,34 @@ a remote state configuration if provided.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-address=url` - URL of the remote storage server. Required for HTTP backend,
-  optional for Atlas and Consul.
-
-* `-access-token=token` - Authentication token for state storage server.
-  Required for Atlas backend, optional for Consul.
-
 * `-backend=atlas` - Specifies the type of remote backend. Must be one
-  of Atlas, Consul, or HTTP. Defaults to atlas.
+  of Atlas, Consul, S3, or HTTP. Defaults to Atlas.
 
-* `-name=name` - Name of the state file in the state storage server.
-  Required for Atlas backend.
+* `-backend-config="k=v"` - Specify a configuration variable for a backend. This is how you set the required variables for the selected backend (as detailed in the [remote command documentation](/docs/command/remote.html).
 
-* `-path=path` - Path of the remote state in Consul. Required for the Consul backend.
 
+## Example: Consul
+
+This example will initialize the current directory and configure Consul remote storage:
+
+```
+$ terraform init \
+    -backend=consul \
+    -backend-config="address=your.consul.endpoint:443" \
+    -backend-config="scheme=https" \
+    -backend-config="path=tf/path/for/project" \
+    /path/to/source/module
+```
+
+## Example: S3
+
+This example will initialize the current directory and configure S3 remote storage:
+
+```
+$ terraform init \
+    -backend=s3 \
+    -backend-config="bucket=your-s3-bucket" \
+    -backend-config="key=tf/path/for/project.json" \
+    -backend-config="acl=bucket-owner-full-control" \
+    /path/to/source/module
+```
