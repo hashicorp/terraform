@@ -15,7 +15,7 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"account_file": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 				ValidateFunc: validateAccountFile,
 			},
@@ -40,7 +40,6 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_disk":                   resourceComputeDisk(),
 			"google_compute_firewall":               resourceComputeFirewall(),
 			"google_compute_forwarding_rule":        resourceComputeForwardingRule(),
-			"google_compute_global_address":         resourceComputeGlobalAddress(),
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
 			"google_compute_instance":               resourceComputeInstance(),
 			"google_compute_instance_template":      resourceComputeInstanceTemplate(),
@@ -79,6 +78,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 }
 
 func validateAccountFile(v interface{}, k string) (warnings []string, errors []error) {
+	if v == nil {
+		return
+	}
+
 	value := v.(string)
 
 	if value == "" {
