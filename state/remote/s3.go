@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -75,6 +76,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 	awsConfig := &aws.Config{
 		Credentials: credentialsProvider,
 		Region:      aws.String(regionName),
+		HTTPClient:  &http.Client{},
 	}
 	nativeClient := s3.New(awsConfig)
 
