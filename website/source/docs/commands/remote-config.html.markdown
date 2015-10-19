@@ -76,6 +76,12 @@ The following backends are supported:
 * HTTP - Stores the state using a simple REST client. State will be fetched
   via GET, updated via POST, and purged with DELETE. Requires the `address` variable.
 
+* Artifactory - Stores the state in [Artifactory](https://www.jfrog.com/artifactory/).
+  This requires that you have already created an Artifactory local ["Generic Repository"](https://www.jfrog.com/confluence/display/RTF/Configuring+Repositories#ConfiguringRepositories-GenericRepositories) and have permissions.
+  Environment variables `ARTIFACTORY_USERNAME`, `ARTIFACTORY_PASSWORD` and `ARTIFACTORY_URL` are honored.
+  Required backend configurations beyond that are `repo=<name of the repo>` and `subpath=<directory in repo>`.
+  Only the repo itself needs to exist. Terraform will create the subpath containing your `terraform.tfstate` file.
+
 The command-line flags are all optional. The list of available flags are:
 
 * `-backend=Atlas` - The remote backend to use. Must be one of the above
