@@ -40,6 +40,23 @@ func TestStateAddModule(t *testing.T) {
 				[]string{"root", "foo", "bar"},
 			},
 		},
+		// Same last element, different middle element
+		{
+			[][]string{
+				[]string{"root", "foo", "bar"}, // This one should sort after...
+				[]string{"root", "foo"},
+				[]string{"root"},
+				[]string{"root", "bar", "bar"}, // ...this one.
+				[]string{"root", "bar"},
+			},
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "bar"},
+				[]string{"root", "foo"},
+				[]string{"root", "bar", "bar"},
+				[]string{"root", "foo", "bar"},
+			},
+		},
 	}
 
 	for _, tc := range cases {
