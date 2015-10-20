@@ -965,6 +965,21 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 		}
 	}
 
+	// Meta must be equal
+	if len(s.Meta) != len(other.Meta) {
+		return false
+	}
+	for k, v := range s.Meta {
+		otherV, ok := other.Meta[k]
+		if !ok {
+			return false
+		}
+
+		if v != otherV {
+			return false
+		}
+	}
+
 	return true
 }
 
