@@ -263,6 +263,8 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
+	clusterName := d.Get("cluster").(string)
+
 	// Wait until it's deleted
 	wait := resource.StateChangeConf{
 		Pending:    []string{"DRAINING"},
@@ -270,10 +272,35 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
+			// The DescribeServices returns "DRAINING" for several hours/days
+			// even when the service is actually deleted and no longer visible
+			// in the cluster
+			log.Printf("[DEBUG] Check if ECS service %s exists in the cluster %s", d.Id(), clusterName)
+			servicesListResp, servicesListErr := conn.ListServices(&ecs.ListServicesInput{
+				Cluster: *clusterName,
+			})
+
+			if (servicesListErr != nil) {
+				return servicesListErr, "FAILED", servicesListErr
+			}
+
+			foundService := false
+			for _,serviceArn := range servicesListResp.ServiceArns {
+				serviceName := strings.Split(serviceArn, "/")[1]
+				if serviceName == d.Id().(string) {
+					foundService = true
+					break
+				}
+			}
+
+			if !foundService {
+				return servicesListResp, "INACTIVE", nil
+			}
+
 			log.Printf("[DEBUG] Checking if ECS service %s is INACTIVE or MISSING", d.Id())
 			resp, err := conn.DescribeServices(&ecs.DescribeServicesInput{
 				Services: []*string{aws.String(d.Id())},
-				Cluster:  aws.String(d.Get("cluster").(string)),
+				Cluster:  aws.String(clusterName),
 			})
 			if err != nil {
 				return resp, "FAILED", err
