@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -33,6 +34,7 @@ func init() {
 		"split":        interpolationFuncSplit(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
+		"uuid": interpolationFuncUuid(),
 	}
 }
 
@@ -439,6 +441,28 @@ func interpolationFuncBase64Decode() ast.Function {
 				return "", fmt.Errorf("failed to decode base64 data '%s'", s)
 			}
 			return string(sDec), nil
+		},
+	}
+}
+
+// interpolationFuncUuid implements an uuid v4 generator with an optional 
+// prefix string. Refer to pkg helper/resource/id for implementation details
+// of the uuid generator.
+func interpolationFuncUuid() ast.Function {
+	return ast.Function{
+		Variadic:     true,
+		VariadicType: ast.TypeString,
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var prefix string
+
+			if len(args) == 1 {
+				if v, ok := args[0].(string); ok {
+					prefix = v
+				}
+			}
+
+			return resource.PrefixedUniqueId(prefix), nil
 		},
 	}
 }

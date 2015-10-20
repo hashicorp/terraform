@@ -74,6 +74,11 @@ are documented below.
 
 The supported built-in functions are:
 
+  * `uuid(string)` - Returns a uuid string, with an optional prefix. This 
+  uses a RFC 4122 v4 UUID with some basic cosmetic filters 
+  applied (base32, remove padding, downcase) to make visually distinguishing 
+  identifiers easier. This is the format used internally.
+
   * `base64decode(string)` - Given a base64-encoded string, decodes it and
     returns the original string.
 
