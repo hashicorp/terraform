@@ -29,10 +29,12 @@ func init() {
 		"index":        interpolationFuncIndex(),
 		"join":         interpolationFuncJoin(),
 		"length":       interpolationFuncLength(),
+		"lower":        interpolationFuncLower(),
 		"replace":      interpolationFuncReplace(),
 		"split":        interpolationFuncSplit(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
+		"upper":        interpolationFuncUpper(),
 	}
 }
 
@@ -439,6 +441,32 @@ func interpolationFuncBase64Decode() ast.Function {
 				return "", fmt.Errorf("failed to decode base64 data '%s'", s)
 			}
 			return string(sDec), nil
+		},
+	}
+}
+
+// interpolationFuncLower implements the "lower" function that does
+// string lower casing.
+func interpolationFuncLower() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			toLower := args[0].(string)
+			return strings.ToLower(toLower), nil
+		},
+	}
+}
+
+// interpolationFuncUpper implements the "upper" function that does
+// string upper casing.
+func interpolationFuncUpper() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			toUpper := args[0].(string)
+			return strings.ToUpper(toUpper), nil
 		},
 	}
 }
