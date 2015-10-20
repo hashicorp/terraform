@@ -458,8 +458,8 @@ func interpolationFuncLower() ast.Function {
 	}
 }
 
-// interpolationFuncLower implements the "lower" function that does
-// string lower casing.
+// interpolationFuncUpper implements the "upper" function that does
+// string upper casing.
 func interpolationFuncUpper() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
