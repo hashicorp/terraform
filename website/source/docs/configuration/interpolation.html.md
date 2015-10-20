@@ -147,6 +147,10 @@ The supported built-in functions are:
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
 
+  * `lower(string)` - returns a copy of the string with all Unicode letters mapped to their lower case.
+
+  * `upper(string)` - returns a copy of the string with all Unicode letters mapped to their upper case.
+
 ## Templates
 
 Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
