@@ -1207,9 +1207,8 @@ func (s moduleStateSort) Less(i, j int) bool {
 		return len(a.Path) < len(b.Path)
 	}
 
-	// Otherwise, compare by last path element
-	idx := len(a.Path) - 1
-	return a.Path[idx] < b.Path[idx]
+	// Otherwise, compare lexically
+	return strings.Join(a.Path, ".") < strings.Join(b.Path, ".")
 }
 
 func (s moduleStateSort) Swap(i, j int) {
