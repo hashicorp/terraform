@@ -280,12 +280,12 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 				Cluster: *clusterName,
 			})
 
-			if (servicesListErr != nil) {
+			if servicesListErr != nil {
 				return servicesListErr, "FAILED", servicesListErr
 			}
 
 			foundService := false
-			for _,serviceArn := range servicesListResp.ServiceArns {
+			for _, serviceArn := range servicesListResp.ServiceArns {
 				serviceName := strings.Split(serviceArn, "/")[1]
 				if serviceName == d.Id().(string) {
 					foundService = true
