@@ -1,5 +1,9 @@
 ## 0.6.5 (Unreleased)
 
+FEATURES:
+
+  * New remote state backend: `etcd` [GH-3487]
+
 INTERNAL IMPROVEMENTS:
 
  * provider/digitalocean: use official Go client [GH-3333]
