@@ -196,12 +196,13 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	// Generate an ID
 	vars := []string{
 		zone,
-		d.Get("name").(string),
+		strings.ToLower(d.Get("name").(string)),
 		d.Get("type").(string),
 	}
 	if v, ok := d.GetOk("set_identifier"); ok {
 		vars = append(vars, v.(string))
 	}
+
 	d.SetId(strings.Join(vars, "_"))
 
 	// Wait until we are done
@@ -447,7 +448,7 @@ func cleanRecordName(name string) string {
 // If it does not, add the zone name to form a fully qualified name
 // and keep AWS happy.
 func expandRecordName(name, zone string) string {
-	rn := strings.TrimSuffix(name, ".")
+	rn := strings.ToLower(strings.TrimSuffix(name, "."))
 	zone = strings.TrimSuffix(zone, ".")
 	if !strings.HasSuffix(rn, zone) {
 		rn = strings.Join([]string{name, zone}, ".")
