@@ -3,6 +3,7 @@
 FEATURES:
 
   * New remote state backend: `etcd` [GH-3487]
+  * New interpolation functions: `upper` and `lower` [GH-3558]
 
 INTERNAL IMPROVEMENTS:
 
