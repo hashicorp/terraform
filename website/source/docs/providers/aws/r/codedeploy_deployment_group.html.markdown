@@ -2,7 +2,7 @@
 layout: "aws"
 page_title: "AWS: aws_codedeploy_deployment_group"
 sidebar_current: "docs-aws-resource-codedeploy-deployment-group"
-description: |\
+description: |-
   Provides a CodeDeploy deployment group.
 ---
 
