@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -36,7 +37,7 @@ func Provider() terraform.ResourceProvider {
 			"insecure": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 				DefaultFunc: schema.EnvDefaultFunc("KUBERNETES_INSECURE", nil),
 				Description: descriptions["insecure"],
 			},
@@ -111,6 +112,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Password: d.Get("password").(string),
 		Insecure: insecure,
 	}
+
+	log.Printf("[INFO] The endpoint is %s", config.Host)
 
 	tlsConfig := client.TLSClientConfig{}
 	addTlsConfig := false

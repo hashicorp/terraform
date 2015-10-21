@@ -14,5 +14,5 @@ type Config struct {
 
 // Client() returns a new client for accessing packet.
 func (c *Config) Client() *packngo.Client {
-	return packngo.NewClient(consumerToken, c.AuthToken)
+	return packngo.NewClient(consumerToken, c.AuthToken, nil)
 }
