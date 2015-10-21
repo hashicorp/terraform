@@ -21,29 +21,32 @@ resource "kubernetes_pod" "wp" {
     labels {
         Name = "WordPress"
     }
-    spec = <<SPEC
-containers:
-  - image: wordpress
-    name: wordpress
-    env:
-      - name: WORDPRESS_DB_PASSWORD
-        # change this - must match mysql.yaml password
-        value: yourpassword
-    ports:
-      - containerPort: 80
-        name: wordpress
-    volumeMounts:
-        # name must match the volume name below
-      - name: wordpress-persistent-storage
-        # mount path within the container
-        mountPath: /var/www/html
-volumes:
-  - name: wordpress-persistent-storage
-    gcePersistentDisk:
-      # This GCE PD must already exist.
-      pdName: wordpress-disk
-      fsType: ext4
-SPEC
+
+    container {
+        image = "redis"
+        name = "redis-master"
+
+        port {
+            container_port = 6379
+            protocol = "TCP"
+        }
+
+        volume_mount = {
+            name = "empty"
+            mount_path = "/"
+        }
+
+        image_pull_policy = "Always"
+    }
+
+    volume {
+        name = "empty"
+        volume_source {
+            empty_dir {
+                medium = "Memory"
+            }
+        }
+    }
 }
 ```
 
