@@ -5,9 +5,16 @@ FEATURES:
   * New remote state backend: `etcd` [GH-3487]
   * New interpolation functions: `upper` and `lower` [GH-3558]
 
+BUG FIXES:
+
+  * core: Fix remote state conflicts caused by ambiguity in ordering of deeply nested modules [GH-3573]
+  * core: Fix remote state conflicts caused by state metadata differences [GH-3569]
+  * core: Avoid using http.DefaultClient [GH-3532]
+
 INTERNAL IMPROVEMENTS:
 
- * provider/digitalocean: use official Go client [GH-3333]
+  * provider/digitalocean: use official Go client [GH-3333]
+  * core: extract module fetching to external library [GH-3516]
 
 ## 0.6.4 (October 15, 2015)
 
