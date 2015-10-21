@@ -63,7 +63,7 @@ func (c *RefreshCommand) importResources(s *terraform.State, configuredResources
 			continue
 		}
 		pieces := strings.Split(line, " ")
-		if len(pieces) != 3 {
+		if len(pieces) < 3 {
 			c.Ui.Error(fmt.Sprintf("Error malformed import line %s", line))
 			return false
 		}
@@ -87,11 +87,22 @@ func (c *RefreshCommand) importResources(s *terraform.State, configuredResources
 				continue
 			}
 
+			// Pull in any extra attributes
+			attributes := make(map[string]string)
+			for _, pair := range pieces[3:] {
+				kv := strings.Split(pair, "=")
+				if len(kv) != 2 {
+					c.Ui.Error(fmt.Sprintf("Error malformed import line %s", line))
+					return false
+				}
+				attributes[kv[0]] = kv[1]
+			}
 			// Minimally add it
 			mod.Resources[pieces[1]] = &terraform.ResourceState{
 				Type: strings.Split(pieces[1], ".")[0],
 				Primary: &terraform.InstanceState{
-					ID: pieces[2],
+					ID:         pieces[2],
+					Attributes: attributes,
 				},
 			}
 		}
