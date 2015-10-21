@@ -222,7 +222,11 @@ func resourceComputeInstance() *schema.Resource {
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 								StateFunc: func(v interface{}) string {
-									return canonicalizeServiceScope(v.(string))
+									if v == nil {
+										return ""
+									} else {
+										return canonicalizeServiceScope(v.(string))
+									}
 								},
 							},
 							Set: stringScopeHashcode,
