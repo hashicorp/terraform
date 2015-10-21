@@ -2,7 +2,7 @@
 layout: "aws"
 page_title: "AWS: aws_codedeploy_app"
 sidebar_current: "docs-aws-resource-codedeploy-app"
-description: |\
+description: |-
   Provides a CodeDeploy application.
 ---
 
