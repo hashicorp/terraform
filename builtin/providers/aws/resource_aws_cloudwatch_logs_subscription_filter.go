@@ -94,7 +94,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 				} else {
 					// Some other non-retryable exception occurred
 					return fmt.Errorf("[WARN] Error creating SubscriptionFilter (%s) for LogGroup (%s) to destination (%s), message: \"%s\", code: \"%s\"",
-						name, log_group, destination_name, awsErr.Message(), awsErr.Code())
+						name, log_group, destination_arn, awsErr.Message(), awsErr.Code())
 				}
 			} else {
 				// Non-AWS exception occurred, give up
