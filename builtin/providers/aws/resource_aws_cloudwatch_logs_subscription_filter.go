@@ -67,10 +67,14 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	name := d.Get("name").(string)
 
 	log_group := d.Get("log_group").(string)
-	destination_arn_sliced := strings.Split(d.Get("destination").(string), "/")
-	destination_name := destination_arn_sliced[len(destination_arn_sliced)-1]
 
-	waitForKinesisStreamToActivate(kinesis_conn, destination_name)
+	destination_arn := d.Get("destination").(string)
+	if strings.HasPrefix(destination_arn, "arn:aws:kinesis:") {
+		destination_arn_sliced := strings.Split(destination_arn, "/")
+		destination_name := destination_arn_sliced[len(destination_arn_sliced)-1]
+
+		waitForKinesisStreamToActivate(kinesis_conn, destination_name)
+	}
 
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
 
