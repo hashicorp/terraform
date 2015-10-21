@@ -23,7 +23,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 		Delete: resourceAwsCodeDeployDeploymentGroupDelete,
 
 		Schema: map[string]*schema.Schema{
-			"application_name": &schema.Schema{
+			"app_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -132,7 +132,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
-	application := d.Get("application_name").(string)
+	application := d.Get("app_name").(string)
 	deploymentGroup := d.Get("deployment_group_name").(string)
 
 	input := codedeploy.CreateDeploymentGroupInput{
@@ -189,14 +189,14 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 
 	log.Printf("[DEBUG] Reading CodeDeploy DeploymentGroup %s", d.Id())
 	resp, err := conn.GetDeploymentGroup(&codedeploy.GetDeploymentGroupInput{
-		ApplicationName:     aws.String(d.Get("application_name").(string)),
+		ApplicationName:     aws.String(d.Get("app_name").(string)),
 		DeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	})
 	if err != nil {
 		return err
 	}
 
-	d.Set("application_name", *resp.DeploymentGroupInfo.ApplicationName)
+	d.Set("app_name", *resp.DeploymentGroupInfo.ApplicationName)
 	d.Set("autoscaling_groups", resp.DeploymentGroupInfo.AutoScalingGroups)
 	d.Set("deployment_config_name", *resp.DeploymentGroupInfo.DeploymentConfigName)
 	d.Set("deployment_group_name", *resp.DeploymentGroupInfo.DeploymentGroupName)
@@ -215,7 +215,7 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	conn := meta.(*AWSClient).codedeployconn
 
 	input := codedeploy.UpdateDeploymentGroupInput{
-		ApplicationName:            aws.String(d.Get("application_name").(string)),
+		ApplicationName:            aws.String(d.Get("app_name").(string)),
 		CurrentDeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	}
 
@@ -258,7 +258,7 @@ func resourceAwsCodeDeployDeploymentGroupDelete(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Deleting CodeDeploy DeploymentGroup %s", d.Id())
 	_, err := conn.DeleteDeploymentGroup(&codedeploy.DeleteDeploymentGroupInput{
-		ApplicationName:     aws.String(d.Get("application_name").(string)),
+		ApplicationName:     aws.String(d.Get("app_name").(string)),
 		DeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
 	})
 	if err != nil {

@@ -67,7 +67,7 @@ EOF
 }
 
 resource "aws_codedeploy_deployment_group" "foo" {
-    application_name = "${aws_codedeploy_app.foo_app.name}"
+    app_name = "${aws_codedeploy_app.foo_app.name}"
     deployment_group_name = "bar"
     service_role_arn = "${aws_iam_role.foo_role.arn}"
     ec2_tag_filter {
@@ -82,7 +82,7 @@ resource "aws_codedeploy_deployment_group" "foo" {
 
 The following arguments are supported:
 
-* `application_name` - (Required) The name of the application.
+* `app_name` - (Required) The name of the application.
 * `deployment_group_name` - (Required) The name of the deployment group.
 * `service_role_arn` - (Required) The service role ARN that allows deployments.
 * `autoscaling_groups` - (Optional) Autoscaling groups associated with the deployment group.
@@ -101,7 +101,7 @@ Both ec2_tag_filter and on_premises_tag_filter blocks support the following:
 The following attributes are exported:
 
 * `id` - The deployment group's ID.
-* `application_name` - The group's assigned application.
+* `app_name` - The group's assigned application.
 * `deployment_group_name` - The group's name.
 * `service_role_arn` - The group's service role ARN.
 * `autoscaling_groups` - The autoscaling groups associated with the deployment group.
