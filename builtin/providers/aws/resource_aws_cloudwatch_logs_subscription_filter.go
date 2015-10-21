@@ -227,8 +227,18 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 		statement_id := lambdaPermissionStatementId(log_group, destination)
 
 		if permissionExists(function_name, statement_id, lambda_conn) {
-			_, err := lambda_conn.RemovePermission(&)
-
+			_, err := lambda_conn.RemovePermission(&lambda.RemovePermissionInput{
+				FunctionName: function_name,
+				StatementId: statement_id,
+			})
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					log.Printf("[WARN] Error removing the access permission SID (%s) for lambda function (%s), message: \"%s\", code: \"%s\"",
+						statement_id, function_name, awsErr.Message(), awsErr.Code())
+				} else {
+					log.Printf("[WARN] Error removing the access permission from lambda function %s: %#v", function_name, err)
+				}
+			}
 		}
 	}
 
