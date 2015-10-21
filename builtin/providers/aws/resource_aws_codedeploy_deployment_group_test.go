@@ -41,7 +41,7 @@ func testAccCheckAWSCodeDeployDeploymentGroupDestroy(s *terraform.State) error {
 		}
 
 		resp, err := conn.GetDeploymentGroup(&codedeploy.GetDeploymentGroupInput{
-			ApplicationName:     aws.String(rs.Primary.Attributes["application_name"]),
+			ApplicationName:     aws.String(rs.Primary.Attributes["app_name"]),
 			DeploymentGroupName: aws.String(rs.Primary.Attributes["deployment_group_name"]),
 		})
 
@@ -123,7 +123,7 @@ EOF
 }
 
 resource "aws_codedeploy_deployment_group" "foo" {
-	application_name = "${aws_codedeploy_app.foo_app.name}"
+	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "foo"
 	service_role_arn = "${aws_iam_role.foo_role.arn}"
 	ec2_tag_filter {
@@ -188,7 +188,7 @@ EOF
 }
 
 resource "aws_codedeploy_deployment_group" "foo" {
-	application_name = "${aws_codedeploy_app.foo_app.name}"
+	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "bar"
 	service_role_arn = "${aws_iam_role.foo_role.arn}"
 	ec2_tag_filter {
