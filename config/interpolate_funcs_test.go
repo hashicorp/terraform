@@ -644,6 +644,54 @@ func TestInterpolateFuncBase64Decode(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncLower(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${lower("HELLO")}`,
+				"hello",
+				false,
+			},
+
+			{
+				`${lower("")}`,
+				"",
+				false,
+			},
+
+			{
+				`${lower()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncUpper(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${upper("hello")}`,
+				"HELLO",
+				false,
+			},
+
+			{
+				`${upper("")}`,
+				"",
+				false,
+			},
+
+			{
+				`${upper()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
