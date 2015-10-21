@@ -6,7 +6,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
-
+	"strings"
 	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
@@ -642,6 +642,46 @@ func TestInterpolateFuncBase64Decode(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestInterpolateUuid(t *testing.T) {
+	cases := []struct{
+		Input string
+		Result int
+		Prefix string
+		Vars map[string]ast.Variable
+	}{
+		{`${uuid()}`, 26, "", map[string]ast.Variable{}},
+		{`${uuid("")}`, 26, "", map[string]ast.Variable{}},
+		{`${uuid("lb-")}`, 29, "lb-", map[string]ast.Variable{}},
+	}
+
+	// defaults
+	for i, tc := range cases {
+		ast, err := lang.Parse(tc.Input)
+		if err != nil {
+			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
+		}
+
+		out, _, err := lang.Eval(ast, langEvalConfig(tc.Vars))
+		if err != nil {
+			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
+		}
+
+		t.Logf("%s=%s", tc.Input, out)
+
+
+		if len(out.(string)) != tc.Result {
+			err = fmt.Errorf("expected input length (%d) to equal (%d)", len(out.(string)), tc.Result)
+			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
+		}
+
+		if !strings.HasPrefix(out.(string), tc.Prefix) {
+			err = fmt.Errorf("expected prefix %s", tc.Prefix)
+			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
+		}
+
+	}
 }
 
 type testFunctionConfig struct {
