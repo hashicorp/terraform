@@ -2,13 +2,13 @@ package aws
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"math/rand"
 	"strings"
 	"time"
-	"math/rand"
-	"encoding/json"
-	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -73,7 +73,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	destination := d.Get("destination").(string)
 	if strings.HasPrefix(destination, "arn:aws:kinesis:") {
 		destination_arn_sliced := strings.Split(destination, "/")
-		destination_name := destination_arn_sliced[len(destination_arn_sliced) - 1]
+		destination_name := destination_arn_sliced[len(destination_arn_sliced)-1]
 
 		kinesis_conn := meta.(*AWSClient).kinesisconn
 		waitForKinesisStreamToActivate(kinesis_conn, destination_name)
@@ -81,10 +81,10 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 		lambda_conn := meta.(*AWSClient).lambdaconn
 
 		lambda_arn_sliced := strings.Split(destination, ":")
-		function_name := lambda_arn_sliced[len(lambda_arn_sliced) - 1]
+		function_name := lambda_arn_sliced[len(lambda_arn_sliced)-1]
 		statement_id := lambdaPermissionStatementId(log_group, destination)
 
-		if ! permissionExists(function_name, statement_id, lambda_conn) {
+		if !permissionExists(function_name, statement_id, lambda_conn) {
 			region := lambda_arn_sliced[3]
 			accountid := lambda_arn_sliced[4]
 			principal := fmt.Sprintf("logs.%s.amazonaws.com", region)
@@ -96,6 +96,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 				Principal:     aws.String(principal),
 				StatementId:   aws.String(statement_id),
 				SourceArn:     aws.String(source_arn),
+				SourceAccount: aws.String(accountid),
 			}
 
 			log.Printf("[DEBUG] Attempting: to do add-access with params \"%#v\"", params)
@@ -125,7 +126,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 					log.Printf("[DEBUG] Caught message: \"%s\", code: \"%s\"", awsErr.Message(), awsErr.Code())
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back put request", attemptCount, CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES)
 					// random delay 100-200% of THROTTLE_SLEEP
-					time.Sleep(time.Duration(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS + sleep_randomizer.Intn(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS / 2)) * time.Millisecond)
+					time.Sleep(time.Duration(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS+sleep_randomizer.Intn(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS/2)) * time.Millisecond)
 					attemptCount += 1
 				} else {
 					// Some other non-retryable exception occurred
@@ -223,13 +224,13 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 		lambda_conn := meta.(*AWSClient).lambdaconn
 
 		lambda_arn_sliced := strings.Split(destination, ":")
-		function_name := lambda_arn_sliced[len(lambda_arn_sliced) - 1]
+		function_name := lambda_arn_sliced[len(lambda_arn_sliced)-1]
 		statement_id := lambdaPermissionStatementId(log_group, destination)
 
 		if permissionExists(function_name, statement_id, lambda_conn) {
 			_, err := lambda_conn.RemovePermission(&lambda.RemovePermissionInput{
-				FunctionName: function_name,
-				StatementId: statement_id,
+				FunctionName: aws.String(function_name),
+				StatementId:  aws.String(statement_id),
 			})
 			if err != nil {
 				if awsErr, ok := err.(awserr.Error); ok {
@@ -243,7 +244,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 	}
 
 	params := &cloudwatchlogs.DeleteSubscriptionFilterInput{
-		FilterName:   aws.String(name), // Required
+		FilterName:   aws.String(name),      // Required
 		LogGroupName: aws.String(log_group), // Required
 	}
 	_, err := conn.DeleteSubscriptionFilter(params)
@@ -329,7 +330,7 @@ func lambdaPermissionStatementId(log_group string, lambda_arn string) string {
 	buf.WriteString(fmt.Sprintf("%s-", log_group))
 	buf.WriteString(fmt.Sprintf("%s-", lambda_arn))
 
-	return fmt.Sprintf("access-cwlsf-%d", hashcode.String(buf.String()))
+	return fmt.Sprintf("InvokePermissionsForCWL%d", hashcode.String(buf.String()))
 }
 
 func cloudwatchLogsSubscriptionFilterId(log_group string) string {
