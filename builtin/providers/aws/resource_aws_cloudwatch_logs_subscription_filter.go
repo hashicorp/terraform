@@ -7,11 +7,14 @@ import (
 	"strings"
 	"time"
 	"math/rand"
+	"encoding/json"
+	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -62,18 +65,50 @@ func resourceAwsCloudwatchLogsSubscriptionFilter() *schema.Resource {
 
 func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
-	kinesis_conn := meta.(*AWSClient).kinesisconn
 
 	name := d.Get("name").(string)
 
 	log_group := d.Get("log_group").(string)
 
-	destination_arn := d.Get("destination").(string)
-	if strings.HasPrefix(destination_arn, "arn:aws:kinesis:") {
-		destination_arn_sliced := strings.Split(destination_arn, "/")
-		destination_name := destination_arn_sliced[len(destination_arn_sliced)-1]
+	destination := d.Get("destination").(string)
+	if strings.HasPrefix(destination, "arn:aws:kinesis:") {
+		destination_arn_sliced := strings.Split(destination, "/")
+		destination_name := destination_arn_sliced[len(destination_arn_sliced) - 1]
 
+		kinesis_conn := meta.(*AWSClient).kinesisconn
 		waitForKinesisStreamToActivate(kinesis_conn, destination_name)
+	} else if strings.HasPrefix(destination, "arn:aws:lambda") {
+		lambda_conn := meta.(*AWSClient).lambdaconn
+
+		lambda_arn_sliced := strings.Split(destination, ":")
+		function_name := lambda_arn_sliced[len(lambda_arn_sliced) - 1]
+		statement_id := lambdaPermissionStatementId(log_group, destination)
+
+		if ! permissionExists(function_name, statement_id, lambda_conn) {
+			region := lambda_arn_sliced[3]
+			accountid := lambda_arn_sliced[4]
+			principal := fmt.Sprintf("logs.%s.amazonaws.com", region)
+			source_arn := fmt.Sprintf("arn:aws:logs:%s:%s:log-group:%s:*", region, accountid, log_group)
+
+			params := &lambda.AddPermissionInput{
+				Action:        aws.String("lambda:InvokeFunction"),
+				FunctionName:  aws.String(function_name),
+				Principal:     aws.String(principal),
+				StatementId:   aws.String(statement_id),
+				SourceArn:     aws.String(source_arn),
+			}
+
+			log.Printf("[DEBUG] Attempting: to do add-access with params \"%#v\"", params)
+			_, err := lambda_conn.AddPermission(params)
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					return fmt.Errorf("[WARN] Error doing add-access for LogGroup (%s) to lambda (%s), message: \"%s\", code: \"%s\"",
+						log_group, destination, awsErr.Message(), awsErr.Code())
+				} else {
+					return fmt.Errorf("Error creating Cloudwatch logs subscription filter %s: %#v", name, err)
+				}
+			}
+		}
 	}
 
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
@@ -87,14 +122,15 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "InvalidParameterException" {
+					log.Printf("[DEBUG] Caught message: \"%s\", code: \"%s\"", awsErr.Message(), awsErr.Code())
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back put request", attemptCount, CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES)
 					// random delay 100-200% of THROTTLE_SLEEP
-					time.Sleep(time.Duration(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS + sleep_randomizer.Intn(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS/2)) * time.Millisecond)
+					time.Sleep(time.Duration(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS + sleep_randomizer.Intn(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS / 2)) * time.Millisecond)
 					attemptCount += 1
 				} else {
 					// Some other non-retryable exception occurred
 					return fmt.Errorf("[WARN] Error creating SubscriptionFilter (%s) for LogGroup (%s) to destination (%s), message: \"%s\", code: \"%s\"",
-						name, log_group, destination_arn, awsErr.Message(), awsErr.Code())
+						name, log_group, destination, awsErr.Message(), awsErr.Code())
 				}
 			} else {
 				// Non-AWS exception occurred, give up
@@ -180,9 +216,24 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 
 	log_group := d.Get("log_group").(string)
 	name := d.Get("name").(string)
+	destination := d.Get("destination").(string)
+
+	if strings.HasPrefix(destination, "arn:aws:lambda") {
+		// access permissions should also be cleaned up
+		lambda_conn := meta.(*AWSClient).lambdaconn
+
+		lambda_arn_sliced := strings.Split(destination, ":")
+		function_name := lambda_arn_sliced[len(lambda_arn_sliced) - 1]
+		statement_id := lambdaPermissionStatementId(log_group, destination)
+
+		if permissionExists(function_name, statement_id, lambda_conn) {
+			_, err := lambda_conn.RemovePermission(&)
+
+		}
+	}
 
 	params := &cloudwatchlogs.DeleteSubscriptionFilterInput{
-		FilterName:   aws.String(name),      // Required
+		FilterName:   aws.String(name), // Required
 		LogGroupName: aws.String(log_group), // Required
 	}
 	_, err := conn.DeleteSubscriptionFilter(params)
@@ -222,6 +273,53 @@ func waitForKinesisStreamToActivate(conn *kinesis.Kinesis, stream_name string) e
 	}
 
 	return nil
+}
+
+func permissionExists(function_name string, statementid string, lambda_conn *lambda.Lambda) bool {
+
+	resp, err := lambda_conn.GetPolicy(&lambda.GetPolicyInput{
+		FunctionName: aws.String(function_name),
+	})
+
+	type PolicyDocument struct {
+		Version   string
+		Statement []struct {
+			Resource, Effect, Sid string
+		}
+	}
+
+	if err != nil {
+		log.Printf("[DEBUG] GetPolicy returns \"%#v\" - maybe no access permissions exists?", err)
+		return false
+	} else {
+		dec := json.NewDecoder(strings.NewReader(*resp.Policy))
+		for {
+			var m PolicyDocument
+			if err := dec.Decode(&m); err == io.EOF {
+				break
+			} else if err != nil {
+				log.Printf("[DEBUG] Decoding access policy failed \"%#v\"", resp.Policy)
+				log.Fatal(err)
+			}
+
+			for _, statement := range m.Statement {
+				if statement.Sid == statementid {
+					return true
+				}
+			}
+		}
+		log.Printf("[DEBUG] Statement Id \"%s\" not found in policy for function \"%s\"", function_name, statementid)
+		return false
+	}
+
+}
+
+func lambdaPermissionStatementId(log_group string, lambda_arn string) string {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("%s-", log_group))
+	buf.WriteString(fmt.Sprintf("%s-", lambda_arn))
+
+	return fmt.Sprintf("access-cwlsf-%d", hashcode.String(buf.String()))
 }
 
 func cloudwatchLogsSubscriptionFilterId(log_group string) string {
