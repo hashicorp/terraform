@@ -11,6 +11,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 const (
@@ -83,7 +85,7 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	}
 
 	// Request the url
-	client := &http.Client{}
+	client := cleanhttp.DefaultClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -162,7 +164,7 @@ func (c *AtlasClient) Put(state []byte) error {
 	req.ContentLength = int64(len(state))
 
 	// Make the request
-	client := &http.Client{}
+	client := cleanhttp.DefaultClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to upload state: %v", err)
@@ -188,7 +190,7 @@ func (c *AtlasClient) Delete() error {
 	}
 
 	// Make the request
-	client := &http.Client{}
+	client := cleanhttp.DefaultClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to delete state: %v", err)
