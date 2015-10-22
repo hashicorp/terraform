@@ -1,7 +1,6 @@
 package command
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/hashicorp/terraform/terraform"
@@ -14,31 +13,66 @@ type SchemasCommand struct {
 	Meta
 }
 
-type providerResourceSchema struct {
-	terraform.ResourceProviderSchema
+type resultBase struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
+type providerResourceSchema struct {
+	resultBase
+	terraform.ResourceProviderSchema
+}
+
+type resourceResourceSchema struct {
+	resultBase
+	Provider string               `json:"provider"`
+	Schema   terraform.SchemaInfo `json:"schema"`
+}
+
 type provisionerResourceSchemaInfo struct {
+	resultBase
 	terraform.ResourceProvisionerSchema
-	Name string `json:"name"`
-	Type string `json:"type"`
+}
+
+type errorResult struct {
+	resultBase
+	Error string `json:"error"`
 }
 
 func (c *SchemasCommand) Run(args []string) int {
 	var indent bool
 	var inJson bool
+	var inXml bool
 
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("schemas", flag.ContinueOnError)
 	cmdFlags.BoolVar(&indent, "indent", false, "Indent output")
-	// 'inJson' ignored for now, always true
-	cmdFlags.BoolVar(&inJson, "json", true, "In JSON format")
+	cmdFlags.BoolVar(&inJson, "json", false, "In JSON format")
+	// Temporarily disabled due to not-implemented xml serializer for SchemaInfo (which is map[string]interface{})
+	//cmdFlags.BoolVar(&inXml, "xml", false, "In XML format")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error("Cannot parser command line arguments" + err.Error())
+		cmdFlags.Usage()
 		return 1
+	}
+
+	if inXml && inJson {
+		c.Ui.Error("Cannot produce output in both xml in json formats at the same time. Either use -josn or -xml flags")
+		return 1
+	}
+
+	if inXml || inJson {
+		c.color = false
+	}
+	var format string
+	if inJson {
+		format = "json"
+	} else if inXml {
+		format = "xml"
+	} else {
+		format = "plain"
 	}
 
 	args = cmdFlags.Args()
@@ -48,62 +82,25 @@ func (c *SchemasCommand) Run(args []string) int {
 		return 1
 	}
 
-	// TODO: Use c.Ui.Output(FormatSchema ...
+	var s interface{}
+	s = getAnythingOrErrorResult(c.Meta.ContextOpts, args[0])
 
-	for k, v := range c.Meta.ContextOpts.Providers {
-		if len(args) == 1 && args[0] != k {
-			continue
-		}
-		if provider, err := v(); err == nil {
-			export, err := provider.Export()
-			if err != nil {
-				fmt.Printf("Cannot get schema for provider '%s': %s\n", k, err)
-				continue
-			}
-			extended := providerResourceSchema{export, k, "provider"}
-			var ser []byte
-			var err2 error
-			if indent {
-				ser, err2 = json.MarshalIndent(extended, "", "  ")
-			} else {
-				ser, err2 = json.Marshal(extended)
-			}
-			if err2 != nil {
-				fmt.Printf("Cannot serialize schema for provider '%s': %s\n", k, err)
-				continue
-			}
-			fmt.Println(string(ser))
-			break
-		}
-	}
-	for k, v := range c.Meta.ContextOpts.Provisioners {
-		if len(args) == 1 && args[0] != k {
-			continue
-		}
-		if provisioner, err := v(); err == nil {
-			export, err := provisioner.Export()
-			if err != nil {
-				fmt.Printf("Cannot get schema for provisioner '%s': %s\n", k, err)
-				continue
-			}
-			extended := provisionerResourceSchemaInfo{export, k, "provisioner"}
-			var ser []byte
-			var err2 error
-			if indent {
-				ser, err2 = json.MarshalIndent(extended, "", "  ")
-			} else {
-				ser, err2 = json.Marshal(extended)
-			}
-			if err2 != nil {
-				fmt.Printf("Cannot serialize schema for provisioner '%s': %s\n", k, err)
-				continue
-			}
-			fmt.Println(string(ser))
-			break
-		}
-	}
+	c.Ui.Output(FormatSchema(&FormatSchemaOpts{
+		Name:      args[0],
+		Schema:    &s,
+		Colorize:  c.color,
+		Colorizer: c.Colorize(),
+		Format:    format,
+		Indent:    indent,
+	}))
 
-	return 0
+	// Return non-zero xit code in case of error (error result)
+	switch s.(type) {
+	case errorResult:
+		return 1
+	default:
+		return 0
+	}
 }
 
 func (c *SchemasCommand) Help() string {
@@ -118,11 +115,87 @@ Options:
 
   -indent		      If specified, output would be indented.
 
-  -json		          If specified, output would be in JSON format.
+  -json		          If specified, output would be in JSON format. Implies '--no-color'.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *SchemasCommand) Synopsis() string {
 	return "Shows schemas of Terraform providers/resources"
+}
+
+func getAnythingOrErrorResult(context *terraform.ContextOpts, name string) interface{} {
+	a, e := getProviderSchema(context.Providers, name)
+	if e != nil {
+		return errorResult{resultBase{name, "provider"}, e.Error()}
+	} else if a != nil {
+		return a
+	}
+	a, e = getResourceSchema(context.Providers, name)
+	if e != nil {
+		return errorResult{resultBase{name, "resource"}, e.Error()}
+	} else if a != nil {
+		return a
+	}
+	a, e = getProvisionerSchema(context.Provisioners, name)
+	if e != nil {
+		return errorResult{resultBase{name, "provisioner"}, e.Error()}
+	} else if a != nil {
+		return a
+	}
+	return errorResult{resultBase{name, "unknown"}, "Not found"}
+}
+
+func getProviderSchema(providers map[string]terraform.ResourceProviderFactory, name string) (interface{}, error) {
+	for k, v := range providers {
+		if name != k {
+			continue
+		}
+		if provider, err := v(); err == nil {
+			export, err := provider.Export()
+			if err != nil {
+				return nil, fmt.Errorf("Cannot get schema for provider '%s': %s\n", k, err)
+			}
+			extended := providerResourceSchema{resultBase{k, "provider"}, export}
+			return extended, nil
+		}
+	}
+	return nil, nil
+}
+
+func getResourceSchema(providers map[string]terraform.ResourceProviderFactory, name string) (interface{}, error) {
+	for k, v := range providers {
+		if provider, err := v(); err == nil {
+			resources := provider.Resources()
+			for _, n := range resources {
+				if n.Name != name {
+					continue
+				}
+				export, err := provider.Export()
+				if err != nil {
+					return nil, fmt.Errorf("Cannot get schema for resource '%s': %s\n", k, err)
+				}
+				extended := resourceResourceSchema{resultBase{k, "resource"}, k, export.Resources[n.Name]}
+				return extended, nil
+			}
+		}
+	}
+	return nil, nil
+}
+
+func getProvisionerSchema(providers map[string]terraform.ResourceProvisionerFactory, name string) (interface{}, error) {
+	for k, v := range providers {
+		if name != k {
+			continue
+		}
+		if provisioner, err := v(); err == nil {
+			export, err := provisioner.Export()
+			if err != nil {
+				return nil, fmt.Errorf("Cannot get schema for provisioner '%s': %s\n", k, err)
+			}
+			extended := provisionerResourceSchemaInfo{resultBase{k, "provisioner"}, export}
+			return extended, nil
+		}
+	}
+	return nil, nil
 }
