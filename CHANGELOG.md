@@ -1,5 +1,9 @@
 ## 0.6.6 (Unreleased)
 
+IMPROVEMENTS:
+
+  * "forces new resource" now highlighted in plan output [GH-3136]
+
 ## 0.6.5 (October 21, 2015)
 
 FEATURES:
