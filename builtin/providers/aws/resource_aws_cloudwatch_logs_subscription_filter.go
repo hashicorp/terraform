@@ -24,7 +24,7 @@ import (
 const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES = 10
 
 // How long to sleep when a throttle-event happens
-const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS = 5000
+const CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS = 8000
 
 func resourceAwsCloudwatchLogsSubscriptionFilter() *schema.Resource {
 	return &schema.Resource{
@@ -120,6 +120,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 	attemptCount := 1
 	for attemptCount <= CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES {
 		_, err := conn.PutSubscriptionFilter(&params)
+		attemptCount += 1
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "InvalidParameterException" {
@@ -127,7 +128,6 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back put request", attemptCount, CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES)
 					// random delay 100-200% of THROTTLE_SLEEP
 					time.Sleep(time.Duration(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS+sleep_randomizer.Intn(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS/2)) * time.Millisecond)
-					attemptCount += 1
 				} else {
 					// Some other non-retryable exception occurred
 					return fmt.Errorf("[WARN] Error creating SubscriptionFilter (%s) for LogGroup (%s) to destination (%s), message: \"%s\", code: \"%s\"",

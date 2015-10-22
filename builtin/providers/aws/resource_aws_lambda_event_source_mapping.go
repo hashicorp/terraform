@@ -68,8 +68,9 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 	log.Printf("[DEBUG] Creating EventSourceMapping %#v", params)
 
 	var err error
-	attemptCount := 1
+	attemptCount := 0
 	for attemptCount <= LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES {
+		attemptCount += 1
 		resp, err := conn.CreateEventSourceMapping(&params)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
@@ -79,7 +80,6 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 				if awsErr.Code() == "TooManyRequestsException" || (awsErr.Code() == "InvalidParameterValueException" && strings.Contains(awsErr.Message(), "Please ensure the role can perform the GetRecords, GetShardIterator, DescribeStream, and ListStreams Actions on your stream in IAM")) {
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
 					time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
-					attemptCount += 1
 				} else {
 					return fmt.Errorf("[WARN] AWS Error creating EventSourceMapping for %s message: \"%s\", code: \"%s\"",
 						d.Get("event_source_arn").(string), awsErr.Message(), awsErr.Code())
@@ -158,15 +158,15 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 	}
 
 	var err error
-	attemptCount := 1
+	attemptCount := 0
 	for attemptCount <= LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES {
 		resp, err := conn.GetEventSourceMapping(params)
+		attemptCount += 1
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				log.Printf("[DEBUG] AWS Error getting EventSourceMapping: [%s] %s", awsErr.Code(), awsErr.Message())
 				log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
 				time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
-				attemptCount += 1
 			} else {
 				return fmt.Errorf("Error creating EventSourceMapping: %s", err)
 			}
@@ -192,15 +192,15 @@ func resourceAwsLambdaEventSourceMappingDelete(d *schema.ResourceData, meta inte
 	}
 
 	var err error
-	attemptCount := 1
+	attemptCount := 0
 	for attemptCount <= LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES {
+		attemptCount += 1
 		_, err := conn.DeleteEventSourceMapping(params)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "TooManyRequestsException" {
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back delete request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
 					time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
-					attemptCount += 1
 				} else {
 					return fmt.Errorf("Error deleting EventSourceMapping %s: %s", uuid, err)
 				}
