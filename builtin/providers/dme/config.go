@@ -3,8 +3,8 @@ package dme
 import (
 	"fmt"
 	"log"
-	"net/http"
 
+	"github.com/hashicorp/cleanhttp"
 	"github.com/soniah/dnsmadeeasy"
 )
 
@@ -22,7 +22,7 @@ func (c *Config) Client() (*dnsmadeeasy.Client, error) {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}
 
-	client.HTTP = &http.Client{}
+	client.HTTP = cleanhttp.DefaultClient()
 
 	if c.UseSandbox {
 		client.URL = dnsmadeeasy.SandboxURL

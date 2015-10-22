@@ -3,9 +3,9 @@ package aws
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 
+	"github.com/hashicorp/cleanhttp"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -101,7 +101,7 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 			MaxRetries:  aws.Int(c.MaxRetries),
-			HTTPClient:  &http.Client{},
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing IAM Connection")
@@ -127,7 +127,7 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      aws.String("us-east-1"),
 			MaxRetries:  aws.Int(c.MaxRetries),
-			HTTPClient:  &http.Client{},
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
