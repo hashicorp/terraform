@@ -1,5 +1,9 @@
 ## 0.6.6 (Unreleased)
 
+FEATURES:
+
+  * New interpolation functions: `cidrhost`, `cidrnetmask` and `cidrsubnet` [GH-3127]
+
 IMPROVEMENTS:
 
   * "forces new resource" now highlighted in plan output [GH-3136]
@@ -11,7 +15,6 @@ FEATURES:
   * **New resources: `aws_codeploy_app` and `aws_codeploy_deployment_group`** [GH-2783]
   * New remote state backend: `etcd` [GH-3487]
   * New interpolation functions: `upper` and `lower` [GH-3558]
-  * New interpolation functions: `cidrhost`, `cidrnetmask` and `cidrsubnet` [GH-3127]
 
 BUG FIXES:
 
