@@ -10,7 +10,7 @@ If you need to use existing security groups and subnets, remove the sg.tf and su
 
 Pass the password variable through your ENV variable.
 
-Several paraneters are externalized, review the different variables.tf files and change them to fit your needs. Carefully review the CIDR blocks, egress/ingress rules, availability zones that are very specific to your account.
+Several parameters are externalized, review the different variables.tf files and change them to fit your needs. Carefully review the CIDR blocks, egress/ingress rules, availability zones that are very specific to your account.
 
 Once ready run 'terraform plan' to review. At the minimum, provide the vpc_id as input variable.
 
