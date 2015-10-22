@@ -124,8 +124,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "InvalidParameterException" {
-					log.Printf("[DEBUG] Caught message: \"%s\", code: \"%s\"", awsErr.Message(), awsErr.Code())
-					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back put request", attemptCount, CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES)
+					log.Printf("[DEBUG] Caught message: \"%s\", code: \"%s\". Attempt %d/%d: Sleeping for a bit to throttle back put request", awsErr.Message(), awsErr.Code(), attemptCount, CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES)
 					// random delay 100-200% of THROTTLE_SLEEP
 					time.Sleep(time.Duration(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS+sleep_randomizer.Intn(CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_THROTTLE_SLEEP_MILLISECONDS/2)) * time.Millisecond)
 				} else {
