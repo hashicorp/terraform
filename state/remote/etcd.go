@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context"
 	etcdapi "github.com/coreos/etcd/client"
+	"golang.org/x/net/context"
 )
 
 func etcdFactory(conf map[string]string) (Client, error) {
