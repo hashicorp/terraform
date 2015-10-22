@@ -80,6 +80,22 @@ The supported built-in functions are:
   * `base64encode(string)` - Returns a base64-encoded representation of the
     given string.
 
+  * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
+    and creates an IP address with the given host number. For example,
+    ``cidrhost("10.0.0.0/8", 2)`` returns ``10.0.0.2``.
+
+  * `cidrnetmask(iprange)` - Takes an IP address range in CIDR notation
+    and returns the address-formatted subnet mask format that some
+    systems expect for IPv4 interfaces. For example,
+    ``cidrmask("10.0.0.0/8")`` returns ``255.0.0.0``. Not applicable
+    to IPv6 networks since CIDR notation is the only valid notation for
+    IPv6.
+
+  * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
+    CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
+    additional subnet number. For example,
+    ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
+
   * `compact(list)` - Removes empty string elements from a list. This can be
      useful in some cases, for example when passing joined lists as module
      variables or when parsing module outputs.
