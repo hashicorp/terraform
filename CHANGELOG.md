@@ -1,3 +1,5 @@
+## 0.6.7 (Unreleased)
+
 ## 0.6.6 (October 23, 2015)
 
 FEATURES:
