@@ -1,10 +1,13 @@
 package datadog
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -19,15 +22,28 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("DATADOG_APP_KEY", nil),
 			},
 		},
+
 		ResourcesMap: map[string]*schema.Resource{
-			"datadog_monitor_metric": datadogMonitorResource(),
+			"datadog_dashboard":     resourceDatadogDashboard(),
+			"datadog_graph":         resourceDatadogGraph(),
+			"datadog_monitor":       resourceDatadogMonitor(),
+			"datadog_service_check": resourceDatadogServiceCheck(),
+			"datadog_metric_alert":  resourceDatadogMetricAlert(),
+			"datadog_outlier_alert": resourceDatadogOutlierAlert(),
 		},
+
 		ConfigureFunc: providerConfigure,
 	}
 }
 
-func providerConfigure(rd *schema.ResourceData) (interface{}, error) {
-	apiKey := rd.Get("api_key").(string)
-	appKey := rd.Get("app_key").(string)
-	return map[string]string{"api_key": apiKey, "app_key": appKey}, nil
+// ProviderConfigure returns a configured client.
+func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+
+	config := Config{
+		APIKey: d.Get("api_key").(string),
+		APPKey: d.Get("app_key").(string),
+	}
+
+	log.Println("[INFO] Initializing Datadog client")
+	return config.Client()
 }
