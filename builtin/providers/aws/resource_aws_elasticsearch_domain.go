@@ -133,6 +133,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					},
 				},
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -274,6 +275,22 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("arn", *ds.ARN)
 
+	// get tags
+	type ListTagsRequest struct {
+	    ARN string
+	}
+
+	req := ListTagsRequest{
+		ARN:   *ds.ARN
+	}
+
+	resp, err := elasticsearch.ListTags(req)
+	if err != nil {
+		return err
+	}
+
+	d.Set("tags", resp)
+
 	return nil
 }
 
@@ -352,6 +369,12 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	// if err := setTagsR53(conn, d, "hostedzone"); err != nil {
+	// 	return err
+	// } else {
+	// 	d.SetPartial("tags")
+	// }
 
 	return resourceAwsElasticSearchDomainRead(d, meta)
 }
