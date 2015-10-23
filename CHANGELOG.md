@@ -11,6 +11,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * helper/schema: Better error message for assigning list/map to string [GH-3009]
+  * remote/state/atlas: Additional remote state conflict handling for semantically neutral state changes [GH-3603]
 
 ## 0.6.5 (October 21, 2015)
 
