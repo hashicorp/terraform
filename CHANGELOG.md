@@ -8,6 +8,10 @@ IMPROVEMENTS:
 
   * "forces new resource" now highlighted in plan output [GH-3136]
 
+BUG FIXES:
+
+  * helper/schema: Better error message for assigning list/map to string [GH-3009]
+
 ## 0.6.5 (October 21, 2015)
 
 FEATURES:
