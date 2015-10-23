@@ -104,7 +104,7 @@ func buildOutlierAlertStruct(d *schema.ResourceData, typeStr string) *datadog.Mo
 		list := raw.([]interface{})
 		length := (len(list) - 1)
 		for i, v := range list {
-			if v == "*" {
+            if length > 1 && v == "*" {
 				log.Print(fmt.Sprintf("[DEBUG] found wildcard, this is not supported for this type: %s", v))
 				continue
 			}
