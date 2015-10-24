@@ -3,6 +3,8 @@ package command
 import (
 	"flag"
 	"fmt"
+	"github.com/hashicorp/hil/ast"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"strings"
 )
@@ -37,6 +39,19 @@ type provisionerResourceSchemaInfo struct {
 type errorResult struct {
 	resultBase
 	Error string `json:"error"`
+}
+
+type FunctionInfo struct {
+	Name         string
+	ArgTypes     []string
+	ReturnType   string
+	Variadic     bool   `json:",omitempty"`
+	VariadicType string `json:",omitempty"`
+}
+
+type functionsSchema struct {
+	resultBase
+	Functions map[string]FunctionInfo `json:"schema"`
 }
 
 func (c *SchemasCommand) Run(args []string) int {
@@ -125,7 +140,12 @@ func (c *SchemasCommand) Synopsis() string {
 }
 
 func getAnythingOrErrorResult(context *terraform.ContextOpts, name string) interface{} {
-	a, e := getProviderSchema(context.Providers, name)
+	if name == "functions" {
+		return functionsSchema{resultBase{"functions", "functions"}, getInterpolationFunctions()}
+	}
+	var a interface{}
+	var e error
+	a, e = getProviderSchema(context.Providers, name)
 	if e != nil {
 		return errorResult{resultBase{name, "provider"}, e.Error()}
 	} else if a != nil {
@@ -144,6 +164,25 @@ func getAnythingOrErrorResult(context *terraform.ContextOpts, name string) inter
 		return a
 	}
 	return errorResult{resultBase{name, "unknown"}, "Not found"}
+}
+
+func getInterpolationFunctions() map[string]FunctionInfo {
+	vars := make(map[string]ast.Variable)
+	cfg := config.LangEvalConfig(vars)
+	result := make(map[string]FunctionInfo)
+	for name, fun := range cfg.GlobalScope.FuncMap {
+		args := make([]string, len(fun.ArgTypes))
+		for i, at := range fun.ArgTypes {
+			args[i] = at.String()
+		}
+		vt := ""
+		if fun.Variadic {
+			vt = fun.VariadicType.String()
+		}
+		result[name] = FunctionInfo{name, args, fun.ReturnType.String(), fun.Variadic, vt}
+	}
+
+	return result
 }
 
 func getProviderSchema(providers map[string]terraform.ResourceProviderFactory, name string) (interface{}, error) {
