@@ -1,5 +1,9 @@
 ## 0.6.7 (Unreleased)
 
+BUG FIXES:
+
+  * `terraform remote config`: update `--help` output [GH-3632]
+
 ## 0.6.6 (October 23, 2015)
 
 FEATURES:
