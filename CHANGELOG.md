@@ -3,6 +3,7 @@
 BUG FIXES:
 
   * `terraform remote config`: update `--help` output [GH-3632]
+  * Google provider: Timeout when deleting large instance_group_manager [GH-3591]
 
 ## 0.6.6 (October 23, 2015)
 
