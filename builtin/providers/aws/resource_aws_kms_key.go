@@ -26,15 +26,10 @@ func resourceAwsKmsKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"enabled": &schema.Schema{
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
 			},
 			"key_usage": &schema.Schema{
 				Type:     schema.TypeString,
@@ -54,7 +49,18 @@ func resourceAwsKmsKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
+			},
+			"deletion_window": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if (value > 30 || value < 7) {
+						es = append(es, fmt.Errorf(
+							"deletion window must be between 7 and 30 days inclusive"))
+					}
+					return
+				},
 			},
 		},
 	}
@@ -87,7 +93,7 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	keyId := d.Get("key_id").(string)
 
 	req := &kms.DescribeKeyInput{
-		KeyId:       aws.String(keyId),
+		KeyId: aws.String(keyId),
 	}
 	resp, err := conn.DescribeKey(req)
 	if err != nil {
@@ -103,9 +109,6 @@ func resourceAwsKmsKeyReadResult(d *schema.ResourceData, metadata *kms.KeyMetada
 		return err
 	}
 	if err := d.Set("key_id", metadata.KeyId); err != nil {
-		return err
-	}
-	if err := d.Set("enabled", metadata.Enabled); err != nil {
 		return err
 	}
 	if err := d.Set("description", metadata.Description); err != nil {
@@ -166,10 +169,13 @@ func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
 	keyId := d.Get("key_id").(string)
 
-	req := &kms.DisableKeyInput{
-		KeyId:       aws.String(keyId),
+	req := &kms.ScheduleKeyDeletionInput{
+		KeyId:               aws.String(keyId),
 	}
-	_, err := conn.DisableKey(req)
+	if v, exists := d.GetOk("deletion_window"); exists {
+		req.PendingWindowInDays = aws.Int64(int64(v.(int)))
+	}
+	_, err := conn.ScheduleKeyDeletion(req)
 
 	log.Printf("[DEBUG] KMS Key: %s deactivated.", keyId)
 	d.SetId("")
