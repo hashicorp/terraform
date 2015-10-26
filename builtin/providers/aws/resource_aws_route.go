@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -129,7 +128,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	default:
 		fmt.Errorf("Error: invalid target type specified.")
 	}
-	log.Printf("[DEBUG] Route create config: %s", awsutil.Prettify(createOpts))
+	log.Printf("[DEBUG] Route create config: %s", createOpts)
 
 	// Create the route
 	_, err := conn.CreateRoute(createOpts)
@@ -139,7 +138,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 
 	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 	if err != nil {
-		fmt.Errorf("Error: %s", awsutil.Prettify(err))
+		fmt.Errorf("Error: %s", err)
 	}
 
 	d.SetId(routeIDHash(d, route))
@@ -227,7 +226,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	default:
 		fmt.Errorf("Error: invalid target type specified.")
 	}
-	log.Printf("[DEBUG] Route replace config: %s", awsutil.Prettify(replaceOpts))
+	log.Printf("[DEBUG] Route replace config: %s", replaceOpts)
 
 	// Replace the route
 	_, err := conn.ReplaceRoute(replaceOpts)
@@ -326,10 +325,10 @@ func deleteAwsRoute(conn *ec2.EC2, routeTableId string, cidr string) error {
 		RouteTableId:         aws.String(routeTableId),
 		DestinationCidrBlock: aws.String(cidr),
 	}
-	log.Printf("[DEBUG] Route delete opts: %s", awsutil.Prettify(deleteOpts))
+	log.Printf("[DEBUG] Route delete opts: %s", deleteOpts)
 
 	resp, err := conn.DeleteRoute(deleteOpts)
-	log.Printf("[DEBUG] Route delete result: %s", awsutil.Prettify(resp))
+	log.Printf("[DEBUG] Route delete result: %s", resp)
 	if err != nil {
 		return err
 	}
