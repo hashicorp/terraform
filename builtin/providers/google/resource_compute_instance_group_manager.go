@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -247,10 +248,32 @@ func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta inte
 		return fmt.Errorf("Error deleting instance group manager: %s", err)
 	}
 
+	currentSize := int64(d.Get("target_size").(int))
+
 	// Wait for the operation to complete
 	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
-	if err != nil {
-		return err
+
+	for err != nil && currentSize > 0 {
+		if !strings.Contains(err.Error(), "timeout") {
+			return err;
+		}
+
+		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
+			config.Project, d.Get("zone").(string), d.Id()).Do()
+
+		if err != nil {
+			return fmt.Errorf("Error getting instance group size: %s", err);
+		}
+
+		if instanceGroup.Size >= currentSize {
+			return fmt.Errorf("Error, instance group isn't shrinking during delete")
+		}
+
+		log.Printf("[INFO] timeout occured, but instance group is shrinking (%d < %d)", instanceGroup.Size, currentSize)
+
+		currentSize = instanceGroup.Size
+
+		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
 	}
 
 	d.SetId("")
