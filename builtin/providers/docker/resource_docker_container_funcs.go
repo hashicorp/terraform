@@ -54,6 +54,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Cmd = stringListToStringSlice(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("entrypoint"); ok {
+		createOpts.Config.Entrypoint = stringListToStringSlice(v.([]interface{}))
+	}
+
 	exposedPorts := map[dc.Port]struct{}{}
 	portBindings := map[dc.Port][]dc.PortBinding{}
 
