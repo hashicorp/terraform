@@ -2829,6 +2829,9 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 				"foo": &Schema{
 					Type:     TypeList,
 					Optional: true,
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						return
+					},
 					Elem: &Resource{
 						Schema: map[string]*Schema{
 							"foo": &Schema{
@@ -3543,6 +3546,94 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Config: map[string]interface{}{
 				"validate_me": "invalid",
+			},
+			Err: true,
+			Errors: []error{
+				fmt.Errorf(`something is not right here`),
+			},
+		},
+
+		"Good set with ValidateFunc": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						if _, ok := v.([]interface{}); !ok {
+							t.Fatalf("Expected []interface{}, got: %#v", v)
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": []interface{}{1},
+			},
+			Err: false,
+		},
+
+		"Bad set with ValidateFunc": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						es = append(es, fmt.Errorf("something is not right here"))
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": []interface{}{1},
+			},
+			Err: true,
+			Errors: []error{
+				fmt.Errorf(`something is not right here`),
+			},
+		},
+
+		"Good list with ValidateFunc": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						if _, ok := v.([]interface{}); !ok {
+							t.Fatalf("Expected []interface{}, got: %#v", v)
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": []interface{}{1, 2, 3},
+			},
+			Err: false,
+		},
+
+		"Bad list with ValidateFunc": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						es = append(es, fmt.Errorf("something is not right here"))
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": []interface{}{1, 2, 3},
 			},
 			Err: true,
 			Errors: []error{
