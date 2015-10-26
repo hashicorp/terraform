@@ -102,9 +102,7 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: func() (interface{}, error) {
-					return getCredDefault("", func() string {
-						return credVal.SessionToken
-					})
+					return credVal.SessionToken, nil
 				},
 				Description: descriptions["token"],
 			},
