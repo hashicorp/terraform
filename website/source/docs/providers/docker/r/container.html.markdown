@@ -37,6 +37,11 @@ The following arguments are supported:
 * `command` - (Optional, list of strings) The command to use to start the
     container. For example, to run `/usr/bin/myprogram -f baz.conf` set the
     command to be `["/usr/bin/myprogram", "-f", "baz.conf"]`.
+* `entrypoint` - (Optional, list of strings) The command to use as the
+    Entrypoint for the container. The Entrypoint allows you to configure a
+    container to run as an executable. For example, to run `/usr/bin/myprogram`
+    when starting a container, set the entrypoint to be
+    `["/usr/bin/myprogram"]`.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
 * `links` - (Optional, set of strings) Set of links for link based

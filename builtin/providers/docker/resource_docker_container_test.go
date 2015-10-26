@@ -10,6 +10,7 @@ import (
 )
 
 func TestAccDockerContainer_basic(t *testing.T) {
+	var c dc.Container
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -17,14 +18,42 @@ func TestAccDockerContainer_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDockerContainerConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccContainerRunning("docker_container.foo"),
+					testAccContainerRunning("docker_container.foo", &c),
 				),
 			},
 		},
 	})
 }
 
-func testAccContainerRunning(n string) resource.TestCheckFunc {
+func TestAccDockerContainer_entrypoint(t *testing.T) {
+	var c dc.Container
+
+	testCheck := func(*terraform.State) error {
+		if len(c.Config.Entrypoint) < 3 ||
+			(c.Config.Entrypoint[0] != "/bin/bash" &&
+				c.Config.Entrypoint[1] != "-c" &&
+				c.Config.Entrypoint[2] != "ping localhost") {
+			return fmt.Errorf("Container wrong entrypoint: %s", c.Config.Entrypoint)
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerContainerEntrypointConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning("docker_container.foo", &c),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func testAccContainerRunning(n string, container *dc.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -43,6 +72,11 @@ func testAccContainerRunning(n string) resource.TestCheckFunc {
 
 		for _, c := range containers {
 			if c.ID == rs.Primary.ID {
+				inspected, err := client.InspectContainer(c.ID)
+				if err != nil {
+					return fmt.Errorf("Container could not be inspected: %s", err)
+				}
+				*container = *inspected
 				return nil
 			}
 		}
@@ -59,5 +93,16 @@ resource "docker_image" "foo" {
 resource "docker_container" "foo" {
 	name = "tf-test"
 	image = "${docker_image.foo.latest}"
+}
+`
+const testAccDockerContainerEntrypointConfig = `
+resource "docker_image" "foo" {
+	name = "nginx:latest"
+}
+
+resource "docker_container" "foo" {
+	name = "tf-test"
+	image = "${docker_image.foo.latest}"
+  entrypoint = ["/bin/bash", "-c", "ping localhost"]
 }
 `
