@@ -23,6 +23,7 @@ func resourceAwsRoute() *schema.Resource {
 			"destination_cidr_block": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"destination_prefix_list_id": &schema.Schema{
@@ -166,10 +167,6 @@ func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
-	if d.HasChange("destination_cidr_block") {
-		return resourceAwsRouteRecreate(d, meta)
-	}
-
 	conn := meta.(*AWSClient).ec2conn
 	var numTargets int
 	var setTarget string
@@ -237,31 +234,17 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsRouteRecreate(d *schema.ResourceData, meta interface{}) error {
-	//Destination Cidr is used for identification
-	// if changed, we should delete the old route, recreate the new route
+func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	oc, _ := d.GetChange("destination_cidr_block")
-
-	var oldRtId interface{}
-	if d.HasChange("route_table_id") {
-		oldRtId, _ = d.GetChange("route_table_id")
-	} else {
-		oldRtId = d.Get("route_table_id")
+	deleteOpts := &ec2.DeleteRouteInput{
+		RouteTableId:         aws.String(d.Get("route_table_id").(string)),
+		DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 	}
+	log.Printf("[DEBUG] Route delete opts: %s", deleteOpts)
 
-	if err := deleteAwsRoute(conn, oldRtId.(string), oc.(string)); err != nil {
-		return err
-	}
-	d.SetId("")
-
-	return resourceAwsRouteCreate(d, meta)
-}
-
-func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
-	err := deleteAwsRoute(meta.(*AWSClient).ec2conn,
-		d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+	resp, err := conn.DeleteRoute(deleteOpts)
+	log.Printf("[DEBUG] Route delete result: %s", resp)
 	if err != nil {
 		return err
 	}
@@ -318,19 +301,4 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 	}
 
 	return nil, nil
-}
-
-func deleteAwsRoute(conn *ec2.EC2, routeTableId string, cidr string) error {
-	deleteOpts := &ec2.DeleteRouteInput{
-		RouteTableId:         aws.String(routeTableId),
-		DestinationCidrBlock: aws.String(cidr),
-	}
-	log.Printf("[DEBUG] Route delete opts: %s", deleteOpts)
-
-	resp, err := conn.DeleteRoute(deleteOpts)
-	log.Printf("[DEBUG] Route delete result: %s", resp)
-	if err != nil {
-		return err
-	}
-	return nil
 }
