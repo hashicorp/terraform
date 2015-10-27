@@ -890,6 +890,22 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] template: %#v", template)
 
+	devices, err := template.Device(context.TODO())
+	if err != nil {
+		log.Printf("[DEBUG] Template devices can't be found")
+		return err
+	}
+
+	for _, dvc := range devices {
+		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
+		if devices.Type(dvc) == "ethernet" {
+			err := template.RemoveDevice(context.TODO(), dvc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	var resourcePool *object.ResourcePool
 	if vm.resourcePool == "" {
 		if vm.cluster == "" {
