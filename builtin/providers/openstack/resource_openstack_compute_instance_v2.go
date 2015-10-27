@@ -93,10 +93,11 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 			},
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
@@ -807,7 +808,7 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 }
 
 func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
-	rawSecGroups := d.Get("security_groups").([]interface{})
+	rawSecGroups := d.Get("security_groups").(*schema.Set).List()
 	secgroups := make([]string, len(rawSecGroups))
 	for i, raw := range rawSecGroups {
 		secgroups[i] = raw.(string)
