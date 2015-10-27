@@ -1,17 +1,18 @@
 ## 0.6.7 (Unreleased)
 
-BUG FIXES:
-
-  * `terraform remote config`: update `--help` output [GH-3632]
-  * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
-  * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
-      This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
-
 IMPROVEMENTS:
 
   * provider/google: Accurate Terraform Version [GH-3554]
   * provider/google: Simplified auth (DefaultClient support) [GH-3553]
   * provider/google: automatic_restart, preemptible, on_host_maintenance options [GH-3643]
+
+BUG FIXES:
+
+  * `terraform remote config`: update `--help` output [GH-3632]
+  * core: modules on Git branches now update properly [GH-1568]
+  * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
+  * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
+      This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
 
 ## 0.6.6 (October 23, 2015)
 
