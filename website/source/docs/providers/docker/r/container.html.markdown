@@ -59,6 +59,10 @@ The following arguments are supported:
 * `privileged` - (Optional, bool) Run container in privileged mode.
 * `publish_all_ports` - (Optional, bool) Publish all ports of the container.
 * `volumes` - (Optional) See [Volumes](#volumes) below for details.
+* `memory` - (Optional, int) The memory limit for the container in MBs.
+* `memory_swap` - (Optional, int) The total memory limit (memory + swap) for the
+  container in MBs.
+* `cpu_shares` - (Optional, int) CPU shares (relative weight) for the container.
 
 <a id="ports"></a>
 ## Ports
