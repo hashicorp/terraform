@@ -5,6 +5,7 @@ IMPROVEMENTS:
   * provider/google: Accurate Terraform Version [GH-3554]
   * provider/google: Simplified auth (DefaultClient support) [GH-3553]
   * provider/google: automatic_restart, preemptible, on_host_maintenance options [GH-3643]
+  * null_resource: enhance and document [GH-3244, GH-3659]
 
 BUG FIXES:
 
