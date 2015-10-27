@@ -95,6 +95,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	hostConfig := &dc.HostConfig{
 		Privileged:      d.Get("privileged").(bool),
 		PublishAllPorts: d.Get("publish_all_ports").(bool),
+		RestartPolicy: dc.RestartPolicy{
+			Name:              d.Get("restart").(string),
+			MaximumRetryCount: d.Get("max_retry_count").(int),
+		},
 	}
 
 	if len(portBindings) != 0 {

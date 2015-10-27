@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"regexp"
 )
 
 func resourceDockerContainer() *schema.Resource {
@@ -88,6 +89,27 @@ func resourceDockerContainer() *schema.Resource {
 
 			"publish_all_ports": &schema.Schema{
 				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"restart": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "no",
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(no|on-failure|always)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"no\", \"on-failure\", or \"always\"", k))
+					}
+					return
+				},
+			},
+
+			"max_retry_count": &schema.Schema{
+				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},

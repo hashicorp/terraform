@@ -25,7 +25,7 @@ func TestAccDockerContainer_basic(t *testing.T) {
 	})
 }
 
-func TestAccDockerContainer_entrypoint(t *testing.T) {
+func TestAccDockerContainer_customized(t *testing.T) {
 	var c dc.Container
 
 	testCheck := func(*terraform.State) error {
@@ -35,6 +35,15 @@ func TestAccDockerContainer_entrypoint(t *testing.T) {
 				c.Config.Entrypoint[2] != "ping localhost") {
 			return fmt.Errorf("Container wrong entrypoint: %s", c.Config.Entrypoint)
 		}
+
+		if c.HostConfig.RestartPolicy.Name == "on-failure" {
+			if c.HostConfig.RestartPolicy.MaximumRetryCount != 5 {
+				return fmt.Errorf("Container has wrong restart policy max retry count: %d", c.HostConfig.RestartPolicy.MaximumRetryCount)
+			}
+		} else {
+			return fmt.Errorf("Container has wrong restart policy: %s", c.HostConfig.RestartPolicy.Name)
+		}
+
 		return nil
 	}
 
@@ -43,7 +52,7 @@ func TestAccDockerContainer_entrypoint(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDockerContainerEntrypointConfig,
+				Config: testAccDockerContainerCustomizedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccContainerRunning("docker_container.foo", &c),
 					testCheck,
@@ -95,7 +104,7 @@ resource "docker_container" "foo" {
 	image = "${docker_image.foo.latest}"
 }
 `
-const testAccDockerContainerEntrypointConfig = `
+const testAccDockerContainerCustomizedConfig = `
 resource "docker_image" "foo" {
 	name = "nginx:latest"
 }
@@ -104,5 +113,7 @@ resource "docker_container" "foo" {
 	name = "tf-test"
 	image = "${docker_image.foo.latest}"
   entrypoint = ["/bin/bash", "-c", "ping localhost"]
+  restart = "on-failure"
+  max_retry_count = 5
 }
 `

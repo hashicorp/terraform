@@ -48,6 +48,10 @@ The following arguments are supported:
   connectivity between containers that are running on the same host.
 * `hostname` - (Optional, string) Hostname of the container.
 * `domainname` - (Optional, string) Domain name of the container.
+* `restart` - (Optional, string) The restart policy for the container. Must be
+  one of "no", "on-failure", "always".
+* `max_retry_count` - (Optional, int) The maximum amount of times to an attempt
+  a restart when `restart` is set to "on-failure"
 * `must_run` - (Optional, bool) If true, then the Docker container will be
   kept running. If false, then as long as the container exists, Terraform
   assumes it is successful.
