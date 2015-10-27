@@ -2903,7 +2903,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type:     TypeMap,
+					Type:     TypeSet,
 					Required: true,
 					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						return
@@ -3404,6 +3404,36 @@ func TestSchemaMap_Validate(t *testing.T) {
 						"port": "bad",
 					},
 				},
+			},
+
+			Err: true,
+		},
+
+		"Bad, should not allow lists to be assigned to string attributes": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": []interface{}{"foo", "bar", "baz"},
+			},
+
+			Err: true,
+		},
+
+		"Bad, should not allow maps to be assigned to string attributes": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": map[string]interface{}{"foo": "bar", "baz": "thing"},
 			},
 
 			Err: true,

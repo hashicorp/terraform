@@ -26,6 +26,31 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-codedeploy/) %>>
+                    <a href="#">CodeDeploy Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-codedeploy-app") %>>
+                            <a href="/docs/providers/aws/r/codedeploy_app.html">aws_codedeploy_app</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-group") %>>
+                            <a href="/docs/providers/aws/r/codedeploy_deployment_group.html">aws_codedeploy_deployment_group</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-directory-service/) %>>
+                    <a href="#">Directory Service Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-directory-service-directory") %>>
+                            <a href="/docs/providers/aws/r/directory_service_directory.html">aws_directory_service_directory</a>
+                        </li>
+
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-dynamodb/) %>>
                     <a href="#">DynamoDB Resources</a>
@@ -39,7 +64,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|elastic-beanstalk|eip|instance|launch|lb|proxy|spot|volume)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|elastic-beanstalk|eip|instance|launch|lb|proxy|spot|volume|placement)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -61,6 +86,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-autoscaling-group") %>>
                             <a href="/docs/providers/aws/r/autoscaling_group.html">aws_autoscaling_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-autoscaling-lifecycle-hook") %>>
+                            <a href="/docs/providers/aws/r/autoscaling_lifecycle_hooks.html">aws_autoscaling_lifecycle_hook</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-autoscaling-notification") %>>
@@ -101,6 +130,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-lb-cookie-stickiness-policy") %>>
                             <a href="/docs/providers/aws/r/lb_cookie_stickiness_policy.html">aws_lb_cookie_stickiness_policy</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-placement-group") %>>
+                            <a href="/docs/providers/aws/r/placement_group.html">aws_placement_group</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-proxy-protocol-policy") %>>
@@ -190,6 +223,15 @@
 
                     </ul>
                 </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-glacier/) %>>
+                    <a href="#">Glacier Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-glacier-vault") %>>
+                            <a href="/docs/providers/aws/r/glacier_vault.html">aws_glacier_vault</a>
+                        </li>
+                    </ul>
+                 </li>
 
 
                 <li<%= sidebar_current(/^docs-aws-resource-iam/) %>>

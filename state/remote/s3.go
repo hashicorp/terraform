@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 func s3Factory(conf map[string]string) (Client, error) {
@@ -75,6 +76,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 	awsConfig := &aws.Config{
 		Credentials: credentialsProvider,
 		Region:      aws.String(regionName),
+		HTTPClient:  cleanhttp.DefaultClient(),
 	}
 	nativeClient := s3.New(awsConfig)
 
@@ -133,7 +135,7 @@ func (c *S3Client) Get() (*Payload, error) {
 }
 
 func (c *S3Client) Put(data []byte) error {
-	contentType := "application/octet-stream"
+	contentType := "application/json"
 	contentLength := int64(len(data))
 
 	i := &s3.PutObjectInput{

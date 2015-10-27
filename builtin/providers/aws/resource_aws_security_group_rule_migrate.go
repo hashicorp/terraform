@@ -17,6 +17,12 @@ func resourceAwsSecurityGroupRuleMigrateState(
 	case 0:
 		log.Println("[INFO] Found AWS Security Group State v0; migrating to v1")
 		return migrateSGRuleStateV0toV1(is)
+	case 1:
+		log.Println("[INFO] Found AWS Security Group State v1; migrating to v2")
+		// migrating to version 2 of the schema is the same as 0->1, since the
+		// method signature has changed now and will use the security group id in
+		// the hash
+		return migrateSGRuleStateV0toV1(is)
 	default:
 		return is, fmt.Errorf("Unexpected schema version: %d", v)
 	}
@@ -37,7 +43,7 @@ func migrateSGRuleStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceS
 	}
 
 	log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
-	newID := ipPermissionIDHash(is.Attributes["type"], perm)
+	newID := ipPermissionIDHash(is.Attributes["security_group_id"], is.Attributes["type"], perm)
 	is.Attributes["id"] = newID
 	is.ID = newID
 	log.Printf("[DEBUG] Attributes after migration: %#v, new id: %s", is.Attributes, newID)

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/osext"
+	"github.com/kardianos/osext"
 )
 
 // Config is the structure of the configuration for the Terraform CLI.

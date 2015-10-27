@@ -80,6 +80,27 @@ The supported built-in functions are:
   * `base64encode(string)` - Returns a base64-encoded representation of the
     given string.
 
+  * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
+    and creates an IP address with the given host number. For example,
+    ``cidrhost("10.0.0.0/8", 2)`` returns ``10.0.0.2``.
+
+  * `cidrnetmask(iprange)` - Takes an IP address range in CIDR notation
+    and returns the address-formatted subnet mask format that some
+    systems expect for IPv4 interfaces. For example,
+    ``cidrmask("10.0.0.0/8")`` returns ``255.0.0.0``. Not applicable
+    to IPv6 networks since CIDR notation is the only valid notation for
+    IPv6.
+
+  * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
+    CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
+    additional subnet number. For example,
+    ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
+
+  * `compact(list)` - Removes empty string elements from a list. This can be
+     useful in some cases, for example when passing joined lists as module
+     variables or when parsing module outputs.
+     Example: `compact(module.my_asg.load_balancer_names)`
+
   * `concat(list1, list2)` - Combines two or more lists into a single list.
      Example: `concat(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
@@ -126,6 +147,8 @@ The supported built-in functions are:
       variable. The `map` parameter should be another variable, such
       as `var.amis`.
 
+  * `lower(string)` - returns a copy of the string with all Unicode letters mapped to their lower case.
+
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated
@@ -141,6 +164,8 @@ The supported built-in functions are:
       in brackets to indicate that the output is actually a list, e.g.
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
+
+  * `upper(string)` - returns a copy of the string with all Unicode letters mapped to their upper case.
 
 ## Templates
 

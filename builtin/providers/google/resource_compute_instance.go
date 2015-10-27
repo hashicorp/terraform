@@ -197,9 +197,10 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     schema.TypeString,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				Elem:         schema.TypeString,
+				ValidateFunc: validateInstanceMetadata,
 			},
 
 			"service_account": &schema.Schema{
@@ -225,6 +226,29 @@ func resourceComputeInstance() *schema.Resource {
 								},
 							},
 							Set: stringScopeHashcode,
+						},
+					},
+				},
+			},
+
+			"scheduling": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"on_host_maintenance": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"automatic_restart": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"preemptible": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
 						},
 					},
 				},
@@ -465,6 +489,21 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		serviceAccounts = append(serviceAccounts, serviceAccount)
 	}
 
+	prefix := "scheduling.0"
+	scheduling := &compute.Scheduling{}
+
+	if val, ok := d.GetOk(prefix + ".automatic_restart"); ok {
+		scheduling.AutomaticRestart = val.(bool)
+	}
+
+	if val, ok := d.GetOk(prefix + ".preemptible"); ok {
+		scheduling.Preemptible = val.(bool)
+	}
+
+	if val, ok := d.GetOk(prefix + ".on_host_maintenance"); ok {
+		scheduling.OnHostMaintenance = val.(string)
+	}
+
 	metadata, err := resourceInstanceMetadata(d)
 	if err != nil {
 		return fmt.Errorf("Error creating metadata: %s", err)
@@ -481,6 +520,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		NetworkInterfaces: networkInterfaces,
 		Tags:              resourceInstanceTags(d),
 		ServiceAccounts:   serviceAccounts,
+		Scheduling:        scheduling,
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
@@ -515,7 +555,14 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Synch metadata
 	md := instance.Metadata
 
-	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
+	_md := MetadataFormatSchema(md)
+	delete(_md, "startup-script")
+
+	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+		d.Set("metadata_startup_script", script)
+	}
+
+	if err = d.Set("metadata", _md); err != nil {
 		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
@@ -635,6 +682,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("self_link", instance.SelfLink)
+	d.SetId(instance.Name)
 
 	return nil
 }
@@ -655,6 +703,13 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
 		o, n := d.GetChange("metadata")
+		if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+			if _, ok := n.(map[string]interface{})["startup-script"]; ok {
+				return fmt.Errorf("Only one of metadata.startup-script and metadata_startup_script may be defined")
+			}
+
+			n.(map[string]interface{})["startup-script"] = script
+		}
 
 		updateMD := func() error {
 			// Reload the instance in the case of a fingerprint mismatch
@@ -702,6 +757,38 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 
 		d.SetPartial("tags")
+	}
+
+	if d.HasChange("scheduling") {
+		prefix := "scheduling.0"
+		scheduling := &compute.Scheduling{}
+
+		if val, ok := d.GetOk(prefix + ".automatic_restart"); ok {
+			scheduling.AutomaticRestart = val.(bool)
+		}
+
+		if val, ok := d.GetOk(prefix + ".preemptible"); ok {
+			scheduling.Preemptible = val.(bool)
+		}
+
+		if val, ok := d.GetOk(prefix + ".on_host_maintenance"); ok {
+			scheduling.OnHostMaintenance = val.(string)
+		}
+
+		op, err := config.clientCompute.Instances.SetScheduling(config.Project, 
+			zone, d.Id(), scheduling).Do()
+
+		if err != nil {
+			return fmt.Errorf("Error updating scheduling policy: %s", err)
+		}
+
+		opErr := computeOperationWaitZone(config, op, zone,
+			"scheduling policy update")
+		if opErr != nil {
+			return opErr
+		}
+
+		d.SetPartial("scheduling");
 	}
 
 	networkInterfacesCount := d.Get("network_interface.#").(int)
@@ -794,13 +881,8 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 func resourceInstanceMetadata(d *schema.ResourceData) (*compute.Metadata, error) {
 	m := &compute.Metadata{}
 	mdMap := d.Get("metadata").(map[string]interface{})
-	_, mapScriptExists := mdMap["startup-script"]
-	dScript, dScriptExists := d.GetOk("metadata_startup_script")
-	if mapScriptExists && dScriptExists {
-		return nil, fmt.Errorf("Not allowed to have both metadata_startup_script and metadata.startup-script")
-	}
-	if dScriptExists {
-		mdMap["startup-script"] = dScript
+	if v, ok := d.GetOk("metadata_startup_script"); ok && v.(string) != "" {
+		mdMap["startup-script"] = v
 	}
 	if len(mdMap) > 0 {
 		m.Items = make([]*compute.MetadataItems, 0, len(mdMap))
@@ -835,4 +917,13 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	}
 
 	return tags
+}
+
+func validateInstanceMetadata(v interface{}, k string) (ws []string, es []error) {
+	mdMap := v.(map[string]interface{})
+	if _, ok := mdMap["startup-script"]; ok {
+		es = append(es, fmt.Errorf(
+			"Use metadata_startup_script instead of a startup-script key in %q.", k))
+	}
+	return
 }

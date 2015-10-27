@@ -88,7 +88,7 @@ func CleanupClients() {
 		}(client)
 	}
 
-	log.Println("waiting for all plugin processes to complete...")
+	log.Println("[DEBUG] waiting for all plugin processes to complete...")
 	wg.Wait()
 }
 
@@ -326,7 +326,7 @@ func (c *Client) logStderr(r io.Reader) {
 			c.config.Stderr.Write([]byte(line))
 
 			line = strings.TrimRightFunc(line, unicode.IsSpace)
-			log.Printf("%s: %s", filepath.Base(c.config.Cmd.Path), line)
+			log.Printf("[DEBUG] %s: %s", filepath.Base(c.config.Cmd.Path), line)
 		}
 
 		if err == io.EOF {

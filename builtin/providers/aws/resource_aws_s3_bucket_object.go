@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -25,6 +27,37 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"cache_control": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"content_disposition": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"content_encoding": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"content_language": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"content_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
 			"key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -32,9 +65,17 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			},
 
 			"source": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"content"},
+			},
+
+			"content": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source"},
 			},
 
 			"etag": &schema.Schema{
@@ -50,21 +91,50 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
-	source := d.Get("source").(string)
+	var body io.ReadSeeker
 
-	file, err := os.Open(source)
+	if v, ok := d.GetOk("source"); ok {
+		source := v.(string)
+		file, err := os.Open(source)
+		if err != nil {
+			return fmt.Errorf("Error opening S3 bucket object source (%s): %s", source, err)
+		}
 
-	if err != nil {
-		return fmt.Errorf("Error opening S3 bucket object source (%s): %s", source, err)
+		body = file
+	} else if v, ok := d.GetOk("content"); ok {
+		content := v.(string)
+		body = bytes.NewReader([]byte(content))
+	} else {
+
+		return fmt.Errorf("Must specify \"source\" or \"content\" field")
+	}
+	putInput := &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   body,
 	}
 
-	resp, err := s3conn.PutObject(
-		&s3.PutObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-			Body:   file,
-		})
+	if v, ok := d.GetOk("cache_control"); ok {
+		putInput.CacheControl = aws.String(v.(string))
+	}
 
+	if v, ok := d.GetOk("content_type"); ok {
+		putInput.ContentType = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("content_encoding"); ok {
+		putInput.ContentEncoding = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("content_language"); ok {
+		putInput.ContentLanguage = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("content_disposition"); ok {
+		putInput.ContentDisposition = aws.String(v.(string))
+	}
+
+	resp, err := s3conn.PutObject(putInput)
 	if err != nil {
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
 	}
@@ -97,6 +167,12 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 		}
 		return err
 	}
+
+	d.Set("cache_control", resp.CacheControl)
+	d.Set("content_disposition", resp.ContentDisposition)
+	d.Set("content_encoding", resp.ContentEncoding)
+	d.Set("content_language", resp.ContentLanguage)
+	d.Set("content_type", resp.ContentType)
 
 	log.Printf("[DEBUG] Reading S3 Bucket Object meta: %s", resp)
 	return nil

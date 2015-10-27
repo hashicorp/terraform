@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -21,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -48,6 +52,7 @@ type Config struct {
 type AWSClient struct {
 	cloudwatchconn       *cloudwatch.CloudWatch
 	cloudwatchlogsconn   *cloudwatchlogs.CloudWatchLogs
+	dsconn               *directoryservice.DirectoryService
 	dynamodbconn         *dynamodb.DynamoDB
 	ec2conn              *ec2.EC2
 	ecsconn              *ecs.ECS
@@ -67,6 +72,8 @@ type AWSClient struct {
 	elasticbeanstalkconn *elasticbeanstalk.ElasticBeanstalk
 	lambdaconn           *lambda.Lambda
 	opsworksconn         *opsworks.OpsWorks
+	glacierconn          *glacier.Glacier
+	codedeployconn       *codedeploy.CodeDeploy
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -96,6 +103,7 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 			MaxRetries:  aws.Int(c.MaxRetries),
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing IAM Connection")
@@ -121,6 +129,7 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      aws.String("us-east-1"),
 			MaxRetries:  aws.Int(c.MaxRetries),
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
@@ -184,6 +193,15 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing OpsWorks Connection")
 		client.opsworksconn = opsworks.New(usEast1AwsConfig)
+
+		log.Println("[INFO] Initializing Directory Service connection")
+		client.dsconn = directoryservice.New(awsConfig)
+
+		log.Println("[INFO] Initializing Glacier connection")
+		client.glacierconn = glacier.New(awsConfig)
+
+		log.Println("[INFO] Initializing CodeDeploy Connection")
+		client.codedeployconn = codedeploy.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
