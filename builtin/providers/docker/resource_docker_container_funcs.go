@@ -120,6 +120,30 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
 	}
 
+	if v, ok := d.GetOk("memory"); ok {
+		memory := int64(v.(int))
+		if memory > 0 {
+			hostConfig.Memory = memory * 1024 * 1024
+		}
+	}
+
+	if v, ok := d.GetOk("memory_swap"); ok {
+		swap := int64(v.(int))
+		if swap != 0 {
+			if swap > 0 { // only convert positive #s to bytes
+				swap = swap * 1024 * 1024
+			}
+			hostConfig.MemorySwap = swap
+		}
+	}
+
+	if v, ok := d.GetOk("cpu_shares"); ok {
+		shares := int64(v.(int))
+		if shares > 0 {
+			hostConfig.CPUShares = shares
+		}
+	}
+
 	creationTime = time.Now()
 	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
 		return fmt.Errorf("Unable to start container: %s", err)

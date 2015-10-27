@@ -44,6 +44,17 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has wrong restart policy: %s", c.HostConfig.RestartPolicy.Name)
 		}
 
+		if c.HostConfig.Memory != (128 * 1024 * 1024) {
+			return fmt.Errorf("Container has wrong memory setting: %d", c.HostConfig.Memory)
+		}
+
+		if c.HostConfig.MemorySwap != (128 * 1024 * 1024) {
+			return fmt.Errorf("Container has wrong memory swap setting: %d", c.HostConfig.Memory)
+		}
+
+		if c.HostConfig.CPUShares != 512 {
+			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
+		}
 		return nil
 	}
 
@@ -115,5 +126,8 @@ resource "docker_container" "foo" {
   entrypoint = ["/bin/bash", "-c", "ping localhost"]
   restart = "on-failure"
   max_retry_count = 5
+  memory = 128
+  memory_swap = 128
+  cpu_shares = 512
 }
 `
