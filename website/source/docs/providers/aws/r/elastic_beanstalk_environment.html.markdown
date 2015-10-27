@@ -6,7 +6,7 @@ description: |-
   Provides an Elastic Beanstalk Environment Resource
 ---
 
-# aws\_elastic\_beanstalk\_<wbr>Environment
+# aws\_elastic\_beanstalk\_<wbr>environment
 
 Provides an Elastic Beanstalk Environment Resource. Elastic Beanstalk allows 
 you to deploy and manage applications in the AWS cloud without worrying about 
@@ -40,8 +40,6 @@ The following arguments are supported:
 * `application` – (Required) Name of the application that contains the version 
   to be deployed
 * `description` - (Optional) Short description of the Environment 
-* `cname` – (Optional) If specified, Elastic Beanstalk will try to use this
-  as a prefix. If omitted, an auto-generated prefix is automatically added
 * `setting` – (Optional) Option settings to configure the new Environment. These
   override specific values that are set as defaults. The format is detailed
   below in [Option Settings](#option-settings)
