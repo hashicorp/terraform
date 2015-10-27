@@ -90,6 +90,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	// Get values from config
 	name := d.Get("name").(string)
+	cname := d.Get("cname").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
 	settings := d.Get("setting").(*schema.Set)
@@ -108,6 +109,10 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	if desc != "" {
 		createOpts.Description = aws.String(desc)
+	}
+
+	if cname != "" {
+		createOpts.CNAMEPrefix = aws.String(cname)
 	}
 
 	if solutionStack != "" {
