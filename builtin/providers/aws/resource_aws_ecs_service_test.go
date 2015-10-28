@@ -178,6 +178,26 @@ func TestAccAWSEcsService_withIamRole(t *testing.T) {
 	})
 }
 
+// Regression for https://github.com/hashicorp/terraform/issues/3361
+func TestAccAWSEcsService_withEcsClusterName(t *testing.T) {
+	clusterName := regexp.MustCompile("^terraformecstestcluster$")
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsServiceWithEcsClusterName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
+					resource.TestMatchResourceAttr(
+						"aws_ecs_service.jenkins", "cluster", clusterName),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -468,6 +488,34 @@ resource "aws_ecs_service" "ghost" {
   name = "ghost"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.ghost.family}:${aws_ecs_task_definition.ghost.revision}"
+  desired_count = 1
+}
+`
+
+var testAccAWSEcsServiceWithEcsClusterName = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstestcluster"
+}
+
+resource "aws_ecs_task_definition" "jenkins" {
+  family = "jenkins"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "jenkins:latest",
+    "memory": 128,
+    "name": "jenkins"
+  }
+]
+DEFINITION
+}
+
+resource "aws_ecs_service" "jenkins" {
+  name = "jenkins"
+  cluster = "${aws_ecs_cluster.default.name}"
+  task_definition = "${aws_ecs_task_definition.jenkins.arn}"
   desired_count = 1
 }
 `
