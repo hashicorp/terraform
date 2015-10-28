@@ -276,7 +276,9 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			rule["max_age_seconds"] = ruleObject.MaxAgeSeconds
 			rules = append(rules, rule)
 		}
-		d.Set("cors_rule", rules)
+		if err := d.Set("cors_rule", rules); err != nil {
+			return fmt.Errorf("error reading S3 bucket \"%s\" CORS rules: %s", d.Id(), err)
+		}
 	}
 
 	// Read the website configuration
