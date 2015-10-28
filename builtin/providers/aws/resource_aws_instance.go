@@ -1082,5 +1082,6 @@ func iamInstanceProfileArnToName(ip *ec2.IamInstanceProfile) string {
 	if ip == nil || ip.Arn == nil {
 		return ""
 	}
-	return strings.Split(*ip.Arn, "/")[1]
+	parts := strings.Split(*ip.Arn, "/")
+	return parts[len(parts)-1]
 }
