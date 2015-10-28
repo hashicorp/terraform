@@ -1,5 +1,9 @@
 ## 0.6.7 (Unreleased)
 
+FEATURES:
+
+  * **New resources: `aws_cloudformation_stack`** [GH-2636]
+
 IMPROVEMENTS:
 
   * provider/google: Accurate Terraform Version [GH-3554]
