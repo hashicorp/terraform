@@ -27,8 +27,8 @@ resource "aws_elasticache_cluster" "bar" {
 
 The following arguments are supported:
 
-* `cluster_id` – (Required) Group identifier. This parameter is stored as a
-lowercase string
+* `cluster_id` – (Required) Group identifier. Elasticache converts
+  this name to lowercase
 
 * `engine` – (Required) Name of the cache engine to be used for this cache cluster.
  Valid values for this parameter are `memcached` or `redis`

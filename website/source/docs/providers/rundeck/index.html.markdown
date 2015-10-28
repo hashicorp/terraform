@@ -70,6 +70,6 @@ resource "rundeck_public_key" "anvils" {
 
 resource "rundeck_private_key" "anvils" {
     path = "anvils/id_rsa"
-    key_material_file = "${path.module}/id_rsa.pub"
+    key_material = "${file(\"id_rsa.pub\")}"
 }
 ```

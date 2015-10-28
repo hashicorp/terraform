@@ -53,26 +53,26 @@ func (addr *ResourceAddress) Equals(raw interface{}) bool {
 		return false
 	}
 
-	pathMatch := ((len(addr.Path) == 0 && len(other.Path) == 0) ||
-		reflect.DeepEqual(addr.Path, other.Path))
+	pathMatch := len(addr.Path) == 0 && len(other.Path) == 0 ||
+		reflect.DeepEqual(addr.Path, other.Path)
 
-	indexMatch := (addr.Index == -1 ||
+	indexMatch := addr.Index == -1 ||
 		other.Index == -1 ||
-		addr.Index == other.Index)
+		addr.Index == other.Index
 
-	nameMatch := (addr.Name == "" ||
+	nameMatch := addr.Name == "" ||
 		other.Name == "" ||
-		addr.Name == other.Name)
+		addr.Name == other.Name
 
-	typeMatch := (addr.Type == "" ||
+	typeMatch := addr.Type == "" ||
 		other.Type == "" ||
-		addr.Type == other.Type)
+		addr.Type == other.Type
 
-	return (pathMatch &&
+	return pathMatch &&
 		indexMatch &&
 		addr.InstanceType == other.InstanceType &&
 		nameMatch &&
-		typeMatch)
+		typeMatch
 }
 
 func ParseResourceIndex(s string) (int, error) {

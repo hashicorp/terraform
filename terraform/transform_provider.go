@@ -255,7 +255,7 @@ func (n *graphNodeDisabledProvider) EvalTree() EvalNode {
 	var resourceConfig *ResourceConfig
 
 	return &EvalOpFilter{
-		Ops: []walkOperation{walkInput, walkValidate, walkRefresh, walkPlan, walkApply},
+		Ops: []walkOperation{walkInput, walkValidate, walkRefresh, walkPlan, walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalInterpolate{

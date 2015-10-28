@@ -38,6 +38,7 @@ func NewClient(t string, conf map[string]string) (Client, error) {
 var BuiltinClients = map[string]Factory{
 	"atlas":  atlasFactory,
 	"consul": consulFactory,
+	"etcd":   etcdFactory,
 	"http":   httpFactory,
 	"s3":     s3Factory,
 	"swift":  swiftFactory,

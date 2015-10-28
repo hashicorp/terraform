@@ -39,7 +39,7 @@ The following arguments are supported:
 
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.
-    
+
 * `zone` - (Required) The name or ID of the zone where this disk volume will be
     available. Changing this forces a new resource to be created.
 
@@ -49,3 +49,4 @@ The following attributes are exported:
 
 * `id` - The ID of the VPC.
 * `display_text` - The display text of the VPC.
+* `source_nat_ip` - The source NAT IP assigned to the VPC.

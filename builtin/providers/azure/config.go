@@ -98,7 +98,7 @@ func (c Client) getStorageServiceQueueClient(serviceName string) (storage.QueueS
 func (c *Config) NewClientFromSettingsData() (*Client, error) {
 	mc, err := management.ClientFromPublishSettingsData(c.Settings, c.SubscriptionID)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	return &Client{

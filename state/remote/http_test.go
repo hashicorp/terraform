@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 func TestHTTPClient_impl(t *testing.T) {
@@ -24,7 +26,7 @@ func TestHTTPClient(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	client := &HTTPClient{URL: url, Client: http.DefaultClient}
+	client := &HTTPClient{URL: url, Client: cleanhttp.DefaultClient()}
 	testClient(t, client)
 }
 

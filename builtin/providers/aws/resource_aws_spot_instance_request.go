@@ -36,6 +36,11 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			}
+			s["spot_type"] = &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "persistent",
+			}
 			s["wait_for_fulfillment"] = &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -69,10 +74,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 
 	spotOpts := &ec2.RequestSpotInstancesInput{
 		SpotPrice: aws.String(d.Get("spot_price").(string)),
-
-		// We always set the type to "persistent", since the imperative-like
-		// behavior of "one-time" does not map well to TF's declarative domain.
-		Type: aws.String("persistent"),
+		Type:      aws.String(d.Get("spot_type").(string)),
 
 		// Though the AWS API supports creating spot instance requests for multiple
 		// instances, for TF purposes we fix this to one instance per request.

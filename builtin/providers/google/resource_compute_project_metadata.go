@@ -3,7 +3,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
 
 	//	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -28,30 +27,6 @@ func resourceComputeProjectMetadata() *schema.Resource {
 			},
 		},
 	}
-}
-
-func resourceOperationWaitGlobal(config *Config, op *compute.Operation, activity string) error {
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitGlobal,
-	}
-
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return fmt.Errorf("Error waiting for %s: %s", activity, err)
-	}
-
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		return OperationError(*op.Error)
-	}
-
-	return nil
 }
 
 func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface{}) error {
@@ -92,15 +67,15 @@ func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface
 
 		log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-		return resourceOperationWaitGlobal(config, op, "SetCommonMetadata")
+		return computeOperationWaitGlobal(config, op, "SetCommonMetadata")
 	}
 
 	err := MetadataRetryWrapper(createMD)
 	if err != nil {
-		return err;
+		return err
 	}
 
-	return resourceComputeProjectMetadataRead(d, meta);
+	return resourceComputeProjectMetadataRead(d, meta)
 }
 
 func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}) error {
@@ -140,7 +115,7 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 
 			md := project.CommonInstanceMetadata
 
-		    MetadataUpdate(o.(map[string]interface{}), n.(map[string]interface{}), md)
+			MetadataUpdate(o.(map[string]interface{}), n.(map[string]interface{}), md)
 
 			op, err := config.clientCompute.Projects.SetCommonInstanceMetadata(config.Project, md).Do()
 
@@ -153,15 +128,15 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 			// Optimistic locking requires the fingerprint received to match
 			// the fingerprint we send the server, if there is a mismatch then we
 			// are working on old data, and must retry
-			return resourceOperationWaitGlobal(config, op, "SetCommonMetadata")
+			return computeOperationWaitGlobal(config, op, "SetCommonMetadata")
 		}
 
 		err := MetadataRetryWrapper(updateMD)
 		if err != nil {
-			return err;
+			return err
 		}
 
-		return resourceComputeProjectMetadataRead(d, meta);
+		return resourceComputeProjectMetadataRead(d, meta)
 	}
 
 	return nil
@@ -186,7 +161,7 @@ func resourceComputeProjectMetadataDelete(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-	err = resourceOperationWaitGlobal(config, op, "SetCommonMetadata")
+	err = computeOperationWaitGlobal(config, op, "SetCommonMetadata")
 	if err != nil {
 		return err
 	}

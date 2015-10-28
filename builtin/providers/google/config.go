@@ -10,8 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	// TODO(dcunnin): Use version code from version.go
-	// "github.com/hashicorp/terraform"
+	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
@@ -36,6 +35,13 @@ type Config struct {
 
 func (c *Config) loadAndValidate() error {
 	var account accountFile
+	clientScopes := []string{
+		"https://www.googleapis.com/auth/compute",
+		"https://www.googleapis.com/auth/cloud-platform",
+		"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
+		"https://www.googleapis.com/auth/devstorage.full_control",
+	}
+
 
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
@@ -79,13 +85,6 @@ func (c *Config) loadAndValidate() error {
 			}
 		}
 
-		clientScopes := []string{
-			"https://www.googleapis.com/auth/compute",
-			"https://www.googleapis.com/auth/cloud-platform",
-			"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
-			"https://www.googleapis.com/auth/devstorage.full_control",
-		}
-
 		// Get the token for use in our requests
 		log.Printf("[INFO] Requesting Google token...")
 		log.Printf("[INFO]   -- Email: %s", account.ClientEmail)
@@ -105,25 +104,19 @@ func (c *Config) loadAndValidate() error {
 		client = conf.Client(oauth2.NoContext)
 
 	} else {
-		log.Printf("[INFO] Requesting Google token via GCE Service Role...")
-		client = &http.Client{
-			Transport: &oauth2.Transport{
-				// Fetch from Google Compute Engine's metadata server to retrieve
-				// an access token for the provided account.
-				// If no account is specified, "default" is used.
-				Source: google.ComputeTokenSource(""),
-			},
+		log.Printf("[INFO] Authenticating using DefaultClient");
+		err := error(nil)
+		client, err = google.DefaultClient(oauth2.NoContext, clientScopes...)
+		if err != nil {
+			return err
 		}
-
 	}
 
-	// Build UserAgent
-	versionString := "0.0.0"
-	// TODO(dcunnin): Use Terraform's version code from version.go
-	// versionString := main.Version
-	// if main.VersionPrerelease != "" {
-	// 	versionString = fmt.Sprintf("%s-%s", versionString, main.VersionPrerelease)
-	// }
+	versionString := terraform.Version
+	prerelease := terraform.VersionPrerelease
+	if len(prerelease) > 0 {
+		versionString = fmt.Sprintf("%s-%s", versionString, prerelease)
+	}
 	userAgent := fmt.Sprintf(
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 

@@ -116,7 +116,7 @@ func resourceCloudStackSSHKeyPairDelete(d *schema.ResourceData, meta interface{}
 	// Remove the SSH Keypair
 	_, err := cs.SSH.DeleteSSHKeyPair(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"A key pair with name '%s' does not exist for account", d.Id())) {
 			return nil

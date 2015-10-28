@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -59,9 +60,13 @@ type Meta struct {
 	//
 	// backupPath is used to backup the state file before writing a modified
 	// version. It defaults to stateOutPath + DefaultBackupExtension
+	//
+	// parallelism is used to control the number of concurrent operations
+	// allowed when walking the graph
 	statePath    string
 	stateOutPath string
 	backupPath   string
+	parallelism  int
 }
 
 // initStatePaths is used to initialize the default values for
@@ -151,6 +156,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	}
 
 	opts.Module = mod
+	opts.Parallelism = copts.Parallelism
 	opts.State = state.State()
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil
@@ -325,9 +331,9 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
-func (m *Meta) moduleStorage(root string) module.Storage {
+func (m *Meta) moduleStorage(root string) getter.Storage {
 	return &uiModuleStorage{
-		Storage: &module.FolderStorage{
+		Storage: &getter.FolderStorage{
 			StorageDir: filepath.Join(root, "modules"),
 		},
 		Ui: m.Ui,
@@ -430,4 +436,7 @@ type contextOpts struct {
 
 	// Set to true when running a destroy plan/apply.
 	Destroy bool
+
+	// Number of concurrent operations allowed
+	Parallelism int
 }

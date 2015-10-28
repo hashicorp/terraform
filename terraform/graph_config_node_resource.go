@@ -165,7 +165,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		steps = append(steps, &OrphanTransformer{
 			State:     state,
 			View:      n.Resource.Id(),
-			Targeting: (len(n.Targets) > 0),
+			Targeting: len(n.Targets) > 0,
 		})
 
 		steps = append(steps, &DeposedTransformer{
