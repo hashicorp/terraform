@@ -890,22 +890,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] template: %#v", template)
 
-	devices, err := template.Device(context.TODO())
-	if err != nil {
-		log.Printf("[DEBUG] Template devices can't be found")
-		return err
-	}
-
-	for _, dvc := range devices {
-		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
-		if devices.Type(dvc) == "ethernet" {
-			err := template.RemoveDevice(context.TODO(), dvc)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
 	var resourcePool *object.ResourcePool
 	if vm.resourcePool == "" {
 		if vm.cluster == "" {
@@ -1013,7 +997,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
-		DeviceChange:      networkDevices,
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
@@ -1037,11 +1020,10 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 
 	// make vm clone spec
 	cloneSpec := types.VirtualMachineCloneSpec{
-		Location:      relocateSpec,
-		Template:      false,
-		Config:        &configSpec,
-		Customization: &customSpec,
-		PowerOn:       true,
+		Location: relocateSpec,
+		Template: false,
+		Config:   &configSpec,
+		PowerOn:  false,
 	}
 	log.Printf("[DEBUG] clone spec: %v", cloneSpec)
 
@@ -1060,6 +1042,43 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		return err
 	}
 	log.Printf("[DEBUG] new vm: %v", newVM)
+
+	devices, err := newVM.Device(context.TODO())
+	if err != nil {
+		log.Printf("[DEBUG] Template devices can't be found")
+		return err
+	}
+
+	for _, dvc := range devices {
+		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
+		if devices.Type(dvc) == "ethernet" {
+			err := newVM.RemoveDevice(context.TODO(), dvc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	// Add Network devices
+	for _, dvc := range networkDevices {
+		err := newVM.AddDevice(
+			context.TODO(), dvc.GetVirtualDeviceConfigSpec().Device)
+		if err != nil {
+			return err
+		}
+	}
+
+	taskb, err := newVM.Customize(context.TODO(), customSpec)
+	if err != nil {
+		return err
+	}
+
+	_, err = taskb.WaitForResult(context.TODO(), nil)
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG]VM customization finished")
+
+	newVM.PowerOn(context.TODO())
 
 	ip, err := newVM.WaitForIP(context.TODO())
 	if err != nil {
