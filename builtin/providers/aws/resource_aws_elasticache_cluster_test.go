@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestAccAWSElasticacheCluster_basic(t *testing.T) {
+	var ec elasticache.CacheCluster
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -22,7 +24,7 @@ func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 				Config: testAccAWSElasticacheClusterConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
-					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_cluster.bar", "cache_nodes.0.id", "0001"),
 				),
@@ -33,6 +35,7 @@ func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 
 func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 	var csg elasticache.CacheSubnetGroup
+	var ec elasticache.CacheCluster
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -42,11 +45,26 @@ func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 				Config: testAccAWSElasticacheClusterInVPCConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
-					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
+					testAccCheckAWSElasticacheClusterAttributes(&ec),
 				),
 			},
 		},
 	})
+}
+
+func testAccCheckAWSElasticacheClusterAttributes(v *elasticache.CacheCluster) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if v.NotificationConfiguration == nil {
+			return fmt.Errorf("Expected NotificationConfiguration for ElastiCache Cluster (%s)", *v.CacheClusterId)
+		}
+
+		if strings.ToLower(*v.NotificationConfiguration.TopicStatus) != "active" {
+			return fmt.Errorf("Expected NotificationConfiguration status to be 'active', got (%s)", *v.NotificationConfiguration.TopicStatus)
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckAWSElasticacheClusterDestroy(s *terraform.State) error {
@@ -69,7 +87,7 @@ func testAccCheckAWSElasticacheClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSElasticacheClusterExists(n string) resource.TestCheckFunc {
+func testAccCheckAWSElasticacheClusterExists(n string, v *elasticache.CacheCluster) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -81,12 +99,19 @@ func testAccCheckAWSElasticacheClusterExists(n string) resource.TestCheckFunc {
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).elasticacheconn
-		_, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
+		resp, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
 			CacheClusterId: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
 			return fmt.Errorf("Elasticache error: %v", err)
 		}
+
+		for _, c := range resp.CacheClusters {
+			if *c.CacheClusterId == rs.Primary.ID {
+				*v = *c
+			}
+		}
+
 		return nil
 	}
 }
@@ -175,5 +200,10 @@ resource "aws_elasticache_cluster" "bar" {
     subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
     security_group_ids = ["${aws_security_group.bar.id}"]
     parameter_group_name = "default.redis2.8"
+    notification_topic_arn      = "${aws_sns_topic.topic_example.arn}"
+}
+
+resource "aws_sns_topic" "topic_example" {
+  name = "tf-ecache-cluster-test"
 }
 `, genRandInt(), genRandInt(), genRandInt())
