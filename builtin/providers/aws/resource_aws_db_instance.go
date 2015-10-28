@@ -246,8 +246,8 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"auto_minor_version_upgrade": &schema.Schema{
 				Type:     schema.TypeBool,
-				Computed: false,
 				Optional: true,
+				Default:  true,
 			},
 
 			"allow_major_version_upgrade": &schema.Schema{
@@ -294,14 +294,11 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	} else if _, ok := d.GetOk("snapshot_identifier"); ok {
 		opts := rds.RestoreDBInstanceFromDBSnapshotInput{
-			DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
-			DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
-			DBSnapshotIdentifier: aws.String(d.Get("snapshot_identifier").(string)),
-			Tags:                 tags,
-		}
-
-		if attr, ok := d.GetOk("auto_minor_version_upgrade"); ok {
-			opts.AutoMinorVersionUpgrade = aws.Bool(attr.(bool))
+			DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier:    aws.String(d.Get("identifier").(string)),
+			DBSnapshotIdentifier:    aws.String(d.Get("snapshot_identifier").(string)),
+			AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
+			Tags: tags,
 		}
 
 		if attr, ok := d.GetOk("availability_zone"); ok {
@@ -510,6 +507,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("engine_version", v.EngineVersion)
 	d.Set("allocated_storage", v.AllocatedStorage)
 	d.Set("copy_tags_to_snapshot", v.CopyTagsToSnapshot)
+	d.Set("auto_minor_version_upgrade", v.AutoMinorVersionUpgrade)
 	d.Set("storage_type", v.StorageType)
 	d.Set("instance_class", v.DBInstanceClass)
 	d.Set("availability_zone", v.AvailabilityZone)
