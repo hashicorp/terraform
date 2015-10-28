@@ -346,16 +346,17 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	} else {
 		opts := rds.CreateDBInstanceInput{
-			AllocatedStorage:     aws.Int64(int64(d.Get("allocated_storage").(int))),
-			DBName:               aws.String(d.Get("name").(string)),
-			DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
-			DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
-			MasterUsername:       aws.String(d.Get("username").(string)),
-			MasterUserPassword:   aws.String(d.Get("password").(string)),
-			Engine:               aws.String(d.Get("engine").(string)),
-			EngineVersion:        aws.String(d.Get("engine_version").(string)),
-			StorageEncrypted:     aws.Bool(d.Get("storage_encrypted").(bool)),
-			Tags:                 tags,
+			AllocatedStorage:        aws.Int64(int64(d.Get("allocated_storage").(int))),
+			DBName:                  aws.String(d.Get("name").(string)),
+			DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier:    aws.String(d.Get("identifier").(string)),
+			MasterUsername:          aws.String(d.Get("username").(string)),
+			MasterUserPassword:      aws.String(d.Get("password").(string)),
+			Engine:                  aws.String(d.Get("engine").(string)),
+			EngineVersion:           aws.String(d.Get("engine_version").(string)),
+			StorageEncrypted:        aws.Bool(d.Get("storage_encrypted").(bool)),
+			AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
+			Tags: tags,
 		}
 
 		attr := d.Get("backup_retention_period")
@@ -662,6 +663,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("storage_type") {
 		d.SetPartial("storage_type")
 		req.StorageType = aws.String(d.Get("storage_type").(string))
+		requestUpdate = true
+	}
+	if d.HasChange("auto_minor_version_upgrade") {
+		d.SetPartial("auto_minor_version_upgrade")
+		req.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
 		requestUpdate = true
 	}
 
