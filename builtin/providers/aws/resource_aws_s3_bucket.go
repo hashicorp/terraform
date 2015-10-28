@@ -41,6 +41,39 @@ func resourceAwsS3Bucket() *schema.Resource {
 				StateFunc: normalizeJson,
 			},
 
+			"cors_rule": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"allowed_headers": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"allowed_methods": &schema.Schema{
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"allowed_origins": &schema.Schema{
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"expose_headers": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"max_age_seconds": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
+			},
+
 			"website": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -168,6 +201,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("cors_rule") {
+		if err := resourceAwsS3BucketCorsUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
 	if d.HasChange("website") {
 		if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
 			return err
@@ -218,6 +257,27 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
 			return err
+		}
+	}
+
+	// Read the CORS
+	cors, err := s3conn.GetBucketCors(&s3.GetBucketCorsInput{
+		Bucket: aws.String(d.Id()),
+	})
+	log.Printf("[DEBUG] S3 bucket: %s, read CORS: %v", d.Id(), cors)
+	if err != nil {
+		rules := make([]map[string]interface{}, 0, len(cors.CORSRules))
+		for _, ruleObject := range cors.CORSRules {
+			rule := make(map[string]interface{})
+			rule["allowed_headers"] = ruleObject.AllowedHeaders
+			rule["allowed_methods"] = ruleObject.AllowedMethods
+			rule["allowed_origins"] = ruleObject.AllowedOrigins
+			rule["expose_headers"] = ruleObject.ExposeHeaders
+			rule["max_age_seconds"] = ruleObject.MaxAgeSeconds
+			rules = append(rules, rule)
+		}
+		if err := d.Set("cors_rule", rules); err != nil {
+			return fmt.Errorf("error reading S3 bucket \"%s\" CORS rules: %s", d.Id(), err)
 		}
 	}
 
@@ -394,6 +454,65 @@ func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) erro
 
 		if err != nil {
 			return fmt.Errorf("Error deleting S3 policy: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketCorsUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	rawCors := d.Get("cors_rule").([]interface{})
+
+	if len(rawCors) == 0 {
+		// Delete CORS
+		log.Printf("[DEBUG] S3 bucket: %s, delete CORS", bucket)
+		_, err := s3conn.DeleteBucketCors(&s3.DeleteBucketCorsInput{
+			Bucket: aws.String(bucket),
+		})
+		if err != nil {
+			return fmt.Errorf("Error deleting S3 CORS: %s", err)
+		}
+	} else {
+		// Put CORS
+		rules := make([]*s3.CORSRule, 0, len(rawCors))
+		for _, cors := range rawCors {
+			corsMap := cors.(map[string]interface{})
+			r := &s3.CORSRule{}
+			for k, v := range corsMap {
+				log.Printf("[DEBUG] S3 bucket: %s, put CORS: %#v, %#v", bucket, k, v)
+				if k == "max_age_seconds" {
+					r.MaxAgeSeconds = aws.Int64(int64(v.(int)))
+				} else {
+					vMap := make([]*string, len(v.([]interface{})))
+					for i, vv := range v.([]interface{}) {
+						str := vv.(string)
+						vMap[i] = aws.String(str)
+					}
+					switch k {
+					case "allowed_headers":
+						r.AllowedHeaders = vMap
+					case "allowed_methods":
+						r.AllowedMethods = vMap
+					case "allowed_origins":
+						r.AllowedOrigins = vMap
+					case "expose_headers":
+						r.ExposeHeaders = vMap
+					}
+				}
+			}
+			rules = append(rules, r)
+		}
+		corsInput := &s3.PutBucketCorsInput{
+			Bucket: aws.String(bucket),
+			CORSConfiguration: &s3.CORSConfiguration{
+				CORSRules: rules,
+			},
+		}
+		log.Printf("[DEBUG] S3 bucket: %s, put CORS: %#v", bucket, corsInput)
+		_, err := s3conn.PutBucketCors(corsInput)
+		if err != nil {
+			return fmt.Errorf("Error putting S3 CORS: %s", err)
 		}
 	}
 
