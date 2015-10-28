@@ -73,6 +73,10 @@ names to associate with this cache cluster
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3. 
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 
+* `notification_topic_arn` – (Optional) An Amazon Resource Name (ARN) of an 
+SNS topic to send ElastiCache notifications to. Example: 
+`arn:aws:sns:us-east-1:012345678999:my_sns_topic`
+
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
