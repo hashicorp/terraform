@@ -11,6 +11,7 @@ IMPROVEMENTS:
   * provider/google: automatic_restart, preemptible, on_host_maintenance options [GH-3643]
   * null_resource: enhance and document [GH-3244, GH-3659]
   * provider/aws: Add CORS settings to S3 bucket [GH-3387]
+  * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
 
 BUG FIXES:
 
