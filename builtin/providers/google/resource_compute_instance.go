@@ -3,7 +3,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -198,9 +197,10 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				Elem:     schema.TypeString,
+				Type:         schema.TypeMap,
+				Optional:     true,
+				Elem:         schema.TypeString,
+				ValidateFunc: validateInstanceMetadata,
 			},
 
 			"service_account": &schema.Schema{
@@ -226,6 +226,29 @@ func resourceComputeInstance() *schema.Resource {
 								},
 							},
 							Set: stringScopeHashcode,
+						},
+					},
+				},
+			},
+
+			"scheduling": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"on_host_maintenance": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"automatic_restart": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"preemptible": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
 						},
 					},
 				},
@@ -271,32 +294,6 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 	}
 
 	return instance, nil
-}
-
-func resourceOperationWaitZone(
-	config *Config, op *compute.Operation, zone string, activity string) error {
-
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Zone:    zone,
-		Type:    OperationWaitZone,
-	}
-	state := w.Conf()
-	state.Delay = 10 * time.Second
-	state.Timeout = 10 * time.Minute
-	state.MinTimeout = 2 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return fmt.Errorf("Error waiting for %s: %s", activity, err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
-	}
-	return nil
 }
 
 func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
@@ -492,6 +489,21 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		serviceAccounts = append(serviceAccounts, serviceAccount)
 	}
 
+	prefix := "scheduling.0"
+	scheduling := &compute.Scheduling{}
+
+	if val, ok := d.GetOk(prefix + ".automatic_restart"); ok {
+		scheduling.AutomaticRestart = val.(bool)
+	}
+
+	if val, ok := d.GetOk(prefix + ".preemptible"); ok {
+		scheduling.Preemptible = val.(bool)
+	}
+
+	if val, ok := d.GetOk(prefix + ".on_host_maintenance"); ok {
+		scheduling.OnHostMaintenance = val.(string)
+	}
+
 	metadata, err := resourceInstanceMetadata(d)
 	if err != nil {
 		return fmt.Errorf("Error creating metadata: %s", err)
@@ -508,6 +520,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		NetworkInterfaces: networkInterfaces,
 		Tags:              resourceInstanceTags(d),
 		ServiceAccounts:   serviceAccounts,
+		Scheduling:        scheduling,
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
@@ -521,7 +534,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(instance.Name)
 
 	// Wait for the operation to complete
-	waitErr := resourceOperationWaitZone(config, op, zone.Name, "instance to create")
+	waitErr := computeOperationWaitZone(config, op, zone.Name, "instance to create")
 	if waitErr != nil {
 		// The resource didn't actually create
 		d.SetId("")
@@ -534,15 +547,22 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
 
-	// Synch metadata 
+	// Synch metadata
 	md := instance.Metadata
 
-	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
+	_md := MetadataFormatSchema(md)
+	delete(_md, "startup-script")
+
+	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+		d.Set("metadata_startup_script", script)
+	}
+
+	if err = d.Set("metadata", _md); err != nil {
 		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
@@ -662,6 +682,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("self_link", instance.SelfLink)
+	d.SetId(instance.Name)
 
 	return nil
 }
@@ -671,7 +692,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	zone := d.Get("zone").(string)
 
-	instance, err := getInstance(config, d);
+	instance, err := getInstance(config, d)
 	if err != nil {
 		return err
 	}
@@ -682,10 +703,17 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
 		o, n := d.GetChange("metadata")
+		if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+			if _, ok := n.(map[string]interface{})["startup-script"]; ok {
+				return fmt.Errorf("Only one of metadata.startup-script and metadata_startup_script may be defined")
+			}
+
+			n.(map[string]interface{})["startup-script"] = script
+		}
 
 		updateMD := func() error {
 			// Reload the instance in the case of a fingerprint mismatch
-			instance, err = getInstance(config, d);
+			instance, err = getInstance(config, d)
 			if err != nil {
 				return err
 			}
@@ -703,7 +731,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				return fmt.Errorf("Error updating metadata: %s", err)
 			}
 
-			opErr := resourceOperationWaitZone(config, op, zone, "metadata to update")
+			opErr := computeOperationWaitZone(config, op, zone, "metadata to update")
 			if opErr != nil {
 				return opErr
 			}
@@ -723,12 +751,44 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("Error updating tags: %s", err)
 		}
 
-		opErr := resourceOperationWaitZone(config, op, zone, "tags to update")
+		opErr := computeOperationWaitZone(config, op, zone, "tags to update")
 		if opErr != nil {
 			return opErr
 		}
 
 		d.SetPartial("tags")
+	}
+
+	if d.HasChange("scheduling") {
+		prefix := "scheduling.0"
+		scheduling := &compute.Scheduling{}
+
+		if val, ok := d.GetOk(prefix + ".automatic_restart"); ok {
+			scheduling.AutomaticRestart = val.(bool)
+		}
+
+		if val, ok := d.GetOk(prefix + ".preemptible"); ok {
+			scheduling.Preemptible = val.(bool)
+		}
+
+		if val, ok := d.GetOk(prefix + ".on_host_maintenance"); ok {
+			scheduling.OnHostMaintenance = val.(string)
+		}
+
+		op, err := config.clientCompute.Instances.SetScheduling(config.Project, 
+			zone, d.Id(), scheduling).Do()
+
+		if err != nil {
+			return fmt.Errorf("Error updating scheduling policy: %s", err)
+		}
+
+		opErr := computeOperationWaitZone(config, op, zone,
+			"scheduling policy update")
+		if opErr != nil {
+			return opErr
+		}
+
+		d.SetPartial("scheduling");
 	}
 
 	networkInterfacesCount := d.Get("network_interface.#").(int)
@@ -764,7 +824,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					if err != nil {
 						return fmt.Errorf("Error deleting old access_config: %s", err)
 					}
-					opErr := resourceOperationWaitZone(config, op, zone, "old access_config to delete")
+					opErr := computeOperationWaitZone(config, op, zone, "old access_config to delete")
 					if opErr != nil {
 						return opErr
 					}
@@ -783,7 +843,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 					if err != nil {
 						return fmt.Errorf("Error adding new access_config: %s", err)
 					}
-					opErr := resourceOperationWaitZone(config, op, zone, "new access_config to add")
+					opErr := computeOperationWaitZone(config, op, zone, "new access_config to add")
 					if opErr != nil {
 						return opErr
 					}
@@ -809,7 +869,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// Wait for the operation to complete
-	opErr := resourceOperationWaitZone(config, op, zone, "instance to delete")
+	opErr := computeOperationWaitZone(config, op, zone, "instance to delete")
 	if opErr != nil {
 		return opErr
 	}
@@ -821,13 +881,8 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 func resourceInstanceMetadata(d *schema.ResourceData) (*compute.Metadata, error) {
 	m := &compute.Metadata{}
 	mdMap := d.Get("metadata").(map[string]interface{})
-	_, mapScriptExists := mdMap["startup-script"]
-	dScript, dScriptExists := d.GetOk("metadata_startup_script")
-	if mapScriptExists && dScriptExists {
-		return nil, fmt.Errorf("Not allowed to have both metadata_startup_script and metadata.startup-script")
-	}
-	if dScriptExists {
-		mdMap["startup-script"] = dScript
+	if v, ok := d.GetOk("metadata_startup_script"); ok && v.(string) != "" {
+		mdMap["startup-script"] = v
 	}
 	if len(mdMap) > 0 {
 		m.Items = make([]*compute.MetadataItems, 0, len(mdMap))
@@ -862,4 +917,13 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	}
 
 	return tags
+}
+
+func validateInstanceMetadata(v interface{}, k string) (ws []string, es []error) {
+	mdMap := v.(map[string]interface{})
+	if _, ok := mdMap["startup-script"]; ok {
+		es = append(es, fmt.Errorf(
+			"Use metadata_startup_script instead of a startup-script key in %q.", k))
+	}
+	return
 }

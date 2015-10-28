@@ -48,6 +48,9 @@ The command-line flags are all optional. The list of available flags are:
   changes shown in this plan are applied. Read the warning on saved
   plans below.
 
+* `-parallelism=n` - Limit the number of concurrent operation as Terraform
+  [walks the graph](/docs/internals/graph.html#walking-the-graph).
+
 * `-refresh=true` - Update the state prior to checking for differences.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".

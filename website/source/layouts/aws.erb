@@ -10,18 +10,55 @@
                     <a href="/docs/providers/aws/index.html">AWS Provider</a>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-cloudformation/) %>>
+                    <a href="#">CloudFormation Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cloudformation-stack") %>>
+                            <a href="/docs/providers/aws/r/cloudformation_stack.html">aws_cloudformation_stack</a>
+                        </li>
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-cloudwatch/) %>>
                     <a href="#">CloudWatch Resources</a>
                     <ul class="nav nav-visible">
 
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-group") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_group.html">aws_cloudwatch_log_group</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-metric-alarm") %>>
                             <a href="/docs/providers/aws/r/cloudwatch_metric_alarm.html">aws_cloudwatch_metric_alarm</a>
+                        </li>
+ 
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-codedeploy/) %>>
+                    <a href="#">CodeDeploy Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-codedeploy-app") %>>
+                            <a href="/docs/providers/aws/r/codedeploy_app.html">aws_codedeploy_app</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-group") %>>
+                            <a href="/docs/providers/aws/r/codedeploy_deployment_group.html">aws_codedeploy_deployment_group</a>
                         </li>
 
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-directory-service/) %>>
+                    <a href="#">Directory Service Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-directory-service-directory") %>>
+                            <a href="/docs/providers/aws/r/directory_service_directory.html">aws_directory_service_directory</a>
+                        </li>
+
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-dynamodb/) %>>
                     <a href="#">DynamoDB Resources</a>
@@ -35,7 +72,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -57,6 +94,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-autoscaling-group") %>>
                             <a href="/docs/providers/aws/r/autoscaling_group.html">aws_autoscaling_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-autoscaling-lifecycle-hook") %>>
+                            <a href="/docs/providers/aws/r/autoscaling_lifecycle_hooks.html">aws_autoscaling_lifecycle_hook</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-autoscaling-notification") %>>
@@ -89,6 +130,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-lb-cookie-stickiness-policy") %>>
                             <a href="/docs/providers/aws/r/lb_cookie_stickiness_policy.html">aws_lb_cookie_stickiness_policy</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-placement-group") %>>
+                            <a href="/docs/providers/aws/r/placement_group.html">aws_placement_group</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-proxy-protocol-policy") %>>
@@ -128,6 +173,22 @@
                 </li>
 
 
+                <li<%= sidebar_current(/^docs-aws-resource-efs/) %>>
+                    <a href="#">EFS Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-efs-file-system") %>>
+                            <a href="/docs/providers/aws/r/efs_file_system.html">aws_efs_file_system</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-efs-mount-target") %>>
+                            <a href="/docs/providers/aws/r/efs_mount_target.html">aws_efs_mount_target</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+
                 <li<%= sidebar_current(/^docs-aws-resource-elasticache/) %>>
                     <a href="#">ElastiCache Resources</a>
                     <ul class="nav nav-visible">
@@ -150,6 +211,27 @@
 
                     </ul>
                 </li>
+
+
+                <li<%= sidebar_current(/^docs-aws-resource-elasticsearch/) %>>
+                    <a href="#">ElasticSearch Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-elasticsearch-domain") %>>
+                            <a href="/docs/providers/aws/r/elasticsearch_domain.html">aws_elasticsearch_domain</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-glacier/) %>>
+                    <a href="#">Glacier Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-glacier-vault") %>>
+                            <a href="/docs/providers/aws/r/glacier_vault.html">aws_glacier_vault</a>
+                        </li>
+                    </ul>
+                 </li>
 
 
                 <li<%= sidebar_current(/^docs-aws-resource-iam/) %>>
@@ -189,6 +271,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-iam-role-policy") %>>
                             <a href="/docs/providers/aws/r/iam_role_policy.html">aws_iam_role_policy</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-iam-saml-provider") %>>
+                            <a href="/docs/providers/aws/r/iam_saml_provider.html">aws_iam_saml_provider</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-iam-server-certificate") %>>
@@ -231,7 +317,58 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-db/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-opsworks/) %>>
+                    <a href="#">OpsWorks Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-custom-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_custom_layer.html">aws_opsworks_custom_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-ganglia-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_ganglia_layer.html">aws_opsworks_ganglia_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-haproxy-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_haproxy_layer.html">aws_opsworks_haproxy_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-java-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_java_app_layer.html">aws_opsworks_java_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-memcached-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_memcached_layer.html">aws_opsworks_memcached_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-mysql-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_mysql_layer.html">aws_opsworks_mysql_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-nodejs-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_nodejs_app_layer.html">aws_opsworks_nodejs_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-php-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_php_app_layer.html">aws_opsworks_php_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-rails-app-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_rails_app_layer.html">aws_opsworks_rails_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-stack") %>>
+                            <a href="/docs/providers/aws/r/opsworks_stack.html">aws_opsworks_stack</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-static-web-layer") %>>
+                            <a href="/docs/providers/aws/r/opsworks_static_web_layer.html">aws_opsworks_static_web_layer</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-(db|rds)/) %>>
                     <a href="#">RDS Resources</a>
                     <ul class="nav nav-visible">
 
@@ -249,6 +386,14 @@
 
                         <li<%= sidebar_current("docs-aws-resource-db-subnet-group") %>>
                             <a href="/docs/providers/aws/r/db_subnet_group.html">aws_db_subnet_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-rds-cluster") %>>
+                            <a href="/docs/providers/aws/r/rds_cluster.html">aws_rds_cluster</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-rds-cluster-instance") %>>
+                            <a href="/docs/providers/aws/r/rds_cluster_instance.html">aws_rds_cluster_instance</a>
                         </li>
 
                     </ul>

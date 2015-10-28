@@ -207,6 +207,30 @@ func (s *Schema) DefaultValue() (interface{}, error) {
 	return nil, nil
 }
 
+// Returns a zero value for the schema.
+func (s *Schema) ZeroValue() interface{} {
+	// If it's a set then we'll do a bit of extra work to provide the
+	// right hashing function in our empty value.
+	if s.Type == TypeSet {
+		setFunc := s.Set
+		if setFunc == nil {
+			// Default set function uses the schema to hash the whole value
+			elem := s.Elem
+			switch t := elem.(type) {
+			case *Schema:
+				setFunc = HashSchema(t)
+			case *Resource:
+				setFunc = HashResource(t)
+			default:
+				panic("invalid set element type")
+			}
+		}
+		return &Set{F: setFunc}
+	} else {
+		return s.Type.Zero()
+	}
+}
+
 func (s *Schema) finalizeDiff(
 	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
 	if d == nil {
@@ -496,10 +520,8 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 				return fmt.Errorf("%s: Default is not valid for lists or sets", k)
 			}
 
-			if v.Type == TypeList && v.Set != nil {
+			if v.Type != TypeSet && v.Set != nil {
 				return fmt.Errorf("%s: Set can only be set for TypeSet", k)
-			} else if v.Type == TypeSet && v.Set == nil {
-				return fmt.Errorf("%s: Set must be set", k)
 			}
 
 			switch t := v.Elem.(type) {
@@ -518,8 +540,8 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 		if v.ValidateFunc != nil {
 			switch v.Type {
-			case TypeList, TypeSet, TypeMap:
-				return fmt.Errorf("ValidateFunc is only supported on primitives.")
+			case TypeList, TypeSet:
+				return fmt.Errorf("ValidateFunc is not yet supported on lists or sets.")
 			}
 		}
 	}
@@ -782,10 +804,10 @@ func (m schemaMap) diffSet(
 	}
 
 	if o == nil {
-		o = &Set{F: schema.Set}
+		o = schema.ZeroValue().(*Set)
 	}
 	if n == nil {
-		n = &Set{F: schema.Set}
+		n = schema.ZeroValue().(*Set)
 	}
 	os := o.(*Set)
 	ns := n.(*Set)
@@ -805,7 +827,7 @@ func (m schemaMap) diffSet(
 	newStr := strconv.Itoa(newLen)
 
 	// If the set computed then say that the # is computed
-	if computedSet || (schema.Computed && !nSet) {
+	if computedSet || schema.Computed && !nSet {
 		// If # already exists, equals 0 and no new set is supplied, there
 		// is nothing to record in the diff
 		count, ok := d.GetOk(k + ".#")
@@ -1096,6 +1118,17 @@ func (m schemaMap) validateMap(
 		}
 	}
 
+	if schema.ValidateFunc != nil {
+		validatableMap := make(map[string]interface{})
+		for _, raw := range raws {
+			for k, v := range raw.(map[string]interface{}) {
+				validatableMap[k] = v
+			}
+		}
+
+		return schema.ValidateFunc(validatableMap, k)
+	}
+
 	return nil, nil
 }
 
@@ -1145,8 +1178,25 @@ func (m schemaMap) validatePrimitive(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+
+	// Catch if the user gave a complex type where a primitive was
+	// expected, so we can return a friendly error message that
+	// doesn't contain Go type system terminology.
+	switch reflect.ValueOf(raw).Type().Kind() {
+	case reflect.Slice:
+		return nil, []error{
+			fmt.Errorf("%s must be a single value, not a list", k),
+		}
+	case reflect.Map:
+		return nil, []error{
+			fmt.Errorf("%s must be a single value, not a map", k),
+		}
+	default: // ok
+	}
+
 	if c.IsComputed(k) {
-		// If the key is being computed, then it is not an error
+		// If the key is being computed, then it is not an error as
+		// long as it's not a slice or map.
 		return nil, nil
 	}
 

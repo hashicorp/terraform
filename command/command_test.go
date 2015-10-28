@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -52,13 +53,28 @@ func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
 	}
 }
 
+func testCtxConfigWithShell(p terraform.ResourceProvider, pr terraform.ResourceProvisioner) *terraform.ContextOpts {
+	return &terraform.ContextOpts{
+		Providers: map[string]terraform.ResourceProviderFactory{
+			"test": func() (terraform.ResourceProvider, error) {
+				return p, nil
+			},
+		},
+		Provisioners: map[string]terraform.ResourceProvisionerFactory{
+			"shell": func() (terraform.ResourceProvisioner, error) {
+				return pr, nil
+			},
+		},
+	}
+}
+
 func testModule(t *testing.T, name string) *module.Tree {
 	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	s := &module.FolderStorage{StorageDir: tempDir(t)}
+	s := &getter.FolderStorage{StorageDir: tempDir(t)}
 	if err := mod.Load(s, module.GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
 	}

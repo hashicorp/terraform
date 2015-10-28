@@ -102,13 +102,13 @@ func testAccCheckCloudStackPortForwardsExist(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No port forward ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
+		for k, id := range rs.Primary.Attributes {
 			if !strings.Contains(k, "uuid") {
 				continue
 			}
 
 			cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-			_, count, err := cs.Firewall.GetPortForwardingRuleByID(uuid)
+			_, count, err := cs.Firewall.GetPortForwardingRuleByID(id)
 
 			if err != nil {
 				return err
@@ -135,12 +135,12 @@ func testAccCheckCloudStackPortForwardDestroy(s *terraform.State) error {
 			return fmt.Errorf("No port forward ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
+		for k, id := range rs.Primary.Attributes {
 			if !strings.Contains(k, "uuid") {
 				continue
 			}
 
-			_, _, err := cs.Firewall.GetPortForwardingRuleByID(uuid)
+			_, _, err := cs.Firewall.GetPortForwardingRuleByID(id)
 			if err == nil {
 				return fmt.Errorf("Port forward %s still exists", rs.Primary.ID)
 			}

@@ -287,7 +287,11 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		} else {
 			// No error, set ID and return
 			d.SetId(*output.TableDescription.TableName)
-			return nil
+			if err := d.Set("arn", *output.TableDescription.TableArn); err != nil {
+				return err
+			}
+
+			return resourceAwsDynamoDbTableRead(d, meta)
 		}
 	}
 
@@ -384,7 +388,7 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 				updates = append(updates, update)
 
 				// Hash key is required, range key isn't
-				hashkey_type, err := getAttributeType(d, *(gsi.KeySchema[0].AttributeName))
+				hashkey_type, err := getAttributeType(d, *gsi.KeySchema[0].AttributeName)
 				if err != nil {
 					return err
 				}
@@ -396,7 +400,7 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 				// If there's a range key, there will be 2 elements in KeySchema
 				if len(gsi.KeySchema) == 2 {
-					rangekey_type, err := getAttributeType(d, *(gsi.KeySchema[1].AttributeName))
+					rangekey_type, err := getAttributeType(d, *gsi.KeySchema[1].AttributeName)
 					if err != nil {
 						return err
 					}
@@ -480,8 +484,8 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 				capacityUpdated := false
 
-				if int64(gsiReadCapacity) != *(gsi.ProvisionedThroughput.ReadCapacityUnits) ||
-					int64(gsiWriteCapacity) != *(gsi.ProvisionedThroughput.WriteCapacityUnits) {
+				if int64(gsiReadCapacity) != *gsi.ProvisionedThroughput.ReadCapacityUnits ||
+					int64(gsiWriteCapacity) != *gsi.ProvisionedThroughput.WriteCapacityUnits {
 					capacityUpdated = true
 				}
 
@@ -544,8 +548,8 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	attributes := []interface{}{}
 	for _, attrdef := range table.AttributeDefinitions {
 		attribute := map[string]string{
-			"name": *(attrdef.AttributeName),
-			"type": *(attrdef.AttributeType),
+			"name": *attrdef.AttributeName,
+			"type": *attrdef.AttributeType,
 		}
 		attributes = append(attributes, attribute)
 		log.Printf("[DEBUG] Added Attribute: %s", attribute["name"])
@@ -556,9 +560,9 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	gsiList := make([]map[string]interface{}, 0, len(table.GlobalSecondaryIndexes))
 	for _, gsiObject := range table.GlobalSecondaryIndexes {
 		gsi := map[string]interface{}{
-			"write_capacity": *(gsiObject.ProvisionedThroughput.WriteCapacityUnits),
-			"read_capacity":  *(gsiObject.ProvisionedThroughput.ReadCapacityUnits),
-			"name":           *(gsiObject.IndexName),
+			"write_capacity": *gsiObject.ProvisionedThroughput.WriteCapacityUnits,
+			"read_capacity":  *gsiObject.ProvisionedThroughput.ReadCapacityUnits,
+			"name":           *gsiObject.IndexName,
 		}
 
 		for _, attribute := range gsiObject.KeySchema {
@@ -572,13 +576,22 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 		}
 
 		gsi["projection_type"] = *(gsiObject.Projection.ProjectionType)
-		gsi["non_key_attributes"] = gsiObject.Projection.NonKeyAttributes
+
+		nonKeyAttrs := make([]string, 0, len(gsiObject.Projection.NonKeyAttributes))
+		for _, nonKeyAttr := range gsiObject.Projection.NonKeyAttributes {
+			nonKeyAttrs = append(nonKeyAttrs, *nonKeyAttr)
+		}
+		gsi["non_key_attributes"] = nonKeyAttrs
 
 		gsiList = append(gsiList, gsi)
 		log.Printf("[DEBUG] Added GSI: %s - Read: %d / Write: %d", gsi["name"], gsi["read_capacity"], gsi["write_capacity"])
 	}
 
-	d.Set("global_secondary_index", gsiList)
+	err = d.Set("global_secondary_index", gsiList)
+	if err != nil {
+		return err
+	}
+
 	d.Set("arn", table.TableArn)
 
 	return nil
@@ -647,7 +660,7 @@ func createGSIFromData(data *map[string]interface{}) dynamodb.GlobalSecondaryInd
 
 func getGlobalSecondaryIndex(indexName string, indexList []*dynamodb.GlobalSecondaryIndexDescription) (*dynamodb.GlobalSecondaryIndexDescription, error) {
 	for _, gsi := range indexList {
-		if *(gsi.IndexName) == indexName {
+		if *gsi.IndexName == indexName {
 			return gsi, nil
 		}
 	}
@@ -726,7 +739,7 @@ func waitForTableToBeActive(tableName string, meta interface{}) error {
 			return err
 		}
 
-		activeState = *(result.Table.TableStatus) == "ACTIVE"
+		activeState = *result.Table.TableStatus == "ACTIVE"
 
 		// Wait for a few seconds
 		if !activeState {

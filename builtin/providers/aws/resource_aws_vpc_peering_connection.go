@@ -127,6 +127,9 @@ func resourceVPCPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error
 	}
 
 	resp, err := conn.AcceptVpcPeeringConnection(req)
+	if err != nil {
+		return "", err
+	}
 	pc := resp.VpcPeeringConnection
 	return *pc.Status.Code, err
 }
@@ -153,16 +156,15 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 		pc := pcRaw.(*ec2.VpcPeeringConnection)
 
-		if *pc.Status.Code == "pending-acceptance" {
+		if pc.Status != nil && *pc.Status.Code == "pending-acceptance" {
 
 			status, err := resourceVPCPeeringConnectionAccept(conn, d.Id())
-
-			log.Printf(
-				"[DEBUG] VPC Peering connection accept status %s",
-				status)
 			if err != nil {
 				return err
 			}
+			log.Printf(
+				"[DEBUG] VPC Peering connection accept status: %s",
+				status)
 		}
 	}
 

@@ -38,15 +38,7 @@ func (r *FieldReadResult) ValueOrZero(s *Schema) interface{} {
 		return r.Value
 	}
 
-	result := s.Type.Zero()
-
-	// The zero value of a set is nil, but we want it
-	// to actually be an empty set object...
-	if set, ok := result.(*Set); ok && set.F == nil {
-		set.F = s.Set
-	}
-
-	return result
+	return s.ZeroValue()
 }
 
 // addrToSchema finds the final element schema for the given address

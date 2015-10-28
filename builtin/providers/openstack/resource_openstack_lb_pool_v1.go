@@ -292,7 +292,7 @@ func resourcePoolMonitorIDsV1(d *schema.ResourceData) []string {
 }
 
 func resourcePoolMembersV1(d *schema.ResourceData) []members.CreateOpts {
-	memberOptsRaw := (d.Get("member")).(*schema.Set)
+	memberOptsRaw := d.Get("member").(*schema.Set)
 	memberOpts := make([]members.CreateOpts, memberOptsRaw.Len())
 	for i, raw := range memberOptsRaw.List() {
 		rawMap := raw.(map[string]interface{})

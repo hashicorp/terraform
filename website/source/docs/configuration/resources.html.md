@@ -68,10 +68,19 @@ The `lifecycle` block allows the following keys to be set:
       destruction of a given resource. When this is set to `true`, any plan
       that includes a destroy of this resource will return an error message.
 
+  * `ignore_changes` (list of strings) - Customizes how diffs are evaluated for
+      resources, allowing individual attributes to be ignored through changes.
+      As an example, this can be used to ignore dynamic changes to the
+      resource from external resources. Other meta-parameters cannot be ignored.
+
 ~> **NOTE on create\_before\_destroy and dependencies:** Resources that utilize
 the `create_before_destroy` key can only depend on other resources that also
 include `create_before_destroy`. Referencing a resource that does not include
 `create_before_destroy` will result in a dependency graph cycle. 
+
+~> **NOTE on ignore\_changes:** Ignored attribute names can be matched by their
+name, not state ID. For example, if an `aws_route_table` has two routes defined
+and the `ignore_changes` list contains "route", both routes will be ignored.
 
 -------------
 
@@ -191,6 +200,8 @@ where `LIFECYCLE` is:
 ```
 lifecycle {
     [create_before_destroy = true|false]
+    [prevent_destroy = true|false]
+    [ignore_changes = [ATTRIBUTE NAME, ...]]
 }
 ```
 

@@ -73,8 +73,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"force_delete": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Default:  false,
 			},
 
 			"health_check_grace_period": &schema.Schema{
@@ -112,12 +111,28 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			},
 
 			"termination_policies": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
-				Computed: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+			},
+
+			"wait_for_capacity_timeout": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "10m",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					duration, err := time.ParseDuration(value)
+					if err != nil {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be parsed as a duration: %s", k, err))
+					}
+					if duration < 0 {
+						errors = append(errors, fmt.Errorf(
+							"%q must be greater than zero", k))
+					}
+					return
+				},
 			},
 
 			"tag": autoscalingTagsSchema(),
@@ -169,9 +184,8 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.VPCZoneIdentifier = expandVpcZoneIdentifiers(v.(*schema.Set).List())
 	}
 
-	if v, ok := d.GetOk("termination_policies"); ok && v.(*schema.Set).Len() > 0 {
-		autoScalingGroupOpts.TerminationPolicies = expandStringList(
-			v.(*schema.Set).List())
+	if v, ok := d.GetOk("termination_policies"); ok && len(v.([]interface{})) > 0 {
+		autoScalingGroupOpts.TerminationPolicies = expandStringList(v.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", autoScalingGroupOpts)
@@ -262,6 +276,24 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	if d.HasChange("termination_policies") {
+		// If the termination policy is set to null, we need to explicitly set
+		// it back to "Default", or the API won't reset it for us.
+		// This means GetOk() will fail us on the zero check.
+		v := d.Get("termination_policies")
+		if len(v.([]interface{})) > 0 {
+			opts.TerminationPolicies = expandStringList(v.([]interface{}))
+		} else {
+			// Policies is a slice of string pointers, so build one.
+			// Maybe there's a better idiom for this?
+			log.Printf("[DEBUG] Explictly setting null termination policy to 'Default'")
+			pol := "Default"
+			s := make([]*string, 1, 1)
+			s[0] = &pol
+			opts.TerminationPolicies = s
+		}
+	}
+
 	if err := setAutoscalingTags(conn, d); err != nil {
 		return err
 	} else {
@@ -334,15 +366,9 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group destroy: %v", d.Id())
-	deleteopts := autoscaling.DeleteAutoScalingGroupInput{AutoScalingGroupName: aws.String(d.Id())}
-
-	// You can force an autoscaling group to delete
-	// even if it's in the process of scaling a resource.
-	// Normally, you would set the min-size and max-size to 0,0
-	// and then delete the group. This bypasses that and leaves
-	// resources potentially dangling.
-	if d.Get("force_delete").(bool) {
-		deleteopts.ForceDelete = aws.Bool(true)
+	deleteopts := autoscaling.DeleteAutoScalingGroupInput{
+		AutoScalingGroupName: aws.String(d.Id()),
+		ForceDelete:          aws.Bool(d.Get("force_delete").(bool)),
 	}
 
 	// We retry the delete operation to handle InUse/InProgress errors coming
@@ -414,6 +440,11 @@ func getAwsAutoscalingGroup(
 func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).autoscalingconn
 
+	if d.Get("force_delete").(bool) {
+		log.Printf("[DEBUG] Skipping ASG drain, force_delete was set.")
+		return nil
+	}
+
 	// First, set the capacity to zero so the group will drain
 	log.Printf("[DEBUG] Reducing autoscaling group capacity to zero")
 	opts := autoscaling.UpdateAutoScalingGroupInput{
@@ -445,8 +476,6 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	})
 }
 
-var waitForASGCapacityTimeout = 10 * time.Minute
-
 // Waits for a minimum number of healthy instances to show up as healthy in the
 // ASG before continuing. Waits up to `waitForASGCapacityTimeout` for
 // "desired_capacity", or "min_size" if desired capacity is not specified.
@@ -461,9 +490,20 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	}
 	wantELB := d.Get("min_elb_capacity").(int)
 
-	log.Printf("[DEBUG] Waiting for capacity: %d ASG, %d ELB", wantASG, wantELB)
+	wait, err := time.ParseDuration(d.Get("wait_for_capacity_timeout").(string))
+	if err != nil {
+		return err
+	}
 
-	return resource.Retry(waitForASGCapacityTimeout, func() error {
+	if wait == 0 {
+		log.Printf("[DEBUG] Capacity timeout set to 0, skipping capacity waiting.")
+		return nil
+	}
+
+	log.Printf("[DEBUG] Waiting %s for capacity: %d ASG, %d ELB",
+		wait, wantASG, wantELB)
+
+	return resource.Retry(wait, func() error {
 		g, err := getAwsAutoscalingGroup(d, meta)
 		if err != nil {
 			return resource.RetryError{Err: err}

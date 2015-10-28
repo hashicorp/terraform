@@ -141,7 +141,7 @@ func (r *DiffFieldReader) readSet(
 	prefix := strings.Join(address, ".") + "."
 
 	// Create the set that will be our result
-	set := &Set{F: schema.Set}
+	set := schema.ZeroValue().(*Set)
 
 	// Go through the map and find all the set items
 	for k, d := range r.Diff.Attributes {

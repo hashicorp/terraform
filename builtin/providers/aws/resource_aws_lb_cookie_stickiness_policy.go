@@ -15,8 +15,6 @@ func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
 		// There is no concept of "updating" an LB Stickiness policy in
 		// the AWS API.
 		Create: resourceAwsLBCookieStickinessPolicyCreate,
-		Update: resourceAwsLBCookieStickinessPolicyCreate,
-
 		Read:   resourceAwsLBCookieStickinessPolicyRead,
 		Delete: resourceAwsLBCookieStickinessPolicyDelete,
 

@@ -6,11 +6,15 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 const (
@@ -73,6 +77,9 @@ type AtlasClient struct {
 	Name        string
 	AccessToken string
 	RunId       string
+	HTTPClient  *http.Client
+
+	conflictHandlingAttempted bool
 }
 
 func (c *AtlasClient) Get() (*Payload, error) {
@@ -83,7 +90,8 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	}
 
 	// Request the url
-	resp, err := http.DefaultClient.Do(req)
+	client := c.http()
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +169,8 @@ func (c *AtlasClient) Put(state []byte) error {
 	req.ContentLength = int64(len(state))
 
 	// Make the request
-	resp, err := http.DefaultClient.Do(req)
+	client := c.http()
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to upload state: %v", err)
 	}
@@ -171,6 +180,8 @@ func (c *AtlasClient) Put(state []byte) error {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		return nil
+	case http.StatusConflict:
+		return c.handleConflict(c.readBody(resp.Body), state)
 	default:
 		return fmt.Errorf(
 			"HTTP error: %d\n\nBody: %s",
@@ -186,7 +197,8 @@ func (c *AtlasClient) Delete() error {
 	}
 
 	// Make the request
-	resp, err := http.DefaultClient.Do(req)
+	client := c.http()
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to delete state: %v", err)
 	}
@@ -235,4 +247,75 @@ func (c *AtlasClient) url() *url.URL {
 		Path:     path.Join("api/v1/terraform/state", c.User, c.Name),
 		RawQuery: values.Encode(),
 	}
+}
+
+func (c *AtlasClient) http() *http.Client {
+	if c.HTTPClient != nil {
+		return c.HTTPClient
+	}
+	return cleanhttp.DefaultClient()
+}
+
+// Atlas returns an HTTP 409 - Conflict if the pushed state reports the same
+// Serial number but the checksum of the raw content differs. This can
+// sometimes happen when Terraform changes state representation internally
+// between versions in a way that's semantically neutral but affects the JSON
+// output and therefore the checksum.
+//
+// Here we detect and handle this situation by ticking the serial and retrying
+// iff for the previous state and the proposed state:
+//
+//   * the serials match
+//   * the parsed states are Equal (semantically equivalent)
+//
+// In other words, in this situation Terraform can override Atlas's detected
+// conflict by asserting that the state it is pushing is indeed correct.
+func (c *AtlasClient) handleConflict(msg string, state []byte) error {
+	log.Printf("[DEBUG] Handling Atlas conflict response: %s", msg)
+
+	if c.conflictHandlingAttempted {
+		log.Printf("[DEBUG] Already attempted conflict resolution; returning conflict.")
+	} else {
+		c.conflictHandlingAttempted = true
+		log.Printf("[DEBUG] Atlas reported conflict, checking for equivalent states.")
+
+		payload, err := c.Get()
+		if err != nil {
+			return conflictHandlingError(err)
+		}
+
+		currentState, err := terraform.ReadState(bytes.NewReader(payload.Data))
+		if err != nil {
+			return conflictHandlingError(err)
+		}
+
+		proposedState, err := terraform.ReadState(bytes.NewReader(state))
+		if err != nil {
+			return conflictHandlingError(err)
+		}
+
+		if statesAreEquivalent(currentState, proposedState) {
+			log.Printf("[DEBUG] States are equivalent, incrementing serial and retrying.")
+			proposedState.Serial++
+			var buf bytes.Buffer
+			if err := terraform.WriteState(proposedState, &buf); err != nil {
+				return conflictHandlingError(err)
+			}
+			return c.Put(buf.Bytes())
+		} else {
+			log.Printf("[DEBUG] States are not equivalent, returning conflict.")
+		}
+	}
+
+	return fmt.Errorf(
+		"Atlas detected a remote state conflict.\n\nMessage: %s", msg)
+}
+
+func conflictHandlingError(err error) error {
+	return fmt.Errorf(
+		"Error while handling a conflict response from Atlas: %s", err)
+}
+
+func statesAreEquivalent(current, proposed *terraform.State) bool {
+	return current.Serial == proposed.Serial && current.Equal(proposed)
 }

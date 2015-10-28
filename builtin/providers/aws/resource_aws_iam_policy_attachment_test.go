@@ -102,7 +102,7 @@ func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, g
 			}
 		}
 		if uc != 0 || rc != 0 || gc != 0 {
-			return fmt.Errorf("Error: Number of attached users, roles, or groups was incorrect:\n expected %d users and found %d\nexpected %d roles and found %d\nexpected %d groups and found %d", len(users), (len(users) - uc), len(roles), (len(roles) - rc), len(groups), (len(groups) - gc))
+			return fmt.Errorf("Error: Number of attached users, roles, or groups was incorrect:\n expected %d users and found %d\nexpected %d roles and found %d\nexpected %d groups and found %d", len(users), len(users)-uc, len(roles), len(roles)-rc, len(groups), len(groups)-gc)
 		}
 		return nil
 	}

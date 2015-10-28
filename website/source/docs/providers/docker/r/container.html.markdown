@@ -35,7 +35,8 @@ The following arguments are supported:
   as is shown in the example above.
 
 * `command` - (Optional, list of strings) The command to use to start the
-    container.
+    container. For example, to run `/usr/bin/myprogram -f baz.conf` set the
+    command to be `["/usr/bin/myprogram", "-f", "baz.conf"]`.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
 * `links` - (Optional, set of strings) Set of links for link based
@@ -76,7 +77,7 @@ the following:
   volume will be mounted.
 * `host_path` - (Optional, string) The path on the host where the volume
   is coming from.
-* `read_only` - (Optinal, bool) If true, this volume will be readonly.
+* `read_only` - (Optional, bool) If true, this volume will be readonly.
   Defaults to false.
 
 ## Attributes Reference

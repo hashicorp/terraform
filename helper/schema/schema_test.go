@@ -2437,7 +2437,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 		d, err := schemaMap(tc.Schema).Diff(
 			tc.State, terraform.NewResourceConfig(c))
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("#%d err: %s", i, err)
 		}
 
@@ -2595,7 +2595,7 @@ func TestSchemaMap_Input(t *testing.T) {
 		rc.Config = make(map[string]interface{})
 
 		actual, err := schemaMap(tc.Schema).Input(input, rc)
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("#%v err: %s", i, err)
 		}
 
@@ -2789,7 +2789,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 					Optional: true,
 				},
 			},
-			true,
+			false,
 		},
 
 		// Required but computed
@@ -2903,7 +2903,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type:     TypeMap,
+					Type:     TypeSet,
 					Required: true,
 					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						return
@@ -2916,7 +2916,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 	for i, tc := range cases {
 		err := schemaMap(tc.In).InternalValidate(schemaMap{})
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			if tc.Err {
 				t.Fatalf("%d: Expected error did not occur:\n\n%#v", i, tc.In)
 			}
@@ -3409,6 +3409,36 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
+		"Bad, should not allow lists to be assigned to string attributes": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": []interface{}{"foo", "bar", "baz"},
+			},
+
+			Err: true,
+		},
+
+		"Bad, should not allow maps to be assigned to string attributes": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": map[string]interface{}{"foo": "bar", "baz": "thing"},
+			},
+
+			Err: true,
+		},
+
 		"Deprecated attribute usage generates warning, but not error": {
 			Schema: map[string]*Schema{
 				"old_news": &Schema{
@@ -3652,7 +3682,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 		}
 
 		ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
-		if (len(es) > 0) != tc.Err {
+		if len(es) > 0 != tc.Err {
 			if len(es) == 0 {
 				t.Errorf("%q: no errors", tn)
 			}
