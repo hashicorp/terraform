@@ -5,14 +5,18 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -47,6 +51,8 @@ type Config struct {
 }
 
 type AWSClient struct {
+	cfconn             *cloudformation.CloudFormation
+	cloudtrailconn     *cloudtrail.CloudTrail
 	cloudwatchconn     *cloudwatch.CloudWatch
 	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
 	dsconn             *directoryservice.DirectoryService
@@ -69,6 +75,7 @@ type AWSClient struct {
 	lambdaconn         *lambda.Lambda
 	opsworksconn       *opsworks.OpsWorks
 	glacierconn        *glacier.Glacier
+	codedeployconn     *codedeploy.CodeDeploy
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -98,6 +105,7 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 			MaxRetries:  aws.Int(c.MaxRetries),
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing IAM Connection")
@@ -123,6 +131,7 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      aws.String("us-east-1"),
 			MaxRetries:  aws.Int(c.MaxRetries),
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
@@ -175,8 +184,14 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Lambda Connection")
 		client.lambdaconn = lambda.New(awsConfig)
 
+		log.Println("[INFO] Initializing Cloudformation Connection")
+		client.cfconn = cloudformation.New(awsConfig)
+
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
 		client.cloudwatchconn = cloudwatch.New(awsConfig)
+
+		log.Println("[INFO] Initializing CloudTrail connection")
+		client.cloudtrailconn = cloudtrail.New(awsConfig)
 
 		log.Println("[INFO] Initializing CloudWatch Logs connection")
 		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
@@ -189,6 +204,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing Glacier connection")
 		client.glacierconn = glacier.New(awsConfig)
+
+		log.Println("[INFO] Initializing CodeDeploy Connection")
+		client.codedeployconn = codedeploy.New(awsConfig)
 	}
 
 	if len(errs) > 0 {

@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/mitchellh/go-homedir"
 )
@@ -20,6 +22,9 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
+		"cidrhost":     interpolationFuncCidrHost(),
+		"cidrnetmask":  interpolationFuncCidrNetmask(),
+		"cidrsubnet":   interpolationFuncCidrSubnet(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
 		"element":      interpolationFuncElement(),
@@ -29,10 +34,12 @@ func init() {
 		"index":        interpolationFuncIndex(),
 		"join":         interpolationFuncJoin(),
 		"length":       interpolationFuncLength(),
+		"lower":        interpolationFuncLower(),
 		"replace":      interpolationFuncReplace(),
 		"split":        interpolationFuncSplit(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
+		"upper":        interpolationFuncUpper(),
 	}
 }
 
@@ -48,6 +55,92 @@ func interpolationFuncCompact() ast.Function {
 				return args[0].(string), nil
 			}
 			return StringList(args[0].(string)).Compact().String(), nil
+		},
+	}
+}
+
+// interpolationFuncCidrHost implements the "cidrhost" function that
+// fills in the host part of a CIDR range address to create a single
+// host address
+func interpolationFuncCidrHost() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // starting CIDR mask
+			ast.TypeInt,    // host number to insert
+		},
+		ReturnType: ast.TypeString,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			hostNum := args[1].(int)
+			_, network, err := net.ParseCIDR(args[0].(string))
+			if err != nil {
+				return nil, fmt.Errorf("invalid CIDR expression: %s", err)
+			}
+
+			ip, err := cidr.Host(network, hostNum)
+			if err != nil {
+				return nil, err
+			}
+
+			return ip.String(), nil
+		},
+	}
+}
+
+// interpolationFuncCidrNetmask implements the "cidrnetmask" function
+// that returns the subnet mask in IP address notation.
+func interpolationFuncCidrNetmask() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // CIDR mask
+		},
+		ReturnType: ast.TypeString,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			_, network, err := net.ParseCIDR(args[0].(string))
+			if err != nil {
+				return nil, fmt.Errorf("invalid CIDR expression: %s", err)
+			}
+
+			return net.IP(network.Mask).String(), nil
+		},
+	}
+}
+
+// interpolationFuncCidrSubnet implements the "cidrsubnet" function that
+// adds an additional subnet of the given length onto an existing
+// IP block expressed in CIDR notation.
+func interpolationFuncCidrSubnet() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeString, // starting CIDR mask
+			ast.TypeInt,    // number of bits to extend the prefix
+			ast.TypeInt,    // network number to append to the prefix
+		},
+		ReturnType: ast.TypeString,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			extraBits := args[1].(int)
+			subnetNum := args[2].(int)
+			_, network, err := net.ParseCIDR(args[0].(string))
+			if err != nil {
+				return nil, fmt.Errorf("invalid CIDR expression: %s", err)
+			}
+
+			// For portability with 32-bit systems where the subnet number
+			// will be a 32-bit int, we only allow extension of 32 bits in
+			// one call even if we're running on a 64-bit machine.
+			// (Of course, this is significant only for IPv6.)
+			if extraBits > 32 {
+				return nil, fmt.Errorf("may not extend prefix by more than 32 bits")
+			}
+
+			newNetwork, err := cidr.Subnet(network, extraBits, subnetNum)
+			if err != nil {
+				return nil, err
+			}
+
+			return newNetwork.String(), nil
 		},
 	}
 }
@@ -439,6 +532,32 @@ func interpolationFuncBase64Decode() ast.Function {
 				return "", fmt.Errorf("failed to decode base64 data '%s'", s)
 			}
 			return string(sDec), nil
+		},
+	}
+}
+
+// interpolationFuncLower implements the "lower" function that does
+// string lower casing.
+func interpolationFuncLower() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			toLower := args[0].(string)
+			return strings.ToLower(toLower), nil
+		},
+	}
+}
+
+// interpolationFuncUpper implements the "upper" function that does
+// string upper casing.
+func interpolationFuncUpper() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			toUpper := args[0].(string)
+			return strings.ToUpper(toUpper), nil
 		},
 	}
 }

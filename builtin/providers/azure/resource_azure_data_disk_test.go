@@ -13,6 +13,7 @@ import (
 
 func TestAccAzureDataDisk_basic(t *testing.T) {
 	var disk virtualmachinedisk.DataDiskResponse
+	name := fmt.Sprintf("terraform-test%d", genRandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,13 +21,13 @@ func TestAccAzureDataDisk_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAzureDataDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureDataDisk_basic,
+				Config: testAccAzureDataDisk_basic(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDataDiskExists(
 						"azure_data_disk.foo", &disk),
 					testAccCheckAzureDataDiskAttributes(&disk),
 					resource.TestCheckResourceAttr(
-						"azure_data_disk.foo", "label", "terraform-test-0"),
+						"azure_data_disk.foo", "label", fmt.Sprintf("%s-0", name)),
 					resource.TestCheckResourceAttr(
 						"azure_data_disk.foo", "size", "10"),
 				),
@@ -37,6 +38,7 @@ func TestAccAzureDataDisk_basic(t *testing.T) {
 
 func TestAccAzureDataDisk_update(t *testing.T) {
 	var disk virtualmachinedisk.DataDiskResponse
+	name := fmt.Sprintf("terraform-test%d", genRandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -44,12 +46,12 @@ func TestAccAzureDataDisk_update(t *testing.T) {
 		CheckDestroy: testAccCheckAzureDataDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureDataDisk_advanced,
+				Config: testAccAzureDataDisk_advanced(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDataDiskExists(
 						"azure_data_disk.foo", &disk),
 					resource.TestCheckResourceAttr(
-						"azure_data_disk.foo", "label", "terraform-test1-1"),
+						"azure_data_disk.foo", "label", fmt.Sprintf("%s-1", name)),
 					resource.TestCheckResourceAttr(
 						"azure_data_disk.foo", "lun", "1"),
 					resource.TestCheckResourceAttr(
@@ -57,17 +59,17 @@ func TestAccAzureDataDisk_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azure_data_disk.foo", "caching", "ReadOnly"),
 					resource.TestCheckResourceAttr(
-						"azure_data_disk.foo", "virtual_machine", "terraform-test1"),
+						"azure_data_disk.foo", "virtual_machine", name),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAzureDataDisk_update,
+				Config: testAccAzureDataDisk_update(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDataDiskExists(
 						"azure_data_disk.foo", &disk),
 					resource.TestCheckResourceAttr(
-						"azure_data_disk.foo", "label", "terraform-test1-1"),
+						"azure_data_disk.foo", "label", fmt.Sprintf("%s-1", name)),
 					resource.TestCheckResourceAttr(
 						"azure_data_disk.foo", "lun", "2"),
 					resource.TestCheckResourceAttr(
@@ -168,68 +170,74 @@ func testAccCheckAzureDataDiskDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAzureDataDisk_basic = fmt.Sprintf(`
-resource "azure_instance" "foo" {
-    name = "terraform-test"
-    image = "Ubuntu Server 14.04 LTS"
-    size = "Basic_A1"
-    storage_service_name = "%s"
-    location = "West US"
-    username = "terraform"
-    password = "Pass!admin123"
+func testAccAzureDataDisk_basic(name string) string {
+	return fmt.Sprintf(`
+		resource "azure_instance" "foo" {
+				name = "%s"
+				image = "Ubuntu Server 14.04 LTS"
+				size = "Basic_A1"
+				storage_service_name = "%s"
+				location = "West US"
+				username = "terraform"
+				password = "Pass!admin123"
+		}
+
+		resource "azure_data_disk" "foo" {
+				lun = 0
+				size = 10
+				storage_service_name = "${azure_instance.foo.storage_service_name}"
+				virtual_machine = "${azure_instance.foo.id}"
+		}`, name, testAccStorageServiceName)
 }
 
-resource "azure_data_disk" "foo" {
-    lun = 0
-    size = 10
-    storage_service_name = "${azure_instance.foo.storage_service_name}"
-    virtual_machine = "${azure_instance.foo.id}"
-}`, testAccStorageServiceName)
+func testAccAzureDataDisk_advanced(name string) string {
+	return fmt.Sprintf(`
+		resource "azure_instance" "foo" {
+				name = "%s"
+				image = "Ubuntu Server 14.04 LTS"
+				size = "Basic_A1"
+				storage_service_name = "%s"
+				location = "West US"
+				username = "terraform"
+				password = "Pass!admin123"
+		}
 
-var testAccAzureDataDisk_advanced = fmt.Sprintf(`
-resource "azure_instance" "foo" {
-    name = "terraform-test1"
-    image = "Ubuntu Server 14.04 LTS"
-    size = "Basic_A1"
-    storage_service_name = "%s"
-    location = "West US"
-    username = "terraform"
-    password = "Pass!admin123"
+		resource "azure_data_disk" "foo" {
+				lun = 1
+				size = 10
+				caching = "ReadOnly"
+				storage_service_name = "${azure_instance.foo.storage_service_name}"
+				virtual_machine = "${azure_instance.foo.id}"
+		}`, name, testAccStorageServiceName)
 }
 
-resource "azure_data_disk" "foo" {
-    lun = 1
-    size = 10
-    caching = "ReadOnly"
-    storage_service_name = "${azure_instance.foo.storage_service_name}"
-    virtual_machine = "${azure_instance.foo.id}"
-}`, testAccStorageServiceName)
+func testAccAzureDataDisk_update(name string) string {
+	return fmt.Sprintf(`
+		resource "azure_instance" "foo" {
+				name = "%s"
+				image = "Ubuntu Server 14.04 LTS"
+				size = "Basic_A1"
+				storage_service_name = "%s"
+				location = "West US"
+				username = "terraform"
+				password = "Pass!admin123"
+		}
 
-var testAccAzureDataDisk_update = fmt.Sprintf(`
-resource "azure_instance" "foo" {
-    name = "terraform-test1"
-    image = "Ubuntu Server 14.04 LTS"
-    size = "Basic_A1"
-    storage_service_name = "%s"
-    location = "West US"
-    username = "terraform"
-    password = "Pass!admin123"
+		resource "azure_instance" "bar" {
+				name = "terraform-test2"
+				image = "Ubuntu Server 14.04 LTS"
+				size = "Basic_A1"
+				storage_service_name = "${azure_instance.foo.storage_service_name}"
+				location = "West US"
+				username = "terraform"
+				password = "Pass!admin123"
+		}
+
+		resource "azure_data_disk" "foo" {
+				lun = 2
+				size = 20
+				caching = "ReadWrite"
+				storage_service_name = "${azure_instance.bar.storage_service_name}"
+				virtual_machine = "${azure_instance.bar.id}"
+		}`, name, testAccStorageServiceName)
 }
-
-resource "azure_instance" "bar" {
-    name = "terraform-test2"
-    image = "Ubuntu Server 14.04 LTS"
-    size = "Basic_A1"
-    storage_service_name = "${azure_instance.foo.storage_service_name}"
-    location = "West US"
-    username = "terraform"
-    password = "Pass!admin123"
-}
-
-resource "azure_data_disk" "foo" {
-    lun = 2
-    size = 20
-    caching = "ReadWrite"
-    storage_service_name = "${azure_instance.bar.storage_service_name}"
-    virtual_machine = "${azure_instance.bar.id}"
-}`, testAccStorageServiceName)

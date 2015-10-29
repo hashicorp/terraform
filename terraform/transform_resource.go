@@ -320,7 +320,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				},
 				&EvalIgnoreChanges{
 					Resource: n.Resource,
-					Diff: &diff,
+					Diff:     &diff,
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),

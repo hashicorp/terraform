@@ -446,7 +446,7 @@ resource "azure_security_group_rule" "foo" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, April 2015"
+    image = "Windows Server 2012 R2 Datacenter, September 2015"
     size = "Basic_A1"
     storage_service_name = "%s"
     location = "West US"
@@ -520,7 +520,7 @@ resource "azure_security_group_rule" "bar" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, April 2015"
+    image = "Windows Server 2012 R2 Datacenter, September 2015"
     size = "Basic_A2"
     storage_service_name = "%s"
     location = "West US"

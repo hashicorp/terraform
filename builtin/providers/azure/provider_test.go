@@ -3,9 +3,11 @@ package azure
 import (
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -191,6 +193,10 @@ func TestAzure_isFile(t *testing.T) {
 			t.Errorf("Error in TestAzure_isFile: input: %s , returned: %#v, expected: %#v", tc.Input, y, tc.E)
 		}
 	}
+}
+
+func genRandInt() int {
+	return rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 100000
 }
 
 // testAzurePublishSettingsStr is a revoked publishsettings file

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -330,9 +331,9 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 // moduleStorage returns the module.Storage implementation used to store
 // modules for commands.
-func (m *Meta) moduleStorage(root string) module.Storage {
+func (m *Meta) moduleStorage(root string) getter.Storage {
 	return &uiModuleStorage{
-		Storage: &module.FolderStorage{
+		Storage: &getter.FolderStorage{
 			StorageDir: filepath.Join(root, "modules"),
 		},
 		Ui: m.Ui,
