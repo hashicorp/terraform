@@ -26,6 +26,7 @@ BUG FIXES:
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
+  * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/vsphere: Fix d.SetConnInfo error in case of a missing IP address [GH-3636]
 
 ## 0.6.6 (October 23, 2015)
