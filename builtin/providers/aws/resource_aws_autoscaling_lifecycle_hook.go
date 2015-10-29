@@ -3,9 +3,13 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -55,19 +59,44 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 }
 
 func resourceAwsAutoscalingLifecycleHookPut(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).autoscalingconn
-
 	params := getAwsAutoscalingPutLifecycleHookInput(d)
 
 	log.Printf("[DEBUG] AutoScaling PutLifecyleHook: %#v", params)
-	_, err := autoscalingconn.PutLifecycleHook(&params)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"retrying"},
+		Target:     "success",
+		Refresh:    resourceAwsAutoscalingLifecycleHookRefreshFunc(meta, params),
+		Timeout:    1 * time.Minute,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error putting lifecycle hook: %s", err)
+		return err
 	}
 
 	d.SetId(d.Get("name").(string))
 
 	return resourceAwsAutoscalingLifecycleHookRead(d, meta)
+}
+
+func resourceAwsAutoscalingLifecycleHookRefreshFunc(
+	meta interface{}, params autoscaling.PutLifecycleHookInput) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		conn := meta.(*AWSClient).autoscalingconn
+		_, err := conn.PutLifecycleHook(&params)
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if strings.Contains(awsErr.Message(), "Unable to publish test message to notification target") {
+					log.Printf("[DEBUG] Retrying AWS AutoScaling Lifecycle Hook: %s", params)
+					return 41, "retrying", nil
+				}
+			}
+			return nil, "failed", fmt.Errorf("Error putting lifecycle hook: %s", err)
+		}
+		return 42, "success", nil
+	}
 }
 
 func resourceAwsAutoscalingLifecycleHookRead(d *schema.ResourceData, meta interface{}) error {
