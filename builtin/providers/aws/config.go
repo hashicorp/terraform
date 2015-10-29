@@ -48,6 +48,7 @@ type Config struct {
 	ForbiddenAccountIds []interface{}
 
 	DynamoDBEndpoint string
+	KinesisEndpoint  string
 }
 
 type AWSClient struct {
@@ -116,12 +117,6 @@ func (c *Config) Client() (interface{}, error) {
 			errs = append(errs, err)
 		}
 
-		awsDynamoDBConfig := &aws.Config{
-			Credentials: creds,
-			Region:      aws.String(c.Region),
-			MaxRetries:  aws.Int(c.MaxRetries),
-			Endpoint:    aws.String(c.DynamoDBEndpoint),
-		}
 		// Some services exist only in us-east-1, e.g. because they manage
 		// resources that can span across multiple regions, or because
 		// signature format v4 requires region to be us-east-1 for global
@@ -134,8 +129,11 @@ func (c *Config) Client() (interface{}, error) {
 			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
+		awsDynamoDBConfig := *awsConfig
+		awsDynamoDBConfig.Endpoint = aws.String(c.DynamoDBEndpoint)
+
 		log.Println("[INFO] Initializing DynamoDB connection")
-		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
+		client.dynamodbconn = dynamodb.New(&awsDynamoDBConfig)
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(awsConfig)
@@ -152,8 +150,11 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing RDS Connection")
 		client.rdsconn = rds.New(awsConfig)
 
+		awsKinesisConfig := *awsConfig
+		awsKinesisConfig.Endpoint = aws.String(c.KinesisEndpoint)
+
 		log.Println("[INFO] Initializing Kinesis Connection")
-		client.kinesisconn = kinesis.New(awsConfig)
+		client.kinesisconn = kinesis.New(&awsKinesisConfig)
 
 		authErr := c.ValidateAccountId(client.iamconn)
 		if authErr != nil {
