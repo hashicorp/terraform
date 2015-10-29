@@ -14,6 +14,7 @@ IMPROVEMENTS:
   * provider/aws: Add CORS settings to S3 bucket [GH-3387]
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
+  * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
 
 BUG FIXES:
 
