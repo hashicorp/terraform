@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -17,6 +18,10 @@ import (
 )
 
 func TestAccAWSS3Bucket_basic(t *testing.T) {
+
+	arnRegexp := regexp.MustCompile(
+		"^arn:aws:s3:::")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -32,6 +37,8 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 						"aws_s3_bucket.bucket", "region", "us-west-2"),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", ""),
+					resource.TestMatchResourceAttr(
+						"aws_s3_bucket.bucket", "arn", arnRegexp),
 				),
 			},
 		},
