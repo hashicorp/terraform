@@ -42,7 +42,6 @@ func (c *Config) loadAndValidate() error {
 		"https://www.googleapis.com/auth/devstorage.full_control",
 	}
 
-
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
 	}
@@ -104,7 +103,7 @@ func (c *Config) loadAndValidate() error {
 		client = conf.Client(oauth2.NoContext)
 
 	} else {
-		log.Printf("[INFO] Authenticating using DefaultClient");
+		log.Printf("[INFO] Authenticating using DefaultClient")
 		err := error(nil)
 		client, err = google.DefaultClient(oauth2.NoContext, clientScopes...)
 		if err != nil {
