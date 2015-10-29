@@ -82,8 +82,8 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 
 	// Lock the client just before we get the virtual network configuration and immediately
 	// set an defer to unlock the client again whenever this function exits
-	ac.mutex.Lock()
-	defer ac.mutex.Unlock()
+	ac.vnetMutex.Lock()
+	defer ac.vnetMutex.Unlock()
 
 	nc, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
@@ -181,8 +181,8 @@ func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{})
 
 	// Lock the client just before we get the virtual network configuration and immediately
 	// set an defer to unlock the client again whenever this function exits
-	ac.mutex.Lock()
-	defer ac.mutex.Unlock()
+	ac.vnetMutex.Lock()
+	defer ac.vnetMutex.Unlock()
 
 	nc, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
@@ -227,8 +227,8 @@ func resourceAzureVirtualNetworkDelete(d *schema.ResourceData, meta interface{})
 
 	// Lock the client just before we get the virtual network configuration and immediately
 	// set an defer to unlock the client again whenever this function exits
-	ac.mutex.Lock()
-	defer ac.mutex.Unlock()
+	ac.vnetMutex.Lock()
+	defer ac.vnetMutex.Unlock()
 
 	nc, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
