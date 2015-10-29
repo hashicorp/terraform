@@ -107,6 +107,7 @@ The versioning supports the following:
 The following attributes are exported:
 
 * `id` - The name of the bucket.
+* `arn` - The ARN of the bucket. Will be of format `arn:aws:s3:::bucketname`
 * `hosted_zone_id` - The [Route 53 Hosted Zone ID](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_website_region_endpoints) for this bucket's region.
 * `region` - The AWS region this bucket resides in.
 * `website_endpoint` - The website endpoint, if the bucket is configured with a website. If not, this will be an empty string.
