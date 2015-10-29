@@ -17,7 +17,7 @@ func TestAccAWSRoute_basic(t *testing.T) {
 		if *route.DestinationCidrBlock != "10.3.0.0/16" {
 			return fmt.Errorf("Destination Cidr (Expected=%s, Actual=%s)\n", "10.3.0.0/16", *route.DestinationCidrBlock)
 		}
-		
+
 		name := "aws_internet_gateway.foo"
 		gwres, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -27,7 +27,7 @@ func TestAccAWSRoute_basic(t *testing.T) {
 		if *route.GatewayId != gwres.Primary.ID {
 			return fmt.Errorf("Internet Gateway Id (Expected=%s, Actual=%s)\n", gwres.Primary.ID, *route.GatewayId)
 		}
-		
+
 		return nil
 	}
 

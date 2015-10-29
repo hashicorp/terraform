@@ -206,7 +206,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 			InstanceId:           aws.String(d.Get("instance_id").(string)),
 			//NOOP: Ensure we don't blow away network interface id that is set after instance is launched
-			NetworkInterfaceId:	  aws.String(d.Get("network_interface_id").(string)),
+			NetworkInterfaceId: aws.String(d.Get("network_interface_id").(string)),
 		}
 	case "network_interface_id":
 		replaceOpts = &ec2.ReplaceRouteInput{
