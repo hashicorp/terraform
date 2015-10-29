@@ -4,6 +4,7 @@ FEATURES:
 
   * **New resource: `aws_cloudformation_stack`** [GH-2636]
   * **New resource: `aws_cloudtrail`** [GH-3094]
+  * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
 
 IMPROVEMENTS:
 
