@@ -6,13 +6,22 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/config/module"
 )
+
+var InitTime time.Time
+
+// Initial time in UTC, when package was initialized.
+func init() {
+	InitTime = time.Now().UTC()
+}
 
 const (
 	// VarEnvPrefix is the prefix of variables that are read from
@@ -75,6 +84,8 @@ func (i *Interpolater) Values(
 			err = i.valueSelfVar(scope, n, v, result)
 		case *config.UserVariable:
 			err = i.valueUserVar(scope, n, v, result)
+		case *config.TimestampVariable:
+			err = i.valueTimestampVar(scope, n, v, result)
 		default:
 			err = fmt.Errorf("%s: unknown variable type: %T", n, rawV)
 		}
@@ -196,6 +207,32 @@ func (i *Interpolater) valuePathVar(
 
 	return nil
 
+}
+
+func (i *Interpolater) valueTimestampVar(
+	scope *InterpolationScope,
+	n string,
+	v *config.TimestampVariable,
+	result map[string]ast.Variable) error {
+	if scope.Resource == nil {
+		return fmt.Errorf("%s: timestamp is only valid within resources", n)
+	}
+
+	if i.Operation == walkValidate {
+		result[n] = ast.Variable{
+			Value: config.UnknownVariableValue,
+			Type:  ast.TypeString,
+		}
+		return nil
+	}
+
+	value := strconv.FormatInt(InitTime.Unix(), 10)
+
+	result[n] = ast.Variable{
+		Value: value,
+		Type:  ast.TypeString,
+	}
+	return nil
 }
 
 func (i *Interpolater) valueResourceVar(
