@@ -2,7 +2,8 @@
 
 FEATURES:
 
-  * **New resources: `aws_cloudformation_stack`** [GH-2636]
+  * **New resource: `aws_cloudformation_stack`** [GH-2636]
+  * **New resource: `aws_cloudtrail`** [GH-3094]
 
 IMPROVEMENTS:
 
