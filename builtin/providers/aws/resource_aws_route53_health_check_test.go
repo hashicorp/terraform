@@ -20,6 +20,8 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 				Config: testAccRoute53HealthCheckConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "measure_latency", "true"),
 				),
 			},
 			resource.TestStep{
