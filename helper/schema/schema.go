@@ -1178,8 +1178,25 @@ func (m schemaMap) validatePrimitive(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+
+	// Catch if the user gave a complex type where a primitive was
+	// expected, so we can return a friendly error message that
+	// doesn't contain Go type system terminology.
+	switch reflect.ValueOf(raw).Type().Kind() {
+	case reflect.Slice:
+		return nil, []error{
+			fmt.Errorf("%s must be a single value, not a list", k),
+		}
+	case reflect.Map:
+		return nil, []error{
+			fmt.Errorf("%s must be a single value, not a map", k),
+		}
+	default: // ok
+	}
+
 	if c.IsComputed(k) {
-		// If the key is being computed, then it is not an error
+		// If the key is being computed, then it is not an error as
+		// long as it's not a slice or map.
 		return nil, nil
 	}
 

@@ -18,7 +18,13 @@ func resource() *schema.Resource {
 		Read:   resourceRead,
 		Delete: resourceDelete,
 
-		Schema: map[string]*schema.Schema{},
+		Schema: map[string]*schema.Schema{
+			"triggers": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
+		},
 	}
 }
 

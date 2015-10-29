@@ -231,6 +231,29 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
+			"scheduling": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"on_host_maintenance": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"automatic_restart": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"preemptible": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+					},
+				},
+			},
+
 			"tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -466,6 +489,21 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		serviceAccounts = append(serviceAccounts, serviceAccount)
 	}
 
+	prefix := "scheduling.0"
+	scheduling := &compute.Scheduling{}
+
+	if val, ok := d.GetOk(prefix + ".automatic_restart"); ok {
+		scheduling.AutomaticRestart = val.(bool)
+	}
+
+	if val, ok := d.GetOk(prefix + ".preemptible"); ok {
+		scheduling.Preemptible = val.(bool)
+	}
+
+	if val, ok := d.GetOk(prefix + ".on_host_maintenance"); ok {
+		scheduling.OnHostMaintenance = val.(string)
+	}
+
 	metadata, err := resourceInstanceMetadata(d)
 	if err != nil {
 		return fmt.Errorf("Error creating metadata: %s", err)
@@ -482,6 +520,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		NetworkInterfaces: networkInterfaces,
 		Tags:              resourceInstanceTags(d),
 		ServiceAccounts:   serviceAccounts,
+		Scheduling:        scheduling,
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
@@ -718,6 +757,38 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 
 		d.SetPartial("tags")
+	}
+
+	if d.HasChange("scheduling") {
+		prefix := "scheduling.0"
+		scheduling := &compute.Scheduling{}
+
+		if val, ok := d.GetOk(prefix + ".automatic_restart"); ok {
+			scheduling.AutomaticRestart = val.(bool)
+		}
+
+		if val, ok := d.GetOk(prefix + ".preemptible"); ok {
+			scheduling.Preemptible = val.(bool)
+		}
+
+		if val, ok := d.GetOk(prefix + ".on_host_maintenance"); ok {
+			scheduling.OnHostMaintenance = val.(string)
+		}
+
+		op, err := config.clientCompute.Instances.SetScheduling(config.Project, 
+			zone, d.Id(), scheduling).Do()
+
+		if err != nil {
+			return fmt.Errorf("Error updating scheduling policy: %s", err)
+		}
+
+		opErr := computeOperationWaitZone(config, op, zone,
+			"scheduling policy update")
+		if opErr != nil {
+			return opErr
+		}
+
+		d.SetPartial("scheduling");
 	}
 
 	networkInterfacesCount := d.Get("network_interface.#").(int)

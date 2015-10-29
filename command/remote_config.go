@@ -338,7 +338,7 @@ func (c *RemoteConfigCommand) enableRemoteState() int {
 
 func (c *RemoteConfigCommand) Help() string {
 	helpText := `
-Usage: terraform remote [options]
+Usage: terraform remote config [options]
 
   Configures Terraform to use a remote state server. This allows state
   to be pulled down when necessary and then pushed to the server when
@@ -348,7 +348,8 @@ Usage: terraform remote [options]
 Options:
 
   -backend=Atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, or HTTP. Defaults to Atlas.
+                         of Atlas, Consul, Etcd, HTTP, S3, or Swift. Defaults
+                         to Atlas.
 
   -backend-config="k=v"  Specifies configuration for the remote storage
                          backend. This can be specified multiple times.

@@ -10,6 +10,23 @@
                     <a href="/docs/providers/aws/index.html">AWS Provider</a>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-cloudformation/) %>>
+                    <a href="#">CloudFormation Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cloudformation-stack") %>>
+                            <a href="/docs/providers/aws/r/cloudformation_stack.html">aws_cloudformation_stack</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-cloudtrail/) %>>
+                    <a href="#">CloudTrail Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cloudtrail") %>>
+                            <a href="/docs/providers/aws/r/cloudtrail.html">aws_cloudtrail</a>
+                        </li>
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-cloudwatch/) %>>
                     <a href="#">CloudWatch Resources</a>
@@ -23,6 +40,21 @@
                             <a href="/docs/providers/aws/r/cloudwatch_metric_alarm.html">aws_cloudwatch_metric_alarm</a>
                         </li>
  
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-codedeploy/) %>>
+                    <a href="#">CodeDeploy Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-codedeploy-app") %>>
+                            <a href="/docs/providers/aws/r/codedeploy_app.html">aws_codedeploy_app</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-group") %>>
+                            <a href="/docs/providers/aws/r/codedeploy_deployment_group.html">aws_codedeploy_deployment_group</a>
+                        </li>
+
                     </ul>
                 </li>
 

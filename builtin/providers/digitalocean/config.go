@@ -3,7 +3,8 @@ package digitalocean
 import (
 	"log"
 
-	"github.com/pearkes/digitalocean"
+	"github.com/digitalocean/godo"
+	"golang.org/x/oauth2"
 )
 
 type Config struct {
@@ -11,14 +12,14 @@ type Config struct {
 }
 
 // Client() returns a new client for accessing digital ocean.
-func (c *Config) Client() (*digitalocean.Client, error) {
-	client, err := digitalocean.NewClient(c.Token)
+func (c *Config) Client() (*godo.Client, error) {
+	tokenSrc := oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: c.Token,
+	})
 
-	log.Printf("[INFO] DigitalOcean Client configured for URL: %s", client.URL)
+	client := godo.NewClient(oauth2.NewClient(oauth2.NoContext, tokenSrc))
 
-	if err != nil {
-		return nil, err
-	}
+	log.Printf("[INFO] DigitalOcean Client configured for URL: %s", client.BaseURL.String())
 
 	return client, nil
 }

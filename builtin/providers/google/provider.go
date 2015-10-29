@@ -15,7 +15,7 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"account_file": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 				ValidateFunc: validateAccountFile,
 			},
@@ -78,6 +78,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 }
 
 func validateAccountFile(v interface{}, k string) (warnings []string, errors []error) {
+	if v == nil {
+		return
+	}
+
 	value := v.(string)
 
 	if value == "" {
