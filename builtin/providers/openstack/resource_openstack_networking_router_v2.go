@@ -32,6 +32,7 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"external_gateway": &schema.Schema{
 				Type:     schema.TypeString,
