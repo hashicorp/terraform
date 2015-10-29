@@ -50,5 +50,7 @@ is created implicitly and cannot be specified.
 ## Attributes Reference
 
 The following attributes are exported:
+~> **NOTE:** Only the target that is entered is exported as a readable
+attribute once the route resource is created.
 
 * `id` - The ID of the routing table
