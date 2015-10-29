@@ -61,6 +61,7 @@ func TestApply(t *testing.T) {
 
 func TestApply_parallelism(t *testing.T) {
 	provider := testProvider()
+	statePath := testTempFile(t)
 
 	// This blocks all the appy functions. We close it when we exit so
 	// they end quickly after this test finishes.
@@ -91,6 +92,7 @@ func TestApply_parallelism(t *testing.T) {
 
 	par := uint64(5)
 	args := []string{
+		"-state", statePath,
 		fmt.Sprintf("-parallelism=%d", par),
 		testFixturePath("parallelism"),
 	}
