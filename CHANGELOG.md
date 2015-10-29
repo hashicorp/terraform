@@ -13,6 +13,7 @@ IMPROVEMENTS:
   * null_resource: enhance and document [GH-3244, GH-3659]
   * provider/aws: Add CORS settings to S3 bucket [GH-3387]
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
+  * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
 
 BUG FIXES:
 
