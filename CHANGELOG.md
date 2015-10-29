@@ -13,6 +13,7 @@ IMPROVEMENTS:
   * null_resource: enhance and document [GH-3244, GH-3659]
   * provider/aws: Add CORS settings to S3 bucket [GH-3387]
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
+  * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
 
 BUG FIXES:
 
@@ -22,6 +23,7 @@ BUG FIXES:
   * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
+  * provider/vsphere: Fix d.SetConnInfo error in case of a missing IP address [GH-3636]
 
 ## 0.6.6 (October 23, 2015)
 
