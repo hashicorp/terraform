@@ -326,6 +326,14 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 			AssociationId: a.RouteTableAssociationId,
 		})
 		if err != nil {
+			// First check if the association ID is not found. If this
+			// is the case, then it was already disassociated somehow,
+			// and that is okay.
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
+				err = nil
+			}
+		}
+		if err != nil {
 			return err
 		}
 	}
