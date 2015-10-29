@@ -32,6 +32,7 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"shared": &schema.Schema{
 				Type:     schema.TypeString,
