@@ -55,6 +55,11 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"measure_latency": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"tags": tagsSchema(),
 		},
 	}
@@ -128,6 +133,10 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		healthConfig.ResourcePath = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("measure_latency"); ok {
+		healthConfig.MeasureLatency = aws.Bool(v.(bool))
+	}
+
 	input := &route53.CreateHealthCheckInput{
 		CallerReference:   aws.String(time.Now().Format(time.RFC3339Nano)),
 		HealthCheckConfig: healthConfig,
@@ -174,6 +183,7 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("ip_address", updated.IPAddress)
 	d.Set("port", updated.Port)
 	d.Set("resource_path", updated.ResourcePath)
+	d.Set("measure_latency", updated.MeasureLatency)
 
 	// read the tags
 	req := &route53.ListTagsForResourceInput{
