@@ -352,11 +352,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-			var s []*string
-			for _, v := range attr.List() {
-				s = append(s, aws.String(v.(string)))
-			}
-			log.Printf("[INFO] DB is restoring from snapshot with default security, but should be set to %s", v.(string))
+			log.Printf("[INFO] DB is restoring from snapshot with default security, but custom security should be set, will now update after snapshot is restored!");
+
 			// wait for instance to get up and then modify security
 			d.SetId(d.Get("identifier").(string))
 
