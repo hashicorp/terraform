@@ -153,6 +153,13 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["dynamodb_endpoint"],
 			},
+
+			"skip_validate_credentials": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_validate_credentials"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -283,17 +290,21 @@ func init() {
 
 		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to dynamodb-local.",
+
+		"skip_validate_credentials": "Use this to bypass credential validation.\n" +
+			"This is usefull when only using dynamodb-local without valid credentials.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey:        d.Get("access_key").(string),
-		SecretKey:        d.Get("secret_key").(string),
-		Token:            d.Get("token").(string),
-		Region:           d.Get("region").(string),
-		MaxRetries:       d.Get("max_retries").(int),
-		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
+		AccessKey:               d.Get("access_key").(string),
+		SecretKey:               d.Get("secret_key").(string),
+		Token:                   d.Get("token").(string),
+		Region:                  d.Get("region").(string),
+		MaxRetries:              d.Get("max_retries").(int),
+		DynamoDBEndpoint:        d.Get("dynamodb_endpoint").(string),
+		SkipValidateCredentials: d.Get("skip_validate_credentials").(bool),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
