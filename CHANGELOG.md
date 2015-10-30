@@ -6,9 +6,11 @@ FEATURES:
   * **New resource: `aws_cloudtrail`** [GH-3094]
   * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
   * **New resource: `aws_route`** [GH-3548]
+  * **New resource: `google_sql_database` and `google_sql_database_instance`** [GH-3617]
 
 IMPROVEMENTS:
 
+  * provider/google: preemptible option for instance_template [GH-3667]
   * provider/google: Accurate Terraform Version [GH-3554]
   * provider/google: Simplified auth (DefaultClient support) [GH-3553]
   * provider/google: automatic_restart, preemptible, on_host_maintenance options [GH-3643]
