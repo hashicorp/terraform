@@ -452,7 +452,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
                         log := logs[0].(map[string]interface{})
                         accessLogs := &elb.AccessLog{
                                 Enabled:      aws.Bool(log["enabled"].(bool)),
-                                EmitInterval: aws.Int64(log["interval"].(int64)),
+                                EmitInterval: aws.Int64(int64(log["interval"].(int))),
                                 S3BucketName: aws.String(log["bucket"].(string)),
                         }
 
