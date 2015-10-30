@@ -45,6 +45,9 @@ The following arguments are supported:
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.
+* `copy_tags_to_snapshot` – (Optional, boolean) On delete, copy all Instance `tags` to
+the final snapshot (if `final_snapshot_identifier` is specified). Default
+`false`
 * `name` - (Optional) The DB name to create. If omitted, no database is created
     initially.
 * `password` - (Required) Password for the master DB user. Note that this may
