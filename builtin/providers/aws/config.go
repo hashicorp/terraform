@@ -217,7 +217,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.codedeployconn = codedeploy.New(sess)
 
 		log.Println("[INFO] Initializing CodeCommit SDK connection")
-		client.codecommitconn = codecommit.New(awsConfig)
+		client.codecommitconn = codecommit.New(usEast1Sess)
 	}
 
 	if len(errs) > 0 {
