@@ -64,15 +64,19 @@ configuration fields to be set using the documented environment variables.
 
 In addition, the following environment variables are used in tests, and must be set to valid values for your vSphere environment:
 
- * VSPHERE\_CLUSTER
- * VSPHERE\_DATACENTER
- * VSPHERE\_DATASTORE
  * VSPHERE\_NETWORK\_GATEWAY
  * VSPHERE\_NETWORK\_IP\_ADDRESS
  * VSPHERE\_NETWORK\_LABEL
  * VSPHERE\_NETWORK\_LABEL\_DHCP
  * VSPHERE\_TEMPLATE
- * VSPHERE\_VM\_PASSWORD
+
+The following environment variables depend on your vSphere environment:
+	
+ * VSPHERE\_DATACENTER
+ * VSPHERE\_CLUSTER
+ * VSPHERE\_RESOURCE\_POOL
+ * VSPHERE\_DATASTORE
+
 
 These are used to set and verify attributes on the `vsphere_virtual_machine`
 resource in tests.
