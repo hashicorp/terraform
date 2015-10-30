@@ -102,6 +102,11 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"placement_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"vpc_zone_identifier": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -188,6 +193,10 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.TerminationPolicies = expandStringList(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("placement_group"); ok {
+		autoScalingGroupOpts.PlacementGroup = aws.String(v.(string))
+	}
+
 	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", autoScalingGroupOpts)
 	_, err := conn.CreateAutoScalingGroup(&autoScalingGroupOpts)
 	if err != nil {
@@ -222,6 +231,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("load_balancers", g.LoadBalancerNames)
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
+	d.Set("placement_group", g.PlacementGroup)
 	d.Set("name", g.AutoScalingGroupName)
 	d.Set("tag", g.Tags)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
@@ -274,6 +284,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
 			opts.AvailabilityZones = expandStringList(d.Get("availability_zones").(*schema.Set).List())
 		}
+	}
+
+	if d.HasChange("placement_group") {
+		opts.PlacementGroup = aws.String(d.Get("placement_group").(string))
 	}
 
 	if d.HasChange("termination_policies") {
