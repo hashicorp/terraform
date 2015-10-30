@@ -233,6 +233,22 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 	return parameters, nil
 }
 
+// Flattens an access log into something that flatmap.Flatten() can handle
+func flattenAccessLog(log *elb.AccessLog) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if log != nil {
+		result = append(result, map[string]interface{}{
+			"enabled":       *log.Enabled,
+			"interval":      *log.EmitInterval,
+			"bucket":        *log.S3BucketName,
+			"bucket_prefix": *log.S3BucketPrefix,
+		})
+	}
+
+	return result
+}
+
 // Flattens a health check into something that flatmap.Flatten()
 // can handle
 func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
