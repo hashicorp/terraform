@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -78,6 +79,7 @@ type AWSClient struct {
 	opsworksconn       *opsworks.OpsWorks
 	glacierconn        *glacier.Glacier
 	codedeployconn     *codedeploy.CodeDeploy
+	codecommitconn     *codecommit.CodeCommit
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -213,6 +215,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CodeDeploy Connection")
 		client.codedeployconn = codedeploy.New(sess)
+
+		log.Println("[INFO] Initializing CodeCommit SDK connection")
+		client.codecommitconn = codecommit.New(usEast1Sess)
 	}
 
 	if len(errs) > 0 {
