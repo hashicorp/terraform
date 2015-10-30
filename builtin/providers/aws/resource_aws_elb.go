@@ -445,10 +445,12 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 					IdleTimeout: aws.Int64(int64(d.Get("idle_timeout").(int))),
 				},
 			},
-		}
+                }
 
                 logs := d.Get("access_logs").(*schema.Set).List()
-                if len(logs) > 0 {
+                if len(logs) > 1 {
+                        return fmt.Errorf("Only one access logs config per ELB is supported")
+                } else if len(logs) == 1 {
                         log := logs[0].(map[string]interface{})
                         accessLogs := &elb.AccessLog{
                                 Enabled:      aws.Bool(log["enabled"].(bool)),
