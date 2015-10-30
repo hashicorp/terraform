@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_instance_template"
-sidebar_current: "docs-google-resource-instance_template"
+sidebar_current: "docs-google-compute-instance-template"
 description: |-
   Manages a VM instance template resource within GCE.
 ---
