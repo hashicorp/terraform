@@ -28,6 +28,7 @@ BUG FIXES:
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
+  * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/openstack: Fix several issues causing unresolvable diffs [GH-3440]
