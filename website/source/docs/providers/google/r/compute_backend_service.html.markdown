@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_backend_service"
-sidebar_current: "docs-google-resource-backend-service"
+sidebar_current: "docs-google-compute-backend-service"
 description: |-
   Creates a Backend Service resource for Google Compute Engine.
 ---
