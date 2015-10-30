@@ -30,6 +30,7 @@ BUG FIXES:
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/openstack: Fix several issues causing unresolvable diffs [GH-3440]
+  * provider/openstack: Safely delete security groups [GH-3696]
   * provider/vsphere: Fix d.SetConnInfo error in case of a missing IP address [GH-3636]
 
 ## 0.6.6 (October 23, 2015)
