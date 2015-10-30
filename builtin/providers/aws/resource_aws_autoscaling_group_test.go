@@ -368,7 +368,7 @@ resource "aws_autoscaling_group" "bar" {
   termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
   placement_group = "test"
 
-  launch_configuration = "${aws_launch_configuration.foobar.id}"
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
 
   tag {
     key = "Foo"
