@@ -73,7 +73,7 @@ func resourceAwsCodeCommitRepository() *schema.Resource {
 }
 
 func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	codecommitconn := meta.(*AWSClient).codecommitconn
+	conn := meta.(*AWSClient).codecommitconn
 	region := meta.(*AWSClient).region
 
 	//	This is a temporary thing - we need to ensure that CodeCommit is only being run against us-east-1
@@ -87,7 +87,7 @@ func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interfac
 		RepositoryDescription: aws.String(d.Get("description").(string)),
 	}
 
-	out, err := codecommitconn.CreateRepository(input)
+	out, err := conn.CreateRepository(input)
 	if err != nil {
 		return fmt.Errorf("Error creating CodeCommit Repository: %s", err)
 	}
@@ -102,16 +102,16 @@ func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interfac
 }
 
 func resourceAwsCodeCommitRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	codecommitconn := meta.(*AWSClient).codecommitconn
+	conn := meta.(*AWSClient).codecommitconn
 
 	if d.HasChange("default_branch") {
-		if err := resourceAwsCodeCommitUpdateDefaultBranch(codecommitconn, d); err != nil {
+		if err := resourceAwsCodeCommitUpdateDefaultBranch(conn, d); err != nil {
 			return err
 		}
 	}
 
 	if d.HasChange("description") {
-		if err := resourceAwsCodeCommitUpdateDescription(codecommitconn, d); err != nil {
+		if err := resourceAwsCodeCommitUpdateDescription(conn, d); err != nil {
 			return err
 		}
 	}
@@ -120,13 +120,13 @@ func resourceAwsCodeCommitRepositoryUpdate(d *schema.ResourceData, meta interfac
 }
 
 func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	codecommitconn := meta.(*AWSClient).codecommitconn
+	conn := meta.(*AWSClient).codecommitconn
 
 	input := &codecommit.GetRepositoryInput{
 		RepositoryName: aws.String(d.Id()),
 	}
 
-	out, err := codecommitconn.GetRepository(input)
+	out, err := conn.GetRepository(input)
 	if err != nil {
 		return fmt.Errorf("Error reading CodeCommit Repository: %s", err.Error())
 	}
@@ -143,10 +143,10 @@ func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{
 }
 
 func resourceAwsCodeCommitRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	codecommitconn := meta.(*AWSClient).codecommitconn
+	conn := meta.(*AWSClient).codecommitconn
 
 	log.Printf("[DEBUG] CodeCommit Delete Repository: %s", d.Id())
-	_, err := codecommitconn.DeleteRepository(&codecommit.DeleteRepositoryInput{
+	_, err := conn.DeleteRepository(&codecommit.DeleteRepositoryInput{
 		RepositoryName: aws.String(d.Id()),
 	})
 	if err != nil {
@@ -156,13 +156,13 @@ func resourceAwsCodeCommitRepositoryDelete(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func resourceAwsCodeCommitUpdateDescription(codecommitconn *codecommit.CodeCommit, d *schema.ResourceData) error {
+func resourceAwsCodeCommitUpdateDescription(conn *codecommit.CodeCommit, d *schema.ResourceData) error {
 	branchInput := &codecommit.UpdateRepositoryDescriptionInput{
 		RepositoryName:        aws.String(d.Id()),
 		RepositoryDescription: aws.String(d.Get("description").(string)),
 	}
 
-	_, err := codecommitconn.UpdateRepositoryDescription(branchInput)
+	_, err := conn.UpdateRepositoryDescription(branchInput)
 	if err != nil {
 		return fmt.Errorf("Error Updating Repository Description for CodeCommit Repository: %s", err.Error())
 	}
@@ -170,13 +170,13 @@ func resourceAwsCodeCommitUpdateDescription(codecommitconn *codecommit.CodeCommi
 	return nil
 }
 
-func resourceAwsCodeCommitUpdateDefaultBranch(codecommitconn *codecommit.CodeCommit, d *schema.ResourceData) error {
+func resourceAwsCodeCommitUpdateDefaultBranch(conn *codecommit.CodeCommit, d *schema.ResourceData) error {
 	branchInput := &codecommit.UpdateDefaultBranchInput{
 		RepositoryName:    aws.String(d.Id()),
 		DefaultBranchName: aws.String(d.Get("default_branch").(string)),
 	}
 
-	_, err := codecommitconn.UpdateDefaultBranch(branchInput)
+	_, err := conn.UpdateDefaultBranch(branchInput)
 	if err != nil {
 		return fmt.Errorf("Error Updating Default Branch for CodeCommit Repository: %s", err.Error())
 	}
