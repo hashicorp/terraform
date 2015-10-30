@@ -330,13 +330,13 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
 	}
 	d.Set("subnets", lb.Subnets)
-	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
-	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
-	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
-        d.Set("access_logs", lbAttrs.AccessLog)
+        d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
+        d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
+        d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
+        d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog))
 
-	resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
-		LoadBalancerNames: []*string{lb.LoadBalancerName},
+        resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
+                LoadBalancerNames: []*string{lb.LoadBalancerName},
 	})
 
 	var et []*elb.Tag
