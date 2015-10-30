@@ -95,6 +95,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"placement_group": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"load_balancers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -173,6 +180,11 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("health_check_grace_period"); ok {
 		autoScalingGroupOpts.HealthCheckGracePeriod = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("placement_group"); ok && v.(*schema.Set).Len() > 0 {
+		autoScalingGroupOpts.PlacementGroup = expandStringList(
+			v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
