@@ -10,6 +10,7 @@ import (
 
 	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 	"github.com/rackspace/gophercloud/pagination"
@@ -96,6 +97,46 @@ func TestAccComputeV2Instance_floatingIPAttach(t *testing.T) {
 					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_multi_secgroups(t *testing.T) {
+	var instance servers.Server
+	var secgroup secgroups.SecurityGroup
+	var testAccComputeV2Instance_multi_secgroups = fmt.Sprintf(`
+		resource "openstack_compute_secgroup_v2" "foo" {
+			name = "terraform-test"
+			description = "a security group"
+			rule {
+				from_port = 22
+				to_port = 22
+				ip_protocol = "tcp"
+				cidr = "0.0.0.0/0"
+			}
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default", "${openstack_compute_secgroup_v2.foo.name}"]
+			network {
+				uuid = "%s"
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_multi_secgroups,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.foo", &secgroup),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 				),
 			},
 		},
