@@ -1,9 +1,8 @@
 package google
 
-
 import (
-	"time"
 	"math/rand"
+	"time"
 )
 
 func genRandInt() int {
