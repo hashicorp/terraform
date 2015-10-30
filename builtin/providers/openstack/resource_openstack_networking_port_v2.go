@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
 )
 
@@ -38,26 +42,31 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"mac_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"device_owner": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
@@ -67,6 +76,7 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}
@@ -96,6 +106,18 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating OpenStack Neutron network: %s", err)
 	}
 	log.Printf("[INFO] Network ID: %s", p.ID)
+
+	log.Printf("[DEBUG] Waiting for OpenStack Neutron Port (%s) to become available.", p.ID)
+
+	stateConf := &resource.StateChangeConf{
+		Target:     "ACTIVE",
+		Refresh:    waitForNetworkPortActive(networkingClient, p.ID),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 
 	d.SetId(p.ID)
 
@@ -174,7 +196,16 @@ func resourceNetworkingPortV2Delete(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = ports.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    waitForNetworkPortDelete(networkingClient, d.Id()),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Network: %s", err)
 	}
@@ -200,4 +231,53 @@ func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {
 	}
 
 	return &value
+}
+
+func waitForNetworkPortActive(networkingClient *gophercloud.ServiceClient, portId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		p, err := ports.Get(networkingClient, portId).Extract()
+		if err != nil {
+			return nil, "", err
+		}
+
+		log.Printf("[DEBUG] OpenStack Neutron Port: %+v", p)
+		if p.Status == "DOWN" || p.Status == "ACTIVE" {
+			return p, "ACTIVE", nil
+		}
+
+		return p, p.Status, nil
+	}
+}
+
+func waitForNetworkPortDelete(networkingClient *gophercloud.ServiceClient, portId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete OpenStack Neutron Port %s", portId)
+
+		p, err := ports.Get(networkingClient, portId).Extract()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return p, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
+				return p, "DELETED", nil
+			}
+		}
+
+		err = ports.Delete(networkingClient, portId).ExtractErr()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return p, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
+				return p, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Port %s still active.\n", portId)
+		return p, "ACTIVE", nil
+	}
 }
