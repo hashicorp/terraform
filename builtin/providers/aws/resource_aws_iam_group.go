@@ -97,7 +97,7 @@ func resourceAwsIamGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 		iamconn := meta.(*AWSClient).iamconn
 		on, nn := d.GetChange("name")
 		op, np := d.GetChange("path")
-		fmt.Println(on, nn, op, np)
+
 		request := &iam.UpdateGroupInput{
 			GroupName:    aws.String(on.(string)),
 			NewGroupName: aws.String(nn.(string)),
