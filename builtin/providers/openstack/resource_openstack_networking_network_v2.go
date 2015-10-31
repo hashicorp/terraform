@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 )
 
@@ -163,11 +167,52 @@ func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = networks.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    NetworkingNetworkV2StateRefreshFunc(networkingClient, d),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Network: %s", err)
 	}
 
 	d.SetId("")
 	return nil
+}
+
+func NetworkingNetworkV2StateRefreshFunc(networkingClient *gophercloud.ServiceClient, d *schema.ResourceData) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		networkId := d.Id()
+		log.Printf("[DEBUG] Attempting to delete OpenStack Network %s.\n", networkId)
+
+		n, err := networks.Get(networkingClient, networkId).Extract()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Network")
+			if err != nil {
+				return n, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
+				return n, "DELETED", nil
+			}
+		}
+
+		err = networks.Delete(networkingClient, networkId).ExtractErr()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Network")
+			if err != nil {
+				return n, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
+				return n, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Network %s still active.\n", networkId)
+		return n, "ACTIVE", nil
+	}
 }
