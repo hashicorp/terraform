@@ -25,7 +25,8 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1862-L1873
@@ -144,7 +145,16 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).autoscalingconn
 
 	var autoScalingGroupOpts autoscaling.CreateAutoScalingGroupInput
-	autoScalingGroupOpts.AutoScalingGroupName = aws.String(d.Get("name").(string))
+
+	var asgName string
+	if v, ok := d.GetOk("name"); ok {
+		asgName = v.(string)
+	} else {
+		asgName = resource.PrefixedUniqueId("tf-asg-")
+		d.Set("name", asgName)
+	}
+
+	autoScalingGroupOpts.AutoScalingGroupName = aws.String(asgName)
 	autoScalingGroupOpts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
 	autoScalingGroupOpts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
 	autoScalingGroupOpts.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
