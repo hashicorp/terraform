@@ -2,16 +2,35 @@ package openstack
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
+	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
+	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
 )
 
 func TestAccNetworkingV2Network_basic(t *testing.T) {
+	region := os.Getenv(OS_REGION_NAME)
+
 	var network networks.Network
+
+	var testAccNetworkingV2Network_basic = fmt.Sprintf(`
+		resource "openstack_networking_network_v2" "foo" {
+			region = "%s"
+			name = "network_1"
+			admin_state_up = "true"
+		}`, region)
+
+	var testAccNetworkingV2Network_update = fmt.Sprintf(`
+		resource "openstack_networking_network_v2" "foo" {
+			region = "%s"
+			name = "network_2"
+			admin_state_up = "true"
+		}`, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -28,6 +47,57 @@ func TestAccNetworkingV2Network_basic(t *testing.T) {
 				Config: testAccNetworkingV2Network_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_networking_network_v2.foo", "name", "network_2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkingV2Network_netstack(t *testing.T) {
+	region := os.Getenv(OS_REGION_NAME)
+
+	var network networks.Network
+	var subnet subnets.Subnet
+	var router routers.Router
+
+	var testAccNetworkingV2Network_netstack = fmt.Sprintf(`
+		resource "openstack_networking_network_v2" "foo" {
+			region = "%s"
+			name = "network_1"
+			admin_state_up = "true"
+		}
+
+		resource "openstack_networking_subnet_v2" "foo" {
+			region = "%s"
+			name = "subnet_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			cidr = "192.168.10.0/24"
+			ip_version = 4
+		}
+
+		resource "openstack_networking_router_v2" "foo" {
+			region = "%s"
+			name = "router_1"
+		}
+
+		resource "openstack_networking_router_interface_v2" "foo" {
+			region = "%s"
+			router_id = "${openstack_networking_router_v2.foo.id}"
+			subnet_id = "${openstack_networking_subnet_v2.foo.id}"
+		}`, region, region, region, region)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2NetworkDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2Network_netstack,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
+					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.foo", &subnet),
+					testAccCheckNetworkingV2RouterExists(t, "openstack_networking_router_v2.foo", &router),
+					testAccCheckNetworkingV2RouterInterfaceExists(t, "openstack_networking_router_interface_v2.foo"),
 				),
 			},
 		},
