@@ -69,7 +69,8 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 			},
 			"ip_version": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
+				Default:  4,
 				ForceNew: true,
 			},
 			"enable_dhcp": &schema.Schema{
