@@ -3,8 +3,11 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
@@ -93,15 +96,58 @@ func resourceNetworkingRouterInterfaceV2Delete(d *schema.ResourceData, meta inte
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	removeOpts := routers.InterfaceOpts{
-		SubnetID: d.Get("subnet_id").(string),
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    NetworkingRouterInterfaceV2StateRefreshFunc(networkingClient, d),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
 
-	_, err = routers.RemoveInterface(networkingClient, d.Get("router_id").(string), removeOpts).Extract()
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Router Interface: %s", err)
 	}
 
 	d.SetId("")
 	return nil
+}
+
+func NetworkingRouterInterfaceV2StateRefreshFunc(networkingClient *gophercloud.ServiceClient, d *schema.ResourceData) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		routerId := d.Get("router_id").(string)
+		routerInterfaceId := d.Id()
+
+		log.Printf("[DEBUG] Attempting to delete OpenStack Router Interface %s.\n", routerInterfaceId)
+
+		removeOpts := routers.InterfaceOpts{
+			SubnetID: d.Get("subnet_id").(string),
+		}
+
+		r, err := ports.Get(networkingClient, routerInterfaceId).Extract()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Router Interface")
+			if err != nil {
+				return r, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Router Interface %s", routerInterfaceId)
+				return r, "DELETED", nil
+			}
+		}
+
+		_, err = routers.RemoveInterface(networkingClient, routerId, removeOpts).Extract()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Router Interface")
+			if err != nil {
+				return r, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Router Interface %s", routerInterfaceId)
+				return r, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Router Interface %s still active.\n", routerInterfaceId)
+		return r, "ACTIVE", nil
+	}
 }

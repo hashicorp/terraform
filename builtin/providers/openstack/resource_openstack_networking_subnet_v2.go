@@ -3,9 +3,13 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
 )
 
@@ -219,7 +223,16 @@ func resourceNetworkingSubnetV2Delete(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = subnets.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    NetworkingSubnetV2StateRefreshFunc(networkingClient, d),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Subnet: %s", err)
 	}
@@ -261,4 +274,36 @@ func resourceSubnetHostRoutesV2(d *schema.ResourceData) []subnets.HostRoute {
 		}
 	}
 	return hr
+}
+
+func NetworkingSubnetV2StateRefreshFunc(networkingClient *gophercloud.ServiceClient, d *schema.ResourceData) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		subnetId := d.Id()
+		log.Printf("[DEBUG] Attempting to delete OpenStack Subnet %s.\n", subnetId)
+
+		s, err := subnets.Get(networkingClient, subnetId).Extract()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Subnet")
+			if err != nil {
+				return s, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Subnet %s", subnetId)
+				return s, "DELETED", nil
+			}
+		}
+
+		err = subnets.Delete(networkingClient, subnetId).ExtractErr()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Subnet")
+			if err != nil {
+				return s, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Subnet %s", subnetId)
+				return s, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Subnet %s still active.\n", subnetId)
+		return s, "ACTIVE", nil
+	}
 }

@@ -3,8 +3,12 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 	"github.com/rackspace/gophercloud/pagination"
@@ -120,15 +124,25 @@ func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkFloatingIPV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
 
-	err = floatingips.Delete(networkClient, d.Id()).ExtractErr()
-	if err != nil {
-		return fmt.Errorf("Error deleting floating IP: %s", err)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    NetworkingFloatingIPV2StateRefreshFunc(networkingClient, d),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error deleting OpenStack Neutron Floating IP: %s", err)
+	}
+
 	d.SetId("")
 	return nil
 }
@@ -191,4 +205,36 @@ func getNetworkName(d *schema.ResourceData, meta interface{}, networkID string) 
 	})
 
 	return networkName, err
+}
+
+func NetworkingFloatingIPV2StateRefreshFunc(networkingClient *gophercloud.ServiceClient, d *schema.ResourceData) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		fId := d.Id()
+		log.Printf("[DEBUG] Attempting to delete OpenStack Floating IP %s.\n", fId)
+
+		n, err := floatingips.Get(networkingClient, fId).Extract()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Floating IP")
+			if err != nil {
+				return n, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
+				return n, "DELETED", nil
+			}
+		}
+
+		err = floatingips.Delete(networkingClient, fId).ExtractErr()
+		if err != nil {
+			err = CheckDeleted(d, err, "OpenStack Floating IP")
+			if err != nil {
+				return n, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
+				return n, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Floating IP %s still active.\n", fId)
+		return n, "ACTIVE", nil
+	}
 }
