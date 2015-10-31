@@ -3,9 +3,13 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
 )
 
@@ -140,6 +144,17 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 	}
 	log.Printf("[INFO] Subnet ID: %s", s.ID)
 
+	log.Printf("[DEBUG] Waiting for Subnet (%s) to become available", s.ID)
+	stateConf := &resource.StateChangeConf{
+		Target:     "ACTIVE",
+		Refresh:    waitForSubnetActive(networkingClient, s.ID),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+
 	d.SetId(s.ID)
 
 	return resourceNetworkingSubnetV2Read(d, meta)
@@ -220,7 +235,16 @@ func resourceNetworkingSubnetV2Delete(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = subnets.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    waitForSubnetDelete(networkingClient, d.Id()),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Subnet: %s", err)
 	}
@@ -262,4 +286,49 @@ func resourceSubnetHostRoutesV2(d *schema.ResourceData) []subnets.HostRoute {
 		}
 	}
 	return hr
+}
+
+func waitForSubnetActive(networkingClient *gophercloud.ServiceClient, subnetId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		s, err := subnets.Get(networkingClient, subnetId).Extract()
+		if err != nil {
+			return nil, "", err
+		}
+
+		log.Printf("[DEBUG] OpenStack Neutron Subnet: %+v", s)
+		return s, "ACTIVE", nil
+	}
+}
+
+func waitForSubnetDelete(networkingClient *gophercloud.ServiceClient, subnetId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete OpenStack Subnet %s.\n", subnetId)
+
+		s, err := subnets.Get(networkingClient, subnetId).Extract()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return s, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Subnet %s", subnetId)
+				return s, "DELETED", nil
+			}
+		}
+
+		err = subnets.Delete(networkingClient, subnetId).ExtractErr()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return s, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Subnet %s", subnetId)
+				return s, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Subnet %s still active.\n", subnetId)
+		return s, "ACTIVE", nil
+	}
 }
