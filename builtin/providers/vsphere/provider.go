@@ -23,11 +23,11 @@ func Provider() terraform.ResourceProvider {
 				Description: "The user password for vSphere API operations.",
 			},
 
-			"vcenter_server": &schema.Schema{
+			"vsphere_server": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VCENTER", nil),
-				Description: "The vCenter Server name for vSphere API operations.",
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_SERVER", nil),
+				Description: "The vSphere Server name for vSphere API operations.",
 			},
 		},
 
@@ -43,7 +43,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		User:          d.Get("user").(string),
 		Password:      d.Get("password").(string),
-		VCenterServer: d.Get("vcenter_server").(string),
+		VSphereServer: d.Get("vsphere_server").(string),
 	}
 
 	return config.Client()

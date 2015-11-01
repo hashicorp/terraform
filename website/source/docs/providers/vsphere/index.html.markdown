@@ -25,7 +25,7 @@ therefore may undergo significant changes as the community improves it.
 provider "vsphere" {
   user           = "${var.vsphere_user}"
   password       = "${var.vsphere_password}"
-  vcenter_server = "${var.vsphere_vcenter_server}"
+  vsphere_server = "${var.vsphere_server}"
 }
 
 # Create a virtual machine
@@ -53,7 +53,7 @@ The following arguments are used to configure the vSphere Provider:
   be specified with the `VSPHERE_USER` environment variable.
 * `password` - (Required) This is the password for vSphere API operations. Can
   also be specified with the `VSPHERE_PASSWORD` environment variable.
-* `vcenter_server` - (Required) This is the vCenter server name for vSphere API
-  operations. Can also be specified with the `VSPHERE_VCENTER` environment
+* `vsphere_server` - (Required) This is the vCenter server name for vSphere API
+  operations. Can also be specified with the `VSPHERE_SERVER` environment
   variable.
 
