@@ -71,7 +71,8 @@ from which to forward traffic to the parent group. Changing
 this creates a new security group rule.
 
 * `self` - (Optional) Required if `cidr` and `from_group_id` is empty. If true,
-the security group itself will be added as a source to this ingress rule.
+the security group itself will be added as a source to this ingress rule. `cidr`
+and `from_group_id` will be ignored if either are set while `self` is true.
 
 ## Attributes Reference
 
