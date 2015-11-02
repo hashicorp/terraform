@@ -1,8 +1,10 @@
 package vcd
 
 import (
+	"github.com/hashicorp/terraform/helper/resource"
 	types "github.com/opencredo/vmware-govcd/types/v56"
 	"strconv"
+	"time"
 )
 
 func expandIpRange(configured []interface{}) (types.IPRanges, error) {
@@ -100,4 +102,8 @@ func getPortString(port int) string {
 	}
 	portstring := strconv.Itoa(port)
 	return portstring
+}
+
+func retryCall(min int, f resource.RetryFunc) error {
+	return resource.Retry(time.Duration(min)*time.Minute, f)
 }

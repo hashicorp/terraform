@@ -6,12 +6,10 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/opencredo/vmware-govcd"
 	types "github.com/opencredo/vmware-govcd/types/v56"
 	"strings"
-	"time"
 )
 
 func resourceVcdNetwork() *schema.Resource {
@@ -151,29 +149,33 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[INFO] NETWORK: %#v", newnetwork)
-	err = vcd_client.OrgVdc.CreateOrgVDCNetwork(newnetwork)
 
+	err = retryCall(4, func() error {
+		return vcd_client.OrgVdc.CreateOrgVDCNetwork(newnetwork)
+	})
 	if err != nil {
 		return fmt.Errorf("Error: %#v", err)
 	}
 
+	err = vcd_client.OrgVdc.Refresh()
+	if err != nil {
+		return fmt.Errorf("Error refreshing vdc: %#v", err)
+	}
+
+	network, err := vcd_client.OrgVdc.FindVDCNetwork(d.Get("name").(string))
+	if err != nil {
+		return fmt.Errorf("Error finding network: %#v", err)
+	}
+
 	if dhcp, ok := d.GetOk("dhcp_pool"); ok {
-		err := vcd_client.OrgVdc.Refresh()
-		if err != nil {
-			return fmt.Errorf("Error refreshing vdc: %#v", err)
-		}
+		err = retryCall(4, func() error {
+			task, err := edgeGateway.AddDhcpPool(network.OrgVDCNetwork, dhcp.(*schema.Set).List())
+			if err != nil {
+				return fmt.Errorf("Error adding DHCP pool: %#v", err)
+			}
 
-		network, err := vcd_client.OrgVdc.FindVDCNetwork(d.Get("name").(string))
-		if err != nil {
-			return fmt.Errorf("Error finding network: %#v", err)
-		}
-
-		task, err := edgeGateway.AddDhcpPool(network.OrgVDCNetwork, dhcp.(*schema.Set).List())
-
-		if err != nil {
-			return fmt.Errorf("Error adding DHCP pool: %#v", err)
-		}
-		err = task.WaitTaskCompletion()
+			return task.WaitTaskCompletion()
+		})
 		if err != nil {
 			return fmt.Errorf("Error completing tasks: %#v", err)
 		}
@@ -233,16 +235,12 @@ func resourceVcdNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error finding network: %#v", err)
 	}
 
-	err = resource.Retry(3*time.Minute, func() error {
+	err = retryCall(4, func() error {
 		task, err := network.Delete()
 		if err != nil {
 			return fmt.Errorf("Error Deleting Network: %#v", err)
 		}
-		err = task.WaitTaskCompletion()
-		if err != nil {
-			return fmt.Errorf("Error completing tasks: %#v", err)
-		}
-		return nil
+		return task.WaitTaskCompletion()
 	})
 	if err != nil {
 		return err

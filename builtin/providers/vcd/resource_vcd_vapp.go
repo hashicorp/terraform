@@ -2,12 +2,10 @@ package vcd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/opencredo/vmware-govcd"
 	types "github.com/opencredo/vmware-govcd/types/v56"
 	"log"
-	"time"
 )
 
 func resourceVcdVApp() *schema.Resource {
@@ -135,11 +133,16 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		},
 	}
 
-	err = resource.Retry(4*time.Minute, func() error {
-		err = vcd_client.OrgVdc.InstantiateVAppTemplate(createvapp)
+	err = retryCall(4, func() error {
+		e := vcd_client.OrgVdc.InstantiateVAppTemplate(createvapp)
 
-		if err != nil {
-			return fmt.Errorf("Error: %#v", err)
+		if e != nil {
+			return fmt.Errorf("Error: %#v", e)
+		}
+
+		e = vcd_client.OrgVdc.Refresh()
+		if e != nil {
+			return fmt.Errorf("Error: %#v", e)
 		}
 		return nil
 	})
@@ -147,72 +150,106 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	err = vcd_client.OrgVdc.Refresh()
-	if err != nil {
-		return fmt.Errorf("Error: %#v", err)
-	}
+	// err = resource.Retry(4*time.Minute, func() error {
+	// 	err = vcd_client.OrgVdc.InstantiateVAppTemplate(createvapp)
+	//
+	// 	if err != nil {
+	// 		return fmt.Errorf("Error: %#v", err)
+	// 	}
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
 	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Get("name").(string))
-	task, err := vapp.ChangeMemorySize(d.Get("memory").(int))
-	err = task.WaitTaskCompletion()
+
+	err = retryCall(4, func() error {
+		task, err := vapp.ChangeMemorySize(d.Get("memory").(int))
+		if err != nil {
+			return fmt.Errorf("Error changing memory size: %#v", err)
+		}
+
+		return task.WaitTaskCompletion()
+	})
 	if err != nil {
-		return fmt.Errorf("Error changing memory size: %#v", err)
+		return err
 	}
 
-	task, err = vapp.ChangeCPUcount(d.Get("cpus").(int))
-	err = task.WaitTaskCompletion()
+	err = retryCall(4, func() error {
+		task, err := vapp.ChangeCPUcount(d.Get("cpus").(int))
+		if err != nil {
+			return fmt.Errorf("Error changing cpu count: %#v", err)
+		}
+
+		return task.WaitTaskCompletion()
+	})
 	if err != nil {
-		return fmt.Errorf("Error changing cpu count: %#v", err)
+		return fmt.Errorf("Error completing task: %#v", err)
 	}
 
-	task, err = vapp.ChangeVMName(d.Get("name").(string))
-	if err != nil {
-		return fmt.Errorf("Error with vm name change: %#v", err)
-	}
+	err = retryCall(4, func() error {
+		task, err := vapp.ChangeVMName(d.Get("name").(string))
+		if err != nil {
+			return fmt.Errorf("Error with vm name change: %#v", err)
+		}
 
-	err = task.WaitTaskCompletion()
+		return task.WaitTaskCompletion()
+	})
 	if err != nil {
 		return fmt.Errorf("Error changing vmname: %#v", err)
 	}
 
-	task, err = vapp.ChangeNetworkConfig(d.Get("network_name").(string), d.Get("ip").(string))
-	if err != nil {
-		return fmt.Errorf("Error with Networking change: %#v", err)
-	}
-	err = task.WaitTaskCompletion()
+	err = retryCall(4, func() error {
+		task, err := vapp.ChangeNetworkConfig(d.Get("network_name").(string), d.Get("ip").(string))
+		if err != nil {
+			return fmt.Errorf("Error with Networking change: %#v", err)
+		}
+		return task.WaitTaskCompletion()
+	})
 	if err != nil {
 		return fmt.Errorf("Error changing network: %#v", err)
 	}
 
-	metadata := d.Get("metadata").(map[string]interface{})
-	for k, v := range metadata {
-		task, err = vapp.AddMetadata(k, v.(string))
-		if err != nil {
-			return fmt.Errorf("Error adding metadata: %#v", err)
+	err = retryCall(4, func() error {
+		metadata := d.Get("metadata").(map[string]interface{})
+		for k, v := range metadata {
+			task, err := vapp.AddMetadata(k, v.(string))
+			if err != nil {
+				return fmt.Errorf("Error adding metadata: %#v", err)
+			}
+			err = task.WaitTaskCompletion()
+			if err != nil {
+				return fmt.Errorf("Error completing tasks: %#v", err)
+			}
 		}
-		err = task.WaitTaskCompletion()
-		if err != nil {
-			return fmt.Errorf("Error completing tasks: %#v", err)
-		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error adding metadata: %#v", err)
 	}
 
 	if initscript, ok := d.GetOk("initscript"); ok {
-		task, err = vapp.RunCustomizationScript(d.Get("name").(string), initscript.(string))
-		if err != nil {
-			return fmt.Errorf("Error with setting init script: %#v", err)
-		}
-		err = task.WaitTaskCompletion()
+		err = retryCall(4, func() error {
+			task, err := vapp.RunCustomizationScript(d.Get("name").(string), initscript.(string))
+			if err != nil {
+				return fmt.Errorf("Error with setting init script: %#v", err)
+			}
+			return task.WaitTaskCompletion()
+		})
 		if err != nil {
 			return fmt.Errorf("Error completing tasks: %#v", err)
 		}
 	}
 
 	if d.Get("power_on").(bool) {
-		task, err = vapp.PowerOn()
-		if err != nil {
-			return fmt.Errorf("Error Powering Up: %#v", err)
-		}
-		err = task.WaitTaskCompletion()
+		err = retryCall(4, func() error {
+			task, err := vapp.PowerOn()
+			if err != nil {
+				return fmt.Errorf("Error Powering Up: %#v", err)
+			}
+			return task.WaitTaskCompletion()
+		})
 		if err != nil {
 			return fmt.Errorf("Error completing tasks: %#v", err)
 		}
