@@ -46,6 +46,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_network":                resourceComputeNetwork(),
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
 			"google_compute_route":                  resourceComputeRoute(),
+			"google_compute_ssl_certificate":        resourceComputeSslCertificate(),
 			"google_compute_target_pool":            resourceComputeTargetPool(),
 			"google_compute_vpn_gateway":            resourceComputeVpnGateway(),
 			"google_compute_vpn_tunnel":             resourceComputeVpnTunnel(),
