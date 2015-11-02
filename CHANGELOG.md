@@ -1,4 +1,46 @@
-## 0.6.6 (Unreleased)
+## 0.6.7 (Unreleased)
+
+FEATURES:
+
+  * **New resource: `aws_cloudformation_stack`** [GH-2636]
+  * **New resource: `aws_cloudtrail`** [GH-3094]
+  * **New resource: `aws_route`** [GH-3548]
+  * **New resource: `aws_codecommit_repository`** [GH-3274]
+  * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
+  * **New resource: `google_sql_database` and `google_sql_database_instance`** [GH-3617]
+
+IMPROVEMENTS:
+
+  * provider/google: preemptible option for instance_template [GH-3667]
+  * provider/google: Accurate Terraform Version [GH-3554]
+  * provider/google: Simplified auth (DefaultClient support) [GH-3553]
+  * provider/google: automatic_restart, preemptible, on_host_maintenance options [GH-3643]
+  * null_resource: enhance and document [GH-3244, GH-3659]
+  * provider/aws: Add CORS settings to S3 bucket [GH-3387]
+  * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
+  * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
+  * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
+  * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
+  * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
+
+BUG FIXES:
+
+  * `terraform remote config`: update `--help` output [GH-3632]
+  * core: modules on Git branches now update properly [GH-1568]
+  * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
+  * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
+      This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
+  * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
+  * provider/aws: ignore association not exist on route table destroy [GH-3615]
+  * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
+  * provider/azure: various bugfixes [GH-3695]
+  * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
+  * provider/openstack: Fix several issues causing unresolvable diffs [GH-3440]
+  * provider/openstack: Safely delete security groups [GH-3696]
+  * provider/openstack: Ignore order of security_groups in instance [GH-3651]
+  * provider/vsphere: Fix d.SetConnInfo error in case of a missing IP address [GH-3636]
+
+## 0.6.6 (October 23, 2015)
 
 FEATURES:
 
@@ -11,6 +53,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * helper/schema: Better error message for assigning list/map to string [GH-3009]
+  * remote/state/atlas: Additional remote state conflict handling for semantically neutral state changes [GH-3603]
 
 ## 0.6.5 (October 21, 2015)
 

@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_route"
-sidebar_current: "docs-google-resource-route"
+sidebar_current: "docs-google-compute-route"
 description: |-
   Manages a network route within GCE.
 ---

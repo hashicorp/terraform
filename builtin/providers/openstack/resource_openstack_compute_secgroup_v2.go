@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
@@ -210,10 +212,20 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	err = secgroups.Delete(computeClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    SecGroupV2StateRefreshFunc(computeClient, d),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack security group: %s", err)
 	}
+
 	d.SetId("")
 	return nil
 }
@@ -291,4 +303,29 @@ func secgroupRuleV2Hash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
 
 	return hashcode.String(buf.String())
+}
+
+func SecGroupV2StateRefreshFunc(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete Security Group %s.\n", d.Id())
+
+		err := secgroups.Delete(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			return nil, "", err
+		}
+
+		s, err := secgroups.Get(computeClient, d.Id()).Extract()
+		if err != nil {
+			err = CheckDeleted(d, err, "Security Group")
+			if err != nil {
+				return s, "", err
+			} else {
+				log.Printf("[DEBUG] Successfully deleted Security Group %s", d.Id())
+				return s, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] Security Group %s still active.\n", d.Id())
+		return s, "ACTIVE", nil
+	}
 }

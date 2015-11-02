@@ -163,12 +163,42 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				Optional: true,
 				Default:  true,
 				ForceNew: true,
+				Deprecated: "Please use `scheduling.automatic_restart` instead",
 			},
 
 			"on_host_maintenance": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Deprecated: "Please use `scheduling.on_host_maintenance` instead",
+			},
+
+			"scheduling": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"preemptible": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"automatic_restart": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+							ForceNew: true,
+						},
+
+						"on_host_maintenance": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
 			},
 
 			"service_account": &schema.Schema{
@@ -352,13 +382,37 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	}
 	instanceProperties.NetworkInterfaces = networks
 
-	instanceProperties.Scheduling = &compute.Scheduling{
-		AutomaticRestart: d.Get("automatic_restart").(bool),
-	}
+	instanceProperties.Scheduling = &compute.Scheduling{}
 	instanceProperties.Scheduling.OnHostMaintenance = "MIGRATE"
+
+	if v, ok := d.GetOk("automatic_restart"); ok {
+		instanceProperties.Scheduling.AutomaticRestart = v.(bool)
+	}
+
 	if v, ok := d.GetOk("on_host_maintenance"); ok {
 		instanceProperties.Scheduling.OnHostMaintenance = v.(string)
 	}
+
+	if v, ok := d.GetOk("scheduling"); ok {
+		_schedulings := v.([]interface{})
+		if len(_schedulings) > 1 {
+			return fmt.Errorf("Error, at most one `scheduling` block can be defined")
+		}
+		_scheduling := _schedulings[0].(map[string]interface{})
+
+		if vp, okp := _scheduling["automatic_restart"]; okp {
+			instanceProperties.Scheduling.AutomaticRestart = vp.(bool)
+		}
+
+		if vp, okp := _scheduling["on_host_maintenance"]; okp {
+			instanceProperties.Scheduling.OnHostMaintenance = vp.(string)
+		}
+
+		if vp, okp := _scheduling["preemptible"]; okp {
+			instanceProperties.Scheduling.Preemptible = vp.(bool)
+		}
+	}
+
 
 	serviceAccountsCount := d.Get("service_account.#").(int)
 	serviceAccounts := make([]*compute.ServiceAccount, 0, serviceAccountsCount)

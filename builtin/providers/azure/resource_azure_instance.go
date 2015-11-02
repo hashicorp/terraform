@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
@@ -14,13 +15,16 @@ import (
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachineimage"
 	"github.com/Azure/azure-sdk-for-go/management/vmutils"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 const (
-	linux                = "Linux"
-	windows              = "Windows"
-	osDiskBlobStorageURL = "http://%s.blob.core.windows.net/vhds/%s.vhd"
+	linux                 = "Linux"
+	windows               = "Windows"
+	storageContainterName = "vhds"
+	osDiskBlobNameFormat  = "%s.vhd"
+	osDiskBlobStorageURL  = "http://%s.blob.core.windows.net/" + storageContainterName + "/" + osDiskBlobNameFormat
 )
 
 func resourceAzureInstance() *schema.Resource {
@@ -42,6 +46,16 @@ func resourceAzureInstance() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			// in order to prevent an unintentional delete of a containing
+			// hosted service in the case the same name are given to both the
+			// service and the instance despite their being created separately,
+			// we must maintain a flag to definitively denote whether this
+			// instance had a hosted service created for it or not:
+			"has_dedicated_service": &schema.Schema{
+				Type:     schema.TypeBool,
+				Computed: true,
 			},
 
 			"description": &schema.Schema{
@@ -234,6 +248,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		// if not provided; just use the name of the instance to create a new one:
 		hostedServiceName = name
 		d.Set("hosted_service_name", hostedServiceName)
+		d.Set("has_dedicated_service", true)
 
 		p := hostedservice.CreateHostedServiceParameters{
 			ServiceName:    hostedServiceName,
@@ -560,7 +575,6 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 	azureClient := meta.(*Client)
 	mc := azureClient.mgmtClient
 	vmClient := azureClient.vmClient
-	hostedServiceClient := azureClient.hostedServiceClient
 
 	name := d.Get("name").(string)
 	hostedServiceName := d.Get("hosted_service_name").(string)
@@ -568,8 +582,9 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Deleting instance: %s", name)
 
 	// check if the instance had a hosted service created especially for it:
-	if name == hostedServiceName {
+	if d.Get("has_dedicated_service").(bool) {
 		// if so; we must delete the associated hosted service as well:
+		hostedServiceClient := azureClient.hostedServiceClient
 		req, err := hostedServiceClient.DeleteHostedService(name, true)
 		if err != nil {
 			return fmt.Errorf("Error deleting instance and hosted service %s: %s", name, err)
@@ -594,7 +609,35 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	return nil
+	log.Printf("[INFO] Waiting for the deletion of instance '%s''s disk blob.", name)
+
+	// in order to avoid `terraform taint`-like scenarios in which the instance
+	// is deleted and re-created so fast the previous storage blob which held
+	// the image doesn't manage to get deleted (despite it being in a
+	// 'deleting' state) and a lease conflict occurs over it, we must ensure
+	// the blob got completely deleted as well:
+	storName := d.Get("storage_service_name").(string)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
+	if err != nil {
+		return err
+	}
+
+	err = resource.Retry(5*time.Minute, func() error {
+		exists, err := blobClient.BlobExists(
+			storageContainterName, fmt.Sprintf(osDiskBlobNameFormat, name),
+		)
+		if err != nil {
+			return resource.RetryError{Err: err}
+		}
+
+		if exists {
+			return fmt.Errorf("Instance '%s''s disk storage blob still exists.", name)
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func resourceAzureEndpointHash(v interface{}) int {
@@ -674,6 +717,7 @@ func retrieveOSImageDetails(
 	label string,
 	name string,
 	storage string) (func(*virtualmachine.Role) error, string, []string, error) {
+
 	imgs, err := osImageClient.ListOSImages()
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("Error retrieving image details: %s", err)

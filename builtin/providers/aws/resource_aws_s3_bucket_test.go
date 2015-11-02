@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -17,6 +18,10 @@ import (
 )
 
 func TestAccAWSS3Bucket_basic(t *testing.T) {
+
+	arnRegexp := regexp.MustCompile(
+		"^arn:aws:s3:::")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -32,6 +37,8 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 						"aws_s3_bucket.bucket", "region", "us-west-2"),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", ""),
+					resource.TestMatchResourceAttr(
+						"aws_s3_bucket.bucket", "arn", arnRegexp),
 				),
 			},
 		},
@@ -182,6 +189,34 @@ func TestAccAWSS3Bucket_Versioning(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketVersioning(
 						"aws_s3_bucket.bucket", s3.BucketVersioningStatusSuspended),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSS3Bucket_Cors(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithCORS,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketCors(
+						"aws_s3_bucket.bucket",
+						[]*s3.CORSRule{
+							&s3.CORSRule{
+								AllowedHeaders: []*string{aws.String("*")},
+								AllowedMethods: []*string{aws.String("PUT"), aws.String("POST")},
+								AllowedOrigins: []*string{aws.String("https://www.example.com")},
+								ExposeHeaders:  []*string{aws.String("x-amz-server-side-encryption"), aws.String("ETag")},
+								MaxAgeSeconds:  aws.Int64(3000),
+							},
+						},
+					),
 				),
 			},
 		},
@@ -370,6 +405,26 @@ func testAccCheckAWSS3BucketVersioning(n string, versioningStatus string) resour
 		return nil
 	}
 }
+func testAccCheckAWSS3BucketCors(n string, corsRules []*s3.CORSRule) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketCors(&s3.GetBucketCorsInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			return fmt.Errorf("GetBucketCors error: %v", err)
+		}
+
+		if !reflect.DeepEqual(out.CORSRules, corsRules) {
+			return fmt.Errorf("bad error cors rule, expected: %v, got %v", corsRules, out.CORSRules)
+		}
+
+		return nil
+	}
+}
 
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
@@ -449,6 +504,20 @@ resource "aws_s3_bucket" "bucket" {
 	acl = "public-read"
 	versioning {
 	  enabled = false
+	}
+}
+`, randInt)
+
+var testAccAWSS3BucketConfigWithCORS = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	cors_rule {
+			allowed_headers = ["*"]
+			allowed_methods = ["PUT","POST"]
+			allowed_origins = ["https://www.example.com"]
+			expose_headers = ["x-amz-server-side-encryption","ETag"]
+			max_age_seconds = 3000
 	}
 }
 `, randInt)

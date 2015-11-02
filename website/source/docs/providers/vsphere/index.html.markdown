@@ -57,3 +57,28 @@ The following arguments are used to configure the vSphere Provider:
   operations. Can also be specified with the `VSPHERE_VCENTER` environment
   variable.
 
+## Acceptance Tests
+
+The vSphere provider's acceptance tests require the above provider
+configuration fields to be set using the documented environment variables.
+
+In addition, the following environment variables are used in tests, and must be set to valid values for your vSphere environment:
+
+ * VSPHERE\_CLUSTER
+ * VSPHERE\_DATACENTER
+ * VSPHERE\_DATASTORE
+ * VSPHERE\_NETWORK\_GATEWAY
+ * VSPHERE\_NETWORK\_IP\_ADDRESS
+ * VSPHERE\_NETWORK\_LABEL
+ * VSPHERE\_NETWORK\_LABEL\_DHCP
+ * VSPHERE\_TEMPLATE
+ * VSPHERE\_VM\_PASSWORD
+
+These are used to set and verify attributes on the `vsphere_virtual_machine`
+resource in tests.
+
+Once all these variables are in place, the tests can be run like this:
+
+```
+make testacc TEST=./builtin/providers/vsphere
+```

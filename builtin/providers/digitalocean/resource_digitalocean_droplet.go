@@ -140,14 +140,17 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 		opts.SSHKeys = make([]godo.DropletCreateSSHKey, 0, sshKeys)
 		for i := 0; i < sshKeys; i++ {
 			key := fmt.Sprintf("ssh_keys.%d", i)
-			id, err := strconv.Atoi(d.Get(key).(string))
-			if err != nil {
-				return err
+			sshKeyRef := d.Get(key).(string)
+
+			var sshKey godo.DropletCreateSSHKey
+			// sshKeyRef can be either an ID or a fingerprint
+			if id, err := strconv.Atoi(sshKeyRef); err == nil {
+				sshKey.ID = id
+			} else {
+				sshKey.Fingerprint = sshKeyRef
 			}
 
-			opts.SSHKeys = append(opts.SSHKeys, godo.DropletCreateSSHKey{
-				ID: id,
-			})
+			opts.SSHKeys = append(opts.SSHKeys, sshKey)
 		}
 	}
 

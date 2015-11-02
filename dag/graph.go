@@ -11,8 +11,8 @@ import (
 type Graph struct {
 	vertices  *Set
 	edges     *Set
-	downEdges map[Vertex]*Set
-	upEdges   map[Vertex]*Set
+	downEdges map[interface{}]*Set
+	upEdges   map[interface{}]*Set
 	once      sync.Once
 }
 
@@ -110,10 +110,10 @@ func (g *Graph) RemoveEdge(edge Edge) {
 	g.edges.Delete(edge)
 
 	// Delete the up/down edges
-	if s, ok := g.downEdges[edge.Source()]; ok {
+	if s, ok := g.downEdges[hashcode(edge.Source())]; ok {
 		s.Delete(edge.Target())
 	}
-	if s, ok := g.upEdges[edge.Target()]; ok {
+	if s, ok := g.upEdges[hashcode(edge.Target())]; ok {
 		s.Delete(edge.Source())
 	}
 }
@@ -121,13 +121,13 @@ func (g *Graph) RemoveEdge(edge Edge) {
 // DownEdges returns the outward edges from the source Vertex v.
 func (g *Graph) DownEdges(v Vertex) *Set {
 	g.once.Do(g.init)
-	return g.downEdges[v]
+	return g.downEdges[hashcode(v)]
 }
 
 // UpEdges returns the inward edges to the destination Vertex v.
 func (g *Graph) UpEdges(v Vertex) *Set {
 	g.once.Do(g.init)
-	return g.upEdges[v]
+	return g.upEdges[hashcode(v)]
 }
 
 // Connect adds an edge with the given source and target. This is safe to
@@ -139,9 +139,11 @@ func (g *Graph) Connect(edge Edge) {
 
 	source := edge.Source()
 	target := edge.Target()
+	sourceCode := hashcode(source)
+	targetCode := hashcode(target)
 
 	// Do we have this already? If so, don't add it again.
-	if s, ok := g.downEdges[source]; ok && s.Include(target) {
+	if s, ok := g.downEdges[sourceCode]; ok && s.Include(target) {
 		return
 	}
 
@@ -149,18 +151,18 @@ func (g *Graph) Connect(edge Edge) {
 	g.edges.Add(edge)
 
 	// Add the down edge
-	s, ok := g.downEdges[source]
+	s, ok := g.downEdges[sourceCode]
 	if !ok {
 		s = new(Set)
-		g.downEdges[source] = s
+		g.downEdges[sourceCode] = s
 	}
 	s.Add(target)
 
 	// Add the up edge
-	s, ok = g.upEdges[target]
+	s, ok = g.upEdges[targetCode]
 	if !ok {
 		s = new(Set)
-		g.upEdges[target] = s
+		g.upEdges[targetCode] = s
 	}
 	s.Add(source)
 }
@@ -184,7 +186,7 @@ func (g *Graph) String() string {
 	// Write each node in order...
 	for _, name := range names {
 		v := mapping[name]
-		targets := g.downEdges[v]
+		targets := g.downEdges[hashcode(v)]
 
 		buf.WriteString(fmt.Sprintf("%s\n", name))
 
@@ -207,8 +209,8 @@ func (g *Graph) String() string {
 func (g *Graph) init() {
 	g.vertices = new(Set)
 	g.edges = new(Set)
-	g.downEdges = make(map[Vertex]*Set)
-	g.upEdges = make(map[Vertex]*Set)
+	g.downEdges = make(map[interface{}]*Set)
+	g.upEdges = make(map[interface{}]*Set)
 }
 
 // VertexName returns the name of a vertex.

@@ -153,6 +153,13 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["dynamodb_endpoint"],
 			},
+
+			"kinesis_endpoint": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["kinesis_endpoint"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -163,11 +170,14 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_group":            resourceAwsAutoscalingGroup(),
 			"aws_autoscaling_notification":     resourceAwsAutoscalingNotification(),
 			"aws_autoscaling_policy":           resourceAwsAutoscalingPolicy(),
+			"aws_cloudformation_stack":         resourceAwsCloudFormationStack(),
+			"aws_cloudtrail":                   resourceAwsCloudTrail(),
 			"aws_cloudwatch_log_group":         resourceAwsCloudWatchLogGroup(),
 			"aws_autoscaling_lifecycle_hook":   resourceAwsAutoscalingLifecycleHook(),
 			"aws_cloudwatch_metric_alarm":      resourceAwsCloudWatchMetricAlarm(),
 			"aws_codedeploy_app":               resourceAwsCodeDeployApp(),
 			"aws_codedeploy_deployment_group":  resourceAwsCodeDeployDeploymentGroup(),
+			"aws_codecommit_repository":        resourceAwsCodeCommitRepository(),
 			"aws_customer_gateway":             resourceAwsCustomerGateway(),
 			"aws_db_instance":                  resourceAwsDbInstance(),
 			"aws_db_parameter_group":           resourceAwsDbParameterGroup(),
@@ -233,6 +243,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_route53_zone_association":     resourceAwsRoute53ZoneAssociation(),
 			"aws_route53_zone":                 resourceAwsRoute53Zone(),
 			"aws_route53_health_check":         resourceAwsRoute53HealthCheck(),
+			"aws_route":                        resourceAwsRoute(),
 			"aws_route_table":                  resourceAwsRouteTable(),
 			"aws_route_table_association":      resourceAwsRouteTableAssociation(),
 			"aws_s3_bucket":                    resourceAwsS3Bucket(),
@@ -281,6 +292,9 @@ func init() {
 
 		"dynamodb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to dynamodb-local.",
+
+		"kinesis_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
+			"It's typically used to connect to kinesalite.",
 	}
 }
 
@@ -292,6 +306,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Region:           d.Get("region").(string),
 		MaxRetries:       d.Get("max_retries").(int),
 		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
+		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {

@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/hashicorp/middleman-hashicorp
-  revision: b152b6436348e8e1f9990436228b25b4c5c6fcb8
+  revision: 15cbda0cf1d963fa71292dee921229e7ee618272
   specs:
-    middleman-hashicorp (0.1.0)
+    middleman-hashicorp (0.2.0)
       bootstrap-sass (~> 3.3)
       builder (~> 3.2)
       less (~> 2.6)
@@ -79,7 +79,7 @@ GEM
     kramdown (1.9.0)
     less (2.6.0)
       commonjs (~> 0.2.7)
-    libv8 (3.16.14.11)
+    libv8 (3.16.14.13)
     listen (3.0.3)
       rb-fsevent (>= 0.9.3)
       rb-inotify (>= 0.9)

@@ -98,7 +98,7 @@ resource "google_compute_forwarding_rule" "fr2_udp4500" {
 }
 
 # Each tunnel is responsible for encrypting and decrypting traffic exiting
-# and leaving it's associated gateway
+# and leaving its associated gateway
 resource "google_compute_vpn_tunnel" "tunnel1" {
     name = "tunnel1"
     region = "${var.region1}"

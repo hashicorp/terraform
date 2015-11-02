@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_instance"
-sidebar_current: "docs-google-resource-instance"
+sidebar_current: "docs-google-compute-instance"
 description: |-
   Manages a VM instance resource within GCE.
 ---
@@ -144,6 +144,17 @@ The `service_account` block supports:
 
 * `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
     short names are supported.
+
+The `scheduling` block supports:
+
+* `preemptible` - (Optional) Is the instance preemptible.
+
+* `on_host_maintenance` - (Optional) Describes maintenance behavior for 
+    the instance. Can be MIGRATE or TERMINATE, for more info, read
+    [here](https://cloud.google.com/compute/docs/instances/setting-instance-scheduling-options)
+
+* `automatic_restart` - (Optional) Specifies if the instance should be
+    restarted if it was terminated by Compute Engine (not a user).
 
 ## Attributes Reference
 
