@@ -96,10 +96,8 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			},
 
 			"placement_group": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeString,
 				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
 			},
 
 			"load_balancers": &schema.Schema{
