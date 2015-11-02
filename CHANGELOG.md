@@ -8,6 +8,9 @@ FEATURES:
   * **New resource: `aws_codecommit_repository`** [GH-3274]
   * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
   * **New resource: `google_sql_database` and `google_sql_database_instance`** [GH-3617]
+  * **New resource: `google_compute_global_address`** [GH-3701]
+  * **New resource: `google_compute_ssl_certificate`** [GH-3723]
+  * **New resource: `google_compute_url_map`** [GH-3722]
 
 IMPROVEMENTS:
 
