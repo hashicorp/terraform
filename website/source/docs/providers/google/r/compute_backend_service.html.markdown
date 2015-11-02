@@ -19,7 +19,7 @@ resource "google_compute_backend_service" "foobar" {
     port_name = "http"
     protocol = "HTTP"
     timeout_sec = 10
-    region = us-central1
+    region = "us-central1"
 
     backend {
         group = "${google_compute_instance_group_manager.foo.instance_group}"
