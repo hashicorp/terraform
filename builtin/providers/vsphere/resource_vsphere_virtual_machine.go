@@ -389,6 +389,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
+	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
 	err = d.Set("network_interface", networkInterfaces)
 	if err != nil {
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
@@ -420,10 +421,12 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("datastore", rootDatastore)
 
 	// Initialize the connection info
-	d.SetConnInfo(map[string]string{
-		"type": "ssh",
-		"host": networkInterfaces[0]["ip_address"].(string),
-	})
+	if len(networkInterfaces) > 0 {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": networkInterfaces[0]["ip_address"].(string),
+		})
+	}
 
 	return nil
 }

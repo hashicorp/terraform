@@ -37,7 +37,7 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 			"port_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "",
+				Computed: true,
 			},
 		},
 	}

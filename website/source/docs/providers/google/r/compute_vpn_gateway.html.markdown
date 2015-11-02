@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_vpn_gateway"
-sidebar_current: "docs-google-resource-vpn-gateway"
+sidebar_current: "docs-google-compute-vpn-gateway"
 description: |-
   Manages a VPN Gateway in the GCE network
 ---

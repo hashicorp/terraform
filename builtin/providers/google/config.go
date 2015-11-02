@@ -10,8 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	// TODO(dcunnin): Use version code from version.go
-	// "github.com/hashicorp/terraform"
+	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
@@ -19,6 +18,7 @@ import (
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/storage/v1"
+	"google.golang.org/api/sqladmin/v1beta4"
 )
 
 // Config is the configuration structure used to instantiate the Google
@@ -32,6 +32,7 @@ type Config struct {
 	clientContainer *container.Service
 	clientDns       *dns.Service
 	clientStorage   *storage.Service
+	clientSqlAdmin  *sqladmin.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -42,7 +43,6 @@ func (c *Config) loadAndValidate() error {
 		"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
 		"https://www.googleapis.com/auth/devstorage.full_control",
 	}
-
 
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
@@ -105,7 +105,7 @@ func (c *Config) loadAndValidate() error {
 		client = conf.Client(oauth2.NoContext)
 
 	} else {
-		log.Printf("[INFO] Authenticating using DefaultClient");
+		log.Printf("[INFO] Authenticating using DefaultClient")
 		err := error(nil)
 		client, err = google.DefaultClient(oauth2.NoContext, clientScopes...)
 		if err != nil {
@@ -113,13 +113,11 @@ func (c *Config) loadAndValidate() error {
 		}
 	}
 
-	// Build UserAgent
-	versionString := "0.0.0"
-	// TODO(dcunnin): Use Terraform's version code from version.go
-	// versionString := main.Version
-	// if main.VersionPrerelease != "" {
-	// 	versionString = fmt.Sprintf("%s-%s", versionString, main.VersionPrerelease)
-	// }
+	versionString := terraform.Version
+	prerelease := terraform.VersionPrerelease
+	if len(prerelease) > 0 {
+		versionString = fmt.Sprintf("%s-%s", versionString, prerelease)
+	}
 	userAgent := fmt.Sprintf(
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 
@@ -152,6 +150,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientStorage.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google SqlAdmin Client...")
+	c.clientSqlAdmin, err = sqladmin.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientSqlAdmin.UserAgent = userAgent
 
 	return nil
 }

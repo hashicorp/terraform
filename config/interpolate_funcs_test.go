@@ -506,6 +506,12 @@ func TestInterpolateFuncLength(t *testing.T) {
 				"5",
 				false,
 			},
+			// Want length 0 if we split an empty string then compact
+			{
+				`${length(compact(split(",", "")))}`,
+				"0",
+				false,
+			},
 		},
 	})
 }

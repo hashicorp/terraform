@@ -182,6 +182,12 @@ func resourceAwsDbInstance() *schema.Resource {
 				},
 			},
 
+			"copy_tags_to_snapshot": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"db_subnet_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -261,6 +267,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("replicate_source_db"); ok {
 		opts := rds.CreateDBInstanceReadReplicaInput{
 			SourceDBInstanceIdentifier: aws.String(v.(string)),
+			CopyTagsToSnapshot:         aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 			DBInstanceClass:            aws.String(d.Get("instance_class").(string)),
 			DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
 			Tags:                       tags,
@@ -347,6 +354,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	} else {
 		opts := rds.CreateDBInstanceInput{
 			AllocatedStorage:     aws.Int64(int64(d.Get("allocated_storage").(int))),
+			CopyTagsToSnapshot:   aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 			DBName:               aws.String(d.Get("name").(string)),
 			DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
 			DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
@@ -467,6 +475,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("engine", v.Engine)
 	d.Set("engine_version", v.EngineVersion)
 	d.Set("allocated_storage", v.AllocatedStorage)
+	d.Set("copy_tags_to_snapshot", v.CopyTagsToSnapshot)
 	d.Set("storage_type", v.StorageType)
 	d.Set("instance_class", v.DBInstanceClass)
 	d.Set("availability_zone", v.AvailabilityZone)
@@ -617,6 +626,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("backup_retention_period") {
 		d.SetPartial("backup_retention_period")
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
+		requestUpdate = true
+	}
+	if d.HasChange("copy_tags_to_snapshot") {
+		d.SetPartial("copy_tags_to_snapshot")
+		req.CopyTagsToSnapshot = aws.Bool(d.Get("copy_tags_to_snapshot").(bool))
 		requestUpdate = true
 	}
 	if d.HasChange("instance_class") {

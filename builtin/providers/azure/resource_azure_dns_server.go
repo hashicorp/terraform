@@ -43,8 +43,8 @@ func resourceAzureDnsServerCreate(d *schema.ResourceData, meta interface{}) erro
 	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	azureClient.mutex.Lock()
-	defer azureClient.mutex.Unlock()
+	azureClient.vnetMutex.Lock()
+	defer azureClient.vnetMutex.Unlock()
 	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		if management.IsResourceNotFoundError(err) {
@@ -124,8 +124,8 @@ func resourceAzureDnsServerUpdate(d *schema.ResourceData, meta interface{}) erro
 	if d.HasChange("dns_address") {
 		log.Println("[DEBUG] DNS server address has changes; updating it on Azure.")
 		log.Println("[INFO] Fetching current network configuration from Azure.")
-		azureClient.mutex.Lock()
-		defer azureClient.mutex.Unlock()
+		azureClient.vnetMutex.Lock()
+		defer azureClient.vnetMutex.Unlock()
 		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
@@ -198,8 +198,8 @@ func resourceAzureDnsServerDelete(d *schema.ResourceData, meta interface{}) erro
 	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	azureClient.mutex.Lock()
-	defer azureClient.mutex.Unlock()
+	azureClient.vnetMutex.Lock()
+	defer azureClient.vnetMutex.Unlock()
 	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)

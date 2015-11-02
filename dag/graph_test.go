@@ -1,6 +1,7 @@
 package dag
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -77,6 +78,36 @@ func TestGraph_replaceSelf(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad: %s", actual)
 	}
+}
+
+// This tests that connecting edges works based on custom Hashcode
+// implementations for uniqueness.
+func TestGraph_hashcode(t *testing.T) {
+	var g Graph
+	g.Add(&hashVertex{code: 1})
+	g.Add(&hashVertex{code: 2})
+	g.Add(&hashVertex{code: 3})
+	g.Connect(BasicEdge(
+		&hashVertex{code: 1},
+		&hashVertex{code: 3}))
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphBasicStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
+type hashVertex struct {
+	code interface{}
+}
+
+func (v *hashVertex) Hashcode() interface{} {
+	return v.code
+}
+
+func (v *hashVertex) Name() string {
+	return fmt.Sprintf("%#v", v.code)
 }
 
 const testGraphBasicStr = `
