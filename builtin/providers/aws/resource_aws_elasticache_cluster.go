@@ -373,12 +373,11 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if d.HasChange("snapshot_window") {
-		req.EngineVersion = aws.String(d.Get("snapshot_window").(string))
-		requestUpdate = true
+		req.SnapshotWindow = aws.String(d.Get("snapshot_window").(string))
 	}
 
 	if d.HasChange("snapshot_retention_limit") {
-		req.NumCacheNodes = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
+		req.SnapshotRetentionLimit = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
 	}
 
 	if d.HasChange("num_cache_nodes") {
