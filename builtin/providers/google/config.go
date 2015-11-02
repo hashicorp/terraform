@@ -17,8 +17,8 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
-	"google.golang.org/api/storage/v1"
 	"google.golang.org/api/sqladmin/v1beta4"
+	"google.golang.org/api/storage/v1"
 )
 
 // Config is the configuration structure used to instantiate the Google

@@ -159,17 +159,17 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 			},
 
 			"automatic_restart": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-				ForceNew: true,
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    true,
+				ForceNew:   true,
 				Deprecated: "Please use `scheduling.automatic_restart` instead",
 			},
 
 			"on_host_maintenance": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
 				Deprecated: "Please use `scheduling.on_host_maintenance` instead",
 			},
 
@@ -412,7 +412,6 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 			instanceProperties.Scheduling.Preemptible = vp.(bool)
 		}
 	}
-
 
 	serviceAccountsCount := d.Get("service_account.#").(int)
 	serviceAccounts := make([]*compute.ServiceAccount, 0, serviceAccountsCount)
