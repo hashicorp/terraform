@@ -89,14 +89,19 @@ func resourceVcdFirewallRulesCreate(d *schema.ResourceData, meta interface{}) er
 	defer vcd_client.Mutex.Unlock()
 
 	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
-
-	firewallRules, _ := expandFirewallRules(d.Get("rule").(*schema.Set).List(), edgeGateway.EdgeGateway)
-
-	task, err := edgeGateway.CreateFirewallRules(d.Get("default_action").(string), firewallRules)
 	if err != nil {
-		return fmt.Errorf("Error setting firewall rules: %#v", err)
+		return fmt.Errorf("Unable to find edge gateway: %s", err)
 	}
-	err = task.WaitTaskCompletion()
+
+	err = retryCall(5, func() error {
+		edgeGateway.Refresh()
+		firewallRules, _ := expandFirewallRules(d.Get("rule").(*schema.Set).List(), edgeGateway.EdgeGateway)
+		task, err := edgeGateway.CreateFirewallRules(d.Get("default_action").(string), firewallRules)
+		if err != nil {
+			return fmt.Errorf("Error setting firewall rules: %#v", err)
+		}
+		return task.WaitTaskCompletion()
+	})
 	if err != nil {
 		return fmt.Errorf("Error completing tasks: %#v", err)
 	}
