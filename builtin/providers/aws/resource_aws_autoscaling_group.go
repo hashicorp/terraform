@@ -180,9 +180,8 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.HealthCheckGracePeriod = aws.Int64(int64(v.(int)))
 	}
 
-	if v, ok := d.GetOk("placement_group"); ok && v.(*schema.Set).Len() > 0 {
-		autoScalingGroupOpts.PlacementGroup = expandStringList(
-			v.(*schema.Set).List())
+	if v, ok := d.GetOk("placement_group"); ok {
+		autoScalingGroupOpts.PlacementGroup = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
