@@ -36,7 +36,7 @@ The following arguments are supported:
 
 * `allocated_storage` - (Required) The allocated storage in gigabytes.
 * `engine` - (Required) The database engine to use.
-* `engine_version` - (Required) The engine version to use.
+* `engine_version` - (Optional) The engine version to use.
 * `identifier` - (Required) The name of the RDS instance
 * `instance_class` - (Required) The instance type of the RDS instance.
 * `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general

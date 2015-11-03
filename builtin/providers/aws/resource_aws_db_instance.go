@@ -54,7 +54,7 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"engine_version": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 
 			"storage_encrypted": &schema.Schema{

@@ -49,6 +49,25 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_withoutEngineVersion(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBInstanceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBInstanceReplica(t *testing.T) {
 	var s, r rds.DBInstance
 
@@ -186,6 +205,28 @@ resource "aws_db_instance" "bar" {
 
 	# Maintenance Window is stored in lower case in the API, though not strictly 
 	# documented. Terraform will downcase this to match (as opposed to throw a 
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
+	backup_retention_period = 0
+
+	parameter_group_name = "default.mysql5.6"
+}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
+var testAccAWSDBInstanceConfig_withoutEngineVersion = fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+	identifier = "foobarbaz-test-terraform-%d"
+
+	allocated_storage = 10
+	engine = "MySQL"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+
+
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
 	# validation error).
 	maintenance_window = "Fri:09:00-Fri:09:30"
 
