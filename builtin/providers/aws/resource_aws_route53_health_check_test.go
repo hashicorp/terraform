@@ -40,6 +40,22 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53HealthCheck_withChildHealthChecks(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckConfig_withChildHealthChecks,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute53HealthCheck_IpConfig(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -167,6 +183,27 @@ resource "aws_route53_health_check" "bar" {
 
   tags = {
     Name = "tf-test-health-check"
+   }
+}
+`
+
+const testAccRoute53HealthCheckConfig_withChildHealthChecks = `
+resource "aws_route53_health_check" "child1" {
+  fqdn = "child1.notexample.com"
+  port = 80
+  type = "HTTP"
+  resource_path = "/"
+  failure_threshold = "2"
+  request_interval = "30"
+}
+
+resource "aws_route53_health_check" "foo" {
+  type = "CALCULATED"
+  child_health_threshold = 1
+  child_healthchecks = ["${aws_route53_health_check.child1.id}"]
+
+  tags = {
+    Name = "tf-test-calculated-health-check"
    }
 }
 `
