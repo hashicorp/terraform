@@ -47,6 +47,7 @@ BUG FIXES:
   * provider/vsphere: Fix d.SetConnInfo error in case of a missing IP address [GH-3636]
   * provider/openstack: Fix boot from volume [GH-3206]
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
+  * provider/openstack: Better handling of network resource state changes [GH-3712]
 
 ## 0.6.6 (October 23, 2015)
 
