@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -24,6 +25,9 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToUpper(val.(string))
+				},
 			},
 			"failure_threshold": &schema.Schema{
 				Type:     schema.TypeInt,
