@@ -172,6 +172,12 @@ func resourceDockerContainer() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"labels": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"memory": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,

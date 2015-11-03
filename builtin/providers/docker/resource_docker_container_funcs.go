@@ -82,6 +82,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Volumes = volumes
 	}
 
+	if v, ok := d.GetOk("labels"); ok {
+		createOpts.Config.Labels = mapLabels(v.(map[string]interface{}))
+	}
+
 	var retContainer *dc.Container
 	if retContainer, err = client.CreateContainer(createOpts); err != nil {
 		return fmt.Errorf("Unable to create container: %s", err)
@@ -253,6 +257,14 @@ func stringSetToStringSlice(stringSet *schema.Set) []string {
 		ret = append(ret, envVal.(string))
 	}
 	return ret
+}
+
+func mapLabels(labels map[string]interface{}) map[string]string {
+	mapped := make(map[string]string, len(labels))
+	for k, v := range labels {
+		mapped[k] = v.(string)
+	}
+	return mapped
 }
 
 func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, error) {
