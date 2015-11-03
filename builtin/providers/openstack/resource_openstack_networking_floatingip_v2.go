@@ -3,8 +3,12 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 	"github.com/rackspace/gophercloud/pagination"
@@ -45,7 +49,7 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 
 func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
@@ -62,10 +66,22 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 		PortID:            d.Get("port_id").(string),
 	}
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	floatingIP, err := floatingips.Create(networkClient, createOpts).Extract()
+	floatingIP, err := floatingips.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error allocating floating IP: %s", err)
 	}
+
+	log.Printf("[DEBUG] Waiting for OpenStack Neutron Floating IP (%s) to become available.", floatingIP.ID)
+
+	stateConf := &resource.StateChangeConf{
+		Target:     "ACTIVE",
+		Refresh:    waitForFloatingIPActive(networkingClient, floatingIP.ID),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 
 	d.SetId(floatingIP.ID)
 
@@ -74,12 +90,12 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
 
-	floatingIP, err := floatingips.Get(networkClient, d.Id()).Extract()
+	floatingIP, err := floatingips.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		return CheckDeleted(d, err, "floating IP")
 	}
@@ -97,7 +113,7 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 
 func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
@@ -110,7 +126,7 @@ func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[DEBUG] Update Options: %#v", updateOpts)
 
-	_, err = floatingips.Update(networkClient, d.Id(), updateOpts).Extract()
+	_, err = floatingips.Update(networkingClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating floating IP: %s", err)
 	}
@@ -120,28 +136,38 @@ func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkFloatingIPV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
 
-	err = floatingips.Delete(networkClient, d.Id()).ExtractErr()
-	if err != nil {
-		return fmt.Errorf("Error deleting floating IP: %s", err)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    waitForFloatingIPDelete(networkingClient, d.Id()),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error deleting OpenStack Neutron Floating IP: %s", err)
+	}
+
 	d.SetId("")
 	return nil
 }
 
 func getNetworkID(d *schema.ResourceData, meta interface{}, networkName string) (string, error) {
 	config := meta.(*Config)
-	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return "", fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
 
 	opts := networks.ListOpts{Name: networkName}
-	pager := networks.List(networkClient, opts)
+	pager := networks.List(networkingClient, opts)
 	networkID := ""
 
 	err = pager.EachPage(func(page pagination.Page) (bool, error) {
@@ -165,13 +191,13 @@ func getNetworkID(d *schema.ResourceData, meta interface{}, networkName string) 
 
 func getNetworkName(d *schema.ResourceData, meta interface{}, networkID string) (string, error) {
 	config := meta.(*Config)
-	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return "", fmt.Errorf("Error creating OpenStack network client: %s", err)
 	}
 
 	opts := networks.ListOpts{ID: networkID}
-	pager := networks.List(networkClient, opts)
+	pager := networks.List(networkingClient, opts)
 	networkName := ""
 
 	err = pager.EachPage(func(page pagination.Page) (bool, error) {
@@ -191,4 +217,53 @@ func getNetworkName(d *schema.ResourceData, meta interface{}, networkID string) 
 	})
 
 	return networkName, err
+}
+
+func waitForFloatingIPActive(networkingClient *gophercloud.ServiceClient, fId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		f, err := floatingips.Get(networkingClient, fId).Extract()
+		if err != nil {
+			return nil, "", err
+		}
+
+		log.Printf("[DEBUG] OpenStack Neutron Floating IP: %+v", f)
+		if f.Status == "DOWN" || f.Status == "ACTIVE" {
+			return f, "ACTIVE", nil
+		}
+
+		return f, "", nil
+	}
+}
+
+func waitForFloatingIPDelete(networkingClient *gophercloud.ServiceClient, fId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete OpenStack Floating IP %s.\n", fId)
+
+		f, err := floatingips.Get(networkingClient, fId).Extract()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return f, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
+				return f, "DELETED", nil
+			}
+		}
+
+		err = floatingips.Delete(networkingClient, fId).ExtractErr()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return f, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
+				return f, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Floating IP %s still active.\n", fId)
+		return f, "ACTIVE", nil
+	}
 }

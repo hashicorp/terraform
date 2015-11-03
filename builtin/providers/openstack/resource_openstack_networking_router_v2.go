@@ -3,8 +3,11 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 )
@@ -81,6 +84,18 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	}
 	log.Printf("[INFO] Router ID: %s", n.ID)
 
+	log.Printf("[DEBUG] Waiting for OpenStack Neutron Router (%s) to become available", n.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"BUILD", "PENDING_CREATE", "PENDING_UPDATE"},
+		Target:     "ACTIVE",
+		Refresh:    waitForRouterActive(networkingClient, n.ID),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+
 	d.SetId(n.ID)
 
 	return resourceNetworkingRouterV2Read(d, meta)
@@ -150,11 +165,65 @@ func resourceNetworkingRouterV2Delete(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = routers.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    waitForRouterDelete(networkingClient, d.Id()),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Router: %s", err)
 	}
 
 	d.SetId("")
 	return nil
+}
+
+func waitForRouterActive(networkingClient *gophercloud.ServiceClient, routerId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		r, err := routers.Get(networkingClient, routerId).Extract()
+		if err != nil {
+			return nil, r.Status, err
+		}
+
+		log.Printf("[DEBUG] OpenStack Neutron Router: %+v", r)
+		return r, r.Status, nil
+	}
+}
+
+func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete OpenStack Router %s.\n", routerId)
+
+		r, err := routers.Get(networkingClient, routerId).Extract()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return r, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Router %s", routerId)
+				return r, "DELETED", nil
+			}
+		}
+
+		err = routers.Delete(networkingClient, routerId).ExtractErr()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return r, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack Router %s", routerId)
+				return r, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack Router %s still active.\n", routerId)
+		return r, "ACTIVE", nil
+	}
 }
