@@ -287,7 +287,9 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
+		log.Printf("[INFO] Found %s as the Snapshow Window", *c.SnapshotWindow)
 		d.Set("snapshot_window", c.SnapshotWindow)
+		log.Printf("[INFO] Found %d as the Snapshow Retention Limit", *c.SnapshotRetentionLimit)
 		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
 		if c.NotificationConfiguration != nil {
 			if *c.NotificationConfiguration.TopicStatus == "active" {
