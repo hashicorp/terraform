@@ -27,6 +27,7 @@ IMPROVEMENTS:
   * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
   * provider/aws: Apply security group after restoring db_instance from snapshot [GH-3513]
   * provider/aws: Making the AutoScalingGroup name optional [GH-3710]
+  * provider/openstack: Add "delete on termination" boot-from-volume option [GH-3232]
 
 BUG FIXES:
 
@@ -44,6 +45,8 @@ BUG FIXES:
   * provider/openstack: Safely delete security groups [GH-3696]
   * provider/openstack: Ignore order of security_groups in instance [GH-3651]
   * provider/vsphere: Fix d.SetConnInfo error in case of a missing IP address [GH-3636]
+  * provider/openstack: Fix boot from volume [GH-3206]
+  * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
 
 ## 0.6.6 (October 23, 2015)
 
