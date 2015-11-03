@@ -58,9 +58,9 @@ func resourceComputeSslCertificateCreate(d *schema.ResourceData, meta interface{
 
 	// Build the certificate parameter
 	cert := &compute.SslCertificate{
-		Name: d.Get("name").(string),
+		Name:        d.Get("name").(string),
 		Certificate: d.Get("certificate").(string),
-		PrivateKey: d.Get("private_key").(string),
+		PrivateKey:  d.Get("private_key").(string),
 	}
 
 	if v, ok := d.GetOk("description"); ok {
