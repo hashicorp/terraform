@@ -11,6 +11,8 @@ FEATURES:
   * **New resource: `google_compute_global_address`** [GH-3701]
   * **New resource: `google_compute_ssl_certificate`** [GH-3723]
   * **New resource: `google_compute_url_map`** [GH-3722]
+  * **New resource: `google_compute_target_http_proxy`** [GH-3727]
+  * **New resource: `google_compute_target_https_proxy`** [GH-3728]
   * **New resource: `openstack_networking_port_v2`** [GH-3731]
 
 IMPROVEMENTS:
