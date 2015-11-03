@@ -36,6 +36,8 @@ The following arguments are supported:
 * `request_interval` - (Required) The number of seconds between the time that Amazon Route 53 gets a response from your endpoint and the time that it sends the next health-check request.
 * `resource_path` - (Optional) The path that you want Amazon Route 53 to request when performing health checks.
 * `search_string` - (Optional) String searched in respoonse body for check to considered healthy.
+* `measure_latency` - (Optional) A Boolean value that indicates whether you want Route 53 to measure the latency between health checkers in multiple AWS regions and your endpoint and to display CloudWatch latency graphs in the Route 53 console.
+* `invert_healthcheck` - (Optional) A boolean value that indicates whether the status of health check should be inverted. For example, if a health check is healthy but Inverted is True , then Route 53 considers the health check to be unhealthy.
 * `tags` - (Optional) A mapping of tags to assign to the health check.
 
 Exactly one of `fqdn` or `ip_address` must be specified.

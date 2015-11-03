@@ -47,14 +47,26 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Optional: true,
 			},
 
+			"measure_latency": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"invert_healthcheck": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"resource_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
 			"search_string": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -83,8 +95,8 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 		updateHealthCheck.ResourcePath = aws.String(d.Get("resource_path").(string))
 	}
 
-	if d.HasChange("search_string") {
-		updateHealthCheck.SearchString = aws.String(d.Get("search_string").(string))
+	if d.HasChange("invert_healthcheck") {
+		updateHealthCheck.Inverted = aws.Bool(d.Get("invert_healthcheck").(bool))
 	}
 
 	_, err := conn.UpdateHealthCheck(updateHealthCheck)
@@ -126,6 +138,14 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("resource_path"); ok {
 		healthConfig.ResourcePath = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("measure_latency"); ok {
+		healthConfig.MeasureLatency = aws.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("invert_healthcheck"); ok {
+		healthConfig.Inverted = aws.Bool(v.(bool))
 	}
 
 	input := &route53.CreateHealthCheckInput{
@@ -174,6 +194,8 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("ip_address", updated.IPAddress)
 	d.Set("port", updated.Port)
 	d.Set("resource_path", updated.ResourcePath)
+	d.Set("measure_latency", updated.MeasureLatency)
+	d.Set("invent_healthcheck", updated.Inverted)
 
 	// read the tags
 	req := &route53.ListTagsForResourceInput{
@@ -208,4 +230,13 @@ func resourceAwsRoute53HealthCheckDelete(d *schema.ResourceData, meta interface{
 	}
 
 	return nil
+}
+
+func createChildHealthCheckList(s *schema.Set) (nl []*string) {
+	l := s.List()
+	for _, n := range l {
+		nl = append(nl, aws.String(n.(string)))
+	}
+
+	return nl
 }

@@ -20,6 +20,10 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 				Config: testAccRoute53HealthCheckConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "measure_latency", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "invert_healthcheck", "true"),
 				),
 			},
 			resource.TestStep{
@@ -28,6 +32,8 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
 					resource.TestCheckResourceAttr(
 						"aws_route53_health_check.foo", "failure_threshold", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "invert_healthcheck", "false"),
 				),
 			},
 		},
@@ -124,6 +130,8 @@ resource "aws_route53_health_check" "foo" {
   resource_path = "/"
   failure_threshold = "2"
   request_interval = "30"
+  measure_latency = true
+  invert_healthcheck = true
 
   tags = {
     Name = "tf-test-health-check"
@@ -139,6 +147,8 @@ resource "aws_route53_health_check" "foo" {
   resource_path = "/"
   failure_threshold = "5"
   request_interval = "30"
+  measure_latency = true
+  invert_healthcheck = false
 
   tags = {
     Name = "tf-test-health-check"
