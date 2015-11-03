@@ -44,6 +44,7 @@ The following arguments are supported:
     `["/usr/bin/myprogram"]`.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
+* `labels` - (Optional) Key/value pairs to set as labels on the container.
 * `links` - (Optional, set of strings) Set of links for link based
   connectivity between containers that are running on the same host.
 * `hostname` - (Optional, string) Hostname of the container.

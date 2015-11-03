@@ -55,6 +55,11 @@ func TestAccDockerContainer_customized(t *testing.T) {
 		if c.HostConfig.CPUShares != 512 {
 			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
 		}
+
+		if c.Config.Labels["env"] != "prod" || c.Config.Labels["role"] != "test" {
+			return fmt.Errorf("Container does not have the correct labels")
+		}
+
 		return nil
 	}
 
@@ -129,5 +134,9 @@ resource "docker_container" "foo" {
   memory = 128
   memory_swap = 128
   cpu_shares = 512
+  labels {
+    env = "prod"
+    role = "test"
+  }
 }
 `
