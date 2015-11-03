@@ -41,19 +41,19 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 }
 
 func TestAccAWSRoute53HealthCheck_withChildHealthChecks(t *testing.T) {
-        resource.Test(t, resource.TestCase{
-                PreCheck:     func() { testAccPreCheck(t) },
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccRoute53HealthCheckConfig_withChildHealthChecks,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
-                                ),
-                        },
-                },
-        })
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckConfig_withChildHealthChecks,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+				),
+			},
+		},
+	})
 }
 
 func TestAccAWSRoute53HealthCheck_IpConfig(t *testing.T) {
