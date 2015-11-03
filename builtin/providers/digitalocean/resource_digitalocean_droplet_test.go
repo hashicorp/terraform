@@ -71,6 +71,36 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
+	var droplet godo.Droplet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletAttributes(&droplet),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_userdata_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar",
+						"user_data",
+						"foobar foobar"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
 	var droplet godo.Droplet
 
@@ -258,6 +288,16 @@ resource "digitalocean_droplet" "foobar" {
     image = "centos-5-8-x32"
     region = "nyc3"
     user_data  = "foobar"
+}
+`
+
+const testAccCheckDigitalOceanDropletConfig_userdata_update = `
+resource "digitalocean_droplet" "foobar" {
+    name = "foo"
+    size = "512mb"
+    image = "centos-5-8-x32"
+    region = "nyc3"
+    user_data  = "foobar foobar"
 }
 `
 

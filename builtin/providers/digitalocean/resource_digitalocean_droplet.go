@@ -100,6 +100,7 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 			"user_data": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
