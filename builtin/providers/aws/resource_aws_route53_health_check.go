@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -26,11 +27,11 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 			},
 			"failure_threshold": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
 			},
 			"request_interval": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
 				ForceNew: true, // todo this should be updateable but the awslabs route53 service doesnt have the ability
 			},
 			"ip_address": &schema.Schema{
@@ -68,6 +69,25 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"child_healthchecks": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				Set:      schema.HashString,
+			},
+			"child_health_threshold": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value > 256 {
+						es = append(es, fmt.Errorf(
+							"Child HealthThreshold cannot be more than 256"))
+					}
+					return
+				},
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -100,6 +120,14 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 		updateHealthCheck.Inverted = aws.Bool(d.Get("invert_healthcheck").(bool))
 	}
 
+	if d.HasChange("child_healthchecks") {
+		updateHealthCheck.ChildHealthChecks = expandStringList(d.Get("child_healthchecks").(*schema.Set).List())
+
+	}
+	if d.HasChange("child_health_threshold") {
+		updateHealthCheck.HealthThreshold = aws.Int64(int64(d.Get("child_health_threshold").(int)))
+	}
+
 	_, err := conn.UpdateHealthCheck(updateHealthCheck)
 	if err != nil {
 		return err
@@ -116,9 +144,15 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).r53conn
 
 	healthConfig := &route53.HealthCheckConfig{
-		Type:             aws.String(d.Get("type").(string)),
-		FailureThreshold: aws.Int64(int64(d.Get("failure_threshold").(int))),
-		RequestInterval:  aws.Int64(int64(d.Get("request_interval").(int))),
+		Type: aws.String(d.Get("type").(string)),
+	}
+
+	if v, ok := d.GetOk("request_interval"); ok {
+		healthConfig.RequestInterval = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("failure_threshold"); ok {
+		healthConfig.FailureThreshold = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("fqdn"); ok {
@@ -209,6 +243,8 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("resource_path", updated.ResourcePath)
 	d.Set("measure_latency", updated.MeasureLatency)
 	d.Set("invent_healthcheck", updated.Inverted)
+	d.Set("child_healthchecks", updated.ChildHealthChecks)
+	d.Set("child_health_threshold", updated.HealthThreshold)
 
 	// read the tags
 	req := &route53.ListTagsForResourceInput{
