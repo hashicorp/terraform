@@ -13,6 +13,7 @@ FEATURES:
   * **New resource: `google_compute_url_map`** [GH-3722]
   * **New resource: `google_compute_target_http_proxy`** [GH-3727]
   * **New resource: `google_compute_target_https_proxy`** [GH-3728]
+  * **New resource: `google_compute_global_forwarding_rule`** [GH-3702]
   * **New resource: `openstack_networking_port_v2`** [GH-3731]
 
 IMPROVEMENTS:
