@@ -84,6 +84,7 @@ func Provider() terraform.ResourceProvider {
 			"openstack_networking_network_v2":          resourceNetworkingNetworkV2(),
 			"openstack_networking_subnet_v2":           resourceNetworkingSubnetV2(),
 			"openstack_networking_floatingip_v2":       resourceNetworkingFloatingIPV2(),
+			"openstack_networking_port_v2":             resourceNetworkingPortV2(),
 			"openstack_networking_router_v2":           resourceNetworkingRouterV2(),
 			"openstack_networking_router_interface_v2": resourceNetworkingRouterInterfaceV2(),
 			"openstack_objectstorage_container_v1":     resourceObjectStorageContainerV1(),
