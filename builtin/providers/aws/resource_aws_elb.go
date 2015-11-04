@@ -106,11 +106,6 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"enabled": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  true,
-						},
 						"interval": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -333,7 +328,11 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
-	d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog))
+	if lbAttrs.AccessLog != nil {
+		if err := d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog)); err != nil {
+			log.Printf("[WARN] Error setting ELB Access Logs for (%s): %s", d.Id(), err)
+		}
+	}
 
 	resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
 		LoadBalancerNames: []*string{lb.LoadBalancerName},
@@ -453,7 +452,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		} else if len(logs) == 1 {
 			log := logs[0].(map[string]interface{})
 			accessLogs := &elb.AccessLog{
-				Enabled:      aws.Bool(log["enabled"].(bool)),
+				Enabled:      aws.Bool(true),
 				EmitInterval: aws.Int64(int64(log["interval"].(int))),
 				S3BucketName: aws.String(log["bucket"].(string)),
 			}
@@ -463,8 +462,14 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			attrs.LoadBalancerAttributes.AccessLog = accessLogs
+		} else if len(logs) == 0 {
+			// disable access logs
+			attrs.LoadBalancerAttributes.AccessLog = &elb.AccessLog{
+				Enabled: aws.Bool(false),
+			}
 		}
 
+		log.Printf("[DEBUG] ELB Modify Load Balancer Attributes Request: %#v", attrs)
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
 			return fmt.Errorf("Failure configuring ELB attributes: %s", err)
@@ -600,7 +605,6 @@ func resourceAwsElbHealthCheckHash(v interface{}) int {
 func resourceAwsElbAccessLogsHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%t-", m["enabled"].(bool)))
 	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-",
 		strings.ToLower(m["bucket"].(string))))
