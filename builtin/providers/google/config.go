@@ -16,9 +16,10 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
-	"google.golang.org/api/pubsub/v1"
 	"google.golang.org/api/sqladmin/v1beta4"
 	"google.golang.org/api/storage/v1"
+	"google.golang.org/api/pubsub/v1"
+	"google.golang.org/api/bigquery/v2"
 )
 
 // Config is the configuration structure used to instantiate the Google
@@ -33,7 +34,8 @@ type Config struct {
 	clientDns       *dns.Service
 	clientStorage   *storage.Service
 	clientSqlAdmin  *sqladmin.Service
-	clientPubsub    *pubsub.Service
+	clientPubsub	*pubsub.Service
+	clientBigQuery  *bigquery.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -136,6 +138,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientPubsub.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google BigQuery Client...")
+	c.clientBigQuery, err = bigquery.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientBigQuery.UserAgent = userAgent
 
 	return nil
 }
