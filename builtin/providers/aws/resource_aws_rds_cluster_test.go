@@ -26,6 +26,12 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 				Config: testAccAWSClusterConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "preferred_backup_window", "07:00-09:00"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "backup_retention_period", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "preferred_maintenance_window", "tue:04:00-tue:04:30"),
 				),
 			},
 		},
@@ -105,4 +111,7 @@ resource "aws_rds_cluster" "default" {
   database_name = "mydb"
   master_username = "foo"
   master_password = "mustbeeightcharaters"
+  backup_retention_period = 5
+  preferred_backup_window = "07:00-09:00"
+  preferred_maintenance_window = "tue:04:00-tue:04:30"
 }`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
