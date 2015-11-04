@@ -15,16 +15,22 @@ func resourceDigitalOceanFloatingIp() *schema.Resource {
 		Delete: resourceDigitalOceanFloatingIpDelete,
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"droplet_id": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -34,9 +40,15 @@ func resourceDigitalOceanFloatingIpCreate(d *schema.ResourceData, meta interface
 	client := meta.(*godo.Client)
 
 	// Build up our creation options
+	opts := &godo.FloatingIPCreateRequest{}
 
-	opts := &godo.FloatingIPCreateRequest{
-		Region: d.Get("region").(string),
+	if v, ok := d.GetOk("droplet_id"); ok {
+		log.Printf("[INFO] Found a droplet_id to try and attach to the FloatingIP")
+		opts.DropletID = v.(int)
+	} else if d.Get("region").(string) != "" {
+		opts.Region = d.Get("region").(string)
+	} else {
+		return fmt.Errorf("You must specify either a Droplet ID or a Region for a FloatingIP")
 	}
 
 	log.Printf("[DEBUG] FloatingIP Create: %#v", opts)
@@ -60,6 +72,7 @@ func resourceDigitalOceanFloatingIpRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("region", floatingIp.Region)
+	d.Set("ip_address", floatingIp.IP)
 
 	return nil
 }
