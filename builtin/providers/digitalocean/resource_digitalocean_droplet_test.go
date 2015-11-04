@@ -72,7 +72,7 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 }
 
 func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
-	var droplet godo.Droplet
+	var afterCreate, afterUpdate godo.Droplet
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -82,19 +82,21 @@ func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
-					testAccCheckDigitalOceanDropletAttributes(&droplet),
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
+					testAccCheckDigitalOceanDropletAttributes(&afterCreate),
 				),
 			},
 
 			resource.TestStep{
 				Config: testAccCheckDigitalOceanDropletConfig_userdata_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar",
 						"user_data",
 						"foobar foobar"),
+					testAccCheckDigitalOceanDropletRecreated(
+						t, &afterCreate, &afterUpdate),
 				),
 			},
 		},
@@ -259,6 +261,16 @@ func testAccCheckDigitalOceanDropletExists(n string, droplet *godo.Droplet) reso
 
 		*droplet = *retrieveDroplet
 
+		return nil
+	}
+}
+
+func testAccCheckDigitalOceanDropletRecreated(t *testing.T,
+	before, after *godo.Droplet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if before.ID == after.ID {
+			t.Fatalf("Expected change of droplet IDs, but both were %v", before.ID)
+		}
 		return nil
 	}
 }
