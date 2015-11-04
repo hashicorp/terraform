@@ -60,6 +60,18 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container does not have the correct labels")
 		}
 
+		if c.HostConfig.LogConfig.Type != "json-file" {
+			return fmt.Errorf("Container does not have the correct log config: %s", c.HostConfig.LogConfig.Type)
+		}
+
+		if c.HostConfig.LogConfig.Config["max-size"] != "10m" {
+			return fmt.Errorf("Container does not have the correct max-size log option: %v", c.HostConfig.LogConfig.Config["max-size"])
+		}
+
+		if c.HostConfig.LogConfig.Config["max-file"] != "20" {
+			return fmt.Errorf("Container does not have the correct max-file log option: %v", c.HostConfig.LogConfig.Config["max-file"])
+		}
+
 		return nil
 	}
 
@@ -138,5 +150,10 @@ resource "docker_container" "foo" {
     env = "prod"
     role = "test"
   }
+  log_driver = "json-file"
+  log_opts = {
+    max-size = "10m"
+    max-file = 20
+	}
 }
 `

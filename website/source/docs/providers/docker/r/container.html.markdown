@@ -64,6 +64,10 @@ The following arguments are supported:
 * `memory_swap` - (Optional, int) The total memory limit (memory + swap) for the
   container in MBs.
 * `cpu_shares` - (Optional, int) CPU shares (relative weight) for the container.
+* `log_driver` - (Optional, string) The logging driver to use for the container.
+  Defaults to "json-file".
+* `log_opts` - (Optional) Key/value pairs to use as options for the logging
+  driver.
 
 <a id="ports"></a>
 ## Ports
