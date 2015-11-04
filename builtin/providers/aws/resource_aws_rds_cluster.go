@@ -310,12 +310,12 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		req.PreferredBackupWindow = aws.String(d.Get("preferred_backup_window").(string))
 	}
 
-	if d.HasChange("preferred_maintaince_window") {
-		req.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintaince_window").(string))
+	if d.HasChange("preferred_maintenance_window") {
+		req.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
 	}
 
-	if d.HasChange("backup_retention_limit") {
-		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_limit").(int)))
+	if d.HasChange("backup_retention_period") {
+		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
 	}
 
 	_, err := conn.ModifyDBCluster(req)

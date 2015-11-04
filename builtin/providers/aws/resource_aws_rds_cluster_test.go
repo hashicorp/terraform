@@ -17,13 +17,16 @@ import (
 func TestAccAWSRDSCluster_basic(t *testing.T) {
 	var v rds.DBCluster
 
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	config := fmt.Sprintf(testAccAWSClusterConfig, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSClusterConfig,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
@@ -32,6 +35,47 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 						"aws_rds_cluster.default", "backup_retention_period", "5"),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster.default", "preferred_maintenance_window", "tue:04:00-tue:04:30"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSCluster_update(t *testing.T) {
+	var v rds.DBCluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSClusterConfig, ri)
+	postConfig := fmt.Sprintf(testAccAWSClusterConfig_update, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "preferred_backup_window", "07:00-09:00"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "backup_retention_period", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "preferred_maintenance_window", "tue:04:00-tue:04:30"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "preferred_backup_window", "03:00-09:00"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "backup_retention_period", "10"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "preferred_maintenance_window", "wed:01:00-wed:01:30"),
 				),
 			},
 		},
@@ -104,7 +148,7 @@ func testAccCheckAWSClusterExists(n string, v *rds.DBCluster) resource.TestCheck
 }
 
 // Add some random to the name, to avoid collision
-var testAccAWSClusterConfig = fmt.Sprintf(`
+var testAccAWSClusterConfig = `
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "tf-aurora-cluster-%d"
   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
@@ -114,4 +158,18 @@ resource "aws_rds_cluster" "default" {
   backup_retention_period = 5
   preferred_backup_window = "07:00-09:00"
   preferred_maintenance_window = "tue:04:00-tue:04:30"
-}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+}`
+
+// Add some random to the name, to avoid collision
+var testAccAWSClusterConfig_update = `
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  database_name = "mydb"
+  master_username = "foo"
+  master_password = "mustbeeightcharaters"
+  backup_retention_period = 10
+  preferred_backup_window = "03:00-09:00"
+  preferred_maintenance_window = "wed:01:00-wed:01:30"
+  apply_immediately = true
+}`
