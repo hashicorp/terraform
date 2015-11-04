@@ -239,12 +239,23 @@ func flattenAccessLog(log *elb.AccessLog) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
 	if log != nil {
-		result = append(result, map[string]interface{}{
-			"enabled":       *log.Enabled,
-			"interval":      *log.EmitInterval,
-			"bucket":        *log.S3BucketName,
-			"bucket_prefix": *log.S3BucketPrefix,
-		})
+		r := make(map[string]interface{})
+		// enabled is the only value we can rely on to not be nil
+		r["enabled"] = *log.Enabled
+
+		if log.S3BucketName != nil {
+			r["bucket"] = *log.S3BucketName
+		}
+
+		if log.S3BucketPrefix != nil {
+			r["bucket_prefix"] = *log.S3BucketPrefix
+		}
+
+		if log.EmitInterval != nil {
+			r["interval"] = *log.EmitInterval
+		}
+
+		result = append(result, r)
 	}
 
 	return result
