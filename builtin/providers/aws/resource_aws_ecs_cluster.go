@@ -70,6 +70,40 @@ func resourceAwsEcsClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Deleting ECS cluster %s", d.Id())
 
+	clusterName := d.Get("name").(string)
+
+
+	servicesOut, servicesErr := conn.ListServices(&ecs.ListServicesInput{
+		Cluster:    aws.String(clusterName),
+	})
+	if servicesErr != nil {
+		return servicesErr
+	}
+
+	for _, serviceArn := range servicesOut.ServiceArns {
+		updateInput := ecs.UpdateServiceInput{
+			Service: aws.String(*serviceArn),
+			Cluster: aws.String(clusterName),
+			DesiredCount: aws.Int64(int64(0)),
+		}
+		_, updateErr := conn.UpdateService(&updateInput)
+		if updateErr != nil {
+			return updateErr
+		}
+		log.Printf("[DEBUG] Set DesiredCount to 0 for service %s", *serviceArn)
+
+		deleteInput := ecs.DeleteServiceInput{
+			Service: aws.String(*serviceArn),
+			Cluster: aws.String(clusterName),
+		}
+
+		_, deleteErr := conn.DeleteService(&deleteInput)
+		if deleteErr != nil {
+			return deleteErr
+		}
+		log.Printf("[DEBUG] Delete found service %s", *serviceArn)
+	}
+
 	return resource.Retry(10*time.Minute, func() error {
 		out, err := conn.DeleteCluster(&ecs.DeleteClusterInput{
 			Cluster: aws.String(d.Id()),
