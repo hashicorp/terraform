@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"strings"
 )
 
 func stringHashcode(v interface{}) int {
@@ -285,9 +286,10 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
+			id := d.Id()
 			d.SetId("")
 
-			return nil, fmt.Errorf("Resource %s no longer exists", config.Project)
+			return nil, fmt.Errorf("Resource %s no longer exists", id)
 		}
 
 		return nil, fmt.Errorf("Error reading instance: %s", err)
@@ -549,6 +551,9 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 
 	instance, err := getInstance(config, d)
 	if err != nil {
+		if strings.Contains(err.Error(), "no longer exists") {
+			return nil
+		}
 		return err
 	}
 
