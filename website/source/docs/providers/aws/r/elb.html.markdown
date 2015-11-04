@@ -19,7 +19,6 @@ resource "aws_elb" "bar" {
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   access_logs {
-    enabled = true
     bucket = "foo"
     bucket_prefix = "bar"
     interval = 60
@@ -86,7 +85,6 @@ Access Logs support the following:
 
 * `bucket` - (Required) The S3 bucket name to store the logs in.
 * `bucket_prefix` - (Optional) The S3 bucket prefix. Logs are stored in the root if not configured.
-* `enabled` - (Optional) Whether capturing access logs is enabled. Default: true.
 * `interval` - (Optional) The publishing interval in minutes. Default: 60 minutes.
 
 Listeners support the following:
