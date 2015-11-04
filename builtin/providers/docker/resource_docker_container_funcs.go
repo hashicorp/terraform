@@ -83,7 +83,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if v, ok := d.GetOk("labels"); ok {
-		createOpts.Config.Labels = mapLabels(v.(map[string]interface{}))
+		createOpts.Config.Labels = mapTypeMapValsToString(v.(map[string]interface{}))
 	}
 
 	var retContainer *dc.Container
@@ -102,6 +102,9 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		RestartPolicy: dc.RestartPolicy{
 			Name:              d.Get("restart").(string),
 			MaximumRetryCount: d.Get("max_retry_count").(int),
+		},
+		LogConfig: dc.LogConfig{
+			Type: d.Get("log_driver").(string),
 		},
 	}
 
@@ -146,6 +149,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		if shares > 0 {
 			hostConfig.CPUShares = shares
 		}
+	}
+
+	if v, ok := d.GetOk("log_opts"); ok {
+		hostConfig.LogConfig.Config = mapTypeMapValsToString(v.(map[string]interface{}))
 	}
 
 	creationTime = time.Now()
@@ -259,9 +266,9 @@ func stringSetToStringSlice(stringSet *schema.Set) []string {
 	return ret
 }
 
-func mapLabels(labels map[string]interface{}) map[string]string {
-	mapped := make(map[string]string, len(labels))
-	for k, v := range labels {
+func mapTypeMapValsToString(typeMap map[string]interface{}) map[string]string {
+	mapped := make(map[string]string, len(typeMap))
+	for k, v := range typeMap {
 		mapped[k] = v.(string)
 	}
 	return mapped
