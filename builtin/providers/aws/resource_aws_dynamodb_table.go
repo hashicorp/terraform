@@ -53,6 +53,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			"only_scale_up": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"attribute": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -183,6 +187,9 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] DynamoDB table create: %s", name)
 
+	only_scale_up := d.Get("only_scale_up").(bool)
+	log.Printf("[DEBUG] only_scale_up flag create %v", only_scale_up)
+
 	throughput := &dynamodb.ProvisionedThroughput{
 		ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
 		WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
@@ -307,6 +314,21 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
+func getConditionallyScalingCapacity(d *schema.ResourceData, key string) (int, int) {
+	only_scale_up := d.Get("only_scale_up").(bool)
+	old_capacity_param, new_capacity_param := d.GetChange(key)
+
+	old_capacity := old_capacity_param.(int)
+	var new_capacity = new_capacity_param.(int)
+
+	if (old_capacity > new_capacity) && only_scale_up {
+		new_capacity = old_capacity
+		d.Set(key, new_capacity)
+	}
+
+	return old_capacity, new_capacity
+}
+
 func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating DynamoDB table %s", d.Id())
@@ -329,24 +351,32 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
-		req := &dynamodb.UpdateTableInput{
-			TableName: aws.String(d.Id()),
-		}
 
-		throughput := &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
-			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
-		}
-		req.ProvisionedThroughput = throughput
 
-		// Updates for capacity needs to be done before updating
-		// the streamspecification - it cannot be done in the same call
-		_, err := dynamodbconn.UpdateTable(req)
-		if err != nil {
-			return err
-		}
+		old_read_capacity, new_read_capacity := getConditionallyScalingCapacity(d, "read_capacity")
+		old_write_capacity, new_write_capacity := getConditionallyScalingCapacity(d, "write_capacity")
 
-		waitForTableToBeActive(d.Id(), meta)
+		// should we actually change the capacity of the table?
+		if new_read_capacity != old_read_capacity || new_write_capacity != old_write_capacity {
+			req := &dynamodb.UpdateTableInput{
+				TableName: aws.String(d.Id()),
+			}
+
+			throughput := &dynamodb.ProvisionedThroughput{
+				ReadCapacityUnits:  aws.Int64(int64(new_read_capacity)),
+				WriteCapacityUnits: aws.Int64(int64(new_write_capacity)),
+			}
+			req.ProvisionedThroughput = throughput
+
+			// Updates for capacity needs to be done before updating
+			// the streamspecification - it cannot be done in the same call
+			_, err := dynamodbconn.UpdateTable(req)
+			if err != nil {
+				return err
+			}
+
+			waitForTableToBeActive(d.Id(), meta)
+		}
 	}
 
 	if d.HasChange("stream_specification") {
@@ -562,6 +592,10 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) error {
 	dynamodbconn := meta.(*AWSClient).dynamodbconn
+
+	only_scale_up := d.Get("only_scale_up").(bool)
+	log.Printf("[DEBUG] only_scale_up flag read %v", only_scale_up)
+
 	log.Printf("[DEBUG] Loading data for DynamoDB table '%s'", d.Id())
 	req := &dynamodb.DescribeTableInput{
 		TableName: aws.String(d.Id()),
@@ -642,6 +676,9 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 	waitForTableToBeActive(d.Id(), meta)
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
+
+	only_scale_up := d.Get("only_scale_up").(bool)
+	log.Printf("[DEBUG] only_scale_up flag delete %v", only_scale_up)
 
 	_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
 		TableName: aws.String(d.Id()),
