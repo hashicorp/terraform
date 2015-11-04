@@ -1,5 +1,9 @@
 TEST?=./...
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
+VERSION:=$(shell go version | cut -d' ' -f 3 | sed s/go//)
+MAJOR_VERSION:=$(shell echo $(VERSION) | cut -d. -f 1)
+MINOR_VERSION:=$(shell echo $(VERSION) | cut -d. -f 2)
+VERSION_GT_1_4:=$(shell [ $(MINOR_VERSION) -gt 4 ] && echo true)
 
 default: test
 
@@ -22,7 +26,11 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 release: updatedeps
+ifeq ($(VERSION_GT_1_4),true)
+	gox
+else
 	gox -build-toolchain
+endif
 	@$(MAKE) bin
 
 # test runs the unit tests and vets the code
