@@ -242,6 +242,18 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		return nil
 	}
 
+	updateInput := ecs.UpdateServiceInput{
+		Service: aws.String(d.Id()),
+		Cluster: aws.String(d.Get("cluster").(string)),
+		DesiredCount: aws.Int64(int64(0)),
+	}
+	updateOut, updateErr := conn.UpdateService(&updateInput)
+	if updateErr != nil {
+		return updateErr
+	}
+	service := updateOut.Service
+	log.Printf("[DEBUG] Set DesiredCount to 0 for service %s", service)
+
 	// Drain the ECS service
 	if *resp.Services[0].Status != "DRAINING" {
 		log.Printf("[DEBUG] Draining ECS service %s", d.Id())
