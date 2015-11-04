@@ -3,8 +3,10 @@ package digitalocean
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -24,6 +26,7 @@ func resourceDigitalOceanFloatingIp() *schema.Resource {
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -42,13 +45,14 @@ func resourceDigitalOceanFloatingIpCreate(d *schema.ResourceData, meta interface
 	// Build up our creation options
 	opts := &godo.FloatingIPCreateRequest{}
 
+	if v, ok := d.GetOk("region"); ok {
+		log.Printf("[INFO] Create a FloatingIP for a region")
+		opts.Region = v.(string)
+	}
+
 	if v, ok := d.GetOk("droplet_id"); ok {
 		log.Printf("[INFO] Found a droplet_id to try and attach to the FloatingIP")
 		opts.DropletID = v.(int)
-	} else if d.Get("region").(string) != "" {
-		opts.Region = d.Get("region").(string)
-	} else {
-		return fmt.Errorf("You must specify either a Droplet ID or a Region for a FloatingIP")
 	}
 
 	log.Printf("[DEBUG] FloatingIP Create: %#v", opts)
@@ -56,9 +60,7 @@ func resourceDigitalOceanFloatingIpCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return fmt.Errorf("Error creating FloatingIP: %s", err)
 	}
-
 	d.SetId(floatingIp.IP)
-	log.Printf("[INFO] Floating IP: %s", floatingIp.IP)
 
 	return resourceDigitalOceanFloatingIpRead(d, meta)
 }
@@ -66,12 +68,20 @@ func resourceDigitalOceanFloatingIpCreate(d *schema.ResourceData, meta interface
 func resourceDigitalOceanFloatingIpRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*godo.Client)
 
+	time.Sleep(7 * time.Second)
+	log.Printf("[INFO] Reading the details of the FloatingIP %s", d.Id())
 	floatingIp, _, err := client.FloatingIPs.Get(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving FloatingIP: %s", err)
 	}
 
-	d.Set("region", floatingIp.Region)
+	if _, ok := d.GetOk("droplet_id"); ok {
+		log.Printf("[INFO] The region of the Droplet is %s", floatingIp.Droplet.Region)
+		d.Set("region", floatingIp.Droplet.Region.Slug)
+	} else {
+		d.Set("region", floatingIp.Region.Slug)
+	}
+
 	d.Set("ip_address", floatingIp.IP)
 
 	return nil
@@ -79,6 +89,21 @@ func resourceDigitalOceanFloatingIpRead(d *schema.ResourceData, meta interface{}
 
 func resourceDigitalOceanFloatingIpDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*godo.Client)
+
+	if _, ok := d.GetOk("droplet_id"); ok {
+		log.Printf("[INFO] Unassigning the Floating IP from the Droplet")
+		action, _, err := client.FloatingIPActions.Unassign(d.Id())
+		if err != nil {
+			return fmt.Errorf(
+				"Error Unassigning FloatingIP (%s) from the droplet: %s", d.Id(), err)
+		}
+
+		_, unassignedErr := waitForFloatingIPReady(d, "completed", []string{"new"}, "status", meta, action.ID)
+		if unassignedErr != nil {
+			return fmt.Errorf(
+				"Error waiting for FloatingIP (%s) to be unassigned: %s", d.Id(), unassignedErr)
+		}
+	}
 
 	log.Printf("[INFO] Deleting FloatingIP: %s", d.Id())
 	_, err := client.FloatingIPs.Delete(d.Id())
@@ -88,4 +113,38 @@ func resourceDigitalOceanFloatingIpDelete(d *schema.ResourceData, meta interface
 
 	d.SetId("")
 	return nil
+}
+
+func waitForFloatingIPReady(
+	d *schema.ResourceData, target string, pending []string, attribute string, meta interface{}, action int) (interface{}, error) {
+	log.Printf(
+		"[INFO] Waiting for FloatingIP (%s) to have %s of %s",
+		d.Id(), attribute, target)
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    pending,
+		Target:     target,
+		Refresh:    newFloatingIPStateRefreshFunc(d, attribute, meta, action),
+		Timeout:    60 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+
+		NotFoundChecks: 60,
+	}
+
+	return stateConf.WaitForState()
+}
+
+func newFloatingIPStateRefreshFunc(
+	d *schema.ResourceData, attribute string, meta interface{}, action int) resource.StateRefreshFunc {
+	client := meta.(*godo.Client)
+	return func() (interface{}, string, error) {
+		floatingIP, _, err := client.FloatingIPActions.Get(d.Id(), action)
+		if err != nil {
+			return nil, "", fmt.Errorf("Error retrieving FloatingIP Action: %s", err)
+		}
+
+		log.Printf("[INFO] The FloatingIP Assigned Status is %s", floatingIP.Status)
+		return &floatingIP, floatingIP.Status, nil
+	}
 }
