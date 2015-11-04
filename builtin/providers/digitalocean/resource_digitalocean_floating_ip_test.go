@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccDigitalOceanFloatingIP_Basic(t *testing.T) {
+func TestAccDigitalOceanFloatingIP_Region(t *testing.T) {
 	var floatingIP godo.FloatingIP
 
 	resource.Test(t, resource.TestCase{
@@ -18,11 +18,31 @@ func TestAccDigitalOceanFloatingIP_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanFloatingIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckDigitalOceanFloatingIPConfig_basic,
+				Config: testAccCheckDigitalOceanFloatingIPConfig_region,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanFloatingIPExists("digitalocean_floating_ip.foobar", &floatingIP),
 					resource.TestCheckResourceAttr(
 						"digitalocean_floating_ip.foobar", "region", "nyc3"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDigitalOceanFloatingIP_Droplet(t *testing.T) {
+	var floatingIP godo.FloatingIP
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanFloatingIPDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanFloatingIPConfig_droplet,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanFloatingIPExists("digitalocean_floating_ip.foobar", &floatingIP),
+					resource.TestCheckResourceAttr(
+						"digitalocean_floating_ip.foobar", "region", "sgp1"),
 				),
 			},
 		},
@@ -79,7 +99,22 @@ func testAccCheckDigitalOceanFloatingIPExists(n string, floatingIP *godo.Floatin
 	}
 }
 
-var testAccCheckDigitalOceanFloatingIPConfig_basic = `
+var testAccCheckDigitalOceanFloatingIPConfig_region = `
 resource "digitalocean_floating_ip" "foobar" {
     region = "nyc3"
+}`
+
+var testAccCheckDigitalOceanFloatingIPConfig_droplet = `
+
+resource "digitalocean_droplet" "foobar" {
+    name = "baz"
+    size = "1gb"
+    image = "centos-5-8-x32"
+    region = "sgp1"
+    ipv6 = true
+    private_networking = true
+}
+
+resource "digitalocean_floating_ip" "foobar" {
+    droplet_id = "${digitalocean_droplet.foobar.id}"
 }`
