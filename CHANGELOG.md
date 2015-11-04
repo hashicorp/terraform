@@ -32,6 +32,7 @@ IMPROVEMENTS:
   * provider/aws: Apply security group after restoring db_instance from snapshot [GH-3513]
   * provider/aws: Making the AutoScalingGroup name optional [GH-3710]
   * provider/openstack: Add "delete on termination" boot-from-volume option [GH-3232]
+  * provider/digitalocean: Make user_data force a new droplet [GH-3740]
 
 BUG FIXES:
 
