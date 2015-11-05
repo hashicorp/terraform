@@ -127,12 +127,17 @@ func resourceAwsRDSCluster() *schema.Resource {
 			"preferred_backup_window": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"preferred_maintenance_window": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				StateFunc: func(val interface{}) string {
+					if val == nil {
+						return ""
+					}
 					return strings.ToLower(val.(string))
 				},
 			},
