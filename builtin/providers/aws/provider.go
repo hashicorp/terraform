@@ -5,11 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/awslabs/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 )
 
 // Provider returns a terraform.ResourceProvider.
