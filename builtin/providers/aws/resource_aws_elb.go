@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -71,6 +72,11 @@ func resourceAwsElb() *schema.Resource {
 			"source_security_group": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
+			},
+
+			"source_security_group_id": &schema.Schema{
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
@@ -300,6 +306,18 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("security_groups", lb.SecurityGroups)
 	if lb.SourceSecurityGroup != nil {
 		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
+
+		// Manually look up the ELB Security Group ID, since it's not provided
+		var elbVpc string
+		if lb.VPCId != nil {
+			elbVpc = *lb.VPCId
+		}
+		sgId, err := sourceSGIdByName(meta, *lb.SourceSecurityGroup.GroupName, elbVpc)
+		if err != nil {
+			log.Printf("[WARN] Error looking up ELB Security Group ID: %s", err)
+		} else {
+			d.Set("source_security_group_id", sgId)
+		}
 	}
 	d.Set("subnets", lb.Subnets)
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
@@ -593,4 +611,53 @@ func validateElbName(v interface{}, k string) (ws []string, errors []error) {
 	}
 	return
 
+}
+
+func sourceSGIdByName(meta interface{}, sg, vpcId string) (string, error) {
+	conn := meta.(*AWSClient).ec2conn
+	var filters []*ec2.Filter
+	var sgFilterName, sgFilterVPCID *ec2.Filter
+	sgFilterName = &ec2.Filter{
+		Name:   aws.String("group-name"),
+		Values: []*string{aws.String(sg)},
+	}
+
+	if vpcId != "" {
+		sgFilterVPCID = &ec2.Filter{
+			Name:   aws.String("vpc-id"),
+			Values: []*string{aws.String(vpcId)},
+		}
+	}
+
+	filters = append(filters, sgFilterName)
+
+	if sgFilterVPCID != nil {
+		filters = append(filters, sgFilterVPCID)
+	}
+
+	req := &ec2.DescribeSecurityGroupsInput{
+		Filters: filters,
+	}
+	resp, err := conn.DescribeSecurityGroups(req)
+	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
+				ec2err.Code() == "InvalidGroup.NotFound" {
+				resp = nil
+				err = nil
+			}
+		}
+
+		if err != nil {
+			log.Printf("Error on ELB SG look up: %s", err)
+			return "", err
+		}
+	}
+
+	if resp == nil || len(resp.SecurityGroups) == 0 {
+		return "", fmt.Errorf("No security groups found for name %s and vpc id %s", sg, vpcId)
+	}
+
+	group := resp.SecurityGroups[0]
+	return *group.GroupId, nil
 }
