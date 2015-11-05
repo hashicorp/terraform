@@ -242,6 +242,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 	res, err := conn.DescribeCacheClusters(req)
 	if err != nil {
 		if eccErr, ok := err.(awserr.Error); ok && eccErr.Code() == "CacheClusterNotFound" {
+			log.Printf("[WARN] ElastiCache Cluster (%s) not found", d.Id())
 			d.SetId("")
 			return nil
 		}
