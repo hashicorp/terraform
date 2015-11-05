@@ -549,9 +549,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	id := d.Id()
 	instance, err := getInstance(config, d)
 	if err != nil {
 		if strings.Contains(err.Error(), "no longer exists") {
+			log.Printf("[WARN] Google Compute Instance (%s) not found", id)
 			return nil
 		}
 		return err
