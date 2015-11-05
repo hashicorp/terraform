@@ -110,6 +110,12 @@ func init() {
 			}, nil
 		},
 
+		"verify": func() (cli.Command, error) {
+			return &command.VerifyCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Meta:              meta,
