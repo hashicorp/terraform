@@ -44,13 +44,12 @@ func resourceAwsSnsTopic() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
 				Computed: true,
 				StateFunc: func(v interface{}) string {
-					jsonb := []byte{}
-					if v != nil {
-						jsonb = []byte(v.(string))
+					if v == nil {
+						return ""
 					}
+					jsonb := []byte{}
 					buffer := new(bytes.Buffer)
 					if err := json.Compact(buffer, jsonb); err != nil {
 						log.Printf("[WARN] Error compacting JSON for Policy in SNS Topic")
