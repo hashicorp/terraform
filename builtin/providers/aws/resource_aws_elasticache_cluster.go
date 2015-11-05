@@ -205,12 +205,14 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		req.CacheParameterGroupName = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("snapshot_retention_limit"); ok {
-		req.SnapshotRetentionLimit = aws.Int64(int64(v.(int)))
-	}
+	if !strings.Contains(d.Get("node_type").(string), "cache.t2") {
+		if v, ok := d.GetOk("snapshot_retention_limit"); ok {
+			req.SnapshotRetentionLimit = aws.Int64(int64(v.(int)))
+		}
 
-	if v, ok := d.GetOk("snapshot_window"); ok {
-		req.SnapshotWindow = aws.String(v.(string))
+		if v, ok := d.GetOk("snapshot_window"); ok {
+			req.SnapshotWindow = aws.String(v.(string))
+		}
 	}
 
 	if v, ok := d.GetOk("maintenance_window"); ok {
@@ -287,10 +289,12 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
-		log.Printf("[INFO] Found %s as the Snapshow Window", *c.SnapshotWindow)
-		d.Set("snapshot_window", c.SnapshotWindow)
-		log.Printf("[INFO] Found %d as the Snapshow Retention Limit", *c.SnapshotRetentionLimit)
-		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
+		if c.SnapshotWindow != nil {
+			d.Set("snapshot_window", c.SnapshotWindow)
+		}
+		if c.SnapshotRetentionLimit != nil {
+			d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
+		}
 		if c.NotificationConfiguration != nil {
 			if *c.NotificationConfiguration.TopicStatus == "active" {
 				d.Set("notification_topic_arn", c.NotificationConfiguration.TopicArn)
@@ -373,13 +377,16 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 		req.EngineVersion = aws.String(d.Get("engine_version").(string))
 		requestUpdate = true
 	}
+	if !strings.Contains(d.Get("node_type").(string), "cache.t2") {
+		if d.HasChange("snapshot_window") {
+			req.SnapshotWindow = aws.String(d.Get("snapshot_window").(string))
+			requestUpdate = true
+		}
 
-	if d.HasChange("snapshot_window") {
-		req.SnapshotWindow = aws.String(d.Get("snapshot_window").(string))
-	}
-
-	if d.HasChange("snapshot_retention_limit") {
-		req.SnapshotRetentionLimit = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
+		if d.HasChange("snapshot_retention_limit") {
+			req.SnapshotRetentionLimit = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
+			requestUpdate = true
+		}
 	}
 
 	if d.HasChange("num_cache_nodes") {

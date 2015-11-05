@@ -35,13 +35,17 @@ func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 
 func TestAccAWSElasticacheCluster_snapshots(t *testing.T) {
 	var ec elasticache.CacheCluster
+
+	ri := genRandInt()
+	config := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshots, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSElasticacheClusterConfig_snapshots,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
@@ -56,13 +60,18 @@ func TestAccAWSElasticacheCluster_snapshots(t *testing.T) {
 }
 func TestAccAWSElasticacheCluster_snapshotsWithUpdates(t *testing.T) {
 	var ec elasticache.CacheCluster
+
+	ri := genRandInt()
+	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshots, ri)
+	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshotsUpdated, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSElasticacheClusterConfig_snapshots,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
@@ -74,7 +83,7 @@ func TestAccAWSElasticacheCluster_snapshotsWithUpdates(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAWSElasticacheClusterConfig_snapshotsUpdated,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
@@ -204,17 +213,15 @@ resource "aws_elasticache_cluster" "bar" {
     port = 11211
     parameter_group_name = "default.memcached1.4"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
-    snapshot_window = "05:00-09:00"
-    snapshot_retention_limit = 3
 }
 `, genRandInt(), genRandInt(), genRandInt())
 
-var testAccAWSElasticacheClusterConfig_snapshots = fmt.Sprintf(`
+var testAccAWSElasticacheClusterConfig_snapshots = `
 provider "aws" {
 	region = "us-east-1"
 }
 resource "aws_security_group" "bar" {
-    name = "tf-test-security-group-%03d"
+    name = "tf-test-security-group"
     description = "tf-test-security-group-descr"
     ingress {
         from_port = -1
@@ -225,7 +232,7 @@ resource "aws_security_group" "bar" {
 }
 
 resource "aws_elasticache_security_group" "bar" {
-    name = "tf-test-security-group-%03d"
+    name = "tf-test-security-group"
     description = "tf-test-security-group-descr"
     security_group_names = ["${aws_security_group.bar.name}"]
 }
@@ -241,14 +248,14 @@ resource "aws_elasticache_cluster" "bar" {
     snapshot_window = "05:00-09:00"
     snapshot_retention_limit = 3
 }
-`, genRandInt(), genRandInt(), genRandInt())
+`
 
-var testAccAWSElasticacheClusterConfig_snapshotsUpdated = fmt.Sprintf(`
+var testAccAWSElasticacheClusterConfig_snapshotsUpdated = `
 provider "aws" {
 	region = "us-east-1"
 }
 resource "aws_security_group" "bar" {
-    name = "tf-test-security-group-%03d"
+    name = "tf-test-security-group"
     description = "tf-test-security-group-descr"
     ingress {
         from_port = -1
@@ -259,7 +266,7 @@ resource "aws_security_group" "bar" {
 }
 
 resource "aws_elasticache_security_group" "bar" {
-    name = "tf-test-security-group-%03d"
+    name = "tf-test-security-group"
     description = "tf-test-security-group-descr"
     security_group_names = ["${aws_security_group.bar.name}"]
 }
@@ -274,8 +281,9 @@ resource "aws_elasticache_cluster" "bar" {
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     snapshot_window = "07:00-09:00"
     snapshot_retention_limit = 7
+    apply_immediately = true
 }
-`, genRandInt(), genRandInt(), genRandInt())
+`
 
 var testAccAWSElasticacheClusterInVPCConfig = fmt.Sprintf(`
 resource "aws_vpc" "foo" {
