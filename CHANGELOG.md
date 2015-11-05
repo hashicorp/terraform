@@ -47,6 +47,7 @@ BUG FIXES:
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
+  * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
   * provider/openstack: Fix several issues causing unresolvable diffs [GH-3440]
   * provider/openstack: Safely delete security groups [GH-3696]
   * provider/openstack: Ignore order of security_groups in instance [GH-3651]
