@@ -30,6 +30,10 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 			name = "port_1"
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			admin_state_up = "true"
+			fixed_ips {
+ 					ip_address = "192.168.0.0"
+					subnet_id = "008ba151-0b8c-4a67-98b5-0d2b87666062"
+			}
 		}`, region, region)
 
 	resource.Test(t, resource.TestCase{
