@@ -35,33 +35,6 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSRDSCluster_backups(t *testing.T) {
-	var v rds.DBCluster
-
-	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	config := fmt.Sprintf(testAccAWSClusterConfig_backups, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSClusterDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
-					resource.TestCheckResourceAttr(
-						"aws_rds_cluster.default", "preferred_backup_window", "07:00-09:00"),
-					resource.TestCheckResourceAttr(
-						"aws_rds_cluster.default", "backup_retention_period", "5"),
-					resource.TestCheckResourceAttr(
-						"aws_rds_cluster.default", "preferred_maintenance_window", "tue:04:00-tue:04:30"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccAWSRDSCluster_backupsUpdate(t *testing.T) {
 	var v rds.DBCluster
 
