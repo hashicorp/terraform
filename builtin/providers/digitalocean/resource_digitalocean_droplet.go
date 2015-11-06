@@ -186,10 +186,11 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Retrieve the droplet properties for updating the state
-	droplet, _, err := client.Droplets.Get(id)
+	droplet, resp, err := client.Droplets.Get(id)
 	if err != nil {
 		// check if the droplet no longer exists.
-		if err.Error() == "Error retrieving droplet: API Error: 404 Not Found" {
+		if resp.StatusCode == 404 {
+			log.Printf("[WARN] DigitalOcean Droplet (%s) not found", d.Id())
 			d.SetId("")
 			return nil
 		}
