@@ -44,7 +44,10 @@ resource "aws_lambda_function" "test_lambda" {
 
 ## Argument Reference
 
-* `filename` - (Required) A [zip file][2] containing your lambda function source code.
+* `filename` - (Optional) A [zip file][2] containing your lambda function source code. If defined, The `s3_*` options cannot be used.
+* `s3_bucket` - (Optional) The S3 bucket location containing your lambda function source code. Conflicts with `filename`.
+* `s3_key` - (Optional) The S3 key containing your lambda function source code. Conflicts with `filename`.
+* `s3_object_version` - (Optional) The object version of your lambda function source code. Conflicts with `filename`.
 * `function_name` - (Required) A unique name for your Lambda Function.
 * `handler` - (Required) The function [entrypoint][3] in your code.
 * `role` - (Required) IAM role attached to the Lambda Function. This governs both who / what can invoke your Lambda Function, as well as what resources our Lambda Function has access to. See [Lambda Permission Model][4] for more details.
