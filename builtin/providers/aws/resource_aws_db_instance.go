@@ -351,6 +351,39 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		if err != nil {
 			return fmt.Errorf("Error creating DB Instance: %s", err)
 		}
+
+		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+			log.Printf("[INFO] DB is restoring from snapshot with default security, but custom security should be set, will now update after snapshot is restored!")
+
+			// wait for instance to get up and then modify security
+			d.SetId(d.Get("identifier").(string))
+
+			log.Printf("[INFO] DB Instance ID: %s", d.Id())
+
+			log.Println(
+				"[INFO] Waiting for DB Instance to be available")
+
+			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"creating", "backing-up", "modifying"},
+				Target:     "available",
+				Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
+				Timeout:    40 * time.Minute,
+				MinTimeout: 10 * time.Second,
+				Delay:      30 * time.Second, // Wait 30 secs before starting
+			}
+
+			// Wait, catching any errors
+			_, err := stateConf.WaitForState()
+			if err != nil {
+				return err
+			}
+
+			err = resourceAwsDbInstanceUpdate(d, meta)
+			if err != nil {
+				return err
+			}
+
+		}
 	} else {
 		opts := rds.CreateDBInstanceInput{
 			AllocatedStorage:     aws.Int64(int64(d.Get("allocated_storage").(int))),

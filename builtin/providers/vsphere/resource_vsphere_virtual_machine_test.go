@@ -15,9 +15,21 @@ import (
 
 func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 	var vm virtualMachine
-	datacenter := os.Getenv("VSPHERE_DATACENTER")
-	cluster := os.Getenv("VSPHERE_CLUSTER")
-	datastore := os.Getenv("VSPHERE_DATASTORE")
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	gateway := os.Getenv("VSPHERE_NETWORK_GATEWAY")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL")
@@ -31,12 +43,11 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 			resource.TestStep{
 				Config: fmt.Sprintf(
 					testAccCheckVSphereVirtualMachineConfig_basic,
-					datacenter,
-					cluster,
+					locationOpt,
 					gateway,
 					label,
 					ip_address,
-					datastore,
+					datastoreOpt,
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
@@ -44,15 +55,11 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "name", "terraform-test"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "datacenter", datacenter),
-					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "vcpu", "2"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "memory", "4096"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.#", "2"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "disk.0.datastore", datastore),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.0.template", template),
 					resource.TestCheckResourceAttr(
@@ -67,12 +74,23 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 
 func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	var vm virtualMachine
-	datacenter := os.Getenv("VSPHERE_DATACENTER")
-	cluster := os.Getenv("VSPHERE_CLUSTER")
-	datastore := os.Getenv("VSPHERE_DATASTORE")
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
-	password := os.Getenv("VSPHERE_VM_PASSWORD")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -82,27 +100,21 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 			resource.TestStep{
 				Config: fmt.Sprintf(
 					testAccCheckVSphereVirtualMachineConfig_dhcp,
-					datacenter,
-					cluster,
+					locationOpt,
 					label,
-					datastore,
+					datastoreOpt,
 					template,
-					password,
 				),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.bar", &vm),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "name", "terraform-test"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "datacenter", datacenter),
-					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "vcpu", "2"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "memory", "4096"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "disk.#", "1"),
-					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "disk.0.datastore", datastore),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.bar", "disk.0.template", template),
 					resource.TestCheckResourceAttr(
@@ -168,20 +180,6 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 		}
 
 		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), dcFolders.VmFolder, rs.Primary.Attributes["name"])
-		/*
-			vmRef, err := client.SearchIndex().FindChild(dcFolders.VmFolder, rs.Primary.Attributes["name"])
-			if err != nil {
-				return fmt.Errorf("error %s", err)
-			}
-
-			found := govmomi.NewVirtualMachine(client, vmRef.Reference())
-			fmt.Printf("%v", found)
-
-			if found.Name != rs.Primary.ID {
-				return fmt.Errorf("Instance not found")
-			}
-			*instance = *found
-		*/
 
 		*vm = virtualMachine{
 			name: rs.Primary.ID,
@@ -194,8 +192,7 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 const testAccCheckVSphereVirtualMachineConfig_basic = `
 resource "vsphere_virtual_machine" "foo" {
     name = "terraform-test"
-    datacenter = "%s"
-    cluster = "%s"
+%s
     vcpu = 2
     memory = 4096
     gateway = "%s"
@@ -205,7 +202,7 @@ resource "vsphere_virtual_machine" "foo" {
         subnet_mask = "255.255.255.0"
     }
     disk {
-        datastore = "%s"
+%s
         template = "%s"
         iops = 500
     }
@@ -219,22 +216,15 @@ resource "vsphere_virtual_machine" "foo" {
 const testAccCheckVSphereVirtualMachineConfig_dhcp = `
 resource "vsphere_virtual_machine" "bar" {
     name = "terraform-test"
-    datacenter = "%s"
-    cluster = "%s"
+%s
     vcpu = 2
     memory = 4096
     network_interface {
         label = "%s"
     }
     disk {
-        datastore = "%s"
+%s
         template = "%s"
-    }
-
-    connection {
-        host = "${self.network_interface.0.ip_address}"
-        user = "root"
-        password = "%s"
     }
 }
 `
