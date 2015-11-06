@@ -27,13 +27,13 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 			admin_state_up = "true"
 		}
 
-    resource "openstack_networking_subnet_v2" "foo" {
-      region = "%s"
-      name = "subnet_1"
-      network_id = "${openstack_networking_network_v2.foo.id}"
-      cidr = "192.168.199.0/24"
-      ip_version = 4
-    }
+		resource "openstack_networking_subnet_v2" "foo" {
+			region = "%s"
+			name = "subnet_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			cidr = "192.168.199.0/24"
+			ip_version = 4
+		}
 
 		resource "openstack_networking_port_v2" "foo" {
 			region = "%s"
@@ -41,8 +41,8 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			admin_state_up = "true"
 			fixed_ips {
-				  subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
- 					ip_address = "192.168.199.23"
+				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
+				ip_address = "192.168.199.23"
 			}
 		}`, region, region, region)
 
