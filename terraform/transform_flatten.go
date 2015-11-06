@@ -95,7 +95,7 @@ func (t *FlattenTransformer) Transform(g *Graph) error {
 			g.ConnectDependent(sv)
 		}
 
-		// Re-connect all the things that dependend on the graph
+		// Re-connect all the things that dependent on the graph
 		// we just flattened. This should connect them back into the
 		// correct nodes if their DependentOn() is setup correctly.
 		for _, v := range dependents {

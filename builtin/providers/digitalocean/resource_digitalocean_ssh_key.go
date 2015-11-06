@@ -3,10 +3,11 @@ package digitalocean
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
+	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/pearkes/digitalocean"
 )
 
 func resourceDigitalOceanSSHKey() *schema.Resource {
@@ -42,33 +43,38 @@ func resourceDigitalOceanSSHKey() *schema.Resource {
 }
 
 func resourceDigitalOceanSSHKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
 	// Build up our creation options
-	opts := &digitalocean.CreateSSHKey{
+	opts := &godo.KeyCreateRequest{
 		Name:      d.Get("name").(string),
 		PublicKey: d.Get("public_key").(string),
 	}
 
 	log.Printf("[DEBUG] SSH Key create configuration: %#v", opts)
-	id, err := client.CreateSSHKey(opts)
+	key, _, err := client.Keys.Create(opts)
 	if err != nil {
 		return fmt.Errorf("Error creating SSH Key: %s", err)
 	}
 
-	d.SetId(id)
-	log.Printf("[INFO] SSH Key: %s", id)
+	d.SetId(strconv.Itoa(key.ID))
+	log.Printf("[INFO] SSH Key: %d", key.ID)
 
 	return resourceDigitalOceanSSHKeyRead(d, meta)
 }
 
 func resourceDigitalOceanSSHKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
-	key, err := client.RetrieveSSHKey(d.Id())
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("invalid SSH key id: %v", err)
+	}
+
+	key, _, err := client.Keys.GetByID(id)
 	if err != nil {
 		// If the key is somehow already destroyed, mark as
-		// succesfully gone
+		// successfully gone
 		if strings.Contains(err.Error(), "404 Not Found") {
 			d.SetId("")
 			return nil
@@ -84,7 +90,12 @@ func resourceDigitalOceanSSHKeyRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceDigitalOceanSSHKeyUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
+
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("invalid SSH key id: %v", err)
+	}
 
 	var newName string
 	if v, ok := d.GetOk("name"); ok {
@@ -92,7 +103,10 @@ func resourceDigitalOceanSSHKeyUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] SSH key update name: %#v", newName)
-	err := client.RenameSSHKey(d.Id(), newName)
+	opts := &godo.KeyUpdateRequest{
+		Name: newName,
+	}
+	_, _, err = client.Keys.UpdateByID(id, opts)
 	if err != nil {
 		return fmt.Errorf("Failed to update SSH key: %s", err)
 	}
@@ -101,10 +115,15 @@ func resourceDigitalOceanSSHKeyUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceDigitalOceanSSHKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*digitalocean.Client)
+	client := meta.(*godo.Client)
 
-	log.Printf("[INFO] Deleting SSH key: %s", d.Id())
-	err := client.DestroySSHKey(d.Id())
+	id, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("invalid SSH key id: %v", err)
+	}
+
+	log.Printf("[INFO] Deleting SSH key: %d", id)
+	_, err = client.Keys.DeleteByID(id)
 	if err != nil {
 		return fmt.Errorf("Error deleting SSH key: %s", err)
 	}

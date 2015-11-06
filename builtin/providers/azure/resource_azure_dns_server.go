@@ -165,7 +165,7 @@ func resourceAzureDnsServerUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 // resourceAzureDnsServerExists does all the necessary API calls to
-// check if the DNS server definition alredy exists on Azure.
+// check if the DNS server definition already exists on Azure.
 func resourceAzureDnsServerExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	azureClient := meta.(*Client)
 	vnetClient := azureClient.vnetClient

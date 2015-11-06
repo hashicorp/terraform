@@ -3,7 +3,6 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
 
 	//	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -30,39 +29,10 @@ func resourceComputeProjectMetadata() *schema.Resource {
 	}
 }
 
-const FINGERPRINT_RETRIES = 10
-const FINGERPRINT_FAIL = "Invalid fingerprint."
-
-func resourceOperationWaitGlobal(config *Config, op *compute.Operation, activity string) error {
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitGlobal,
-	}
-
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return fmt.Errorf("Error waiting for %s: %s", activity, err)
-	}
-
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		return OperationError(*op.Error)
-	}
-
-	return nil
-}
-
 func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface{}) error {
-	attempt := 0
-
 	config := meta.(*Config)
 
-	for attempt < FINGERPRINT_RETRIES {
+	createMD := func() error {
 		// Load project service
 		log.Printf("[DEBUG] Loading project service: %s", config.Project)
 		project, err := config.clientCompute.Projects.Get(config.Project).Do()
@@ -97,20 +67,15 @@ func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface
 
 		log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-		// Optimistic locking requires the fingerprint recieved to match
-		// the fingerprint we send the server, if there is a mismatch then we
-		// are working on old data, and must retry
-		err = resourceOperationWaitGlobal(config, op, "SetCommonMetadata")
-		if err == nil {
-			return resourceComputeProjectMetadataRead(d, meta)
-		} else if err.Error() == FINGERPRINT_FAIL {
-			attempt++
-		} else {
-			return err
-		}
+		return computeOperationWaitGlobal(config, op, "SetCommonMetadata")
 	}
 
-	return fmt.Errorf("Error, unable to set metadata resource after %d attempts", attempt)
+	err := MetadataRetryWrapper(createMD)
+	if err != nil {
+		return err
+	}
+
+	return resourceComputeProjectMetadataRead(d, meta)
 }
 
 func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}) error {
@@ -125,13 +90,7 @@ func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}
 
 	md := project.CommonInstanceMetadata
 
-	newMD := make(map[string]interface{})
-
-	for _, kv := range md.Items {
-		newMD[kv.Key] = kv.Value
-	}
-
-	if err = d.Set("metadata", newMD); err != nil {
+	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
 		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
@@ -141,15 +100,12 @@ func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface{}) error {
-	attempt := 0
-
 	config := meta.(*Config)
 
 	if d.HasChange("metadata") {
 		o, n := d.GetChange("metadata")
-		oMDMap, nMDMap := o.(map[string]interface{}), n.(map[string]interface{})
 
-		for attempt < FINGERPRINT_RETRIES {
+		updateMD := func() error {
 			// Load project service
 			log.Printf("[DEBUG] Loading project service: %s", config.Project)
 			project, err := config.clientCompute.Projects.Get(config.Project).Do()
@@ -159,35 +115,7 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 
 			md := project.CommonInstanceMetadata
 
-			curMDMap := make(map[string]string)
-			// Load metadata on server into map
-			for _, kv := range md.Items {
-				// If the server state has a key that we had in our old
-				// state, but not in our new state, we should delete it
-				_, okOld := oMDMap[kv.Key]
-				_, okNew := nMDMap[kv.Key]
-				if okOld && !okNew {
-					continue
-				} else {
-					if kv.Value != nil {
-						curMDMap[kv.Key] = *kv.Value
-					}
-				}
-			}
-
-			// Insert new metadata into existing metadata (overwriting when needed)
-			for key, val := range nMDMap {
-				curMDMap[key] = val.(string)
-			}
-
-			// Reformat old metadata into a list
-			md.Items = nil
-			for key, val := range curMDMap {
-				md.Items = append(md.Items, &compute.MetadataItems{
-					Key:   key,
-					Value: &val,
-				})
-			}
+			MetadataUpdate(o.(map[string]interface{}), n.(map[string]interface{}), md)
 
 			op, err := config.clientCompute.Projects.SetCommonInstanceMetadata(config.Project, md).Do()
 
@@ -197,20 +125,18 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 
 			log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-			// Optimistic locking requires the fingerprint recieved to match
+			// Optimistic locking requires the fingerprint received to match
 			// the fingerprint we send the server, if there is a mismatch then we
 			// are working on old data, and must retry
-			err = resourceOperationWaitGlobal(config, op, "SetCommonMetadata")
-			if err == nil {
-				return resourceComputeProjectMetadataRead(d, meta)
-			} else if err.Error() == FINGERPRINT_FAIL {
-				attempt++
-			} else {
-				return err
-			}
+			return computeOperationWaitGlobal(config, op, "SetCommonMetadata")
 		}
 
-		return fmt.Errorf("Error, unable to set metadata resource after %d attempts", attempt)
+		err := MetadataRetryWrapper(updateMD)
+		if err != nil {
+			return err
+		}
+
+		return resourceComputeProjectMetadataRead(d, meta)
 	}
 
 	return nil
@@ -235,7 +161,7 @@ func resourceComputeProjectMetadataDelete(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-	err = resourceOperationWaitGlobal(config, op, "SetCommonMetadata")
+	err = computeOperationWaitGlobal(config, op, "SetCommonMetadata")
 	if err != nil {
 		return err
 	}

@@ -32,7 +32,7 @@ func TestAccComputeInstance_basic_deprecated_network(t *testing.T) {
 	})
 }
 
-func TestAccComputeInstance_basic(t *testing.T) {
+func TestAccComputeInstance_basic1(t *testing.T) {
 	var instance compute.Instance
 
 	resource.Test(t, resource.TestCase{
@@ -272,6 +272,25 @@ func TestAccComputeInstance_service_account(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_scheduling(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_scheduling,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -376,7 +395,7 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 		}
 
 		for _, disk := range instance.Disks {
-			if strings.LastIndex(disk.Source, "/"+source) == (len(disk.Source)-len(source)-1) && disk.AutoDelete == delete && disk.Boot == boot {
+			if strings.LastIndex(disk.Source, "/"+source) == len(disk.Source)-len(source)-1 && disk.AutoDelete == delete && disk.Boot == boot {
 				return nil
 			}
 		}
@@ -670,5 +689,23 @@ resource "google_compute_instance" "foobar" {
 			"compute-ro",
 			"storage-ro",
 		]
+	}
+}`
+
+const testAccComputeInstance_scheduling = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+	scheduling {
 	}
 }`

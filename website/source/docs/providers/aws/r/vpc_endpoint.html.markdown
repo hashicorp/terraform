@@ -27,7 +27,7 @@ The following arguments are supported:
 
 * `vpc_id` - (Required) The ID of the VPC in which the endpoint will be used.
 * `service_name` - (Required) The AWS service name, in the form `com.amazonaws.region.service`.
-* `policy_document` - (Optional) A policy to attach to the endpoint that controls access to the service.
+* `policy` - (Optional) A policy to attach to the endpoint that controls access to the service.
 * `route_table_ids` - (Optional) One or more route table IDs.
 
 ## Attributes Reference

@@ -40,6 +40,23 @@ func TestStateAddModule(t *testing.T) {
 				[]string{"root", "foo", "bar"},
 			},
 		},
+		// Same last element, different middle element
+		{
+			[][]string{
+				[]string{"root", "foo", "bar"}, // This one should sort after...
+				[]string{"root", "foo"},
+				[]string{"root"},
+				[]string{"root", "bar", "bar"}, // ...this one.
+				[]string{"root", "bar"},
+			},
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "bar"},
+				[]string{"root", "foo"},
+				[]string{"root", "bar", "bar"},
+				[]string{"root", "foo", "bar"},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -188,6 +205,43 @@ func TestStateEqual(t *testing.T) {
 				},
 			},
 		},
+
+		// Meta differs
+		{
+			false,
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{
+										"schema_version": "1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{
+										"schema_version": "2",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -223,6 +277,41 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 				},
 			},
 			1,
+		},
+		"S2 is different, but only via Instance Metadata": {
+			&State{
+				Serial: 3,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{},
+								},
+							},
+						},
+					},
+				},
+			},
+			&State{
+				Serial: 3,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{
+										"schema_version": "1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			4,
 		},
 		"S1 serial is higher": {
 			&State{Serial: 5},

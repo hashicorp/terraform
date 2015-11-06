@@ -45,10 +45,23 @@ The following backends are supported:
 * Atlas - Stores the state in Atlas. Requires the `name` and `access_token`
   variables. The `address` variable can optionally be provided.
 
-* Consul - Stores the state in the KV store at a given path.
-  Requires the `path` variable. The `address` and `access_token`
-  variables can optionally be provided. Address is assumed to be the
-  local agent if not provided.
+* Consul - Stores the state in the KV store at a given path. Requires the
+  `path` variable. Supports the `CONSUL_HTTP_TOKEN` environment variable
+  for specifying access credentials, or the `access_token` variable may
+  be provided, but this is not recommended since it would be included in
+  cleartext inside the persisted, shard state. Other supported parameters
+  include:
+  * `address` - DNS name and port of your Consul endpoint specified in the
+    format `dnsname:port`. Defaults to the local agent HTTP listener. This
+    may also be specified using the `CONSUL_HTTP_ADDR` environment variable.
+  * `scheme` - Specifies what protocol to use when talking to the given
+    `address`, either `http` or `https`. SSL support can also be triggered
+    by setting then environment variable `CONSUL_HTTP_SSL` to `true`.
+
+* Etcd - Stores the state in etcd at a given path.
+  Requires the `path` and `endpoints` variables. The `username` and `password`
+  variables can optionally be provided. `endpoints` is assumed to be a
+  space-separated list of etcd endpoints.
 
 * S3 - Stores the state as a given key in a given bucket on Amazon S3.
   Requires the `bucket` and `key` variables. Supports and honors the standard
@@ -57,6 +70,13 @@ The following backends are supported:
   in the `access_key`, `secret_key` and `region` variables
   respectively, but passing credentials this way is not recommended since they
   will be included in cleartext inside the persisted state.
+  Other supported parameters include:
+  * `bucket` - the name of the S3 bucket
+  * `key` - path where to place/look for state file inside the bucket
+  * `encrypt` - whether to enable [server side encryption](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
+    of the state file
+  * `acl` - [Canned ACL](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl)
+    to be applied to the state file.
 
 * HTTP - Stores the state using a simple REST client. State will be fetched
   via GET, updated via POST, and purged with DELETE. Requires the `address` variable.

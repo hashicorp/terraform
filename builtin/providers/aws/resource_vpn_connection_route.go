@@ -17,8 +17,6 @@ func resourceAwsVpnConnectionRoute() *schema.Resource {
 		// You can't update a route. You can just delete one and make
 		// a new one.
 		Create: resourceAwsVpnConnectionRouteCreate,
-		Update: resourceAwsVpnConnectionRouteCreate,
-
 		Read:   resourceAwsVpnConnectionRouteRead,
 		Delete: resourceAwsVpnConnectionRouteDelete,
 

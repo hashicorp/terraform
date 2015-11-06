@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -135,27 +134,9 @@ func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) err
 	// It probably maybe worked, so store the ID now
 	d.SetId(firewall.Name)
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitGlobal,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitGlobal(config, op, "Creating Firewall")
 	if err != nil {
-		return fmt.Errorf("Error waiting for firewall to create: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
-
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	return resourceComputeFirewallRead(d, meta)
@@ -198,24 +179,9 @@ func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error updating firewall: %s", err)
 	}
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitGlobal,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitGlobal(config, op, "Updating Firewall")
 	if err != nil {
-		return fmt.Errorf("Error waiting for firewall to update: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	d.Partial(false)
@@ -233,24 +199,9 @@ func resourceComputeFirewallDelete(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error deleting firewall: %s", err)
 	}
 
-	// Wait for the operation to complete
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Type:    OperationWaitGlobal,
-	}
-	state := w.Conf()
-	state.Timeout = 2 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
+	err = computeOperationWaitGlobal(config, op, "Deleting Firewall")
 	if err != nil {
-		return fmt.Errorf("Error waiting for firewall to delete: %s", err)
-	}
-	op = opRaw.(*compute.Operation)
-	if op.Error != nil {
-		// Return the error
-		return OperationError(*op.Error)
+		return err
 	}
 
 	d.SetId("")

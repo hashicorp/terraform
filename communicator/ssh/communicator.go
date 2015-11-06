@@ -139,7 +139,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	c.client = ssh.NewClient(sshConn, sshChan, req)
 
 	if c.config.sshAgent != nil {
-		log.Printf("[DEBUG] Telling SSH config to foward to agent")
+		log.Printf("[DEBUG] Telling SSH config to forward to agent")
 		if err := c.config.sshAgent.ForwardToAgent(c.client); err != nil {
 			return err
 		}

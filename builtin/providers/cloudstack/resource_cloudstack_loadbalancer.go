@@ -79,6 +79,9 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		d.Get("public_port").(int),
 	)
 
+	// Don't autocreate a firewall rule, use a resource if needed
+	p.SetOpenfirewall(false)
+
 	// Set the description
 	if description, ok := d.GetOk("description"); ok {
 		p.SetDescription(description.(string))
@@ -86,9 +89,9 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		p.SetDescription(d.Get("name").(string))
 	}
 
-	// Retrieve the network and the UUID
+	// Retrieve the network and the ID
 	if network, ok := d.GetOk("network"); ok {
-		networkid, e := retrieveUUID(cs, "network", network.(string))
+		networkid, e := retrieveID(cs, "network", network.(string))
 		if e != nil {
 			return e.Error()
 		}
@@ -97,8 +100,8 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		p.SetNetworkid(networkid)
 	}
 
-	// Retrieve the ipaddress UUID
-	ipaddressid, e := retrieveUUID(cs, "ipaddress", d.Get("ipaddress").(string))
+	// Retrieve the ipaddress ID
+	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -110,7 +113,7 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	// Set the load balancer rule UUID and set partials
+	// Set the load balancer rule ID and set partials
 	d.SetId(r.Id)
 	d.SetPartial("name")
 	d.SetPartial("description")
@@ -160,14 +163,16 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	d.Set("public_port", lb.Publicport)
 	d.Set("private_port", lb.Privateport)
 
-	// Get the network details
-	network, _, err := cs.Network.GetNetworkByID(lb.Networkid)
-	if err != nil {
-		return err
-	}
+	setValueOrID(d, "ipaddress", lb.Publicip, lb.Publicipid)
 
-	setValueOrUUID(d, "ipaddress", lb.Publicip, lb.Publicipid)
-	setValueOrUUID(d, "network", network.Name, lb.Networkid)
+	// Only set network if user specified it to avoid spurious diffs
+	if _, ok := d.GetOk("network"); ok {
+		network, _, err := cs.Network.GetNetworkByID(lb.Networkid)
+		if err != nil {
+			return err
+		}
+		setValueOrID(d, "network", network.Name, lb.Networkid)
+	}
 
 	return nil
 }
@@ -224,7 +229,7 @@ func resourceCloudStackLoadBalancerRuleDelete(d *schema.ResourceData, meta inter
 
 	log.Printf("[INFO] Deleting load balancer rule: %s", d.Get("name").(string))
 	if _, err := cs.LoadBalancer.DeleteLoadBalancerRule(p); err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if !strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {

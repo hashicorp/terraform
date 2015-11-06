@@ -242,7 +242,7 @@ func TestMapFieldWriter(t *testing.T) {
 	for name, tc := range cases {
 		w := &MapFieldWriter{Schema: schema}
 		err := w.WriteField(tc.Addr, tc.Value)
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("%s: err: %s", name, err)
 		}
 

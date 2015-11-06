@@ -353,7 +353,7 @@ func TestParse(t *testing.T) {
 
 	for _, tc := range cases {
 		actual, err := Parse(tc.Input)
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 		if !reflect.DeepEqual(actual, tc.Result) {

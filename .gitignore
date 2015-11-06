@@ -1,5 +1,6 @@
 *.dll
 *.exe
+.DS_Store
 example.tf
 terraform.tfplan
 terraform.tfstate
@@ -18,3 +19,4 @@ website/node_modules
 *.bak
 *~
 .*.swp
+.idea

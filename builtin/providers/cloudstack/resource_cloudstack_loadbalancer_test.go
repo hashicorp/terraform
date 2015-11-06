@@ -19,7 +19,7 @@ func TestAccCloudStackLoadBalancerRule_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
 					resource.TestCheckResourceAttr(
@@ -35,6 +35,8 @@ func TestAccCloudStackLoadBalancerRule_basic(t *testing.T) {
 }
 
 func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
+	var id string
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -43,7 +45,7 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", &id),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
 					resource.TestCheckResourceAttr(
@@ -58,7 +60,46 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCloudStackLoadBalancerRule_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo"),
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", &id),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb-update"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "algorithm", "leastconn"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "public_port", "80"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "private_port", "80"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCloudStackLoadBalancerRule_forcenew(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCloudStackLoadBalancerRule_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "algorithm", "roundrobin"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "public_port", "80"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "private_port", "80"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCloudStackLoadBalancerRule_forcenew,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
 					resource.TestCheckResourceAttr(
 						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb-update"),
 					resource.TestCheckResourceAttr(
@@ -73,7 +114,70 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 	})
 }
 
-func testAccCheckCloudStackLoadBalancerRuleExist(n string) resource.TestCheckFunc {
+func TestAccCloudStackLoadBalancerRule_vpc(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCloudStackLoadBalancerRule_vpc,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "algorithm", "roundrobin"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "public_port", "80"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "private_port", "80"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCloudStackLoadBalancerRule_vpc_update(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCloudStackLoadBalancerRule_vpc,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "algorithm", "roundrobin"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "public_port", "80"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "private_port", "80"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCloudStackLoadBalancerRule_vpc_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "name", "terraform-lb-update"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "algorithm", "leastconn"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "public_port", "443"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_loadbalancer_rule.foo", "private_port", "443"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckCloudStackLoadBalancerRuleExist(n string, id *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -84,21 +188,23 @@ func testAccCheckCloudStackLoadBalancerRuleExist(n string) resource.TestCheckFun
 			return fmt.Errorf("No loadbalancer rule ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuid") {
-				continue
+		if id != nil {
+			if *id != "" && *id != rs.Primary.ID {
+				return fmt.Errorf("Resource ID has changed!")
 			}
 
-			cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-			_, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(uuid)
+			*id = rs.Primary.ID
+		}
 
-			if err != nil {
-				return err
-			}
+		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
+		_, count, err := cs.LoadBalancer.GetLoadBalancerRuleByID(rs.Primary.ID)
 
-			if count == 0 {
-				return fmt.Errorf("Loadbalancer rule for %s not found", k)
-			}
+		if err != nil {
+			return err
+		}
+
+		if count == 0 {
+			return fmt.Errorf("Loadbalancer rule %s not found", n)
 		}
 
 		return nil
@@ -117,12 +223,12 @@ func testAccCheckCloudStackLoadBalancerRuleDestroy(s *terraform.State) error {
 			return fmt.Errorf("No Loadbalancer rule ID is set")
 		}
 
-		for k, uuid := range rs.Primary.Attributes {
+		for k, id := range rs.Primary.Attributes {
 			if !strings.Contains(k, "uuid") {
 				continue
 			}
 
-			_, _, err := cs.LoadBalancer.GetLoadBalancerRuleByID(uuid)
+			_, _, err := cs.LoadBalancer.GetLoadBalancerRuleByID(id)
 			if err == nil {
 				return fmt.Errorf("Loadbalancer rule %s still exists", rs.Primary.ID)
 			}
@@ -133,6 +239,120 @@ func testAccCheckCloudStackLoadBalancerRuleDestroy(s *terraform.State) error {
 }
 
 var testAccCloudStackLoadBalancerRule_basic = fmt.Sprintf(`
+resource "cloudstack_instance" "foobar1" {
+  name = "terraform-server1"
+  display_name = "terraform"
+  service_offering= "%s"
+  network = "%s"
+  template = "%s"
+  zone = "%s"
+  expunge = true
+}
+
+resource "cloudstack_loadbalancer_rule" "foo" {
+  name = "terraform-lb"
+  ipaddress = "%s"
+  # network omitted, inferred from IP
+  algorithm = "roundrobin"
+  public_port = 80
+  private_port = 80
+  members = ["${cloudstack_instance.foobar1.id}"]
+}
+
+# attempt to create dependent firewall rule
+# this will clash if cloudstack creates the implicit rule as it does by default
+resource "cloudstack_firewall" "foo" {
+  ipaddress = "${cloudstack_loadbalancer_rule.foo.ipaddress}"
+  rule {
+    source_cidr = "0.0.0.0/0"
+    protocol = "tcp"
+    ports = ["${cloudstack_loadbalancer_rule.foo.public_port}"]
+  }
+}
+`,
+	CLOUDSTACK_SERVICE_OFFERING_1,
+	CLOUDSTACK_NETWORK_1,
+	CLOUDSTACK_TEMPLATE,
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_PUBLIC_IPADDRESS)
+
+var testAccCloudStackLoadBalancerRule_update = fmt.Sprintf(`
+resource "cloudstack_instance" "foobar1" {
+  name = "terraform-server1"
+  display_name = "terraform"
+  service_offering= "%s"
+  network = "%s"
+  template = "%s"
+  zone = "%s"
+  expunge = true
+}
+
+resource "cloudstack_loadbalancer_rule" "foo" {
+  name = "terraform-lb-update"
+  ipaddress = "%s"
+  # network omitted, inferred from IP
+  algorithm = "leastconn"
+  public_port = 80
+  private_port = 80
+  members = ["${cloudstack_instance.foobar1.id}"]
+}
+
+# attempt to create dependent firewall rule
+# this will clash if cloudstack creates the implicit rule as it does by default
+resource "cloudstack_firewall" "foo" {
+  ipaddress = "${cloudstack_loadbalancer_rule.foo.ipaddress}"
+  rule {
+    source_cidr = "0.0.0.0/0"
+    protocol = "tcp"
+    ports = ["${cloudstack_loadbalancer_rule.foo.public_port}"]
+  }
+}
+`,
+	CLOUDSTACK_SERVICE_OFFERING_1,
+	CLOUDSTACK_NETWORK_1,
+	CLOUDSTACK_TEMPLATE,
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_PUBLIC_IPADDRESS)
+
+var testAccCloudStackLoadBalancerRule_forcenew = fmt.Sprintf(`
+resource "cloudstack_instance" "foobar1" {
+  name = "terraform-server1"
+  display_name = "terraform"
+  service_offering= "%s"
+  network = "%s"
+  template = "%s"
+  zone = "%s"
+  expunge = true
+}
+
+resource "cloudstack_loadbalancer_rule" "foo" {
+  name = "terraform-lb-update"
+  ipaddress = "%s"
+  # network omitted, inferred from IP
+  algorithm = "leastconn"
+  public_port = 443
+  private_port = 443
+  members = ["${cloudstack_instance.foobar1.id}"]
+}
+
+# attempt to create dependent firewall rule
+# this will clash if cloudstack creates the implicit rule as it does by default
+resource "cloudstack_firewall" "foo" {
+  ipaddress = "${cloudstack_loadbalancer_rule.foo.ipaddress}"
+  rule {
+    source_cidr = "0.0.0.0/0"
+    protocol = "tcp"
+    ports = ["${cloudstack_loadbalancer_rule.foo.public_port}"]
+  }
+}
+`,
+	CLOUDSTACK_SERVICE_OFFERING_1,
+	CLOUDSTACK_NETWORK_1,
+	CLOUDSTACK_TEMPLATE,
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_PUBLIC_IPADDRESS)
+
+var testAccCloudStackLoadBalancerRule_vpc = fmt.Sprintf(`
 resource "cloudstack_vpc" "foobar" {
 	name = "terraform-vpc"
 	cidr = "%s"
@@ -180,7 +400,7 @@ resource "cloudstack_loadbalancer_rule" "foo" {
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_TEMPLATE)
 
-var testAccCloudStackLoadBalancerRule_update = fmt.Sprintf(`
+var testAccCloudStackLoadBalancerRule_vpc_update = fmt.Sprintf(`
 resource "cloudstack_vpc" "foobar" {
     name = "terraform-vpc"
     cidr = "%s"

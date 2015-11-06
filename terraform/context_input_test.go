@@ -510,3 +510,62 @@ aws_instance.foo:
 		t.Fatalf("expected: \n%s\ngot: \n%s\n", expectedStr, actualStr)
 	}
 }
+
+func TestContext2Input_varPartiallyComputed(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-var-partially-computed")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "foovalue",
+		},
+		UIInput: input,
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+								Attributes: map[string]string{
+									"id": "i-abc123",
+								},
+							},
+						},
+					},
+				},
+				&ModuleState{
+					Path: append(rootModulePath, "child"),
+					Resources: map[string]*ResourceState{
+						"aws_instance.mod": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-bcd345",
+								Attributes: map[string]string{
+									"id":    "i-bcd345",
+									"value": "one,i-abc123",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

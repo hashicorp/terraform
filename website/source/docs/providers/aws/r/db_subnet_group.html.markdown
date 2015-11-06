@@ -17,6 +17,9 @@ resource "aws_db_subnet_group" "default" {
     name = "main"
     description = "Our main group of subnets"
     subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
+    tags {
+        Name = "My DB subnet group"
+    }
 }
 ```
 
@@ -27,6 +30,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the DB subnet group.
 * `description` - (Required) The description of the DB subnet group.
 * `subnet_ids` - (Required) A list of VPC subnet IDs.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 

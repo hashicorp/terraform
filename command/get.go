@@ -30,7 +30,7 @@ func (c *GetCommand) Run(args []string) int {
 	var path string
 	args = cmdFlags.Args()
 	if len(args) > 1 {
-		c.Ui.Error("The graph command expects one argument.\n")
+		c.Ui.Error("The get command expects one argument.\n")
 		cmdFlags.Usage()
 		return 1
 	} else if len(args) == 1 {

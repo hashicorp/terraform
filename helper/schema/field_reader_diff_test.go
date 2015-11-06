@@ -237,7 +237,7 @@ func TestDiffFieldReader_extra(t *testing.T) {
 
 	for name, tc := range cases {
 		out, err := r.ReadField(tc.Addr)
-		if (err != nil) != tc.Err {
+		if err != nil != tc.Err {
 			t.Fatalf("%s: err: %s", name, err)
 		}
 		if s, ok := out.Value.(*Set); ok {

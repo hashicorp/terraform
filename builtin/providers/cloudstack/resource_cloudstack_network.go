@@ -72,14 +72,14 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 	name := d.Get("name").(string)
 
-	// Retrieve the network_offering UUID
-	networkofferingid, e := retrieveUUID(cs, "network_offering", d.Get("network_offering").(string))
+	// Retrieve the network_offering ID
+	networkofferingid, e := retrieveID(cs, "network_offering", d.Get("network_offering").(string))
 	if e != nil {
 		return e.Error()
 	}
 
-	// Retrieve the zone UUID
-	zoneid, e := retrieveUUID(cs, "zone", d.Get("zone").(string))
+	// Retrieve the zone ID
+	zoneid, e := retrieveID(cs, "zone", d.Get("zone").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -108,27 +108,27 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	// Check is this network needs to be created in a VPC
 	vpc := d.Get("vpc").(string)
 	if vpc != "" {
-		// Retrieve the vpc UUID
-		vpcid, e := retrieveUUID(cs, "vpc", vpc)
+		// Retrieve the vpc ID
+		vpcid, e := retrieveID(cs, "vpc", vpc)
 		if e != nil {
 			return e.Error()
 		}
 
-		// Set the vpc UUID
+		// Set the vpc ID
 		p.SetVpcid(vpcid)
 
 		// Since we're in a VPC, check if we want to assiciate an ACL list
 		aclid := d.Get("aclid").(string)
 		if aclid != "" {
-			// Set the acl UUID
+			// Set the acl ID
 			p.SetAclid(aclid)
 		}
 	}
 
-	// If there is a project supplied, we retreive and set the project id
+	// If there is a project supplied, we retrieve and set the project id
 	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project UUID
-		projectid, e := retrieveUUID(cs, "project", project.(string))
+		// Retrieve the project ID
+		projectid, e := retrieveID(cs, "project", project.(string))
 		if e != nil {
 			return e.Error()
 		}
@@ -167,9 +167,9 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
 
-	setValueOrUUID(d, "network_offering", n.Networkofferingname, n.Networkofferingid)
-	setValueOrUUID(d, "project", n.Project, n.Projectid)
-	setValueOrUUID(d, "zone", n.Zonename, n.Zoneid)
+	setValueOrID(d, "network_offering", n.Networkofferingname, n.Networkofferingid)
+	setValueOrID(d, "project", n.Project, n.Projectid)
+	setValueOrID(d, "zone", n.Zonename, n.Zoneid)
 
 	return nil
 }
@@ -200,8 +200,8 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 
 	// Check if the network offering is changed
 	if d.HasChange("network_offering") {
-		// Retrieve the network_offering UUID
-		networkofferingid, e := retrieveUUID(cs, "network_offering", d.Get("network_offering").(string))
+		// Retrieve the network_offering ID
+		networkofferingid, e := retrieveID(cs, "network_offering", d.Get("network_offering").(string))
 		if e != nil {
 			return e.Error()
 		}
@@ -228,7 +228,7 @@ func resourceCloudStackNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	// Delete the network
 	_, err := cs.Network.DeleteNetwork(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {

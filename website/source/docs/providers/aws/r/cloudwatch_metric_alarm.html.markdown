@@ -26,7 +26,7 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
 }
 ```
 
-## Example in Conjuction with Scaling Policies
+## Example in Conjunction with Scaling Policies
 ```
 resource "aws_autoscaling_policy" "bat" {
     name = "foobar3-terraform-test"
@@ -45,6 +45,9 @@ resource "aws_cloudwatch_metric_alarm" "bat" {
     period = "120"
     statistic = "Average"
     threshold = "80"
+    dimensions {
+        AutoScalingGroupName = "${aws_autoscaling_group.bar.name}"
+    }
     alarm_description = "This metric monitor ec2 cpu utilization"
     alarm_actions = ["${aws_autoscaling_policy.bat.arn}"]
 }

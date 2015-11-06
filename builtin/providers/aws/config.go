@@ -5,22 +5,30 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/multierror"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -42,12 +50,16 @@ type Config struct {
 }
 
 type AWSClient struct {
+	cfconn             *cloudformation.CloudFormation
 	cloudwatchconn     *cloudwatch.CloudWatch
 	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
+	dsconn             *directoryservice.DirectoryService
 	dynamodbconn       *dynamodb.DynamoDB
 	ec2conn            *ec2.EC2
 	ecsconn            *ecs.ECS
+	efsconn            *efs.EFS
 	elbconn            *elb.ELB
+	esconn             *elasticsearch.ElasticsearchService
 	autoscalingconn    *autoscaling.AutoScaling
 	s3conn             *s3.S3
 	sqsconn            *sqs.SQS
@@ -59,6 +71,9 @@ type AWSClient struct {
 	kinesisconn        *kinesis.Kinesis
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
+	opsworksconn       *opsworks.OpsWorks
+	glacierconn        *glacier.Glacier
+	codedeployconn     *codedeploy.CodeDeploy
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -88,6 +103,7 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      aws.String(c.Region),
 			MaxRetries:  aws.Int(c.MaxRetries),
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing IAM Connection")
@@ -103,6 +119,17 @@ func (c *Config) Client() (interface{}, error) {
 			Region:      aws.String(c.Region),
 			MaxRetries:  aws.Int(c.MaxRetries),
 			Endpoint:    aws.String(c.DynamoDBEndpoint),
+		}
+		// Some services exist only in us-east-1, e.g. because they manage
+		// resources that can span across multiple regions, or because
+		// signature format v4 requires region to be us-east-1 for global
+		// endpoints:
+		// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		usEast1AwsConfig := &aws.Config{
+			Credentials: creds,
+			Region:      aws.String("us-east-1"),
+			MaxRetries:  aws.Int(c.MaxRetries),
+			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
@@ -140,15 +167,14 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing ECS Connection")
 		client.ecsconn = ecs.New(awsConfig)
 
-		// aws-sdk-go uses v4 for signing requests, which requires all global
-		// endpoints to use 'us-east-1'.
-		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		log.Println("[INFO] Initializing EFS Connection")
+		client.efsconn = efs.New(awsConfig)
+
+		log.Println("[INFO] Initializing ElasticSearch Connection")
+		client.esconn = elasticsearch.New(awsConfig)
+
 		log.Println("[INFO] Initializing Route 53 connection")
-		client.r53conn = route53.New(&aws.Config{
-			Credentials: creds,
-			Region:      aws.String("us-east-1"),
-			MaxRetries:  aws.Int(c.MaxRetries),
-		})
+		client.r53conn = route53.New(usEast1AwsConfig)
 
 		log.Println("[INFO] Initializing Elasticache Connection")
 		client.elasticacheconn = elasticache.New(awsConfig)
@@ -156,11 +182,26 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Lambda Connection")
 		client.lambdaconn = lambda.New(awsConfig)
 
+		log.Println("[INFO] Initializing Cloudformation Connection")
+		client.cfconn = cloudformation.New(awsConfig)
+
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
 		client.cloudwatchconn = cloudwatch.New(awsConfig)
 
-		log.Println("[INFO] Initializing CloudWatchLogs SDK connection")
+		log.Println("[INFO] Initializing CloudWatch Logs connection")
 		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
+
+		log.Println("[INFO] Initializing OpsWorks Connection")
+		client.opsworksconn = opsworks.New(usEast1AwsConfig)
+
+		log.Println("[INFO] Initializing Directory Service connection")
+		client.dsconn = directoryservice.New(awsConfig)
+
+		log.Println("[INFO] Initializing Glacier connection")
+		client.glacierconn = glacier.New(awsConfig)
+
+		log.Println("[INFO] Initializing CodeDeploy Connection")
+		client.codedeployconn = codedeploy.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
@@ -218,8 +259,19 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 	log.Printf("[INFO] Validating account ID")
 
 	out, err := iamconn.GetUser(nil)
+
 	if err != nil {
-		return fmt.Errorf("Failed getting account ID from IAM: %s", err)
+		awsErr, _ := err.(awserr.Error)
+		if awsErr.Code() == "ValidationError" {
+			log.Printf("[WARN] ValidationError with iam.GetUser, assuming its an IAM profile")
+			// User may be an IAM instance profile, so fail silently.
+			// If it is an IAM instance profile
+			// validating account might be superfluous
+			return nil
+		} else {
+			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
+			// return error if the account id is explicitly not authorised
+		}
 	}
 
 	account_id := strings.Split(*out.User.Arn, ":")[4]

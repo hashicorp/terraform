@@ -27,8 +27,8 @@ resource "aws_elasticache_cluster" "bar" {
 
 The following arguments are supported:
 
-* `cluster_id` – (Required) Group identifier. This parameter is stored as a
-lowercase string
+* `cluster_id` – (Required) Group identifier. Elasticache converts
+  this name to lowercase
 
 * `engine` – (Required) Name of the cache engine to be used for this cache cluster.
  Valid values for this parameter are `memcached` or `redis`
@@ -73,6 +73,10 @@ names to associate with this cache cluster
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3. 
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 
+* `notification_topic_arn` – (Optional) An Amazon Resource Name (ARN) of an 
+SNS topic to send ElastiCache notifications to. Example: 
+`arn:aws:sns:us-east-1:012345678999:my_sns_topic`
+
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
@@ -82,5 +86,7 @@ The following attributes are exported:
 
 * `cache_nodes` - List of node objects including `id`, `address` and `port`.
    Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
+   
+* `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery
 
 [1]: http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html

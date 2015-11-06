@@ -58,6 +58,82 @@ func TestApply(t *testing.T) {
 	}
 }
 
+func TestApply_parallelism1(t *testing.T) {
+	statePath := testTempFile(t)
+
+	ui := new(cli.MockUi)
+	p := testProvider()
+	pr := new(terraform.MockResourceProvisioner)
+
+	pr.ApplyFn = func(*terraform.InstanceState, *terraform.ResourceConfig) error {
+		time.Sleep(time.Second)
+		return nil
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-parallelism=1",
+		testFixturePath("parallelism"),
+	}
+
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfigWithShell(p, pr),
+			Ui:          ui,
+		},
+	}
+
+	start := time.Now()
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	elapsed := time.Since(start).Seconds()
+
+	// This test should take exactly two seconds, plus some minor amount of execution time.
+	if elapsed < 2 || elapsed > 2.2 {
+		t.Fatalf("bad: %f\n\n%s", elapsed, ui.ErrorWriter.String())
+	}
+
+}
+
+func TestApply_parallelism2(t *testing.T) {
+	statePath := testTempFile(t)
+
+	ui := new(cli.MockUi)
+	p := testProvider()
+	pr := new(terraform.MockResourceProvisioner)
+
+	pr.ApplyFn = func(*terraform.InstanceState, *terraform.ResourceConfig) error {
+		time.Sleep(time.Second)
+		return nil
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-parallelism=2",
+		testFixturePath("parallelism"),
+	}
+
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfigWithShell(p, pr),
+			Ui:          ui,
+		},
+	}
+
+	start := time.Now()
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	elapsed := time.Since(start).Seconds()
+
+	// This test should take exactly one second, plus some minor amount of execution time.
+	if elapsed < 1 || elapsed > 1.2 {
+		t.Fatalf("bad: %f\n\n%s", elapsed, ui.ErrorWriter.String())
+	}
+
+}
+
 func TestApply_configInvalid(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -599,7 +675,7 @@ func TestApply_refresh(t *testing.T) {
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtention)
+	f, err = os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -787,7 +863,7 @@ func TestApply_state(t *testing.T) {
 	}
 
 	// Should have a backup file
-	f, err = os.Open(statePath + DefaultBackupExtention)
+	f, err = os.Open(statePath + DefaultBackupExtension)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1161,7 +1237,7 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 
 	// Ensure there is no backup
-	_, err = os.Stat(statePath + DefaultBackupExtention)
+	_, err = os.Stat(statePath + DefaultBackupExtension)
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}

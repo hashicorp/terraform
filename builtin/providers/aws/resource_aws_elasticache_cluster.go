@@ -28,6 +28,16 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(val interface{}) string {
+					// Elasticache normalizes cluster ids to lowercase,
+					// so we have to do this too or else we can end up
+					// with non-converging diffs.
+					return strings.ToLower(val.(string))
+				},
+			},
+			"configuration_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
@@ -108,7 +118,10 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 					},
 				},
 			},
-
+			"notification_topic_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			// A single-element string list containing an Amazon Resource Name (ARN) that
 			// uniquely identifies a Redis RDB snapshot file stored in Amazon S3. The snapshot
 			// file will be used to populate the node group.
@@ -178,6 +191,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		req.PreferredMaintenanceWindow = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("notification_topic_arn"); ok {
+		req.NotificationTopicArn = aws.String(v.(string))
+	}
+
 	snaps := d.Get("snapshot_arns").(*schema.Set).List()
 	if len(snaps) > 0 {
 		s := expandStringList(snaps)
@@ -190,7 +207,11 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error creating Elasticache: %s", err)
 	}
 
-	d.SetId(*resp.CacheCluster.CacheClusterId)
+	// Assign the cluster id as the resource ID
+	// Elasticache always retains the id in lower case, so we have to
+	// mimic that or else we won't be able to refresh a resource whose
+	// name contained uppercase characters.
+	d.SetId(strings.ToLower(*resp.CacheCluster.CacheClusterId))
 
 	pending := []string{"creating"}
 	stateConf := &resource.StateChangeConf{
@@ -232,12 +253,19 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("engine_version", c.EngineVersion)
 		if c.ConfigurationEndpoint != nil {
 			d.Set("port", c.ConfigurationEndpoint.Port)
+			d.Set("configuration_endpoint", aws.String(fmt.Sprintf("%s:%d", *c.ConfigurationEndpoint.Address, *c.ConfigurationEndpoint.Port)))
 		}
+
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
 		d.Set("security_group_names", c.CacheSecurityGroups)
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
+		if c.NotificationConfiguration != nil {
+			if *c.NotificationConfiguration.TopicStatus == "active" {
+				d.Set("notification_topic_arn", c.NotificationConfiguration.TopicArn)
+			}
+		}
 
 		if err := setCacheNodeData(d, c); err != nil {
 			return err
@@ -253,7 +281,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 			})
 
 			if err != nil {
-				log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+				log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 			}
 
 			var et []*elasticache.Tag
@@ -298,6 +326,16 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 
 	if d.HasChange("maintenance_window") {
 		req.PreferredMaintenanceWindow = aws.String(d.Get("maintenance_window").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("notification_topic_arn") {
+		v := d.Get("notification_topic_arn").(string)
+		req.NotificationTopicArn = aws.String(v)
+		if v == "" {
+			inactive := "inactive"
+			req.NotificationTopicStatus = &inactive
+		}
 		requestUpdate = true
 	}
 

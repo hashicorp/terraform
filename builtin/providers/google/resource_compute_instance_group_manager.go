@@ -3,7 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
-	"time"
+	"strings"
 
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -82,26 +82,6 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 	}
 }
 
-func waitOpZone(config *Config, op *compute.Operation, zone string,
-	resource string, action string) (*compute.Operation, error) {
-
-	w := &OperationWaiter{
-		Service: config.clientCompute,
-		Op:      op,
-		Project: config.Project,
-		Zone:    zone,
-		Type:    OperationWaitZone,
-	}
-	state := w.Conf()
-	state.Timeout = 8 * time.Minute
-	state.MinTimeout = 1 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return nil, fmt.Errorf("Error waiting for %s to %s: %s", resource, action, err)
-	}
-	return opRaw.(*compute.Operation), nil
-}
-
 func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -143,15 +123,9 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 	d.SetId(manager.Name)
 
 	// Wait for the operation to complete
-	op, err = waitOpZone(config, op, d.Get("zone").(string), "InstanceGroupManager", "create")
+	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Creating InstanceGroupManager")
 	if err != nil {
 		return err
-	}
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
-		// Return the error
-		return OperationError(*op.Error)
 	}
 
 	return resourceComputeInstanceGroupManagerRead(d, meta)
@@ -208,12 +182,9 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		// Wait for the operation to complete
-		op, err = waitOpZone(config, op, d.Get("zone").(string), "InstanceGroupManager", "update TargetPools")
+		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
 		if err != nil {
 			return err
-		}
-		if op.Error != nil {
-			return OperationError(*op.Error)
 		}
 
 		d.SetPartial("target_pools")
@@ -233,12 +204,9 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		// Wait for the operation to complete
-		op, err = waitOpZone(config, op, d.Get("zone").(string), "InstanceGroupManager", "update instance template")
+		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
 		if err != nil {
 			return err
-		}
-		if op.Error != nil {
-			return OperationError(*op.Error)
 		}
 
 		d.SetPartial("instance_template")
@@ -257,12 +225,9 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 			}
 
 			// Wait for the operation to complete
-			op, err = waitOpZone(config, op, d.Get("zone").(string), "InstanceGroupManager", "update target_size")
+			err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
 			if err != nil {
 				return err
-			}
-			if op.Error != nil {
-				return OperationError(*op.Error)
 			}
 		}
 
@@ -283,17 +248,32 @@ func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta inte
 		return fmt.Errorf("Error deleting instance group manager: %s", err)
 	}
 
-	// Wait for the operation to complete
-	op, err = waitOpZone(config, op, d.Get("zone").(string), "InstanceGroupManager", "delete")
-	if err != nil {
-		return err
-	}
-	if op.Error != nil {
-		// The resource didn't actually create
-		d.SetId("")
+	currentSize := int64(d.Get("target_size").(int))
 
-		// Return the error
-		return OperationError(*op.Error)
+	// Wait for the operation to complete
+	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
+
+	for err != nil && currentSize > 0 {
+		if !strings.Contains(err.Error(), "timeout") {
+			return err;
+		}
+
+		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
+			config.Project, d.Get("zone").(string), d.Id()).Do()
+
+		if err != nil {
+			return fmt.Errorf("Error getting instance group size: %s", err);
+		}
+
+		if instanceGroup.Size >= currentSize {
+			return fmt.Errorf("Error, instance group isn't shrinking during delete")
+		}
+
+		log.Printf("[INFO] timeout occured, but instance group is shrinking (%d < %d)", instanceGroup.Size, currentSize)
+
+		currentSize = instanceGroup.Size
+
+		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
 	}
 
 	d.SetId("")

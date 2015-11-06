@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -198,7 +199,7 @@ func testStep(
 	}
 
 	// Load the modules
-	modStorage := &module.FolderStorage{
+	modStorage := &getter.FolderStorage{
 		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
 	}
 	err = mod.Load(modStorage, module.GetModeGet)

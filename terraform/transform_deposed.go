@@ -110,7 +110,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 	var diff *InstanceDiff
 	var err error
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
-		Ops: []walkOperation{walkApply},
+		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalGetProvider{

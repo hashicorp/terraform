@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+//	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+ 	"github.com/aws/aws-sdk-go/service/lambda"
 )
 
 func TestAccAWSCloudwatchLogsLogGroup_basic(t *testing.T) {

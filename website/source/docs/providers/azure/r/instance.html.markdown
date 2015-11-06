@@ -31,6 +31,10 @@ resource "azure_instance" "web" {
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
+    domain_name = "contoso.com"
+    domain_ou = "OU=Servers,DC=contoso.com,DC=Contoso,DC=com"
+    domain_username = "Administrator"
+    domain_password = "Pa$$word123"
 
     endpoint {
         name = "SSH"
@@ -108,6 +112,18 @@ The following arguments are supported:
 
 * `endpoint` - (Optional) Can be specified multiple times to define multiple
     endpoints. Each `endpoint` block supports fields documented below.
+
+* `domain_name` - (Optional) The name of an Active Directory domain to join.
+
+* `domain_ou` - (Optional) Specifies the LDAP Organizational Unit to place the 
+    instance in.
+
+* `domain_username` - (Optional) The username of an account with permission to
+    join the instance to the domain. Required if a domain_name is specified.
+
+* `domain_password` - (Optional) The password for the domain_username account
+    specified above.
+
 
 The `endpoint` block supports:
 

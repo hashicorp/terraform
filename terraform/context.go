@@ -292,7 +292,11 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Do the walk
-	_, err = c.walk(graph, walkApply)
+	if c.destroy {
+		_, err = c.walk(graph, walkDestroy)
+	} else {
+		_, err = c.walk(graph, walkApply)
+	}
 
 	// Clean out any unused things
 	c.state.prune()
@@ -509,7 +513,7 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 func (c *Context) walk(
 	graph *Graph, operation walkOperation) (*ContextGraphWalker, error) {
 	// Walk the graph
-	log.Printf("[INFO] Starting graph walk: %s", operation.String())
+	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 	walker := &ContextGraphWalker{Context: c, Operation: operation}
 	return walker, graph.Walk(walker)
 }

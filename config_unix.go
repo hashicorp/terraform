@@ -33,7 +33,7 @@ func configDir() (string, error) {
 func homeDir() (string, error) {
 	// First prefer the HOME environmental variable
 	if home := os.Getenv("HOME"); home != "" {
-		log.Printf("Detected home directory from env var: %s", home)
+		log.Printf("[DEBUG] Detected home directory from env var: %s", home)
 		return home, nil
 	}
 

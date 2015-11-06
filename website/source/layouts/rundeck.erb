@@ -1,0 +1,35 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+					<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+				</li>
+
+				<li<%= sidebar_current("docs-rundeck-index") %>>
+					<a href="/docs/providers/rundeck/index.html">Rundeck Provider</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-rundeck-resource/) %>>
+					<a href="#">Resources</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-rundeck-resource-project") %>>
+							<a href="/docs/providers/rundeck/r/project.html">rundeck_project</a>
+						</li>
+						<li<%= sidebar_current("docs-rundeck-resource-private-key") %>>
+							<a href="/docs/providers/rundeck/r/private_key.html">rundeck_private_key</a>
+						</li>
+						<li<%= sidebar_current("docs-rundeck-resource-public-key") %>>
+							<a href="/docs/providers/rundeck/r/public_key.html">rundeck_public_key</a>
+						</li>
+						<li<%= sidebar_current("docs-rundeck-resource-job") %>>
+							<a href="/docs/providers/rundeck/r/job.html">rundeck_job</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>

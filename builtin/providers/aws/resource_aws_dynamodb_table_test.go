@@ -211,7 +211,7 @@ func dynamoDbAttributesToMap(attributes *[]*dynamodb.AttributeDefinition) map[st
 	attrmap := make(map[string]string)
 
 	for _, attrdef := range *attributes {
-		attrmap[*(attrdef.AttributeName)] = *(attrdef.AttributeType)
+		attrmap[*attrdef.AttributeName] = *attrdef.AttributeType
 	}
 
 	return attrmap

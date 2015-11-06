@@ -82,8 +82,8 @@ The following arguments are supported:
   are not allowed to be used simultaneously.
 
 * `network_interface` - (Required) Networks to attach to the instance. This can be
-    specified multiple times for multiple networks. Structure is documented
-    below.
+    specified multiple times for multiple networks, but GCE is currently limited
+    to just 1. Structure is documented below.
 
 * `network` - (DEPRECATED, Required) Networks to attach to the instance. This can be
     specified multiple times for multiple networks. Structure is documented
@@ -144,6 +144,17 @@ The `service_account` block supports:
 
 * `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
     short names are supported.
+
+The `scheduling` block supports:
+
+* `preemptible` - (Optional) Is the instance preemptible.
+
+* `on_host_maintenance` - (Optional) Describes maintenance behavior for 
+    the instance. Can be MIGRATE or TERMINATE, for more info, read
+    [here](https://cloud.google.com/compute/docs/instances/setting-instance-scheduling-options)
+
+* `automatic_restart` - (Optional) Specifies if the instance should be
+    restarted if it was terminated by Compute Engine (not a user).
 
 ## Attributes Reference
 

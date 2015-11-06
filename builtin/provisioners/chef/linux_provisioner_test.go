@@ -310,6 +310,8 @@ validation_client_name  "validator"
 node_name               "nodename1"
 
 
+
+
 http_proxy          "http://proxy.local"
 ENV['http_proxy'] = "http://proxy.local"
 ENV['HTTP_PROXY'] = "http://proxy.local"

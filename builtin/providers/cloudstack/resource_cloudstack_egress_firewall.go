@@ -89,8 +89,8 @@ func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	// Retrieve the network UUID
-	networkid, e := retrieveUUID(cs, "network", d.Get("network").(string))
+	// Retrieve the network ID
+	networkid, e := retrieveID(cs, "network", d.Get("network").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -222,7 +222,7 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 
 				// Get the rule
 				r, count, err := cs.Firewall.GetEgressFirewallRuleByID(id.(string))
-				// If the count == 0, there is no object found for this UUID
+				// If the count == 0, there is no object found for this ID
 				if err != nil {
 					if count == 0 {
 						delete(uuids, "icmp")
@@ -362,7 +362,7 @@ func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interfa
 
 		// Then loop through all the currently configured rules and create the new ones
 		for _, rule := range nrs.List() {
-			// When succesfully deleted, re-create it again if it still exists
+			// When successfully deleted, re-create it again if it still exists
 			err := resourceCloudStackEgressFirewallCreateRule(
 				d, meta, rule.(map[string]interface{}))
 
@@ -415,7 +415,7 @@ func resourceCloudStackEgressFirewallDeleteRule(
 		// Delete the rule
 		if _, err := cs.Firewall.DeleteEgressFirewallRule(p); err != nil {
 
-			// This is a very poor way to be told the UUID does no longer exist :(
+			// This is a very poor way to be told the ID does no longer exist :(
 			if strings.Contains(err.Error(), fmt.Sprintf(
 				"Invalid parameter id value=%s due to incorrect long value format, "+
 					"or entity does not exist", id.(string))) {

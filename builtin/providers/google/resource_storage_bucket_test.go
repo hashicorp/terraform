@@ -28,8 +28,6 @@ func TestAccStorage_basic(t *testing.T) {
 					testAccCheckCloudStorageBucketExists(
 						"google_storage_bucket.bucket", &bucketName),
 					resource.TestCheckResourceAttr(
-						"google_storage_bucket.bucket", "predefined_acl", "projectPrivate"),
-					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "location", "US"),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "force_destroy", "false"),
@@ -53,8 +51,6 @@ func TestAccStorageCustomAttributes(t *testing.T) {
 					testAccCheckCloudStorageBucketExists(
 						"google_storage_bucket.bucket", &bucketName),
 					resource.TestCheckResourceAttr(
-						"google_storage_bucket.bucket", "predefined_acl", "publicReadWrite"),
-					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "location", "EU"),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "force_destroy", "true"),
@@ -77,8 +73,6 @@ func TestAccStorageBucketUpdate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
 						"google_storage_bucket.bucket", &bucketName),
-					resource.TestCheckResourceAttr(
-						"google_storage_bucket.bucket", "predefined_acl", "projectPrivate"),
 					resource.TestCheckResourceAttr(
 						"google_storage_bucket.bucket", "location", "US"),
 					resource.TestCheckResourceAttr(
