@@ -60,6 +60,17 @@ The following arguments are supported:
 * `device_id` - (Optional) The ID of the device attached to the port. Changing this
     creates a new port.
 
+* `fixed_ips` - (Optional) An array of desired IPs for this port. 
+
+
+The `fixed_ips` block supports:
+
+* `subnet_id` - (Required) Subnet in which to allocate IP address for
+this port.
+
+* `ip_address` - (Required) IP address desired in the subnet for this
+port.
+
 ## Attributes Reference
 
 The following attributes are exported:

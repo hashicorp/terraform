@@ -150,7 +150,10 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
       admin_state_up = "true"
       security_groups = ["${openstack_compute_secgroup_v2.foo.id}"]
 
-      depends_on = ["openstack_networking_subnet_v2.foo"]
+			fixed_ips {
+				"subnet_id" =  "${openstack_networking_subnet_v2.foo.id}"
+				"ip_address" =  "192.168.199.23"
+			}
     }
 
     resource "openstack_compute_instance_v2" "foo" {
