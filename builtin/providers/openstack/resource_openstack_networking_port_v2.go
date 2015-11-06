@@ -78,6 +78,23 @@ func resourceNetworkingPortV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"fixed_ips": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: false,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subnet_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"ip_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -98,6 +115,7 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 		DeviceOwner:    d.Get("device_owner").(string),
 		SecurityGroups: resourcePortSecurityGroupsV2(d),
 		DeviceID:       d.Get("device_id").(string),
+		FixedIPs:       resourcePortFixedIpsV2(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -146,6 +164,7 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 	d.Set("device_owner", p.DeviceOwner)
 	d.Set("security_groups", p.SecurityGroups)
 	d.Set("device_id", p.DeviceID)
+	d.Set("fixed_ips", p.FixedIPs)
 
 	return nil
 }
@@ -177,6 +196,10 @@ func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("device_id") {
 		updateOpts.DeviceID = d.Get("device_id").(string)
+	}
+
+	if d.HasChange("fixed_ips") {
+		updateOpts.FixedIPs = resourcePortFixedIpsV2(d)
 	}
 
 	log.Printf("[DEBUG] Updating Port %s with options: %+v", d.Id(), updateOpts)
@@ -221,6 +244,20 @@ func resourcePortSecurityGroupsV2(d *schema.ResourceData) []string {
 		groups[i] = raw.(string)
 	}
 	return groups
+}
+
+func resourcePortFixedIpsV2(d *schema.ResourceData) []ports.IP {
+	rawIP := d.Get("fixed_ips").([]interface{})
+	ip := make([]ports.IP, len(rawIP))
+	for i, raw := range rawIP {
+		rawMap := raw.(map[string]interface{})
+		ip[i] = ports.IP{
+			SubnetID:  rawMap["subnet_id"].(string),
+			IPAddress: rawMap["ip_address"].(string),
+		}
+	}
+
+	return ip
 }
 
 func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {
