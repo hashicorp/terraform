@@ -52,7 +52,7 @@ func TestAccAzureInstance_separateHostedService(t *testing.T) {
 		CheckDestroy: testAccCheckAzureInstanceDestroyed(testAccHostedServiceName),
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureInstance_seperateHostedService,
+				Config: testAccAzureInstance_separateHostedService,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
 						"azure_instance.foo", testAccHostedServiceName, &dpmt),
@@ -384,7 +384,7 @@ resource "azure_instance" "foo" {
     }
 }`, instanceName, testAccStorageServiceName)
 
-var testAccAzureInstance_seperateHostedService = fmt.Sprintf(`
+var testAccAzureInstance_separateHostedService = fmt.Sprintf(`
 resource "azure_hosted_service" "foo" {
 	name = "%s"
 	location = "West US"
@@ -446,7 +446,7 @@ resource "azure_security_group_rule" "foo" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, April 2015"
+    image = "Windows Server 2012 R2 Datacenter, September 2015"
     size = "Basic_A1"
     storage_service_name = "%s"
     location = "West US"
@@ -520,7 +520,7 @@ resource "azure_security_group_rule" "bar" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, April 2015"
+    image = "Windows Server 2012 R2 Datacenter, September 2015"
     size = "Basic_A2"
     storage_service_name = "%s"
     location = "West US"

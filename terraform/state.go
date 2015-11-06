@@ -83,7 +83,7 @@ func (s *State) AddModule(path []string) *ModuleState {
 }
 
 // ModuleByPath is used to lookup the module state for the given path.
-// This should be the prefered lookup mechanism as it allows for future
+// This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
 func (s *State) ModuleByPath(path []string) *ModuleState {
 	if s == nil {
@@ -965,6 +965,21 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 		}
 	}
 
+	// Meta must be equal
+	if len(s.Meta) != len(other.Meta) {
+		return false
+	}
+	for k, v := range s.Meta {
+		otherV, ok := other.Meta[k]
+		if !ok {
+			return false
+		}
+
+		if v != otherV {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -1192,9 +1207,8 @@ func (s moduleStateSort) Less(i, j int) bool {
 		return len(a.Path) < len(b.Path)
 	}
 
-	// Otherwise, compare by last path element
-	idx := len(a.Path) - 1
-	return a.Path[idx] < b.Path[idx]
+	// Otherwise, compare lexically
+	return strings.Join(a.Path, ".") < strings.Join(b.Path, ".")
 }
 
 func (s moduleStateSort) Swap(i, j int) {

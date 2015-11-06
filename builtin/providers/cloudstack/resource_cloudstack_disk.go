@@ -80,12 +80,12 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	// Create a new parameter struct
 	p := cs.Volume.NewCreateVolumeParams(name)
 
-	// Retrieve the disk_offering UUID
-	diskofferingid, e := retrieveUUID(cs, "disk_offering", d.Get("disk_offering").(string))
+	// Retrieve the disk_offering ID
+	diskofferingid, e := retrieveID(cs, "disk_offering", d.Get("disk_offering").(string))
 	if e != nil {
 		return e.Error()
 	}
-	// Set the disk_offering UUID
+	// Set the disk_offering ID
 	p.SetDiskofferingid(diskofferingid)
 
 	if d.Get("size").(int) != 0 {
@@ -93,10 +93,10 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 		p.SetSize(int64(d.Get("size").(int)))
 	}
 
-	// If there is a project supplied, we retreive and set the project id
+	// If there is a project supplied, we retrieve and set the project id
 	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project UUID
-		projectid, e := retrieveUUID(cs, "project", project.(string))
+		// Retrieve the project ID
+		projectid, e := retrieveID(cs, "project", project.(string))
 		if e != nil {
 			return e.Error()
 		}
@@ -104,8 +104,8 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 		p.SetProjectid(projectid)
 	}
 
-	// Retrieve the zone UUID
-	zoneid, e := retrieveUUID(cs, "zone", d.Get("zone").(string))
+	// Retrieve the zone ID
+	zoneid, e := retrieveID(cs, "zone", d.Get("zone").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -118,7 +118,7 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error creating the new disk %s: %s", name, err)
 	}
 
-	// Set the volume UUID and partials
+	// Set the volume ID and partials
 	d.SetId(r.Id)
 	d.SetPartial("name")
 	d.SetPartial("device")
@@ -160,9 +160,9 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("attach", v.Attached != "")           // If attached this will contain a timestamp when attached
 	d.Set("size", int(v.Size/(1024*1024*1024))) // Needed to get GB's again
 
-	setValueOrUUID(d, "disk_offering", v.Diskofferingname, v.Diskofferingid)
-	setValueOrUUID(d, "project", v.Project, v.Projectid)
-	setValueOrUUID(d, "zone", v.Zonename, v.Zoneid)
+	setValueOrID(d, "disk_offering", v.Diskofferingname, v.Diskofferingid)
+	setValueOrID(d, "project", v.Project, v.Projectid)
+	setValueOrID(d, "zone", v.Zonename, v.Zoneid)
 
 	if v.Attached != "" {
 		// Get the virtual machine details
@@ -184,7 +184,7 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 		}
 
 		d.Set("device", retrieveDeviceName(v.Deviceid, c.Name))
-		setValueOrUUID(d, "virtual_machine", v.Vmname, v.Virtualmachineid)
+		setValueOrID(d, "virtual_machine", v.Vmname, v.Virtualmachineid)
 	}
 
 	return nil
@@ -205,13 +205,13 @@ func resourceCloudStackDiskUpdate(d *schema.ResourceData, meta interface{}) erro
 		// Create a new parameter struct
 		p := cs.Volume.NewResizeVolumeParams(d.Id())
 
-		// Retrieve the disk_offering UUID
-		diskofferingid, e := retrieveUUID(cs, "disk_offering", d.Get("disk_offering").(string))
+		// Retrieve the disk_offering ID
+		diskofferingid, e := retrieveID(cs, "disk_offering", d.Get("disk_offering").(string))
 		if e != nil {
 			return e.Error()
 		}
 
-		// Set the disk_offering UUID
+		// Set the disk_offering ID
 		p.SetDiskofferingid(diskofferingid)
 
 		if d.Get("size").(int) != 0 {
@@ -228,7 +228,7 @@ func resourceCloudStackDiskUpdate(d *schema.ResourceData, meta interface{}) erro
 			return fmt.Errorf("Error changing disk offering/size for disk %s: %s", name, err)
 		}
 
-		// Update the volume UUID and set partials
+		// Update the volume ID and set partials
 		d.SetId(r.Id)
 		d.SetPartial("disk_offering")
 		d.SetPartial("size")
@@ -278,7 +278,7 @@ func resourceCloudStackDiskDelete(d *schema.ResourceData, meta interface{}) erro
 
 	// Delete the voluem
 	if _, err := cs.Volume.DeleteVolume(p); err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {
@@ -299,8 +299,8 @@ func resourceCloudStackDiskAttach(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	// Retrieve the virtual_machine UUID
-	virtualmachineid, e := retrieveUUID(cs, "virtual_machine", d.Get("virtual_machine").(string))
+	// Retrieve the virtual_machine ID
+	virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -341,13 +341,13 @@ func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) erro
 	// Create a new parameter struct
 	p := cs.Volume.NewDetachVolumeParams()
 
-	// Set the volume UUID
+	// Set the volume ID
 	p.SetId(d.Id())
 
 	// Detach the currently attached volume
 	if _, err := cs.Volume.DetachVolume(p); err != nil {
-		// Retrieve the virtual_machine UUID
-		virtualmachineid, e := retrieveUUID(cs, "virtual_machine", d.Get("virtual_machine").(string))
+		// Retrieve the virtual_machine ID
+		virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
 		if e != nil {
 			return e.Error()
 		}

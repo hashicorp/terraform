@@ -3,9 +3,9 @@ package command
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/go-getter"
 )
 
 func TestUiModuleStorage_impl(t *testing.T) {
-	var _ module.Storage = new(uiModuleStorage)
+	var _ getter.Storage = new(uiModuleStorage)
 }

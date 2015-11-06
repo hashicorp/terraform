@@ -27,7 +27,7 @@ resource "google_compute_instance_group_manager" "foobar" {
 }
 ```
 
-## Argument Refernce
+## Argument Reference
 
 The following arguments are supported:
 

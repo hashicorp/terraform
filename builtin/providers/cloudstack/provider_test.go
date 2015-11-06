@@ -32,18 +32,18 @@ func testSetValueOnResourceData(t *testing.T) {
 	d := schema.ResourceData{}
 	d.Set("id", "name")
 
-	setValueOrUUID(&d, "id", "name", "54711781-274e-41b2-83c0-17194d0108f7")
+	setValueOrID(&d, "id", "name", "54711781-274e-41b2-83c0-17194d0108f7")
 
 	if d.Get("id").(string) != "name" {
 		t.Fatal("err: 'id' does not match 'name'")
 	}
 }
 
-func testSetUUIDOnResourceData(t *testing.T) {
+func testSetIDOnResourceData(t *testing.T) {
 	d := schema.ResourceData{}
 	d.Set("id", "54711781-274e-41b2-83c0-17194d0108f7")
 
-	setValueOrUUID(&d, "id", "name", "54711781-274e-41b2-83c0-17194d0108f7")
+	setValueOrID(&d, "id", "name", "54711781-274e-41b2-83c0-17194d0108f7")
 
 	if d.Get("id").(string) != "54711781-274e-41b2-83c0-17194d0108f7" {
 		t.Fatal("err: 'id' doest not match '54711781-274e-41b2-83c0-17194d0108f7'")
@@ -173,7 +173,7 @@ var CLOUDSTACK_NETWORK_2_OFFERING = os.Getenv("CLOUDSTACK_NETWORK_2_OFFERING")
 // An IP address in CLOUDSTACK_NETWORK_2_CIDR
 var CLOUDSTACK_NETWORK_2_IPADDRESS = os.Getenv("CLOUDSTACK_NETWORK_2_IPADDRESS")
 
-// A network that already exists and isnt CLOUDSTACK_NETWORK_1
+// A network that already exists and isn't CLOUDSTACK_NETWORK_1
 var CLOUDSTACK_2ND_NIC_NETWORK = os.Getenv("CLOUDSTACK_2ND_NIC_NETWORK")
 
 // An IP address in CLOUDSTACK_2ND_NIC_NETWORK

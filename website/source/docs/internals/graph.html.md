@@ -92,7 +92,24 @@ Building the graph is done in a series of sequential steps:
   1. Validate the graph has no cycles and has a single root.
 
 ## Walking the Graph
+<a id="walking-the-graph"></a>
 
 To walk the graph, a standard depth-first traversal is done. Graph
-walking is done with as much parallelism as possible: a node is walked
-as soon as all of its dependencies are walked.
+walking is done in parallel: a node is walked as soon as all of its
+dependencies are walked.
+
+The amount of parallelism is limited using a semaphore to prevent too many
+concurrent operations from overwhelming the resources of the machine running
+Terraform. By default, up to 10 nodes in the graph will be processed
+concurrently. This number can be set using the `-parallelism` flag on the
+[plan](/docs/commands/plan.html), [apply](/docs/commands/apply.html), and
+[destroy](/docs/commands/destroy.html) commands.
+
+Setting `-parallelism` is considered an advanced operation and should not be
+necessary for normal usage of Terraform. It may be helpful in certain special
+use cases or to help debug Terraform issues.
+
+Note that some providers (AWS, for example), handle API rate limiting issues at
+a lower level by implementing graceful backoff/retry in their respective API
+clients. For this reason, Terraform does not use this `parallelism` feature to
+address API rate limits directly.

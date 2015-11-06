@@ -330,11 +330,6 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 		Value: config.NewStringList([]string{}).String(),
 		Type:  ast.TypeString,
 	})
-	// Zero + zero elements
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.nothing", ast.Variable{
-		Value: config.NewStringList([]string{"", ""}).String(),
-		Type:  ast.TypeString,
-	})
 	// Zero + 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.special", ast.Variable{
 		Value: config.NewStringList([]string{"extra"}).String(),

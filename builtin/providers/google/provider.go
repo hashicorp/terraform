@@ -15,7 +15,7 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"account_file": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 				ValidateFunc: validateAccountFile,
 			},
@@ -47,12 +47,16 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
 			"google_compute_route":                  resourceComputeRoute(),
 			"google_compute_target_pool":            resourceComputeTargetPool(),
+			"google_compute_vpn_gateway":            resourceComputeVpnGateway(),
+			"google_compute_vpn_tunnel":             resourceComputeVpnTunnel(),
 			"google_container_cluster":              resourceContainerCluster(),
 			"google_dns_managed_zone":               resourceDnsManagedZone(),
 			"google_dns_record_set":                 resourceDnsRecordSet(),
 			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
 			"google_storage_bucket":                 resourceStorageBucket(),
+			"google_storage_bucket_acl":             resourceStorageBucketAcl(),
 			"google_storage_bucket_object":          resourceStorageBucketObject(),
+			"google_storage_object_acl":             resourceStorageObjectAcl(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -74,6 +78,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 }
 
 func validateAccountFile(v interface{}, k string) (warnings []string, errors []error) {
+	if v == nil {
+		return
+	}
+
 	value := v.(string)
 
 	if value == "" {

@@ -75,29 +75,10 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"identifier": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"only lowercase alphanumeric characters and hyphens allowed in %q", k))
-					}
-					if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"first character of %q must be a letter", k))
-					}
-					if regexp.MustCompile(`--`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot contain two consecutive hyphens", k))
-					}
-					if regexp.MustCompile(`-$`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot end with a hyphen", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRdsId,
 			},
 
 			"instance_class": &schema.Schema{
@@ -524,7 +505,6 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		if v.DBName != nil && *v.DBName != "" {
 			name = *v.DBName
 		}
-
 		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", name)
 	} else {
 		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
@@ -532,7 +512,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		})
 
 		if err != nil {
-			log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 		}
 
 		var dt []*rds.Tag
@@ -716,7 +696,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	// seperate request to promote a database
+	// separate request to promote a database
 	if d.HasChange("replicate_source_db") {
 		if d.Get("replicate_source_db").(string) == "" {
 			// promote

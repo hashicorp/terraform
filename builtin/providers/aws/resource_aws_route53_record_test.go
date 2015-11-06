@@ -133,6 +133,7 @@ func TestAccAWSRoute53Record_weighted(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53RecordExists("aws_route53_record.www-dev"),
 					testAccCheckRoute53RecordExists("aws_route53_record.www-live"),
+					testAccCheckRoute53RecordExists("aws_route53_record.www-off"),
 				),
 			},
 		},
@@ -405,6 +406,16 @@ resource "aws_route53_record" "www-live" {
   ttl = "5"
   weight = 90
   set_identifier = "live"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "www-off" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  weight = 0
+  set_identifier = "off"
   records = ["dev.notexample.com"]
 }
 `

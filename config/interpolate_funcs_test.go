@@ -11,6 +11,142 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
+func TestInterpolateFuncCompact(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// empty string within array
+			{
+				`${compact(split(",", "a,,b"))}`,
+				NewStringList([]string{"a", "b"}).String(),
+				false,
+			},
+
+			// empty string at the end of array
+			{
+				`${compact(split(",", "a,b,"))}`,
+				NewStringList([]string{"a", "b"}).String(),
+				false,
+			},
+
+			// single empty string
+			{
+				`${compact(split(",", ""))}`,
+				NewStringList([]string{}).String(),
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncCidrHost(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${cidrhost("192.168.1.0/24", 5)}`,
+				"192.168.1.5",
+				false,
+			},
+			{
+				`${cidrhost("192.168.1.0/30", 255)}`,
+				nil,
+				true, // 255 doesn't fit in two bits
+			},
+			{
+				`${cidrhost("not-a-cidr", 6)}`,
+				nil,
+				true, // not a valid CIDR mask
+			},
+			{
+				`${cidrhost("10.256.0.0/8", 6)}`,
+				nil,
+				true, // can't have an octet >255
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncCidrNetmask(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${cidrnetmask("192.168.1.0/24")}`,
+				"255.255.255.0",
+				false,
+			},
+			{
+				`${cidrnetmask("192.168.1.0/32")}`,
+				"255.255.255.255",
+				false,
+			},
+			{
+				`${cidrnetmask("0.0.0.0/0")}`,
+				"0.0.0.0",
+				false,
+			},
+			{
+				// This doesn't really make sense for IPv6 networks
+				// but it ought to do something sensible anyway.
+				`${cidrnetmask("1::/64")}`,
+				"ffff:ffff:ffff:ffff::",
+				false,
+			},
+			{
+				`${cidrnetmask("not-a-cidr")}`,
+				nil,
+				true, // not a valid CIDR mask
+			},
+			{
+				`${cidrnetmask("10.256.0.0/8")}`,
+				nil,
+				true, // can't have an octet >255
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncCidrSubnet(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${cidrsubnet("192.168.2.0/20", 4, 6)}`,
+				"192.168.6.0/24",
+				false,
+			},
+			{
+				`${cidrsubnet("fe80::/48", 16, 6)}`,
+				"fe80:0:0:6::/64",
+				false,
+			},
+			{
+				// IPv4 address encoded in IPv6 syntax gets normalized
+				`${cidrsubnet("::ffff:192.168.0.0/112", 8, 6)}`,
+				"192.168.6.0/24",
+				false,
+			},
+			{
+				`${cidrsubnet("192.168.0.0/30", 4, 6)}`,
+				nil,
+				true, // not enough bits left
+			},
+			{
+				`${cidrsubnet("192.168.0.0/16", 2, 16)}`,
+				nil,
+				true, // can't encode 16 in 2 bits
+			},
+			{
+				`${cidrsubnet("not-a-cidr", 4, 6)}`,
+				nil,
+				true, // not a valid CIDR mask
+			},
+			{
+				`${cidrsubnet("10.256.0.0/8", 4, 6)}`,
+				nil,
+				true, // can't have an octet >255
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDeprecatedConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -584,6 +720,87 @@ func TestInterpolateFuncElement(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBase64Encode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Regular base64 encoding
+			{
+				`${base64encode("abc123!?$*&()'-=@~")}`,
+				"YWJjMTIzIT8kKiYoKSctPUB+",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBase64Decode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Regular base64 decoding
+			{
+				`${base64decode("YWJjMTIzIT8kKiYoKSctPUB+")}`,
+				"abc123!?$*&()'-=@~",
+				false,
+			},
+
+			// Invalid base64 data decoding
+			{
+				`${base64decode("this-is-an-invalid-base64-data")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncLower(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${lower("HELLO")}`,
+				"hello",
+				false,
+			},
+
+			{
+				`${lower("")}`,
+				"",
+				false,
+			},
+
+			{
+				`${lower()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncUpper(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${upper("hello")}`,
+				"HELLO",
+				false,
+			},
+
+			{
+				`${upper("")}`,
+				"",
+				false,
+			},
+
+			{
+				`${upper()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
@@ -603,7 +820,7 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 		}
 
 		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}
 

@@ -124,4 +124,5 @@ The following attributes are exported:
 
 * `arn` - The arn of the table
 * `id` - The name of the table
+* `latest_stream_arn` - The latest stream arn (if stream_specification enabled)
 

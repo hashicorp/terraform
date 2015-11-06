@@ -49,9 +49,12 @@ func (n *EvalValidateCount) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 RETURN:
-	return nil, &EvalValidateError{
-		Errors: errs,
+	if len(errs) != 0 {
+		err = &EvalValidateError{
+			Errors: errs,
+		}
 	}
+	return nil, err
 }
 
 // EvalValidateProvider is an EvalNode implementation that validates

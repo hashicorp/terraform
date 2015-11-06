@@ -33,8 +33,8 @@ func resourceCloudStackVPNGateway() *schema.Resource {
 func resourceCloudStackVPNGatewayCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Retrieve the VPC UUID
-	vpcid, e := retrieveUUID(cs, "vpc", d.Get("vpc").(string))
+	// Retrieve the VPC ID
+	vpcid, e := retrieveID(cs, "vpc", d.Get("vpc").(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -69,7 +69,7 @@ func resourceCloudStackVPNGatewayRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	setValueOrUUID(d, "vpc", d.Get("vpc").(string), v.Vpcid)
+	setValueOrID(d, "vpc", d.Get("vpc").(string), v.Vpcid)
 
 	d.Set("public_ip", v.Publicip)
 
@@ -85,7 +85,7 @@ func resourceCloudStackVPNGatewayDelete(d *schema.ResourceData, meta interface{}
 	// Delete the VPN Gateway
 	_, err := cs.VPN.DeleteVpnGateway(p)
 	if err != nil {
-		// This is a very poor way to be told the UUID does no longer exist :(
+		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(
 			"Invalid parameter id value=%s due to incorrect long value format, "+
 				"or entity does not exist", d.Id())) {

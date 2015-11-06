@@ -45,7 +45,7 @@ func TestFlagKV(t *testing.T) {
 	for _, tc := range cases {
 		f := new(FlagKV)
 		err := f.Set(tc.Input)
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("bad error. Input: %#v", tc.Input)
 		}
 
@@ -95,7 +95,7 @@ foo = "bar"
 
 		f := new(FlagKVFile)
 		err := f.Set(path)
-		if (err != nil) != tc.Error {
+		if err != nil != tc.Error {
 			t.Fatalf("bad error. Input: %#v", tc.Input)
 		}
 

@@ -24,10 +24,10 @@ func resourceStorageBucket() *schema.Resource {
 				ForceNew: true,
 			},
 			"predefined_acl": &schema.Schema{
-				Type:     schema.TypeString,
-				Default:  "projectPrivate",
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Deprecated: "Please use resource \"storage_bucket_acl.predefined_acl\" instead.",
+				Optional:   true,
+				ForceNew:   true,
 			},
 			"location": &schema.Schema{
 				Type:     schema.TypeString,
@@ -40,6 +40,26 @@ func resourceStorageBucket() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"website": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"main_page_suffix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"not_found_page": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -49,12 +69,37 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 
 	// Get the bucket and acl
 	bucket := d.Get("name").(string)
-	acl := d.Get("predefined_acl").(string)
 	location := d.Get("location").(string)
 
 	// Create a bucket, setting the acl, location and name.
 	sb := &storage.Bucket{Name: bucket, Location: location}
-	res, err := config.clientStorage.Buckets.Insert(config.Project, sb).PredefinedAcl(acl).Do()
+
+	if v, ok := d.GetOk("website"); ok {
+		websites := v.([]interface{})
+
+		if len(websites) > 1 {
+			return fmt.Errorf("At most one website block is allowed")
+		}
+
+		sb.Website = &storage.BucketWebsite{}
+
+		website := websites[0].(map[string]interface{})
+
+		if v, ok := website["not_found_page"]; ok {
+			sb.Website.NotFoundPage = v.(string)
+		}
+
+		if v, ok := website["main_page_suffix"]; ok {
+			sb.Website.MainPageSuffix = v.(string)
+		}
+	}
+
+	call := config.clientStorage.Buckets.Insert(config.Project, sb)
+	if v, ok := d.GetOk("predefined_acl"); ok {
+		call = call.PredefinedAcl(v.(string))
+	}
+
+	res, err := call.Do()
 
 	if err != nil {
 		fmt.Printf("Error creating bucket %s: %v", bucket, err)
@@ -64,14 +109,60 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Created bucket %v at location %v\n\n", res.Name, res.SelfLink)
 
 	// Assign the bucket ID as the resource ID
+	d.Set("self_link", res.SelfLink)
 	d.SetId(res.Id)
 
 	return nil
 }
 
 func resourceStorageBucketUpdate(d *schema.ResourceData, meta interface{}) error {
-	// Only thing you can currently change is force_delete (all other properties have ForceNew)
-	// which is just terraform object state change, so nothing to do here
+	config := meta.(*Config)
+
+	sb := &storage.Bucket{}
+
+	if d.HasChange("website") {
+		if v, ok := d.GetOk("website"); ok {
+			websites := v.([]interface{})
+
+			if len(websites) > 1 {
+				return fmt.Errorf("At most one website block is allowed")
+			}
+
+			// Setting fields to "" to be explicit that the PATCH call will
+			// delete this field.
+			if len(websites) == 0 {
+				sb.Website.NotFoundPage = ""
+				sb.Website.MainPageSuffix = ""
+			} else {
+				website := websites[0].(map[string]interface{})
+				sb.Website = &storage.BucketWebsite{}
+				if v, ok := website["not_found_page"]; ok {
+					sb.Website.NotFoundPage = v.(string)
+				} else {
+					sb.Website.NotFoundPage = ""
+				}
+
+				if v, ok := website["main_page_suffix"]; ok {
+					sb.Website.MainPageSuffix = v.(string)
+				} else {
+					sb.Website.MainPageSuffix = ""
+				}
+			}
+		}
+	}
+
+	res, err := config.clientStorage.Buckets.Patch(d.Get("name").(string), sb).Do()
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Patched bucket %v at location %v\n\n", res.Name, res.SelfLink)
+
+	// Assign the bucket ID as the resource ID
+	d.Set("self_link", res.SelfLink)
+	d.SetId(res.Id)
+
 	return nil
 }
 
@@ -90,6 +181,7 @@ func resourceStorageBucketRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Read bucket %v at location %v\n\n", res.Name, res.SelfLink)
 
 	// Update the bucket ID according to the resource ID
+	d.Set("self_link", res.SelfLink)
 	d.SetId(res.Id)
 
 	return nil

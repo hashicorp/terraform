@@ -63,7 +63,10 @@ resource "aws_instance" "web" {
     }
 
     provisioner "remote-exec" {
-        inline = ["/tmp/script.sh args"]
+        inline = [
+          "chmod +x /tmp/script.sh",
+          "/tmp/script.sh args"
+        ]
     }
 }
 ```
