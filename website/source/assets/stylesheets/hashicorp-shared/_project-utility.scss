@@ -1,0 +1,17 @@
+//
+// Mixins Specific to project
+//  - make edits to mixins here
+// --------------------------------------------------
+
+// Variables
+$project-logo-size: 40px;
+$project-logo-pad-left: 8px;
+
+// Mixins
+@mixin project-a-style{
+    color: $white;
+
+    &:hover{
+        color: $purple;
+    }
+}

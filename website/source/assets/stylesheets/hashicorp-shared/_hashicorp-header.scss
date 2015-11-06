@@ -1,0 +1,166 @@
+//
+// Hashicorp header
+// - Shared throughout projects
+// - Edits should not be made here
+// --------------------------------------------------
+
+#header {
+    position: relative;
+    color: $white;
+    text-rendering: optimizeLegibility;
+    margin-bottom: 0;
+    transition: all 1s ease;
+
+    &.white{
+      .navbar-brand {
+          .by{
+              svg{
+                  path,
+                  polygon{
+                      fill: white;
+                  }
+                  line{
+                    stroke: white;
+                  }
+              }
+          }
+      }
+    }
+
+    .navbar-header{
+        .navbar-toggle{
+            height: $header-height;
+            margin: 0;
+            padding-right: 15px;
+            border-radius: 0;
+            .icon-bar{
+                border: 1px solid $black;
+                border-radius: 0;
+            }
+        }
+    }
+
+    .navbar-brand {
+        display: block;
+        height: $header-height;
+        padding: 0;
+        margin: 0 10px 0 0 ;
+
+        .logo{
+            display: inline-block;
+            height: $header-height;
+            vertical-align:top;
+            padding: 0;
+            line-height: $header-height;
+            padding-left: $project-logo-size + $project-logo-pad-left;
+            background-position: 0 center;
+
+            &:hover{
+				@include transition(all 300ms ease-in);
+				text-decoration: none;
+			}
+        }
+
+        .by{
+            display: inline-block;
+            vertical-align:top;
+            height: $header-height;
+            margin-left: 3px;
+            padding-top: 2px;
+            line-height: $header-height;
+            font-family: $header-font-family;
+            font-weight: 300;
+            font-size: 0;
+            text-decoration: none;
+
+            .svg-wrap{
+                font-size: 13px;
+            }
+
+            svg{
+                &.svg-by{
+                    width: $by-hashicorp-width;
+                    height: $by-hashicorp-height;
+                    margin-bottom: -4px;
+                    margin-left: 4px;
+                }
+
+                &.svg-logo{
+                    width: 16px;
+                    height: 16px;
+                    margin-bottom: -3px;
+                    margin-left: 4px;
+                }
+
+                path,
+                polygon{
+                    fill: black;
+                    @include transition(all 300ms ease-in);
+
+                    &:hover{
+                        @include transition(all 300ms ease-in);
+                    }
+                }
+                line{
+                  stroke: black;
+
+                  &:hover{
+                      @include transition(all 300ms ease-in);
+                  }
+                }
+            }
+        }
+    }
+
+    .external-links {
+        li {
+            position: relative;
+
+            svg path{
+                @include transition( all 0.3s ease );
+            }
+
+            &:hover{
+                svg path{
+                    @include transition( all 0.3s ease );
+                }
+            }
+
+            &.download{
+                margin-right: 10px;
+            }
+
+            >a {
+                padding-left: 12px !important;
+                svg{
+                    position: absolute;
+                    left: -12px;
+                    top: 50%;
+                    margin-top: -7px;
+                    width: 14px;
+                    height: 14px;
+                }
+            }
+        }
+    }
+
+    .main-links{
+        margin-right: $nav-margin-right * 2;
+    }
+
+    .main-links,
+    .external-links {
+        li > a {
+            @include hashi-a-style();
+            margin: 0 10px;
+            padding-top: 1px;
+            line-height: $header-height;
+        }
+    }
+
+    .nav > li > a:hover, .nav > li > a:focus {
+        background-color: transparent;
+        color: $black;
+        @include transition( color 0.3s ease );
+    }
+}
