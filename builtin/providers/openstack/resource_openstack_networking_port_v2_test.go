@@ -10,6 +10,7 @@ import (
 
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
+	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
 )
 
 func TestAccNetworkingV2Port_basic(t *testing.T) {
@@ -17,6 +18,7 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 
 	var network networks.Network
 	var port ports.Port
+	var subnet subnets.Subnet
 
 	var testAccNetworkingV2Port_basic = fmt.Sprintf(`
 		resource "openstack_networking_network_v2" "foo" {
@@ -25,16 +27,24 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 			admin_state_up = "true"
 		}
 
+    resource "openstack_networking_subnet_v2" "foo" {
+      region = "%s"
+      name = "subnet_1"
+      network_id = "${openstack_networking_network_v2.foo.id}"
+      cidr = "192.168.199.0/24"
+      ip_version = 4
+    }
+
 		resource "openstack_networking_port_v2" "foo" {
 			region = "%s"
 			name = "port_1"
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			admin_state_up = "true"
 			fixed_ips {
- 					ip_address = "192.168.0.0"
-					subnet_id = "008ba151-0b8c-4a67-98b5-0d2b87666062"
+				  subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
+ 					ip_address = "192.168.199.23"
 			}
-		}`, region, region)
+		}`, region, region, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -44,6 +54,7 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Port_basic,
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.foo", &subnet),
 					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
 					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.foo", &port),
 				),
