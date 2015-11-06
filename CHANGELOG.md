@@ -28,11 +28,13 @@ IMPROVEMENTS:
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
+  * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
   * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
   * provider/aws: Apply security group after restoring db_instance from snapshot [GH-3513]
   * provider/aws: Making the AutoScalingGroup name optional [GH-3710]
   * provider/openstack: Add "delete on termination" boot-from-volume option [GH-3232]
   * provider/digitalocean: Make user_data force a new droplet [GH-3740]
+  * provider/vsphere: Do not add network interfaces by default [GH-3652]
 
 BUG FIXES:
 
@@ -44,8 +46,10 @@ BUG FIXES:
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
+  * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
+  * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
   * provider/openstack: Fix several issues causing unresolvable diffs [GH-3440]
   * provider/openstack: Safely delete security groups [GH-3696]
   * provider/openstack: Ignore order of security_groups in instance [GH-3651]
