@@ -72,6 +72,41 @@ func TestAccAWSElasticacheCluster_snapshotsWithUpdates(t *testing.T) {
 	})
 }
 
+func TestAccAWSElasticacheCluster_decreasingCacheNodes(t *testing.T) {
+	var ec elasticache.CacheCluster
+
+	ri := genRandInt()
+	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes_update, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "num_cache_nodes", "3"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "num_cache_nodes", "1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 	var csg elasticache.CacheSubnetGroup
 	var ec elasticache.CacheCluster
@@ -256,6 +291,71 @@ resource "aws_elasticache_cluster" "bar" {
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     snapshot_window = "07:00-09:00"
     snapshot_retention_limit = 7
+    apply_immediately = true
+}
+`
+
+var testAccAWSElasticacheClusterConfigDecreasingNodes = `
+provider "aws" {
+	region = "us-east-1"
+}
+resource "aws_security_group" "bar" {
+    name = "tf-test-security-group-%03d"
+    description = "tf-test-security-group-descr"
+    ingress {
+        from_port = -1
+        to_port = -1
+        protocol = "icmp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+
+resource "aws_elasticache_security_group" "bar" {
+    name = "tf-test-security-group-%03d"
+    description = "tf-test-security-group-descr"
+    security_group_names = ["${aws_security_group.bar.name}"]
+}
+
+resource "aws_elasticache_cluster" "bar" {
+    cluster_id = "tf-test-%03d"
+    engine = "memcached"
+    node_type = "cache.m1.small"
+    num_cache_nodes = 3
+    port = 11211
+    parameter_group_name = "default.memcached1.4"
+    security_group_names = ["${aws_elasticache_security_group.bar.name}"]
+}
+`
+
+var testAccAWSElasticacheClusterConfigDecreasingNodes_update = `
+provider "aws" {
+	region = "us-east-1"
+}
+resource "aws_security_group" "bar" {
+    name = "tf-test-security-group-%03d"
+    description = "tf-test-security-group-descr"
+    ingress {
+        from_port = -1
+        to_port = -1
+        protocol = "icmp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+
+resource "aws_elasticache_security_group" "bar" {
+    name = "tf-test-security-group-%03d"
+    description = "tf-test-security-group-descr"
+    security_group_names = ["${aws_security_group.bar.name}"]
+}
+
+resource "aws_elasticache_cluster" "bar" {
+    cluster_id = "tf-test-%03d"
+    engine = "memcached"
+    node_type = "cache.m1.small"
+    num_cache_nodes = 1
+    port = 11211
+    parameter_group_name = "default.memcached1.4"
+    security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     apply_immediately = true
 }
 `

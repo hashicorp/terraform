@@ -395,8 +395,18 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if d.HasChange("num_cache_nodes") {
+		oraw, nraw := d.GetChange("num_cache_nodes")
+		o := oraw.(int)
+		n := nraw.(int)
+		if n < o {
+			log.Printf("[INFO] Cluster %s is marked for Decreasing cache nodes from %d to %d", d.Id(), o, n)
+			nodesToRemove := getCacheNodesToRemove(d, o, o-n)
+			req.CacheNodeIdsToRemove = nodesToRemove
+		}
+
 		req.NumCacheNodes = aws.Int64(int64(d.Get("num_cache_nodes").(int)))
 		requestUpdate = true
+
 	}
 
 	if requestUpdate {
@@ -424,6 +434,16 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	return resourceAwsElasticacheClusterRead(d, meta)
+}
+
+func getCacheNodesToRemove(d *schema.ResourceData, oldNumberOfNodes int, cacheNodesToRemove int) []*string {
+	nodesIdsToRemove := []*string{}
+	for i := oldNumberOfNodes; i > oldNumberOfNodes-cacheNodesToRemove && i > 0; i-- {
+		s := fmt.Sprintf("%04d", i)
+		nodesIdsToRemove = append(nodesIdsToRemove, &s)
+	}
+
+	return nodesIdsToRemove
 }
 
 func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error {
