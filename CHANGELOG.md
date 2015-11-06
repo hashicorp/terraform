@@ -35,6 +35,7 @@ IMPROVEMENTS:
   * provider/openstack: Add "delete on termination" boot-from-volume option [GH-3232]
   * provider/digitalocean: Make user_data force a new droplet [GH-3740]
   * provider/vsphere: Do not add network interfaces by default [GH-3652]
+  * provider/openstack: Configure Fixed IPs through ports [GH-3772]
 
 BUG FIXES:
 
