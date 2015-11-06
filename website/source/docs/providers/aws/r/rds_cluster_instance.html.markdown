@@ -64,6 +64,10 @@ and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
 Default `false`. See the documentation on [Creating DB Instances][6] for more
 details on controlling this property.
 
+* `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance.
+
+~> **NOTE:** `db_subnet_group_name` is a required field when you are trying to create a private instance (`publicly_accessible` = false)
+
 ## Attributes Reference
 
 The following attributes are exported:
