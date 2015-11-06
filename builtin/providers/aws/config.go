@@ -11,10 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -47,10 +50,12 @@ type Config struct {
 	ForbiddenAccountIds []interface{}
 
 	DynamoDBEndpoint string
+	KinesisEndpoint  string
 }
 
 type AWSClient struct {
 	cfconn             *cloudformation.CloudFormation
+	cloudtrailconn     *cloudtrail.CloudTrail
 	cloudwatchconn     *cloudwatch.CloudWatch
 	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
 	dsconn             *directoryservice.DirectoryService
@@ -74,6 +79,7 @@ type AWSClient struct {
 	opsworksconn       *opsworks.OpsWorks
 	glacierconn        *glacier.Glacier
 	codedeployconn     *codedeploy.CodeDeploy
+	codecommitconn     *codecommit.CodeCommit
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -107,19 +113,14 @@ func (c *Config) Client() (interface{}, error) {
 		}
 
 		log.Println("[INFO] Initializing IAM Connection")
-		client.iamconn = iam.New(awsConfig)
+		sess := session.New(awsConfig)
+		client.iamconn = iam.New(sess)
 
 		err := c.ValidateCredentials(client.iamconn)
 		if err != nil {
 			errs = append(errs, err)
 		}
 
-		awsDynamoDBConfig := &aws.Config{
-			Credentials: creds,
-			Region:      aws.String(c.Region),
-			MaxRetries:  aws.Int(c.MaxRetries),
-			Endpoint:    aws.String(c.DynamoDBEndpoint),
-		}
 		// Some services exist only in us-east-1, e.g. because they manage
 		// resources that can span across multiple regions, or because
 		// signature format v4 requires region to be us-east-1 for global
@@ -131,27 +132,36 @@ func (c *Config) Client() (interface{}, error) {
 			MaxRetries:  aws.Int(c.MaxRetries),
 			HTTPClient:  cleanhttp.DefaultClient(),
 		}
+		usEast1Sess := session.New(usEast1AwsConfig)
+
+		awsDynamoDBConfig := *awsConfig
+		awsDynamoDBConfig.Endpoint = aws.String(c.DynamoDBEndpoint)
 
 		log.Println("[INFO] Initializing DynamoDB connection")
-		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
+		dynamoSess := session.New(&awsDynamoDBConfig)
+		client.dynamodbconn = dynamodb.New(dynamoSess)
 
 		log.Println("[INFO] Initializing ELB connection")
-		client.elbconn = elb.New(awsConfig)
+		client.elbconn = elb.New(sess)
 
 		log.Println("[INFO] Initializing S3 connection")
-		client.s3conn = s3.New(awsConfig)
+		client.s3conn = s3.New(sess)
 
 		log.Println("[INFO] Initializing SQS connection")
-		client.sqsconn = sqs.New(awsConfig)
+		client.sqsconn = sqs.New(sess)
 
 		log.Println("[INFO] Initializing SNS connection")
-		client.snsconn = sns.New(awsConfig)
+		client.snsconn = sns.New(sess)
 
 		log.Println("[INFO] Initializing RDS Connection")
-		client.rdsconn = rds.New(awsConfig)
+		client.rdsconn = rds.New(sess)
+
+		awsKinesisConfig := *awsConfig
+		awsKinesisConfig.Endpoint = aws.String(c.KinesisEndpoint)
 
 		log.Println("[INFO] Initializing Kinesis Connection")
-		client.kinesisconn = kinesis.New(awsConfig)
+		kinesisSess := session.New(&awsKinesisConfig)
+		client.kinesisconn = kinesis.New(kinesisSess)
 
 		authErr := c.ValidateAccountId(client.iamconn)
 		if authErr != nil {
@@ -159,49 +169,55 @@ func (c *Config) Client() (interface{}, error) {
 		}
 
 		log.Println("[INFO] Initializing AutoScaling connection")
-		client.autoscalingconn = autoscaling.New(awsConfig)
+		client.autoscalingconn = autoscaling.New(sess)
 
 		log.Println("[INFO] Initializing EC2 Connection")
-		client.ec2conn = ec2.New(awsConfig)
+		client.ec2conn = ec2.New(sess)
 
 		log.Println("[INFO] Initializing ECS Connection")
-		client.ecsconn = ecs.New(awsConfig)
+		client.ecsconn = ecs.New(sess)
 
 		log.Println("[INFO] Initializing EFS Connection")
-		client.efsconn = efs.New(awsConfig)
+		client.efsconn = efs.New(sess)
 
 		log.Println("[INFO] Initializing ElasticSearch Connection")
-		client.esconn = elasticsearch.New(awsConfig)
+		client.esconn = elasticsearch.New(sess)
 
 		log.Println("[INFO] Initializing Route 53 connection")
-		client.r53conn = route53.New(usEast1AwsConfig)
+		client.r53conn = route53.New(usEast1Sess)
 
 		log.Println("[INFO] Initializing Elasticache Connection")
-		client.elasticacheconn = elasticache.New(awsConfig)
+		client.elasticacheconn = elasticache.New(sess)
 
 		log.Println("[INFO] Initializing Lambda Connection")
-		client.lambdaconn = lambda.New(awsConfig)
+		client.lambdaconn = lambda.New(sess)
 
 		log.Println("[INFO] Initializing Cloudformation Connection")
-		client.cfconn = cloudformation.New(awsConfig)
+		client.cfconn = cloudformation.New(sess)
 
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
-		client.cloudwatchconn = cloudwatch.New(awsConfig)
+		client.cloudwatchconn = cloudwatch.New(sess)
+
+		log.Println("[INFO] Initializing CloudTrail connection")
+		client.cloudtrailconn = cloudtrail.New(sess)
 
 		log.Println("[INFO] Initializing CloudWatch Logs connection")
-		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
+		client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
 
 		log.Println("[INFO] Initializing OpsWorks Connection")
-		client.opsworksconn = opsworks.New(usEast1AwsConfig)
+		client.opsworksconn = opsworks.New(usEast1Sess)
 
 		log.Println("[INFO] Initializing Directory Service connection")
-		client.dsconn = directoryservice.New(awsConfig)
+		client.dsconn = directoryservice.New(sess)
 
 		log.Println("[INFO] Initializing Glacier connection")
-		client.glacierconn = glacier.New(awsConfig)
+		client.glacierconn = glacier.New(sess)
 
 		log.Println("[INFO] Initializing CodeDeploy Connection")
-		client.codedeployconn = codedeploy.New(awsConfig)
+		client.codedeployconn = codedeploy.New(sess)
+
+		log.Println("[INFO] Initializing CodeCommit SDK connection")
+		client.codecommitconn = codecommit.New(usEast1Sess)
 	}
 
 	if len(errs) > 0 {

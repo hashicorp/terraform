@@ -51,8 +51,8 @@ func resourceAzureLocalNetworkConnectionCreate(d *schema.ResourceData, meta inte
 	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	azureClient.mutex.Lock()
-	defer azureClient.mutex.Unlock()
+	azureClient.vnetMutex.Lock()
+	defer azureClient.vnetMutex.Unlock()
 	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		if management.IsResourceNotFoundError(err) {
@@ -138,8 +138,8 @@ func resourceAzureLocalNetworkConnectionUpdate(d *schema.ResourceData, meta inte
 	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	azureClient.mutex.Lock()
-	defer azureClient.mutex.Unlock()
+	azureClient.vnetMutex.Lock()
+	defer azureClient.vnetMutex.Unlock()
 	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
@@ -217,8 +217,8 @@ func resourceAzureLocalNetworkConnectionDelete(d *schema.ResourceData, meta inte
 	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	azureClient.mutex.Lock()
-	defer azureClient.mutex.Unlock()
+	azureClient.vnetMutex.Lock()
+	defer azureClient.vnetMutex.Unlock()
 	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)

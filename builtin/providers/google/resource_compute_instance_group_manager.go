@@ -255,14 +255,14 @@ func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta inte
 
 	for err != nil && currentSize > 0 {
 		if !strings.Contains(err.Error(), "timeout") {
-			return err;
+			return err
 		}
 
 		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
 			config.Project, d.Get("zone").(string), d.Id()).Do()
 
 		if err != nil {
-			return fmt.Errorf("Error getting instance group size: %s", err);
+			return fmt.Errorf("Error getting instance group size: %s", err)
 		}
 
 		if instanceGroup.Size >= currentSize {

@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_http_health_check"
-sidebar_current: "docs-google-resource-http_health_check"
+sidebar_current: "docs-google-compute-http-health-check"
 description: |-
   Manages an HTTP Health Check within GCE.
 ---
