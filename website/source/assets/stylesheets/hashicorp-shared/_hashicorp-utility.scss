@@ -29,10 +29,10 @@ $nav-margin-right: 12px;
     padding: 0;
     line-height: 22px;
     @include hashi-a-style-core();
-    @include transition( color 0.3s ease );
+    @include transition( all 300ms ease-in );
 
     &:hover{
-        @include transition( color 0.3s ease );
+        @include transition( all 300ms ease-in );
         background-color: transparent;
     }
 }

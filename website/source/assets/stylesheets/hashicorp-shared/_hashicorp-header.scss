@@ -6,13 +6,18 @@
 
 #header {
     position: relative;
-    color: $white;
+    color: black;
     text-rendering: optimizeLegibility;
     margin-bottom: 0;
     transition: all 1s ease;
 
     &.white{
+      color: white;
       .navbar-brand {
+          .logo {
+            color: white;
+          }
+
           .by{
               color: white;
               font-weight: 300;
@@ -24,6 +29,27 @@
                   line{
                     stroke: white;
                   }
+              }
+          }
+      }
+
+      .main-links,
+      .external-links {
+          li > a {
+              &:hover{
+                opacity: 1;
+              }
+          }
+      }
+
+      .nav > li > a:hover, .nav > li > a:focus {
+          color: white;
+      }
+
+      .navbar-header{
+          .navbar-toggle{
+              .icon-bar{
+                  border: 1px solid white;
               }
           }
       }
@@ -54,8 +80,9 @@
             vertical-align:top;
             padding: 0;
             line-height: $header-height;
-            padding-left: $project-logo-size + $project-logo-pad-left;
+            padding-left: $project-logo-width + $project-logo-pad-left;
             background-position: 0 center;
+            @include transition(all 300ms ease-in);
 
             &:hover{
 				@include transition(all 300ms ease-in);
@@ -106,6 +133,7 @@
                 }
                 line{
                   stroke: black;
+                  @include transition(all 300ms ease-in);
 
                   &:hover{
                       @include transition(all 300ms ease-in);
@@ -120,12 +148,12 @@
             position: relative;
 
             svg path{
-                @include transition( all 0.3s ease );
+                @include transition( all 300ms ease-in );
             }
 
             &:hover{
                 svg path{
-                    @include transition( all 0.3s ease );
+                    @include transition( all 300ms ease-in );
                 }
             }
 
@@ -164,6 +192,6 @@
     .nav > li > a:hover, .nav > li > a:focus {
         background-color: transparent;
         color: $black;
-        @include transition( color 0.3s ease );
+        @include transition( all 300ms ease-in );
     }
 }
