@@ -88,6 +88,7 @@ SNS topic to send ElastiCache notifications to. Example:
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
+~> **NOTE:** Snapshotting functionality is not compatible with t2 instance types.
 
 ## Attributes Reference
 
