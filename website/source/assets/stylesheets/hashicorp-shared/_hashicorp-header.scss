@@ -14,6 +14,8 @@
     &.white{
       .navbar-brand {
           .by{
+              color: white;
+              font-weight: 300;
               svg{
                   path,
                   polygon{
@@ -67,9 +69,10 @@
             height: $header-height;
             margin-left: 3px;
             padding-top: 2px;
+            color: black;
             line-height: $header-height;
             font-family: $header-font-family;
-            font-weight: 300;
+            font-weight: 600;
             font-size: 0;
             text-decoration: none;
 
