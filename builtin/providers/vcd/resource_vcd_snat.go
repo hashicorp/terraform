@@ -3,7 +3,7 @@ package vcd
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/opencredo/vmware-govcd"
+	"github.com/hmrc/vmware-govcd"
 )
 
 func resourceVcdSNAT() *schema.Resource {
