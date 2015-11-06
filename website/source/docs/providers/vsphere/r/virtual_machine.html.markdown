@@ -1,14 +1,14 @@
 ---
 layout: "vsphere"
-page_title: "vSphere: vsphere_virtual_machine"
+page_title: "VMware vSphere: vsphere_virtual_machine"
 sidebar_current: "docs-vsphere-resource-virtual-machine"
 description: |-
-  Provides a vSphere virtual machine resource. This can be used to create, modify, and delete virtual machines.
+  Provides a VMware vSphere virtual machine resource. This can be used to create, modify, and delete virtual machines.
 ---
 
 # vsphere\_virtual\_machine
 
-Provides a vSphere virtual machine resource. This can be used to create,
+Provides a VMware vSphere virtual machine resource. This can be used to create,
 modify, and delete virtual machines.
 
 ## Example Usage
