@@ -215,7 +215,7 @@ resource "aws_elasticache_security_group" "bar" {
 resource "aws_elasticache_cluster" "bar" {
     cluster_id = "tf-test-%03d"
     engine = "redis"
-    node_type = "cache.t2.small"
+    node_type = "cache.m1.small"
     num_cache_nodes = 1
     port = 6379
   	parameter_group_name = "default.redis2.8"
@@ -230,7 +230,7 @@ provider "aws" {
 	region = "us-east-1"
 }
 resource "aws_security_group" "bar" {
-    name = "tf-test-security-group"
+    name = "tf-test-security-group-%03d"
     description = "tf-test-security-group-descr"
     ingress {
         from_port = -1
@@ -241,7 +241,7 @@ resource "aws_security_group" "bar" {
 }
 
 resource "aws_elasticache_security_group" "bar" {
-    name = "tf-test-security-group"
+    name = "tf-test-security-group-%03d"
     description = "tf-test-security-group-descr"
     security_group_names = ["${aws_security_group.bar.name}"]
 }
