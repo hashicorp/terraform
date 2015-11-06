@@ -46,10 +46,11 @@ func resourceAwsSnsTopic() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				StateFunc: func(v interface{}) string {
-					if v == nil {
+					s, ok := v.(string)
+					if !ok || s == "" {
 						return ""
 					}
-					jsonb := []byte{}
+					jsonb := []byte(s)
 					buffer := new(bytes.Buffer)
 					if err := json.Compact(buffer, jsonb); err != nil {
 						log.Printf("[WARN] Error compacting JSON for Policy in SNS Topic")
