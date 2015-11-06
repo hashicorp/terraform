@@ -4,14 +4,17 @@
 // --------------------------------------------------
 
 // Variables
-$project-logo-size: 40px;
+$project-logo-width: 38px;
+$project-logo-height: 40px;
 $project-logo-pad-left: 8px;
 
 // Mixins
 @mixin project-a-style{
     color: $white;
+    font-weight: 300;
+    opacity: .75;
 
     &:hover{
-        color: $purple;
+        color: $white;
     }
 }
