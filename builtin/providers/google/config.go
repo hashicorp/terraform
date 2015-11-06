@@ -17,6 +17,7 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
+	"google.golang.org/api/sqladmin/v1beta4"
 	"google.golang.org/api/storage/v1"
 )
 
@@ -31,6 +32,7 @@ type Config struct {
 	clientContainer *container.Service
 	clientDns       *dns.Service
 	clientStorage   *storage.Service
+	clientSqlAdmin  *sqladmin.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -41,7 +43,6 @@ func (c *Config) loadAndValidate() error {
 		"https://www.googleapis.com/auth/ndev.clouddns.readwrite",
 		"https://www.googleapis.com/auth/devstorage.full_control",
 	}
-
 
 	if c.AccountFile == "" {
 		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
@@ -104,7 +105,7 @@ func (c *Config) loadAndValidate() error {
 		client = conf.Client(oauth2.NoContext)
 
 	} else {
-		log.Printf("[INFO] Authenticating using DefaultClient");
+		log.Printf("[INFO] Authenticating using DefaultClient")
 		err := error(nil)
 		client, err = google.DefaultClient(oauth2.NoContext, clientScopes...)
 		if err != nil {
@@ -149,6 +150,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientStorage.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google SqlAdmin Client...")
+	c.clientSqlAdmin, err = sqladmin.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientSqlAdmin.UserAgent = userAgent
 
 	return nil
 }

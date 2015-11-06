@@ -68,6 +68,7 @@ func resourceLBMonitorV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 		},
 	}

@@ -13,7 +13,7 @@ description: |-
 If set to any value, enables detailed logs to appear on stderr which is useful for debugging. For example:
 
 ```
-export TF_LOG=1
+export TF_LOG=TRACE
 ```
 
 To disable, either unset it or set it to empty. When unset, logging will default to stderr. For example:

@@ -41,6 +41,7 @@ func resourceAwsRouteTable() *schema.Resource {
 
 			"route": &schema.Schema{
 				Type:     schema.TypeSet,
+				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -325,6 +326,14 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 		_, err := conn.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{
 			AssociationId: a.RouteTableAssociationId,
 		})
+		if err != nil {
+			// First check if the association ID is not found. If this
+			// is the case, then it was already disassociated somehow,
+			// and that is okay.
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
+				err = nil
+			}
+		}
 		if err != nil {
 			return err
 		}
