@@ -27,6 +27,7 @@ IMPROVEMENTS:
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
+  * provider/aws: Add S3 support for Lambda Function resource [GH-3794]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
   * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
   * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
