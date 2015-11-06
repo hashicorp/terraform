@@ -355,7 +355,9 @@ func resourceVcdVAppRead(d *schema.ResourceData, meta interface{}) error {
 
 	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error finding vapp: %#v", err)
+		log.Printf("[DEBUG] Unable to find vapp. Removing from tfstate")
+		d.SetId("")
+		return nil
 	}
 	d.Set("ip", vapp.VApp.Children.VM[0].NetworkConnectionSection.NetworkConnection.IPAddress)
 

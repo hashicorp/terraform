@@ -207,7 +207,9 @@ func resourceVcdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 
 	network, err := vcd_client.OrgVdc.FindVDCNetwork(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error finding network: %#v", err)
+		log.Printf("[DEBUG] Network no longer exists. Removing from tfstate")
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("name", network.OrgVDCNetwork.Name)
