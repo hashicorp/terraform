@@ -2,7 +2,7 @@ package vcd
 
 import (
 	"github.com/hashicorp/terraform/helper/resource"
-	types "github.com/opencredo/vmware-govcd/types/v56"
+	types "github.com/hmrc/vmware-govcd/types/v56"
 	"strconv"
 	"time"
 )

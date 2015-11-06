@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/opencredo/vmware-govcd"
+	"github.com/hmrc/vmware-govcd"
 )
 
 type Config struct {
