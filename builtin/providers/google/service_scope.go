@@ -11,6 +11,7 @@ func canonicalizeServiceScope(scope string) string {
 		"datastore":       "https://www.googleapis.com/auth/datastore",
 		"logging-write":   "https://www.googleapis.com/auth/logging.write",
 		"monitoring":      "https://www.googleapis.com/auth/monitoring",
+		"pubsub":          "https://www.googleapis.com/auth/pubsub",
 		"sql":             "https://www.googleapis.com/auth/sqlservice",
 		"sql-admin":       "https://www.googleapis.com/auth/sqlservice.admin",
 		"storage-full":    "https://www.googleapis.com/auth/devstorage.full_control",
@@ -22,9 +23,9 @@ func canonicalizeServiceScope(scope string) string {
 		"userinfo-email":  "https://www.googleapis.com/auth/userinfo.email",
 	}
 
-	if matchedUrl, ok := scopeMap[scope]; ok {
-		return matchedUrl
-	} else {
-		return scope
+	if matchedURL, ok := scopeMap[scope]; ok {
+		return matchedURL
 	}
+
+	return scope
 }
