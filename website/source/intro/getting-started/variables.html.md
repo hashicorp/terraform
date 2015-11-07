@@ -186,7 +186,7 @@ And access them via `lookup()`:
 
 ```
 output "ami" {
-  value = "${lookup(var.amis, var.region)}
+  value = "${lookup(var.amis, var.region)}"
 }
 ```
 
