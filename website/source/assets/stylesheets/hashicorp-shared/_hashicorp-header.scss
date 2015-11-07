@@ -200,7 +200,7 @@
   #header {
     .navbar-header{
       .navbar-toggle{
-        padding-top: 13px;
+        padding-top: 10px;
         height: $header-mobile-height;
       }
     }
@@ -215,6 +215,7 @@
       .by{
         height: $header-mobile-height;
         line-height: $header-mobile-height;
+        padding-top: 0;
       }
     }
     .main-links,
