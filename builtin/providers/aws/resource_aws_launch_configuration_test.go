@@ -30,6 +30,14 @@ func TestAccAWSLaunchConfiguration_basic(t *testing.T) {
 						"aws_launch_configuration.bar", "terraform-"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSLaunchConfigurationPrefixNameConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.baz", &conf),
+					testAccCheckAWSLaunchConfigurationGeneratedNamePrefix(
+						"aws_launch_configuration.baz", "baz-"),
+				),
+			},
 		},
 	})
 }
@@ -249,6 +257,16 @@ resource "aws_launch_configuration" "bar" {
 
 const testAccAWSLaunchConfigurationNoNameConfig = `
 resource "aws_launch_configuration" "bar" {
+   image_id = "ami-21f78e11"
+   instance_type = "t1.micro"
+   user_data = "foobar-user-data-change"
+   associate_public_ip_address = false
+}
+`
+
+const testAccAWSLaunchConfigurationPrefixNameConfig = `
+resource "aws_launch_configuration" "baz" {
+   name_prefix = "baz-"
    image_id = "ami-21f78e11"
    instance_type = "t1.micro"
    user_data = "foobar-user-data-change"
