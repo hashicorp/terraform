@@ -79,3 +79,27 @@ body.page-sub{
         }
     }
 }
+
+@media (max-width: 414px) {
+  #header {
+    .navbar-brand {
+      .logo{
+        padding-left: 37px;
+        font-size: 18px;
+        @include img-retina("../images/logo-header.png", "../images/logo-header@2x.png", $project-logo-width * .75, $project-logo-height * .75);
+        //background-position: 0 45%;
+      }
+    }
+  }
+}
+
+
+@media (max-width: 320px) {
+  #header {
+    .navbar-brand {
+      .logo{
+        font-size: 0 !important; //hide terraform text
+      }
+    }
+  }
+}

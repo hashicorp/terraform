@@ -195,3 +195,33 @@
         @include transition( all 300ms ease-in );
     }
 }
+
+@media (max-width: 414px) {
+  #header {
+    .navbar-header{
+      .navbar-toggle{
+        padding-top: 13px;
+        height: $header-mobile-height;
+      }
+    }
+
+    .navbar-brand {
+      height: $header-mobile-height;
+
+      .logo{
+        height: $header-mobile-height;
+        line-height: $header-mobile-height;
+      }
+      .by{
+        height: $header-mobile-height;
+        line-height: $header-mobile-height;
+      }
+    }
+    .main-links,
+    .external-links {
+        li > a {
+            line-height: $header-mobile-height;
+        }
+    }
+  }
+}
