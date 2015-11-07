@@ -5,19 +5,19 @@
 // --------------------------------------------------
 
 .sidebar {
-    .sidebar-nav {
-        // Links
-        //----------------
-        li {
-            a {
-                color: $black;
+  .sidebar-nav {
+    // Links
+    //----------------
+    li {
+      a {
+        color: $black;
 
-                svg{
-                    path{
-                        fill: $black;
-                    }
-                }
-            }
+        svg{
+          path{
+            fill: $black;
+          }
         }
+      }
     }
+  }
 }
