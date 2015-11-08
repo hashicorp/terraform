@@ -71,7 +71,8 @@ from which to forward traffic to the parent group. Changing
 this creates a new security group rule.
 
 * `self` - (Optional) Required if `cidr` and `from_group_id` is empty. If true,
-the security group itself will be added as a source to this ingress rule.
+the security group itself will be added as a source to this ingress rule. `cidr`
+and `from_group_id` will be ignored if either are set while `self` is true.
 
 ## Attributes Reference
 
@@ -81,3 +82,20 @@ The following attributes are exported:
 * `name` - See Argument Reference above.
 * `description` - See Argument Reference above.
 * `rule` - See Argument Reference above.
+
+## Notes
+
+### ICMP Rules
+
+When using ICMP as the `ip_protocol`, the `from_port` sets the ICMP _type_ and the `to_port` sets the ICMP _code_. To allow all ICMP types, set each value to `-1`, like so:
+
+```
+rule {
+  from_port = -1
+  to_port = -1
+  ip_protocol = "icmp"
+  cidr = "0.0.0.0/0"
+}
+```
+
+A list of ICMP types and codes can be found [here](https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol#Control_messages).

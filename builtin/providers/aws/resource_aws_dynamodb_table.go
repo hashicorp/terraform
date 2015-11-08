@@ -9,9 +9,20 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+        "github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 )
+
+// Number of times to retry if a throttling-related exception occurs
+const DYNAMODB_MAX_THROTTLE_RETRIES = 5
+
+// How long to sleep when a throttle-event happens
+const DYNAMODB_THROTTLE_SLEEP = 5 * time.Second
+
+// How long to sleep if a limit-exceeded event happens
+const DYNAMODB_LIMIT_EXCEEDED_SLEEP = 10 * time.Second
+
 
 // A number of these are marked as computed because if you don't
 // provide a value, DynamoDB will provide you with defaults (which are the
@@ -421,8 +432,6 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 			req.StreamSpecification = streamSpecification
 		}
 
-		// Updates for capacity needs to be done before updating
-		// the streamspecification - it cannot be done in the same call
 		_, err := dynamodbconn.UpdateTable(req)
 		if err != nil {
 			return err
@@ -693,6 +702,7 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	// currently can
 	if table.StreamSpecification != nil {
 		d.Set("stream_specification", flattenDynamoDBStreamSpecification(table.StreamSpecification))
+
 		if *(table.StreamSpecification.StreamEnabled) {
 			d.Set("latest_stream_arn", table.LatestStreamArn)
 		}

@@ -28,6 +28,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"acl": &schema.Schema{
 				Type:     schema.TypeString,
 				Default:  "private",
@@ -469,6 +475,8 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	if err := d.Set("tags", tagsToMapS3(tagSet)); err != nil {
 		return err
 	}
+
+	d.Set("arn", fmt.Sprint("arn:aws:s3:::", d.Id()))
 
 	return nil
 }

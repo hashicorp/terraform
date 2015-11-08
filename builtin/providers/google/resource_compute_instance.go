@@ -775,7 +775,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			scheduling.OnHostMaintenance = val.(string)
 		}
 
-		op, err := config.clientCompute.Instances.SetScheduling(config.Project, 
+		op, err := config.clientCompute.Instances.SetScheduling(config.Project,
 			zone, d.Id(), scheduling).Do()
 
 		if err != nil {
@@ -788,7 +788,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			return opErr
 		}
 
-		d.SetPartial("scheduling");
+		d.SetPartial("scheduling")
 	}
 
 	networkInterfacesCount := d.Get("network_interface.#").(int)

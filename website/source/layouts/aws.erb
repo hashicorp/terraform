@@ -19,6 +19,15 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-cloudtrail/) %>>
+                    <a href="#">CloudTrail Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cloudtrail") %>>
+                            <a href="/docs/providers/aws/r/cloudtrail.html">aws_cloudtrail</a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li<%= sidebar_current(/^docs-aws-resource-cloudwatch/) %>>
                     <a href="#">CloudWatch Resources</a>
                     <ul class="nav nav-visible">
@@ -31,6 +40,16 @@
                             <a href="/docs/providers/aws/r/cloudwatch_metric_alarm.html">aws_cloudwatch_metric_alarm</a>
                         </li>
  
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-codecommit/) %>>
+                    <a href="#">CodeCommit Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-codecommit-repository") %>>
+                            <a href="/docs/providers/aws/r/code_commit_repository.html">aws_codecommit_repository</a>
+                        </li>
                     </ul>
                 </li>
 
@@ -59,6 +78,7 @@
 
                     </ul>
                 </li>
+
 
                 <li<%= sidebar_current(/^docs-aws-resource-dynamodb/) %>>
                     <a href="#">DynamoDB Resources</a>
@@ -424,6 +444,10 @@
                             <a href="/docs/providers/aws/r/route53_zone_association.html">aws_route53_zone_association</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-route|") %>>
+                            <a href="/docs/providers/aws/r/route.html">aws_route</a>
+                        </li>
+                        
                     </ul>
                 </li>
 

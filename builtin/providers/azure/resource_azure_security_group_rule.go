@@ -86,6 +86,9 @@ func resourceAzureSecurityGroupRuleCreate(d *schema.ResourceData, meta interface
 	mgmtClient := azureClient.mgmtClient
 	secGroupClient := azureClient.secGroupClient
 
+	azureClient.secGroupMutex.Lock()
+	defer azureClient.secGroupMutex.Unlock()
+
 	// create and configure the RuleResponse:
 	name := d.Get("name").(string)
 	rule := netsecgroup.RuleRequest{
@@ -183,6 +186,9 @@ func resourceAzureSecurityGroupRuleUpdate(d *schema.ResourceData, meta interface
 	mgmtClient := azureClient.mgmtClient
 	secGroupClient := azureClient.secGroupClient
 
+	azureClient.secGroupMutex.Lock()
+	defer azureClient.secGroupMutex.Unlock()
+
 	var found bool
 	name := d.Get("name").(string)
 	newRule := netsecgroup.RuleRequest{
@@ -261,6 +267,9 @@ func resourceAzureSecurityGroupRuleDelete(d *schema.ResourceData, meta interface
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
 	secGroupClient := azureClient.secGroupClient
+
+	azureClient.secGroupMutex.Lock()
+	defer azureClient.secGroupMutex.Unlock()
 
 	name := d.Get("name").(string)
 	secGroupNames := d.Get("security_group_names").(*schema.Set).List()
