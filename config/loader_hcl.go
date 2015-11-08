@@ -557,7 +557,6 @@ func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 }
 
 func loadProvisionersHcl(list *ast.ObjectList, connInfo map[string]interface{}) ([]*Provisioner, error) {
-	println(fmt.Sprintf("%#v", list.Items[0]))
 	list = list.Children()
 	if len(list.Items) == 0 {
 		return nil, nil
