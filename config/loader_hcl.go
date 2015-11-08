@@ -5,15 +5,15 @@ import (
 	"io/ioutil"
 
 	"github.com/hashicorp/hcl"
-	hclobj "github.com/hashicorp/hcl/hcl"
+	"github.com/hashicorp/hcl/hcl/ast"
 	"github.com/mitchellh/mapstructure"
 )
 
 // hclConfigurable is an implementation of configurable that knows
 // how to turn HCL configuration into a *Config object.
 type hclConfigurable struct {
-	File   string
-	Object *hclobj.Object
+	File string
+	Root *ast.File
 }
 
 func (t *hclConfigurable) Config() (*Config, error) {
@@ -36,7 +36,13 @@ func (t *hclConfigurable) Config() (*Config, error) {
 		Variable map[string]*hclVariable
 	}
 
-	if err := hcl.DecodeObject(&rawConfig, t.Object); err != nil {
+	// Top-level item should be the object list
+	list, ok := t.Root.Node.(*ast.ObjectList)
+	if !ok {
+		return nil, fmt.Errorf("error parsing: file doesn't contain a root object")
+	}
+
+	if err := hcl.DecodeObject(&rawConfig, list); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +79,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Get Atlas configuration
-	if atlas := t.Object.Get("atlas", false); atlas != nil {
+	if atlas := list.Filter("atlas"); len(atlas.Items) > 0 {
 		var err error
 		config.Atlas, err = loadAtlasHcl(atlas)
 		if err != nil {
@@ -82,7 +88,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Build the modules
-	if modules := t.Object.Get("module", false); modules != nil {
+	if modules := list.Filter("module"); len(modules.Items) > 0 {
 		var err error
 		config.Modules, err = loadModulesHcl(modules)
 		if err != nil {
@@ -91,7 +97,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Build the provider configs
-	if providers := t.Object.Get("provider", false); providers != nil {
+	if providers := list.Filter("provider"); len(providers.Items) > 0 {
 		var err error
 		config.ProviderConfigs, err = loadProvidersHcl(providers)
 		if err != nil {
@@ -100,7 +106,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Build the resources
-	if resources := t.Object.Get("resource", false); resources != nil {
+	if resources := list.Filter("resource"); len(resources.Items) > 0 {
 		var err error
 		config.Resources, err = loadResourcesHcl(resources)
 		if err != nil {
@@ -109,7 +115,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Build the outputs
-	if outputs := t.Object.Get("output", false); outputs != nil {
+	if outputs := list.Filter("output"); len(outputs.Items) > 0 {
 		var err error
 		config.Outputs, err = loadOutputsHcl(outputs)
 		if err != nil {
@@ -118,8 +124,13 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Check for invalid keys
-	for _, elem := range t.Object.Elem(true) {
-		k := elem.Key
+	for _, item := range list.Items {
+		if len(item.Keys) == 0 {
+			// Not sure how this would happen, but let's avoid a panic
+			continue
+		}
+
+		k := item.Keys[0].Token.Value().(string)
 		if _, ok := validKeys[k]; ok {
 			continue
 		}
@@ -133,8 +144,6 @@ func (t *hclConfigurable) Config() (*Config, error) {
 // loadFileHcl is a fileLoaderFunc that knows how to read HCL
 // files and turn them into hclConfigurables.
 func loadFileHcl(root string) (configurable, []string, error) {
-	var obj *hclobj.Object = nil
-
 	// Read the HCL file and prepare for parsing
 	d, err := ioutil.ReadFile(root)
 	if err != nil {
@@ -143,7 +152,7 @@ func loadFileHcl(root string) (configurable, []string, error) {
 	}
 
 	// Parse it
-	obj, err = hcl.Parse(string(d))
+	hclRoot, err := hcl.Parse(string(d))
 	if err != nil {
 		return nil, nil, fmt.Errorf(
 			"Error parsing %s: %s", root, err)
@@ -151,8 +160,8 @@ func loadFileHcl(root string) (configurable, []string, error) {
 
 	// Start building the result
 	result := &hclConfigurable{
-		File:   root,
-		Object: obj,
+		File: root,
+		Root: hclRoot,
 	}
 
 	// Dive in, find the imports. This is disabled for now since
@@ -200,9 +209,16 @@ func loadFileHcl(root string) (configurable, []string, error) {
 
 // Given a handle to a HCL object, this transforms it into the Atlas
 // configuration.
-func loadAtlasHcl(obj *hclobj.Object) (*AtlasConfig, error) {
+func loadAtlasHcl(list *ast.ObjectList) (*AtlasConfig, error) {
+	if len(list.Items) > 1 {
+		return nil, fmt.Errorf("only one 'atlas' block allowed")
+	}
+
+	// Get our one item
+	item := list.Items[0]
+
 	var config AtlasConfig
-	if err := hcl.DecodeObject(&config, obj); err != nil {
+	if err := hcl.DecodeObject(&config, item.Val); err != nil {
 		return nil, fmt.Errorf(
 			"Error reading atlas config: %s",
 			err)
@@ -217,18 +233,10 @@ func loadAtlasHcl(obj *hclobj.Object) (*AtlasConfig, error) {
 // The resulting modules may not be unique, but each module
 // represents exactly one module definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
-func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
-	var allNames []*hclobj.Object
-
-	// See loadResourcesHcl for why this exists. Don't touch this.
-	for _, o1 := range os.Elem(false) {
-		// Iterate the inner to get the list of types
-		for _, o2 := range o1.Elem(true) {
-			// Iterate all of this type to get _all_ the types
-			for _, o3 := range o2.Elem(false) {
-				allNames = append(allNames, o3)
-			}
-		}
+func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
+	list = list.Children()
+	if len(list.Items) == 0 {
+		return nil, nil
 	}
 
 	// Where all the results will go
@@ -236,11 +244,18 @@ func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
 
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
-	for _, obj := range allNames {
-		k := obj.Key
+	for _, item := range list.Items {
+		k := item.Keys[0].Token.Value().(string)
+
+		var listVal *ast.ObjectList
+		if ot, ok := item.Val.(*ast.ObjectType); ok {
+			listVal = ot.List
+		} else {
+			return nil, fmt.Errorf("module '%s': should be an object", k)
+		}
 
 		var config map[string]interface{}
-		if err := hcl.DecodeObject(&config, obj); err != nil {
+		if err := hcl.DecodeObject(&config, item.Val); err != nil {
 			return nil, fmt.Errorf(
 				"Error reading config for %s: %s",
 				k,
@@ -260,8 +275,8 @@ func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
 
 		// If we have a count, then figure it out
 		var source string
-		if o := obj.Get("source", false); o != nil {
-			err = hcl.DecodeObject(&source, o)
+		if o := listVal.Filter("source"); len(o.Items) > 0 {
+			err = hcl.DecodeObject(&source, o.Items[0].Val)
 			if err != nil {
 				return nil, fmt.Errorf(
 					"Error parsing source for %s: %s",
@@ -282,27 +297,19 @@ func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
 
 // LoadOutputsHcl recurses into the given HCL object and turns
 // it into a mapping of outputs.
-func loadOutputsHcl(os *hclobj.Object) ([]*Output, error) {
-	objects := make(map[string]*hclobj.Object)
-
-	// Iterate over all the "output" blocks and get the keys along with
-	// their raw configuration objects. We'll parse those later.
-	for _, o1 := range os.Elem(false) {
-		for _, o2 := range o1.Elem(true) {
-			objects[o2.Key] = o2
-		}
-	}
-
-	if len(objects) == 0 {
+func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
+	list = list.Children()
+	if len(list.Items) == 0 {
 		return nil, nil
 	}
 
 	// Go through each object and turn it into an actual result.
-	result := make([]*Output, 0, len(objects))
-	for n, o := range objects {
-		var config map[string]interface{}
+	result := make([]*Output, 0, len(list.Items))
+	for _, item := range list.Items {
+		n := item.Keys[0].Token.Value().(string)
 
-		if err := hcl.DecodeObject(&config, o); err != nil {
+		var config map[string]interface{}
+		if err := hcl.DecodeObject(&config, item.Val); err != nil {
 			return nil, err
 		}
 
@@ -325,27 +332,26 @@ func loadOutputsHcl(os *hclobj.Object) ([]*Output, error) {
 
 // LoadProvidersHcl recurses into the given HCL object and turns
 // it into a mapping of provider configs.
-func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
-	var objects []*hclobj.Object
-
-	// Iterate over all the "provider" blocks and get the keys along with
-	// their raw configuration objects. We'll parse those later.
-	for _, o1 := range os.Elem(false) {
-		for _, o2 := range o1.Elem(true) {
-			objects = append(objects, o2)
-		}
-	}
-
-	if len(objects) == 0 {
+func loadProvidersHcl(list *ast.ObjectList) ([]*ProviderConfig, error) {
+	list = list.Children()
+	if len(list.Items) == 0 {
 		return nil, nil
 	}
 
 	// Go through each object and turn it into an actual result.
-	result := make([]*ProviderConfig, 0, len(objects))
-	for _, o := range objects {
-		var config map[string]interface{}
+	result := make([]*ProviderConfig, 0, len(list.Items))
+	for _, item := range list.Items {
+		n := item.Keys[0].Token.Value().(string)
 
-		if err := hcl.DecodeObject(&config, o); err != nil {
+		var listVal *ast.ObjectList
+		if ot, ok := item.Val.(*ast.ObjectType); ok {
+			listVal = ot.List
+		} else {
+			return nil, fmt.Errorf("module '%s': should be an object", n)
+		}
+
+		var config map[string]interface{}
+		if err := hcl.DecodeObject(&config, item.Val); err != nil {
 			return nil, err
 		}
 
@@ -355,24 +361,24 @@ func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf(
 				"Error reading config for provider config %s: %s",
-				o.Key,
+				n,
 				err)
 		}
 
 		// If we have an alias field, then add those in
 		var alias string
-		if a := o.Get("alias", false); a != nil {
-			err := hcl.DecodeObject(&alias, a)
+		if a := listVal.Filter("alias"); len(a.Items) > 0 {
+			err := hcl.DecodeObject(&alias, a.Items[0].Val)
 			if err != nil {
 				return nil, fmt.Errorf(
 					"Error reading alias for provider[%s]: %s",
-					o.Key,
+					n,
 					err)
 			}
 		}
 
 		result = append(result, &ProviderConfig{
-			Name:      o.Key,
+			Name:      n,
 			Alias:     alias,
 			RawConfig: rawConfig,
 		})
@@ -387,27 +393,10 @@ func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
 // The resulting resources may not be unique, but each resource
 // represents exactly one resource definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
-func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
-	var allTypes []*hclobj.Object
-
-	// HCL object iteration is really nasty. Below is likely to make
-	// no sense to anyone approaching this code. Luckily, it is very heavily
-	// tested. If working on a bug fix or feature, we recommend writing a
-	// test first then doing whatever you want to the code below. If you
-	// break it, the tests will catch it. Likewise, if you change this,
-	// MAKE SURE you write a test for your change, because its fairly impossible
-	// to reason about this mess.
-	//
-	// Functionally, what the code does below is get the libucl.Objects
-	// for all the TYPES, such as "aws_security_group".
-	for _, o1 := range os.Elem(false) {
-		// Iterate the inner to get the list of types
-		for _, o2 := range o1.Elem(true) {
-			// Iterate all of this type to get _all_ the types
-			for _, o3 := range o2.Elem(false) {
-				allTypes = append(allTypes, o3)
-			}
-		}
+func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
+	list = list.Children()
+	if len(list.Items) == 0 {
+		return nil, nil
 	}
 
 	// Where all the results will go
@@ -415,191 +404,179 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
-	for _, t := range allTypes {
-		for _, obj := range t.Elem(true) {
-			k := obj.Key
-
-			var config map[string]interface{}
-			if err := hcl.DecodeObject(&config, obj); err != nil {
-				return nil, fmt.Errorf(
-					"Error reading config for %s[%s]: %s",
-					t.Key,
-					k,
-					err)
-			}
-
-			// Remove the fields we handle specially
-			delete(config, "connection")
-			delete(config, "count")
-			delete(config, "depends_on")
-			delete(config, "provisioner")
-			delete(config, "provider")
-			delete(config, "lifecycle")
-
-			rawConfig, err := NewRawConfig(config)
-			if err != nil {
-				return nil, fmt.Errorf(
-					"Error reading config for %s[%s]: %s",
-					t.Key,
-					k,
-					err)
-			}
-
-			// If we have a count, then figure it out
-			var count string = "1"
-			if o := obj.Get("count", false); o != nil {
-				err = hcl.DecodeObject(&count, o)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"Error parsing count for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-			}
-			countConfig, err := NewRawConfig(map[string]interface{}{
-				"count": count,
-			})
-			if err != nil {
-				return nil, err
-			}
-			countConfig.Key = "count"
-
-			// If we have depends fields, then add those in
-			var dependsOn []string
-			if o := obj.Get("depends_on", false); o != nil {
-				err := hcl.DecodeObject(&dependsOn, o)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"Error reading depends_on for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-			}
-
-			// If we have connection info, then parse those out
-			var connInfo map[string]interface{}
-			if o := obj.Get("connection", false); o != nil {
-				err := hcl.DecodeObject(&connInfo, o)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"Error reading connection info for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-			}
-
-			// If we have provisioners, then parse those out
-			var provisioners []*Provisioner
-			if os := obj.Get("provisioner", false); os != nil {
-				var err error
-				provisioners, err = loadProvisionersHcl(os, connInfo)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"Error reading provisioners for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-			}
-
-			// If we have a provider, then parse it out
-			var provider string
-			if o := obj.Get("provider", false); o != nil {
-				err := hcl.DecodeObject(&provider, o)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"Error reading provider for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-			}
-
-			// Check if the resource should be re-created before
-			// destroying the existing instance
-			var lifecycle ResourceLifecycle
-			if o := obj.Get("lifecycle", false); o != nil {
-				var raw map[string]interface{}
-				if err = hcl.DecodeObject(&raw, o); err != nil {
-					return nil, fmt.Errorf(
-						"Error parsing lifecycle for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-
-				if err := mapstructure.WeakDecode(raw, &lifecycle); err != nil {
-					return nil, fmt.Errorf(
-						"Error parsing lifecycle for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-			}
-
-			result = append(result, &Resource{
-				Name:         k,
-				Type:         t.Key,
-				RawCount:     countConfig,
-				RawConfig:    rawConfig,
-				Provisioners: provisioners,
-				Provider:     provider,
-				DependsOn:    dependsOn,
-				Lifecycle:    lifecycle,
-			})
+	for _, item := range list.Items {
+		if len(item.Keys) != 2 {
+			// TODO: bad error message
+			return nil, fmt.Errorf("resource needs exactly 2 names")
 		}
+
+		t := item.Keys[0].Token.Value().(string)
+		k := item.Keys[1].Token.Value().(string)
+
+		var listVal *ast.ObjectList
+		if ot, ok := item.Val.(*ast.ObjectType); ok {
+			listVal = ot.List
+		} else {
+			return nil, fmt.Errorf("resources %s[%s]: should be an object", t, k)
+		}
+
+		var config map[string]interface{}
+		if err := hcl.DecodeObject(&config, item.Val); err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for %s[%s]: %s",
+				t,
+				k,
+				err)
+		}
+
+		// Remove the fields we handle specially
+		delete(config, "connection")
+		delete(config, "count")
+		delete(config, "depends_on")
+		delete(config, "provisioner")
+		delete(config, "provider")
+		delete(config, "lifecycle")
+
+		rawConfig, err := NewRawConfig(config)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for %s[%s]: %s",
+				t,
+				k,
+				err)
+		}
+
+		// If we have a count, then figure it out
+		var count string = "1"
+		if o := listVal.Filter("count"); len(o.Items) > 0 {
+			err = hcl.DecodeObject(&count, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing count for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+		}
+		countConfig, err := NewRawConfig(map[string]interface{}{
+			"count": count,
+		})
+		if err != nil {
+			return nil, err
+		}
+		countConfig.Key = "count"
+
+		// If we have depends fields, then add those in
+		var dependsOn []string
+		if o := listVal.Filter("depends_on"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&dependsOn, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading depends_on for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+		}
+
+		// If we have connection info, then parse those out
+		var connInfo map[string]interface{}
+		if o := listVal.Filter("connection"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&connInfo, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading connection info for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+		}
+
+		// If we have provisioners, then parse those out
+		var provisioners []*Provisioner
+		if os := listVal.Filter("provisioner"); len(os.Items) > 0 {
+			var err error
+			provisioners, err = loadProvisionersHcl(os, connInfo)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading provisioners for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+		}
+
+		// If we have a provider, then parse it out
+		var provider string
+		if o := listVal.Filter("provider"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&provider, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading provider for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+		}
+
+		// Check if the resource should be re-created before
+		// destroying the existing instance
+		var lifecycle ResourceLifecycle
+		if o := listVal.Filter("lifecycle"); len(o.Items) > 0 {
+			var raw map[string]interface{}
+			if err = hcl.DecodeObject(&raw, o.Items[0].Val); err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing lifecycle for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+
+			if err := mapstructure.WeakDecode(raw, &lifecycle); err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing lifecycle for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+		}
+
+		result = append(result, &Resource{
+			Name:         k,
+			Type:         t,
+			RawCount:     countConfig,
+			RawConfig:    rawConfig,
+			Provisioners: provisioners,
+			Provider:     provider,
+			DependsOn:    dependsOn,
+			Lifecycle:    lifecycle,
+		})
 	}
 
 	return result, nil
 }
 
-func loadProvisionersHcl(os *hclobj.Object, connInfo map[string]interface{}) ([]*Provisioner, error) {
-	pos := make([]*hclobj.Object, 0, int(os.Len()))
-
-	// Accumulate all the actual provisioner configuration objects. We
-	// have to iterate twice here:
-	//
-	//  1. The first iteration is of the list of `provisioner` blocks.
-	//  2. The second iteration is of the dictionary within the
-	//      provisioner which will have only one element which is the
-	//      type of provisioner to use along with tis config.
-	//
-	// In JSON it looks kind of like this:
-	//
-	//   [
-	//     {
-	//       "shell": {
-	//         ...
-	//       }
-	//     }
-	//   ]
-	//
-	for _, o1 := range os.Elem(false) {
-		for _, o2 := range o1.Elem(true) {
-
-			switch o1.Type {
-			case hclobj.ValueTypeList:
-				for _, o3 := range o2.Elem(true) {
-					pos = append(pos, o3)
-				}
-			case hclobj.ValueTypeObject:
-				pos = append(pos, o2)
-			}
-		}
-	}
-
-	// Short-circuit if there are no items
-	if len(pos) == 0 {
+func loadProvisionersHcl(list *ast.ObjectList, connInfo map[string]interface{}) ([]*Provisioner, error) {
+	println(fmt.Sprintf("%#v", list.Items[0]))
+	list = list.Children()
+	if len(list.Items) == 0 {
 		return nil, nil
 	}
 
-	result := make([]*Provisioner, 0, len(pos))
-	for _, po := range pos {
+	// Go through each object and turn it into an actual result.
+	result := make([]*Provisioner, 0, len(list.Items))
+	for _, item := range list.Items {
+		n := item.Keys[0].Token.Value().(string)
+
+		var listVal *ast.ObjectList
+		if ot, ok := item.Val.(*ast.ObjectType); ok {
+			listVal = ot.List
+		} else {
+			return nil, fmt.Errorf("provisioner '%s': should be an object", n)
+		}
+
 		var config map[string]interface{}
-		if err := hcl.DecodeObject(&config, po); err != nil {
+		if err := hcl.DecodeObject(&config, item.Val); err != nil {
 			return nil, err
 		}
 
@@ -614,8 +591,8 @@ func loadProvisionersHcl(os *hclobj.Object, connInfo map[string]interface{}) ([]
 		// Check if we have a provisioner-level connection
 		// block that overrides the resource-level
 		var subConnInfo map[string]interface{}
-		if o := po.Get("connection", false); o != nil {
-			err := hcl.DecodeObject(&subConnInfo, o)
+		if o := listVal.Filter("connection"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&subConnInfo, o.Items[0].Val)
 			if err != nil {
 				return nil, err
 			}
@@ -640,7 +617,7 @@ func loadProvisionersHcl(os *hclobj.Object, connInfo map[string]interface{}) ([]
 		}
 
 		result = append(result, &Provisioner{
-			Type:      po.Key,
+			Type:      n,
 			RawConfig: rawConfig,
 			ConnInfo:  connRaw,
 		})
