@@ -156,6 +156,12 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 	params := &lambda.GetEventSourceMappingInput{
 		UUID: aws.String(uuid),
 	}
+	var stream string = d.Get("event_source_arn").(string)
+	var streamPrefix *string = nil;
+	if strings.Contains(stream, "/stream/") && strings.HasPrefix(stream, "arn:aws:dynamodb:") {
+		streamPrefix = aws.String(stream[0:strings.Index(stream,"/stream/")+1])
+		log.Printf("[DEBUG] streamPrefix is=%s",*streamPrefix)
+	}
 
 	var err error
 	attemptCount := 0
@@ -164,9 +170,39 @@ func resourceAwsLambdaEventSourceMappingRead(d *schema.ResourceData, meta interf
 		attemptCount += 1
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
-				log.Printf("[DEBUG] AWS Error getting EventSourceMapping: [%s] %s", awsErr.Code(), awsErr.Message())
-				log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
-				time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
+				if awsErr.Code() == "ResourceNotFoundException" {
+					if streamPrefix != nil {
+						log.Printf("[DEBUG] Attempting to locate the ESM based on function (%s) and event source prefix (%s)", d.Get("function_name").(string), *streamPrefix)
+						// Try to list all event sources for the lamba, if its a stream it changes UUID and ARN if someone disables and enables the stream
+						lparams := &lambda.ListEventSourceMappingsInput{
+							FunctionName: aws.String(d.Get("function_name").(string)),
+							MaxItems: aws.Int64(30),
+						}
+						resp, err := conn.ListEventSourceMappings(lparams)
+						if err != nil {
+							log.Printf("[DEBUG] AWS Error listing EventSourceMapping: [%s] %s", awsErr.Code(), awsErr.Message())
+						} else {
+							for _, esm := range resp.EventSourceMappings {
+								log.Printf("[DEBUG] Found enventsource: %s ", *esm.EventSourceArn)
+								if strings.HasPrefix(*esm.EventSourceArn, *streamPrefix) {
+									log.Printf("[DEBUG] Prefix match, returning the event source %s ", *esm.EventSourceArn)
+									d.Set("event_source_arn", *esm.EventSourceArn)
+									d.Set("function_name", *esm.FunctionArn)
+									d.Set("batch_size", esm.BatchSize)
+									d.SetId(*esm.UUID)
+									return nil
+								} else {
+									log.Printf("[DEBUG] Prefix does not match: esm=%s, prefix=%s", *esm.EventSourceArn, *streamPrefix)
+								}
+							}
+						}
+					}
+					return err;
+				} else {
+					log.Printf("[DEBUG] AWS Error getting EventSourceMapping: [%s] %s", awsErr.Code(), awsErr.Message())
+					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
+					time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
+				}
 			} else {
 				return fmt.Errorf("Error creating EventSourceMapping: %s", err)
 			}
