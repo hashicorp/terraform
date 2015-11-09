@@ -432,8 +432,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 
-	if mvm.Config && len(mvm.Config.ExtraConfig) > 0 {
-		custom_configs := make(map[string]string)
+	if len(mvm.Config.ExtraConfig) > 0 {
+		custom_configs := make(map[string]types.AnyType)
 		for _, v := range mvm.Config.ExtraConfig {
 			value := v.GetOptionValue()
 			custom_configs[value.Key] = value.Value
