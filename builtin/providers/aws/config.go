@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
@@ -74,6 +75,7 @@ type AWSClient struct {
 	rdsconn            *rds.RDS
 	iamconn            *iam.IAM
 	kinesisconn        *kinesis.Kinesis
+	firehoseconn       *firehose.Firehose
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
 	opsworksconn       *opsworks.OpsWorks
@@ -167,6 +169,9 @@ func (c *Config) Client() (interface{}, error) {
 		if authErr != nil {
 			errs = append(errs, authErr)
 		}
+
+		log.Println("[INFO] Initializing Kinesis Firehose Connection")
+		client.firehoseconn = autoscaling.New(sess)
 
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(sess)
