@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_saml_provider"
+page_title: "AWS: aws_iam_saml_provider"
 sidebar_current: "docs-aws-resource-iam-saml-provider"
 description: |-
   Provides an IAM SAML provider.
