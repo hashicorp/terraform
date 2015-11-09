@@ -36,6 +36,11 @@ func resourceNetworkingRouterInterfaceV2() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"port_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -49,6 +54,7 @@ func resourceNetworkingRouterInterfaceV2Create(d *schema.ResourceData, meta inte
 
 	createOpts := routers.InterfaceOpts{
 		SubnetID: d.Get("subnet_id").(string),
+		PortID:   d.Get("port_id").(string),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
