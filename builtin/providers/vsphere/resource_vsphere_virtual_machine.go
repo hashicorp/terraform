@@ -41,21 +41,22 @@ type hardDisk struct {
 }
 
 type virtualMachine struct {
-	name              string
-	datacenter        string
-	cluster           string
-	resourcePool      string
-	datastore         string
-	vcpu              int
-	memoryMb          int64
-	template          string
-	networkInterfaces []networkInterface
-	hardDisks         []hardDisk
-	gateway           string
-	domain            string
-	timeZone          string
-	dnsSuffixes       []string
-	dnsServers        []string
+	name                 string
+	datacenter           string
+	cluster              string
+	resourcePool         string
+	datastore            string
+	vcpu                 int
+	memoryMb             int64
+	template             string
+	networkInterfaces    []networkInterface
+	hardDisks            []hardDisk
+	gateway              string
+	domain               string
+	timeZone             string
+	dnsSuffixes          []string
+	dnsServers           []string
+	customConfigurations map[string](types.AnyType)
 }
 
 func resourceVSphereVirtualMachine() *schema.Resource {
@@ -132,6 +133,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				ForceNew: true,
+			},
+
+			"custom_configuration_parameters": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -259,6 +266,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	} else {
 		vm.dnsServers = DefaultDNSServers
+	}
+
+	if vL, ok := d.GetOk("custom_configuration_parameters"); ok {
+		if custom_configs, ok := vL.(map[string]types.AnyType); ok {
+			vm.customConfigurations = custom_configs
+		}
 	}
 
 	if vL, ok := d.GetOk("network_interface"); ok {
@@ -418,6 +431,15 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("datacenter", dc)
 	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
+
+	if mvm.Config && len(mvm.Config.ExtraConfig) > 0 {
+		custom_configs := make(map[string]string)
+		for _, v := range mvm.Config.ExtraConfig {
+			value := v.GetOptionValue()
+			custom_configs[value.Key] = value.Value
+		}
+		d.Set("custom_configuration_parameters", custom_configs)
+	}
 	d.Set("datastore", rootDatastore)
 
 	// Initialize the connection info
@@ -802,6 +824,22 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
+	// make ExtraConfig
+	if len(vm.customConfigurations) > 0 {
+		var ov []types.BaseOptionValue
+		for k, v := range vm.customConfigurations {
+			key := k
+			value := v
+			o := types.OptionValue{
+				Key:   key,
+				Value: &value,
+			}
+			ov = append(ov, &o)
+		}
+		configSpec.ExtraConfig = ov
+		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
+	}
+
 	var datastore *object.Datastore
 	if vm.datastore == "" {
 		datastore, err = finder.DefaultDatastore(context.TODO())
@@ -1002,6 +1040,22 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		MemoryMB:          vm.memoryMb,
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
+
+	// make ExtraConfig
+	if len(vm.customConfigurations) > 0 {
+		var ov []types.BaseOptionValue
+		for k, v := range vm.customConfigurations {
+			key := k
+			value := v
+			o := types.OptionValue{
+				Key:   key,
+				Value: &value,
+			}
+			ov = append(ov, &o)
+		}
+		configSpec.ExtraConfig = ov
+		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
+	}
 
 	// create CustomizationSpec
 	customSpec := types.CustomizationSpec{
