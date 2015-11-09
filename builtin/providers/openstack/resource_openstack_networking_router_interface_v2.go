@@ -33,7 +33,7 @@ func resourceNetworkingRouterInterfaceV2() *schema.Resource {
 			},
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"port_id": &schema.Schema{

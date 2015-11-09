@@ -49,7 +49,7 @@ The following arguments are supported:
 * `router_id` - (Required) ID of the router this interface belongs to. Changing
     this creates a new router interface.
 
-* `subnet_id` - (Required) ID of the subnet this interface connects to. Changing
+* `subnet_id` - ID of the subnet this interface connects to. Changing
     this creates a new router interface.
 
 * `port_id` - ID of the port this interface connects to. Changing
@@ -62,3 +62,4 @@ The following attributes are exported:
 * `region` - See Argument Reference above.
 * `router_id` - See Argument Reference above.
 * `subnet_id` - See Argument Reference above.
+* `port_id` - See Argument Reference above.
