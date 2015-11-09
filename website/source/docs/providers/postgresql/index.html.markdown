@@ -1,14 +1,14 @@
 ---
 layout: "postgresql"
-page_title: "Provider: Postgresql"
+page_title: "Provider: PostgreSQL"
 sidebar_current: "docs-postgresql-index"
 description: |-
-  A provider for Postgresql Server.
+  A provider for PostgreSQL Server.
 ---
 
-# Postgresql Provider
+# PostgreSQL Provider
 
-The Postgresql provider gives the ability to deploy and configure resources in a Postgresql server.
+The PostgreSQL provider gives the ability to deploy and configure resources in a PostgreSQL server.
 
 Use the navigation to the left to read about the available resources.
 

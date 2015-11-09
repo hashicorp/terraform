@@ -1,14 +1,14 @@
 ---
 layout: "postgresql"
-page_title: "Postgresql: postgresql_database"
+page_title: "PostgreSQL: postgresql_database"
 sidebar_current: "docs-postgresql-resource-postgresql_database"
 description: |-
-  Creates and manages a database on a Postgresql server.
+  Creates and manages a database on a PostgreSQL server.
 ---
 
 # postgresql\postgresql_database
 
-The ``postgresql_database`` resource creates and manages a database on a Postgresql
+The ``postgresql_database`` resource creates and manages a database on a PostgreSQL
 server.
 
 
@@ -24,7 +24,7 @@ resource "postgresql_database" "my_db" {
 
 ## Argument Reference
 
-* `name` - (Required) The name of the database. Must be unique on the Postgresql server instance
+* `name` - (Required) The name of the database. Must be unique on the PostgreSQL server instance
   where it is configured.
 
 * `owner` - (Optional) The owner role of the database. If not specified the default is the user executing the command. To create a database owned by another role, you must be a direct or indirect member of that role, or be a superuser.
