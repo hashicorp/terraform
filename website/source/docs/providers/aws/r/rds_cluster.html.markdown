@@ -63,6 +63,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
 * `apply_immediately` - (Optional) Specifies whether any cluster modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
+* `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance.
 
 ## Attributes Reference
 
