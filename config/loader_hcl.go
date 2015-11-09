@@ -332,7 +332,13 @@ func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
 	// their raw configuration objects. We'll parse those later.
 	for _, o1 := range os.Elem(false) {
 		for _, o2 := range o1.Elem(true) {
-			objects = append(objects, o2)
+			if o1.Type == hclobj.ValueTypeList {
+				for _, o3 := range o2.Elem(true) {
+					objects = append(objects, o3)
+				}
+			} else {
+				objects = append(objects, o2)
+			}
 		}
 	}
 
