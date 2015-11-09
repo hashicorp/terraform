@@ -15,6 +15,7 @@ FEATURES:
   * **New resource: `google_compute_target_https_proxy`** [GH-3728]
   * **New resource: `google_compute_global_forwarding_rule`** [GH-3702]
   * **New resource: `openstack_networking_port_v2`** [GH-3731]
+  * New interpolation function: `coalesce` [GH-3814]
 
 IMPROVEMENTS:
 
@@ -60,7 +61,6 @@ BUG FIXES:
   * provider/openstack: Fix boot from volume [GH-3206]
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
   * provider/openstack: Better handling of network resource state changes [GH-3712]
-  * provider/openstack: Fix issue preventing security group rules from being removed [GH-3796]
   * provider/openstack: Fix crashing when no security group is specified [GH-3801]
 
 ## 0.6.6 (October 23, 2015)
