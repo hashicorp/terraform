@@ -59,9 +59,16 @@ func resourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Received ECS clusters: %s", out.Clusters)
 
-	d.SetId(*out.Clusters[0].ClusterArn)
-	d.Set("name", *out.Clusters[0].ClusterName)
+	for _, c := range out.Clusters {
+		if *c.ClusterName == clusterName {
+			d.SetId(*c.ClusterArn)
+			d.Set("name", c.ClusterName)
+			return nil
+		}
+	}
 
+	log.Printf("[ERR] No matching ECS Cluster found for (%s)", d.Id())
+	d.SetId("")
 	return nil
 }
 
