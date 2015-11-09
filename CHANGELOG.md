@@ -27,6 +27,8 @@ IMPROVEMENTS:
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
+  * provider/aws: Add S3 support for Lambda Function resource [GH-3794]
+  * provider/aws: Add snapshot window and retention limits for ElastiCache (Redis) [GH-3707]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
   * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
   * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
@@ -35,6 +37,7 @@ IMPROVEMENTS:
   * provider/openstack: Add "delete on termination" boot-from-volume option [GH-3232]
   * provider/digitalocean: Make user_data force a new droplet [GH-3740]
   * provider/vsphere: Do not add network interfaces by default [GH-3652]
+  * provider/openstack: Configure Fixed IPs through ports [GH-3772]
 
 BUG FIXES:
 
@@ -57,6 +60,8 @@ BUG FIXES:
   * provider/openstack: Fix boot from volume [GH-3206]
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
   * provider/openstack: Better handling of network resource state changes [GH-3712]
+  * provider/openstack: Fix issue preventing security group rules from being removed [GH-3796]
+  * provider/openstack: Fix crashing when no security group is specified [GH-3801]
 
 ## 0.6.6 (October 23, 2015)
 

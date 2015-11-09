@@ -131,10 +131,10 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("description", sg.Description)
 	rtm := rulesToMap(sg.Rules)
 	for _, v := range rtm {
-		if v["group"] == d.Get("name") {
-			v["self"] = "1"
+		if v["from_group_id"] == d.Get("name") {
+			v["self"] = true
 		} else {
-			v["self"] = "0"
+			v["self"] = false
 		}
 	}
 	log.Printf("[DEBUG] rulesToMap(sg.Rules): %+v", rtm)
@@ -283,12 +283,12 @@ func rulesToMap(sgrs []secgroups.Rule) []map[string]interface{} {
 	sgrMap := make([]map[string]interface{}, len(sgrs))
 	for i, sgr := range sgrs {
 		sgrMap[i] = map[string]interface{}{
-			"id":          sgr.ID,
-			"from_port":   sgr.FromPort,
-			"to_port":     sgr.ToPort,
-			"ip_protocol": sgr.IPProtocol,
-			"cidr":        sgr.IPRange.CIDR,
-			"group":       sgr.Group.Name,
+			"id":            sgr.ID,
+			"from_port":     sgr.FromPort,
+			"to_port":       sgr.ToPort,
+			"ip_protocol":   sgr.IPProtocol,
+			"cidr":          sgr.IPRange.CIDR,
+			"from_group_id": sgr.Group.Name,
 		}
 	}
 	return sgrMap
