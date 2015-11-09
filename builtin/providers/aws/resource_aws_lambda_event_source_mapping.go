@@ -16,7 +16,7 @@ import (
 const LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES = 10
 
 // How long to sleep when a throttle-event happens
-const LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP = 2 * time.Second
+const LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP = 8 * time.Second
 
 func resourceAwsLambdaEventSourceMapping() *schema.Resource {
 	return &schema.Resource{
@@ -74,10 +74,13 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 		resp, err := conn.CreateEventSourceMapping(&params)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
-				log.Printf("[DEBUG] AWS Error getting EventSourceMapping: [%s] %s", awsErr.Code(), awsErr.Message())
+				log.Printf("[DEBUG] AWS Error creating EventSourceMapping: [%s] %s", awsErr.Code(), awsErr.Message())
 				// CreateEventSourceMapping seems to be able to cast InvalidParameterValueException in places of throttling exceptions when
 				// creating many Event Source Mappings for the same stream
-				if awsErr.Code() == "TooManyRequestsException" || (awsErr.Code() == "InvalidParameterValueException" && strings.Contains(awsErr.Message(), "Please ensure the role can perform the GetRecords, GetShardIterator, DescribeStream, and ListStreams Actions on your stream in IAM")) {
+				if awsErr.Code() == "TooManyRequestsException" ||
+				  (awsErr.Code() == "InvalidParameterValueException" && (
+				      strings.Contains(awsErr.Message(), "Please ensure the role can perform the GetRecords, GetShardIterator, DescribeStream, and ListStreams Actions on your stream in IAM") ||
+				      strings.Contains(awsErr.Message(), "Please add Lambda as a Trusted Entity for "))) {
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_EVENT_SOURCE_MAPPING_MAX_THROTTLE_RETRIES)
 					time.Sleep(LAMBDA_EVENT_SOURCE_MAPPING_THROTTLE_SLEEP)
 				} else {
