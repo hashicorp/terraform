@@ -58,18 +58,15 @@ func resourceAwsLambdaFunction() *schema.Resource {
 			"handler": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true, // TODO make this editable
 			},
 			"memory_size": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  128,
-				ForceNew: true, // TODO make this editable
 			},
 			"role": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true, // TODO make this editable
 			},
 			"runtime": &schema.Schema{
 				Type:     schema.TypeString,
@@ -81,7 +78,6 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  3,
-				ForceNew: true, // TODO make this editable
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -112,15 +108,11 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 
 	var functionCode *lambda.FunctionCode
 	if v, ok := d.GetOk("filename"); ok {
-		filename, err := homedir.Expand(v.(string))
+		zipfile, shaSum, err := loadLocalZipFile(v.(string))
 		if err != nil {
 			return err
 		}
-		zipfile, err := ioutil.ReadFile(filename)
-		if err != nil {
-			return err
-		}
-		d.Set("source_code_hash", sha256.Sum256(zipfile))
+		d.Set("source_code_hash", shaSum)
 		functionCode = &lambda.FunctionCode{
 			ZipFile: zipfile,
 		}
@@ -233,7 +225,98 @@ func resourceAwsLambdaFunctionDelete(d *schema.ResourceData, meta interface{}) e
 // resourceAwsLambdaFunctionUpdate maps to:
 // UpdateFunctionCode in the API / SDK
 func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) error {
-	// conn := meta.(*AWSClient).lambdaconn
+	conn := meta.(*AWSClient).lambdaconn
 
-	return nil
+	d.Partial(true)
+
+	codeReq := &lambda.UpdateFunctionCodeInput{
+		FunctionName: aws.String(d.Id()),
+	}
+
+	codeUpdate := false
+	if sourceHash, ok := d.GetOk("source_code_hash"); ok {
+		zipfile, shaSum, err := loadLocalZipFile(d.Get("filename").(string))
+		if err != nil {
+			return err
+		}
+		if sourceHash != shaSum {
+			d.SetPartial("filename")
+			d.SetPartial("source_code_hash")
+		}
+		codeReq.ZipFile = zipfile
+		codeUpdate = true
+	}
+	if d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
+		d.SetPartial("s3_bucket")
+		d.SetPartial("s3_key")
+		d.SetPartial("s3_object_version")
+
+		codeReq.S3Bucket = aws.String(d.Get("s3_bucket").(string))
+		codeReq.S3Key = aws.String(d.Get("s3_key").(string))
+		codeReq.S3ObjectVersion = aws.String(d.Get("s3_object_version").(string))
+		codeUpdate = true
+	}
+
+	log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
+	if codeUpdate {
+		_, err := conn.UpdateFunctionCode(codeReq)
+		if err != nil {
+			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)
+		}
+	}
+
+	configReq := &lambda.UpdateFunctionConfigurationInput{
+		FunctionName: aws.String(d.Id()),
+	}
+
+	configUpdate := false
+	if d.HasChange("description") {
+		d.SetPartial("description")
+		configReq.Description = aws.String(d.Get("description").(string))
+		configUpdate = true
+	}
+	if d.HasChange("handler") {
+		d.SetPartial("handler")
+		configReq.Handler = aws.String(d.Get("handler").(string))
+		configUpdate = true
+	}
+	if d.HasChange("memory_size") {
+		d.SetPartial("memory_size")
+		configReq.MemorySize = aws.Int64(int64(d.Get("memory_size").(int)))
+		configUpdate = true
+	}
+	if d.HasChange("role") {
+		d.SetPartial("role")
+		configReq.Role = aws.String(d.Get("role").(string))
+		configUpdate = true
+	}
+	if d.HasChange("timeout") {
+		d.SetPartial("timeout")
+		configReq.Timeout = aws.Int64(int64(d.Get("timeout").(int)))
+		configUpdate = true
+	}
+
+	log.Printf("[DEBUG] Send Update Lambda Function Configuration request: %#v", configReq)
+	if configUpdate {
+		_, err := conn.UpdateFunctionConfiguration(configReq)
+		if err != nil {
+			return fmt.Errorf("Error modifying Lambda Function Configuration %s: %s", d.Id(), err)
+		}
+	}
+	d.Partial(false)
+
+	return resourceAwsLambdaFunctionRead(d, meta)
+}
+
+func loadLocalZipFile(v string) ([]byte, string, error) {
+	filename, err := homedir.Expand(v)
+	if err != nil {
+		return nil, "", err
+	}
+	zipfile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, "", err
+	}
+	sum := sha256.Sum256(zipfile)
+	return zipfile, string(sum[:32]), nil
 }
