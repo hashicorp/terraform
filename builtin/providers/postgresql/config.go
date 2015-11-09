@@ -8,13 +8,14 @@ import (
 
 type Config struct {
 	Host     string
+	Port     int
 	Username string
 	Password string
 }
 
 // NewClient() return new db conn
 func (c *Config) NewClient() (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s user=%s password=%s", c.Host, c.Username, c.Password)
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s", c.Host, c.Port, c.Username, c.Password)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {

@@ -1,19 +1,25 @@
 package postgresql
 
 import (
-	"fmt"
 	"database/sql"
+	"fmt"
 
-	"github.com/lib/pq"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/lib/pq"
 )
 
-func resourcePostgresqlDbCreate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*sql.DB)
 	dbName := d.Get("name").(string)
 	dbOwner := d.Get("owner").(string)
+	var dbOwnerCfg string
+	if dbOwner != "" {
+		dbOwnerCfg = fmt.Sprintf("WITH OWNER=%s", pq.QuoteIdentifier(dbOwner))
+	} else {
+		dbOwnerCfg = ""
+	}
 
-	query := fmt.Sprintf("CREATE DATABASE %s WITH OWNER=%s", pq.QuoteIdentifier(dbName), pq.QuoteIdentifier(dbOwner))
+	query := fmt.Sprintf("CREATE DATABASE %s %s", pq.QuoteIdentifier(dbName), dbOwnerCfg)
 	_, err := conn.Query(query)
 	if err != nil {
 		return fmt.Errorf("Error creating postgresql database: %s", err)
@@ -24,7 +30,7 @@ func resourcePostgresqlDbCreate(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourcePostgresqlDbDelete(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgresqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*sql.DB)
 	dbName := d.Get("name").(string)
 
@@ -39,7 +45,7 @@ func resourcePostgresqlDbDelete(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourcePostgresqlDbRead(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgresqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*sql.DB)
 	dbName := d.Get("name").(string)
 
@@ -55,22 +61,22 @@ func resourcePostgresqlDbRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("owner", owner)
 		return nil
 	}
-
-	return nil
 }
 
-func resourcePostgresqlDbUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgresqlDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*sql.DB)
 	dbName := d.Get("name").(string)
 
 	if d.HasChange("owner") {
 		owner := d.Get("owner").(string)
-		query := fmt.Sprintf("ALTER DATABASE %s OWNER TO %s", pq.QuoteIdentifier(dbName), pq.QuoteIdentifier(owner))
-		_, err := conn.Query(query)
-		if err != nil {
-			return fmt.Errorf("Error updating owner for database: %s", err)
+		if owner != "" {
+			query := fmt.Sprintf("ALTER DATABASE %s OWNER TO %s", pq.QuoteIdentifier(dbName), pq.QuoteIdentifier(owner))
+			_, err := conn.Query(query)
+			if err != nil {
+				return fmt.Errorf("Error updating owner for database: %s", err)
+			}
 		}
 	}
 
-	return resourcePostgresqlDbRead(d, meta)
+	return resourcePostgresqlDatabaseRead(d, meta)
 }

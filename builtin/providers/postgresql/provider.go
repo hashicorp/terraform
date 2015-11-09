@@ -16,6 +16,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("POSTGRESQL_HOST", nil),
 				Description: "The postgresql server address",
 			},
+			"port": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     5432,
+				Description: "The postgresql server port",
+			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -31,8 +37,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"postgresql_db":   resourcePostgresqlDb(),
-			"postgresql_role": resourcePostgresqlRole(),
+			"postgresql_database": resourcePostgresqlDatabase(),
+			"postgresql_role":     resourcePostgresqlRole(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -42,6 +48,7 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Host:     d.Get("host").(string),
+		Port:     d.Get("port").(int),
 		Username: d.Get("username").(string),
 		Password: d.Get("password").(string),
 	}

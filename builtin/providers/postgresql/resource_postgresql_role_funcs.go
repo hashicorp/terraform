@@ -1,13 +1,12 @@
 package postgresql
 
 import (
-	"fmt"
 	"database/sql"
+	"fmt"
 
-	"github.com/lib/pq"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/lib/pq"
 )
-
 
 func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*sql.DB)
@@ -56,8 +55,6 @@ func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set("login", canLogin)
 		return nil
 	}
-
-	return nil
 }
 
 func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) error {

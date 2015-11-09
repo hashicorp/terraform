@@ -1,0 +1,109 @@
+package postgresql
+
+import (
+	"database/sql"
+	"fmt"
+	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+)
+
+func TestAccPostgresqlDatabase_Basic(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPostgresqlDatabaseDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccPostgresqlDatabaseConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb", "myrole"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.mydb", "name", "mydb"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.mydb", "owner", "myrole"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckPostgresqlDatabaseDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*sql.DB)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "postgresql_database" {
+			continue
+		}
+
+		exists, err := checkDatabaseExists(client, rs.Primary.ID)
+
+		if err != nil {
+			return fmt.Errorf("Error checking db %s", err)
+		}
+
+		if exists {
+			return fmt.Errorf("Db still exists after destroy")
+		}
+	}
+
+	return nil
+}
+
+func testAccCheckPostgresqlDatabaseExists(n string, owner string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Resource not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		actualOwner := rs.Primary.Attributes["owner"]
+		if actualOwner != owner {
+			return fmt.Errorf("Wrong owner for db expected %s got %s", owner, actualOwner)
+		}
+
+		client := testAccProvider.Meta().(*sql.DB)
+		exists, err := checkDatabaseExists(client, rs.Primary.ID)
+
+		if err != nil {
+			return fmt.Errorf("Error checking db %s", err)
+		}
+
+		if !exists {
+			return fmt.Errorf("Db not found")
+		}
+
+		return nil
+	}
+}
+
+func checkDatabaseExists(conn *sql.DB, dbName string) (bool, error) {
+	var _rez int
+	err := conn.QueryRow("SELECT 1 from pg_database d WHERE datname=$1", dbName).Scan(&_rez)
+	switch {
+	case err == sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, fmt.Errorf("Error reading info about database: %s", err)
+	default:
+		return true, nil
+	}
+}
+
+var testAccPostgresqlDatabaseConfig = `
+resource "postgresql_role" "myrole" {
+  name = "myrole"
+  login = true
+}
+
+resource "postgresql_database" "mydb" {
+   name = "mydb"
+   owner = "${postgresql_role.myrole.name}"
+}
+`
