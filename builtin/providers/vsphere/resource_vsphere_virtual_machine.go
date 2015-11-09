@@ -269,8 +269,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	}
 
 	if vL, ok := d.GetOk("custom_configuration_parameters"); ok {
-		if custom_configs, ok := vL.(map[string]types.AnyType); ok {
-			vm.customConfigurations = custom_configs
+		if custom_configs, ok := vL.(map[string]interface{}); ok {
+			custom := make(map[string]types.AnyType)
+			for k,v := range custom_configs {
+				custom[k] = v
+			}
+			vm.customConfigurations = custom
+			log.Printf("[DEBUG] custom_configuration_parameters init: %v", vm.customConfigurations)
 		}
 	}
 
@@ -432,14 +437,21 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 
-	if len(mvm.Config.ExtraConfig) > 0 {
+	log.Printf("[DEBUG] ===============================")
+	//log.Printf("[DEBUG] Get extra config ===============================")
+	//log.Printf("[DEBUG] Get extra config %v", mvm.Config)
+	//log.Printf("[DEBUG] Get extra config %v", mvm.Config.ExtraConfig)
+	if mvm.Config != nil && mvm.Config.ExtraConfig != nil && len(mvm.Config.ExtraConfig) > 0 {
+		log.Printf("[DEBUG] reading custom configs")
 		custom_configs := make(map[string]types.AnyType)
 		for _, v := range mvm.Config.ExtraConfig {
 			value := v.GetOptionValue()
 			custom_configs[value.Key] = value.Value
+			log.Printf("[DEBUG] reading custom configs %s,%s",value.Key, value.Value)
 		}
 		d.Set("custom_configuration_parameters", custom_configs)
 	}
+	log.Printf("[DEBUG] ===============================")
 	d.Set("datastore", rootDatastore)
 
 	// Initialize the connection info
@@ -825,6 +837,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
 	// make ExtraConfig
+	log.Printf("[DEBUG] virtual machine Extra Config spec start")
 	if len(vm.customConfigurations) > 0 {
 		var ov []types.BaseOptionValue
 		for k, v := range vm.customConfigurations {
@@ -834,6 +847,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 				Key:   key,
 				Value: &value,
 			}
+			log.Printf("[DEBUG] virtual machine Extra Config spec: %s,%s", k,v)
 			ov = append(ov, &o)
 		}
 		configSpec.ExtraConfig = ov
