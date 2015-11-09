@@ -61,7 +61,6 @@ BUG FIXES:
   * provider/openstack: Fix boot from volume [GH-3206]
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
   * provider/openstack: Better handling of network resource state changes [GH-3712]
-  * provider/openstack: Fix issue preventing security group rules from being removed [GH-3796]
   * provider/openstack: Fix crashing when no security group is specified [GH-3801]
 
 ## 0.6.6 (October 23, 2015)
