@@ -161,9 +161,9 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.bar", &vm),
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.car", &vm),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.car", "name", "terraform-test"),
+						"vsphere_virtual_machine.car", "name", "terraform-test-custom"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "vcpu", "2"),
 					resource.TestCheckResourceAttr(
@@ -181,7 +181,7 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "custom_configuration_parameters.num", "42"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.bar", "network_interface.0.label", label),
+						"vsphere_virtual_machine.car", "network_interface.0.label", label),
 				),
 			},
 		},
@@ -299,9 +299,9 @@ resource "vsphere_virtual_machine" "car" {
         label = "%s"
     }
     custom_configuration_parameters {
-        foo = "bar",
-				car = "ferrai",
-				num = 42
+        "foo" = "bar"
+	"car" = "ferrai"
+	"num" = 42
     }
     disk {
 %s
