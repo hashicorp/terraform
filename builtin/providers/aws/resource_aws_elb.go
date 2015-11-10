@@ -348,7 +348,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
 	if lbAttrs.AccessLog != nil {
 		if err := d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog)); err != nil {
-			log.Printf("[WARN] Error setting ELB Access Logs for (%s): %s", d.Id(), err)
+			return err
 		}
 	}
 
@@ -469,17 +469,17 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("Only one access logs config per ELB is supported")
 		} else if len(logs) == 1 {
 			log := logs[0].(map[string]interface{})
-			accessLogs := &elb.AccessLog{
+			accessLog := &elb.AccessLog{
 				Enabled:      aws.Bool(true),
 				EmitInterval: aws.Int64(int64(log["interval"].(int))),
 				S3BucketName: aws.String(log["bucket"].(string)),
 			}
 
 			if log["bucket_prefix"] != "" {
-				accessLogs.S3BucketPrefix = aws.String(log["bucket_prefix"].(string))
+				accessLog.S3BucketPrefix = aws.String(log["bucket_prefix"].(string))
 			}
 
-			attrs.LoadBalancerAttributes.AccessLog = accessLogs
+			attrs.LoadBalancerAttributes.AccessLog = accessLog
 		} else if len(logs) == 0 {
 			// disable access logs
 			attrs.LoadBalancerAttributes.AccessLog = &elb.AccessLog{
