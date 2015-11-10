@@ -45,6 +45,31 @@ func TestLoadFile_badType(t *testing.T) {
 	}
 }
 
+func TestLoadFileHeredoc(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "heredoc.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := providerConfigsStr(c.ProviderConfigs)
+	if actual != strings.TrimSpace(heredocProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(heredocResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFileBasic(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "basic.tf"))
 	if err != nil {
@@ -531,6 +556,20 @@ func TestLoad_temporary_files(t *testing.T) {
 		t.Fatalf("Expected to see an error stating no config files found")
 	}
 }
+
+const heredocProvidersStr = `
+aws
+  access_key
+  secret_key
+`
+
+const heredocResourcesStr = `
+aws_iam_policy[policy] (x1)
+  description
+  name
+  path
+  policy
+`
 
 const basicOutputsStr = `
 web_ip
