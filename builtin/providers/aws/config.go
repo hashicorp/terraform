@@ -171,7 +171,7 @@ func (c *Config) Client() (interface{}, error) {
 		}
 
 		log.Println("[INFO] Initializing Kinesis Firehose Connection")
-		client.firehoseconn = autoscaling.New(sess)
+		client.firehoseconn = firehose.New(sess)
 
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(sess)
