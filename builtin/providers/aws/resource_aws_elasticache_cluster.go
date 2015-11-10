@@ -138,6 +138,24 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				},
 			},
 
+			"snapshot_window": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"snapshot_retention_limit": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value > 35 {
+						es = append(es, fmt.Errorf(
+							"snapshot retention limit cannot be more than 35 days"))
+					}
+					return
+				},
+			},
+
 			"tags": tagsSchema(),
 
 			// apply_immediately is used to determine when the update modifications
@@ -185,6 +203,14 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	// parameter groups are optional and can be defaulted by AWS
 	if v, ok := d.GetOk("parameter_group_name"); ok {
 		req.CacheParameterGroupName = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("snapshot_retention_limit"); ok {
+		req.SnapshotRetentionLimit = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("snapshot_window"); ok {
+		req.SnapshotWindow = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("maintenance_window"); ok {
@@ -241,6 +267,12 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 
 	res, err := conn.DescribeCacheClusters(req)
 	if err != nil {
+		if eccErr, ok := err.(awserr.Error); ok && eccErr.Code() == "CacheClusterNotFound" {
+			log.Printf("[WARN] ElastiCache Cluster (%s) not found", d.Id())
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
@@ -261,6 +293,8 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
+		d.Set("snapshot_window", c.SnapshotWindow)
+		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
 		if c.NotificationConfiguration != nil {
 			if *c.NotificationConfiguration.TopicStatus == "active" {
 				d.Set("notification_topic_arn", c.NotificationConfiguration.TopicArn)
@@ -341,6 +375,16 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 
 	if d.HasChange("engine_version") {
 		req.EngineVersion = aws.String(d.Get("engine_version").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("snapshot_window") {
+		req.SnapshotWindow = aws.String(d.Get("snapshot_window").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("snapshot_retention_limit") {
+		req.SnapshotRetentionLimit = aws.Int64(int64(d.Get("snapshot_retention_limit").(int)))
 		requestUpdate = true
 	}
 

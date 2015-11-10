@@ -26,11 +26,13 @@ Launch Configurations cannot be updated after creation with the Amazon
 Web Service API. In order to update a Launch Configuration, Terraform will
 destroy the existing resource and create a replacement. In order to effectively
 use a Launch Configuration resource with an [AutoScaling Group resource][1],
-it's recommend to omit the Launch Configuration `name` attribute, and
-specify `create_before_destroy` in a [lifecycle][2] block, as shown:
+it's recommended to specify `create_before_destroy` in a [lifecycle][2] block.
+Either omit the Launch Configuration `name` attribute, or specify a partial name
+with `name_prefix`.  Example:
 
 ```
 resource "aws_launch_configuration" "as_conf" {
+    name_prefix = "terraform-lc-example-"
     image_id = "ami-1234"
     instance_type = "m1.small"
 
@@ -87,7 +89,9 @@ resource "aws_autoscaling_group" "bar" {
 The following arguments are supported:
 
 * `name` - (Optional) The name of the launch configuration. If you leave
-  this blank, Terraform will auto-generate it.
+  this blank, Terraform will auto-generate a unique name.
+* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+  prefix. Conflicts with `name`.
 * `image_id` - (Required) The EC2 image ID to launch.
 * `instance_type` - (Required) The size of instance to launch.
 * `iam_instance_profile` - (Optional) The IAM instance profile to associate

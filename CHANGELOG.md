@@ -6,6 +6,7 @@ FEATURES:
   * **New resource: `aws_cloudtrail`** [GH-3094]
   * **New resource: `aws_route`** [GH-3548]
   * **New resource: `aws_codecommit_repository`** [GH-3274]
+  * **New resource: `aws_kinesis_firehose_delivery_stream`** [GH-3833]
   * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
   * **New resource: `google_sql_database` and `google_sql_database_instance`** [GH-3617]
   * **New resource: `google_compute_global_address`** [GH-3701]
@@ -15,6 +16,7 @@ FEATURES:
   * **New resource: `google_compute_target_https_proxy`** [GH-3728]
   * **New resource: `google_compute_global_forwarding_rule`** [GH-3702]
   * **New resource: `openstack_networking_port_v2`** [GH-3731]
+  * New interpolation function: `coalesce` [GH-3814]
 
 IMPROVEMENTS:
 
@@ -27,24 +29,41 @@ IMPROVEMENTS:
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
+  * provider/aws: Add S3 support for Lambda Function resource [GH-3794]
+  * provider/aws: Add `name_prefix` option to launch configurations [GH-3802]
+  * provider/aws: Provide `source_security_group_id` for ELBs inside a VPC [GH-3780]
+  * provider/aws: Add snapshot window and retention limits for ElastiCache (Redis) [GH-3707]
+  * provider/aws: Add username updates for `aws_iam_user` [GH-3227]
+  * provider/aws: `engine_version` is now optional for DB Instance [GH-3744]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
+  * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
   * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
   * provider/aws: Apply security group after restoring db_instance from snapshot [GH-3513]
   * provider/aws: Making the AutoScalingGroup name optional [GH-3710]
   * provider/openstack: Add "delete on termination" boot-from-volume option [GH-3232]
+  * provider/digitalocean: Make user_data force a new droplet [GH-3740]
+  * provider/vsphere: Do not add network interfaces by default [GH-3652]
+  * provider/openstack: Configure Fixed IPs through ports [GH-3772]
 
 BUG FIXES:
 
   * `terraform remote config`: update `--help` output [GH-3632]
   * core: modules on Git branches now update properly [GH-1568]
+  * core: Fix issue preventing input prompts for unset variables during plan [GH-3843]
   * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
   * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
+  * provider/aws: Correctly export ARN in `iam_saml_provider` [GH-3827]
+  * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
+  * provider/aws: Downcase Route 53 record names in statefile to match API output [GH-3574]
+  * provider/aws: Fix issue that could occur if no ECS Cluster was found for a give name [GH-3829]
+  * provider/aws: Fix issue with SNS topic policy if omitted [GH-3777]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
+  * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
   * provider/openstack: Fix several issues causing unresolvable diffs [GH-3440]
   * provider/openstack: Safely delete security groups [GH-3696]
   * provider/openstack: Ignore order of security_groups in instance [GH-3651]
@@ -52,6 +71,7 @@ BUG FIXES:
   * provider/openstack: Fix boot from volume [GH-3206]
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
   * provider/openstack: Better handling of network resource state changes [GH-3712]
+  * provider/openstack: Fix crashing when no security group is specified [GH-3801]
 
 ## 0.6.6 (October 23, 2015)
 
