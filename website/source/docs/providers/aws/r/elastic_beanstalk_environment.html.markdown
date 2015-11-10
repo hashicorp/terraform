@@ -8,11 +8,11 @@ description: |-
 
 # aws\_elastic\_beanstalk\_<wbr>environment
 
-Provides an Elastic Beanstalk Environment Resource. Elastic Beanstalk allows 
-you to deploy and manage applications in the AWS cloud without worrying about 
+Provides an Elastic Beanstalk Environment Resource. Elastic Beanstalk allows
+you to deploy and manage applications in the AWS cloud without worrying about
 the infrastructure that runs those applications.
 
-Environments are often things such as `development`, `integration`, or 
+Environments are often things such as `development`, `integration`, or
 `production`.
 
 ## Example Usage
@@ -35,17 +35,17 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 
 The following arguments are supported:
 
-* `name` - (Required) A unique name for the this Environment. This name is used 
+* `name` - (Required) A unique name for the this Environment. This name is used
   in the application URL
-* `application` – (Required) Name of the application that contains the version 
+* `application` – (Required) Name of the application that contains the version
   to be deployed
-* `description` - (Optional) Short description of the Environment 
+* `description` - (Optional) Short description of the Environment
 * `setting` – (Optional) Option settings to configure the new Environment. These
   override specific values that are set as defaults. The format is detailed
   below in [Option Settings](#option-settings)
 * `solution_stack_name` – (Optional) A solution stack to base your environment
 off of. Example stacks can be found in the [Amazon API documentation][1]
-* `template_name` – (Optional) The name of the Elastic Beanstalk Configuration 
+* `template_name` – (Optional) The name of the Elastic Beanstalk Configuration
   template to use in deployment
 * `tags` – (Optional) A set of tags to apply to the Environment. **Note:** at
 this time the Elastic Beanstalk API does not provide a programatic way of
@@ -57,7 +57,7 @@ changing these tags after initial application
 
 The `setting` and `all_settings` mappings support the following format:
 
-* `namespace` - (Optional) unique namespace identifying the option's 
+* `namespace` - (Optional) unique namespace identifying the option's
   associated AWS resource
 * `name` - (Optional) name of the configuration option
 * `value` - (Optional) value for the configuration option
@@ -72,9 +72,9 @@ The following attributes are exported:
 * `setting` – Settings specifically set for this Environment
 * `all_settings` – List of all option settings configured in the Environment. These
   are a combination of default settings and their overrides from `settings` in
-  the configuration 
+  the configuration
+* `endpoint_url` – For load-balanced, autoscaling environments, the URL to the
+  LoadBalancer. For single-instance environments, the IP address of the instance.
 
 
 [1]: http://docs.aws.amazon.com/fr_fr/elasticbeanstalk/latest/dg/concepts.platforms.html
-
-
