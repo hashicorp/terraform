@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -58,6 +59,7 @@ func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 		UserName: aws.String(name),
 	}
 
+	log.Println("[DEBUG] Create IAM User request:", request)
 	createResp, err := iamconn.CreateUser(request)
 	if err != nil {
 		return fmt.Errorf("Error creating IAM User %s: %s", name, err)
@@ -75,6 +77,7 @@ func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 	getResp, err := iamconn.GetUser(request)
 	if err != nil {
 		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
+			log.Printf("[WARN] No IAM user by name (%s) found", d.Id())
 			d.SetId("")
 			return nil
 		}
@@ -104,16 +107,19 @@ func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("name") || d.HasChange("path") {
 		iamconn := meta.(*AWSClient).iamconn
 		on, nn := d.GetChange("name")
-		op, np := d.GetChange("path")
-		fmt.Println(on, nn, op, np)
+		_, np := d.GetChange("path")
+
 		request := &iam.UpdateUserInput{
 			UserName:    aws.String(on.(string)),
 			NewUserName: aws.String(nn.(string)),
 			NewPath:     aws.String(np.(string)),
 		}
+
+		log.Println("[DEBUG] Update IAM User request:", request)
 		_, err := iamconn.UpdateUser(request)
 		if err != nil {
 			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				log.Printf("[WARN] No IAM user by name (%s) found", d.Id())
 				d.SetId("")
 				return nil
 			}
@@ -130,6 +136,7 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		UserName: aws.String(d.Id()),
 	}
 
+	log.Println("[DEBUG] Delete IAM User request:", request)
 	if _, err := iamconn.DeleteUser(request); err != nil {
 		return fmt.Errorf("Error deleting IAM User %s: %s", d.Id(), err)
 	}
