@@ -58,7 +58,7 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 
 						"host_path": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},

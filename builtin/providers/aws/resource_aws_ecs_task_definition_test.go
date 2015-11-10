@@ -32,6 +32,23 @@ func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
 	})
 }
 
+// Regression for https://github.com/hashicorp/terraform/issues/2370
+func TestAccAWSEcsTaskDefinition_withScratchVolume(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsTaskDefinitionWithScratchVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEcsTaskDefinitionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -112,6 +129,28 @@ TASK_DEFINITION
   volume {
     name = "jenkins-home"
     host_path = "/ecs/jenkins-home"
+  }
+}
+`
+
+var testAccAWSEcsTaskDefinitionWithScratchVolume = `
+resource "aws_ecs_task_definition" "sleep" {
+  family = "terraform-acc-sc-volume-test"
+  container_definitions = <<TASK_DEFINITION
+[
+  {
+    "name": "sleep",
+    "image": "busybox",
+    "cpu": 10,
+    "command": ["sleep","360"],
+    "memory": 10,
+    "essential": true
+  }
+]
+TASK_DEFINITION
+
+  volume {
+    name = "database_scratch"
   }
 }
 `
