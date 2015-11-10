@@ -31,6 +31,7 @@ IMPROVEMENTS:
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
   * provider/aws: Add S3 support for Lambda Function resource [GH-3794]
   * provider/aws: Add `name_prefix` option to launch configurations [GH-3802]
+  * provider/aws: Provide `source_security_group_id` for ELBs inside a VPC [GH-3780]
   * provider/aws: Add snapshot window and retention limits for ElastiCache (Redis) [GH-3707]
   * provider/aws: Add username updates for `aws_iam_user` [GH-3227]
   * provider/aws: `engine_version` is now optional for DB Instance [GH-3744]
