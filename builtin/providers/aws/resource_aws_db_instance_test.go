@@ -32,8 +32,6 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "engine", "mysql"),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "engine_version", "5.6.21"),
-					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "license_model", "general-public-license"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
@@ -43,25 +41,6 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 						"aws_db_instance.bar", "username", "foo"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccAWSDBInstance_withoutEngineVersion(t *testing.T) {
-	var v rds.DBInstance
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSDBInstanceConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
-					testAccCheckAWSDBInstanceAttributes(&v),
 				),
 			},
 		},
@@ -130,7 +109,7 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 			return fmt.Errorf("bad engine: %#v", *v.Engine)
 		}
 
-		if *v.EngineVersion != "5.6.21" {
+		if *v.EngineVersion == "" {
 			return fmt.Errorf("bad engine_version: %#v", *v.EngineVersion)
 		}
 
@@ -205,28 +184,6 @@ resource "aws_db_instance" "bar" {
 
 	# Maintenance Window is stored in lower case in the API, though not strictly 
 	# documented. Terraform will downcase this to match (as opposed to throw a 
-	# validation error).
-	maintenance_window = "Fri:09:00-Fri:09:30"
-
-	backup_retention_period = 0
-
-	parameter_group_name = "default.mysql5.6"
-}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
-
-var testAccAWSDBInstanceConfig_withoutEngineVersion = fmt.Sprintf(`
-resource "aws_db_instance" "bar" {
-	identifier = "foobarbaz-test-terraform-%d"
-
-	allocated_storage = 10
-	engine = "MySQL"
-	instance_class = "db.t1.micro"
-	name = "baz"
-	password = "barbarbarbar"
-	username = "foo"
-
-
-	# Maintenance Window is stored in lower case in the API, though not strictly
-	# documented. Terraform will downcase this to match (as opposed to throw a
 	# validation error).
 	maintenance_window = "Fri:09:00-Fri:09:30"
 
