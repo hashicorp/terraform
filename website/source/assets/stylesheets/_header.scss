@@ -7,23 +7,6 @@
 body.page-sub{
   #header{
     background-color: $purple;
-
-    .navbar-brand {
-      .logo{
-        &:hover{
-          color: $black;
-        }
-      }
-      .by{
-        &:hover{
-          svg{
-            line{
-              stroke: $black;
-            }
-          }
-        }
-      }
-    }
   }
 }
 
@@ -38,16 +21,15 @@ body.page-sub{
       background-position: 0 45%;
 
       &:hover{
-        color: $purple;
+        opacity: .6;
       }
     }
 
-    .by{
-      color: $black;
+    .by-hashicorp{
       &:hover{
         svg{
           line{
-            stroke: $purple;
+            opacity: .4;
           }
         }
       }
