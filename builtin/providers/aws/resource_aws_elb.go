@@ -314,7 +314,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		sgId, err := sourceSGIdByName(meta, *lb.SourceSecurityGroup.GroupName, elbVpc)
 		if err != nil {
-			log.Printf("[WARN] Error looking up ELB Security Group ID: %s", err)
+			return fmt.Errorf("[WARN] Error looking up ELB Security Group ID: %s", err)
 		} else {
 			d.Set("source_security_group_id", sgId)
 		}
