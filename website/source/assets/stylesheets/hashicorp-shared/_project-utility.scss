@@ -22,7 +22,7 @@ $project-logo-pad-left: 8px;
 
 @mixin project-footer-a-style{
   color: $black;
-  font-weight: 400;
+  font-weight: 300;
 
   &:hover{
     color: $purple;
@@ -35,7 +35,7 @@ $project-logo-pad-left: 8px;
 
 @mixin project-footer-a-subpage-style{
   color: $white;
-  font-weight: 400;
+  font-weight: 300;
 
   svg path{
     fill: $white;
