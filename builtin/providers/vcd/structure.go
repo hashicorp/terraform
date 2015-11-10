@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func expandIpRange(configured []interface{}) (types.IPRanges, error) {
+func expandIpRange(configured []interface{}) types.IPRanges {
 	ipRange := make([]*types.IPRange, 0, len(configured))
 
 	for _, ipRaw := range configured {
@@ -25,7 +25,7 @@ func expandIpRange(configured []interface{}) (types.IPRanges, error) {
 		IPRange: ipRange,
 	}
 
-	return ipRanges, nil
+	return ipRanges
 }
 
 func expandFirewallRules(configured []interface{}, gateway *types.EdgeGateway) ([]*types.FirewallRule, error) {

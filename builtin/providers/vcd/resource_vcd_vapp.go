@@ -150,18 +150,6 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// err = resource.Retry(4*time.Minute, func() error {
-	// 	err = vcd_client.OrgVdc.InstantiateVAppTemplate(createvapp)
-	//
-	// 	if err != nil {
-	// 		return fmt.Errorf("Error: %#v", err)
-	// 	}
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
 	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Get("name").(string))
 
 	err = retryCall(4, func() error {

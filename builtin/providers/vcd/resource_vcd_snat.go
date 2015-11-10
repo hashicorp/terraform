@@ -9,7 +9,6 @@ import (
 func resourceVcdSNAT() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVcdSNATCreate,
-		Update: resourceVcdSNATUpdate,
 		Delete: resourceVcdSNATDelete,
 		Read:   resourceVcdSNATRead,
 
@@ -23,11 +22,13 @@ func resourceVcdSNAT() *schema.Resource {
 			"external_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"internal_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -64,10 +65,6 @@ func resourceVcdSNATCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(d.Get("internal_ip").(string))
-	return nil
-}
-
-func resourceVcdSNATUpdate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
