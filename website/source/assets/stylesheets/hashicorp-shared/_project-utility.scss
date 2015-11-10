@@ -16,5 +16,56 @@ $project-logo-pad-left: 8px;
 
   &:hover{
     color: $white;
+    opacity: 1;
+  }
+}
+
+@mixin project-footer-a-style{
+  color: $black;
+  font-weight: 400;
+
+  &:hover{
+    color: $purple;
+
+    svg path{
+      fill: $purple;
+    }
+  }
+}
+
+@mixin project-footer-a-subpage-style{
+  color: $white;
+  font-weight: 400;
+
+  svg path{
+    fill: $white;
+  }
+
+  &:hover{
+    color: $purple;
+
+    svg path{
+      fill: $purple;
+    }
+  }
+}
+
+@mixin project-svg-external-links-style{
+  svg path{
+    fill: $black;
+  }
+
+  &:hover{
+    svg path{
+      fill: $blue;
+    }
+  }
+}
+
+@mixin project-by-hashicorp-style{
+  &:hover{
+    line{
+      stroke: $blue;
+    }
   }
 }
