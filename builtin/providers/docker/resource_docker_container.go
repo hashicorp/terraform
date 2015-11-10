@@ -182,18 +182,39 @@ func resourceDockerContainer() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value < 0 {
+						es = append(es, fmt.Errorf("%q must be greater than or equal to 0", k))
+					}
+					return
+				},
 			},
 
 			"memory_swap": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value < -1 {
+						es = append(es, fmt.Errorf("%q must be greater than or equal to -1", k))
+					}
+					return
+				},
 			},
 
 			"cpu_shares": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value < 0 {
+						es = append(es, fmt.Errorf("%q must be greater than or equal to 0", k))
+					}
+					return
+				},
 			},
 
 			"log_driver": &schema.Schema{
