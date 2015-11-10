@@ -18,6 +18,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+// Number of times to retry if a throttling-related exception occurs
+const LAMBDA_MAX_THROTTLE_RETRIES = 5
+
+// How long to sleep when a throttle-event happens
+const LAMBDA_THROTTLE_SLEEP = 2 * time.Second
+
 func resourceAwsLambdaFunction() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsLambdaFunctionCreate,
@@ -216,18 +222,37 @@ func resourceAwsLambdaFunctionDelete(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[INFO] Deleting Lambda Function: %s", d.Id())
 
-	params := &lambda.DeleteFunctionInput{
-		FunctionName: aws.String(d.Get("function_name").(string)),
+	attemptCount := 1
+	for attemptCount <= LAMBDA_MAX_THROTTLE_RETRIES {
+		_, err := conn.DeleteFunction(&lambda.DeleteFunctionInput{
+			FunctionName: aws.String(d.Get("function_name").(string)),
+		})
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "TooManyRequestsException" {
+					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, LAMBDA_MAX_THROTTLE_RETRIES)
+					time.Sleep(LAMBDA_THROTTLE_SLEEP)
+					attemptCount += 1
+				} else if awsErr.Code() == "ResourceNotFoundException" {
+					log.Printf("[DEBUG] Function no longer exists - that's actually OK")
+					d.SetId("")
+					return nil
+				} else {
+					// Some other non-retryable exception occurred
+					return fmt.Errorf("AWS Error deleting Lambda function: %s", err)
+				}
+			} else {
+				// Non-AWS exception occurred, give up
+				return fmt.Errorf("Error deleting Lambda function: %s", err)
+			}
+		} else {
+			d.SetId("")
+			return nil
+		}
 	}
 
-	_, err := conn.DeleteFunction(params)
-	if err != nil {
-		return fmt.Errorf("Error deleting Lambda Function: %s", err)
-	}
-
-	d.SetId("")
-
-	return nil
+	// Too many throttling events occurred, give up
+	return fmt.Errorf("Unable to delete Lambda function '%s' after %d attempts", d.Id(), attemptCount)
 }
 
 // resourceAwsLambdaFunctionUpdate maps to:

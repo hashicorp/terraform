@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/awslabs/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -40,7 +42,9 @@ func Provider() terraform.ResourceProvider {
 		conn, err := net.DialTimeout("tcp", "169.254.169.254:80", 100*time.Millisecond)
 		if err == nil {
 			conn.Close()
-			providers = append(providers, &ec2rolecreds.EC2RoleProvider{})
+			providers = append(providers, &ec2rolecreds.EC2RoleProvider{
+				  Client: ec2metadata.New(session.New()),
+			})
 		}
 
 		credVal, credErr = credentials.NewChainCredentials(providers).Get()
@@ -170,10 +174,12 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_group":            resourceAwsAutoscalingGroup(),
 			"aws_autoscaling_notification":     resourceAwsAutoscalingNotification(),
 			"aws_autoscaling_policy":           resourceAwsAutoscalingPolicy(),
-			"aws_cloudformation_stack":         resourceAwsCloudFormationStack(),
-			"aws_cloudtrail":                   resourceAwsCloudTrail(),
-			"aws_cloudwatch_log_group":         resourceAwsCloudWatchLogGroup(),
 			"aws_autoscaling_lifecycle_hook":   resourceAwsAutoscalingLifecycleHook(),
+	                "aws_cloudformation_stack":         resourceAwsCloudFormationStack(),
+			"aws_cloudtrail":                   resourceAwsCloudTrail(),
+			"aws_cloudwatch_logs_subscription_filter": resourceAwsCloudwatchLogsSubscriptionFilter(),
+			"aws_cloudwatch_logs_log_group":           resourceAwsCloudwatchLogsLogGroup(),
+			"aws_cloudwatch_log_group":         resourceAwsCloudWatchLogGroup(),
 			"aws_cloudwatch_metric_alarm":      resourceAwsCloudWatchMetricAlarm(),
 			"aws_codedeploy_app":               resourceAwsCodeDeployApp(),
 			"aws_codedeploy_deployment_group":  resourceAwsCodeDeployDeploymentGroup(),
@@ -218,6 +224,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_key_pair":                     resourceAwsKeyPair(),
 			"aws_kinesis_stream":               resourceAwsKinesisStream(),
 			"aws_lambda_function":              resourceAwsLambdaFunction(),
+			"aws_lambda_event_source_mapping":         resourceAwsLambdaEventSourceMapping(),
 			"aws_launch_configuration":         resourceAwsLaunchConfiguration(),
 			"aws_lb_cookie_stickiness_policy":  resourceAwsLBCookieStickinessPolicy(),
 			"aws_main_route_table_association": resourceAwsMainRouteTableAssociation(),

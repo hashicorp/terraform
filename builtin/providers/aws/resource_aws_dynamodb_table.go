@@ -9,19 +9,21 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+    "github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/hashicorp/terraform/helper/hashcode"
+
 )
 
 // Number of times to retry if a throttling-related exception occurs
-const DYNAMODB_MAX_THROTTLE_RETRIES = 5
+const DYNAMODB_MAX_THROTTLE_RETRIES = 10
 
 // How long to sleep when a throttle-event happens
 const DYNAMODB_THROTTLE_SLEEP = 5 * time.Second
 
 // How long to sleep if a limit-exceeded event happens
 const DYNAMODB_LIMIT_EXCEEDED_SLEEP = 10 * time.Second
+
 
 // A number of these are marked as computed because if you don't
 // provide a value, DynamoDB will provide you with defaults (which are the
@@ -35,6 +37,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"latest_stream_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -59,6 +65,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			"only_scale_up": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"attribute": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -81,6 +91,26 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 					return hashcode.String(buf.String())
 				},
 			},
+
+			"stream_specification": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+						"view_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceAwsDynamoDBTableStreamSpecificationHash,
+			},
+
 			"local_secondary_index": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -169,6 +199,9 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] DynamoDB table create: %s", name)
 
+	only_scale_up := d.Get("only_scale_up").(bool)
+	log.Printf("[DEBUG] only_scale_up flag create %v", only_scale_up)
+
 	throughput := &dynamodb.ProvisionedThroughput{
 		ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
 		WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
@@ -210,8 +243,22 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		req.AttributeDefinitions = attributes
 	}
 
+	if streamspecificationdata, ok := d.GetOk("stream_specification"); ok {
+		log.Printf("[DEBUG] Adding StreamSpecification data to the table")
+		streamspecificationSet := streamspecificationdata.(*schema.Set)
+		if len(streamspecificationSet.List()) > 0 {
+			// Grab the first element
+			spec := streamspecificationSet.List()[0].(map[string]interface{})
+			streamSpecification := &dynamodb.StreamSpecification{
+				StreamEnabled:  aws.Bool(spec["enabled"].(bool)),
+				StreamViewType: aws.String(spec["view_type"].(string)),
+			}
+			req.StreamSpecification = streamSpecification
+		}
+	}
+
 	if lsidata, ok := d.GetOk("local_secondary_index"); ok {
-		fmt.Printf("[DEBUG] Adding LSI data to the table")
+		log.Printf("[DEBUG] Adding LSI data to the table")
 
 		lsiSet := lsidata.(*schema.Set)
 		localSecondaryIndexes := []*dynamodb.LocalSecondaryIndex{}
@@ -248,7 +295,7 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 
 		req.LocalSecondaryIndexes = localSecondaryIndexes
 
-		fmt.Printf("[DEBUG] Added %d LSI definitions", len(localSecondaryIndexes))
+		log.Printf("[DEBUG] Added %d LSI definitions", len(localSecondaryIndexes))
 	}
 
 	if gsidata, ok := d.GetOk("global_secondary_index"); ok {
@@ -265,17 +312,16 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 
 	attemptCount := 1
 	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
+		attemptCount += 1
 		output, err := dynamodbconn.CreateTable(req)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ThrottlingException" {
 					log.Printf("[DEBUG] Attempt %d/%d: Sleeping for a bit to throttle back create request", attemptCount, DYNAMODB_MAX_THROTTLE_RETRIES)
 					time.Sleep(DYNAMODB_THROTTLE_SLEEP)
-					attemptCount += 1
 				} else if awsErr.Code() == "LimitExceededException" {
 					log.Printf("[DEBUG] Limit on concurrent table creations hit, sleeping for a bit")
 					time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
-					attemptCount += 1
 				} else {
 					// Some other non-retryable exception occurred
 					return fmt.Errorf("AWS Error creating DynamoDB table: %s", err)
@@ -290,13 +336,34 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 			if err := d.Set("arn", *output.TableDescription.TableArn); err != nil {
 				return err
 			}
+			if output.TableDescription.StreamSpecification != nil {
+				if *output.TableDescription.StreamSpecification.StreamEnabled {
+					if err := d.Set("latest_stream_arn", *output.TableDescription.LatestStreamArn); err != nil {
+						return err
+					}
+				}
+			}
 
 			return resourceAwsDynamoDbTableRead(d, meta)
+
 		}
 	}
+	return fmt.Errorf("Exiting after maximum number of retry counts for DynamoDB table: %s", name)
+}
 
-	// Too many throttling events occurred, give up
-	return fmt.Errorf("Unable to create DynamoDB table '%s' after %d attempts", name, attemptCount)
+func getConditionallyScalingCapacity(d *schema.ResourceData, key string) (int, int) {
+	only_scale_up := d.Get("only_scale_up").(bool)
+	old_capacity_param, new_capacity_param := d.GetChange(key)
+
+	old_capacity := old_capacity_param.(int)
+	var new_capacity = new_capacity_param.(int)
+
+	if (old_capacity > new_capacity) && only_scale_up {
+		new_capacity = old_capacity
+		d.Set(key, new_capacity)
+	}
+
+	return old_capacity, new_capacity
 }
 
 func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -321,18 +388,49 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
+		old_read_capacity, new_read_capacity := getConditionallyScalingCapacity(d, "read_capacity")
+		old_write_capacity, new_write_capacity := getConditionallyScalingCapacity(d, "write_capacity")
+
+		// should we actually change the capacity of the table?
+		if new_read_capacity != old_read_capacity || new_write_capacity != old_write_capacity {
+			req := &dynamodb.UpdateTableInput{
+				TableName: aws.String(d.Id()),
+			}
+
+			throughput := &dynamodb.ProvisionedThroughput{
+				ReadCapacityUnits:  aws.Int64(int64(new_read_capacity)),
+				WriteCapacityUnits: aws.Int64(int64(new_write_capacity)),
+			}
+			req.ProvisionedThroughput = throughput
+
+			// Updates for capacity needs to be done before updating
+			// the streamspecification - it cannot be done in the same call
+			_, err := dynamodbconn.UpdateTable(req)
+			if err != nil {
+				return err
+			}
+
+			waitForTableToBeActive(d.Id(), meta)
+		}
+	}
+
+	if d.HasChange("stream_specification") {
+		log.Printf("[DEBUG] Changed Stream Specification")
 		req := &dynamodb.UpdateTableInput{
 			TableName: aws.String(d.Id()),
 		}
 
-		throughput := &dynamodb.ProvisionedThroughput{
-			ReadCapacityUnits:  aws.Int64(int64(d.Get("read_capacity").(int))),
-			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
+		vs := d.Get("stream_specification").(*schema.Set).List()
+		if len(vs) > 0 {
+			spec := vs[0].(map[string]interface{})
+			streamSpecification := &dynamodb.StreamSpecification{
+				StreamEnabled:  aws.Bool(bool(spec["enabled"].(bool))),
+				StreamViewType: aws.String(string(spec["view_type"].(string))),
+			}
+			req.StreamSpecification = streamSpecification
 		}
-		req.ProvisionedThroughput = throughput
 
 		_, err := dynamodbconn.UpdateTable(req)
-
 		if err != nil {
 			return err
 		}
@@ -454,70 +552,102 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 	if gsiObjects, ok := d.GetOk("global_secondary_index"); ok {
 		gsiSet := gsiObjects.(*schema.Set)
 		if len(gsiSet.List()) > 0 {
-			log.Printf("Updating capacity as needed!")
+			log.Printf("[DEBUG] Updating capacity as needed!")
 
-			// We can only change throughput, but we need to make sure it's actually changed
-			tableDescription, err := dynamodbconn.DescribeTable(&dynamodb.DescribeTableInput{
-				TableName: aws.String(d.Id()),
-			})
-
-			if err != nil {
-				return err
-			}
-
-			table := tableDescription.Table
-
-			updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
 
 			for _, updatedgsidata := range gsiSet.List() {
 				gsidata := updatedgsidata.(map[string]interface{})
 				gsiName := gsidata["name"].(string)
-				gsiWriteCapacity := gsidata["write_capacity"].(int)
-				gsiReadCapacity := gsidata["read_capacity"].(int)
+				gsiWriteCapacity := int64(gsidata["write_capacity"].(int))
+				gsiReadCapacity := int64(gsidata["read_capacity"].(int))
+				only_scale_up := d.Get("only_scale_up").(bool)
 
-				log.Printf("[DEBUG] Updating GSI %s", gsiName)
-				gsi, err := getGlobalSecondaryIndex(gsiName, table.GlobalSecondaryIndexes)
+				attemptCount := 1
+				for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
+					attemptCount += 1
 
-				if err != nil {
-					return err
-				}
-
-				capacityUpdated := false
-
-				if int64(gsiReadCapacity) != *gsi.ProvisionedThroughput.ReadCapacityUnits ||
-					int64(gsiWriteCapacity) != *gsi.ProvisionedThroughput.WriteCapacityUnits {
-					capacityUpdated = true
-				}
-
-				if capacityUpdated {
-					update := &dynamodb.GlobalSecondaryIndexUpdate{
-						Update: &dynamodb.UpdateGlobalSecondaryIndexAction{
-							IndexName: aws.String(gsidata["name"].(string)),
-							ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
-								WriteCapacityUnits: aws.Int64(int64(gsiWriteCapacity)),
-								ReadCapacityUnits:  aws.Int64(int64(gsiReadCapacity)),
-							},
-						},
-					}
-					updates = append(updates, update)
-
-				}
-
-				if len(updates) > 0 {
-
-					req := &dynamodb.UpdateTableInput{
+					// We can only change throughput, but we need to make sure it actually needs changing
+					tableDescription, err := dynamodbconn.DescribeTable(&dynamodb.DescribeTableInput{
 						TableName: aws.String(d.Id()),
-					}
-
-					req.GlobalSecondaryIndexUpdates = updates
-
-					log.Printf("[DEBUG] Updating GSI read / write capacity on %s", d.Id())
-					_, err := dynamodbconn.UpdateTable(req)
+					})
 
 					if err != nil {
-						log.Printf("[DEBUG] Error updating table: %s", err)
 						return err
 					}
+
+					table := tableDescription.Table
+
+
+					updates := []*dynamodb.GlobalSecondaryIndexUpdate{}
+
+
+					log.Printf("[DEBUG] Updating GSI %s", gsiName)
+					gsi, err := getGlobalSecondaryIndex(gsiName, table.GlobalSecondaryIndexes)
+
+					if err != nil {
+						return err
+					}
+
+					provisionedRead := *gsi.ProvisionedThroughput.ReadCapacityUnits
+					provisionedWrite := *gsi.ProvisionedThroughput.WriteCapacityUnits
+					if only_scale_up {
+						if gsiReadCapacity < provisionedRead {
+							gsiReadCapacity = provisionedRead
+						}
+						if gsiWriteCapacity < provisionedWrite {
+							gsiWriteCapacity = provisionedWrite
+						}
+					}
+
+					log.Printf("[DEBUG] values: pr/pw %v/%v, nr/nw %v/%v",provisionedRead,provisionedWrite, gsiReadCapacity, gsiWriteCapacity)
+					// Should we update
+					if gsiReadCapacity != provisionedRead  || gsiWriteCapacity != provisionedWrite {
+						update := &dynamodb.GlobalSecondaryIndexUpdate{
+							Update: &dynamodb.UpdateGlobalSecondaryIndexAction{
+								IndexName: aws.String(gsidata["name"].(string)),
+								ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+									WriteCapacityUnits: aws.Int64(gsiWriteCapacity),
+									ReadCapacityUnits:  aws.Int64(gsiReadCapacity),
+								},
+							},
+						}
+						updates = append(updates, update)
+
+					} else {
+						log.Printf("[DEBUG] GSI %s already at desired capacity. Skipping", gsiName)
+						break
+					};
+
+					if len(updates) > 0 {
+
+						req := &dynamodb.UpdateTableInput{
+							TableName: aws.String(d.Id()),
+						}
+
+						req.GlobalSecondaryIndexUpdates = updates
+
+						// Retry logic
+						log.Printf("[DEBUG] Updating GSI read / write capacity on %s.%s to %v/%v", d.Id(), gsiName, gsiReadCapacity,gsiWriteCapacity)
+						_, err := dynamodbconn.UpdateTable(req)
+						if err != nil {
+							if awsErr, ok := err.(awserr.Error); ok {
+								if awsErr.Code() == "ResourceInUseException" {
+									log.Printf("[DEBUG] Resource in use,  sleeping for a bit table=%s, index=%s", d.Id(), gsiName)
+									time.Sleep(DYNAMODB_LIMIT_EXCEEDED_SLEEP)
+								} else /*if !(awsErr.Code() == "ValidationException" &&
+								            strings.HasPrefix(awsErr.Message(), "The provisioned throughput for the index"))*/ {
+									log.Printf("[ERROR] Unhandled error: %s, %s", awsErr.Code(), awsErr.Message())
+									return err
+								}
+							}
+						}
+					}
+
+				}
+
+				if attemptCount > DYNAMODB_MAX_THROTTLE_RETRIES {
+					log.Printf("[DEBUG] Error updating gsi: %s on table %s", gsiName, d.Id())
+					return fmt.Errorf("Error updating gsi %s.%s after many retries",d.Id(), gsiName)
 				}
 			}
 		}
@@ -529,6 +659,10 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) error {
 	dynamodbconn := meta.(*AWSClient).dynamodbconn
+
+	only_scale_up := d.Get("only_scale_up").(bool)
+	log.Printf("[DEBUG] only_scale_up flag read %v", only_scale_up)
+
 	log.Printf("[DEBUG] Loading data for DynamoDB table '%s'", d.Id())
 	req := &dynamodb.DescribeTableInput{
 		TableName: aws.String(d.Id()),
@@ -594,6 +728,22 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("arn", table.TableArn)
 
+	// There's only one stream specification, so save that to state as we
+	// currently can
+	if table.StreamSpecification != nil {
+		d.Set("stream_specification", flattenDynamoDBStreamSpecification(table.StreamSpecification))
+
+		if *(table.StreamSpecification.StreamEnabled) {
+			d.Set("latest_stream_arn", table.LatestStreamArn)
+		}
+	} else {
+		log.Printf("[DEBUG] StreamSpecification does not exist - will populate as false")
+		disabledStreamSpecification := &dynamodb.StreamSpecification{
+			StreamEnabled:  aws.Bool(false),
+			StreamViewType: aws.String(""),
+		}
+		d.Set("stream_specification", flattenDynamoDBStreamSpecification(disabledStreamSpecification))
+	}
 	return nil
 }
 
@@ -604,12 +754,16 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] DynamoDB delete table: %s", d.Id())
 
+	only_scale_up := d.Get("only_scale_up").(bool)
+	log.Printf("[DEBUG] only_scale_up flag delete %v", only_scale_up)
+
 	_, err := dynamodbconn.DeleteTable(&dynamodb.DeleteTableInput{
 		TableName: aws.String(d.Id()),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("AWS Error deleting DynamoDB table '%s': error %s", d.Id(), err)
 	}
+
 	return nil
 }
 
@@ -750,4 +904,12 @@ func waitForTableToBeActive(tableName string, meta interface{}) error {
 
 	return nil
 
+}
+
+func resourceAwsDynamoDBTableStreamSpecificationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", map[bool]string{true: "true", false: "false"}[m["enabled"].(bool)]))
+	buf.WriteString(fmt.Sprintf("%s-", m["view_type"].(string)))
+	return hashcode.String(buf.String())
 }
