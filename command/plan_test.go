@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -103,6 +104,39 @@ func TestPlan_destroy(t *testing.T) {
 	expectedStr := strings.TrimSpace(originalState.String())
 	if actualStr != expectedStr {
 		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
+	}
+}
+
+func TestPlan_input(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = bytes.NewBufferString("foo\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("plan-input"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.InputCalled {
+		t.Fatal("input should be called")
 	}
 }
 
