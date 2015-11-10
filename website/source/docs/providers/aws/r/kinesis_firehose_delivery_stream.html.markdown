@@ -47,7 +47,7 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
 }
 ```
 
-~> **NOTE:** Kinesis Firehose is currently only support in us-east-1, us-west-2 and eu-west-1. This implementation of Kinesis Firehose only supports the s3 destination type 
+~> **NOTE:** Kinesis Firehose is currently only supported in us-east-1, us-west-2 and eu-west-1. This implementation of Kinesis Firehose only supports the s3 destination type as Terraform doesn't support Redshift yet.
 
 ## Argument Reference
 
