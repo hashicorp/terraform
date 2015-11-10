@@ -188,6 +188,12 @@ func resourceAwsDbInstance() *schema.Resource {
 				},
 			},
 
+			"skip_final_snapshot": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"copy_tags_to_snapshot": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -619,11 +625,11 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 
 	opts := rds.DeleteDBInstanceInput{DBInstanceIdentifier: aws.String(d.Id())}
 
-	finalSnapshot := d.Get("final_snapshot_identifier").(string)
-	if finalSnapshot == "" {
-		opts.SkipFinalSnapshot = aws.Bool(true)
-	} else {
-		opts.FinalDBSnapshotIdentifier = aws.String(finalSnapshot)
+	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
+	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
+
+	if name, present := d.GetOk("final_snapshot_identifier"); present && !skipFinalSnapshot {
+		opts.FinalDBSnapshotIdentifier = aws.String(name.(string))
 	}
 
 	log.Printf("[DEBUG] DB Instance destroy configuration: %v", opts)
