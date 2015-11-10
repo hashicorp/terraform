@@ -1,11 +1,11 @@
-<div id="header" class="white <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
+<div id="header" class="navigation white <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
 	<div class="container">
 		<div class="row">
 			<div class="col-xs-12">
 				<div class="navbar-header">
 					<div class="navbar-brand">
 						<a class="logo" href="/">Terraform</a>
-						<a class="by" href="https://hashicorp.com/"><span class="svg-wrap">by</span><%= partial "layouts/svg/svg-by-hashicorp" %><%= partial "layouts/svg/svg-hashicorp-logo" %>Hashicorp</a>
+						<a class="by-hashicorp white" href="https://hashicorp.com/"><span class="svg-wrap">by</span><%= partial "layouts/svg/svg-by-hashicorp" %><%= partial "layouts/svg/svg-hashicorp-logo" %>Hashicorp</a>
 					</div>
 					<button class="navbar-toggle" type="button">
 						<span class="sr-only">Toggle navigation</span>
@@ -15,7 +15,7 @@
 					</button>
 				</div>
 				<div class="buttons hidden-xs">
-					<nav role="navigation">
+					<nav class="navigation-links" role="navigation">
 						<ul class="external-links nav navbar-nav navbar-right">
 							<li class="first download">
 								<a href="/downloads.html"><%= partial "layouts/svg/svg-download" %>Download</a>
