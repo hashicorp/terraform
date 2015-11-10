@@ -44,6 +44,7 @@ BUG FIXES:
 
   * `terraform remote config`: update `--help` output [GH-3632]
   * core: modules on Git branches now update properly [GH-1568]
+  * core: Fix issue preventing input prompts for unset variables during plan [GH-3843]
   * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
   * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
