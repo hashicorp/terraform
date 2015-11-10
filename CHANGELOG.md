@@ -58,6 +58,7 @@ BUG FIXES:
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
   * provider/aws: Correctly export ARN in `iam_saml_provider` [GH-3827]
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
+  * provider/aws: Downcase Route 53 record names in statefile to match API output [GH-3574]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
