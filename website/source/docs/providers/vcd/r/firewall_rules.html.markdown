@@ -19,13 +19,13 @@ resource "vcd_firewall_rules" "fw" {
     default_action = "drop"
 
     rule {
-        description      = "allow-web"
-        policy           = "allow"
+        description      = "deny-ftp-out"
+        policy           = "deny"
         protocol         = "tcp"
-        destination_port = "80"
-        destination_ip   = "10.10.0.5"
+        destination_port = "21"
+        destination_ip   = "any"
         source_port      = "any"
-        source_ip        = "any"
+        source_ip        = "10.10.0.0/24"
     }
 
     rule {
@@ -39,6 +39,26 @@ resource "vcd_firewall_rules" "fw" {
     }
 
 }
+
+resource "vcd_vapp" "web" {
+    ...
+}
+
+resource "vcd_firewall_rules" "fw-web" {
+    edge_gateway   = "Edge Gateway Name"
+    default_action = "drop"
+
+    rule {
+        description      = "allow-web"
+        policy           = "allow"
+        protocol         = "tcp"
+        destination_port = "80"
+        destination_ip   = "${vcd_vapp.web.ip}"
+        source_port      = "any"
+        source_ip        = "any"
+    }
+}
+
 ```
 
 ## Argument Reference
