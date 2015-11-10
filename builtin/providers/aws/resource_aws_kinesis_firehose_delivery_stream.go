@@ -192,7 +192,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamUpdate(d *schema.ResourceData, meta
 	_, err := conn.UpdateDestination(destOpts)
 	if err != nil {
 		return fmt.Errorf(
-			"Error Updating Kinesis Firehose Delivery Stream: %s",
+			"Error Updating Kinesis Firehose Delivery Stream: \"%s\"\n%s",
 			sn, err)
 	}
 
