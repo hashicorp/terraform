@@ -6,7 +6,7 @@ description: |-
   Creates and manages a database on a PostgreSQL server.
 ---
 
-# postgresql\postgresql_database
+# postgresql\_database
 
 The ``postgresql_database`` resource creates and manages a database on a PostgreSQL
 server.

@@ -6,7 +6,7 @@ description: |-
   Creates and manages a database on a PostgreSQL server.
 ---
 
-# postgresql\postgresql_role
+# postgresql\_role
 
 The ``postgresql_role`` resource creates and manages a role on a PostgreSQL
 server.

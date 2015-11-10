@@ -30,6 +30,25 @@ func TestAccPostgresqlDatabase_Basic(t *testing.T) {
 	})
 }
 
+func TestAccPostgresqlDatabase_DefaultOwner(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPostgresqlDatabaseDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccPostgresqlDatabaseConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb_default_owner", ""),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.mydb_default_owner", "name", "mydb_default_owner"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckPostgresqlDatabaseDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*sql.DB)
 
@@ -106,4 +125,9 @@ resource "postgresql_database" "mydb" {
    name = "mydb"
    owner = "${postgresql_role.myrole.name}"
 }
+
+resource "postgresql_database" "mydb_default_owner" {
+   name = "mydb_default_owner"
+}
+
 `

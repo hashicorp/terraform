@@ -21,6 +21,7 @@ func resourcePostgresqlDatabase() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 		},
 	}
