@@ -15,6 +15,7 @@ FEATURES:
   * **New resource: `google_compute_target_https_proxy`** [GH-3728]
   * **New resource: `google_compute_global_forwarding_rule`** [GH-3702]
   * **New resource: `openstack_networking_port_v2`** [GH-3731]
+  * New interpolation function: `coalesce` [GH-3814]
 
 IMPROVEMENTS:
 
@@ -27,6 +28,8 @@ IMPROVEMENTS:
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
+  * provider/aws: Add S3 support for Lambda Function resource [GH-3794]
+  * provider/aws: Add snapshot window and retention limits for ElastiCache (Redis) [GH-3707]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
   * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
   * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
@@ -41,6 +44,7 @@ BUG FIXES:
 
   * `terraform remote config`: update `--help` output [GH-3632]
   * core: modules on Git branches now update properly [GH-1568]
+  * core: Fix issue preventing input prompts for unset variables during plan [GH-3843]
   * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
   * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
@@ -58,6 +62,7 @@ BUG FIXES:
   * provider/openstack: Fix boot from volume [GH-3206]
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
   * provider/openstack: Better handling of network resource state changes [GH-3712]
+  * provider/openstack: Fix crashing when no security group is specified [GH-3801]
 
 ## 0.6.6 (October 23, 2015)
 

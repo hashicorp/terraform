@@ -95,6 +95,9 @@ The supported built-in functions are:
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
     additional subnet number. For example,
     ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
+    
+  * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
+    the given arguments. At least two arguments must be provided.
 
   * `compact(list)` - Removes empty string elements from a list. This can be
      useful in some cases, for example when passing joined lists as module
