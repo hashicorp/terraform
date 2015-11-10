@@ -291,7 +291,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		// rec := resp.ResourceRecordSets[0]
 		for _, rec := range resp.ResourceRecordSets {
 			recName := cleanRecordName(*rec.Name)
-			if FQDN(recName) == FQDN(en) && *rec.Type == rType {
+			if FQDN(strings.ToLower(recName)) == FQDN(strings.ToLower(en)) && *rec.Type == rType {
 				return nil
 			}
 		}
@@ -306,7 +306,7 @@ resource "aws_route53_zone" "main" {
 
 resource "aws_route53_record" "default" {
 	zone_id = "${aws_route53_zone.main.zone_id}"
-	name = "www.notexample.com"
+	name = "www.NOTexamplE.com"
 	type = "A"
 	ttl = "30"
 	records = ["127.0.0.1", "127.0.0.27"]

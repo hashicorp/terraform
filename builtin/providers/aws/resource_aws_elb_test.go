@@ -657,6 +657,15 @@ func testAccCheckAWSELBExists(n string, res *elb.LoadBalancerDescription) resour
 
 		*res = *describe.LoadBalancerDescriptions[0]
 
+		// Confirm source_security_group_id for ELBs in a VPC
+		// 	See https://github.com/hashicorp/terraform/pull/3780
+		if res.VPCId != nil {
+			sgid := rs.Primary.Attributes["source_security_group_id"]
+			if sgid == "" {
+				return fmt.Errorf("Expected to find source_security_group_id for ELB, but was empty")
+			}
+		}
+
 		return nil
 	}
 }
