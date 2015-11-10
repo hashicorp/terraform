@@ -51,6 +51,7 @@ BUG FIXES:
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
+  * provider/aws: Correctly export ARN in `iam_saml_provider` [GH-3827]
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
