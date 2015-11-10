@@ -15,7 +15,6 @@ import (
 func resourceVcdNetwork() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVcdNetworkCreate,
-		Update: resourceVcdNetworkUpdate,
 		Read:   resourceVcdNetworkRead,
 		Delete: resourceVcdNetworkDelete,
 
@@ -29,51 +28,60 @@ func resourceVcdNetwork() *schema.Resource {
 			"fence_mode": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Default:  "natRouted",
 			},
 
 			"edge_gateway": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"netmask": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Default:  "255.255.255.0",
 			},
 
 			"gateway": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"dns1": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Default:  "8.8.8.8",
 			},
 
 			"dns2": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Default:  "8.8.4.4",
 			},
 
 			"dns_suffix": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"href": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"dhcp_pool": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"start_address": &schema.Schema{
@@ -92,6 +100,7 @@ func resourceVcdNetwork() *schema.Resource {
 			"static_ip_pool": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"start_address": &schema.Schema{
@@ -119,10 +128,7 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
-	ipRanges, err := expandIpRange(d.Get("static_ip_pool").(*schema.Set).List())
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-	}
+	ipRanges := expandIpRange(d.Get("static_ip_pool").(*schema.Set).List())
 
 	newnetwork := &types.OrgVDCNetwork{
 		Xmlns: "http://www.vmware.com/vcloud/v1.5",
@@ -185,14 +191,6 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(d.Get("name").(string))
 
 	return resourceVcdNetworkRead(d, meta)
-}
-
-func resourceVcdNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
-
-	vcd_client := meta.(*govcd.VCDClient)
-
-	log.Printf("[DEBUG] VCD Client configuration: %#v", vcd_client)
-	return nil
 }
 
 func resourceVcdNetworkRead(d *schema.ResourceData, meta interface{}) error {

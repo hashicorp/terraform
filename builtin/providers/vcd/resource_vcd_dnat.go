@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hmrc/vmware-govcd"
-	"strings"
 )
 
 func resourceVcdDNAT() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVcdDNATCreate,
-		Update: resourceVcdDNATUpdate,
 		Delete: resourceVcdDNATDelete,
 		Read:   resourceVcdDNATRead,
 
@@ -24,16 +22,19 @@ func resourceVcdDNAT() *schema.Resource {
 			"external_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"internal_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -78,10 +79,6 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceVcdDNATUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-
 func resourceVcdDNATRead(d *schema.ResourceData, meta interface{}) error {
 	vcd_client := meta.(*govcd.VCDClient)
 	e, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
@@ -90,13 +87,12 @@ func resourceVcdDNATRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
 
-	idSplit := strings.Split(d.Id(), "_")
 	var found bool
 
 	for _, r := range e.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.NatService.NatRule {
 		if r.RuleType == "DNAT" &&
-			r.GatewayNatRule.OriginalIP == idSplit[0] &&
-			r.GatewayNatRule.OriginalPort == idSplit[1] {
+			r.GatewayNatRule.OriginalIP == d.Get("external_ip").(string) &&
+			r.GatewayNatRule.OriginalPort == getPortString(d.Get("port").(int)) {
 			found = true
 			d.Set("internal_ip", r.GatewayNatRule.TranslatedIP)
 		}
