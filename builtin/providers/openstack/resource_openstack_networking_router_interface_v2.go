@@ -154,6 +154,7 @@ func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d
 
 		removeOpts := routers.InterfaceOpts{
 			SubnetID: d.Get("subnet_id").(string),
+			PortID:   d.Get("port_id").(string),
 		}
 
 		r, err := ports.Get(networkingClient, routerInterfaceId).Extract()
