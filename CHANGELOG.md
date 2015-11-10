@@ -60,6 +60,7 @@ BUG FIXES:
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
   * provider/aws: Downcase Route 53 record names in statefile to match API output [GH-3574]
   * provider/aws: Fix issue that could occur if no ECS Cluster was found for a give name [GH-3829]
+  * provider/aws: Fix issue with SNS topic policy if omitted [GH-3777]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
