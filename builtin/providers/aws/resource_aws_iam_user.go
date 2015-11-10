@@ -14,9 +14,7 @@ func resourceAwsIamUser() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsIamUserCreate,
 		Read:   resourceAwsIamUserRead,
-		// There is an UpdateUser API call, but goamz doesn't support it yet.
-		// XXX but we aren't using goamz anymore.
-		//Update: resourceAwsIamUserUpdate,
+		Update: resourceAwsIamUserUpdate,
 		Delete: resourceAwsIamUserDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -39,7 +37,6 @@ func resourceAwsIamUser() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -54,9 +51,10 @@ func resourceAwsIamUser() *schema.Resource {
 func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 	name := d.Get("name").(string)
+	path := d.Get("path").(string)
 
 	request := &iam.CreateUserInput{
-		Path:     aws.String(d.Get("path").(string)),
+		Path:     aws.String(path),
 		UserName: aws.String(name),
 	}
 
@@ -69,9 +67,9 @@ func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-
+	name := d.Get("name").(string)
 	request := &iam.GetUserInput{
-		UserName: aws.String(d.Id()),
+		UserName: aws.String(name),
 	}
 
 	getResp, err := iamconn.GetUser(request)
@@ -102,6 +100,29 @@ func resourceAwsIamUserReadResult(d *schema.ResourceData, user *iam.User) error 
 	return nil
 }
 
+func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
+	if d.HasChange("name") || d.HasChange("path") {
+		iamconn := meta.(*AWSClient).iamconn
+		on, nn := d.GetChange("name")
+		op, np := d.GetChange("path")
+		fmt.Println(on, nn, op, np)
+		request := &iam.UpdateUserInput{
+			UserName:    aws.String(on.(string)),
+			NewUserName: aws.String(nn.(string)),
+			NewPath:     aws.String(np.(string)),
+		}
+		_, err := iamconn.UpdateUser(request)
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error updating IAM User %s: %s", d.Id(), err)
+		}
+		return resourceAwsIamUserRead(d, meta)
+	}
+	return nil
+}
 func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
