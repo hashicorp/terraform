@@ -9,9 +9,7 @@ go:
 install: make updatedeps
 
 script:
-  - go test ./...
-  - make vet
-  #- go test -race ./...
+  - make test
 
 branches:
   only:
