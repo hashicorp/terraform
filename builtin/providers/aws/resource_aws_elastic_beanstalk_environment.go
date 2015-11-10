@@ -79,6 +79,10 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"solution_stack_name"},
 			},
+			"endpoint_url": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -270,6 +274,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 	}
 
 	if err := d.Set("cname", env.CNAME); err != nil {
+		return err
+	}
+
+	if err := d.Set("endpoint_url", env.EndpointURL); err != nil {
 		return err
 	}
 
