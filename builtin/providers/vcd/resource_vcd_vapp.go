@@ -153,30 +153,6 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Get("name").(string))
 
 	err = retryCall(4, func() error {
-		task, err := vapp.ChangeMemorySize(d.Get("memory").(int))
-		if err != nil {
-			return fmt.Errorf("Error changing memory size: %#v", err)
-		}
-
-		return task.WaitTaskCompletion()
-	})
-	if err != nil {
-		return err
-	}
-
-	err = retryCall(4, func() error {
-		task, err := vapp.ChangeCPUcount(d.Get("cpus").(int))
-		if err != nil {
-			return fmt.Errorf("Error changing cpu count: %#v", err)
-		}
-
-		return task.WaitTaskCompletion()
-	})
-	if err != nil {
-		return fmt.Errorf("Error completing task: %#v", err)
-	}
-
-	err = retryCall(4, func() error {
 		task, err := vapp.ChangeVMName(d.Get("name").(string))
 		if err != nil {
 			return fmt.Errorf("Error with vm name change: %#v", err)
@@ -199,24 +175,6 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error changing network: %#v", err)
 	}
 
-	err = retryCall(4, func() error {
-		metadata := d.Get("metadata").(map[string]interface{})
-		for k, v := range metadata {
-			task, err := vapp.AddMetadata(k, v.(string))
-			if err != nil {
-				return fmt.Errorf("Error adding metadata: %#v", err)
-			}
-			err = task.WaitTaskCompletion()
-			if err != nil {
-				return fmt.Errorf("Error completing tasks: %#v", err)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("Error adding metadata: %#v", err)
-	}
-
 	if initscript, ok := d.GetOk("initscript"); ok {
 		err = retryCall(4, func() error {
 			task, err := vapp.RunCustomizationScript(d.Get("name").(string), initscript.(string))
@@ -230,23 +188,9 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if d.Get("power_on").(bool) {
-		err = retryCall(4, func() error {
-			task, err := vapp.PowerOn()
-			if err != nil {
-				return fmt.Errorf("Error Powering Up: %#v", err)
-			}
-			return task.WaitTaskCompletion()
-		})
-		if err != nil {
-			return fmt.Errorf("Error completing tasks: %#v", err)
-		}
-	}
-
 	d.SetId(d.Get("name").(string))
 
-	return resourceVcdVAppRead(d, meta)
-	//return nil
+	return resourceVcdVAppUpdate(d, meta)
 }
 
 func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -302,18 +246,30 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if d.HasChange("memory") {
-			task, err := vapp.ChangeMemorySize(d.Get("memory").(int))
-			err = task.WaitTaskCompletion()
+			err = retryCall(4, func() error {
+				task, err := vapp.ChangeMemorySize(d.Get("memory").(int))
+				if err != nil {
+					return fmt.Errorf("Error changing memory size: %#v", err)
+				}
+
+				return task.WaitTaskCompletion()
+			})
 			if err != nil {
-				return fmt.Errorf("Error changing memory size: %#v", err)
+				return err
 			}
 		}
 
 		if d.HasChange("cpus") {
-			task, err := vapp.ChangeCPUcount(d.Get("cpus").(int))
-			err = task.WaitTaskCompletion()
+			err = retryCall(4, func() error {
+				task, err := vapp.ChangeCPUcount(d.Get("cpus").(int))
+				if err != nil {
+					return fmt.Errorf("Error changing cpu count: %#v", err)
+				}
+
+				return task.WaitTaskCompletion()
+			})
 			if err != nil {
-				return fmt.Errorf("Error changing cpu count: %#v", err)
+				return fmt.Errorf("Error completing task: %#v", err)
 			}
 		}
 
