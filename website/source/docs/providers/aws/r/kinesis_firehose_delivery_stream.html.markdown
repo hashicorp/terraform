@@ -47,6 +47,8 @@ resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
 }
 ```
 
+~> **NOTE:** Kinesis Firehose is currently only support in us-east-1, us-west-2 and eu-west-1. This implementation of Kinesis Firehose only supports the s3 destination type 
+
 ## Argument Reference
 
 The following arguments are supported:
