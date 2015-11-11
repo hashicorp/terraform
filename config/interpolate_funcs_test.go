@@ -2249,6 +2249,18 @@ func TestInterpolateFuncTrimSpace(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncBase64Gzip(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${base64gzip("test")}`,
+				"H4sIAAAAAAAA/ypJLS4BAAAA//8BAAD//wx+f9gEAAAA",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncBase64Sha256(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
