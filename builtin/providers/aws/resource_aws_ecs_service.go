@@ -163,6 +163,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Status==INACTIVE means deleted service
 	if *service.Status == "INACTIVE" {
+		log.Printf("[DEBUG] Removing ECS service %q because it's INACTIVE", service.ServiceArn)
 		d.SetId("")
 		return nil
 	}
