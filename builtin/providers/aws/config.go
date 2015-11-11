@@ -39,6 +39,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -75,6 +76,7 @@ type AWSClient struct {
 	s3conn             *s3.S3
 	sqsconn            *sqs.SQS
 	snsconn            *sns.SNS
+	redshiftconn       *redshift.Redshift
 	r53conn            *route53.Route53
 	region             string
 	rdsconn            *rds.RDS
@@ -233,6 +235,10 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CodeCommit SDK connection")
 		client.codecommitconn = codecommit.New(usEast1Sess)
+
+		log.Println("[INFO] Initializing Redshift SDK connection")
+		client.redshiftconn = redshift.New(sess)
+
 	}
 
 	if len(errs) > 0 {
