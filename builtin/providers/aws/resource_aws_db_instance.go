@@ -628,8 +628,12 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 	skipFinalSnapshot := d.Get("skip_final_snapshot").(bool)
 	opts.SkipFinalSnapshot = aws.Bool(skipFinalSnapshot)
 
-	if name, present := d.GetOk("final_snapshot_identifier"); present && !skipFinalSnapshot {
-		opts.FinalDBSnapshotIdentifier = aws.String(name.(string))
+	if !skipFinalSnapshot {
+		if name, present := d.GetOk("final_snapshot_identifier"); present {
+			opts.FinalDBSnapshotIdentifier = aws.String(name.(string))
+		} else {
+			return fmt.Errorf("DB Instance FinalSnapshotIdentifier is required when a final snapshot is required")
+		}
 	}
 
 	log.Printf("[DEBUG] DB Instance destroy configuration: %v", opts)
