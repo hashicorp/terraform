@@ -23,6 +23,17 @@ func resourcePostgresqlRole() *schema.Resource {
 				ForceNew: false,
 				Default:  false,
 			},
+			"password": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+			},
+			"encrypted": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Default:  false,
+			},
 		},
 	}
 }

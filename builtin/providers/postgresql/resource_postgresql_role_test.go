@@ -101,4 +101,26 @@ resource "postgresql_role" "myrole2" {
   name = "myrole2"
   login = true
 }
+
+resource "postgresql_role" "role_with_pwd" {
+  name = "role_with_pwd"
+  login = true
+  password = "mypass"
+}
+
+resource "postgresql_role" "role_with_pwd_encr" {
+  name = "role_with_pwd_encr"
+  login = true
+  password = "mypass"
+  encrypted = true
+}
+
+resource "postgresql_role" "role_with_pwd_no_login" {
+  name = "role_with_pwd_no_login"
+  password = "mypass"
+}
+
+resource "postgresql_role" "role_simple" {
+  name = "role_simple"
+}
 `

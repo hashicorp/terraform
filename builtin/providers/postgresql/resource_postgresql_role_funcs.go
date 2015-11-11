@@ -12,8 +12,11 @@ func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) erro
 	conn := meta.(*sql.DB)
 	roleName := d.Get("name").(string)
 	loginAttr := getLoginStr(d.Get("login").(bool))
+	password := d.Get("password").(string)
 
-	query := fmt.Sprintf("CREATE ROLE %s %s", pq.QuoteIdentifier(roleName), pq.QuoteIdentifier(loginAttr))
+	encryptedCfg := getEncryptedStr(d.Get("encrypted").(bool))
+
+	query := fmt.Sprintf("CREATE ROLE %s %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), loginAttr, encryptedCfg, password)
 	_, err := conn.Query(query)
 	if err != nil {
 		return fmt.Errorf("Error creating role: %s", err)
@@ -70,6 +73,28 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	password := d.Get("password").(string)
+
+	if d.HasChange("password") {
+		encryptedCfg := getEncryptedStr(d.Get("encrypted").(bool))
+
+		query := fmt.Sprintf("ALTER ROLE %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), encryptedCfg, password)
+		_, err := conn.Query(query)
+		if err != nil {
+			return fmt.Errorf("Error updating password attribute for role: %s", err)
+		}
+	}
+
+	if d.HasChange("encrypted") {
+		encryptedCfg := getEncryptedStr(d.Get("encrypted").(bool))
+
+		query := fmt.Sprintf("ALTER ROLE %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), encryptedCfg, password)
+		_, err := conn.Query(query)
+		if err != nil {
+			return fmt.Errorf("Error updating encrypted attribute for role: %s", err)
+		}
+	}
+
 	return resourcePostgresqlRoleRead(d, meta)
 }
 
@@ -78,4 +103,11 @@ func getLoginStr(canLogin bool) string {
 		return "login"
 	}
 	return "nologin"
+}
+
+func getEncryptedStr(isEncrypted bool) string {
+	if isEncrypted {
+		return "encrypted"
+	}
+	return "unencrypted"
 }
