@@ -73,6 +73,7 @@ BUG FIXES:
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
   * provider/openstack: Better handling of network resource state changes [GH-3712]
   * provider/openstack: Fix crashing when no security group is specified [GH-3801]
+  * provider/packet: Fix issue that could cause errors when provisioning many devices at once [GH-3847]
 
 ## 0.6.6 (October 23, 2015)
 
