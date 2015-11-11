@@ -75,6 +75,52 @@ func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_AccessLogs(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "name", "FoobarTerraform-test123"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBAccessLogsOn,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "name", "FoobarTerraform-test123"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.1713209538.bucket", "terraform-access-logs-bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.1713209538.interval", "5"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "name", "FoobarTerraform-test123"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_generatedName(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 	generatedNameRegexp := regexp.MustCompile("^tf-lb-")
@@ -656,6 +702,64 @@ resource "aws_elb" "foo" {
     lb_port = 80
     lb_protocol = "http"
   }
+}
+`
+
+const testAccAWSELBAccessLogs = `
+resource "aws_elb" "foo" {
+  name = "FoobarTerraform-test123"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+const testAccAWSELBAccessLogsOn = `
+# an S3 bucket configured for Access logs
+# The 797873946194 is the AWS ID for us-west-2, so this test
+# must be ran in us-west-2
+resource "aws_s3_bucket" "acceslogs_bucket" {
+  bucket = "terraform-access-logs-bucket"
+  acl = "private"
+  force_destroy = true
+  policy = <<EOF
+{
+  "Id": "Policy1446577137248",
+  "Statement": [
+    {
+      "Action": "s3:PutObject",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::797873946194:root"
+      },
+      "Resource": "arn:aws:s3:::terraform-access-logs-bucket/*",
+      "Sid": "Stmt1446575236270"
+    }
+  ],
+  "Version": "2012-10-17"
+}
+EOF
+}
+
+resource "aws_elb" "foo" {
+  name = "FoobarTerraform-test123"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+	access_logs {
+		interval = 5
+		bucket = "${aws_s3_bucket.acceslogs_bucket.bucket}"
+	}
 }
 `
 

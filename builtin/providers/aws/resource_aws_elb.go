@@ -107,6 +107,29 @@ func resourceAwsElb() *schema.Resource {
 				Default:  300,
 			},
 
+			"access_logs": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"interval": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  60,
+						},
+						"bucket": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"bucket_prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: resourceAwsElbAccessLogsHash,
+			},
+
 			"listener": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -323,6 +346,11 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
+	if lbAttrs.AccessLog != nil {
+		if err := d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog)); err != nil {
+			return err
+		}
+	}
 
 	resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
 		LoadBalancerNames: []*string{lb.LoadBalancerName},
@@ -423,7 +451,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("instances")
 	}
 
-	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") {
+	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") || d.HasChange("access_logs") {
 		attrs := elb.ModifyLoadBalancerAttributesInput{
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
@@ -436,6 +464,30 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			},
 		}
 
+		logs := d.Get("access_logs").(*schema.Set).List()
+		if len(logs) > 1 {
+			return fmt.Errorf("Only one access logs config per ELB is supported")
+		} else if len(logs) == 1 {
+			log := logs[0].(map[string]interface{})
+			accessLog := &elb.AccessLog{
+				Enabled:      aws.Bool(true),
+				EmitInterval: aws.Int64(int64(log["interval"].(int))),
+				S3BucketName: aws.String(log["bucket"].(string)),
+			}
+
+			if log["bucket_prefix"] != "" {
+				accessLog.S3BucketPrefix = aws.String(log["bucket_prefix"].(string))
+			}
+
+			attrs.LoadBalancerAttributes.AccessLog = accessLog
+		} else if len(logs) == 0 {
+			// disable access logs
+			attrs.LoadBalancerAttributes.AccessLog = &elb.AccessLog{
+				Enabled: aws.Bool(false),
+			}
+		}
+
+		log.Printf("[DEBUG] ELB Modify Load Balancer Attributes Request: %#v", attrs)
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
 			return fmt.Errorf("Failure configuring ELB attributes: %s", err)
@@ -564,6 +616,19 @@ func resourceAwsElbHealthCheckHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsElbAccessLogsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-",
+		strings.ToLower(m["bucket"].(string))))
+	if v, ok := m["bucket_prefix"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(v.(string))))
+	}
 
 	return hashcode.String(buf.String())
 }
