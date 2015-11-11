@@ -1,26 +1,23 @@
 ---
 layout: "vcd"
-page_title: "Provider: vCloudDirector"
+page_title: "Provider: VMware vCloudDirector"
 sidebar_current: "docs-vcd-index"
 description: |-
-  The vCloud Director provider is used to interact with the resources supported by vCloud
-  Director. The provider needs to be configured with the proper credentials before it can be used.
+  The VMware vCloud Director provider is used to interact with the resources supported by VMware vCloud Director. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
-# vCloud Director Provider
+# VMware vCloud Director Provider
 
-The vCloud Director provider is used to interact with the resources supported by vCloud
-Director. The provider needs to be configured with the proper credentials before it can be used.
+The VMware vCloud Director provider is used to interact with the resources supported by VMware vCloud Director. The provider needs to be configured with the proper credentials before it can be used.
 
 Use the navigation to the left to read about the available resources.
 
-~> **NOTE:** The vCloud Director Provider currently represents _initial support_ and
-therefore may undergo significant changes as the community improves it.
+~> **NOTE:** The VMware vCloud Director Provider currently represents _initial support_ and therefore may undergo significant changes as the community improves it.
 
 ## Example Usage
 
 ```
-# Configure the vCloud Director Provider
+# Configure the VMware vCloud Director Provider
 provider "vcd" {
 	user     = "${var.vcd_user}"
 	password = "${var.vcd_pass}"
@@ -37,7 +34,7 @@ resource "vcd_network" "net" {
 
 ## Argument Reference
 
-The following arguments are used to configure the vCloud Director Provider:
+The following arguments are used to configure the VMware vCloud Director Provider:
 
 * `user` - (Required) This is the username for vCloud Director API operations. Can also
   be specified with the `VCD_USER` environment variable.
