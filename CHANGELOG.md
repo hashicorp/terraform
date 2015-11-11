@@ -36,6 +36,7 @@ IMPROVEMENTS:
   * provider/aws: Add username updates for `aws_iam_user` [GH-3227]
   * provider/aws: Add AutoMinorVersionUpgrade to RDS Instances [GH-3677]
   * provider/aws: Add `access_logs` to ELB resource [GH-3756]
+  * provider/aws: Add a retry function to rescue an error in creating Autoscaling Lifecycle Hooks [GH-3694]
   * provider/aws: `engine_version` is now optional for DB Instance [GH-3744]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
   * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
