@@ -34,6 +34,7 @@ IMPROVEMENTS:
   * provider/aws: Provide `source_security_group_id` for ELBs inside a VPC [GH-3780]
   * provider/aws: Add snapshot window and retention limits for ElastiCache (Redis) [GH-3707]
   * provider/aws: Add username updates for `aws_iam_user` [GH-3227]
+  * provider/aws: Add AutoMinorVersionUpgrade to RDS Instances [GH-3677]
   * provider/aws: `engine_version` is now optional for DB Instance [GH-3744]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
   * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
