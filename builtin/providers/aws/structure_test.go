@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -426,7 +427,36 @@ func TestExpandParameters(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 func TestExpandElasticacheParameters(t *testing.T) {
+=======
+func TestexpandRedshiftParameters(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":  "character_set_client",
+			"value": "utf8",
+		},
+	}
+	parameters, err := expandRedshiftParameters(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &redshift.Parameter{
+		ParameterName:  aws.String("character_set_client"),
+		ParameterValue: aws.String("utf8"),
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
+func TestexpandElasticacheParameters(t *testing.T) {
+>>>>>>> Creation of the schema, CRUD and acceptance tests for Redshift Parameter Group
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "activerehashing",
@@ -481,7 +511,36 @@ func TestFlattenParameters(t *testing.T) {
 	}
 }
 
-func TestFlattenElasticacheParameters(t *testing.T) {
+func TestflattenRedshiftParameters(t *testing.T) {
+	cases := []struct {
+		Input  []*redshift.Parameter
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []*redshift.Parameter{
+				&redshift.Parameter{
+					ParameterName:  aws.String("character_set_client"),
+					ParameterValue: aws.String("utf8"),
+				},
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"name":  "character_set_client",
+					"value": "utf8",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenRedshiftParameters(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
+}
+
+func TestflattenElasticacheParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*elasticache.Parameter
 		Output []map[string]interface{}

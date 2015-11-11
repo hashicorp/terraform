@@ -154,6 +154,7 @@ func resourceAwsRedshiftSecurityGroupRead(d *schema.ResourceData, meta interface
 	d.Set("ingress", rules)
 	d.Set("name", *sg.ClusterSecurityGroupName)
 	d.Set("description", *sg.Description)
+	d.Set("tags", tagsToMapRedshift(sg.Tags))
 
 	return nil
 }
@@ -201,27 +202,6 @@ func resourceAwsRedshiftSecurityGroupRetrieve(d *schema.ResourceData, meta inter
 	}
 
 	return resp.ClusterSecurityGroups[0], nil
-}
-
-func tagsFromMapRedshift(m map[string]interface{}) []*redshift.Tag {
-	result := make([]*redshift.Tag, 0, len(m))
-	for k, v := range m {
-		result = append(result, &redshift.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v.(string)),
-		})
-	}
-
-	return result
-}
-
-func tagsToMapRedshift(ts []*redshift.Tag) map[string]string {
-	result := make(map[string]string)
-	for _, t := range ts {
-		result[*t.Key] = *t.Value
-	}
-
-	return result
 }
 
 func validateRedshiftSecurityGroupName(v interface{}, k string) (ws []string, errors []error) {
