@@ -15,8 +15,6 @@ func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
 		// There is no concept of "updating" an LB Stickiness policy in
 		// the AWS API.
 		Create: resourceAwsLBCookieStickinessPolicyCreate,
-		Update: resourceAwsLBCookieStickinessPolicyCreate,
-
 		Read:   resourceAwsLBCookieStickinessPolicyRead,
 		Delete: resourceAwsLBCookieStickinessPolicyDelete,
 
@@ -41,7 +39,8 @@ func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
 
 			"cookie_expiration_period": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
+				Default:  0,
 				ForceNew: true,
 			},
 		},
@@ -53,11 +52,11 @@ func resourceAwsLBCookieStickinessPolicyCreate(d *schema.ResourceData, meta inte
 
 	// Provision the LBStickinessPolicy
 	lbspOpts := &elb.CreateLBCookieStickinessPolicyInput{
-		LoadBalancerName:       aws.String(d.Get("load_balancer").(string)),
-		PolicyName:             aws.String(d.Get("name").(string)),
+		LoadBalancerName: aws.String(d.Get("load_balancer").(string)),
+		PolicyName:       aws.String(d.Get("name").(string)),
 	}
 
-	if v := d.Get("cookie_expiration_period").(int); v > 0 {
+	if v, ok := d.GetOk("cookie_expiration_period"); ok {
 		lbspOpts.CookieExpirationPeriod = aws.Int64(int64(v))
 	}
 
