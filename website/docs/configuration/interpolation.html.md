@@ -153,6 +153,11 @@ The supported built-in functions are:
   * `base64encode(string)` - Returns a base64-encoded representation of the
     given string.
 
+  * `base64gzip(string)` - Compresses the given string with gzip and then
+    encodes the result to base64. This can be used with certain resource
+    arguments that allow binary data to be passed with base64 encoding, since
+    Terraform strings are required to be valid UTF-8.
+
   * `base64sha256(string)` - Returns a base64-encoded representation of raw
     SHA-256 sum of the given string.
     **This is not equivalent** of `base64encode(sha256(string))`

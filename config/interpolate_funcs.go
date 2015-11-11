@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -58,6 +60,7 @@ func Funcs() map[string]ast.Function {
 		"basename":     interpolationFuncBasename(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
+		"base64gzip":   interpolationFuncBase64Gzip(),
 		"base64sha256": interpolationFuncBase64Sha256(),
 		"base64sha512": interpolationFuncBase64Sha512(),
 		"bcrypt":       interpolationFuncBcrypt(),
@@ -1201,6 +1204,32 @@ func interpolationFuncBase64Decode() ast.Function {
 				return "", fmt.Errorf("failed to decode base64 data '%s'", s)
 			}
 			return string(sDec), nil
+		},
+	}
+}
+
+// interpolationFuncBase64Gzip implements the "gzip" function that allows gzip
+// compression encoding the result using base64
+func interpolationFuncBase64Gzip() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+
+			var b bytes.Buffer
+			gz := gzip.NewWriter(&b)
+			if _, err := gz.Write([]byte(s)); err != nil {
+				return "", fmt.Errorf("failed to write gzip raw data: '%s'", s)
+			}
+			if err := gz.Flush(); err != nil {
+				return "", fmt.Errorf("failed to flush gzip writer: '%s'", s)
+			}
+			if err := gz.Close(); err != nil {
+				return "", fmt.Errorf("failed to close gzip writer: '%s'", s)
+			}
+
+			return base64.StdEncoding.EncodeToString(b.Bytes()), nil
 		},
 	}
 }
