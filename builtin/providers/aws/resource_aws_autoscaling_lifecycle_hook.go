@@ -59,18 +59,24 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 }
 
 func resourceAwsAutoscalingLifecycleHookPut(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).autoscalingconn
 	params := getAwsAutoscalingPutLifecycleHookInput(d)
 
-	log.Printf("[DEBUG] AutoScaling PutLifecyleHook: %#v", params)
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"retrying"},
-		Target:     "success",
-		Refresh:    resourceAwsAutoscalingLifecycleHookRefreshFunc(meta, params),
-		Timeout:    1 * time.Minute,
-		MinTimeout: 3 * time.Second,
-	}
+	log.Printf("[DEBUG] AutoScaling PutLifecyleHook: %s", params)
+	err := resource.Retry(5*time.Minute, func() error {
+		_, err := conn.PutLifecycleHook(&params)
 
-	_, err := stateConf.WaitForState()
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if strings.Contains(awsErr.Message(), "Unable to publish test message to notification target") {
+					return fmt.Errorf("[DEBUG] Retrying AWS AutoScaling Lifecycle Hook: %s", params)
+				}
+			}
+			return resource.RetryError{Err: fmt.Errorf("Error putting lifecycle hook: %s", err)}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
@@ -78,25 +84,6 @@ func resourceAwsAutoscalingLifecycleHookPut(d *schema.ResourceData, meta interfa
 	d.SetId(d.Get("name").(string))
 
 	return resourceAwsAutoscalingLifecycleHookRead(d, meta)
-}
-
-func resourceAwsAutoscalingLifecycleHookRefreshFunc(
-	meta interface{}, params autoscaling.PutLifecycleHookInput) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		conn := meta.(*AWSClient).autoscalingconn
-		_, err := conn.PutLifecycleHook(&params)
-
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if strings.Contains(awsErr.Message(), "Unable to publish test message to notification target") {
-					log.Printf("[DEBUG] Retrying AWS AutoScaling Lifecycle Hook: %s", params)
-					return 41, "retrying", nil
-				}
-			}
-			return nil, "failed", fmt.Errorf("Error putting lifecycle hook: %s", err)
-		}
-		return 42, "success", nil
-	}
 }
 
 func resourceAwsAutoscalingLifecycleHookRead(d *schema.ResourceData, meta interface{}) error {
