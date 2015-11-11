@@ -20,6 +20,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * core: Improve message to list only resources which will be destroyed when using `--target` [GH-3859]
   * provider/google: preemptible option for instance_template [GH-3667]
   * provider/google: Accurate Terraform Version [GH-3554]
   * provider/google: Simplified auth (DefaultClient support) [GH-3553]
