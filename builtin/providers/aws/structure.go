@@ -239,24 +239,21 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 }
 
 // Flattens an access log into something that flatmap.Flatten() can handle
-func flattenAccessLog(log *elb.AccessLog) []map[string]interface{} {
+func flattenAccessLog(l *elb.AccessLog) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
-	if log != nil {
+	if l != nil && *l.Enabled {
 		r := make(map[string]interface{})
-		// enabled is the only value we can rely on to not be nil
-		r["enabled"] = *log.Enabled
-
-		if log.S3BucketName != nil {
-			r["bucket"] = *log.S3BucketName
+		if l.S3BucketName != nil {
+			r["bucket"] = *l.S3BucketName
 		}
 
-		if log.S3BucketPrefix != nil {
-			r["bucket_prefix"] = *log.S3BucketPrefix
+		if l.S3BucketPrefix != nil {
+			r["bucket_prefix"] = *l.S3BucketPrefix
 		}
 
-		if log.EmitInterval != nil {
-			r["interval"] = *log.EmitInterval
+		if l.EmitInterval != nil {
+			r["interval"] = *l.EmitInterval
 		}
 
 		result = append(result, r)
