@@ -146,7 +146,6 @@ func resourceAwsDbInstance() *schema.Resource {
 			"publicly_accessible": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"vpc_security_group_ids": &schema.Schema{
