@@ -37,7 +37,7 @@ func testConf() map[string]string {
 	}
 }
 
-func TestexpandIPPerms(t *testing.T) {
+func TestExpandIPPerms(t *testing.T) {
 	hash := schema.HashString
 
 	expanded := []interface{}{
@@ -287,7 +287,7 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 	}
 }
 
-func TestexpandListeners(t *testing.T) {
+func TestExpandListeners(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"instance_port":     8000,
@@ -317,7 +317,7 @@ func TestexpandListeners(t *testing.T) {
 
 }
 
-func TestflattenHealthCheck(t *testing.T) {
+func TestFlattenHealthCheck(t *testing.T) {
 	cases := []struct {
 		Input  *elb.HealthCheck
 		Output []map[string]interface{}
@@ -367,7 +367,7 @@ func TestExpandStringList(t *testing.T) {
 
 }
 
-func TestexpandParameters(t *testing.T) {
+func TestExpandParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "character_set_client",
@@ -394,7 +394,7 @@ func TestexpandParameters(t *testing.T) {
 	}
 }
 
-func TestexpandElasticacheParameters(t *testing.T) {
+func TestExpandElasticacheParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "character_set_client",
@@ -420,7 +420,7 @@ func TestexpandElasticacheParameters(t *testing.T) {
 	}
 }
 
-func TestflattenParameters(t *testing.T) {
+func TestFlattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*rds.Parameter
 		Output []map[string]interface{}
@@ -449,7 +449,7 @@ func TestflattenParameters(t *testing.T) {
 	}
 }
 
-func TestflattenElasticacheParameters(t *testing.T) {
+func TestFlattenElasticacheParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*elasticache.Parameter
 		Output []map[string]interface{}
@@ -478,7 +478,7 @@ func TestflattenElasticacheParameters(t *testing.T) {
 	}
 }
 
-func TestexpandInstanceString(t *testing.T) {
+func TestExpandInstanceString(t *testing.T) {
 
 	expected := []*elb.Instance{
 		&elb.Instance{InstanceId: aws.String("test-one")},
@@ -497,7 +497,7 @@ func TestexpandInstanceString(t *testing.T) {
 	}
 }
 
-func TestflattenNetworkInterfacesPrivateIPAddresses(t *testing.T) {
+func TestFlattenNetworkInterfacesPrivateIPAddresses(t *testing.T) {
 	expanded := []*ec2.NetworkInterfacePrivateIpAddress{
 		&ec2.NetworkInterfacePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.1")},
 		&ec2.NetworkInterfacePrivateIpAddress{PrivateIpAddress: aws.String("192.168.0.2")},
@@ -522,7 +522,7 @@ func TestflattenNetworkInterfacesPrivateIPAddresses(t *testing.T) {
 	}
 }
 
-func TestflattenGroupIdentifiers(t *testing.T) {
+func TestFlattenGroupIdentifiers(t *testing.T) {
 	expanded := []*ec2.GroupIdentifier{
 		&ec2.GroupIdentifier{GroupId: aws.String("sg-001")},
 		&ec2.GroupIdentifier{GroupId: aws.String("sg-002")},
@@ -543,7 +543,7 @@ func TestflattenGroupIdentifiers(t *testing.T) {
 	}
 }
 
-func TestexpandPrivateIPAddresses(t *testing.T) {
+func TestExpandPrivateIPAddresses(t *testing.T) {
 
 	ip1 := "192.168.0.1"
 	ip2 := "192.168.0.2"
@@ -567,7 +567,7 @@ func TestexpandPrivateIPAddresses(t *testing.T) {
 	}
 }
 
-func TestflattenAttachment(t *testing.T) {
+func TestFlattenAttachment(t *testing.T) {
 	expanded := &ec2.NetworkInterfaceAttachment{
 		InstanceId:   aws.String("i-00001"),
 		DeviceIndex:  aws.Int64(int64(1)),
