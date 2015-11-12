@@ -296,6 +296,13 @@ func TestExpandListeners(t *testing.T) {
 			"instance_protocol": "http",
 			"lb_protocol":       "http",
 		},
+                map[string]interface{}{
+                        "instance_port":      8000,
+                        "lb_port":            80,
+                        "instance_protocol":  "https",
+                        "lb_protocol":        "https",
+                        "ssl_certificate_id": "something",
+                },
 	}
 	listeners, err := expandListeners(expanded)
 	if err != nil {
