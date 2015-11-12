@@ -410,6 +410,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				LoadBalancerPorts: ports,
 			}
 
+			log.Printf("[DEBUG] ELB Delete Listeners opts: %s", deleteListenersOpts)
 			_, err := elbconn.DeleteLoadBalancerListeners(deleteListenersOpts)
 			if err != nil {
 				return fmt.Errorf("Failure removing outdated ELB listeners: %s", err)
@@ -422,6 +423,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				Listeners:        add,
 			}
 
+			log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
 			_, err := elbconn.CreateLoadBalancerListeners(createListenersOpts)
 			if err != nil {
 				return fmt.Errorf("Failure adding new or updated ELB listeners: %s", err)
