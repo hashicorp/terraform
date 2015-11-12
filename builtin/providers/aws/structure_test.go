@@ -339,7 +339,7 @@ func TestExpandListeners_invalid(t *testing.T) {
         _, err := expandListeners(expanded)
         if err != nil {
                 // Check the error we got
-                if !strings.Contains(err.Error(), "Protocol combination") {
+                if !strings.Contains(err.Error(), "ssl_certificate_id may be set only when protocol") {
                         t.Fatalf("Got error in TestExpandListeners_invalid, but not what we expected: %s", err)
                 }
         }
