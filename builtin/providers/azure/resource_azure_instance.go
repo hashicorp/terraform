@@ -360,21 +360,46 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		}
 	}
 
-	options := virtualmachine.CreateDeploymentOptions{
-		VirtualNetworkName: d.Get("virtual_network").(string),
-	}
-
-	log.Printf("[DEBUG] Creating the new instance...")
-	req, err := vmClient.CreateDeployment(role, hostedServiceName, options)
+	/* EXPERIMENTAL ADD REMOVE LATER */
+	log.Printf("[DEBUG] Checking if this cloud service already has a deployment...")
+	existingDeploymentName, err := vmClient.GetDeploymentName(hostedServiceName)
 	if err != nil {
-		return fmt.Errorf("Error creating instance %s: %s", name, err)
-	}
+		return fmt.Errorf("Error creating instance %s while checking whether cloud service %s has existing deployments: %s", name, hostedServiceName, err)
+        }
 
-	log.Printf("[DEBUG] Waiting for the new instance to be created...")
-	if err := mc.WaitForOperation(req, nil); err != nil {
-		return fmt.Errorf(
-			"Error waiting for instance %s to be created: %s", name, err)
+	// existingDeploymentName empty means this is the first VM being attached to this cloud service
+	// we have to call the CreateDeployment(...) method
+	if existingDeploymentName == "" {
+		options := virtualmachine.CreateDeploymentOptions{
+			VirtualNetworkName: d.Get("virtual_network").(string),
+		}
+
+		log.Printf("[DEBUG] Creating the new VM instance along with a new deployment...")
+		req, err := vmClient.CreateDeployment(role, hostedServiceName, options)
+		if err != nil {
+			return fmt.Errorf("Error creating instance %s: %s", name, err)
+		}
+
+		log.Printf("[DEBUG] Waiting for the new instance to be created...")
+		if err := mc.WaitForOperation(req, nil); err != nil {
+			return fmt.Errorf("Error waiting for instance %s to be created: %s", name, err)
+		}
+
+	// existingDeploymentName has a value means this cloud service already has other VM-s, we will have
+	// to call AddRole(...) to add this VM to the existing deployment under this cloud service
+	} else {
+		log.Printf("[DEBUG] Adding the new VM instance to an existing deployment...")
+		addRoleOpId, err := vmClient.AddRole(hostedServiceName, existingDeploymentName, role)
+		if err != nil {
+			return fmt.Errorf("Error creating and adding new instance %s to cloud service %s with existing deployment %s: %s", name, hostedServiceName, existingDeploymentName, err)
+		}
+
+		log.Printf("[DEBUG] Waiting for the new instance to be created and added to the existing cloud service and deployment...")
+                if err := mc.WaitForOperation(addRoleOpId, nil); err != nil {
+                        return fmt.Errorf("Error waiting for instance %s to be created and added to cloud service %s with existing deployment %s: %s", name, hostedServiceName, existingDeploymentName, err)
+                }
 	}
+	/* EXPERIMENTAL ADD REMOVE LATER */
 
 	d.SetId(name)
 
