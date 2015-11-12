@@ -82,9 +82,13 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 
 		lambda_arn_sliced := strings.Split(destination, ":")
 		function_name := lambda_arn_sliced[len(lambda_arn_sliced)-1]
-		statement_id := lambdaPermissionStatementId(log_group, destination)
+		statement_id,err := lambdaPermissionStatementId(log_group, function_name)
 
-		if !permissionExists(function_name, statement_id, lambda_conn) {
+		if err != nil {
+			return err
+		}
+
+		for !permissionExists(function_name, statement_id, lambda_conn) {
 			region := lambda_arn_sliced[3]
 			accountid := lambda_arn_sliced[4]
 			principal := fmt.Sprintf("logs.%s.amazonaws.com", region)
@@ -224,7 +228,11 @@ func resourceAwsCloudwatchLogsSubscriptionFilterDelete(d *schema.ResourceData, m
 
 		lambda_arn_sliced := strings.Split(destination, ":")
 		function_name := lambda_arn_sliced[len(lambda_arn_sliced)-1]
-		statement_id := lambdaPermissionStatementId(log_group, destination)
+		statement_id,err := lambdaPermissionStatementId(log_group, function_name)
+
+		if err != nil {
+			return err
+		}
 
 		if permissionExists(function_name, statement_id, lambda_conn) {
 			_, err := lambda_conn.RemovePermission(&lambda.RemovePermissionInput{
@@ -318,18 +326,25 @@ func permissionExists(function_name string, statementid string, lambda_conn *lam
 				}
 			}
 		}
-		log.Printf("[DEBUG] Statement Id \"%s\" not found in policy for function \"%s\"", function_name, statementid)
+		log.Printf("[DEBUG] Statement Id \"%s\" not found in policy for function \"%s\"", statementid, function_name)
 		return false
 	}
 
 }
 
-func lambdaPermissionStatementId(log_group string, lambda_arn string) string {
-	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("%s-", log_group))
-	buf.WriteString(fmt.Sprintf("%s-", lambda_arn))
+func lambdaPermissionStatementId(log_group string, lambda string) (string, error) {
+	// log_group chars not allowed in statementid: '/' (forward slash), and '.'
 
-	return fmt.Sprintf("InvokePermissionsForCWL%d", hashcode.String(buf.String()))
+	var stmtid string = fmt.Sprintf("%s-%s", lambda, log_group)
+	stmtid = strings.Replace(stmtid,"z","z0",-1)
+	stmtid = strings.Replace(stmtid,"/","z1",-1)
+	stmtid = strings.Replace(stmtid,".","z2",-1)
+
+	if len(stmtid) > 100 {
+		return "", fmt.Errorf("[Error] Could not create statementid, as it would be to long: log_group: %s, lambda: %s",log_group,lambda)
+	} else {
+		return stmtid, nil;
+	}
 }
 
 func cloudwatchLogsSubscriptionFilterId(log_group string) string {

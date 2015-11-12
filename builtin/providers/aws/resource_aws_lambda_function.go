@@ -111,6 +111,7 @@ func resourceAwsLambdaFunction() *schema.Resource {
 func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).lambdaconn
 
+
 	functionName := d.Get("function_name").(string)
 	iamRole := d.Get("role").(string)
 
