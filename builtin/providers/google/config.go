@@ -3,13 +3,12 @@ package google
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"runtime"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -24,7 +23,7 @@ import (
 // Config is the configuration structure used to instantiate the Google
 // provider.
 type Config struct {
-	AccountFile string
+	Credentials string
 	Project     string
 	Region      string
 
@@ -44,46 +43,17 @@ func (c *Config) loadAndValidate() error {
 		"https://www.googleapis.com/auth/devstorage.full_control",
 	}
 
-	if c.AccountFile == "" {
-		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
-	}
-	if c.Project == "" {
-		c.Project = os.Getenv("GOOGLE_PROJECT")
-	}
-	if c.Region == "" {
-		c.Region = os.Getenv("GOOGLE_REGION")
-	}
-
 	var client *http.Client
 
-	if c.AccountFile != "" {
-		contents := c.AccountFile
+	if c.Credentials != "" {
+		contents, _, err := pathorcontents.Read(c.Credentials)
+		if err != nil {
+			return fmt.Errorf("Error loading credentials: %s", err)
+		}
 
 		// Assume account_file is a JSON string
 		if err := parseJSON(&account, contents); err != nil {
-			// If account_file was not JSON, assume it is a file path instead
-			if _, err := os.Stat(c.AccountFile); os.IsNotExist(err) {
-				return fmt.Errorf(
-					"account_file path does not exist: %s",
-					c.AccountFile)
-			}
-
-			b, err := ioutil.ReadFile(c.AccountFile)
-			if err != nil {
-				return fmt.Errorf(
-					"Error reading account_file from path '%s': %s",
-					c.AccountFile,
-					err)
-			}
-
-			contents = string(b)
-
-			if err := parseJSON(&account, contents); err != nil {
-				return fmt.Errorf(
-					"Error parsing account file '%s': %s",
-					contents,
-					err)
-			}
+			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
 		}
 
 		// Get the token for use in our requests
