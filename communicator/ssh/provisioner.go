@@ -98,10 +98,10 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	// Load deprecated fields; we can handle either path or contents in
 	// underlying implementation.
 	if connInfo.PrivateKey == "" && connInfo.KeyFile != "" {
-		connInfo.PrivateKey = conninfo.KeyFile
+		connInfo.PrivateKey = connInfo.KeyFile
 	}
 	if connInfo.BastionPrivateKey == "" && connInfo.BastionKeyFile != "" {
-		connInfo.BastionPrivateKey = conninfo.BastionKeyFile
+		connInfo.BastionPrivateKey = connInfo.BastionKeyFile
 	}
 
 	// Default all bastion config attrs to their non-bastion counterparts
@@ -192,7 +192,7 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 		User: opts.user,
 	}
 
-	if opts.keyFile != "" {
+	if opts.privateKey != "" {
 		pubKeyAuth, err := readPrivateKey(opts.privateKey)
 		if err != nil {
 			return nil, err
