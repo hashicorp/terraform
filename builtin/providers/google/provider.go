@@ -43,6 +43,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_global_address":         resourceComputeGlobalAddress(),
 			"google_compute_global_forwarding_rule": resourceComputeGlobalForwardingRule(),
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
+			"google_compute_https_health_check":     resourceComputeHttpsHealthCheck(),
 			"google_compute_instance":               resourceComputeInstance(),
 			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
 			"google_compute_instance_template":      resourceComputeInstanceTemplate(),
