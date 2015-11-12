@@ -417,7 +417,10 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 
 	if v, ok := d.GetOk("set_identifier"); ok {
 		rec.SetIdentifier = aws.String(v.(string))
-		rec.Weight = aws.Int64(int64(d.Get("weight").(int)))
+	}
+
+	if v, ok := d.GetOk("weight"); ok {
+		rec.Weight = aws.Int64(int64(v.(int)))
 	}
 
 	return rec, nil
