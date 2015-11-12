@@ -134,6 +134,10 @@ func computeOperationWaitRegion(config *Config, op *compute.Operation, region, a
 }
 
 func computeOperationWaitZone(config *Config, op *compute.Operation, zone, activity string) error {
+	return computeOperationWaitZoneTime(config, op, zone, 4, activity)
+}
+
+func computeOperationWaitZoneTime(config *Config, op *compute.Operation, zone string, minutes int, activity string) error {
 	w := &ComputeOperationWaiter{
 		Service: config.clientCompute,
 		Op:      op,
@@ -143,7 +147,7 @@ func computeOperationWaitZone(config *Config, op *compute.Operation, zone, activ
 	}
 	state := w.Conf()
 	state.Delay = 10 * time.Second
-	state.Timeout = 4 * time.Minute
+	state.Timeout = time.Duration(minutes) * time.Minute
 	state.MinTimeout = 2 * time.Second
 	opRaw, err := state.WaitForState()
 	if err != nil {
