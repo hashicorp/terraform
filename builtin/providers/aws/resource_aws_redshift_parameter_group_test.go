@@ -71,7 +71,7 @@ func TestAccAWSRedshiftParameterGroup_withoutParameters(t *testing.T) {
 	})
 }
 
-func TestResourceAWSRedshiftParameterGroupName_validation(t *testing.T) {
+func TestResourceAWSRedshiftParameterGroupNameValidation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int

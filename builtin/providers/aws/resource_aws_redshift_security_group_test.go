@@ -131,7 +131,7 @@ func testAccCheckAWSRedshiftSecurityGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func TestResourceAWSRedshiftSecurityGroupName_validation(t *testing.T) {
+func TestResourceAWSRedshiftSecurityGroupNameValidation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
