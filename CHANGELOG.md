@@ -10,6 +10,7 @@ FEATURES:
   * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
   * **New resource: `google_sql_database` and `google_sql_database_instance`** [GH-3617]
   * **New resource: `google_compute_global_address`** [GH-3701]
+  * **New resource: `google_compute_https_health_check`** [GH-3883]
   * **New resource: `google_compute_ssl_certificate`** [GH-3723]
   * **New resource: `google_compute_url_map`** [GH-3722]
   * **New resource: `google_compute_target_http_proxy`** [GH-3727]
