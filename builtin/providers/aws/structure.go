@@ -44,7 +44,23 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 			l.SSLCertificateId = aws.String(v.(string))
 		}
 
-		listeners = append(listeners, l)
+                var valid bool
+                if l.SSLCertificateId != nil && *l.SSLCertificateId != "" {
+                        // validate the protocol is correct
+                        for _, p := range []string{"https", "ssl"} {
+                                if (*l.InstanceProtocol == p) || (*l.Protocol == p) {
+                                        valid = true
+                                }
+                        }
+                } else {
+                        valid = true
+                }
+
+                if valid {
+                        listeners = append(listeners, l)
+                } else {
+                        return nil, fmt.Errorf("[ERR] Invalid ssl_certificate_id / Protocol combination. Must be either HTTPS or SSL")
+                }
 	}
 
 	return listeners, nil
