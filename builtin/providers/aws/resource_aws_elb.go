@@ -6,6 +6,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -256,8 +257,23 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
-	if _, err := elbconn.CreateLoadBalancer(elbOpts); err != nil {
-		return fmt.Errorf("Error creating ELB: %s", err)
+	err = resource.Retry(1*time.Minute, func() error {
+		_, err := elbconn.CreateLoadBalancer(elbOpts)
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				// Check for IAM SSL Cert error, eventual consistancy issue
+				if awsErr.Code() == "CertificateNotFound" {
+					return fmt.Errorf("[WARN] Error creating ELB Listener with SSL Cert, retrying: %s", err)
+				}
+			}
+			return resource.RetryError{Err: err}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
 	// Assign the elb's unique identifier for use later
