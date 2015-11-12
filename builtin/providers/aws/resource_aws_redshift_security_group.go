@@ -62,12 +62,6 @@ func resourceAwsRedshiftSecurityGroup() *schema.Resource {
 				},
 				Set: resourceAwsRedshiftSecurityGroupIngressHash,
 			},
-
-			"tags": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-				ForceNew: true,
-			},
 		},
 	}
 }
@@ -80,11 +74,9 @@ func resourceAwsRedshiftSecurityGroupCreate(d *schema.ResourceData, meta interfa
 
 	name := d.Get("name").(string)
 	desc := d.Get("description").(string)
-	tags := tagsFromMapRedshift(d.Get("tags").(map[string]interface{}))
 	sgInput := &redshift.CreateClusterSecurityGroupInput{
 		ClusterSecurityGroupName: aws.String(name),
 		Description:              aws.String(desc),
-		Tags:                     tags,
 	}
 	log.Printf("[DEBUG] Redshift security group create: name: %s, description: %s", name, desc)
 	_, err = conn.CreateClusterSecurityGroup(sgInput)
@@ -154,7 +146,6 @@ func resourceAwsRedshiftSecurityGroupRead(d *schema.ResourceData, meta interface
 	d.Set("ingress", rules)
 	d.Set("name", *sg.ClusterSecurityGroupName)
 	d.Set("description", *sg.Description)
-	d.Set("tags", tagsToMapRedshift(sg.Tags))
 
 	return nil
 }
