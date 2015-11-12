@@ -20,10 +20,6 @@ resource "aws_redshift_security_group" "default" {
     ingress {
         cidr = "10.0.0.0/24"
     }
-    
-    tags {
-    	Environment = "test"
-    }
 }
 ```
 

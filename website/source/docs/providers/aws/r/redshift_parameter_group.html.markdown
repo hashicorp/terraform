@@ -6,7 +6,7 @@ sidebar_current: "docs-aws-resource-redshift-parameter-group"
 
 # aws\_redshift\_parameter\_group
 
-Provides an Redshift Cluster parameter group resource.
+Provides a Redshift Cluster parameter group resource.
 
 ## Example Usage
 
@@ -27,10 +27,6 @@ resource "aws_redshift_parameter_group" "bar" {
 	  name = "enable_user_activity_logging"
 	  value = "true"
 	}
-	
-	tags {
-      Environment = "test"
-    }
 }
 ```
 

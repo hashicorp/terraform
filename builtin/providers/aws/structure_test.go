@@ -427,9 +427,6 @@ func TestExpandParameters(t *testing.T) {
 	}
 }
 
-<<<<<<< HEAD
-func TestExpandElasticacheParameters(t *testing.T) {
-=======
 func TestexpandRedshiftParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
@@ -456,7 +453,6 @@ func TestexpandRedshiftParameters(t *testing.T) {
 }
 
 func TestexpandElasticacheParameters(t *testing.T) {
->>>>>>> Creation of the schema, CRUD and acceptance tests for Redshift Parameter Group
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "activerehashing",

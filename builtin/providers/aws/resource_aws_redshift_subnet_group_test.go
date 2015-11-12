@@ -60,7 +60,7 @@ func TestAccAWSRedshiftSubnetGroup_updateSubnetIds(t *testing.T) {
 	})
 }
 
-func TestResourceAWSRedshiftSubnetGroupName_validation(t *testing.T) {
+func TestResourceAWSRedshiftSubnetGroupNameValidation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
