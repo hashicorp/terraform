@@ -59,9 +59,9 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
                 if valid {
                         listeners = append(listeners, l)
                 } else {
-                        return nil, fmt.Errorf("[ERR] Invalid ssl_certificate_id / Protocol combination. Must be either HTTPS or SSL")
+                        return nil, fmt.Errorf("[ERR] ELB Listener: ssl_certificate_id may be set only when protocol is 'https' or 'ssl'")
                 }
-	}
+        }
 
 	return listeners, nil
 }
