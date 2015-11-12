@@ -16,7 +16,7 @@ disk. When remote state storage is enabled, Terraform will automatically
 fetch the latest state from the remote server when necessary and if any
 updates are made, the newest state is persisted back to the remote server.
 In this mode, users do not need to durably store the state using version
-control or shared storaged.
+control or shared storage.
 
 ## Usage
 
