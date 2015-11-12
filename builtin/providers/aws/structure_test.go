@@ -397,8 +397,8 @@ func TestExpandParameters(t *testing.T) {
 func TestExpandElasticacheParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
-			"name":         "character_set_client",
-			"value":        "utf8",
+			"name":         "activerehashing",
+			"value":        "yes",
 			"apply_method": "immediate",
 		},
 	}
@@ -407,7 +407,7 @@ func TestExpandElasticacheParameters(t *testing.T) {
 		t.Fatalf("bad: %#v", err)
 	}
 
-	expected := &elasticache.Parameter{
+	expected := &elasticache.ParameterNameValue{
 		ParameterName:  aws.String("activerehashing"),
 		ParameterValue: aws.String("yes"),
 	}
