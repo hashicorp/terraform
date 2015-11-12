@@ -62,9 +62,13 @@ func expandEcsVolumes(configured []interface{}) ([]*ecs.Volume, error) {
 
 		l := &ecs.Volume{
 			Name: aws.String(data["name"].(string)),
-			Host: &ecs.HostVolumeProperties{
-				SourcePath: aws.String(data["host_path"].(string)),
-			},
+		}
+
+		hostPath := data["host_path"].(string)
+		if hostPath != "" {
+			l.Host = &ecs.HostVolumeProperties{
+				SourcePath: aws.String(hostPath),
+			}
 		}
 
 		volumes = append(volumes, l)
@@ -234,6 +238,33 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 	return parameters, nil
 }
 
+// Flattens an access log into something that flatmap.Flatten() can handle
+func flattenAccessLog(log *elb.AccessLog) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if log != nil {
+		r := make(map[string]interface{})
+		// enabled is the only value we can rely on to not be nil
+		r["enabled"] = *log.Enabled
+
+		if log.S3BucketName != nil {
+			r["bucket"] = *log.S3BucketName
+		}
+
+		if log.S3BucketPrefix != nil {
+			r["bucket_prefix"] = *log.S3BucketPrefix
+		}
+
+		if log.EmitInterval != nil {
+			r["interval"] = *log.EmitInterval
+		}
+
+		result = append(result, r)
+	}
+
+	return result
+}
+
 // Flattens a health check into something that flatmap.Flatten()
 // can handle
 func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
@@ -314,9 +345,13 @@ func flattenEcsVolumes(list []*ecs.Volume) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, volume := range list {
 		l := map[string]interface{}{
-			"name":      *volume.Name,
-			"host_path": *volume.Host.SourcePath,
+			"name": *volume.Name,
 		}
+
+		if volume.Host.SourcePath != nil {
+			l["host_path"] = *volume.Host.SourcePath
+		}
+
 		result = append(result, l)
 	}
 	return result

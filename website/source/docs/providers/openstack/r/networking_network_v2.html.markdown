@@ -42,7 +42,10 @@ resource "openstack_networking_port_v2" "port_1" {
   admin_state_up = "true"
   security_groups = ["${openstack_compute_secgroup_v2.secgroup_1.id}"]
 
-  depends_on = ["openstack_networking_subnet_v2.subnet_1"]
+  fixed_ips {
+      "subnet_id" =  "008ba151-0b8c-4a67-98b5-0d2b87666062"
+      "ip_address" =  "172.24.4.2"
+  }
 }
 
 resource "openstack_compute_instance_v2" "instance_1" {

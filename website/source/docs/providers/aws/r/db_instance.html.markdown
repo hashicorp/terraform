@@ -36,7 +36,7 @@ The following arguments are supported:
 
 * `allocated_storage` - (Required) The allocated storage in gigabytes.
 * `engine` - (Required) The database engine to use.
-* `engine_version` - (Required) The engine version to use.
+* `engine_version` - (Optional) The engine version to use.
 * `identifier` - (Required) The name of the RDS instance
 * `instance_class` - (Required) The instance type of the RDS instance.
 * `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general
@@ -81,6 +81,7 @@ database, and to use this value as the source database. This correlates to the
 [Working with PostgreSQL and MySQL Read Replicas](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html) for
  more information on using Replication.
 * `snapshot_identifier` - (Optional) Specifies whether or not to create this database from a snapshot. This correlates to the snapshot ID you'd find in the RDS console, e.g: rds:production-2015-06-26-06-05.
+* `license_model` - (Optional, but required for some DB engines, i.e. Oracle SE1) License model information for this DB instance.
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
 Replicate database managed by Terraform will promote the database to a fully
