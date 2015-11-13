@@ -127,6 +127,40 @@ func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_custom_configs,
+					locationOpt,
+					label,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.car", &vm),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "name", "terraform-test-custom"),
@@ -254,6 +288,17 @@ resource "vsphere_virtual_machine" "bar" {
     }
 }
 `
+
+const testAccCheckVSphereVirtualMachineConfig_custom_configs = `
+resource "vsphere_virtual_machine" "car" {
+    name = "terraform-test-custom"
+%s
+    vcpu = 2
+    memory = 4096
+    network_interface {
+        label = "%s"
+    }
+    custom_configuration_parameters {
         "foo" = "bar"
 	"car" = "ferrai"
 	"num" = 42
