@@ -44,24 +44,24 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 			l.SSLCertificateId = aws.String(v.(string))
 		}
 
-                var valid bool
-                if l.SSLCertificateId != nil && *l.SSLCertificateId != "" {
-                        // validate the protocol is correct
-                        for _, p := range []string{"https", "ssl"} {
-                                if (*l.InstanceProtocol == p) || (*l.Protocol == p) {
-                                        valid = true
-                                }
-                        }
-                } else {
-                        valid = true
-                }
+		var valid bool
+		if l.SSLCertificateId != nil && *l.SSLCertificateId != "" {
+			// validate the protocol is correct
+			for _, p := range []string{"https", "ssl"} {
+				if (*l.InstanceProtocol == p) || (*l.Protocol == p) {
+					valid = true
+				}
+			}
+		} else {
+			valid = true
+		}
 
-                if valid {
-                        listeners = append(listeners, l)
-                } else {
-                        return nil, fmt.Errorf("[ERR] ELB Listener: ssl_certificate_id may be set only when protocol is 'https' or 'ssl'")
-                }
-        }
+		if valid {
+			listeners = append(listeners, l)
+		} else {
+			return nil, fmt.Errorf("[ERR] ELB Listener: ssl_certificate_id may be set only when protocol is 'https' or 'ssl'")
+		}
+	}
 
 	return listeners, nil
 }
