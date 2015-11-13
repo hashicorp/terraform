@@ -53,6 +53,10 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"version_label": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"cname": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -93,6 +97,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	cname := d.Get("cname").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
+	version := d.Get("version_label").(string)
 	settings := d.Get("setting").(*schema.Set)
 	solutionStack := d.Get("solution_stack_name").(string)
 	templateName := d.Get("template_name").(string)
@@ -103,6 +108,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	createOpts := elasticbeanstalk.CreateEnvironmentInput{
 		EnvironmentName: aws.String(name),
 		ApplicationName: aws.String(app),
+		VersionLabel:    aws.String(version),
 		OptionSettings:  extractOptionSettings(settings),
 		Tags:            tagsFromMapBeanstalk(d.Get("tags").(map[string]interface{})),
 	}
@@ -178,12 +184,14 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 func resourceAwsElasticBeanstalkEnvironmentDescriptionUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
 	name := d.Get("name").(string)
 	desc := d.Get("description").(string)
+	version := d.Get("version_label").(string)
 	envId := d.Id()
 
 	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update description: %s", name, desc)
 
 	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
 		EnvironmentId: aws.String(envId),
+		VersionLabel:  aws.String(version),
 		Description:   aws.String(desc),
 	})
 
@@ -270,6 +278,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 	}
 
 	if err := d.Set("cname", env.CNAME); err != nil {
+		return err
+	}
+
+	if err := d.Set("version_label", env.VersionLabel); err != nil {
 		return err
 	}
 
