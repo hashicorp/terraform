@@ -2,9 +2,11 @@ package google
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/sqladmin/v1beta4"
 )
 
@@ -75,6 +77,14 @@ func resourceSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 		database_name).Do()
 
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing SQL Database %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error, failed to get"+
 			"database %s in instance %s: %s", database_name,
 			instance_name, err)
