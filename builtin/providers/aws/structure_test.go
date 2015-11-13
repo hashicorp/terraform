@@ -2,7 +2,7 @@ package aws
 
 import (
 	"reflect"
-        "strings"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -296,13 +296,13 @@ func TestExpandListeners(t *testing.T) {
 			"instance_protocol": "http",
 			"lb_protocol":       "http",
 		},
-                map[string]interface{}{
-                        "instance_port":      8000,
-                        "lb_port":            80,
-                        "instance_protocol":  "https",
-                        "lb_protocol":        "https",
-                        "ssl_certificate_id": "something",
-                },
+		map[string]interface{}{
+			"instance_port":      8000,
+			"lb_port":            80,
+			"instance_protocol":  "https",
+			"lb_protocol":        "https",
+			"ssl_certificate_id": "something",
+		},
 	}
 	listeners, err := expandListeners(expanded)
 	if err != nil {
@@ -327,26 +327,26 @@ func TestExpandListeners(t *testing.T) {
 // this test should produce an error from expandlisteners on an invalid
 // combination
 func TestExpandListeners_invalid(t *testing.T) {
-        expanded := []interface{}{
-                map[string]interface{}{
-                        "instance_port":      8000,
-                        "lb_port":            80,
-                        "instance_protocol":  "http",
-                        "lb_protocol":        "http",
-                        "ssl_certificate_id": "something",
-                },
-        }
-        _, err := expandListeners(expanded)
-        if err != nil {
-                // Check the error we got
-                if !strings.Contains(err.Error(), "ssl_certificate_id may be set only when protocol") {
-                        t.Fatalf("Got error in TestExpandListeners_invalid, but not what we expected: %s", err)
-                }
-        }
+	expanded := []interface{}{
+		map[string]interface{}{
+			"instance_port":      8000,
+			"lb_port":            80,
+			"instance_protocol":  "http",
+			"lb_protocol":        "http",
+			"ssl_certificate_id": "something",
+		},
+	}
+	_, err := expandListeners(expanded)
+	if err != nil {
+		// Check the error we got
+		if !strings.Contains(err.Error(), "ssl_certificate_id may be set only when protocol") {
+			t.Fatalf("Got error in TestExpandListeners_invalid, but not what we expected: %s", err)
+		}
+	}
 
-        if err == nil {
-                t.Fatalf("Expected TestExpandListeners_invalid to fail, but passed")
-        }
+	if err == nil {
+		t.Fatalf("Expected TestExpandListeners_invalid to fail, but passed")
+	}
 }
 
 func TestFlattenHealthCheck(t *testing.T) {
