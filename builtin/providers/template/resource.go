@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/go-homedir"
 )
 
 func resource() *schema.Resource {
@@ -24,13 +23,23 @@ func resource() *schema.Resource {
 		Read:   Read,
 
 		Schema: map[string]*schema.Schema{
+			"template": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   "Contents of the template",
+				ForceNew:      true,
+				ConflictsWith: []string{"filename"},
+			},
 			"filename": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "file to read template from",
 				ForceNew:    true,
 				// Make a "best effort" attempt to relativize the file path.
 				StateFunc: func(v interface{}) string {
+					if v == nil || v.(string) == "" {
+						return ""
+					}
 					pwd, err := os.Getwd()
 					if err != nil {
 						return v.(string)
@@ -41,6 +50,8 @@ func resource() *schema.Resource {
 					}
 					return rel
 				},
+				Deprecated:    "Use the 'template' attribute instead.",
+				ConflictsWith: []string{"template"},
 			},
 			"vars": &schema.Schema{
 				Type:        schema.TypeMap,
@@ -96,23 +107,21 @@ func Read(d *schema.ResourceData, meta interface{}) error {
 
 type templateRenderError error
 
-var readfile func(string) ([]byte, error) = ioutil.ReadFile // testing hook
-
 func render(d *schema.ResourceData) (string, error) {
+	template := d.Get("template").(string)
 	filename := d.Get("filename").(string)
 	vars := d.Get("vars").(map[string]interface{})
 
-	path, err := homedir.Expand(filename)
+	if template == "" && filename != "" {
+		template = filename
+	}
+
+	contents, _, err := pathorcontents.Read(template)
 	if err != nil {
 		return "", err
 	}
 
-	buf, err := readfile(path)
-	if err != nil {
-		return "", err
-	}
-
-	rendered, err := execute(string(buf), vars)
+	rendered, err := execute(contents, vars)
 	if err != nil {
 		return "", templateRenderError(
 			fmt.Errorf("failed to render %v: %v", filename, err),
