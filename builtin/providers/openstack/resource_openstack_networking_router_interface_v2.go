@@ -33,7 +33,12 @@ func resourceNetworkingRouterInterfaceV2() *schema.Resource {
 			},
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
+			},
+			"port_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 		},
@@ -49,6 +54,7 @@ func resourceNetworkingRouterInterfaceV2Create(d *schema.ResourceData, meta inte
 
 	createOpts := routers.InterfaceOpts{
 		SubnetID: d.Get("subnet_id").(string),
+		PortID:   d.Get("port_id").(string),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -148,6 +154,7 @@ func waitForRouterInterfaceDelete(networkingClient *gophercloud.ServiceClient, d
 
 		removeOpts := routers.InterfaceOpts{
 			SubnetID: d.Get("subnet_id").(string),
+			PortID:   d.Get("port_id").(string),
 		}
 
 		r, err := ports.Get(networkingClient, routerInterfaceId).Extract()
