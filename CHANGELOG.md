@@ -51,6 +51,7 @@ IMPROVEMENTS:
   * provider/digitalocean: Make user_data force a new droplet [GH-3740]
   * provider/vsphere: Do not add network interfaces by default [GH-3652]
   * provider/openstack: Configure Fixed IPs through ports [GH-3772]
+  * provider/openstack: Specify a port ID on a Router Interface [GH-3903]
 
 BUG FIXES:
 
