@@ -42,6 +42,14 @@ func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value <= 0 {
+						es = append(es, fmt.Errorf(
+							"LB Cookie Expiration Period must be greater than zero if specified"))
+					}
+					return
+				},
 			},
 		},
 	}
