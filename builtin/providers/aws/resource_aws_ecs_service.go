@@ -247,6 +247,12 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return err
 	}
+
+	if len(resp.Services) == 0 {
+		log.Printf("[DEBUG] ECS Service %q is already gone", d.Id())
+		return nil
+	}
+
 	log.Printf("[DEBUG] ECS service %s is currently %s", d.Id(), *resp.Services[0].Status)
 
 	if *resp.Services[0].Status == "INACTIVE" {
