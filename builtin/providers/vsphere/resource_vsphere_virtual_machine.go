@@ -851,23 +851,6 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
 	}
 
-	log.Printf("[DEBUG] virtual machine Extra Config spec start")
-	if len(vm.customConfigurations) > 0 {
-		var ov []types.BaseOptionValue
-		for k, v := range vm.customConfigurations {
-			key := k
-			value := v
-			o := types.OptionValue{
-				Key:   key,
-				Value: &value,
-			}
-			log.Printf("[DEBUG] virtual machine Extra Config spec: %s,%s", k,v)
-			ov = append(ov, &o)
-		}
-		configSpec.ExtraConfig = ov
-		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
-	}
-
 	var datastore *object.Datastore
 	if vm.datastore == "" {
 		datastore, err = finder.DefaultDatastore(context.TODO())
