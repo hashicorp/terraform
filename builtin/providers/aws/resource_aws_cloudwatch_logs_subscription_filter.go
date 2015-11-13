@@ -88,6 +88,7 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 			return err
 		}
 
+		var retries int = 0
 		for !permissionExists(function_name, statement_id, lambda_conn) {
 			region := lambda_arn_sliced[3]
 			accountid := lambda_arn_sliced[4]
@@ -107,12 +108,22 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 			_, err := lambda_conn.AddPermission(params)
 			if err != nil {
 				if awsErr, ok := err.(awserr.Error); ok {
-					return fmt.Errorf("[WARN] Error doing add-access for LogGroup (%s) to lambda (%s), message: \"%s\", code: \"%s\"",
-						log_group, destination, awsErr.Message(), awsErr.Code())
-				} else {
+					if awsErr.Code() == "ResourceConflictException" {
+						log.Printf("[DEBUG] Got a ResourceConflictException, but that is ok. Function=%s, log_group=%s",function_name, log_group)
+					} else {
+						return fmt.Errorf("[WARN] Error doing add-access for LogGroup (%s) to lambda (%s), message: \"%s\", code: \"%s\"",
+							log_group, destination, awsErr.Message(), awsErr.Code())
+					}
+				} else  {
 					return fmt.Errorf("Error creating Cloudwatch logs subscription filter %s: %#v", name, err)
 				}
 			}
+
+			retries += 1
+			if (retries > 11) {
+				return fmt.Errorf("Not able to add permission to log group: %s", log_group)
+			}
+
 		}
 	}
 
