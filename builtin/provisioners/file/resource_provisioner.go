@@ -2,12 +2,12 @@ package file
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
-	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 )
@@ -26,18 +26,13 @@ func (p *ResourceProvisioner) Apply(
 		return err
 	}
 
-	// Get the source and destination
-	sRaw := c.Config["source"]
-	src, ok := sRaw.(string)
-	if !ok {
-		return fmt.Errorf("Unsupported 'source' type! Must be string.")
-	}
-
-	src, err = homedir.Expand(src)
+	// Get the source
+	src, err := p.getSrc(c)
 	if err != nil {
 		return err
 	}
 
+	// Get destination
 	dRaw := c.Config["destination"]
 	dst, ok := dRaw.(string)
 	if !ok {
@@ -48,13 +43,52 @@ func (p *ResourceProvisioner) Apply(
 
 // Validate checks if the required arguments are configured
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
-	v := &config.Validator{
-		Required: []string{
-			"source",
-			"destination",
-		},
+	numDst := 0
+	numSrc := 0
+	for name := range c.Raw {
+		switch name {
+		case "destination":
+			numDst++
+		case "source", "content":
+			numSrc++
+		default:
+			es = append(es, fmt.Errorf("Unknown configuration '%s'", name))
+		}
 	}
-	return v.Validate(c)
+	if numSrc != 1 || numDst != 1 {
+		es = append(es, fmt.Errorf("Must provide one  of 'content' or 'source' and 'destination' to file"))
+	}
+	return
+}
+
+// getSrc returns the file to use as source
+func (p *ResourceProvisioner) getSrc(c *terraform.ResourceConfig) (string, error) {
+	var src string
+
+	sRaw, ok := c.Config["source"]
+	if ok {
+		if src, ok = sRaw.(string); !ok {
+			return "", fmt.Errorf("Unsupported 'source' type! Must be string.")
+		}
+	}
+
+	content, ok := c.Config["content"]
+	if ok {
+		file, err := ioutil.TempFile("", "tf-file-content")
+		if err != nil {
+			return "", err
+		}
+		contentStr, ok := content.(string)
+		if !ok {
+			return "", fmt.Errorf("Unsupported 'content' type! Must be string.")
+		}
+		if _, err = file.WriteString(contentStr); err != nil {
+			return "", err
+		}
+		src = file.Name()
+	}
+
+	return homedir.Expand(src)
 }
 
 // copyFiles is used to copy the files from a source to a destination
