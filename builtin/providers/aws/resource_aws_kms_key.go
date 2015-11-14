@@ -105,18 +105,11 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsKmsKeyReadResult(d *schema.ResourceData, metadata *kms.KeyMetadata) error {
 	d.SetId(*metadata.KeyId)
 
-	if err := d.Set("arn", metadata.Arn); err != nil {
-		return err
-	}
-	if err := d.Set("key_id", metadata.KeyId); err != nil {
-		return err
-	}
-	if err := d.Set("description", metadata.Description); err != nil {
-		return err
-	}
-	if err := d.Set("key_usage", metadata.KeyUsage); err != nil {
-		return err
-	}
+	d.Set("arn", metadata.Arn)
+	d.Set("key_id", metadata.KeyId)
+	d.Set("description", metadata.Description)
+	d.Set("key_usage", metadata.KeyUsage)
+
 	return nil
 }
 
@@ -176,8 +169,11 @@ func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {
 		req.PendingWindowInDays = aws.Int64(int64(v.(int)))
 	}
 	_, err := conn.ScheduleKeyDeletion(req)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("[DEBUG] KMS Key: %s deactivated.", keyId)
 	d.SetId("")
-	return err
+	return nil
 }

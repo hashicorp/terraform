@@ -75,12 +75,8 @@ func resourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	for _, e := range resp.Aliases {
 		if name == *e.AliasName {
-			if err := d.Set("arn", e.AliasArn); err != nil {
-				return err
-			}
-			if err := d.Set("target_key_id", e.TargetKeyId); err != nil {
-				return err
-			}
+			d.Set("arn", e.AliasArn)
+			d.Set("target_key_id", e.TargetKeyId)
 			return nil
 		}
 	}
@@ -94,7 +90,8 @@ func resourceAwsKmsAliasUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
 
 	if d.HasChange("target_key_id") {
-		if err := resourceAwsKmsAliasTargetUpdate(conn, d); err != nil {
+		err := resourceAwsKmsAliasTargetUpdate(conn, d)
+		if err != nil {
 			return err
 		}
 	}
@@ -124,8 +121,11 @@ func resourceAwsKmsAliasDelete(d *schema.ResourceData, meta interface{}) error {
 		AliasName: aws.String(name),
 	}
 	_, err := conn.DeleteAlias(req)
+	if err != nil {
+		return err
+	}
 
 	log.Printf("[DEBUG] KMS Alias: %s deleted.", name)
 	d.SetId("")
-	return err
+	return nil
 }
