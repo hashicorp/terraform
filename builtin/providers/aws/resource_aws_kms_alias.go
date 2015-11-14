@@ -53,7 +53,7 @@ func resourceAwsKmsAliasCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] KMS alias create name: %s, target_key: %s", name, targetKeyId)
 
 	req := &kms.CreateAliasInput{
-		AliasName: 	 aws.String(name),
+		AliasName:   aws.String(name),
 		TargetKeyId: aws.String(targetKeyId),
 	}
 	_, err := conn.CreateAlias(req)
@@ -73,7 +73,7 @@ func resourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	for _,e := range resp.Aliases {
+	for _, e := range resp.Aliases {
 		if name == *e.AliasName {
 			if err := d.Set("arn", e.AliasArn); err != nil {
 				return err
@@ -108,7 +108,7 @@ func resourceAwsKmsAliasTargetUpdate(conn *kms.KMS, d *schema.ResourceData) erro
 	log.Printf("[DEBUG] KMS alias: %s, update target: %s", name, targetKeyId)
 
 	req := &kms.UpdateAliasInput{
-		AliasName: 	 aws.String(name),
+		AliasName:   aws.String(name),
 		TargetKeyId: aws.String(targetKeyId),
 	}
 	_, err := conn.UpdateAlias(req)
@@ -121,7 +121,7 @@ func resourceAwsKmsAliasDelete(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 
 	req := &kms.DeleteAliasInput{
-		AliasName: 	 aws.String(name),
+		AliasName: aws.String(name),
 	}
 	_, err := conn.DeleteAlias(req)
 

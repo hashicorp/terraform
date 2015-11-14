@@ -55,7 +55,7 @@ func resourceAwsKmsKey() *schema.Resource {
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(int)
-					if (value > 30 || value < 7) {
+					if value > 30 || value < 7 {
 						es = append(es, fmt.Errorf(
 							"deletion window must be between 7 and 30 days inclusive"))
 					}
@@ -157,9 +157,9 @@ func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error 
 	log.Printf("[DEBUG] KMS key: %s, update policy: %s", keyId, policy)
 
 	req := &kms.PutKeyPolicyInput{
-		KeyId:       aws.String(keyId),
-		Policy:      aws.String(policy),
-		PolicyName:  aws.String("default"),
+		KeyId:      aws.String(keyId),
+		Policy:     aws.String(policy),
+		PolicyName: aws.String("default"),
 	}
 	_, err := conn.PutKeyPolicy(req)
 	return err
@@ -170,7 +170,7 @@ func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	keyId := d.Get("key_id").(string)
 
 	req := &kms.ScheduleKeyDeletionInput{
-		KeyId:               aws.String(keyId),
+		KeyId: aws.String(keyId),
 	}
 	if v, exists := d.GetOk("deletion_window"); exists {
 		req.PendingWindowInDays = aws.Int64(int64(v.(int)))
