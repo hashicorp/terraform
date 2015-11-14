@@ -31,7 +31,7 @@ func resourceAwsKmsAlias() *schema.Resource {
 					value := v.(string)
 					if !regexp.MustCompile(`^(alias\/)[a-zA-Z0-9:/_-]+$`).MatchString(value) {
 						es = append(es, fmt.Errorf(
-							"name must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
+							"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
 					}
 					return
 				},
