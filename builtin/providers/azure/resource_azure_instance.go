@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
 	"github.com/Azure/azure-sdk-for-go/management/osimage"
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
@@ -360,7 +359,6 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		}
 	}
 
-	/* EXPERIMENTAL ADD REMOVE LATER */
 	log.Printf("[DEBUG] Checking if this cloud service already has a deployment...")
 	existingDeploymentName, err := vmClient.GetDeploymentName(hostedServiceName)
 	if err != nil {
@@ -399,7 +397,6 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
                         return fmt.Errorf("Error waiting for instance %s to be created and added to cloud service %s with existing deployment %s: %s", name, hostedServiceName, existingDeploymentName, err)
                 }
 	}
-	/* EXPERIMENTAL ADD REMOVE LATER */
 
 	d.SetId(name)
 
@@ -434,35 +431,66 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", cs.Location)
 
 	log.Printf("[DEBUG] Retrieving instance: %s", name)
-	dpmt, err := vmClient.GetDeployment(hostedServiceName, name)
+	deploymentName, err := vmClient.GetDeploymentName(hostedServiceName)
 	if err != nil {
-		if management.IsResourceNotFoundError(err) {
-			d.SetId("")
-			return nil
+		return fmt.Errorf("Error retrieving deployment from cloud service %s while trying to read instance %s: %s", hostedServiceName, name, err)
+	}
+	if deploymentName == "" {
+		return fmt.Errorf("Error retrieving deployment from cloud service %s while trying to read instance %s: No deployment exists!", hostedServiceName, name)
+	}
+	dpmt, err := vmClient.GetDeployment(hostedServiceName, deploymentName)
+	if err != nil {
+		return fmt.Errorf("Error retrieving deployment %s while trying to read instance %s: %s", deploymentName, name, err)
+        }
+
+	// A cloud service has one or more deployments(in the case of terraform, we will support
+	// just one deployment, that in the "Production" deployment slot)
+	// Each deployment has one or more Roles. Each Role has one or more Role Instances
+	// However, both the RoleList array and RoleInstanceList array are contained as part of DeploymentResponse struct
+	// see here: https://msdn.microsoft.com/en-us/library/azure/ee460804.aspx
+	// Also notable is that terraform is, until now, for IAAS infrastructure only (as opposed to PAAS web and worker roles)
+	// Therefore, the Role-s we create here will have a RoleType field set to "PersistentVMRole"
+
+	if len(dpmt.RoleList) < 1 {
+                return fmt.Errorf("Error reading instance %s: RoleList for deployment %s is empty", name, deploymentName)
+        }
+	if len(dpmt.RoleInstanceList) < 1 {
+                return fmt.Errorf("Error reading instance %s: RoleInstanceList for deployment %s is empty", name, deploymentName)
+        }
+
+	//roleInst is a pointer that will point to the correct element in the dpmt.RoleInstanceList array
+	var roleInst *virtualmachine.RoleInstance = nil
+	for i := range dpmt.RoleInstanceList {
+		if dpmt.RoleInstanceList[i].InstanceName == name {
+			roleInst = &dpmt.RoleInstanceList[i]
+			break
 		}
-		return fmt.Errorf("Error retrieving instance %s: %s", name, err)
+	}
+	if roleInst == nil {
+		return fmt.Errorf("Error reading instance %s: RoleInstanceList does not contain any VM by that name", name)
 	}
 
-	if len(dpmt.RoleList) != 1 {
-		return fmt.Errorf(
-			"Instance %s has an unexpected number of roles: %d", name, len(dpmt.RoleList))
+	//role is a pointer that will point to the correct element in the dpmt.RoleList array
+	var role *virtualmachine.Role = nil
+	for j := range dpmt.RoleList {
+		if dpmt.RoleList[j].RoleName == roleInst.RoleName {
+			role = &dpmt.RoleList[j]
+			break
+		}
+	}
+	if role == nil {
+		return fmt.Errorf("Error reading instance %s: RoleList does not contain any Role by the name %s", name, roleInst.RoleName)
 	}
 
-	d.Set("size", dpmt.RoleList[0].RoleSize)
-
-	if len(dpmt.RoleInstanceList) != 1 {
-		return fmt.Errorf(
-			"Instance %s has an unexpected number of role instances: %d",
-			name, len(dpmt.RoleInstanceList))
-	}
-	d.Set("ip_address", dpmt.RoleInstanceList[0].IPAddress)
-
-	if len(dpmt.RoleInstanceList[0].InstanceEndpoints) > 0 {
-		d.Set("vip_address", dpmt.RoleInstanceList[0].InstanceEndpoints[0].Vip)
+	//Now populate various fields in d from either role or roleInst, whichever makes sense
+	d.Set("size", role.RoleSize)
+	d.Set("ip_address", roleInst.IPAddress)
+	if len(roleInst.InstanceEndpoints) > 0 {
+		d.Set("vip_address", roleInst.InstanceEndpoints[0].Vip)
 	}
 
 	// Find the network configuration set
-	for _, c := range dpmt.RoleList[0].ConfigurationSets {
+	for _, c := range role.ConfigurationSets {
 		if c.ConfigurationSetType == virtualmachine.ConfigurationSetTypeNetwork {
 			// Create a new set to hold all configured endpoints
 			endpoints := &schema.Set{
@@ -489,9 +517,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			case 0:
 				d.Set("subnet", "")
 			default:
-				return fmt.Errorf(
-					"Instance %s has an unexpected number of associated subnets %d",
-					name, len(dpmt.RoleInstanceList))
+				return fmt.Errorf("Instance %s has an unexpected number of associated subnets %d", name, len(c.SubnetNames))
 			}
 
 			// Update the security group
@@ -500,7 +526,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	connType := "ssh"
-	if dpmt.RoleList[0].OSVirtualHardDisk.OS == windows {
+	if role.OSVirtualHardDisk.OS == windows {
 		connType = "winrm"
 	}
 
@@ -526,10 +552,28 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	name := d.Get("name").(string)
-	hostedServiceName := d.Get("hosted_service_name").(string)
+
+	// check if the instance belongs to an independent hosted service
+	// or it had one created for it.
+	var hostedServiceName string
+	if serviceName, ok := d.GetOk("hosted_service_name"); ok {
+		// if independent; use that hosted service name:
+		hostedServiceName = serviceName.(string)
+	} else {
+		// else; suppose it's the instance's name:
+		hostedServiceName = name
+	}
+
+	deploymentName, err := vmClient.GetDeploymentName(hostedServiceName)
+	if err != nil {
+		return fmt.Errorf("Error retrieving deployment from cloud service %s while trying to update instance %s: %s", hostedServiceName, name, err)
+	}
+	if deploymentName == "" {
+		return fmt.Errorf("Error retrieving deployment from cloud service %s while trying to update instance %s: No deployment exists!", hostedServiceName, name)
+	}
 
 	// Get the current role
-	role, err := vmClient.GetRole(hostedServiceName, name, name)
+	role, err := vmClient.GetRole(hostedServiceName, deploymentName, name)
 	if err != nil {
 		return fmt.Errorf("Error retrieving role of instance %s: %s", name, err)
 	}
@@ -583,7 +627,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Update the adjusted role
-	req, err := vmClient.UpdateRole(hostedServiceName, name, name, *role)
+	req, err := vmClient.UpdateRole(hostedServiceName, deploymentName, name, *role)
 	if err != nil {
 		return fmt.Errorf("Error updating role of instance %s: %s", name, err)
 	}
@@ -602,7 +646,17 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 	vmClient := azureClient.vmClient
 
 	name := d.Get("name").(string)
-	hostedServiceName := d.Get("hosted_service_name").(string)
+
+	// check if the instance belongs to an independent hosted service
+	// or it had one created for it.
+	var hostedServiceName string
+	if serviceName, ok := d.GetOk("hosted_service_name"); ok {
+		// if independent; use that hosted service name:
+		hostedServiceName = serviceName.(string)
+	} else {
+		// else; suppose it's the instance's name:
+		hostedServiceName = name
+	}
 
 	log.Printf("[DEBUG] Deleting instance: %s", name)
 
@@ -612,7 +666,7 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 		hostedServiceClient := azureClient.hostedServiceClient
 		req, err := hostedServiceClient.DeleteHostedService(name, true)
 		if err != nil {
-			return fmt.Errorf("Error deleting instance and hosted service %s: %s", name, err)
+			return fmt.Errorf("Error deleting instance %s: Error deleting hosted service %s: %s", name, hostedServiceName, err)
 		}
 
 		// Wait until the hosted service and the instance it contains is deleted:
@@ -621,6 +675,16 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 				"Error waiting for instance %s to be deleted: %s", name, err)
 		}
 	} else {
+
+
+/*
+KOUSHIK: TO DO:
+WE HAVE TO CALL DELETEROLE() FIRST TO DELETE THE VM INSTANCE ONLY
+THEN WE HAVE TO CALL GETDEPLOYMENT() TO CHECK IF THIS WAS THE LAST ROLE IN THE DEPLOYMENT (LENGTH OF DeploymentResponse.RoleInstanceList ARRAY)
+IF THIS WAS THE LAST VM ON THE DEPLOYMENT, THEN CALL DELETEDEPLOYMENT TO DELETE EVERYTHING
+*/
+
+
 		// else; just delete the instance:
 		reqID, err := vmClient.DeleteDeployment(hostedServiceName, name)
 		if err != nil {
