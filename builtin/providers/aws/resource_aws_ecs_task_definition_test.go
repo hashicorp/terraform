@@ -49,6 +49,31 @@ func TestAccAWSEcsTaskDefinition_withScratchVolume(t *testing.T) {
 	})
 }
 
+// Regression for https://github.com/hashicorp/terraform/issues/2694
+func TestAccAWSEcsTaskDefinition_withEcsService(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsTaskDefinitionWithEcsService,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.sleep-svc"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSEcsTaskDefinitionWithEcsServiceModified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.sleep-svc"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEcsTaskDefinitionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -144,6 +169,71 @@ resource "aws_ecs_task_definition" "sleep" {
     "cpu": 10,
     "command": ["sleep","360"],
     "memory": 10,
+    "essential": true
+  }
+]
+TASK_DEFINITION
+
+  volume {
+    name = "database_scratch"
+  }
+}
+`
+
+var testAccAWSEcsTaskDefinitionWithEcsService = `
+resource "aws_ecs_cluster" "default" {
+  name = "terraform-acc-test"
+}
+
+resource "aws_ecs_service" "sleep-svc" {
+  name = "tf-acc-ecs-svc"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.sleep.arn}"
+  desired_count = 1
+}
+
+resource "aws_ecs_task_definition" "sleep" {
+  family = "terraform-acc-sc-volume-test"
+  container_definitions = <<TASK_DEFINITION
+[
+  {
+    "name": "sleep",
+    "image": "busybox",
+    "cpu": 10,
+    "command": ["sleep","360"],
+    "memory": 10,
+    "essential": true
+  }
+]
+TASK_DEFINITION
+
+  volume {
+    name = "database_scratch"
+  }
+}
+`
+var testAccAWSEcsTaskDefinitionWithEcsServiceModified = `
+resource "aws_ecs_cluster" "default" {
+  name = "terraform-acc-test"
+}
+
+resource "aws_ecs_service" "sleep-svc" {
+  name = "tf-acc-ecs-svc"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.sleep.arn}"
+  desired_count = 1
+}
+
+resource "aws_ecs_task_definition" "sleep" {
+  family = "terraform-acc-sc-volume-test"
+  container_definitions = <<TASK_DEFINITION
+[
+  {
+    "name": "sleep",
+    "image": "busybox",
+    "cpu": 20,
+    "command": ["sleep","360"],
+    "memory": 50,
     "essential": true
   }
 ]
