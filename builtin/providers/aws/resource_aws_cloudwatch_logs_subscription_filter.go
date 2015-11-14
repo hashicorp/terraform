@@ -77,63 +77,23 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 
 		kinesis_conn := meta.(*AWSClient).kinesisconn
 		waitForKinesisStreamToActivate(kinesis_conn, destination_name)
-	} else if strings.HasPrefix(destination, "arn:aws:lambda") {
-		lambda_conn := meta.(*AWSClient).lambdaconn
-
-		lambda_arn_sliced := strings.Split(destination, ":")
-		function_name := lambda_arn_sliced[len(lambda_arn_sliced)-1]
-		statement_id,err := lambdaPermissionStatementId(log_group, function_name)
-
-		if err != nil {
-			return err
-		}
-
-		var retries int = 0
-		for !permissionExists(function_name, statement_id, lambda_conn) {
-			region := lambda_arn_sliced[3]
-			accountid := lambda_arn_sliced[4]
-			principal := fmt.Sprintf("logs.%s.amazonaws.com", region)
-			source_arn := fmt.Sprintf("arn:aws:logs:%s:%s:log-group:%s:*", region, accountid, log_group)
-
-			params := &lambda.AddPermissionInput{
-				Action:        aws.String("lambda:InvokeFunction"),
-				FunctionName:  aws.String(function_name),
-				Principal:     aws.String(principal),
-				StatementId:   aws.String(statement_id),
-				SourceArn:     aws.String(source_arn),
-				SourceAccount: aws.String(accountid),
-			}
-
-			log.Printf("[DEBUG] Attempting: to do add-access with params \"%#v\"", params)
-			_, err := lambda_conn.AddPermission(params)
-			if err != nil {
-				if awsErr, ok := err.(awserr.Error); ok {
-					if awsErr.Code() == "ResourceConflictException" {
-						log.Printf("[DEBUG] Got a ResourceConflictException, but that is ok. Function=%s, log_group=%s",function_name, log_group)
-					} else {
-						return fmt.Errorf("[WARN] Error doing add-access for LogGroup (%s) to lambda (%s), message: \"%s\", code: \"%s\"",
-							log_group, destination, awsErr.Message(), awsErr.Code())
-					}
-				} else  {
-					return fmt.Errorf("Error creating Cloudwatch logs subscription filter %s: %#v", name, err)
-				}
-			}
-
-			retries += 1
-			if (retries > 11) {
-				return fmt.Errorf("Not able to add permission to log group: %s", log_group)
-			}
-
-		}
 	}
 
 	params := getAwsCloudWatchLogsSubscriptionFilterInput(d)
+	sleep_randomizer := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	log.Printf("[DEBUG] Creating SubscriptionFilter %#v", params)
-	sleep_randomizer := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	attemptCount := 1
 	for attemptCount <= CLOUDWATCH_LOGS_SUBSCRIPTION_FILTER_MAX_THROTTLE_RETRIES {
+		// Since the add permissions have a tendency to fail, we put the code in side.
+		if strings.HasPrefix(destination, "arn:aws:lambda") {
+			err := addPermissionsToLambdaFunction(d, meta);
+			if err != nil {
+				return err
+			}
+		}
+
 		_, err := conn.PutSubscriptionFilter(&params)
 		attemptCount += 1
 		if err != nil {
@@ -159,6 +119,54 @@ func resourceAwsCloudwatchLogsSubscriptionFilterCreate(d *schema.ResourceData, m
 
 	// Too many throttling events occurred, give up
 	return fmt.Errorf("Unable to create Cloudwatch logs subscription filter '%s' after %d attempts", name, attemptCount)
+}
+
+func addPermissionsToLambdaFunction(d *schema.ResourceData, meta interface{}) error {
+	lambda_conn := meta.(*AWSClient).lambdaconn
+
+	name := d.Get("name").(string)
+	log_group := d.Get("log_group").(string)
+	destination := d.Get("destination").(string)
+
+	lambda_arn_sliced := strings.Split(destination, ":")
+	function_name := lambda_arn_sliced[len(lambda_arn_sliced)-1]
+	statement_id,err := lambdaPermissionStatementId(log_group, function_name)
+
+	if err != nil {
+		return err
+	}
+
+	if !permissionExists(function_name, statement_id, lambda_conn) {
+		region := lambda_arn_sliced[3]
+		accountid := lambda_arn_sliced[4]
+		principal := fmt.Sprintf("logs.%s.amazonaws.com", region)
+		source_arn := fmt.Sprintf("arn:aws:logs:%s:%s:log-group:%s:*", region, accountid, log_group)
+
+		params := &lambda.AddPermissionInput{
+			Action:        aws.String("lambda:InvokeFunction"),
+			FunctionName:  aws.String(function_name),
+			Principal:     aws.String(principal),
+			StatementId:   aws.String(statement_id),
+			SourceArn:     aws.String(source_arn),
+			SourceAccount: aws.String(accountid),
+		}
+
+		log.Printf("[DEBUG] Attempting: to do add-access with params \"%#v\"", params)
+		_, err := lambda_conn.AddPermission(params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "ResourceConflictException" {
+					log.Printf("[DEBUG] Got a ResourceConflictException, but that is ok. Function=%s, log_group=%s",function_name, log_group)
+				} else {
+					return fmt.Errorf("[WARN] Error doing add-access for LogGroup (%s) to lambda (%s), message: \"%s\", code: \"%s\"",
+						log_group, destination, awsErr.Message(), awsErr.Code())
+				}
+			} else  {
+				return fmt.Errorf("Error creating Cloudwatch logs subscription filter %s: %#v", name, err)
+			}
+		}
+	}
+	return nil
 }
 
 func resourceAwsCloudwatchLogsSubscriptionFilterUpdate(d *schema.ResourceData, meta interface{}) error {
