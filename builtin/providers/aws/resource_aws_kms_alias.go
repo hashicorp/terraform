@@ -39,7 +39,6 @@ func resourceAwsKmsAlias() *schema.Resource {
 			"target_key_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 		},
 	}
