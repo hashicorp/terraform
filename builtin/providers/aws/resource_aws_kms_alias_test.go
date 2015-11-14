@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -57,14 +56,12 @@ func testAccCheckAWSKmsAliasDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := conn.ListAliases(&kms.ListAliasesInput{})
+		entry, err := findKmsAliasByName(conn, rs.Primary.ID, nil)
 		if err != nil {
 			return err
 		}
-		for _, e := range resp.Aliases {
-			if *e.AliasName == rs.Primary.ID {
-				return fmt.Errorf("KMS alias still exists:\n%#v", e)
-			}
+		if entry != nil {
+			return fmt.Errorf("KMS alias still exists:\n%#v", entry)
 		}
 
 		return nil
