@@ -29,6 +29,9 @@ The following arguments are supported:
 * `policy` - (Optional) A valid policy JSON document.
 * `deletion_window_in_days` - (Optional) Duration in days after which the key is deleted
 	after destruction of the resource, must be between 7 and 30 days. Defaults to 30 days.
+* `is_enabled` - (Optional) Specifies whether the key is enabled. Defaults to true.
+* `enable_key_rotation` - (Optional) Specifies whether [key rotation](http://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html)
+	is enabled. Defaults to false.
 
 ## Attributes Reference
 
