@@ -85,6 +85,7 @@ BUG FIXES:
   * provider/openstack: Better handling of network resource state changes [GH-3712]
   * provider/openstack: Fix crashing when no security group is specified [GH-3801]
   * provider/packet: Fix issue that could cause errors when provisioning many devices at once [GH-3847]
+  * provider/openstack: Fix issue preventing security group rules from being removed [GH-3796]
 
 ## 0.6.6 (October 23, 2015)
 
