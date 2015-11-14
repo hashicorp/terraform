@@ -40,7 +40,7 @@ func resourceAwsKmsKey() *schema.Resource {
 					value := v.(string)
 					if !(value == "ENCRYPT_DECRYPT" || value == "") {
 						es = append(es, fmt.Errorf(
-							"key_usage must be ENCRYPT_DECRYPT or not specified"))
+							"%q must be ENCRYPT_DECRYPT or not specified", k))
 					}
 					return
 				},
@@ -57,7 +57,7 @@ func resourceAwsKmsKey() *schema.Resource {
 					value := v.(int)
 					if value > 30 || value < 7 {
 						es = append(es, fmt.Errorf(
-							"deletion window must be between 7 and 30 days inclusive"))
+							"%q must be between 7 and 30 days inclusive", k))
 					}
 					return
 				},
