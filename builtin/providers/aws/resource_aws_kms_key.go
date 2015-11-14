@@ -46,9 +46,10 @@ func resourceAwsKmsKey() *schema.Resource {
 				},
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: normalizeJson,
 			},
 			"deletion_window_in_days": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -85,30 +86,40 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	return resourceAwsKmsKeyReadResult(d, resp.KeyMetadata)
+
+	d.SetId(*resp.KeyMetadata.KeyId)
+
+	return resourceAwsKmsKeyRead(d, meta)
 }
 
 func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
-	keyId := d.Get("key_id").(string)
 
 	req := &kms.DescribeKeyInput{
-		KeyId: aws.String(keyId),
+		KeyId: aws.String(d.Id()),
 	}
 	resp, err := conn.DescribeKey(req)
 	if err != nil {
 		return err
 	}
-	return resourceAwsKmsKeyReadResult(d, resp.KeyMetadata)
-}
+	metadata := resp.KeyMetadata
 
-func resourceAwsKmsKeyReadResult(d *schema.ResourceData, metadata *kms.KeyMetadata) error {
 	d.SetId(*metadata.KeyId)
 
 	d.Set("arn", metadata.Arn)
 	d.Set("key_id", metadata.KeyId)
 	d.Set("description", metadata.Description)
 	d.Set("key_usage", metadata.KeyUsage)
+
+	p, err := conn.GetKeyPolicy(&kms.GetKeyPolicyInput{
+		KeyId:      metadata.KeyId,
+		PolicyName: aws.String("default"),
+	})
+	if err != nil {
+		return err
+	}
+
+	d.Set("policy", normalizeJson(*p.Policy))
 
 	return nil
 }
@@ -151,7 +162,7 @@ func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error 
 
 	req := &kms.PutKeyPolicyInput{
 		KeyId:      aws.String(keyId),
-		Policy:     aws.String(policy),
+		Policy:     aws.String(normalizeJson(policy)),
 		PolicyName: aws.String("default"),
 	}
 	_, err := conn.PutKeyPolicy(req)
