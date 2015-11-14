@@ -50,7 +50,7 @@ func resourceAwsKmsKey() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"deletion_window": &schema.Schema{
+			"deletion_window_in_days": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
@@ -165,7 +165,7 @@ func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {
 	req := &kms.ScheduleKeyDeletionInput{
 		KeyId: aws.String(keyId),
 	}
-	if v, exists := d.GetOk("deletion_window"); exists {
+	if v, exists := d.GetOk("deletion_window_in_days"); exists {
 		req.PendingWindowInDays = aws.Int64(int64(v.(int)))
 	}
 	_, err := conn.ScheduleKeyDeletion(req)
