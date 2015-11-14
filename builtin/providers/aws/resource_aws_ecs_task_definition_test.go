@@ -23,7 +23,7 @@ func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSEcsTaskDefinitionModifier,
+				Config: testAccAWSEcsTaskDefinitionModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins"),
 				),
@@ -245,7 +245,7 @@ TASK_DEFINITION
 }
 `
 
-var testAccAWSEcsTaskDefinitionModifier = `
+var testAccAWSEcsTaskDefinitionModified = `
 resource "aws_ecs_task_definition" "jenkins" {
   family = "terraform-acc-test"
   container_definitions = <<TASK_DEFINITION
