@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
 	"github.com/rackspace/gophercloud/pagination"
@@ -122,6 +126,21 @@ func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack LB pool: %s", err)
 	}
 	log.Printf("[INFO] LB Pool ID: %s", p.ID)
+
+	log.Printf("[DEBUG] Waiting for OpenStack LB pool (%s) to become available.", p.ID)
+
+	stateConf := &resource.StateChangeConf{
+		Target:     "ACTIVE",
+		Refresh:    waitForLBPoolActive(networkingClient, p.ID),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
 
 	d.SetId(p.ID)
 
@@ -273,7 +292,16 @@ func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = pools.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    waitForLBPoolDelete(networkingClient, d.Id()),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB Pool: %s", err)
 	}
@@ -325,4 +353,55 @@ func resourceLBMemberV1Hash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["port"].(int)))
 
 	return hashcode.String(buf.String())
+}
+
+func waitForLBPoolActive(networkingClient *gophercloud.ServiceClient, poolId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		p, err := pools.Get(networkingClient, poolId).Extract()
+		if err != nil {
+			return nil, "", err
+		}
+
+		log.Printf("[DEBUG] OpenStack LB Pool: %+v", p)
+		if p.Status == "ACTIVE" {
+			return p, "ACTIVE", nil
+		}
+
+		return p, p.Status, nil
+	}
+}
+
+func waitForLBPoolDelete(networkingClient *gophercloud.ServiceClient, poolId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete OpenStack LB Pool %s", poolId)
+
+		p, err := pools.Get(networkingClient, poolId).Extract()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return p, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LB Pool %s", poolId)
+				return p, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack LB Pool: %+v", p)
+		err = pools.Delete(networkingClient, poolId).ExtractErr()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return p, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LB Pool %s", poolId)
+				return p, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack LB Pool %s still active.", poolId)
+		return p, "ACTIVE", nil
+	}
+
 }
