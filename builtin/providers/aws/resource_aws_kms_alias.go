@@ -67,21 +67,21 @@ func resourceAwsKmsAliasRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
 	name := d.Get("name").(string)
 
-	req := &kms.ListAliasesInput{}
-	resp, err := conn.ListAliases(req)
+	alias, err := findKmsAliasByName(conn, name, nil)
 	if err != nil {
 		return err
 	}
-	for _, e := range resp.Aliases {
-		if name == *e.AliasName {
-			d.Set("arn", e.AliasArn)
-			d.Set("target_key_id", e.TargetKeyId)
-			return nil
-		}
+	if alias == nil {
+		log.Printf("[DEBUG] Removing KMS Alias %q as it's already gone", name)
+		d.SetId("")
+		return nil
 	}
 
-	log.Printf("[DEBUG] KMS alias read: alias not found")
-	d.SetId("")
+	log.Printf("[DEBUG] Found KMS Alias: %s", alias)
+
+	d.Set("arn", alias.AliasArn)
+	d.Set("target_key_id", alias.TargetKeyId)
+
 	return nil
 }
 
@@ -127,4 +127,34 @@ func resourceAwsKmsAliasDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] KMS Alias: %s deleted.", name)
 	d.SetId("")
 	return nil
+}
+
+// API by default limits results to 50 aliases
+// This is how we make sure we won't miss any alias
+// See http://docs.aws.amazon.com/kms/latest/APIReference/API_ListAliases.html
+func findKmsAliasByName(conn *kms.KMS, name string, marker *string) (*kms.AliasListEntry, error) {
+	req := kms.ListAliasesInput{
+		Limit: aws.Int64(int64(100)),
+	}
+	if marker != nil {
+		req.Marker = marker
+	}
+
+	log.Printf("[DEBUG] Listing KMS aliases: %s", req)
+	resp, err := conn.ListAliases(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range resp.Aliases {
+		if *entry.AliasName == name {
+			return entry, nil
+		}
+	}
+	if *resp.Truncated {
+		log.Printf("[DEBUG] KMS alias list is truncated, listing more via %s", *resp.NextMarker)
+		return findKmsAliasByName(conn, name, resp.NextMarker)
+	}
+
+	return nil, nil
 }
