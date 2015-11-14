@@ -73,6 +73,7 @@ BUG FIXES:
   * provider/aws: Fix issue with SNS topic policy if omitted [GH-3777]
   * provider/aws: Support scratch volumes in `aws_ecs_task_definition` [GH-3810]
   * provider/aws: Treat `aws_ecs_service` w/ Status==INACTIVE as deleted [GH-3828]
+  * provider/aws: Expand ~ to homedir in `aws_s3_bucket_object.source` [GH-3910]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
