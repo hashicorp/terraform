@@ -1,12 +1,15 @@
 package aws
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
-	"log"
-	"fmt"
+
 )
 
 func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
@@ -50,7 +53,7 @@ func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
 	}
 }
 
-func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData, meta interface {}) error {
+func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	application := d.Get("application").(string)
@@ -62,15 +65,15 @@ func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData,
 
 	s3Location := elasticbeanstalk.S3Location{
 		S3Bucket: aws.String(bucket),
-		S3Key: aws.String(key),
+		S3Key:    aws.String(key),
 	}
 
 	createOpts := elasticbeanstalk.CreateApplicationVersionInput{
-		ApplicationName: aws.String(application),
+		ApplicationName:       aws.String(application),
 		AutoCreateApplication: aws.Bool(auto),
-		Description:  aws.String(description),
-		SourceBundle: &s3Location,
-		VersionLabel: aws.String(name),
+		Description:           aws.String(description),
+		SourceBundle:          &s3Location,
+		VersionLabel:          aws.String(name),
 	}
 
 	log.Printf("[DEBUG] Elastic Beanstalk Application Version create opts: %s", createOpts)
@@ -136,11 +139,18 @@ func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData,
 
 	_, err := beanstalkConn.DeleteApplicationVersion(&elasticbeanstalk.DeleteApplicationVersionInput{
 		ApplicationName: aws.String(application),
-		VersionLabel: aws.String(name),
+		VersionLabel:    aws.String(name),
 	})
 
 	d.SetId("")
 
+	if awserr, ok := err.(awserr.Error); ok {
+		// application version is pending delete, or no longer exists.
+		if awserr.Code() == "InvalidParameterValue" {
+			return nil
+		}
+
+	}
 	return err
 }
 
@@ -154,7 +164,7 @@ func resourceAwsElasticBeanstalkApplicationVersionDescriptionUpdate(beanstalkCon
 	_, err := beanstalkConn.UpdateApplicationVersion(&elasticbeanstalk.UpdateApplicationVersionInput{
 		ApplicationName: aws.String(application),
 		Description:     aws.String(description),
-		VersionLabel: aws.String(name),
+		VersionLabel:    aws.String(name),
 	})
 
 	return err
