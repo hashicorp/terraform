@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const pemCertReqType = "CERTIFICATE REQUEST"
+
 func resourceCertRequest() *schema.Resource {
 	return &schema.Resource{
 		Create: CreateCertRequest,
@@ -71,19 +73,9 @@ func resourceCertRequest() *schema.Resource {
 }
 
 func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
-	keyAlgoName := d.Get("key_algorithm").(string)
-	var keyFunc keyParser
-	var ok bool
-	if keyFunc, ok = keyParsers[keyAlgoName]; !ok {
-		return fmt.Errorf("invalid key_algorithm %#v", keyAlgoName)
-	}
-	keyBlock, _ := pem.Decode([]byte(d.Get("private_key_pem").(string)))
-	if keyBlock == nil {
-		return fmt.Errorf("no PEM block found in private_key_pem")
-	}
-	key, err := keyFunc(keyBlock.Bytes)
+	key, err := parsePrivateKey(d, "private_key_pem", "key_algorithm")
 	if err != nil {
-		return fmt.Errorf("failed to decode private_key_pem: %s", err)
+		return err
 	}
 
 	subjectConfs := d.Get("subject").([]interface{})
@@ -117,7 +109,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		fmt.Errorf("Error creating certificate request: %s", err)
 	}
-	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: certReqBytes}))
+	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertReqType, Bytes: certReqBytes}))
 
 	d.SetId(hashForState(string(certReqBytes)))
 	d.Set("cert_request_pem", certReqPem)
