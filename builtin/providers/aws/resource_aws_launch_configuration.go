@@ -26,16 +26,33 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1932-L1939
 					value := v.(string)
 					if len(value) > 255 {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
+			},
+
+			"name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/9f322b1/botocore/data/autoscaling/2011-01-01/service-2.json#L1932-L1939
+					// uuid is 26 characters, limit the prefix to 229.
+					value := v.(string)
+					if len(value) > 229 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 229 characters, name is limited to 255", k))
 					}
 					return
 				},
@@ -386,6 +403,8 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	var lcName string
 	if v, ok := d.GetOk("name"); ok {
 		lcName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		lcName = resource.PrefixedUniqueId(v.(string))
 	} else {
 		lcName = resource.UniqueId()
 	}

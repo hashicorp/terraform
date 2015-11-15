@@ -128,7 +128,7 @@ resource "aws_sns_topic" "test_topic" {
   name = "example"
   policy = <<EOF
 {
-  "Version": "2008-10-17",
+  "Version": "2012-10-17",
   "Id": "Policy1445931846145",
   "Statement": [
     {

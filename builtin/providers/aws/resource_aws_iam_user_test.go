@@ -23,7 +23,14 @@ func TestAccAWSUser_basic(t *testing.T) {
 				Config: testAccAWSUserConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserExists("aws_iam_user.user", &conf),
-					testAccCheckAWSUserAttributes(&conf),
+					testAccCheckAWSUserAttributes(&conf, "test-user", "/"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSUserConfig2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSUserExists("aws_iam_user.user", &conf),
+					testAccCheckAWSUserAttributes(&conf, "test-user2", "/path2/"),
 				),
 			},
 		},
@@ -85,13 +92,13 @@ func testAccCheckAWSUserExists(n string, res *iam.GetUserOutput) resource.TestCh
 	}
 }
 
-func testAccCheckAWSUserAttributes(user *iam.GetUserOutput) resource.TestCheckFunc {
+func testAccCheckAWSUserAttributes(user *iam.GetUserOutput, name string, path string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *user.User.UserName != "test-user" {
+		if *user.User.UserName != name {
 			return fmt.Errorf("Bad name: %s", *user.User.UserName)
 		}
 
-		if *user.User.Path != "/" {
+		if *user.User.Path != path {
 			return fmt.Errorf("Bad path: %s", *user.User.Path)
 		}
 
@@ -103,5 +110,11 @@ const testAccAWSUserConfig = `
 resource "aws_iam_user" "user" {
 	name = "test-user"
 	path = "/"
+}
+`
+const testAccAWSUserConfig2 = `
+resource "aws_iam_user" "user" {
+	name = "test-user2"
+	path = "/path2/"
 }
 `

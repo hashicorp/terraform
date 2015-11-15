@@ -220,6 +220,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_instance":                                 resourceAwsInstance(),
 			"aws_internet_gateway":                         resourceAwsInternetGateway(),
 			"aws_key_pair":                                 resourceAwsKeyPair(),
+			"aws_kinesis_firehose_delivery_stream":         resourceAwsKinesisFirehoseDeliveryStream(),
 			"aws_kinesis_stream":                           resourceAwsKinesisStream(),
 			"aws_lambda_function":                          resourceAwsLambdaFunction(),
 			"aws_launch_configuration":                     resourceAwsLaunchConfiguration(),
