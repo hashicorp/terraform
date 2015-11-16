@@ -23,7 +23,7 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroupModifier,
+				Config: testAccAWSCodeDeployDeploymentGroupModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo"),
 				),
@@ -133,7 +133,7 @@ resource "aws_codedeploy_deployment_group" "foo" {
 	}
 }`
 
-var testAccAWSCodeDeployDeploymentGroupModifier = `
+var testAccAWSCodeDeployDeploymentGroupModified = `
 resource "aws_codedeploy_app" "foo_app" {
 	name = "foo_app"
 }
