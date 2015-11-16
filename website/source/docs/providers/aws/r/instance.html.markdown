@@ -29,7 +29,8 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `ami` - (Required) The AMI to use for the instance.
+* `ami` - (Optional) The AMI to use for the instance.
+* `ami_name` - (Optional) The name of the AMI to use for the instance.
 * `availability_zone` - (Optional) The AZ to start the instance in.
 * `placement_group` - (Optional) The Placement Group to start the instance in.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be
