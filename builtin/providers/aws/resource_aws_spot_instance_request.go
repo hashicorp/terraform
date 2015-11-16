@@ -97,6 +97,14 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		},
 	}
 
+	// If the instance is configured with a Network Interface (a subnet, has
+	// public IP, etc), then the instanceOpts.SecurityGroupIds and SubnetId will
+	// be nil
+	if len(instanceOpts.NetworkInterfaces) > 0 {
+		spotOpts.LaunchSpecification.SecurityGroupIds = instanceOpts.NetworkInterfaces[0].Groups
+		spotOpts.LaunchSpecification.SubnetId = instanceOpts.NetworkInterfaces[0].SubnetId
+	}
+
 	// Make the spot instance request
 	log.Printf("[DEBUG] Requesting spot bid opts: %s", spotOpts)
 	resp, err := conn.RequestSpotInstances(spotOpts)
@@ -172,9 +180,62 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 	// Instance ID is not set if the request is still pending
 	if request.InstanceId != nil {
 		d.Set("spot_instance_id", *request.InstanceId)
+		if err := readInstance(d, meta); err != nil {
+			return fmt.Errorf("[ERR] Error reading Spot Instance Data: %s", err)
+		}
 	}
 	d.Set("spot_request_state", *request.State)
 	d.Set("tags", tagsToMap(request.Tags))
+
+	// return nil
+	// let's read the instance data...
+	return readInstance(d, meta)
+}
+
+func readInstance(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).ec2conn
+
+	resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+		InstanceIds: []*string{aws.String(d.Get("spot_instance_id").(string))},
+	})
+	if err != nil {
+		// If the instance was not found, return nil so that we can show
+		// that the instance is gone.
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
+			return fmt.Errorf("no instance found")
+		}
+
+		// Some other error, report it
+		return err
+	}
+
+	// If nothing was found, then return no state
+	if len(resp.Reservations) == 0 {
+		return fmt.Errorf("no instances found")
+	}
+
+	instance := resp.Reservations[0].Instances[0]
+
+	// Set these fields for connection information
+	if instance != nil {
+		d.Set("public_dns", instance.PublicDnsName)
+		d.Set("public_ip", instance.PublicIpAddress)
+		d.Set("private_dns", instance.PrivateDnsName)
+		d.Set("private_ip", instance.PrivateIpAddress)
+	}
+
+	// set connection information
+	if instance.PublicIpAddress != nil {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": *instance.PublicIpAddress,
+		})
+	} else if instance.PrivateIpAddress != nil {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": *instance.PrivateIpAddress,
+		})
+	}
 
 	return nil
 }
