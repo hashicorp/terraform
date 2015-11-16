@@ -30,9 +30,17 @@ func resourceAwsInstance() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"ami": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ami_name"},
+			},
+
+			"ami_name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ami"},
 			},
 
 			"associate_public_ip_address": &schema.Schema{
@@ -376,6 +384,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Store the resulting ID so we can look this up later
 	d.SetId(*instance.InstanceId)
+	d.Set("ami", d.Get("ami").(string))
+	d.Set("ami_name", d.Get("ami_name").(string))
 
 	// Wait for the instance to become running so we can get some attributes
 	// that aren't available until later.
@@ -457,7 +467,6 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("tenancy", instance.Placement.Tenancy)
 	}
 
-	d.Set("ami", instance.ImageId)
 	d.Set("instance_type", instance.InstanceType)
 	d.Set("key_name", instance.KeyName)
 	d.Set("public_dns", instance.PublicDnsName)
@@ -670,6 +679,7 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 }
 
 func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
+
 	ibds, err := readBlockDevicesFromInstance(instance, conn)
 	if err != nil {
 		return err
@@ -811,6 +821,7 @@ func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 }
 
 func readBlockDeviceMappingsFromConfig(
+
 	d *schema.ResourceData, conn *ec2.EC2) ([]*ec2.BlockDeviceMapping, error) {
 	blockDevices := make([]*ec2.BlockDeviceMapping, 0)
 
@@ -883,11 +894,12 @@ func readBlockDeviceMappingsFromConfig(
 				ebs.Iops = aws.Int64(int64(v))
 			}
 
-			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {
+			ami_id := getAwsAmiId(d, conn)
+			if dn, err := fetchRootDeviceName(ami_id, conn); err == nil {
 				if dn == nil {
 					return nil, fmt.Errorf(
 						"Expected 1 AMI for ID: %s, got none",
-						d.Get("ami").(string))
+						ami_id)
 				}
 
 				blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
@@ -923,15 +935,45 @@ type awsInstanceOpts struct {
 	UserData64                        *string
 }
 
-func buildAwsInstanceOpts(
-	d *schema.ResourceData, meta interface{}) (*awsInstanceOpts, error) {
+func getAwsAmiId(d *schema.ResourceData, conn *ec2.EC2) string {
+	ami_id := d.Get("ami").(string)
+	ami_name := d.Get("ami_name").(string)
+
+	if ami_id != "" {
+		return ami_id
+	} else if ami_name != "" {
+		opts := &ec2.DescribeImagesInput{
+			Filters: []*ec2.Filter{&ec2.Filter{
+				Name:   aws.String("name"),
+				Values: []*string{aws.String(d.Get("ami_name").(string))},
+			}},
+		}
+		log.Printf("[INFO] Trying to find the AMI ID for the AMI Name: %s", ami_name)
+		images, err := conn.DescribeImages(opts)
+		if err != nil {
+			log.Printf("Error Finding The ImageId for AMI Name: %s : %s", ami_name, err)
+		}
+
+		return *images.Images[0].ImageId
+	}
+
+	return ""
+}
+
+func buildAwsInstanceOpts(d *schema.ResourceData, meta interface{}) (*awsInstanceOpts, error) {
 	conn := meta.(*AWSClient).ec2conn
 
 	opts := &awsInstanceOpts{
 		DisableAPITermination: aws.Bool(d.Get("disable_api_termination").(bool)),
 		EBSOptimized:          aws.Bool(d.Get("ebs_optimized").(bool)),
-		ImageID:               aws.String(d.Get("ami").(string)),
 		InstanceType:          aws.String(d.Get("instance_type").(string)),
+	}
+
+	imageId := getAwsAmiId(d, conn)
+	if imageId == "" {
+		return nil, fmt.Errorf("[ERROR] AMI or AMI_NAME must be specified")
+	} else {
+		opts.ImageID = aws.String(imageId)
 	}
 
 	if v := d.Get("instance_initiated_shutdown_behavior").(string); v != "" {

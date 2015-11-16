@@ -98,6 +98,27 @@ func TestAccAWSInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_amiName(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+
+			resource.TestStep{
+				Config: testAccCheckInstanceBasedOnAmiName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					testAccCheckInstanceAmiName("aws_instance.foo", &v, "ami-ef5b69df"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_blockDevices(t *testing.T) {
 	var v ec2.Instance
 
@@ -565,6 +586,43 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 	return nil
 }
 
+func testAccCheckInstanceAmiName(resourceName string, i *ec2.Instance, expectedAmiId string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resourceName)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{aws.String(rs.Primary.ID)},
+		})
+
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
+				return nil
+			}
+			return err
+		}
+
+		if len(resp.Reservations) > 0 {
+			*i = *resp.Reservations[0].Instances[0]
+			return nil
+		}
+
+		actualAmiId := resp.Reservations[0].Instances[0].ImageId
+		if *actualAmiId != expectedAmiId {
+			return fmt.Errorf("The AMI-ID of the instance (%s) should be %s but is %s", rs.Primary.ID, expectedAmiId, *actualAmiId)
+		}
+
+		return fmt.Errorf("Instance not found")
+	}
+}
+
 func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFunc {
 	providers := []*schema.Provider{testAccProvider}
 	return testAccCheckInstanceExistsWithProviders(n, i, &providers)
@@ -987,5 +1045,26 @@ resource "aws_instance" "foo" {
 	root_block_device {
 		volume_size = 13
 	}
+}
+`
+
+const testAccCheckInstanceBasedOnAmiName = `
+resource "aws_security_group" "tf_test_foo" {
+	name = "tf_test_foo"
+	description = "foo"
+
+	ingress {
+		protocol = "icmp"
+		from_port = -1
+		to_port = -1
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+}
+
+resource "aws_instance" "foo" {
+    ami_name = "BOSH-04e04008-85a5-4f5d-9f37-5eda69f57f81"
+    instance_type = "m1.small"
+    availability_zone = "us-west-2a"
+    security_groups = ["${aws_security_group.tf_test_foo.name}"]
 }
 `
