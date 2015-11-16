@@ -76,6 +76,7 @@ BUG FIXES:
   * provider/aws: Treat `aws_ecs_service` w/ Status==INACTIVE as deleted [GH-3828]
   * provider/aws: Expand ~ to homedir in `aws_s3_bucket_object.source` [GH-3910]
   * provider/aws: Fix issue with updating the `aws_ecs_task_definition` where `aws_ecs_service` didn't wait for a new computed ARN [GH-3924]
+  * provider/aws: Prevent crashing when deleting `aws_ecs_service` that is already gone [GH-3914]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
