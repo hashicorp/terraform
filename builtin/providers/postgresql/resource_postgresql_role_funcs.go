@@ -62,6 +62,8 @@ func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error 
 
 func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*sql.DB)
+	d.Partial(true)
+
 	roleName := d.Get("name").(string)
 
 	if d.HasChange("login") {
@@ -71,10 +73,11 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("Error updating login attribute for role: %s", err)
 		}
+
+		d.SetPartial("login")
 	}
 
 	password := d.Get("password").(string)
-
 	if d.HasChange("password") {
 		encryptedCfg := getEncryptedStr(d.Get("encrypted").(bool))
 
@@ -83,6 +86,8 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("Error updating password attribute for role: %s", err)
 		}
+
+		d.SetPartial("password")
 	}
 
 	if d.HasChange("encrypted") {
@@ -93,8 +98,11 @@ func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("Error updating encrypted attribute for role: %s", err)
 		}
+
+		d.SetPartial("encrypted")
 	}
 
+	d.Partial(false)
 	return resourcePostgresqlRoleRead(d, meta)
 }
 
