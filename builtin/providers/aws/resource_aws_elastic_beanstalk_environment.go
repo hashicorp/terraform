@@ -178,20 +178,24 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
+	if d.HasChange("version_label") {
+		if err := resourceAwsElasticBeanstalkEnvironmentApplicationVersionUpdate(conn, d); err != nil {
+			return err
+		}
+	}
+
 	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
 }
 
 func resourceAwsElasticBeanstalkEnvironmentDescriptionUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
 	name := d.Get("name").(string)
 	desc := d.Get("description").(string)
-	version := d.Get("version_label").(string)
 	envId := d.Id()
 
 	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update description: %s", name, desc)
 
 	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
 		EnvironmentId: aws.String(envId),
-		VersionLabel:  aws.String(version),
 		Description:   aws.String(desc),
 	})
 
@@ -240,6 +244,21 @@ func resourceAwsElasticBeanstalkEnvironmentSolutionStackUpdate(conn *elasticbean
 	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
 		EnvironmentId:     aws.String(envId),
 		SolutionStackName: aws.String(solutionStack),
+	})
+
+	return err
+}
+
+func resourceAwsElasticBeanstalkEnvironmentApplicationVersionUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
+	name := d.Get("name").(string)
+	version := d.Get("version_label").(string)
+	envId := d.Id()
+
+	log.Printf("[Debug] Elastic Beanstalk application: %s, update version: %s", name, version)
+
+	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
+		EnvironmentId: aws.String(envId),
+		VersionLabel:  aws.String(version),
 	})
 
 	return err
