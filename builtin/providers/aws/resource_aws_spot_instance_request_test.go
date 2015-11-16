@@ -62,6 +62,26 @@ func TestAccAWSSpotInstanceRequest_vpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSSpotInstanceRequest_SubnetAndSG(t *testing.T) {
+	var sir ec2.SpotInstanceRequest
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSpotInstanceRequestConfig_SubnetAndSG,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSpotInstanceRequestExists(
+						"aws_spot_instance_request.foo", &sir),
+					testAccCheckAWSSpotInstanceRequest_InstanceAttributes(&sir),
+				),
+			},
+		},
+	})
+}
+
 func testCheckKeyPair(keyName string, sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
 	return func(*terraform.State) error {
 		if sir.LaunchSpecification.KeyName == nil {
@@ -178,6 +198,44 @@ func testAccCheckAWSSpotInstanceRequestAttributes(
 	}
 }
 
+func testAccCheckAWSSpotInstanceRequest_InstanceAttributes(
+	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{sir.InstanceId},
+		})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
+				return fmt.Errorf("Spot Instance not found")
+			}
+			return err
+		}
+
+		// If nothing was found, then return no state
+		if len(resp.Reservations) == 0 {
+			return fmt.Errorf("Spot Instance not found")
+		}
+
+		instance := resp.Reservations[0].Instances[0]
+
+		var sgMatch bool
+		for _, s := range instance.SecurityGroups {
+			// Hardcoded name for the security group that should be added inside the
+			// VPC
+			if *s.GroupName == "tf_test_sg_ssh" {
+				sgMatch = true
+			}
+		}
+
+		if !sgMatch {
+			return fmt.Errorf("Error in matching Spot Instance Security Group, expected 'tf_test_sg_ssh', got %s", instance.SecurityGroups)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSSpotInstanceRequestAttributesVPC(
 	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -247,5 +305,46 @@ resource "aws_spot_instance_request" "foo_VPC" {
 	tags {
 		Name = "terraform-test-VPC"
 	}
+}
+`
+
+const testAccAWSSpotInstanceRequestConfig_SubnetAndSG = `
+resource "aws_spot_instance_request" "foo" {
+  ami                         = "ami-6f6d635f"
+  spot_price                  = "0.05"
+  instance_type               = "t1.micro"
+  wait_for_fulfillment        = true
+  subnet_id                   = "${aws_subnet.tf_test_subnet.id}"
+  vpc_security_group_ids      = ["${aws_security_group.tf_test_sg_ssh.id}"]
+  associate_public_ip_address = true
+}
+
+resource "aws_vpc" "default" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "tf_test_vpc"
+  }
+}
+
+resource "aws_subnet" "tf_test_subnet" {
+  vpc_id                  = "${aws_vpc.default.id}"
+  cidr_block              = "10.0.0.0/24"
+  map_public_ip_on_launch = true
+
+  tags {
+    Name = "tf_test_subnet"
+  }
+}
+
+resource "aws_security_group" "tf_test_sg_ssh" {
+  name        = "tf_test_sg_ssh"
+  description = "tf_test_sg_ssh"
+  vpc_id      = "${aws_vpc.default.id}"
+
+  tags {
+    Name = "tf_test_sg_ssh"
+  }
 }
 `
