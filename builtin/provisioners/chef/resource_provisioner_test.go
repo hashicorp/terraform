@@ -22,7 +22,7 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"run_list":               []interface{}{"cookbook::recipe"},
 		"server_url":             "https://chef.local",
 		"validation_client_name": "validator",
-		"validation_key_path":    "validator.pem",
+		"validation_key":         "contentsofsomevalidator.pem",
 	})
 	r := new(ResourceProvisioner)
 	warn, errs := r.Validate(c)
