@@ -42,6 +42,7 @@ type hardDisk struct {
 
 type virtualMachine struct {
 	name                 string
+	folder               string
 	datacenter           string
 	cluster              string
 	resourcePool         string
@@ -59,6 +60,18 @@ type virtualMachine struct {
 	customConfigurations map[string](types.AnyType)
 }
 
+func (v virtualMachine) Path() string {
+	return vmPath(v.folder, v.name)
+}
+
+func vmPath(folder string, name string) string {
+	var path string
+	if len(folder) > 0 {
+		path += folder + "/"
+	}
+	return path + name
+}
+
 func resourceVSphereVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereVirtualMachineCreate,
@@ -69,6 +82,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
+			},
+
+			"folder": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -228,6 +247,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		memoryMb: int64(d.Get("memory").(int)),
 	}
 
+	if v, ok := d.GetOk("folder"); ok {
+		vm.folder = v.(string)
+	}
+
 	if v, ok := d.GetOk("datacenter"); ok {
 		vm.datacenter = v.(string)
 	}
@@ -344,7 +367,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			stateConf := &resource.StateChangeConf{
 				Pending:    []string{"pending"},
 				Target:     "active",
-				Refresh:    waitForNetworkingActive(client, vm.datacenter, vm.name),
+				Refresh:    waitForNetworkingActive(client, vm.datacenter, vm.Path()),
 				Timeout:    600 * time.Second,
 				Delay:      time.Duration(v.(int)) * time.Second,
 				MinTimeout: 2 * time.Second,
@@ -356,13 +379,15 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 		}
 	}
-	d.SetId(vm.name)
+	d.SetId(vm.Path())
 	log.Printf("[INFO] Created virtual machine: %s", d.Id())
 
 	return resourceVSphereVirtualMachineRead(d, meta)
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
+	
+	log.Printf("[DEBUG] reading virtual machine: %#v", d)
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
 	if err != nil {
@@ -371,9 +396,8 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	finder := find.NewFinder(client.Client, true)
 	finder = finder.SetDatacenter(dc)
 
-	vm, err := finder.VirtualMachine(context.TODO(), d.Get("name").(string))
+	vm, err := finder.VirtualMachine(context.TODO(), d.Id())
 	if err != nil {
-		log.Printf("[ERROR] Virtual machine not found: %s", d.Get("name").(string))
 		d.SetId("")
 		return nil
 	}
@@ -458,7 +482,7 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	finder := find.NewFinder(client.Client, true)
 	finder = finder.SetDatacenter(dc)
 
-	vm, err := finder.VirtualMachine(context.TODO(), d.Get("name").(string))
+	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("name").(string)))
 	if err != nil {
 		return err
 	}
@@ -519,18 +543,6 @@ func waitForNetworkingActive(client *govmomi.Client, datacenter, name string) re
 			log.Printf("[DEBUG] Waiting for IP address")
 			return nil, "pending", err
 		}
-	}
-}
-
-// getDatacenter gets datacenter object
-func getDatacenter(c *govmomi.Client, dc string) (*object.Datacenter, error) {
-	finder := find.NewFinder(c.Client, true)
-	if dc != "" {
-		d, err := finder.Datacenter(context.TODO(), dc)
-		return d, err
-	} else {
-		d, err := finder.DefaultDatacenter(context.TODO())
-		return d, err
 	}
 }
 
@@ -766,6 +778,7 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 // createVirtualMchine creates a new VirtualMachine.
 func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	dc, err := getDatacenter(c, vm.datacenter)
+
 	if err != nil {
 		return err
 	}
@@ -796,6 +809,21 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	dcFolders, err := dc.Folders(context.TODO())
 	if err != nil {
 		return err
+	}
+
+	log.Printf("[DEBUG] folder: %#v", vm.folder)
+	folder := dcFolders.VmFolder
+	if len(vm.folder) > 0 {
+		si := object.NewSearchIndex(c.Client)
+		folderRef, err := si.FindByInventoryPath(
+			context.TODO(), fmt.Sprintf("%v/vm/%v", vm.datacenter, vm.folder))
+		if err != nil {
+			return fmt.Errorf("Error reading folder %s: %s", vm.folder, err)
+		} else if folderRef == nil {
+			return fmt.Errorf("Cannot find folder %s", vm.folder)
+		} else {
+			folder = folderRef.(*object.Folder)
+		}
 	}
 
 	// network
@@ -886,7 +914,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	})
 	configSpec.Files = &types.VirtualMachineFileInfo{VmPathName: fmt.Sprintf("[%s]", mds.Name)}
 
-	task, err := dcFolders.VmFolder.CreateVM(context.TODO(), configSpec, resourcePool, nil)
+	task, err := folder.CreateVM(context.TODO(), configSpec, resourcePool, nil)
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
 	}
@@ -896,7 +924,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[ERROR] %s", err)
 	}
 
-	newVM, err := finder.VirtualMachine(context.TODO(), vm.name)
+	newVM, err := finder.VirtualMachine(context.TODO(), vm.Path())
 	if err != nil {
 		return err
 	}
@@ -953,6 +981,21 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	dcFolders, err := dc.Folders(context.TODO())
 	if err != nil {
 		return err
+	}
+	
+	log.Printf("[DEBUG] folder: %#v", vm.folder)
+	folder := dcFolders.VmFolder
+	if len(vm.folder) > 0 {
+		si := object.NewSearchIndex(c.Client)
+		folderRef, err := si.FindByInventoryPath(
+			context.TODO(), fmt.Sprintf("%v/vm/%v", vm.datacenter, vm.folder))
+		if err != nil {
+			return fmt.Errorf("Error reading folder %s: %s", vm.folder, err)
+		} else if folderRef == nil {
+			return fmt.Errorf("Cannot find folder %s", vm.folder)
+		} else {
+			folder = folderRef.(*object.Folder)
+		}
 	}
 
 	var datastore *object.Datastore
@@ -1084,7 +1127,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] clone spec: %v", cloneSpec)
 
-	task, err := template.Clone(context.TODO(), dcFolders.VmFolder, vm.name, cloneSpec)
+	task, err := template.Clone(context.TODO(), folder, vm.name, cloneSpec)
 	if err != nil {
 		return err
 	}
@@ -1094,7 +1137,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		return err
 	}
 
-	newVM, err := finder.VirtualMachine(context.TODO(), vm.name)
+	newVM, err := finder.VirtualMachine(context.TODO(), vm.Path())
 	if err != nil {
 		return err
 	}
