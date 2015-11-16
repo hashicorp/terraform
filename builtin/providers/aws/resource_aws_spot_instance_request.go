@@ -187,8 +187,7 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 	d.Set("spot_request_state", *request.State)
 	d.Set("tags", tagsToMap(request.Tags))
 
-	// return nil
-	// let's read the instance data...
+	// Read the instance data, setting up connection information
 	return readInstance(d, meta)
 }
 
@@ -222,19 +221,19 @@ func readInstance(d *schema.ResourceData, meta interface{}) error {
 		d.Set("public_ip", instance.PublicIpAddress)
 		d.Set("private_dns", instance.PrivateDnsName)
 		d.Set("private_ip", instance.PrivateIpAddress)
-	}
 
-	// set connection information
-	if instance.PublicIpAddress != nil {
-		d.SetConnInfo(map[string]string{
-			"type": "ssh",
-			"host": *instance.PublicIpAddress,
-		})
-	} else if instance.PrivateIpAddress != nil {
-		d.SetConnInfo(map[string]string{
-			"type": "ssh",
-			"host": *instance.PrivateIpAddress,
-		})
+		// set connection information
+		if instance.PublicIpAddress != nil {
+			d.SetConnInfo(map[string]string{
+				"type": "ssh",
+				"host": *instance.PublicIpAddress,
+			})
+		} else if instance.PrivateIpAddress != nil {
+			d.SetConnInfo(map[string]string{
+				"type": "ssh",
+				"host": *instance.PrivateIpAddress,
+			})
+		}
 	}
 
 	return nil
