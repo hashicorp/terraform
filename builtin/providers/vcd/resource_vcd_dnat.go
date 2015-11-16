@@ -41,15 +41,15 @@ func resourceVcdDNAT() *schema.Resource {
 }
 
 func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*govcd.VCDClient)
 	// Multiple VCD components need to run operations on the Edge Gateway, as
 	// the edge gatway will throw back an error if it is already performing an
 	// operation we must wait until we can aquire a lock on the client
-	vcd_client.Mutex.Lock()
-	defer vcd_client.Mutex.Unlock()
+	vcdClient.Mutex.Lock()
+	defer vcdClient.Mutex.Unlock()
 	portString := getPortString(d.Get("port").(int))
 
-	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
+	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
 	if err != nil {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
@@ -80,8 +80,8 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdDNATRead(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	e, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
+	vcdClient := meta.(*govcd.VCDClient)
+	e, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
 	if err != nil {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
@@ -106,15 +106,15 @@ func resourceVcdDNATRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*govcd.VCDClient)
 	// Multiple VCD components need to run operations on the Edge Gateway, as
 	// the edge gatway will throw back an error if it is already performing an
 	// operation we must wait until we can aquire a lock on the client
-	vcd_client.Mutex.Lock()
-	defer vcd_client.Mutex.Unlock()
+	vcdClient.Mutex.Lock()
+	defer vcdClient.Mutex.Unlock()
 	portString := getPortString(d.Get("port").(int))
 
-	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
+	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
 	if err != nil {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)

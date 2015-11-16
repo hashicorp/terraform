@@ -95,7 +95,7 @@ func resourceVcdNetwork() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceVcdNetworkIpAddressHash,
+				Set: resourceVcdNetworkIPAddressHash,
 			},
 			"static_ip_pool": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -114,21 +114,21 @@ func resourceVcdNetwork() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceVcdNetworkIpAddressHash,
+				Set: resourceVcdNetworkIPAddressHash,
 			},
 		},
 	}
 }
 
 func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	log.Printf("[TRACE] CLIENT: %#v", vcd_client)
-	vcd_client.Mutex.Lock()
-	defer vcd_client.Mutex.Unlock()
+	vcdClient := meta.(*govcd.VCDClient)
+	log.Printf("[TRACE] CLIENT: %#v", vcdClient)
+	vcdClient.Mutex.Lock()
+	defer vcdClient.Mutex.Unlock()
 
-	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
+	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
-	ipRanges := expandIpRange(d.Get("static_ip_pool").(*schema.Set).List())
+	ipRanges := expandIPRange(d.Get("static_ip_pool").(*schema.Set).List())
 
 	newnetwork := &types.OrgVDCNetwork{
 		Xmlns: "http://www.vmware.com/vcloud/v1.5",
@@ -157,18 +157,18 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] NETWORK: %#v", newnetwork)
 
 	err = retryCall(4, func() error {
-		return vcd_client.OrgVdc.CreateOrgVDCNetwork(newnetwork)
+		return vcdClient.OrgVdc.CreateOrgVDCNetwork(newnetwork)
 	})
 	if err != nil {
 		return fmt.Errorf("Error: %#v", err)
 	}
 
-	err = vcd_client.OrgVdc.Refresh()
+	err = vcdClient.OrgVdc.Refresh()
 	if err != nil {
 		return fmt.Errorf("Error refreshing vdc: %#v", err)
 	}
 
-	network, err := vcd_client.OrgVdc.FindVDCNetwork(d.Get("name").(string))
+	network, err := vcdClient.OrgVdc.FindVDCNetwork(d.Get("name").(string))
 	if err != nil {
 		return fmt.Errorf("Error finding network: %#v", err)
 	}
@@ -194,16 +194,16 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdNetworkRead(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	log.Printf("[DEBUG] VCD Client configuration: %#v", vcd_client)
-	log.Printf("[DEBUG] VCD Client configuration: %#v", vcd_client.OrgVdc)
+	vcdClient := meta.(*govcd.VCDClient)
+	log.Printf("[DEBUG] VCD Client configuration: %#v", vcdClient)
+	log.Printf("[DEBUG] VCD Client configuration: %#v", vcdClient.OrgVdc)
 
-	err := vcd_client.OrgVdc.Refresh()
+	err := vcdClient.OrgVdc.Refresh()
 	if err != nil {
 		return fmt.Errorf("Error refreshing vdc: %#v", err)
 	}
 
-	network, err := vcd_client.OrgVdc.FindVDCNetwork(d.Id())
+	network, err := vcdClient.OrgVdc.FindVDCNetwork(d.Id())
 	if err != nil {
 		log.Printf("[DEBUG] Network no longer exists. Removing from tfstate")
 		d.SetId("")
@@ -222,15 +222,15 @@ func resourceVcdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdNetworkDelete(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	vcd_client.Mutex.Lock()
-	defer vcd_client.Mutex.Unlock()
-	err := vcd_client.OrgVdc.Refresh()
+	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient.Mutex.Lock()
+	defer vcdClient.Mutex.Unlock()
+	err := vcdClient.OrgVdc.Refresh()
 	if err != nil {
 		return fmt.Errorf("Error refreshing vdc: %#v", err)
 	}
 
-	network, err := vcd_client.OrgVdc.FindVDCNetwork(d.Id())
+	network, err := vcdClient.OrgVdc.FindVDCNetwork(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error finding network: %#v", err)
 	}
@@ -249,7 +249,7 @@ func resourceVcdNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceVcdNetworkIpAddressHash(v interface{}) int {
+func resourceVcdNetworkIPAddressHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-",

@@ -1,12 +1,11 @@
 package vcd
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hmrc/vmware-govcd"
 	types "github.com/hmrc/vmware-govcd/types/v56"
+	"log"
 	"strings"
 )
 
@@ -30,7 +29,7 @@ func resourceVcdFirewallRules() *schema.Resource {
 			},
 
 			"rule": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -77,29 +76,30 @@ func resourceVcdFirewallRules() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceVcdNetworkFirewallRuleHash,
 			},
 		},
 	}
 }
 
 func resourceVcdFirewallRulesCreate(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	vcd_client.Mutex.Lock()
-	defer vcd_client.Mutex.Unlock()
+	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient.Mutex.Lock()
+	defer vcdClient.Mutex.Unlock()
 
-	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
+	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 	if err != nil {
 		return fmt.Errorf("Unable to find edge gateway: %s", err)
 	}
 
 	err = retryCall(5, func() error {
 		edgeGateway.Refresh()
-		firewallRules, _ := expandFirewallRules(d.Get("rule").(*schema.Set).List(), edgeGateway.EdgeGateway)
+		firewallRules, _ := expandFirewallRules(d, edgeGateway.EdgeGateway)
 		task, err := edgeGateway.CreateFirewallRules(d.Get("default_action").(string), firewallRules)
 		if err != nil {
+			log.Printf("[INFO] Error setting firewall rules: %s", err)
 			return fmt.Errorf("Error setting firewall rules: %#v", err)
 		}
+
 		return task.WaitTaskCompletion()
 	})
 	if err != nil {
@@ -112,13 +112,13 @@ func resourceVcdFirewallRulesCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceFirewallRulesDelete(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	vcd_client.Mutex.Lock()
-	defer vcd_client.Mutex.Unlock()
+	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient.Mutex.Lock()
+	defer vcdClient.Mutex.Unlock()
 
-	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
+	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
-	firewallRules := deleteFirewallRules(d.Get("rule").(*schema.Set).List(), edgeGateway.EdgeGateway)
+	firewallRules := deleteFirewallRules(d, edgeGateway.EdgeGateway)
 	defaultAction := edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.FirewallService.DefaultAction
 	task, err := edgeGateway.CreateFirewallRules(defaultAction, firewallRules)
 	if err != nil {
@@ -134,28 +134,42 @@ func resourceFirewallRulesDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceFirewallRulesRead(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*govcd.VCDClient)
 
-	edgeGateway, err := vcd_client.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
+	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 	if err != nil {
 		return fmt.Errorf("Error finding edge gateway: %#v", err)
 	}
+	ruleList := d.Get("rule").([]interface{})
 	firewallRules := *edgeGateway.EdgeGateway.Configuration.EdgeGatewayServiceConfiguration.FirewallService
-	d.Set("rule", resourceVcdFirewallRulesGather(firewallRules.FirewallRule, d.Get("rule").(*schema.Set).List()))
+	rulesCount := d.Get("rule.#").(int)
+	for i := 0; i < rulesCount; i++ {
+		prefix := fmt.Sprintf("rule.%d", i)
+		if d.Get(prefix+".id").(string) == "" {
+			log.Printf("[INFO] Rule %d has no id. Searching...", i)
+			ruleid, err := matchFirewallRule(d, prefix, firewallRules.FirewallRule)
+			if err == nil {
+				currentRule := ruleList[i].(map[string]interface{})
+				currentRule["id"] = ruleid
+				ruleList[i] = currentRule
+			}
+		}
+	}
+	d.Set("rule", ruleList)
 	d.Set("default_action", firewallRules.DefaultAction)
 
 	return nil
 }
 
-func deleteFirewallRules(configured []interface{}, gateway *types.EdgeGateway) []*types.FirewallRule {
+func deleteFirewallRules(d *schema.ResourceData, gateway *types.EdgeGateway) []*types.FirewallRule {
 	firewallRules := gateway.Configuration.EdgeGatewayServiceConfiguration.FirewallService.FirewallRule
-	fwrules := make([]*types.FirewallRule, 0, len(firewallRules)-len(configured))
+	rulesCount := d.Get("rule.#").(int)
+	fwrules := make([]*types.FirewallRule, 0, len(firewallRules)-rulesCount)
 
 	for _, f := range firewallRules {
 		keep := true
-		for _, r := range configured {
-			data := r.(map[string]interface{})
-			if data["id"].(string) != f.ID {
+		for i := 0; i < rulesCount; i++ {
+			if d.Get(fmt.Sprintf("rule.%d.id", i)).(string) != f.ID {
 				continue
 			}
 			keep = false
@@ -167,75 +181,25 @@ func deleteFirewallRules(configured []interface{}, gateway *types.EdgeGateway) [
 	return fwrules
 }
 
-func resourceVcdFirewallRulesGather(rules []*types.FirewallRule, configured []interface{}) []map[string]interface{} {
-	fwrules := make([]map[string]interface{}, 0, len(configured))
+func matchFirewallRule(d *schema.ResourceData, prefix string, rules []*types.FirewallRule) (string, error) {
 
-	for i := len(configured) - 1; i >= 0; i-- {
-		data := configured[i].(map[string]interface{})
-		rule, err := matchFirewallRule(data, rules)
-		if err != nil {
-			continue
-		}
-		fwrules = append(fwrules, rule)
-	}
-	return fwrules
-}
-
-func matchFirewallRule(data map[string]interface{}, rules []*types.FirewallRule) (map[string]interface{}, error) {
-	rule := make(map[string]interface{})
 	for _, m := range rules {
-		if data["id"].(string) == "" {
-			if data["description"].(string) == m.Description &&
-				data["policy"].(string) == m.Policy &&
-				data["protocol"].(string) == getProtocol(*m.Protocols) &&
-				data["destination_port"].(string) == getPortString(m.Port) &&
-				strings.ToLower(data["destination_ip"].(string)) == strings.ToLower(m.DestinationIP) &&
-				data["source_port"].(string) == getPortString(m.SourcePort) &&
-				strings.ToLower(data["source_ip"].(string)) == strings.ToLower(m.SourceIP) {
-				rule["id"] = m.ID
-				rule["description"] = m.Description
-				rule["policy"] = m.Policy
-				rule["protocol"] = getProtocol(*m.Protocols)
-				rule["destination_port"] = getPortString(m.Port)
-				rule["destination_ip"] = strings.ToLower(m.DestinationIP)
-				rule["source_port"] = getPortString(m.SourcePort)
-				rule["source_ip"] = strings.ToLower(m.SourceIP)
-				return rule, nil
-			}
-		} else {
-			if data["id"].(string) == m.ID {
-				rule["id"] = m.ID
-				rule["description"] = m.Description
-				rule["policy"] = m.Policy
-				rule["protocol"] = getProtocol(*m.Protocols)
-				rule["destination_port"] = getPortString(m.Port)
-				rule["destination_ip"] = strings.ToLower(m.DestinationIP)
-				rule["source_port"] = getPortString(m.SourcePort)
-				rule["source_ip"] = strings.ToLower(m.SourceIP)
-				return rule, nil
-			}
+		log.Printf("[INFO] %s - %s", d.Get(prefix+".description").(string), m.Description)
+		log.Printf("[INFO] %s - %s", d.Get(prefix+".policy").(string), m.Policy)
+		log.Printf("[INFO] %s - %s", d.Get(prefix+".protocol").(string), getProtocol(*m.Protocols))
+		log.Printf("[INFO] %s - %s", d.Get(prefix+".destination_port").(string), getPortString(m.Port))
+		log.Printf("[INFO] %s - %s", strings.ToLower(d.Get(prefix+".destination_ip").(string)), strings.ToLower(m.DestinationIP))
+		log.Printf("[INFO] %s - %s", d.Get(prefix+".source_port").(string), getPortString(m.SourcePort))
+		log.Printf("[INFO] %s - %s", strings.ToLower(d.Get(prefix+".source_ip").(string)), strings.ToLower(m.SourceIP))
+		if d.Get(prefix+".description").(string) == m.Description &&
+			d.Get(prefix+".policy").(string) == m.Policy &&
+			strings.ToLower(d.Get(prefix+".protocol").(string)) == getProtocol(*m.Protocols) &&
+			strings.ToLower(d.Get(prefix+".destination_port").(string)) == getPortString(m.Port) &&
+			strings.ToLower(d.Get(prefix+".destination_ip").(string)) == strings.ToLower(m.DestinationIP) &&
+			strings.ToLower(d.Get(prefix+".source_port").(string)) == getPortString(m.SourcePort) &&
+			strings.ToLower(d.Get(prefix+".source_ip").(string)) == strings.ToLower(m.SourceIP) {
+			return m.ID, nil
 		}
 	}
-	return rule, fmt.Errorf("Unable to find rule")
-}
-
-func resourceVcdNetworkFirewallRuleHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["description"].(string))))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["policy"].(string))))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["protocol"].(string))))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["destination_port"].(string))))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["destination_ip"].(string))))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["source_port"].(string))))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["source_ip"].(string))))
-
-	return hashcode.String(buf.String())
+	return "", fmt.Errorf("Unable to find rule")
 }
