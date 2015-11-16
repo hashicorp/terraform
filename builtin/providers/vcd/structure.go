@@ -1,13 +1,15 @@
 package vcd
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/hmrc/vmware-govcd/types/v56"
 	"strconv"
 	"time"
 )
 
-func expandIpRange(configured []interface{}) types.IPRanges {
+func expandIPRange(configured []interface{}) types.IPRanges {
 	ipRange := make([]*types.IPRange, 0, len(configured))
 
 	for _, ipRaw := range configured {
@@ -28,15 +30,16 @@ func expandIpRange(configured []interface{}) types.IPRanges {
 	return ipRanges
 }
 
-func expandFirewallRules(configured []interface{}, gateway *types.EdgeGateway) ([]*types.FirewallRule, error) {
+func expandFirewallRules(d *schema.ResourceData, gateway *types.EdgeGateway) ([]*types.FirewallRule, error) {
 	//firewallRules := make([]*types.FirewallRule, 0, len(configured))
 	firewallRules := gateway.Configuration.EdgeGatewayServiceConfiguration.FirewallService.FirewallRule
 
-	for i := len(configured) - 1; i >= 0; i-- {
-		data := configured[i].(map[string]interface{})
+	rulesCount := d.Get("rule.#").(int)
+	for i := 0; i < rulesCount; i++ {
+		prefix := fmt.Sprintf("rule.%d", i)
 
 		var protocol *types.FirewallRuleProtocols
-		switch data["protocol"].(string) {
+		switch d.Get(prefix + ".protocol").(string) {
 		case "tcp":
 			protocol = &types.FirewallRuleProtocols{
 				TCP: true,
@@ -58,15 +61,15 @@ func expandFirewallRules(configured []interface{}, gateway *types.EdgeGateway) (
 			//ID: strconv.Itoa(len(configured) - i),
 			IsEnabled:            true,
 			MatchOnTranslate:     false,
-			Description:          data["description"].(string),
-			Policy:               data["policy"].(string),
+			Description:          d.Get(prefix + ".description").(string),
+			Policy:               d.Get(prefix + ".policy").(string),
 			Protocols:            protocol,
-			Port:                 getNumericPort(data["destination_port"]),
-			DestinationPortRange: data["destination_port"].(string),
-			DestinationIP:        data["destination_ip"].(string),
-			SourcePort:           getNumericPort(data["source_port"]),
-			SourcePortRange:      data["source_port"].(string),
-			SourceIP:             data["source_ip"].(string),
+			Port:                 getNumericPort(d.Get(prefix + ".destination_port")),
+			DestinationPortRange: d.Get(prefix + ".destination_port").(string),
+			DestinationIP:        d.Get(prefix + ".destination_ip").(string),
+			SourcePort:           getNumericPort(d.Get(prefix + ".source_port")),
+			SourcePortRange:      d.Get(prefix + ".source_port").(string),
+			SourceIP:             d.Get(prefix + ".source_ip").(string),
 			EnableLogging:        false,
 		}
 		firewallRules = append(firewallRules, rule)

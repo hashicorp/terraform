@@ -2,10 +2,9 @@ package vcd
 
 import (
 	"fmt"
-	"testing"
-	//"regexp"
 	"log"
 	"os"
+	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"

@@ -80,9 +80,9 @@ func resourceVcdVApp() *schema.Resource {
 }
 
 func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*govcd.VCDClient)
 
-	catalog, err := vcd_client.Org.FindCatalog(d.Get("catalog_name").(string))
+	catalog, err := vcdClient.Org.FindCatalog(d.Get("catalog_name").(string))
 	if err != nil {
 		return fmt.Errorf("Error finding catalog: %#v", err)
 	}
@@ -99,7 +99,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] VAppTemplate: %#v", vapptemplate)
 	var networkHref string
-	net, err := vcd_client.OrgVdc.FindVDCNetwork(d.Get("network_name").(string))
+	net, err := vcdClient.OrgVdc.FindVDCNetwork(d.Get("network_name").(string))
 	if err != nil {
 		return fmt.Errorf("Error finding OrgVCD Network: %#v", err)
 	}
@@ -108,7 +108,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		networkHref = net.OrgVDCNetwork.HREF
 	}
-	// vapptemplate := govcd.NewVAppTemplate(&vcd_client.Client)
+	// vapptemplate := govcd.NewVAppTemplate(&vcdClient.Client)
 	//
 	createvapp := &types.InstantiateVAppTemplateParams{
 		Ovf:   "http://schemas.dmtf.org/ovf/envelope/1",
@@ -134,13 +134,13 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	err = retryCall(4, func() error {
-		e := vcd_client.OrgVdc.InstantiateVAppTemplate(createvapp)
+		e := vcdClient.OrgVdc.InstantiateVAppTemplate(createvapp)
 
 		if e != nil {
 			return fmt.Errorf("Error: %#v", e)
 		}
 
-		e = vcd_client.OrgVdc.Refresh()
+		e = vcdClient.OrgVdc.Refresh()
 		if e != nil {
 			return fmt.Errorf("Error: %#v", e)
 		}
@@ -150,7 +150,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Get("name").(string))
+	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Get("name").(string))
 
 	err = retryCall(4, func() error {
 		task, err := vapp.ChangeVMName(d.Get("name").(string))
@@ -194,8 +194,8 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Id())
+	vcdClient := meta.(*govcd.VCDClient)
+	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
 
 	if err != nil {
 		return fmt.Errorf("Error finding VApp: %#v", err)
@@ -209,7 +209,7 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("metadata") {
 		oraw, nraw := d.GetChange("metadata")
 		metadata := oraw.(map[string]interface{})
-		for k, _ := range metadata {
+		for k := range metadata {
 			task, err := vapp.DeleteMetadata(k)
 			if err != nil {
 				return fmt.Errorf("Error deleting metadata: %#v", err)
@@ -290,14 +290,14 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdVAppRead(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*govcd.VCDClient)
 
-	err := vcd_client.OrgVdc.Refresh()
+	err := vcdClient.OrgVdc.Refresh()
 	if err != nil {
 		return fmt.Errorf("Error refreshing vdc: %#v", err)
 	}
 
-	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Id())
+	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
 	if err != nil {
 		log.Printf("[DEBUG] Unable to find vapp. Removing from tfstate")
 		d.SetId("")
@@ -309,8 +309,8 @@ func resourceVcdVAppRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdVAppDelete(d *schema.ResourceData, meta interface{}) error {
-	vcd_client := meta.(*govcd.VCDClient)
-	vapp, err := vcd_client.OrgVdc.FindVAppByName(d.Id())
+	vcdClient := meta.(*govcd.VCDClient)
+	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
 
 	if err != nil {
 		return fmt.Errorf("error finding vdc: %s", err)
