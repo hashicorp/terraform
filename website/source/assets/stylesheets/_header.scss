@@ -1,382 +1,87 @@
 //
 // Header
+// - Project Specific
+// - edits should be made here
 // --------------------------------------------------
 
 body.page-sub{
-
-    .terra-btn{
-      background-color: rgba(130, 47, 247, 1);
-    }
-
-    #header{
-        height: 90px;
-        background-color: $purple;
-
-        .navbar-collapse{
-            background-color: rgba(255, 255, 255, 0.98);
-        }
-
-        .nav-logo{
-            height: 90px;
-        }
-
-        .nav-white{
-            height: 90px;
-            background-color: white;
-        }
-
-        .main-links.navbar-nav{
-            float: left !important;
-            li > a {
-                color: black;
-                @include transition( color 0.3s ease );
-            }
-        }
-
-        .buttons.nav > li > a, .buttons.nav > li > a {
-            //background-color: lighten($purple, 1%);
-            @include transition( background-color 0.3s ease );
-        }
-
-        .buttons.nav > li > a:hover, .buttons.nav > li > a:focus {
-            background-color: black;
-            @include transition( background-color 0.3s ease );
-        }
-
-        .main-links.nav > li > a:hover, .main-links.nav > li > a:focus {
-            color: $purple;
-            @include transition( color 0.3s ease );
-        }
-    }
+  #header{
+    background-color: $purple;
+  }
 }
 
 #header {
-    position: relative;
-    color: $white;
-    text-rendering: optimizeLegibility;
-    margin-bottom: 0;
+  .navbar-brand {
+    .logo{
+      font-size: 20px;
+      text-transform: uppercase;
+      @include lato-light();
+      background: image-url('../images/logo-header.png') 0 0 no-repeat;
+      @include img-retina("../images/logo-header.png", "../images/logo-header@2x.png", $project-logo-width, $project-logo-height);
+      background-position: 0 45%;
 
-    &.navbar-static-top{
-        height:70px;
-
-        -webkit-transform:translate3d(0,0,0);
-           -moz-transform:translate3d(0,0,0);
-            -ms-transform:translate3d(0,0,0);
-             -o-transform:translate3d(0,0,0);
-                transform:translate3d(0,0,0);
-        z-index: 1000;
+      &:hover{
+        opacity: .6;
+      }
     }
 
-    a{
-        color: $white;
-    }
-
-    .navbar-toggle{
-        margin-top: 26px;
-        margin-bottom: 14px;
-        margin-right: 0;
-        border: 2px solid $white;
-        border-radius: 0;
-        .icon-bar{
-            border: 1px solid $white;
-            border-radius: 0;
+    .by-hashicorp{
+      &:hover{
+        svg{
+          line{
+            opacity: .4;
+          }
         }
+      }
     }
+  }
 
+  .buttons{
+    margin-top: 2px; //baseline everything
+
+    ul.navbar-nav{
+      li {
+        // &:hover{
+        //     svg path{
+        //         fill: $purple;
+        //     }
+        // }
+
+        svg path{
+          fill: $white;
+        }
+      }
+    }
+  }
+
+  .main-links,
+  .external-links {
+    li > a {
+      @include project-a-style();
+    }
+  }
+}
+
+@media (max-width: 414px) {
+  #header {
     .navbar-brand {
-        &.logo{
-            margin-top: 15px;
-            padding: 5px 0 0 68px;
-            height: 56px;
-            line-height: 56px;
-            font-size: 24px;
-            @include lato-light();
-            text-transform: uppercase;
-            background: image-url('consul-header-logo.png') 0 0 no-repeat;
-            @include img-retina("header-logo.png", "header-logo@2x.png", 50px, 56px);
-            -webkit-font-smoothing: default;
-        }
+      .logo{
+        padding-left: 37px;
+        font-size: 18px;
+        @include img-retina("../images/logo-header.png", "../images/logo-header@2x.png", $project-logo-width * .75, $project-logo-height * .75);
+        //background-position: 0 45%;
+      }
     }
-
-    .navbar-nav{
-        -webkit-font-smoothing: antialiased;
-            li{
-              position: relative;
-
-              > a {
-                font-size: 12px;
-                text-transform: uppercase;
-                letter-spacing: 3px;
-                padding-left: 22px;
-                @include transition( color 0.3s ease );
-            }
-
-            &.first{
-                >a{
-                  padding-left: 15px;
-                }
-            }
-        }
-    }
-
-    .nav > li > a:hover, .nav > li > a:focus {
-        background-color: transparent;
-        color: lighten($purple, 15%);
-        @include transition( color 0.3s ease );
-    }
-
-    .main-links.navbar-nav{
-        margin-top: 28px;
-
-        li + li{
-            padding-left: 6px;
-        }
-
-        li + li::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 7px;
-            width: 1px;
-            height: 12px;
-            background-color: $purple;
-            @include skewY(24deg);
-            padding-right: 0;
-        }
-
-        li > a {
-            //border-bottom: 2px solid rgba(255, 255, 255, .2);
-            line-height: 26px;
-            margin: 0 8px;
-            padding: 0 0 0 4px;
-        }
-
-    }
-
-    .buttons.navbar-nav{
-        margin-top: 25px;
-        margin-left: 30px;
-
-        li{
-            &.first{
-                margin-right: 13px;
-            }
-
-            &.download{
-                a{
-                    padding-left: 30px;
-                    background: image-url("header-download-icon.png")  12px 8px no-repeat;
-                    @include img-retina("header-download-icon.png", "header-download-icon@2x.png", 12px, 13px);
-                }
-            }
-
-            &.github{
-                a{
-                  background: image-url("header-github-icon.png")  12px 7px no-repeat;
-                  @include img-retina("header-github-icon.png", "header-github-icon@2x.png", 12px, 13px);
-                }
-            }
-        }
-
-        li > a {
-            color: white;
-            padding-top: 4px;
-            padding-bottom: 4px;
-            padding-left: 32px;
-            padding-right: 12px;
-            letter-spacing: 0.05em;
-        }
-    }
+  }
 }
 
-@media (min-width: 1200px) {
-
-    #header{
-        .main-links.navbar-nav{
-            margin-top: 28px;
-
-            li + li{
-                padding-left: 6px;
-            }
-
-            li + li::before {
-                content: "";
-                position: absolute;
-                left: 0;
-                top: 9px;
-                width: 6px;
-                height: 8px;
-                background-color: $purple;
-                @include skewY(24deg);
-                padding-right: 8px;
-            }
-
-            li > a {
-                //border-bottom: 2px solid rgba(255, 255, 255, .2);
-                line-height: 26px;
-                margin: 0 12px;
-                padding: 0 0 0 4px;
-            }
-
-        }
-    }
-}
-
-@media (min-width: 992px) {
-
-    .collapse{
-        margin-top: 8px;
-    }
-
-    //homepage has more space at this width to accommodate chevrons
-    .page-home{
-        #header{
-            .main-links.navbar-nav{
-                li + li{
-                    padding-left: 6px;
-                }
-
-                li + li::before {
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    top: 9px;
-                    width: 6px;
-                    height: 8px;
-                    background-color: $purple;
-                    @include skewY(24deg);
-                    padding-right: 8px;
-                }
-            }
-        }
-    }
-}
-
-
-
-@media (min-width: 768px) and (max-width: 992px) {
-
-    body.page-home{
-        .nav-logo{
-            width: 30%;
-        }
-        .nav-white{
-            margin-top: 8px;
-            width: 70%;
-        }
-        .buttons.navbar-nav{
-            li{
-               > a{
-                    padding-right: 4px !important;
-                    text-indent: -9999px;
-                    white-space: nowrap;
-                }
-            }
-        }
-    }
-}
-
-
-@media (max-width: 992px) {
-
-    #header {
-        .navbar-brand {
-            &.logo{
-                span{
-                    width: 120px;
-                    height: 39px;
-                    margin-top: 12px;
-                    background-size: 120px 39px;
-                }
-            }
-        }
-    }
-}
-
-@media (max-width: 768px) {
-
-    body.page-sub{
-        #header{
-            .nav-white{
-                background-color: transparent;
-            }
-        }
-    }
-
-    #header{
-        .buttons.navbar-nav{
-            float: none !important;
-            margin: 0;
-            padding-bottom: 0 !important;
-
-            li{
-                &.first{
-                    margin-right: 0;
-                }
-            }
-        }
-    }
-
-    //#footer,
-    #header{
-        .buttons.navbar-nav,
-        .main-links.navbar-nav{
-            display: block;
-            padding-bottom: 15px;
-            li{
-                display: block;
-                float: none;
-                margin-top: 15px;
-            }
-
-            .li-under a::after,
-            li + li::before {
-                display: none;
-            }
-        }
-    }
-
-    //#footer,
-    #header{
-        .main-links.navbar-nav{
-            float: left !important;
-            li > a {
-                padding: 0;
-                padding-left: 0;
-                line-height: 22px;
-            }
-        }
-    }
-}
-
-@media (max-width: 763px) {
-    .navbar-static-top {
-        .nav-white {
-            background-color:rgba(0,0,0,0.5);
-        }
-    }
-}
 
 @media (max-width: 320px) {
-
-    #header{
-        .navbar-brand {
-            &.logo{
-                padding:0 0 0 54px !important;
-                font-size: 20px !important;
-                line-height:42px !important;
-                margin-top: 23px !important ;
-                @include img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 39px, 44px);
-            }
-        }
-
+  #header {
+    .navbar-brand {
+      .logo{
+        font-size: 0 !important; //hide terraform text
+      }
     }
-
-    #feature-auto{
-        .terminal-text{
-            line-height: 48px !important;
-            font-size: 20px !important;
-        }
-    }
-
+  }
 }
