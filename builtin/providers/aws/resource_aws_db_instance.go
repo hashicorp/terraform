@@ -146,6 +146,7 @@ func resourceAwsDbInstance() *schema.Resource {
 			"publicly_accessible": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Computed: true,
 			},
 
 			"vpc_security_group_ids": &schema.Schema{
@@ -702,6 +703,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("multi_az") {
 		d.SetPartial("multi_az")
 		req.MultiAZ = aws.Bool(d.Get("multi_az").(bool))
+		requestUpdate = true
+	}
+	if d.HasChange("publicly_accessible") {
+		d.SetPartial("publicly_accessible")
+		req.PubliclyAccessible = aws.Bool(d.Get("publicly_accessible").(bool))
 		requestUpdate = true
 	}
 	if d.HasChange("storage_type") {
