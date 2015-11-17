@@ -381,7 +381,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	var mvm mo.VirtualMachine
 
 	collector := property.DefaultCollector(client.Client)
-	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore","config.extraConfig"}, &mvm); err != nil {
+	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
 		return err
 	}
 
@@ -436,19 +436,6 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("datacenter", dc)
 	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
-
-	if mvm.Config != nil && mvm.Config.ExtraConfig != nil && len(mvm.Config.ExtraConfig) > 0 {
-		//TODO: can only set specific custom value, not everything
-		//Would need the config here
-		//custom_configs := make(map[string]types.AnyType)
-		for _, v := range mvm.Config.ExtraConfig {
-			value := v.GetOptionValue()
-			//custom_configs[value.Key] = value.Value
-			log.Printf("[DEBUG] custom configs %s,%s",value.Key, value.Value)
-		}
-		//d.Set("custom_configuration_parameters", custom_configs)
-	}
-
 	d.Set("datastore", rootDatastore)
 
 	// Initialize the connection info
