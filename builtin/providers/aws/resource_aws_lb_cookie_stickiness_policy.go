@@ -39,7 +39,7 @@ func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
 
 			"cookie_expiration_period": &schema.Schema{
 				Type:     schema.TypeInt,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 		},
@@ -51,9 +51,12 @@ func resourceAwsLBCookieStickinessPolicyCreate(d *schema.ResourceData, meta inte
 
 	// Provision the LBStickinessPolicy
 	lbspOpts := &elb.CreateLBCookieStickinessPolicyInput{
-		CookieExpirationPeriod: aws.Int64(int64(d.Get("cookie_expiration_period").(int))),
 		LoadBalancerName:       aws.String(d.Get("load_balancer").(string)),
 		PolicyName:             aws.String(d.Get("name").(string)),
+	}
+
+	if v := d.Get("cookie_expiration_period").(int); v > 0 {
+		lbspOpts.CookieExpirationPeriod = aws.Int64(int64(v))
 	}
 
 	if _, err := elbconn.CreateLBCookieStickinessPolicy(lbspOpts); err != nil {
