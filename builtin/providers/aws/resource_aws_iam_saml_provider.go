@@ -68,6 +68,7 @@ func resourceAwsIamSamlProviderRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	validUntil := out.ValidUntil.Format(time.RFC1123)
+	d.Set("arn", d.Id())
 	d.Set("valid_until", validUntil)
 	d.Set("saml_metadata_document", *out.SAMLMetadataDocument)
 

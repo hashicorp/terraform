@@ -158,7 +158,7 @@ func resourcePacketDeviceCreate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[INFO] Device ID: %s", d.Id())
 
-	_, err = WaitForDeviceAttribute(d, "active", []string{"provisioning"}, "state", meta)
+	_, err = WaitForDeviceAttribute(d, "active", []string{"queued", "provisioning"}, "state", meta)
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for device (%s) to become ready: %s", d.Id(), err)

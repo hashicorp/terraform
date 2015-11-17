@@ -1,210 +1,88 @@
-
-#footer-wrap{
-    background-color: white;
-    padding: 0 0 50px 0;
-}
-
-body.page-home{
-    #footer{
-        margin-top: -40px;
-    }
+body.page-sub{
+  #footer{
+    padding: 40px 0;
+    margin-top: 0;
+  }
 }
 
 #footer{
-    padding: 140px 0 40px;
-    color: black;
+  background-color: white;
+  padding: 150px 0 80px;
+  margin-top: -40px;
 
-    a{
-        color: black;
-    }
-
-
+  &.white{
+    background-color: $black;
     .footer-links{
-        margin-bottom: 20px;
-
-        .li-under a:hover::after,
-        .li-under a:focus::after {
-            opacity: 1;
-            -webkit-transform: skewY(15deg) translateY(8px);
-            -moz-transform: skewY(15deg) translateY(8px);
-            transform: skewY(15deg) translateY(8px);
-        }
-
-        .li-under a::after {
-            background-color: $purple;
-        }
-
-        li{
-            a{
-                text-transform: uppercase;
-                font-size: 12px;
-                letter-spacing: 3px;
-                @include transition( color 0.3s ease );
-                font-weight: 400;
-
-                &:hover{
-                    color: $purple;
-                    @include transition( color 0.3s ease );
-                    background-color: transparent;
-                }
-            }
-        }
+      li > a {
+        @include project-footer-a-subpage-style();
+      }
     }
+  }
 
-    .buttons.navbar-nav{
-        float: none;
-        display: inline-block;
-        margin-bottom: 30px;
-        margin-top: 0px;
-
-        li{
-            &.first{
-                margin-right: 12px;
-            }
-
-            &.download{
-                a{
-                  background: image-url('icon-download-purple.png')  8px 6px no-repeat;
-                  @include img-retina("icon-download-purple.png", "icon-download-purple@2x.png", 20px, 20px);
-                }
-            }
-
-            &.github{
-                a{
-                  background: image-url('icon-github-purple.png')  8px 6px no-repeat;
-                  @include img-retina("icon-github-purple.png", "icon-github-purple@2x.png", 20px, 20px);
-                }
-            }
-        }
-
-        li > a {
-            padding-top: 6px;
-            padding-bottom: 6px;
-            padding-left: 40px;
-        }
+  .footer-links{
+    li > a {
+      @include project-footer-a-style();
     }
+  }
 
-    .footer-hashi{
-        float: right;
-        padding-top: 5px;
-        letter-spacing: 2px;
+  .hashicorp-project{
+    margin-top: 24px;
+  }
 
-        a{
-            color: black;
-            font-weight: $font-weight-lato-xb;
-        }
-
-        span{
-            margin-right: 10px;
-        }
-
-        .hashi-logo{
-            display: inline-block;
-            vertical-align: middle;
-            i{
-                display: inline-block;
-                width: 37px;
-                height: 40px;
-                background: image-url('footer-hashicorp-logo.png') 0 0 no-repeat;
-                @include img-retina("footer-hashicorp-logo.png", "footer-hashicorp-logo@2x.png", 37px, 40px);
-            }
-        }
-    }
+  .pull-right{
+    padding-right: 15px;
+  }
 }
 
-.page-sub{
-    #footer-wrap{
-        padding: 0;
-    }
+.edit-page-link{
+  position: absolute;
+  top: -70px;
+  right: 30px;;
 
-    #footer{
-        padding: 140px 0 100px;
-        background-color: $black;
-        transform: none;
-
-        >.container{
-            transform: none;
-        }
-
-        a{
-            color: white;
-        }
-
-        .footer-hashi{
-            color: white;
-
-            .hashi-logo{
-                i{
-                    background: image-url('footer-hashicorp-white-logo.png') 0 0 no-repeat;
-                    @include img-retina("footer-hashicorp-white-logo.png", "footer-hashicorp-white-logo@2x.png", 37px, 40px);
-                }
-            }
-        }
-    }
-}
-
-
-@media (min-width: 1500px) {
-    body.page-home{
-        #footer{
-            margin-top: -60px;
-            padding: 190px 0 40px;
-        }
-    }
+  a{
+    text-transform: uppercase;
+    color: $black;
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 992px) {
-    .page-sub #footer, #footer{
-        .footer-hashi {
-            padding-top: 14px;
-            span{
-                margin-right: 6px;
-            }
-            .hashi-logo{
-                i{
-                    margin-top: -6px;
-                    width: 20px;
-                    height: 22px;
-                    background-size: 20px 22px;
-                }
-            }
-        }
+  .footer-links {
+    display: block;
+    text-align: center;
+
+    ul{
+      display: inline-block;;
+      float: none !important;
     }
 
-
-}
-
-@media (max-width: 768px) {
-    #footer{
-        padding: 100px 0 40px;
-        text-align: center;
-
-        .footer-links{
-            float: none;
-            display: inline-block;
-        }
-
-        .footer-hashi {
-            float: none;
-            display: inline-block;
-
-            .pull-right{
-                float: none !important;
-            }
-        }
+    .footer-hashi{
+      display: block;
+      float: none !important;
     }
+  }
 }
 
-@media (max-width: 320px) {
-    #footer{
-        text-align: center;
+@media (max-width: 414px) {
+  #footer{
+    ul{
+      display: block;
+      li{
+        display: block;
+        float: none;
+      }
 
-        .footer-links{
-            .li-under{
-                float: none !important;
-            }
+      &.external-links{
+        li{
+          svg{
+            position: relative;
+            left: 0;
+            top: 2px;
+            margin-top: 0;
+            margin-right: 4px;
+          }
         }
+      }
     }
+  }
 }
-
-

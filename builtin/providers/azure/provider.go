@@ -3,12 +3,10 @@ package azure
 import (
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
-	"os"
 
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/go-homedir"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -20,6 +18,14 @@ func Provider() terraform.ResourceProvider {
 				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("AZURE_SETTINGS_FILE", nil),
 				ValidateFunc: validateSettingsFile,
+				Deprecated:   "Use the publish_settings field instead",
+			},
+
+			"publish_settings": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("AZURE_PUBLISH_SETTINGS", nil),
+				ValidateFunc: validatePublishSettings,
 			},
 
 			"subscription_id": &schema.Schema{
@@ -64,11 +70,14 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Certificate:    []byte(d.Get("certificate").(string)),
 	}
 
-	settingsFile := d.Get("settings_file").(string)
-	if settingsFile != "" {
+	publishSettings := d.Get("publish_settings").(string)
+	if publishSettings == "" {
+		publishSettings = d.Get("settings_file").(string)
+	}
+	if publishSettings != "" {
 		// any errors from readSettings would have been caught at the validate
 		// step, so we can avoid handling them now
-		settings, _, _ := readSettings(settingsFile)
+		settings, _, _ := readSettings(publishSettings)
 		config.Settings = settings
 		return config.NewClientFromSettingsData()
 	}
@@ -92,37 +101,42 @@ func validateSettingsFile(v interface{}, k string) ([]string, []error) {
 	return warnings, errors
 }
 
-const settingsPathWarnMsg = `
-settings_file is not valid XML, so we are assuming it is a file path. This
-support will be removed in the future. Please update your configuration to use
-${file("filename.publishsettings")} instead.`
+func validatePublishSettings(v interface{}, k string) (ws []string, es []error) {
+	value := v.(string)
+	if value == "" {
+		return
+	}
 
-func readSettings(pathOrContents string) (s []byte, ws []string, es []error) {
 	var settings settingsData
-	if err := xml.Unmarshal([]byte(pathOrContents), &settings); err == nil {
-		s = []byte(pathOrContents)
-		return
+	if err := xml.Unmarshal([]byte(value), &settings); err != nil {
+		es = append(es, fmt.Errorf("error parsing publish_settings as XML: %s", err))
 	}
 
-	ws = append(ws, settingsPathWarnMsg)
-	path, err := homedir.Expand(pathOrContents)
-	if err != nil {
-		es = append(es, fmt.Errorf("Error expanding path: %s", err))
-		return
-	}
-
-	s, err = ioutil.ReadFile(path)
-	if err != nil {
-		es = append(es, fmt.Errorf("Could not read file '%s': %s", path, err))
-	}
 	return
 }
 
-func isFile(v string) (bool, error) {
-	if _, err := os.Stat(v); err != nil {
-		return false, err
+const settingsPathWarnMsg = `
+settings_file was provided as a file path. This support
+will be removed in the future. Please update your configuration
+to use ${file("filename.publishsettings")} instead.`
+
+func readSettings(pathOrContents string) (s []byte, ws []string, es []error) {
+	contents, wasPath, err := pathorcontents.Read(pathOrContents)
+	if err != nil {
+		es = append(es, fmt.Errorf("error reading settings_file: %s", err))
 	}
-	return true, nil
+	if wasPath {
+		ws = append(ws, settingsPathWarnMsg)
+	}
+
+	var settings settingsData
+	if err := xml.Unmarshal([]byte(contents), &settings); err != nil {
+		es = append(es, fmt.Errorf("error parsing settings_file as XML: %s", err))
+	}
+
+	s = []byte(contents)
+
+	return
 }
 
 // settingsData is a private struct used to test the unmarshalling of the

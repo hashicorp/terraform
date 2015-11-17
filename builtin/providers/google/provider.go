@@ -3,8 +3,8 @@ package google
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -18,6 +18,14 @@ func Provider() terraform.ResourceProvider {
 				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 				ValidateFunc: validateAccountFile,
+				Deprecated:   "Use the credentials field instead",
+			},
+
+			"credentials": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_CREDENTIALS", nil),
+				ValidateFunc: validateCredentials,
 			},
 
 			"project": &schema.Schema{
@@ -43,6 +51,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_global_address":         resourceComputeGlobalAddress(),
 			"google_compute_global_forwarding_rule": resourceComputeGlobalForwardingRule(),
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
+			"google_compute_https_health_check":     resourceComputeHttpsHealthCheck(),
 			"google_compute_instance":               resourceComputeInstance(),
 			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
 			"google_compute_instance_template":      resourceComputeInstanceTemplate(),
@@ -72,8 +81,12 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	credentials := d.Get("credentials").(string)
+	if credentials == "" {
+		credentials = d.Get("account_file").(string)
+	}
 	config := Config{
-		AccountFile: d.Get("account_file").(string),
+		Credentials: credentials,
 		Project:     d.Get("project").(string),
 		Region:      d.Get("region").(string),
 	}
@@ -96,22 +109,34 @@ func validateAccountFile(v interface{}, k string) (warnings []string, errors []e
 		return
 	}
 
-	var account accountFile
-	if err := json.Unmarshal([]byte(value), &account); err != nil {
-		warnings = append(warnings, `
-account_file is not valid JSON, so we are assuming it is a file path. This
-support will be removed in the future. Please update your configuration to use
-${file("filename.json")} instead.`)
-	} else {
-		return
+	contents, wasPath, err := pathorcontents.Read(value)
+	if err != nil {
+		errors = append(errors, fmt.Errorf("Error loading Account File: %s", err))
+	}
+	if wasPath {
+		warnings = append(warnings, `account_file was provided as a path instead of 
+as file contents. This support will be removed in the future. Please update
+your configuration to use ${file("filename.json")} instead.`)
 	}
 
-	if _, err := os.Stat(value); err != nil {
+	var account accountFile
+	if err := json.Unmarshal([]byte(contents), &account); err != nil {
 		errors = append(errors,
-			fmt.Errorf(
-				"account_file path could not be read from '%s': %s",
-				value,
-				err))
+			fmt.Errorf("account_file not valid JSON '%s': %s", contents, err))
+	}
+
+	return
+}
+
+func validateCredentials(v interface{}, k string) (warnings []string, errors []error) {
+	if v == nil || v.(string) == "" {
+		return
+	}
+	creds := v.(string)
+	var account accountFile
+	if err := json.Unmarshal([]byte(creds), &account); err != nil {
+		errors = append(errors,
+			fmt.Errorf("credentials are not valid JSON '%s': %s", creds, err))
 	}
 
 	return

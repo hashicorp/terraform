@@ -2851,6 +2851,55 @@ func TestContext2Apply_outputInvalid(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_outputAdd(t *testing.T) {
+	m1 := testModule(t, "apply-output-add-before")
+	p1 := testProvider("aws")
+	p1.ApplyFn = testApplyFn
+	p1.DiffFn = testDiffFn
+	ctx1 := testContext2(t, &ContextOpts{
+		Module: m1,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p1),
+		},
+	})
+
+	if _, err := ctx1.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state1, err := ctx1.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	m2 := testModule(t, "apply-output-add-after")
+	p2 := testProvider("aws")
+	p2.ApplyFn = testApplyFn
+	p2.DiffFn = testDiffFn
+	ctx2 := testContext2(t, &ContextOpts{
+		Module: m2,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p2),
+		},
+		State: state1,
+	})
+
+	if _, err := ctx2.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state2, err := ctx2.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state2.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputAddStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_outputList(t *testing.T) {
 	m := testModule(t, "apply-output-list")
 	p := testProvider("aws")

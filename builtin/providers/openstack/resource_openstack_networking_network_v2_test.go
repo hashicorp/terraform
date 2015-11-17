@@ -117,51 +117,53 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 	var subnet subnets.Subnet
 
 	var testAccNetworkingV2Network_fullstack = fmt.Sprintf(`
-    resource "openstack_networking_network_v2" "foo" {
-      region = "%s"
-      name = "network_1"
-      admin_state_up = "true"
-    }
+		resource "openstack_networking_network_v2" "foo" {
+			region = "%s"
+			name = "network_1"
+			admin_state_up = "true"
+		}
 
-    resource "openstack_networking_subnet_v2" "foo" {
-      region = "%s"
-      name = "subnet_1"
-      network_id = "${openstack_networking_network_v2.foo.id}"
-      cidr = "192.168.199.0/24"
-      ip_version = 4
-    }
+		resource "openstack_networking_subnet_v2" "foo" {
+			region = "%s"
+			name = "subnet_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			cidr = "192.168.199.0/24"
+			ip_version = 4
+		}
 
-    resource "openstack_compute_secgroup_v2" "foo" {
-      region = "%s"
-      name = "secgroup_1"
-      description = "a security group"
-      rule {
-        from_port = 22
-        to_port = 22
-        ip_protocol = "tcp"
-        cidr = "0.0.0.0/0"
-      }
-    }
+		resource "openstack_compute_secgroup_v2" "foo" {
+			region = "%s"
+			name = "secgroup_1"
+			description = "a security group"
+			rule {
+				from_port = 22
+				to_port = 22
+				ip_protocol = "tcp"
+				cidr = "0.0.0.0/0"
+			}
+		}
 
-    resource "openstack_networking_port_v2" "foo" {
-      region = "%s"
-      name = "port_1"
-      network_id = "${openstack_networking_network_v2.foo.id}"
-      admin_state_up = "true"
-      security_groups = ["${openstack_compute_secgroup_v2.foo.id}"]
+		resource "openstack_networking_port_v2" "foo" {
+			region = "%s"
+			name = "port_1"
+			network_id = "${openstack_networking_network_v2.foo.id}"
+			admin_state_up = "true"
+			security_group_ids = ["${openstack_compute_secgroup_v2.foo.id}"]
+			fixed_ip {
+				"subnet_id" =  "${openstack_networking_subnet_v2.foo.id}"
+				"ip_address" =  "192.168.199.23"
+			}
+		}
 
-      depends_on = ["openstack_networking_subnet_v2.foo"]
-    }
+		resource "openstack_compute_instance_v2" "foo" {
+			region = "%s"
+			name = "terraform-test"
+			security_groups = ["${openstack_compute_secgroup_v2.foo.name}"]
 
-    resource "openstack_compute_instance_v2" "foo" {
-      region = "%s"
-      name = "terraform-test"
-      security_groups = ["${openstack_compute_secgroup_v2.foo.name}"]
-
-      network {
-        port = "${openstack_networking_port_v2.foo.id}"
-      }
-    }`, region, region, region, region, region)
+			network {
+				port = "${openstack_networking_port_v2.foo.id}"
+			}
+		}`, region, region, region, region, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
