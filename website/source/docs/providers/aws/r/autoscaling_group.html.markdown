@@ -53,9 +53,6 @@ The following arguments are supported:
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that
     should be running in the group. (See also [Waiting for
     Capacity](#waiting-for-capacity) below.)
-* `min_elb_capacity` - (Optional) Setting this will cause Terraform to wait
-    for this number of healthy instances all attached load balancers.
-    (See also [Waiting for Capacity](#waiting-for-capacity) below.)
 * `force_delete` - (Optional) Allows deleting the autoscaling group without waiting
    for all instances in the pool to terminate.  You can force an autoscaling group to delete
    even if it's in the process of scaling a resource. Normally, Terraform
@@ -71,6 +68,9 @@ The following arguments are supported:
   wait for ASG instances to be healthy before timing out.  (See also [Waiting
   for Capacity](#waiting-for-capacity) below.) Setting this to "0" causes
   Terraform to skip all Capacity Waiting behavior.
+* `wait_for_elb_capacity` - (Optional) Setting this will cause Terraform to wait
+  for this number of healthy instances all attached load balancers.
+  (See also [Waiting for Capacity](#waiting-for-capacity) below.)
 
 Tags support the following:
 
@@ -78,6 +78,10 @@ Tags support the following:
 * `value` - (Required) Value
 * `propagate_at_launch` - (Required) Enables propagation of the tag to
    Amazon EC2 instances launched via this ASG
+
+The following fields are deprecated:
+
+* `min_elb_capacity` - Please use `wait_for_elb_capacity` instead.
 
 ## Attributes Reference
 
@@ -96,7 +100,7 @@ The following attributes are exported:
 * `vpc_zone_identifier` - The VPC zone identifier
 * `load_balancers` (Optional) The load balancer names associated with the
    autoscaling group.
-   
+
 ~> **NOTE:** When using `ELB` as the health_check_type, `health_check_grace_period` is required.
 
 <a id="waiting-for-capacity"></a>
@@ -115,6 +119,10 @@ The first is default behavior. Terraform waits after ASG creation for
 `min_size` (or `desired_capacity`, if specified) healthy instances to show up
 in the ASG before continuing.
 
+If `min_size` or `desired_capacity` are changed in a subsequent update,
+Terraform will also wait for the correct number of healthy instances before
+continuing.
+
 Terraform considers an instance "healthy" when the ASG reports `HealthStatus:
 "Healthy"` and `LifecycleState: "InService"`. See the [AWS AutoScaling
 Docs](https://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingGroupLifecycle.html)
@@ -130,9 +138,9 @@ Setting `wait_for_capacity_timeout` to `"0"` disables ASG Capacity waiting.
 #### Waiting for ELB Capacity
 
 The second mechanism is optional, and affects ASGs with attached Load
-Balancers. If `min_elb_capacity` is set, Terraform will wait for that number of
-Instances to be `"InService"` in all attached `load_balancers`. This can be
-used to ensure that service is being provided before Terraform moves on.
+Balancers. If `wait_for_elb_capacity` is set, Terraform will wait for that
+number of Instances to be `"InService"` in all attached `load_balancers`. This
+can be used to ensure that service is being provided before Terraform moves on.
 
 As with ASG Capacity, Terraform will wait for up to `wait_for_capacity_timeout`
 (for `"InService"` instances. If ASG creation takes more than a few minutes,

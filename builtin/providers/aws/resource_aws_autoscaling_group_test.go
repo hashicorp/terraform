@@ -526,7 +526,7 @@ resource "aws_autoscaling_group" "bar" {
   min_size = 2
   health_check_grace_period = 300
   health_check_type = "ELB"
-  min_elb_capacity = 2
+  wait_for_elb_capacity = 2
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
