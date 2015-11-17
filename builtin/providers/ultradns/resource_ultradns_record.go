@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"strconv"
+	"strings"
 )
 
 func resourceUltraDNSRecord() *schema.Resource {
@@ -112,7 +113,7 @@ func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error 
 	if rec.OwnerName == "" {
 		d.Set("hostname", d.Get("zone").(string))
 	} else {
-		if string(rec.OwnerName[len(rec.OwnerName)-1]) == "." {
+		if strings.HasSuffix(rec.OwnerName, ".") {
 			d.Set("hostname", rec.OwnerName)
 		} else {
 			d.Set("hostname", fmt.Sprintf("%s.%s", rec.OwnerName, d.Get("zone").(string)))
