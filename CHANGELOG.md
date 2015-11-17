@@ -91,6 +91,7 @@ BUG FIXES:
   * provider/openstack: Better handling of network resource state changes [GH-3712]
   * provider/openstack: Fix crashing when no security group is specified [GH-3801]
   * provider/packet: Fix issue that could cause errors when provisioning many devices at once [GH-3847]
+  * provider/packet: Fix connection information for devices, allowing provisioners to run [GH-3948]
   * provider/openstack: Fix issue preventing security group rules from being removed [GH-3796]
   * provider/template: template_file: source contents instead of path [GH-3909]
 
