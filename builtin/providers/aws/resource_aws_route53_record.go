@@ -49,6 +49,13 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if value == "" {
+						es = append(es, fmt.Errorf("Cannot have empty zone_id"))
+					}
+					return
+				},
 			},
 
 			"ttl": &schema.Schema{
@@ -135,6 +142,9 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
 	if err != nil {
 		return err
+	}
+	if zoneRecord.HostedZone == nil {
+		return fmt.Errorf("[WARN] No Route53 Zone found for id (%s)", zone)
 	}
 
 	// Get the record
