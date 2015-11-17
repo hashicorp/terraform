@@ -313,26 +313,29 @@ func resourceVcdVAppDelete(d *schema.ResourceData, meta interface{}) error {
 	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
 
 	if err != nil {
-		return fmt.Errorf("error finding vdc: %s", err)
+		return fmt.Errorf("error finding vapp: %s", err)
 	}
 
-	task, err := vapp.Undeploy()
+	err = retryCall(4, func() error {
+		task, err := vapp.Undeploy()
+		if err != nil {
+			return fmt.Errorf("Error undeploying: %#v", err)
+		}
+
+		return task.WaitTaskCompletion()
+	})
 	if err != nil {
-		return fmt.Errorf("Error Powering Off: %#v", err)
-	}
-	err = task.WaitTaskCompletion()
-	if err != nil {
-		return fmt.Errorf("Error completing tasks: %#v", err)
+		return err
 	}
 
-	task, err = vapp.Delete()
-	if err != nil {
-		return fmt.Errorf("Error Powering Off: %#v", err)
-	}
-	err = task.WaitTaskCompletion()
-	if err != nil {
-		return fmt.Errorf("Error completing tasks: %#v", err)
-	}
+	err = retryCall(4, func() error {
+		task, err := vapp.Delete()
+		if err != nil {
+			return fmt.Errorf("Error deleting: %#v", err)
+		}
 
-	return nil
+		return task.WaitTaskCompletion()
+	})
+
+	return err
 }
