@@ -147,6 +147,33 @@ func TestInterpolateFuncCidrSubnet(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncCoalesce(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${coalesce("first", "second", "third")}`,
+				"first",
+				false,
+			},
+			{
+				`${coalesce("", "second", "third")}`,
+				"second",
+				false,
+			},
+			{
+				`${coalesce("", "", "")}`,
+				"",
+				false,
+			},
+			{
+				`${coalesce("foo")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDeprecatedConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{

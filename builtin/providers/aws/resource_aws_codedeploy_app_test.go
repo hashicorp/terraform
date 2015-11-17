@@ -23,7 +23,7 @@ func TestAccAWSCodeDeployApp_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployAppModifier,
+				Config: testAccAWSCodeDeployAppModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployAppExists("aws_codedeploy_app.foo"),
 				),
@@ -72,7 +72,7 @@ resource "aws_codedeploy_app" "foo" {
 	name = "foo"
 }`
 
-var testAccAWSCodeDeployAppModifier = `
+var testAccAWSCodeDeployAppModified = `
 resource "aws_codedeploy_app" "foo" {
 	name = "bar"
 }`

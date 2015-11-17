@@ -135,6 +135,9 @@ func removeUsersFromGroup(conn *iam.IAM, users []*string, group string) error {
 		})
 
 		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				return nil
+			}
 			return err
 		}
 	}

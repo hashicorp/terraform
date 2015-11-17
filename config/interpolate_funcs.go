@@ -25,6 +25,7 @@ func init() {
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
+		"coalesce":     interpolationFuncCoalesce(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
 		"element":      interpolationFuncElement(),
@@ -141,6 +142,30 @@ func interpolationFuncCidrSubnet() ast.Function {
 			}
 
 			return newNetwork.String(), nil
+		},
+	}
+}
+
+// interpolationFuncCoalesce implements the "coalesce" function that
+// returns the first non null / empty string from the provided input
+func interpolationFuncCoalesce() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeString},
+		ReturnType:   ast.TypeString,
+		Variadic:     true,
+		VariadicType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			if len(args) < 2 {
+				return nil, fmt.Errorf("must provide at least two arguments")
+			}
+			for _, arg := range args {
+				argument := arg.(string)
+
+				if argument != "" {
+					return argument, nil
+				}
+			}
+			return "", nil
 		},
 	}
 }

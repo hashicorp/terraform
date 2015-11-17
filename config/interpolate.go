@@ -76,6 +76,13 @@ type SelfVariable struct {
 	key string
 }
 
+// SimpleVariable is an unprefixed variable, which can show up when users have
+// strings they are passing down to resources that use interpolation
+// internally. The template_file resource is an example of this.
+type SimpleVariable struct {
+	Key string
+}
+
 // A UserVariable is a variable that is referencing a user variable
 // that is inputted from outside the configuration. This looks like
 // "${var.foo}"
@@ -97,6 +104,8 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
 		return NewModuleVariable(v)
+	} else if !strings.ContainsRune(v, '.') {
+		return NewSimpleVariable(v)
 	} else {
 		return NewResourceVariable(v)
 	}
@@ -224,6 +233,18 @@ func (v *SelfVariable) FullKey() string {
 }
 
 func (v *SelfVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewSimpleVariable(key string) (*SimpleVariable, error) {
+	return &SimpleVariable{key}, nil
+}
+
+func (v *SimpleVariable) FullKey() string {
+	return v.Key
+}
+
+func (v *SimpleVariable) GoString() string {
 	return fmt.Sprintf("*%#v", *v)
 }
 

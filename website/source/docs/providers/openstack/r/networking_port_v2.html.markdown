@@ -53,12 +53,24 @@ The following arguments are supported:
 * `device_owner` - (Optional) The device owner of the Port. Changing this creates
     a new port.
 
-* `security_groups` - (Optional) A list of security groups to apply to the port.
-    The security groups must be specified by ID and not name (as opposed to how
-    they are configured with the Compute Instance).
+* `security_group_ids` - (Optional) A list of security group IDs to apply to the
+    port. The security groups must be specified by ID and not name (as opposed
+    to how they are configured with the Compute Instance).
 
 * `device_id` - (Optional) The ID of the device attached to the port. Changing this
     creates a new port.
+
+* `fixed_ip` - (Optional) An array of desired IPs for this port. The structure is
+    described below.
+
+
+The `fixed_ip` block supports:
+
+* `subnet_id` - (Required) Subnet in which to allocate IP address for
+this port.
+
+* `ip_address` - (Required) IP address desired in the subnet for this
+port.
 
 ## Attributes Reference
 

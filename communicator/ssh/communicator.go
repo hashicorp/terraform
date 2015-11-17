@@ -93,7 +93,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  SSH Agent: %t",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
-			c.connInfo.KeyFile != "",
+			c.connInfo.PrivateKey != "",
 			c.connInfo.Agent,
 		))
 
@@ -107,7 +107,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 					"  SSH Agent: %t",
 				c.connInfo.BastionHost, c.connInfo.BastionUser,
 				c.connInfo.BastionPassword != "",
-				c.connInfo.BastionKeyFile != "",
+				c.connInfo.BastionPrivateKey != "",
 				c.connInfo.Agent,
 			))
 		}
