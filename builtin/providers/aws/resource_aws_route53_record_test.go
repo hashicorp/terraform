@@ -139,7 +139,7 @@ func TestAccAWSRoute53Record_failover(t *testing.T) {
 	})
 }
 
-func TestAccAWSRoute53Record_weighted(t *testing.T) {
+func TestAccAWSRoute53Record_weighted_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

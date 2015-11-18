@@ -25,7 +25,7 @@ resource "packet_project" "tf_project_1" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the SSH key for identification
+* `name` - (Required) The name of the Project in Packet.net
 * `payment_method` - (Required) The id of the payment method on file to use for services created
 on this project.
 
@@ -33,8 +33,8 @@ on this project.
 
 The following attributes are exported:
 
-* `id` - The unique ID of the key
+* `id` - The unique ID of the project
 * `payment_method` - The id of the payment method on file to use for services created
 on this project.
-* `created` - The timestamp for when the SSH key was created
-* `updated` - The timestamp for the last time the SSH key was udpated
+* `created` - The timestamp for when the Project was created
+* `updated` - The timestamp for the last time the Project was updated

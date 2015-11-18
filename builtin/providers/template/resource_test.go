@@ -26,15 +26,10 @@ func TestTemplateRendering(t *testing.T) {
 
 	for _, tt := range cases {
 		r.Test(t, r.TestCase{
-			PreCheck: func() {
-				readfile = func(string) ([]byte, error) {
-					return []byte(tt.template), nil
-				}
-			},
 			Providers: testProviders,
 			Steps: []r.TestStep{
 				r.TestStep{
-					Config: testTemplateConfig(tt.vars),
+					Config: testTemplateConfig(tt.template, tt.vars),
 					Check: func(s *terraform.State) error {
 						got := s.RootModule().Outputs["rendered"]
 						if tt.want != got {
@@ -62,14 +57,7 @@ func TestTemplateVariableChange(t *testing.T) {
 	var testSteps []r.TestStep
 	for i, step := range steps {
 		testSteps = append(testSteps, r.TestStep{
-			PreConfig: func(template string) func() {
-				return func() {
-					readfile = func(string) ([]byte, error) {
-						return []byte(template), nil
-					}
-				}
-			}(step.template),
-			Config: testTemplateConfig(step.vars),
+			Config: testTemplateConfig(step.template, step.vars),
 			Check: func(i int, want string) r.TestCheckFunc {
 				return func(s *terraform.State) error {
 					got := s.RootModule().Outputs["rendered"]
@@ -88,14 +76,13 @@ func TestTemplateVariableChange(t *testing.T) {
 	})
 }
 
-func testTemplateConfig(vars string) string {
-	return `
-resource "template_file" "t0" {
-	filename = "mock"
-	vars = ` + vars + `
-}
-output "rendered" {
-    value = "${template_file.t0.rendered}"
-}
-	`
+func testTemplateConfig(template, vars string) string {
+	return fmt.Sprintf(`
+		resource "template_file" "t0" {
+			template = "%s"
+			vars = %s
+		}
+		output "rendered" {
+				value = "${template_file.t0.rendered}"
+		}`, template, vars)
 }

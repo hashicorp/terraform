@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"text/template"
@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
@@ -79,18 +80,22 @@ type Provisioner struct {
 	OSType               string      `mapstructure:"os_type"`
 	PreventSudo          bool        `mapstructure:"prevent_sudo"`
 	RunList              []string    `mapstructure:"run_list"`
-	SecretKeyPath        string      `mapstructure:"secret_key_path"`
+	SecretKey            string      `mapstructure:"secret_key"`
 	ServerURL            string      `mapstructure:"server_url"`
 	SkipInstall          bool        `mapstructure:"skip_install"`
 	SSLVerifyMode        string      `mapstructure:"ssl_verify_mode"`
 	ValidationClientName string      `mapstructure:"validation_client_name"`
-	ValidationKeyPath    string      `mapstructure:"validation_key_path"`
+	ValidationKey        string      `mapstructure:"validation_key"`
 	Version              string      `mapstructure:"version"`
 
 	installChefClient func(terraform.UIOutput, communicator.Communicator) error
 	createConfigFiles func(terraform.UIOutput, communicator.Communicator) error
 	runChefClient     func(terraform.UIOutput, communicator.Communicator) error
 	useSudo           bool
+
+	// Deprecated Fields
+	SecretKeyPath     string `mapstructure:"secret_key_path"`
+	ValidationKeyPath string `mapstructure:"validation_key_path"`
 }
 
 // ResourceProvisioner represents a generic chef provisioner
@@ -189,14 +194,23 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	if p.ValidationClientName == "" {
 		es = append(es, fmt.Errorf("Key not found: validation_client_name"))
 	}
-	if p.ValidationKeyPath == "" {
-		es = append(es, fmt.Errorf("Key not found: validation_key_path"))
+	if p.ValidationKey == "" && p.ValidationKeyPath == "" {
+		es = append(es, fmt.Errorf(
+			"One of validation_key or the deprecated validation_key_path must be provided"))
 	}
 	if p.UsePolicyfile && p.PolicyName == "" {
 		es = append(es, fmt.Errorf("Policyfile enabled but key not found: policy_name"))
 	}
 	if p.UsePolicyfile && p.PolicyGroup == "" {
 		es = append(es, fmt.Errorf("Policyfile enabled but key not found: policy_group"))
+	}
+	if p.ValidationKeyPath != "" {
+		ws = append(ws, "validation_key_path is deprecated, please use "+
+			"validation_key instead and load the key contents via file()")
+	}
+	if p.SecretKeyPath != "" {
+		ws = append(ws, "secret_key_path is deprecated, please use "+
+			"secret_key instead and load the key contents via file()")
 	}
 
 	return ws, es
@@ -247,20 +261,12 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.OhaiHints[i] = hintPath
 	}
 
-	if p.ValidationKeyPath != "" {
-		keyPath, err := homedir.Expand(p.ValidationKeyPath)
-		if err != nil {
-			return nil, fmt.Errorf("Error expanding the validation key path: %v", err)
-		}
-		p.ValidationKeyPath = keyPath
+	if p.ValidationKey == "" && p.ValidationKeyPath != "" {
+		p.ValidationKey = p.ValidationKeyPath
 	}
 
-	if p.SecretKeyPath != "" {
-		keyPath, err := homedir.Expand(p.SecretKeyPath)
-		if err != nil {
-			return nil, fmt.Errorf("Error expanding the secret key path: %v", err)
-		}
-		p.SecretKeyPath = keyPath
+	if p.SecretKey == "" && p.SecretKeyPath != "" {
+		p.SecretKey = p.SecretKeyPath
 	}
 
 	if attrs, ok := c.Config["attributes"]; ok {
@@ -316,7 +322,7 @@ func (p *Provisioner) runChefClientFunc(
 	chefCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		fb := path.Join(confDir, firstBoot)
+		fb := filepath.Join(confDir, firstBoot)
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
@@ -331,8 +337,8 @@ func (p *Provisioner) runChefClientFunc(
 				return fmt.Errorf("Error creating logfile directory %s: %v", logfileDir, err)
 			}
 
-			logFile := path.Join(logfileDir, p.NodeName)
-			f, err := os.Create(path.Join(logFile))
+			logFile := filepath.Join(logfileDir, p.NodeName)
+			f, err := os.Create(filepath.Join(logFile))
 			if err != nil {
 				return fmt.Errorf("Error creating logfile %s: %v", logFile, err)
 			}
@@ -348,7 +354,7 @@ func (p *Provisioner) runChefClientFunc(
 
 // Output implementation of terraform.UIOutput interface
 func (p *Provisioner) Output(output string) {
-	logFile := path.Join(logfileDir, p.NodeName)
+	logFile := filepath.Join(logfileDir, p.NodeName)
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Printf("Error creating logfile %s: %v", logFile, err)
@@ -376,28 +382,25 @@ func (p *Provisioner) deployConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	confDir string) error {
-	// Open the validation key file
-	f, err := os.Open(p.ValidationKeyPath)
+	contents, _, err := pathorcontents.Read(p.ValidationKey)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	f := strings.NewReader(contents)
 
 	// Copy the validation key to the new instance
-	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
+	if err := comm.Upload(filepath.Join(confDir, validationKey), f); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
 	}
 
-	if p.SecretKeyPath != "" {
-		// Open the secret key file
-		s, err := os.Open(p.SecretKeyPath)
+	if p.SecretKey != "" {
+		contents, _, err := pathorcontents.Read(p.SecretKey)
 		if err != nil {
 			return err
 		}
-		defer s.Close()
-
+		s := strings.NewReader(contents)
 		// Copy the secret key to the new instance
-		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
+		if err := comm.Upload(filepath.Join(confDir, secretKey), s); err != nil {
 			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
 		}
 	}
@@ -417,7 +420,7 @@ func (p *Provisioner) deployConfigFiles(
 	}
 
 	// Copy the client config to the new instance
-	if err := comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
+	if err := comm.Upload(filepath.Join(confDir, clienrb), &buf); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", clienrb, err)
 	}
 
@@ -446,7 +449,7 @@ func (p *Provisioner) deployConfigFiles(
 	}
 
 	// Copy the first-boot.json to the new instance
-	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
+	if err := comm.Upload(filepath.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
 	}
 
@@ -466,8 +469,8 @@ func (p *Provisioner) deployOhaiHints(
 		defer f.Close()
 
 		// Copy the hint to the new instance
-		if err := comm.Upload(path.Join(hintDir, path.Base(hint)), f); err != nil {
-			return fmt.Errorf("Uploading %s failed: %v", path.Base(hint), err)
+		if err := comm.Upload(filepath.Join(hintDir, filepath.Base(hint)), f); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", filepath.Base(hint), err)
 		}
 	}
 

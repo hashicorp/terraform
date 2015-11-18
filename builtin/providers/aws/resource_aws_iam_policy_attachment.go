@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -90,7 +91,8 @@ func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "NoSuchIdentity" {
+			if awsErr.Code() == "NoSuchEntity" {
+				log.Printf("[WARN] No such entity found for Policy Attachment (%s)", d.Id())
 				d.SetId("")
 				return nil
 			}

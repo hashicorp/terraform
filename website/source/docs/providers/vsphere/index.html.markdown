@@ -17,7 +17,8 @@ The provider needs to be configured with the proper credentials before it can be
 Use the navigation to the left to read about the available resources.
 
 ~> **NOTE:** The VMware vSphere Provider currently represents _initial support_
-and therefore may undergo significant changes as the community improves it.
+and therefore may undergo significant changes as the community improves it. This
+provider at this time only supports IPv4 addresses on virtual machines.
 
 ## Example Usage
 
@@ -72,7 +73,7 @@ In addition, the following environment variables are used in tests, and must be 
  * VSPHERE\_TEMPLATE
 
 The following environment variables depend on your vSphere environment:
-	
+
  * VSPHERE\_DATACENTER
  * VSPHERE\_CLUSTER
  * VSPHERE\_RESOURCE\_POOL
