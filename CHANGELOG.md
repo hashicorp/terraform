@@ -36,6 +36,7 @@ IMPROVEMENTS:
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
   * provider/aws: Add S3 support for Lambda Function resource [GH-3794]
   * provider/aws: Add `name_prefix` option to launch configurations [GH-3802]
+  * provider/aws: add support for group name and path changes with IAM group update function [GH-3237]
   * provider/aws: Provide `source_security_group_id` for ELBs inside a VPC [GH-3780]
   * provider/aws: Add snapshot window and retention limits for ElastiCache (Redis) [GH-3707]
   * provider/aws: Add username updates for `aws_iam_user` [GH-3227]
@@ -55,6 +56,7 @@ IMPROVEMENTS:
   * provider/vsphere: Do not add network interfaces by default [GH-3652]
   * provider/openstack: Configure Fixed IPs through ports [GH-3772]
   * provider/openstack: Specify a port ID on a Router Interface [GH-3903]
+  * provider/openstack: Made LBaaS Virtual IP computed [GH-3927]
 
 BUG FIXES:
 
@@ -70,6 +72,7 @@ BUG FIXES:
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
   * provider/aws: Correctly export ARN in `aws_iam_saml_provider` [GH-3827]
+  * provider/aws: Fix crash in Route53 Record if Zone not found [GH-3945]
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
   * provider/aws: Downcase Route 53 record names in statefile to match API output [GH-3574]
   * provider/aws: Fix issue that could occur if no ECS Cluster was found for a give name [GH-3829]
@@ -79,6 +82,7 @@ BUG FIXES:
   * provider/aws: Expand ~ to homedir in `aws_s3_bucket_object.source` [GH-3910]
   * provider/aws: Fix issue with updating the `aws_ecs_task_definition` where `aws_ecs_service` didn't wait for a new computed ARN [GH-3924]
   * provider/aws: Prevent crashing when deleting `aws_ecs_service` that is already gone [GH-3914]
+  * provider/aws: Allow spaces in `aws_db_subnet_group.name` (undocumented in the API) [GH-3955]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
@@ -91,6 +95,7 @@ BUG FIXES:
   * provider/openstack: Better handling of network resource state changes [GH-3712]
   * provider/openstack: Fix crashing when no security group is specified [GH-3801]
   * provider/packet: Fix issue that could cause errors when provisioning many devices at once [GH-3847]
+  * provider/packet: Fix connection information for devices, allowing provisioners to run [GH-3948]
   * provider/openstack: Fix issue preventing security group rules from being removed [GH-3796]
   * provider/template: template_file: source contents instead of path [GH-3909]
 

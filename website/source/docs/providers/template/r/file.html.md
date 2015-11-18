@@ -14,7 +14,7 @@ Renders a template from a file.
 
 ```
 resource "template_file" "init" {
-    template = "${file(${path.module}/init.tpl)}"
+    template = "${file("${path.module}/init.tpl")}"
 
     vars {
         consul_address = "${aws_instance.consul.private_ip}"
