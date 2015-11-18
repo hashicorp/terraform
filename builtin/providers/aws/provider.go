@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -321,3 +322,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	return config.Client()
 }
+
+// This is a global MutexKV for use within this plugin.
+var awsMutexKV = mutexkv.NewMutexKV()
