@@ -681,12 +681,11 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 		}
 	} else {
 		// Here, the idea is that we do not delete the entire deployment if there are other
-		// VM-s still existing (*after* we delete the current VM). So, first, we call DeleteRole
-		// to delete just the VM requested for delete. Then we check if there are other VM-s left
-		// by calling GetDeployment() and checking the length of RoleInstanceList Array. If this was
-		// the last VM that we just deleted, array should be empty. In that case, we delete the whole deployment
+		// VM-s still existing (*after* we delete the current VM). So, first, we call GetDeployment
+		// on the deployment name (which we obtain by calling GetDeploymentName) to check if this
+		// is the last VM. If yes, we blow away the whole deployment. Else we just call DeleteRole
 
-		// First, call GetDeploymentName so that we can call DeleteRole() with that deployment name
+		// First, call GetDeploymentName so that we can call GetDeployment() with that deployment name
 		deploymentName, err := vmClient.GetDeploymentName(hostedServiceName)
 		if err != nil {
 			return fmt.Errorf("Error retrieving deployment from cloud service %s while trying to delete instance %s: %s", hostedServiceName, name, err)
@@ -694,28 +693,16 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 		if deploymentName == "" {
 			return fmt.Errorf("Error retrieving deployment from cloud service %s while trying to delete instance %s: No deployment exists!", hostedServiceName, name)
 		}
-
-		// Second, call DeleteRole
-		delRoleOpId, err := vmClient.DeleteRole(hostedServiceName, deploymentName, name)
-		if err != nil {
-			return fmt.Errorf("Error trying to delete instance %s: %s", name, err)
-                }
-
-		// Third, wait for that call to complete
-		if err := mc.mc.WaitForOperation(delRoleOpId, nil); err != nil {
-			return fmt.Errorf("Error waiting for instance %s to be deleted: %s", name, err)
-		}
-
-		// Fourth, call GetDeployment() to retrieve the whole DeploymentResponse struct, so that we can check RoleInstanceList array's length
+		
+		// Second, call GetDeployment() to retrieve the whole DeploymentResponse struct, so that we can check RoleInstanceList array's length
 		dpmt, err := vmClient.GetDeployment(hostedServiceName, deploymentName)
 		if err != nil {
 			return fmt.Errorf("Error retrieving deployment %s while trying to delete instance %s: %s", deploymentName, name, err)
 		}
 
-		// Fifth, check RoleInstanceList array's length to determine if this was the last VM in this deployment
-		// that we deleted. If yes, remove the whole deployment
-		if len(dpmt.RoleInstanceList) < 1 {
-			// else; just delete the instance:
+		// Third, check RoleInstanceList array's length to determine if this is the last VM in this deployment.
+		// If yes, remove the whole deployment. Else, remove just the VM using DeleteRole(...)
+		if len(dpmt.RoleInstanceList) == 1 {
 			reqID, err := vmClient.DeleteDeployment(hostedServiceName, name)
 			if err != nil {
 				return fmt.Errorf("Error deleting instance %s off hosted service %s: %s", name, hostedServiceName, err)
@@ -725,6 +712,17 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 			if err := mc.WaitForOperation(reqID, nil); err != nil {
 				return fmt.Errorf("Error waiting for intance %s to be deleted off the hosted service %s: %s",
 					name, hostedServiceName, err)
+			}
+		} else {
+			// This is not the last VM in the deployment, call DeleteRole
+			delRoleOpId, err := vmClient.DeleteRole(hostedServiceName, deploymentName, name, true)
+			if err != nil {
+				return fmt.Errorf("Error trying to delete instance %s: %s", name, err)
+	                }
+
+			// Wait for that call to complete
+			if err := mc.WaitForOperation(delRoleOpId, nil); err != nil {
+				return fmt.Errorf("Error waiting for instance %s to be deleted: %s", name, err)
 			}
 		}
 	}
