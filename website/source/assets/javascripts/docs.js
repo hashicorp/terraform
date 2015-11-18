@@ -2,7 +2,7 @@
 
 var Init = {
 
-  start: function(){ 
+  start: function(){
     var classname = this.hasClass(document.body, 'page-sub');
 
     if (classname) {
@@ -25,7 +25,7 @@ var Init = {
   resizeImage: function(){
 
     var header = document.getElementById('header'),
-        footer = document.getElementById('footer-wrap'),
+        footer = document.getElementById('footer'),
         main = document.getElementById('main-content'),
         vp = window.innerHeight,
         bodyHeight = document.body.clientHeight,
@@ -33,10 +33,10 @@ var Init = {
         fHeight = footer.clientHeight,
         withMinHeight = hHeight + fHeight + 830;
 
-    if(withMinHeight >  bodyHeight ){
+    if(withMinHeight <  vp &&  bodyHeight < vp){
       var newHeight = (vp - (hHeight+fHeight)) + 'px';
       main.style.height = newHeight;
-    }    
+    }
   }
 
 };

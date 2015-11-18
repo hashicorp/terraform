@@ -156,6 +156,8 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(out.Services) < 1 {
+		log.Printf("[DEBUG] Removing ECS service %s (%s) because it's gone", d.Get("name").(string), d.Id())
+		d.SetId("")
 		return nil
 	}
 
@@ -163,7 +165,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Status==INACTIVE means deleted service
 	if *service.Status == "INACTIVE" {
-		log.Printf("[DEBUG] Removing ECS service %q because it's INACTIVE", service.ServiceArn)
+		log.Printf("[DEBUG] Removing ECS service %q because it's INACTIVE", *service.ServiceArn)
 		d.SetId("")
 		return nil
 	}
@@ -247,6 +249,12 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return err
 	}
+
+	if len(resp.Services) == 0 {
+		log.Printf("[DEBUG] ECS Service %q is already gone", d.Id())
+		return nil
+	}
+
 	log.Printf("[DEBUG] ECS service %s is currently %s", d.Id(), *resp.Services[0].Status)
 
 	if *resp.Services[0].Status == "INACTIVE" {

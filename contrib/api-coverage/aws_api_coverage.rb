@@ -23,7 +23,7 @@ module APIs
 
   module AWS
     def self.path
-      @path ||= Pathname(`go list -f '{{.Dir}}' github.com/awslabs/aws-sdk-go/aws`.chomp).parent
+      @path ||= Pathname(`go list -f '{{.Dir}}' github.com/aws/aws-sdk-go/aws`.chomp).parent
     end
 
     def self.api_json_files

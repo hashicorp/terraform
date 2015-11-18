@@ -56,7 +56,7 @@ The following arguments are supported:
 Network interfaces support the following attributes:
 
 * `label` - (Required) Label to assign to this network interface
-* `ip_address` - (Optional) Static IP to assign to this network interface. Interface will use DHCP if this is left blank.
+* `ip_address` - (Optional) Static IP to assign to this network interface. Interface will use DHCP if this is left blank. Currently only IPv4 IP addresses are supported.
 * `subnet_mask` - (Optional) Subnet mask to use when statically assigning an IP.
 
 <a id="disks"></a>
