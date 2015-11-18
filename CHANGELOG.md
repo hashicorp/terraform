@@ -56,6 +56,7 @@ IMPROVEMENTS:
   * provider/vsphere: Do not add network interfaces by default [GH-3652]
   * provider/openstack: Configure Fixed IPs through ports [GH-3772]
   * provider/openstack: Specify a port ID on a Router Interface [GH-3903]
+  * provider/openstack: Made LBaaS Virtual IP computed [GH-3927]
 
 BUG FIXES:
 
