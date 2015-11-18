@@ -3,7 +3,6 @@ package openstack
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
@@ -53,16 +52,19 @@ func resourceLBVipV1() *schema.Resource {
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: false,
 			},
 			"persistence": &schema.Schema{
@@ -73,6 +75,7 @@ func resourceLBVipV1() *schema.Resource {
 			"conn_limit": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 				ForceNew: false,
 			},
 			"port_id": &schema.Schema{
@@ -86,8 +89,9 @@ func resourceLBVipV1() *schema.Resource {
 				ForceNew: false,
 			},
 			"admin_state_up": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:     schema.TypeBool,
 				Optional: true,
+				Computed: true,
 				ForceNew: false,
 			},
 		},
@@ -114,14 +118,8 @@ func resourceLBVipV1Create(d *schema.ResourceData, meta interface{}) error {
 		ConnLimit:    gophercloud.MaybeInt(d.Get("conn_limit").(int)),
 	}
 
-	asuRaw := d.Get("admin_state_up").(string)
-	if asuRaw != "" {
-		asu, err := strconv.ParseBool(asuRaw)
-		if err != nil {
-			return fmt.Errorf("admin_state_up, if provided, must be either 'true' or 'false'")
-		}
-		createOpts.AdminStateUp = &asu
-	}
+	asu := d.Get("admin_state_up").(bool)
+	createOpts.AdminStateUp = &asu
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	p, err := vips.Create(networkingClient, createOpts).Extract()
@@ -160,40 +158,11 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("port", p.ProtocolPort)
 	d.Set("pool_id", p.PoolID)
 	d.Set("port_id", p.PortID)
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", p.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
-
-	if t, exists := d.GetOk("address"); exists && t != "" {
-		d.Set("address", p.Address)
-	} else {
-		d.Set("address", "")
-	}
-
-	if t, exists := d.GetOk("description"); exists && t != "" {
-		d.Set("description", p.Description)
-	} else {
-		d.Set("description", "")
-	}
-
-	if t, exists := d.GetOk("persistence"); exists && t != "" {
-		d.Set("persistence", p.Description)
-	}
-
-	if t, exists := d.GetOk("conn_limit"); exists && t != "" {
-		d.Set("conn_limit", p.ConnLimit)
-	} else {
-		d.Set("conn_limit", "")
-	}
-
-	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
-		d.Set("admin_state_up", strconv.FormatBool(p.AdminStateUp))
-	} else {
-		d.Set("admin_state_up", "")
-	}
+	d.Set("tenant_id", p.TenantID)
+	d.Set("address", p.Address)
+	d.Set("description", p.Description)
+	d.Set("conn_limit", p.ConnLimit)
+	d.Set("admin_state_up", p.AdminStateUp)
 
 	return nil
 }
@@ -255,14 +224,8 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	if d.HasChange("admin_state_up") {
-		asuRaw := d.Get("admin_state_up").(string)
-		if asuRaw != "" {
-			asu, err := strconv.ParseBool(asuRaw)
-			if err != nil {
-				return fmt.Errorf("admin_state_up, if provided, must be either 'true' or 'false'")
-			}
-			updateOpts.AdminStateUp = &asu
-		}
+		asu := d.Get("admin_state_up").(bool)
+		updateOpts.AdminStateUp = &asu
 	}
 
 	log.Printf("[DEBUG] Updating OpenStack LB VIP %s with options: %+v", d.Id(), updateOpts)

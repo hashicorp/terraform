@@ -15,6 +15,12 @@ dev: generate
 quickdev: generate
 	@TF_QUICKDEV=1 TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
+# Shorthand for quickly building the core of Terraform. Note that some
+# changes will require a rebuild of everything, in which case the dev
+# target should be used.
+core-dev: generate
+	go install github.com/hashicorp/terraform
+
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
 plugin-dev: generate
