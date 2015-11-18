@@ -75,6 +75,12 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+                       "classiclink_enabled": &schema.Schema{
+                                Type:     schema.TypeBool,
+                                Optional: true,
+                                Computed: true,
+                        },
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -86,6 +92,10 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
 	}
+        classiclink_enabled := false
+        if v, ok := d.GetOk("classiclink_enabled"); ok {
+                classiclink_enabled = v.(bool)
+        }
 	// Create the VPC
 	createOpts := &ec2.CreateVpcInput{
 		CidrBlock:       aws.String(d.Get("cidr_block").(string)),
@@ -101,6 +111,20 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	vpc := vpcResp.Vpc
 	d.SetId(*vpc.VpcId)
 	log.Printf("[INFO] VPC ID: %s", d.Id())
+
+        // Enable ClassicLink if necesary
+        log.Printf("Here and CL is: %t", classiclink_enabled)
+        if classiclink_enabled {
+                // Create Enable ClassicLinkInput
+                clInput := &ec2.EnableVpcClassicLinkInput{
+                        VpcId:  vpc.VpcId, // Required
+                }
+
+                _, err1 := conn.EnableVpcClassicLink(clInput)
+                if err1 != nil {
+                        fmt.Errorf("Error enabling ClassicLink: %s", err1)
+                }
+        }
 
 	// Set partial mode and say that we setup the cidr block
 	d.Partial(true)
