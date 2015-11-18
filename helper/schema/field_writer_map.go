@@ -298,8 +298,7 @@ func (w *MapFieldWriter) setSet(
 	}
 
 	for code, elem := range value.(*Set).m {
-		codeStr := strconv.FormatInt(int64(code), 10)
-		if err := w.set(append(addrCopy, codeStr), elem); err != nil {
+		if err := w.set(append(addrCopy, code), elem); err != nil {
 			return err
 		}
 	}

@@ -228,7 +228,7 @@ func (d *ResourceData) State() *terraform.InstanceState {
 	// attribute set as a map[string]interface{}, write it to a MapFieldWriter,
 	// and then use that map.
 	rawMap := make(map[string]interface{})
-	for k, _ := range d.schema {
+	for k := range d.schema {
 		source := getSourceSet
 		if d.partial {
 			source = getSourceState
@@ -343,13 +343,13 @@ func (d *ResourceData) diffChange(
 }
 
 func (d *ResourceData) getChange(
-	key string,
+	k string,
 	oldLevel getSource,
 	newLevel getSource) (getResult, getResult) {
 	var parts, parts2 []string
-	if key != "" {
-		parts = strings.Split(key, ".")
-		parts2 = strings.Split(key, ".")
+	if k != "" {
+		parts = strings.Split(k, ".")
+		parts2 = strings.Split(k, ".")
 	}
 
 	o := d.get(parts, oldLevel)
@@ -372,13 +372,6 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 		level = "config"
 	} else {
 		level = "state"
-	}
-
-	// Build the address of the key we're looking for and ask the FieldReader
-	for i, v := range addr {
-		if v[0] == '~' {
-			addr[i] = v[1:]
-		}
 	}
 
 	var result FieldReadResult
