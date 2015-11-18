@@ -36,11 +36,19 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VCD_URL", nil),
 				Description: "The vcd url for vcd API operations.",
 			},
+
 			"vdc": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VCD_VDC", ""),
 				Description: "The name of the VDC to run operations on",
+			},
+
+			"maxRetryTimeout": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VCD_MAX_RETRY_TIMEOUT", 30),
+				Description: "Max num seconds to wait for successful response when operating on resources within vCloud (defaults to 30)",
 			},
 		},
 
@@ -58,11 +66,12 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		User:     d.Get("user").(string),
-		Password: d.Get("password").(string),
-		Org:      d.Get("org").(string),
-		Href:     d.Get("url").(string),
-		VDC:      d.Get("vdc").(string),
+		User:         d.Get("user").(string),
+		Password:     d.Get("password").(string),
+		Org:          d.Get("org").(string),
+		Href:         d.Get("url").(string),
+		VDC:          d.Get("vdc").(string),
+		MaxRetryTimeout: d.Get("maxRetryTimeout").(int),
 	}
 
 	return config.Client()

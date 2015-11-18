@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hmrc/vmware-govcd"
 	types "github.com/hmrc/vmware-govcd/types/v56"
 	"strings"
 )
@@ -121,7 +120,7 @@ func resourceVcdNetwork() *schema.Resource {
 }
 
 func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	log.Printf("[TRACE] CLIENT: %#v", vcdClient)
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
@@ -156,7 +155,7 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[INFO] NETWORK: %#v", newnetwork)
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		return vcdClient.OrgVdc.CreateOrgVDCNetwork(newnetwork)
 	})
 	if err != nil {
@@ -174,7 +173,7 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if dhcp, ok := d.GetOk("dhcp_pool"); ok {
-		err = retryCall(4, func() error {
+		err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 			task, err := edgeGateway.AddDhcpPool(network.OrgVDCNetwork, dhcp.(*schema.Set).List())
 			if err != nil {
 				return fmt.Errorf("Error adding DHCP pool: %#v", err)
@@ -194,7 +193,7 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdNetworkRead(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	log.Printf("[DEBUG] VCD Client configuration: %#v", vcdClient)
 	log.Printf("[DEBUG] VCD Client configuration: %#v", vcdClient.OrgVdc)
 
@@ -226,7 +225,7 @@ func resourceVcdNetworkRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdNetworkDelete(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 	err := vcdClient.OrgVdc.Refresh()
@@ -239,7 +238,7 @@ func resourceVcdNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error finding network: %#v", err)
 	}
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := network.Delete()
 		if err != nil {
 			return fmt.Errorf("Error Deleting Network: %#v", err)

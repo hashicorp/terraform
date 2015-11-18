@@ -50,7 +50,7 @@ func testAccCheckVcdNetworkExists(n string, network *govcd.OrgVDCNetwork) resour
 			return fmt.Errorf("No VAPP ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*govcd.VCDClient)
+		conn := testAccProvider.Meta().(*VCDClient)
 
 		resp, err := conn.OrgVdc.FindVDCNetwork(rs.Primary.ID)
 		if err != nil {
@@ -64,7 +64,7 @@ func testAccCheckVcdNetworkExists(n string, network *govcd.OrgVDCNetwork) resour
 }
 
 func testAccCheckVcdNetworkDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*govcd.VCDClient)
+	conn := testAccProvider.Meta().(*VCDClient)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "vcd_network" {
