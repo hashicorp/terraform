@@ -113,7 +113,6 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] VPC ID: %s", d.Id())
 
         // Enable ClassicLink if necesary
-        log.Printf("Here and CL is: %t", classiclink_enabled)
         if classiclink_enabled {
                 // Create Enable ClassicLinkInput
                 clInput := &ec2.EnableVpcClassicLinkInput{
