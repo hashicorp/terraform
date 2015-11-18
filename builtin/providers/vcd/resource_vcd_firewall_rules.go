@@ -184,13 +184,6 @@ func deleteFirewallRules(d *schema.ResourceData, gateway *types.EdgeGateway) []*
 func matchFirewallRule(d *schema.ResourceData, prefix string, rules []*types.FirewallRule) (string, error) {
 
 	for _, m := range rules {
-		log.Printf("[INFO] %s - %s", d.Get(prefix+".description").(string), m.Description)
-		log.Printf("[INFO] %s - %s", d.Get(prefix+".policy").(string), m.Policy)
-		log.Printf("[INFO] %s - %s", d.Get(prefix+".protocol").(string), getProtocol(*m.Protocols))
-		log.Printf("[INFO] %s - %s", d.Get(prefix+".destination_port").(string), getPortString(m.Port))
-		log.Printf("[INFO] %s - %s", strings.ToLower(d.Get(prefix+".destination_ip").(string)), strings.ToLower(m.DestinationIP))
-		log.Printf("[INFO] %s - %s", d.Get(prefix+".source_port").(string), getPortString(m.SourcePort))
-		log.Printf("[INFO] %s - %s", strings.ToLower(d.Get(prefix+".source_ip").(string)), strings.ToLower(m.SourceIP))
 		if d.Get(prefix+".description").(string) == m.Description &&
 			d.Get(prefix+".policy").(string) == m.Policy &&
 			strings.ToLower(d.Get(prefix+".protocol").(string)) == getProtocol(*m.Protocols) &&

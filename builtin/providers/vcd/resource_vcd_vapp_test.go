@@ -32,7 +32,7 @@ func TestAccVcdVApp_PowerOff(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccCheckVcdVApp_powerOff,
+				Config: fmt.Sprintf(testAccCheckVcdVApp_powerOff, os.Getenv("VCD_EDGE_GATWEWAY")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVcdVAppExists("vcd_vapp.foobar", &vapp),
 					testAccCheckVcdVAppAttributes_off(&vapp),
@@ -83,7 +83,7 @@ func testAccCheckVcdVAppDestroy(s *terraform.State) error {
 		_, err := conn.OrgVdc.FindVAppByName(rs.Primary.ID)
 
 		if err == nil {
-			return fmt.Errorf("VPCs still exist.")
+			return fmt.Errorf("VPCs still exist")
 		}
 
 		return nil
