@@ -107,6 +107,6 @@ func getPortString(port int) string {
 	return portstring
 }
 
-func retryCall(min int, f resource.RetryFunc) error {
-	return resource.Retry(time.Duration(min)*time.Minute, f)
+func retryCall(seconds int, f resource.RetryFunc) error {
+	return resource.Retry(time.Duration(seconds)*time.Second, f)
 }

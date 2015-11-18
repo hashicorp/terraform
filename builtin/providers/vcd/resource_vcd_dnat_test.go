@@ -50,7 +50,7 @@ func testAccCheckVcdDNATExists(n string, gateway *govcd.EdgeGateway) resource.Te
 			return fmt.Errorf("No DNAT ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*govcd.VCDClient)
+		conn := testAccProvider.Meta().(*VCDClient)
 
 		gatewayName := rs.Primary.Attributes["edge_gateway"]
 		edgeGateway, err := conn.OrgVdc.FindEdgeGateway(gatewayName)
@@ -79,7 +79,7 @@ func testAccCheckVcdDNATExists(n string, gateway *govcd.EdgeGateway) resource.Te
 }
 
 func testAccCheckVcdDNATDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*govcd.VCDClient)
+	conn := testAccProvider.Meta().(*VCDClient)
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "vcd_dnat" {
 			continue

@@ -3,7 +3,6 @@ package vcd
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hmrc/vmware-govcd"
 	types "github.com/hmrc/vmware-govcd/types/v56"
 	"log"
 )
@@ -80,7 +79,7 @@ func resourceVcdVApp() *schema.Resource {
 }
 
 func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 
 	catalog, err := vcdClient.Org.FindCatalog(d.Get("catalog_name").(string))
 	if err != nil {
@@ -133,7 +132,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		},
 	}
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		e := vcdClient.OrgVdc.InstantiateVAppTemplate(createvapp)
 
 		if e != nil {
@@ -152,7 +151,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 
 	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Get("name").(string))
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := vapp.ChangeVMName(d.Get("name").(string))
 		if err != nil {
 			return fmt.Errorf("Error with vm name change: %#v", err)
@@ -164,7 +163,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error changing vmname: %#v", err)
 	}
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := vapp.ChangeNetworkConfig(d.Get("network_name").(string), d.Get("ip").(string))
 		if err != nil {
 			return fmt.Errorf("Error with Networking change: %#v", err)
@@ -176,7 +175,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if initscript, ok := d.GetOk("initscript"); ok {
-		err = retryCall(4, func() error {
+		err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 			task, err := vapp.RunCustomizationScript(d.Get("name").(string), initscript.(string))
 			if err != nil {
 				return fmt.Errorf("Error with setting init script: %#v", err)
@@ -194,7 +193,7 @@ func resourceVcdVAppCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
 
 	if err != nil {
@@ -246,7 +245,7 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if d.HasChange("memory") {
-			err = retryCall(4, func() error {
+			err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 				task, err := vapp.ChangeMemorySize(d.Get("memory").(int))
 				if err != nil {
 					return fmt.Errorf("Error changing memory size: %#v", err)
@@ -260,7 +259,7 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if d.HasChange("cpus") {
-			err = retryCall(4, func() error {
+			err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 				task, err := vapp.ChangeCPUcount(d.Get("cpus").(int))
 				if err != nil {
 					return fmt.Errorf("Error changing cpu count: %#v", err)
@@ -290,7 +289,7 @@ func resourceVcdVAppUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdVAppRead(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 
 	err := vcdClient.OrgVdc.Refresh()
 	if err != nil {
@@ -309,14 +308,14 @@ func resourceVcdVAppRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdVAppDelete(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
 
 	if err != nil {
 		return fmt.Errorf("error finding vapp: %s", err)
 	}
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := vapp.Undeploy()
 		if err != nil {
 			return fmt.Errorf("Error undeploying: %#v", err)
@@ -328,7 +327,7 @@ func resourceVcdVAppDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := vapp.Delete()
 		if err != nil {
 			return fmt.Errorf("Error deleting: %#v", err)
