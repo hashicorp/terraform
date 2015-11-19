@@ -70,6 +70,26 @@ func TestLoadFileHeredoc(t *testing.T) {
 	}
 }
 
+func TestLoadFileEscapedQuotes(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "escapedquotes.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(escapedquotesResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFileBasic(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "basic.tf"))
 	if err != nil {
@@ -557,6 +577,102 @@ func TestLoad_temporary_files(t *testing.T) {
 	}
 }
 
+func TestLoad_hclAttributes(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "attributes.tf"))
+	if err != nil {
+		t.Fatalf("Bad: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	print(actual)
+	if actual != strings.TrimSpace(jsonAttributeStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	r := c.Resources[0]
+	if r.Name != "test" && r.Type != "cloudstack_firewall" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	raw := r.RawConfig
+	if raw.Raw["ipaddress"] != "192.168.0.1" {
+		t.Fatalf("Bad: %s", raw.Raw["ipAddress"])
+	}
+
+	rule := raw.Raw["rule"].([]map[string]interface{})[0]
+	if rule["protocol"] != "tcp" {
+		t.Fatalf("Bad: %s", rule["protocol"])
+	}
+
+	if rule["source_cidr"] != "10.0.0.0/8" {
+		t.Fatalf("Bad: %s", rule["source_cidr"])
+	}
+
+	ports := rule["ports"].([]interface{})
+
+	if ports[0] != "80" {
+		t.Fatalf("Bad ports: %s", ports[0])
+	}
+	if ports[1] != "1000-2000" {
+		t.Fatalf("Bad ports: %s", ports[1])
+	}
+}
+
+func TestLoad_jsonAttributes(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "attributes.tf.json"))
+	if err != nil {
+		t.Fatalf("Bad: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	print(actual)
+	if actual != strings.TrimSpace(jsonAttributeStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	r := c.Resources[0]
+	if r.Name != "test" && r.Type != "cloudstack_firewall" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	raw := r.RawConfig
+	if raw.Raw["ipaddress"] != "192.168.0.1" {
+		t.Fatalf("Bad: %s", raw.Raw["ipAddress"])
+	}
+
+	rule := raw.Raw["rule"].([]map[string]interface{})[0]
+	if rule["protocol"] != "tcp" {
+		t.Fatalf("Bad: %s", rule["protocol"])
+	}
+
+	if rule["source_cidr"] != "10.0.0.0/8" {
+		t.Fatalf("Bad: %s", rule["source_cidr"])
+	}
+
+	ports := rule["ports"].([]interface{})
+
+	if ports[0] != "80" {
+		t.Fatalf("Bad ports: %s", ports[0])
+	}
+	if ports[1] != "1000-2000" {
+		t.Fatalf("Bad ports: %s", ports[1])
+	}
+}
+
+const jsonAttributeStr = `
+cloudstack_firewall[test] (x1)
+  ipaddress
+  rule
+`
+
 const heredocProvidersStr = `
 aws
   access_key
@@ -569,6 +685,13 @@ aws_iam_policy[policy] (x1)
   name
   path
   policy
+`
+
+const escapedquotesResourcesStr = `
+aws_instance[quotes] (x1)
+  ami
+  vars
+    user: var.ami
 `
 
 const basicOutputsStr = `
