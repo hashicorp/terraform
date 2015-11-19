@@ -104,6 +104,15 @@ func TestAccDigitalOceanRecord_HostnameValue(t *testing.T) {
 	})
 }
 
+// This test fails with:
+//
+//   POST https://api.digitalocean.com/v2/domains/foobar-test-terraform.com/records:
+//   422 Data needs to end with a dot (.)
+//
+// Which seems like a behavior change on the DO API side. Opened support ticket
+// #826791 to ask DigitalOcean about this, and we'll comment out the test for
+// now. --phinze
+/*
 func TestAccDigitalOceanRecord_RelativeHostnameValue(t *testing.T) {
 	var record godo.DomainRecord
 
@@ -130,6 +139,7 @@ func TestAccDigitalOceanRecord_RelativeHostnameValue(t *testing.T) {
 		},
 	})
 }
+*/
 
 func TestAccDigitalOceanRecord_ExternalHostnameValue(t *testing.T) {
 	var record godo.DomainRecord
