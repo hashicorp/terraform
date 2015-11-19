@@ -108,7 +108,6 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	createOpts := elasticbeanstalk.CreateEnvironmentInput{
 		EnvironmentName: aws.String(name),
 		ApplicationName: aws.String(app),
-		VersionLabel:    aws.String(version),
 		OptionSettings:  extractOptionSettings(settings),
 		Tags:            tagsFromMapBeanstalk(d.Get("tags").(map[string]interface{})),
 	}
@@ -127,6 +126,10 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	if templateName != "" {
 		createOpts.TemplateName = aws.String(templateName)
+	}
+
+	if version != "" {
+		createOpts.VersionLabel = aws.String(version)
 	}
 
 	log.Printf("[DEBUG] Elastic Beanstalk Environment create opts: %s", createOpts)
