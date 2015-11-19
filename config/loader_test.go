@@ -70,6 +70,26 @@ func TestLoadFileHeredoc(t *testing.T) {
 	}
 }
 
+func TestLoadFileEscapedQuotes(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "escapedquotes.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(escapedquotesResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFileBasic(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "basic.tf"))
 	if err != nil {
@@ -665,6 +685,13 @@ aws_iam_policy[policy] (x1)
   name
   path
   policy
+`
+
+const escapedquotesResourcesStr = `
+aws_instance[quotes] (x1)
+  ami
+  vars
+    user: var.ami
 `
 
 const basicOutputsStr = `
