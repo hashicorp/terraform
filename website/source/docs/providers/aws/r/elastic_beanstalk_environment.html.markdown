@@ -47,6 +47,8 @@ The following arguments are supported:
 off of. Example stacks can be found in the [Amazon API documentation][1]
 * `template_name` – (Optional) The name of the Elastic Beanstalk Configuration 
   template to use in deployment
+* `version_name` - (Optional) The name of the Elastic Beanstalk Application Version
+  to use
 * `tags` – (Optional) A set of tags to apply to the Environment. **Note:** at
 this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application
@@ -68,7 +70,9 @@ The following attributes are exported:
 
 * `name`
 * `description`
-* `application` – the application specified
+* `application` – The application specified
+* `version_label` - The Application Version specified
+* `cname` - The Elastic Beanstalk CNAME poiting to this Environment
 * `setting` – Settings specifically set for this Environment
 * `all_settings` – List of all option settings configured in the Environment. These
   are a combination of default settings and their overrides from `settings` in
