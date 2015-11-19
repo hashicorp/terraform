@@ -34,6 +34,9 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 func TestAccAWSFlowLog_subnet(t *testing.T) {
 	var flowLog ec2.FlowLog
 	lgn := os.Getenv("LOG_GROUP_NAME")
+        if lgn == "" {
+                t.Fatalf("LOG_GROUP_NAME env var needed for TestAccAWSFlowLog_subnet")
+        }
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
