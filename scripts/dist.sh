@@ -9,8 +9,8 @@ if [ -z $VERSION ]; then
 fi
 
 # Make sure we have a bintray API key
-if [ -z $BINTRAY_API_KEY ]; then
-    echo "Please set your bintray API key in the BINTRAY_API_KEY env var."
+if [[ -z $AWS_ACCESS_KEY_ID  || -z $AWS_SECRET_ACCESS_KEY ]]; then
+    echo "Please set AWS access keys as env vars before running this script."
     exit 1
 fi
 
