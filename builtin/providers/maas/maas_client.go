@@ -55,7 +55,7 @@ func maasGetSingleNode(maas *gomaasapi.MAASObject, system_id string) (gomaasapi.
 This is a *low level* function that attempts to acquire a MAAS managed node for future deployment.
 */
 func maasAllocateNodes(maas *gomaasapi.MAASObject, params url.Values) (gomaasapi.MAASObject, error) {
-	log.Printf("[DEBUG] [maasAllocateNodes] Allocating one or more nodes with following params: %V", params)
+	log.Printf("[DEBUG] [maasAllocateNodes] Allocating one or more nodes with following params: %+v", params)
 
 	nodeObject, err := maas.GetSubObject("nodes").CallPost("acquire", params)
 	if err != nil {
@@ -284,7 +284,7 @@ func getAllNodes(maas *gomaasapi.MAASObject) ([]NodeInfo, error) {
 }
 
 func nodeDo(maas *gomaasapi.MAASObject, system_id string, action string, params url.Values) error {
-	log.Printf("[DEBUG] [nodeDo] system_id: %s, action: %s, params: %V", system_id, action, params)
+	log.Printf("[DEBUG] [nodeDo] system_id: %s, action: %s, params: %+v", system_id, action, params)
 
 	nodeObject, err := maasGetSingleNode(maas, system_id)
 	if err != nil {
@@ -322,7 +322,7 @@ func parseConstraints(d *schema.ResourceData) (url.Values, error) {
 
 	hostname, set := d.GetOk("hostname")
 	if set {
-		log.Printf("[DEBUG] [parseConstraints] setting hostname to %V", hostname)
+		log.Printf("[DEBUG] [parseConstraints] setting hostname to %+v", hostname)
 		retVal["name"] = strings.Fields(hostname.(string))
 	}
 
