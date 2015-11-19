@@ -84,8 +84,11 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	sg_id := d.Get("security_group_id").(string)
-	sg, err := findResourceSecurityGroup(conn, sg_id)
 
+	awsMutexKV.Lock(sg_id)
+	defer awsMutexKV.Unlock(sg_id)
+
+	sg, err := findResourceSecurityGroup(conn, sg_id)
 	if err != nil {
 		return err
 	}
@@ -249,8 +252,11 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	sg_id := d.Get("security_group_id").(string)
-	sg, err := findResourceSecurityGroup(conn, sg_id)
 
+	awsMutexKV.Lock(sg_id)
+	defer awsMutexKV.Unlock(sg_id)
+
+	sg, err := findResourceSecurityGroup(conn, sg_id)
 	if err != nil {
 		return err
 	}

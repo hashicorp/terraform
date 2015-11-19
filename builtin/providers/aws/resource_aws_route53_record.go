@@ -49,6 +49,13 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if value == "" {
+						es = append(es, fmt.Errorf("Cannot have empty zone_id"))
+					}
+					return
+				},
 			},
 
 			"ttl": &schema.Schema{
@@ -135,6 +142,9 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
 	if err != nil {
 		return err
+	}
+	if zoneRecord.HostedZone == nil {
+		return fmt.Errorf("[WARN] No Route53 Zone found for id (%s)", zone)
 	}
 
 	// Get the record
@@ -417,7 +427,10 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 
 	if v, ok := d.GetOk("set_identifier"); ok {
 		rec.SetIdentifier = aws.String(v.(string))
-		rec.Weight = aws.Int64(int64(d.Get("weight").(int)))
+	}
+
+	if v, ok := d.GetOk("weight"); ok {
+		rec.Weight = aws.Int64(int64(v.(int)))
 	}
 
 	return rec, nil

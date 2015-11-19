@@ -73,6 +73,8 @@ func (i *Interpolater) Values(
 			err = i.valueResourceVar(scope, n, v, result)
 		case *config.SelfVariable:
 			err = i.valueSelfVar(scope, n, v, result)
+		case *config.SimpleVariable:
+			err = i.valueSimpleVar(scope, n, v, result)
 		case *config.UserVariable:
 			err = i.valueUserVar(scope, n, v, result)
 		default:
@@ -247,6 +249,19 @@ func (i *Interpolater) valueSelfVar(
 	}
 
 	return i.valueResourceVar(scope, n, rv, result)
+}
+
+func (i *Interpolater) valueSimpleVar(
+	scope *InterpolationScope,
+	n string,
+	v *config.SimpleVariable,
+	result map[string]ast.Variable) error {
+	// SimpleVars are never handled by Terraform's interpolator
+	result[n] = ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeString,
+	}
+	return nil
 }
 
 func (i *Interpolater) valueUserVar(
