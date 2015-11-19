@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
-
 )
 
 func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
@@ -89,11 +88,11 @@ func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData,
 }
 
 func resourceAwsElasticBeanstalkApplicationVersionRead(d *schema.ResourceData, meta interface{}) error {
-	beanstalkConn := meta.(*AWSClient).elasticbeanstalkconn
+	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	name := d.Id()
 
-	resp, err := beanstalkConn.DescribeApplicationVersions(&elasticbeanstalk.DescribeApplicationVersionsInput{
+	resp, err := conn.DescribeApplicationVersions(&elasticbeanstalk.DescribeApplicationVersionsInput{
 		VersionLabels: []*string{aws.String(name)},
 	})
 
@@ -119,10 +118,10 @@ func resourceAwsElasticBeanstalkApplicationVersionRead(d *schema.ResourceData, m
 }
 
 func resourceAwsElasticBeanstalkApplicationVersionUpdate(d *schema.ResourceData, meta interface{}) error {
-	beanstalkConn := meta.(*AWSClient).elasticbeanstalkconn
+	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	if d.HasChange("description") {
-		if err := resourceAwsElasticBeanstalkApplicationVersionDescriptionUpdate(beanstalkConn, d); err != nil {
+		if err := resourceAwsElasticBeanstalkApplicationVersionDescriptionUpdate(conn, d); err != nil {
 			return err
 		}
 	}
@@ -132,12 +131,12 @@ func resourceAwsElasticBeanstalkApplicationVersionUpdate(d *schema.ResourceData,
 }
 
 func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData, meta interface{}) error {
-	beanstalkConn := meta.(*AWSClient).elasticbeanstalkconn
+	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	application := d.Get("application").(string)
 	name := d.Id()
 
-	_, err := beanstalkConn.DeleteApplicationVersion(&elasticbeanstalk.DeleteApplicationVersionInput{
+	_, err := conn.DeleteApplicationVersion(&elasticbeanstalk.DeleteApplicationVersionInput{
 		ApplicationName: aws.String(application),
 		VersionLabel:    aws.String(name),
 	})
@@ -154,14 +153,14 @@ func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData,
 	return err
 }
 
-func resourceAwsElasticBeanstalkApplicationVersionDescriptionUpdate(beanstalkConn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
+func resourceAwsElasticBeanstalkApplicationVersionDescriptionUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
 	application := d.Get("application").(string)
 	description := d.Get("description").(string)
 	name := d.Get("name").(string)
 
 	log.Printf("[DEBUG] Elastic Beanstalk application version: %s, update description: %s", name, description)
 
-	_, err := beanstalkConn.UpdateApplicationVersion(&elasticbeanstalk.UpdateApplicationVersionInput{
+	_, err := conn.UpdateApplicationVersion(&elasticbeanstalk.UpdateApplicationVersionInput{
 		ApplicationName: aws.String(application),
 		Description:     aws.String(description),
 		VersionLabel:    aws.String(name),
