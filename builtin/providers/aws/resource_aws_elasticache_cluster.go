@@ -141,6 +141,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 			"snapshot_window": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"snapshot_retention_limit": &schema.Schema{
