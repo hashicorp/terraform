@@ -171,7 +171,7 @@ resource "aws_instance" "test" {
     // one snapshot in our created AMI.
     // This is an Amazon Linux HVM AMI. A public HVM AMI is required
     // because paravirtual images cannot be copied between accounts.
-    ami = "ami-8fff43e4"
+    ami = "ami-5449393e"
     instance_type = "t2.micro"
     tags {
         Name = "terraform-acc-ami-copy-victim"
