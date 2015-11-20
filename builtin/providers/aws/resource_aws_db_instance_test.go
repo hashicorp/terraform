@@ -32,8 +32,6 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "engine", "mysql"),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "engine_version", "5.6.21"),
-					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "license_model", "general-public-license"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
@@ -111,7 +109,7 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 			return fmt.Errorf("bad engine: %#v", *v.Engine)
 		}
 
-		if *v.EngineVersion != "5.6.21" {
+		if *v.EngineVersion == "" {
 			return fmt.Errorf("bad engine_version: %#v", *v.EngineVersion)
 		}
 

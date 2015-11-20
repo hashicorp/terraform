@@ -1,0 +1,24 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+				 </li>
+				<li<%= sidebar_current("docs-infoblox-index") %>>
+					<a href="/docs/providers/infoblox/index.html">Infoblox Provider</a>
+		                </li>
+				<li<%= sidebar_current(/^docs-infoblox-resource/) %>>
+					<a href="#">Resources</a>
+			                <ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-infoblox-resource-record") %>>
+							<a href="/docs/providers/infoblox/r/record.html">ultradns_record</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>

@@ -58,7 +58,7 @@ func TestAccAzureInstance_separateHostedService(t *testing.T) {
 						"azure_instance.foo", testAccHostedServiceName, &dpmt),
 					testAccCheckAzureInstanceBasicAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "name", "terraform-test"),
+						"azure_instance.foo", "name", instanceName),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "hosted_service_name", "terraform-testing-service"),
 					resource.TestCheckResourceAttr(
@@ -392,8 +392,8 @@ resource "azure_hosted_service" "foo" {
 }
 
 resource "azure_instance" "foo" {
-    name = "terraform-test"
-	hosted_service_name = "${azure_hosted_service.foo.name}"
+    name = "%s"
+    hosted_service_name = "${azure_hosted_service.foo.name}"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
     storage_service_name = "%s"
@@ -407,7 +407,7 @@ resource "azure_instance" "foo" {
         public_port = 22
         private_port = 22
     }
-}`, testAccHostedServiceName, testAccStorageServiceName)
+}`, testAccHostedServiceName, instanceName, testAccStorageServiceName)
 
 var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {

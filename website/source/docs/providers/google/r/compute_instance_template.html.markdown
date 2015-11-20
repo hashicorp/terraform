@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_instance_template"
-sidebar_current: "docs-google-resource-instance_template"
+sidebar_current: "docs-google-compute-instance-template"
 description: |-
   Manages a VM instance template resource within GCE.
 ---
@@ -86,13 +86,14 @@ The following arguments are supported:
  	This can be specified multiple times for multiple networks. Structure is
 	documented below.
 
-* `automatic_restart` - (Optional) Specifies whether the instance should be
+* `automatic_restart` - (Optional, Deprecated - see `scheduling`) 
+	Specifies whether the instance should be
 	automatically restarted if it is terminated by Compute Engine (not
 	terminated by a user).
 	This defaults to true.
 
-* `on_host_maintenance` - (Optional) Defines the maintenance behavior for this
-	instance.
+* `on_host_maintenance` - (Optional, Deprecated - see `scheduling`) 
+	Defines the maintenance behavior for this instance.
 
 * `service_account` - (Optional) Service account to attach to the instance.
 
@@ -149,6 +150,18 @@ The `service_account` block supports:
 
 * `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
 	short names are supported.
+
+The `scheduling` block supports:
+
+* `automatic_restart` - (Optional) Specifies whether the instance should be
+	automatically restarted if it is terminated by Compute Engine (not
+	terminated by a user).
+	This defaults to true.
+
+* `on_host_maintenance` - (Optional) Defines the maintenance behavior for this instance.
+
+* `preemptible` - (Optional) Allows instance to be preempted. Read 
+	more on this [here](https://cloud.google.com/compute/docs/instances/preemptible).
 
 ## Attributes Reference
 

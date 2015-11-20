@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_target_pool"
-sidebar_current: "docs-google-resource-target_pool"
+sidebar_current: "docs-google-compute-target-pool"
 description: |-
   Manages a Target Pool within GCE.
 ---

@@ -136,7 +136,7 @@ resource "aws_vpc_endpoint" "second-private-s3" {
     route_table_ids = ["${aws_route_table.default.id}"]
     policy = <<POLICY
 {
-	"Version": "2008-10-17",
+	"Version": "2012-10-17",
 	"Statement": [
 		{
 			"Sid":"AllowAll",
@@ -176,7 +176,7 @@ resource "aws_vpc_endpoint" "second-private-s3" {
     route_table_ids = ["${aws_route_table.default.id}"]
     policy = <<POLICY
 {
-	"Version": "2008-10-17",
+	"Version": "2012-10-17",
 	"Statement": [
 		{
 			"Sid":"AllowAll",

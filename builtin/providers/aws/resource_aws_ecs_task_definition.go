@@ -17,7 +17,6 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsEcsTaskDefinitionCreate,
 		Read:   resourceAwsEcsTaskDefinitionRead,
-		Update: resourceAwsEcsTaskDefinitionUpdate,
 		Delete: resourceAwsEcsTaskDefinitionDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -40,6 +39,7 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 			"container_definitions": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 				StateFunc: func(v interface{}) string {
 					hash := sha1.Sum([]byte(v.(string)))
 					return hex.EncodeToString(hash[:])
@@ -49,6 +49,7 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 			"volume": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -58,7 +59,7 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 
 						"host_path": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
@@ -129,29 +130,6 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("volumes", flattenEcsVolumes(taskDefinition.Volumes))
 
 	return nil
-}
-
-func resourceAwsEcsTaskDefinitionUpdate(d *schema.ResourceData, meta interface{}) error {
-	oldArn := d.Get("arn").(string)
-
-	log.Printf("[DEBUG] Creating new revision of task definition %q", d.Id())
-	err := resourceAwsEcsTaskDefinitionCreate(d, meta)
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] New revision of %q created: %q", d.Id(), d.Get("arn").(string))
-
-	log.Printf("[DEBUG] Deregistering old revision of task definition %q: %q", d.Id(), oldArn)
-	conn := meta.(*AWSClient).ecsconn
-	_, err = conn.DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{
-		TaskDefinition: aws.String(oldArn),
-	})
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] Old revision of task definition deregistered: %q", oldArn)
-
-	return resourceAwsEcsTaskDefinitionRead(d, meta)
 }
 
 func resourceAwsEcsTaskDefinitionDelete(d *schema.ResourceData, meta interface{}) error {

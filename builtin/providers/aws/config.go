@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -26,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
@@ -73,11 +75,13 @@ type AWSClient struct {
 	rdsconn            *rds.RDS
 	iamconn            *iam.IAM
 	kinesisconn        *kinesis.Kinesis
+	firehoseconn       *firehose.Firehose
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
 	opsworksconn       *opsworks.OpsWorks
 	glacierconn        *glacier.Glacier
 	codedeployconn     *codedeploy.CodeDeploy
+	codecommitconn     *codecommit.CodeCommit
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -166,6 +170,9 @@ func (c *Config) Client() (interface{}, error) {
 			errs = append(errs, authErr)
 		}
 
+		log.Println("[INFO] Initializing Kinesis Firehose Connection")
+		client.firehoseconn = firehose.New(sess)
+
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(sess)
 
@@ -213,6 +220,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CodeDeploy Connection")
 		client.codedeployconn = codedeploy.New(sess)
+
+		log.Println("[INFO] Initializing CodeCommit SDK connection")
+		client.codecommitconn = codecommit.New(usEast1Sess)
 	}
 
 	if len(errs) > 0 {

@@ -71,6 +71,38 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
+	var afterCreate, afterUpdate godo.Droplet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
+					testAccCheckDigitalOceanDropletAttributes(&afterCreate),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_userdata_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar",
+						"user_data",
+						"foobar foobar"),
+					testAccCheckDigitalOceanDropletRecreated(
+						t, &afterCreate, &afterUpdate),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
 	var droplet godo.Droplet
 
@@ -233,6 +265,16 @@ func testAccCheckDigitalOceanDropletExists(n string, droplet *godo.Droplet) reso
 	}
 }
 
+func testAccCheckDigitalOceanDropletRecreated(t *testing.T,
+	before, after *godo.Droplet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if before.ID == after.ID {
+			t.Fatalf("Expected change of droplet IDs, but both were %v", before.ID)
+		}
+		return nil
+	}
+}
+
 // Not sure if this check should remain here as the underlaying
 // function is changed and is tested indirectly by almost all
 // other test already
@@ -258,6 +300,16 @@ resource "digitalocean_droplet" "foobar" {
     image = "centos-5-8-x32"
     region = "nyc3"
     user_data  = "foobar"
+}
+`
+
+const testAccCheckDigitalOceanDropletConfig_userdata_update = `
+resource "digitalocean_droplet" "foobar" {
+    name = "foo"
+    size = "512mb"
+    image = "centos-5-8-x32"
+    region = "nyc3"
+    user_data  = "foobar foobar"
 }
 `
 

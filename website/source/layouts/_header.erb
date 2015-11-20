@@ -1,30 +1,37 @@
-<div id="header" class="<%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
+<div id="header" class="navigation white <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
 	<div class="container">
-    <div class="col-sm-12 col-md-4 nav-logo">
-		  <div class="navbar-header">
-  		    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
-  	          <span class="sr-only">Toggle navigation</span>
-  	          <span class="icon-bar"></span>
-  	          <span class="icon-bar"></span>
-  	          <span class="icon-bar"></span>
-  	        </button>
-  			<a class="navbar-brand logo" href="/">Terraform</a>
-  		</div>
-    </div>
-
-    <div class="col-sm-12 col-md-8 nav-white">
-  		<nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
-  			<ul class="buttons nav navbar-nav navbar-right rls-sb">
-  				<li class="first download terra-btn"><a href="/downloads.html">Download</a></li>
-  				<li class="github terra-btn"><a href="https://github.com/hashicorp/terraform">GitHub</a></li>
-  			</ul>
-
-  			<ul class="main-links nav navbar-nav navbar-right rls-sb">
-  				<li class="first li-under"><a href="/intro/index.html">Intro</a></li>
-  				<li class="li-under"><a href="/docs/index.html">Docs</a></li>
-          <li class="li-under"><a href="/community.html">Community</a></li>
-  			</ul>
-  		</nav>
-    </div>
-  </div>
+		<div class="row">
+			<div class="col-xs-12">
+				<div class="navbar-header">
+					<div class="navbar-brand">
+						<a class="logo" href="/">Terraform</a>
+						<a class="by-hashicorp white" href="https://hashicorp.com/"><span class="svg-wrap">by</span><%= partial "layouts/svg/svg-by-hashicorp" %><%= partial "layouts/svg/svg-hashicorp-logo" %>Hashicorp</a>
+					</div>
+					<button class="navbar-toggle white" type="button">
+						<span class="sr-only">Toggle navigation</span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</button>
+				</div>
+				<div class="buttons hidden-xs">
+					<nav class="navigation-links" role="navigation">
+						<ul class="external-links nav navbar-nav navbar-right">
+							<li class="first download">
+								<a href="/downloads.html"><%= partial "layouts/svg/svg-download" %>Download</a>
+							</li>
+							<li class="github">
+								<a href="https://github.com/hashicorp/terraform"><%= partial "layouts/svg/svg-github" %>GitHub</a>
+							</li>
+						</ul>
+						<ul class="main-links nav navbar-nav navbar-right">
+							<li class="first li-under"><a href="/intro/index.html">Intro</a></li>
+							<li class="li-under"><a href="/docs/index.html">Docs</a></li>
+							<li class="li-under"><a href="/community.html">Community</a></li>
+						</ul>
+					</nav>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>

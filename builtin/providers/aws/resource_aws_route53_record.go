@@ -28,6 +28,10 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					value := v.(string)
+					return strings.ToLower(value)
+				},
 			},
 
 			"fqdn": &schema.Schema{
@@ -45,6 +49,13 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if value == "" {
+						es = append(es, fmt.Errorf("Cannot have empty zone_id"))
+					}
+					return
+				},
 			},
 
 			"ttl": &schema.Schema{
@@ -132,6 +143,9 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
+	if zoneRecord.HostedZone == nil {
+		return fmt.Errorf("[WARN] No Route53 Zone found for id (%s)", zone)
+	}
 
 	// Get the record
 	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
@@ -192,12 +206,13 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	// Generate an ID
 	vars := []string{
 		zone,
-		d.Get("name").(string),
+		strings.ToLower(d.Get("name").(string)),
 		d.Get("type").(string),
 	}
 	if v, ok := d.GetOk("set_identifier"); ok {
 		vars = append(vars, v.(string))
 	}
+
 	d.SetId(strings.Join(vars, "_"))
 
 	// Wait until we are done
@@ -242,6 +257,8 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
 
+	log.Printf("[DEBUG] List resource records sets for zone: %s, opts: %s",
+		zone, lopts)
 	resp, err := conn.ListResourceRecordSets(lopts)
 	if err != nil {
 		return err
@@ -251,7 +268,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	found := false
 	for _, record := range resp.ResourceRecordSets {
 		name := cleanRecordName(*record.Name)
-		if FQDN(name) != FQDN(*lopts.StartRecordName) {
+		if FQDN(strings.ToLower(name)) != FQDN(strings.ToLower(*lopts.StartRecordName)) {
 			continue
 		}
 		if strings.ToUpper(*record.Type) != strings.ToUpper(*lopts.StartRecordType) {
@@ -279,6 +296,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if !found {
+		log.Printf("[DEBUG] No matching record found for: %s, removing from state file", en)
 		d.SetId("")
 	}
 
@@ -409,7 +427,10 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 
 	if v, ok := d.GetOk("set_identifier"); ok {
 		rec.SetIdentifier = aws.String(v.(string))
-		rec.Weight = aws.Int64(int64(d.Get("weight").(int)))
+	}
+
+	if v, ok := d.GetOk("weight"); ok {
+		rec.Weight = aws.Int64(int64(v.(int)))
 	}
 
 	return rec, nil
@@ -440,7 +461,7 @@ func cleanRecordName(name string) string {
 // If it does not, add the zone name to form a fully qualified name
 // and keep AWS happy.
 func expandRecordName(name, zone string) string {
-	rn := strings.TrimSuffix(name, ".")
+	rn := strings.ToLower(strings.TrimSuffix(name, "."))
 	zone = strings.TrimSuffix(zone, ".")
 	if !strings.HasSuffix(rn, zone) {
 		rn = strings.Join([]string{name, zone}, ".")

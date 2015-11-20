@@ -59,5 +59,4 @@ The following arguments are supported in the `provider` block:
 
 * `kinesis_endpoint` - (Optional) Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to kinesalite.
 
-In addition to the above parameters, the `AWS_SESSION_TOKEN` environmental
-variable can be set to set an MFA token.
+* `token` - (Optional) Use this to set an MFA token. It can also be sourced from the `AWS_SECURITY_TOKEN` environment variable.

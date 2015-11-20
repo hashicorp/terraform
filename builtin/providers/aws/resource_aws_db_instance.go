@@ -54,7 +54,8 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"engine_version": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 
 			"storage_encrypted": &schema.Schema{
@@ -182,6 +183,12 @@ func resourceAwsDbInstance() *schema.Resource {
 				},
 			},
 
+			"copy_tags_to_snapshot": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"db_subnet_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -239,8 +246,8 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"auto_minor_version_upgrade": &schema.Schema{
 				Type:     schema.TypeBool,
-				Computed: false,
 				Optional: true,
+				Default:  true,
 			},
 
 			"allow_major_version_upgrade": &schema.Schema{
@@ -261,6 +268,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("replicate_source_db"); ok {
 		opts := rds.CreateDBInstanceReadReplicaInput{
 			SourceDBInstanceIdentifier: aws.String(v.(string)),
+			CopyTagsToSnapshot:         aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 			DBInstanceClass:            aws.String(d.Get("instance_class").(string)),
 			DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
 			Tags:                       tags,
@@ -286,14 +294,11 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	} else if _, ok := d.GetOk("snapshot_identifier"); ok {
 		opts := rds.RestoreDBInstanceFromDBSnapshotInput{
-			DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
-			DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
-			DBSnapshotIdentifier: aws.String(d.Get("snapshot_identifier").(string)),
-			Tags:                 tags,
-		}
-
-		if attr, ok := d.GetOk("auto_minor_version_upgrade"); ok {
-			opts.AutoMinorVersionUpgrade = aws.Bool(attr.(bool))
+			DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier:    aws.String(d.Get("identifier").(string)),
+			DBSnapshotIdentifier:    aws.String(d.Get("snapshot_identifier").(string)),
+			AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
+			Tags: tags,
 		}
 
 		if attr, ok := d.GetOk("availability_zone"); ok {
@@ -344,18 +349,52 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		if err != nil {
 			return fmt.Errorf("Error creating DB Instance: %s", err)
 		}
+
+		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+			log.Printf("[INFO] DB is restoring from snapshot with default security, but custom security should be set, will now update after snapshot is restored!")
+
+			// wait for instance to get up and then modify security
+			d.SetId(d.Get("identifier").(string))
+
+			log.Printf("[INFO] DB Instance ID: %s", d.Id())
+
+			log.Println(
+				"[INFO] Waiting for DB Instance to be available")
+
+			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"creating", "backing-up", "modifying"},
+				Target:     "available",
+				Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
+				Timeout:    40 * time.Minute,
+				MinTimeout: 10 * time.Second,
+				Delay:      30 * time.Second, // Wait 30 secs before starting
+			}
+
+			// Wait, catching any errors
+			_, err := stateConf.WaitForState()
+			if err != nil {
+				return err
+			}
+
+			err = resourceAwsDbInstanceUpdate(d, meta)
+			if err != nil {
+				return err
+			}
+
+		}
 	} else {
 		opts := rds.CreateDBInstanceInput{
-			AllocatedStorage:     aws.Int64(int64(d.Get("allocated_storage").(int))),
-			DBName:               aws.String(d.Get("name").(string)),
-			DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
-			DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
-			MasterUsername:       aws.String(d.Get("username").(string)),
-			MasterUserPassword:   aws.String(d.Get("password").(string)),
-			Engine:               aws.String(d.Get("engine").(string)),
-			EngineVersion:        aws.String(d.Get("engine_version").(string)),
-			StorageEncrypted:     aws.Bool(d.Get("storage_encrypted").(bool)),
-			Tags:                 tags,
+			AllocatedStorage:        aws.Int64(int64(d.Get("allocated_storage").(int))),
+			DBName:                  aws.String(d.Get("name").(string)),
+			DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier:    aws.String(d.Get("identifier").(string)),
+			MasterUsername:          aws.String(d.Get("username").(string)),
+			MasterUserPassword:      aws.String(d.Get("password").(string)),
+			Engine:                  aws.String(d.Get("engine").(string)),
+			EngineVersion:           aws.String(d.Get("engine_version").(string)),
+			StorageEncrypted:        aws.Bool(d.Get("storage_encrypted").(bool)),
+			AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
+			Tags: tags,
 		}
 
 		attr := d.Get("backup_retention_period")
@@ -467,6 +506,8 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("engine", v.Engine)
 	d.Set("engine_version", v.EngineVersion)
 	d.Set("allocated_storage", v.AllocatedStorage)
+	d.Set("copy_tags_to_snapshot", v.CopyTagsToSnapshot)
+	d.Set("auto_minor_version_upgrade", v.AutoMinorVersionUpgrade)
 	d.Set("storage_type", v.StorageType)
 	d.Set("instance_class", v.DBInstanceClass)
 	d.Set("availability_zone", v.AvailabilityZone)
@@ -619,6 +660,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
 		requestUpdate = true
 	}
+	if d.HasChange("copy_tags_to_snapshot") {
+		d.SetPartial("copy_tags_to_snapshot")
+		req.CopyTagsToSnapshot = aws.Bool(d.Get("copy_tags_to_snapshot").(bool))
+		requestUpdate = true
+	}
 	if d.HasChange("instance_class") {
 		d.SetPartial("instance_class")
 		req.DBInstanceClass = aws.String(d.Get("instance_class").(string))
@@ -662,6 +708,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("storage_type") {
 		d.SetPartial("storage_type")
 		req.StorageType = aws.String(d.Get("storage_type").(string))
+		requestUpdate = true
+	}
+	if d.HasChange("auto_minor_version_upgrade") {
+		d.SetPartial("auto_minor_version_upgrade")
+		req.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
 		requestUpdate = true
 	}
 

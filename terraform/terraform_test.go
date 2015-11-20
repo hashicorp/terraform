@@ -575,6 +575,22 @@ Outputs:
 foo_num = 2
 `
 
+const testTerraformApplyOutputAddStr = `
+aws_instance.test.0:
+  ID = foo
+  foo = foo0
+  type = aws_instance
+aws_instance.test.1:
+  ID = foo
+  foo = foo1
+  type = aws_instance
+
+Outputs:
+
+firstOutput = foo0
+secondOutput = foo1
+`
+
 const testTerraformApplyOutputListStr = `
 aws_instance.bar.0:
   ID = foo

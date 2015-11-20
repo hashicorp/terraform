@@ -1,27 +1,29 @@
 ---
 layout: "vsphere"
-page_title: "Provider: vSphere"
+page_title: "Provider: VMware vSphere"
 sidebar_current: "docs-vsphere-index"
 description: |-
-  The vSphere provider is used to interact with the resources supported by
-  vSphere. The provider needs to be configured with the proper credentials before
-  it can be used.
+  The VMware vSphere provider is used to interact with the resources supported by
+  VMware vSphere. The provider needs to be configured with the proper credentials
+  before it can be used.
 ---
 
-# vSphere Provider
+# VMware vSphere Provider
 
-The vSphere provider is used to interact with the resources supported by vSphere.
+The VMware vSphere provider is used to interact with the resources supported by
+VMware vSphere.
 The provider needs to be configured with the proper credentials before it can be used.
 
 Use the navigation to the left to read about the available resources.
 
-~> **NOTE:** The vSphere Provider currently represents _initial support_ and
-therefore may undergo significant changes as the community improves it.
+~> **NOTE:** The VMware vSphere Provider currently represents _initial support_
+and therefore may undergo significant changes as the community improves it. This
+provider at this time only supports IPv4 addresses on virtual machines.
 
 ## Example Usage
 
 ```
-# Configure the vSphere Provider
+# Configure the VMware vSphere Provider
 provider "vsphere" {
   user           = "${var.vsphere_user}"
   password       = "${var.vsphere_password}"
@@ -47,7 +49,7 @@ resource "vsphere_virtual_machine" "web" {
 
 ## Argument Reference
 
-The following arguments are used to configure the vSphere Provider:
+The following arguments are used to configure the VMware vSphere Provider:
 
 * `user` - (Required) This is the username for vSphere API operations. Can also
   be specified with the `VSPHERE_USER` environment variable.
@@ -59,20 +61,24 @@ The following arguments are used to configure the vSphere Provider:
 
 ## Acceptance Tests
 
-The vSphere provider's acceptance tests require the above provider
+The VMware vSphere provider's acceptance tests require the above provider
 configuration fields to be set using the documented environment variables.
 
-In addition, the following environment variables are used in tests, and must be set to valid values for your vSphere environment:
+In addition, the following environment variables are used in tests, and must be set to valid values for your VMware vSphere environment:
 
- * VSPHERE\_CLUSTER
- * VSPHERE\_DATACENTER
- * VSPHERE\_DATASTORE
  * VSPHERE\_NETWORK\_GATEWAY
  * VSPHERE\_NETWORK\_IP\_ADDRESS
  * VSPHERE\_NETWORK\_LABEL
  * VSPHERE\_NETWORK\_LABEL\_DHCP
  * VSPHERE\_TEMPLATE
- * VSPHERE\_VM\_PASSWORD
+
+The following environment variables depend on your vSphere environment:
+
+ * VSPHERE\_DATACENTER
+ * VSPHERE\_CLUSTER
+ * VSPHERE\_RESOURCE\_POOL
+ * VSPHERE\_DATASTORE
+
 
 These are used to set and verify attributes on the `vsphere_virtual_machine`
 resource in tests.

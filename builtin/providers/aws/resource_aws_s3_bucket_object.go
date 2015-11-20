@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -95,7 +96,11 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	if v, ok := d.GetOk("source"); ok {
 		source := v.(string)
-		file, err := os.Open(source)
+		path, err := homedir.Expand(source)
+		if err != nil {
+			return fmt.Errorf("Error expanding homedir in source (%s): %s", source, err)
+		}
+		file, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf("Error opening S3 bucket object source (%s): %s", source, err)
 		}

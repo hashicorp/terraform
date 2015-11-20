@@ -1,14 +1,14 @@
 ---
 layout: "vsphere"
-page_title: "vSphere: vsphere_virtual_machine"
+page_title: "VMware vSphere: vsphere_virtual_machine"
 sidebar_current: "docs-vsphere-resource-virtual-machine"
 description: |-
-  Provides a vSphere virtual machine resource. This can be used to create, modify, and delete virtual machines.
+  Provides a VMware vSphere virtual machine resource. This can be used to create, modify, and delete virtual machines.
 ---
 
 # vsphere\_virtual\_machine
 
-Provides a vSphere virtual machine resource. This can be used to create,
+Provides a VMware vSphere virtual machine resource. This can be used to create,
 modify, and delete virtual machines.
 
 ## Example Usage
@@ -55,7 +55,7 @@ The following arguments are supported:
 Network interfaces support the following attributes:
 
 * `label` - (Required) Label to assign to this network interface
-* `ip_address` - (Optional) Static IP to assign to this network interface. Interface will use DHCP if this is left blank.
+* `ip_address` - (Optional) Static IP to assign to this network interface. Interface will use DHCP if this is left blank. Currently only IPv4 IP addresses are supported.
 * `subnet_mask` - (Optional) Subnet mask to use when statically assigning an IP.
 
 <a id="disks"></a>

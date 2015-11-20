@@ -158,7 +158,7 @@ func resourcePacketDeviceCreate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[INFO] Device ID: %s", d.Id())
 
-	_, err = WaitForDeviceAttribute(d, "active", []string{"provisioning"}, "state", meta)
+	_, err = WaitForDeviceAttribute(d, "active", []string{"queued", "provisioning"}, "state", meta)
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for device (%s) to become ready: %s", d.Id(), err)
@@ -184,13 +184,15 @@ func resourcePacketDeviceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("billing_cycle", device.BillingCycle)
 	d.Set("locked", device.Locked)
 	d.Set("created", device.Created)
-	d.Set("udpated", device.Updated)
+	d.Set("updated", device.Updated)
 
 	tags := make([]string, 0)
 	for _, tag := range device.Tags {
 		tags = append(tags, tag)
 	}
 	d.Set("tags", tags)
+
+	provisionerAddress := ""
 
 	networks := make([]map[string]interface{}, 0, 1)
 	for _, ip := range device.Network {
@@ -201,8 +203,20 @@ func resourcePacketDeviceRead(d *schema.ResourceData, meta interface{}) error {
 		network["cidr"] = ip.Cidr
 		network["public"] = ip.Public
 		networks = append(networks, network)
+		if ip.Family == 4 && ip.Public == true {
+			provisionerAddress = ip.Address
+		}
 	}
 	d.Set("network", networks)
+
+	log.Printf("[DEBUG] Provisioner Address set to %v", provisionerAddress)
+
+	if provisionerAddress != "" {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": provisionerAddress,
+		})
+	}
 
 	return nil
 }

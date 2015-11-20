@@ -1,0 +1,72 @@
+//
+// Mixins Specific to project
+//  - make edits to mixins here
+// --------------------------------------------------
+
+// Variables
+$project-logo-width: 38px;
+$project-logo-height: 40px;
+$project-logo-pad-left: 8px;
+
+// Mixins
+@mixin project-a-style{
+  color: $white;
+  font-weight: 400;
+  opacity: .75;
+  -webkit-font-smoothing: antialiased;
+
+  &:hover{
+    color: $white;
+    opacity: 1;
+  }
+}
+
+@mixin project-footer-a-style{
+  color: $black;
+  font-weight: 400;
+
+  &:hover{
+    color: $purple;
+
+    svg path{
+      fill: $purple;
+    }
+  }
+}
+
+@mixin project-footer-a-subpage-style{
+  color: $white;
+  font-weight: 300;
+
+  svg path{
+    fill: $white;
+  }
+
+  &:hover{
+    color: $purple;
+
+    svg path{
+      fill: $purple;
+    }
+  }
+}
+
+@mixin project-svg-external-links-style{
+  svg path{
+    fill: $black;
+  }
+
+  &:hover{
+    svg path{
+      fill: $blue;
+    }
+  }
+}
+
+@mixin project-by-hashicorp-style{
+  &:hover{
+    line{
+      stroke: $blue;
+    }
+  }
+}
