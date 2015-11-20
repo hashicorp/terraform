@@ -23,6 +23,12 @@ func resourceBigQueryTable() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"can_delete": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default: false,
+			},
 		},
 	}
 }
@@ -66,10 +72,12 @@ func resourceBigQueryTableRead(d *schema.ResourceData, meta interface{}) error {
 func resourceBigQueryTableDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	call := config.clientBigQuery.Tables.Delete(config.Project, d.Get("datasetId").(string), d.Get("name").(string))
-	err := call.Do()
-	if err != nil {
-		return err
+	if d.Get("can_delete").(bool) == true {
+		call := config.clientBigQuery.Tables.Delete(config.Project, d.Get("datasetId").(string), d.Get("name").(string))
+		err := call.Do()
+		if err != nil {
+			return err
+		}
 	}
 
 	d.SetId("")	
