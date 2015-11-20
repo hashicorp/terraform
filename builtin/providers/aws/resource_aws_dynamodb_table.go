@@ -430,9 +430,17 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 			req.StreamSpecification = streamSpecification
 		}
 
-		_, err := dynamodbconn.UpdateTable(req)
+		output, err := dynamodbconn.UpdateTable(req)
 		if err != nil {
 			return err
+		} else {
+			if output.TableDescription.StreamSpecification != nil {
+				if *output.TableDescription.StreamSpecification.StreamEnabled {
+					if err := d.Set("latest_stream_arn", *output.TableDescription.LatestStreamArn); err != nil {
+						return err
+					}
+				}
+			}
 		}
 
 		waitForTableToBeActive(d.Id(), meta)
