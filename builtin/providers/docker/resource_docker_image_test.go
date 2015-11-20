@@ -17,7 +17,7 @@ func TestAccDockerImage_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"docker_image.foo",
 						"latest",
-						"b7cf8f0d9e82c9d96bd7afd22c600bfdb86b8d66c50d29164e5ad2fb02f7187b"),
+						"d52aff8195301dba95e8e3d14f0c3738a874237afd54233d250a2fc4489bfa83"),
 				),
 			},
 		},
