@@ -104,43 +104,6 @@ func TestAccDigitalOceanRecord_HostnameValue(t *testing.T) {
 	})
 }
 
-// This test fails with:
-//
-//   POST https://api.digitalocean.com/v2/domains/foobar-test-terraform.com/records:
-//   422 Data needs to end with a dot (.)
-//
-// Which seems like a behavior change on the DO API side. Opened support ticket
-// #826791 to ask DigitalOcean about this, and we'll comment out the test for
-// now. --phinze
-/*
-func TestAccDigitalOceanRecord_RelativeHostnameValue(t *testing.T) {
-	var record godo.DomainRecord
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckDigitalOceanRecordConfig_relative_cname,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDigitalOceanRecordExists("digitalocean_record.foobar", &record),
-					testAccCheckDigitalOceanRecordAttributesHostname("a.b", &record),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "name", "terraform"),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "domain", "foobar-test-terraform.com"),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "value", "a.b"),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "type", "CNAME"),
-				),
-			},
-		},
-	})
-}
-*/
-
 func TestAccDigitalOceanRecord_ExternalHostnameValue(t *testing.T) {
 	var record godo.DomainRecord
 
