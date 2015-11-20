@@ -55,6 +55,12 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"enable_classiclink": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
 			"main_route_table_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -170,6 +176,22 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames)
 
+	DescribeClassiclinkOpts := &ec2.DescribeVpcClassicLinkInput{
+		VpcIds: []*string{ &vpcid },
+	}
+	respClassiclink, err := conn.DescribeVpcClassicLink(DescribeClassiclinkOpts)
+	if err != nil {
+		return err
+	}
+	classiclink_enabled := false
+	for _, v := range respClassiclink.Vpcs {
+		if *v.VpcId == vpcid {
+			classiclink_enabled = *v.ClassicLinkEnabled
+			break
+		}
+	}
+	d.Set("enable_classiclink", classiclink_enabled)
+
 	// Get the main routing table for this VPC
 	// Really Ugly need to make this better - rmenn
 	filter1 := &ec2.Filter{
@@ -239,6 +261,34 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("enable_dns_support")
+	}
+
+	if d.HasChange("enable_classiclink") {
+		val := d.Get("enable_classiclink").(bool)
+
+		if val {
+			modifyOpts := &ec2.EnableVpcClassicLinkInput{
+				VpcId: &vpcid,
+			}
+			log.Printf(
+				"[INFO] Modifying enable_classiclink vpc attribute for %s: %#v",
+				d.Id(), modifyOpts)
+			if _, err := conn.EnableVpcClassicLink(modifyOpts); err != nil {
+				return err
+			}
+		} else {
+			modifyOpts := &ec2.DisableVpcClassicLinkInput{
+				VpcId: &vpcid,
+			}
+			log.Printf(
+				"[INFO] Modifying enable_classiclink vpc attribute for %s: %#v",
+				d.Id(), modifyOpts)
+			if _, err := conn.DisableVpcClassicLink(modifyOpts); err != nil {
+				return err
+			}
+		}
+
+		d.SetPartial("enable_classiclink")
 	}
 
 	if err := setTags(conn, d); err != nil {
