@@ -96,7 +96,7 @@ func testAccDataflowExists(n string) resource.TestCheckFunc {
 	}
 }
 
-var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+var randDataflowInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 
 var testAccDataflow = fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
@@ -105,11 +105,11 @@ resource "google_storage_bucket" "bucket" {
 }
 resource "google_dataflow" "foobar" {
 	name = "foobar-%d"
-	jarfile = "test-fixtures/google-cloud-dataflow-java-examples-all-bundled-1.1.1-SNAPSHOT.jar"
+	jarfile = "./test-fixtures/google-cloud-dataflow-java-examples-all-bundled-1.1.1-SNAPSHOT.jar"
 	class = "com.google.cloud.dataflow.examples.WordCount"
 	optional_args = {
 		stagingLocation = "gs://${google_storage_bucket.bucket.name}"
 		runner = "DataflowPipelineRunner"
 	}
 }
-`, randInt, randInt)
+`, randDataflowInt, randDataflowInt)
