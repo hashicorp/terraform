@@ -321,7 +321,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#7 String with StateFunc": {
+		"String with StateFunc": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -345,6 +345,36 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old:      "",
 						New:      "foo!",
 						NewExtra: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		"StateFunc not called with nil value": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					StateFunc: func(a interface{}) string {
+						t.Fatalf("should not get here!")
+						return ""
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
 					},
 				},
 			},
