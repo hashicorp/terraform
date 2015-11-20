@@ -142,15 +142,15 @@ resource "google_compute_url_map" "foobar" {
 resource "google_compute_ssl_certificate" "foobar1" {
 	name = "terraform-test1"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
 
 resource "google_compute_ssl_certificate" "foobar2" {
 	name = "terraform-test2"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
 `
 
@@ -199,14 +199,14 @@ resource "google_compute_url_map" "foobar" {
 resource "google_compute_ssl_certificate" "foobar1" {
 	name = "terraform-test1"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
 
 resource "google_compute_ssl_certificate" "foobar2" {
 	name = "terraform-test2"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
 `
