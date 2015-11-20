@@ -33,7 +33,6 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 
 func TestAccAWSFlowLog_subnet(t *testing.T) {
 	var flowLog ec2.FlowLog
-	lgn := os.Getenv("LOG_GROUP_NAME")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -41,7 +40,7 @@ func TestAccAWSFlowLog_subnet(t *testing.T) {
 		CheckDestroy: testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccFlowLogConfig_subnet, lgn),
+				Config: testAccFlowLogConfig_subnet,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log_subnet", &flowLog),
 					testAccCheckAWSFlowLogAttributes(&flowLog),
@@ -200,11 +199,14 @@ resource "aws_iam_role" "test_role" {
 }
 EOF
 }
+resource "aws_cloudwatch_log_group" "foobar" {
+    name = "foo-bar"
+}
 
 resource "aws_flow_log" "test_flow_log_subnet" {
         # log_group_name needs to exist before hand
         # until we have a CloudWatch Log Group Resource
-        log_group_name = "%s"
+        log_group_name = "${aws_cloudwatch_log_group.foobar.name}"
         iam_role_arn = "${aws_iam_role.test_role.arn}"
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
