@@ -67,7 +67,7 @@ func cleanOptionalArgs(optional_args map[string]interface{}) map[string]string {
 
 func resourceDataflowCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-        err := terraformGcloud.InitGcloud(config.AccountFile)
+        err := terraformGcloud.InitGcloud(config.Credentials)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func resourceDataflowCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceDataflowRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-        err := terraformGcloud.InitGcloud(config.AccountFile)
+        err := terraformGcloud.InitGcloud(config.Credentials)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func resourceDataflowRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceDataflowDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-        err := terraformGcloud.InitGcloud(config.AccountFile)
+        err := terraformGcloud.InitGcloud(config.Credentials)
 	if err != nil {
 		return err
 	}
