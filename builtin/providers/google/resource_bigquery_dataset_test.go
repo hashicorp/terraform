@@ -65,4 +65,5 @@ func testAccBigQueryDatasetExists(n string) resource.TestCheckFunc {
 const testAccBigQueryDataset = `
 resource "google_bigquery_dataset" "foobar" {
 	name = "foobar"
+	can_delete = true
 }`

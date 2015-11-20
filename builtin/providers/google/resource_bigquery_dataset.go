@@ -9,6 +9,7 @@ func resourceBigQueryDataset() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceBigQueryDatasetCreate,
 		Read:   resourceBigQueryDatasetRead,
+		Update: resourceBigQueryDatasetUpdate,
 		Delete: resourceBigQueryDatasetDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -64,6 +65,11 @@ func resourceBigQueryDatasetRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
+//  basically a no-op from terraform's point of view.  but it allows can_delete
+//  setting to be altered
+func resourceBigQueryDatasetUpdate(d *schema.ResourceData, meta interface{}) error {
+	return nil
+}
 
 func resourceBigQueryDatasetDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
