@@ -19,11 +19,12 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the VMware vCloud Director Provider
 provider "vcd" {
-	user     = "${var.vcd_user}"
-	password = "${var.vcd_pass}"
-	org      = "${var.vcd_org}"
-	url      = "${var.vcd_url}"
-	vdc      = "${var.vcd_vdc}"
+	user            = "${var.vcd_user}"
+	password        = "${var.vcd_pass}"
+	org             = "${var.vcd_org}"
+	url             = "${var.vcd_url}"
+	vdc             = "${var.vcd_vdc}"
+	maxRetryTimeout = "${var.vcd_maxRetryTimeout}"	
 }
 
 # Create a new network
@@ -49,3 +50,9 @@ The following arguments are used to configure the VMware vCloud Director Provide
   API operations against. If not set the plugin will select the first virtual
   datacenter available to your Org. Can also be specified with the `VCD_VDC` environment
   variable.
+* `maxRetryTimeout` - (Optional) This provides you with the ability to specify the maximum
+  amount of time (in seconds) you are prepared to wait for interactions on resources managed
+  by vCloud Director to be successful. If a resource action fails, the action will be retried
+  (as long as it is still within the `maxRetryTimeout` value) to try and ensure success. 
+  Defaults to 30 seconds if not set.
+  Can also be specified with the `VCD_MAX_RETRY_TIMEOUT` environment variable.  
