@@ -57,7 +57,7 @@ func resourceDataflow() *schema.Resource {
 	}
 }
 
-func cleanOptionalArgs(optional_args map[string]interface{}) map[string]string {
+func dataflowCleanOptionalArgs(optional_args map[string]interface{}) map[string]string {
 	cleaned_opts := make(map[string]string)
 	for k,v := range  optional_args {
 		cleaned_opts[k] = v.(string)
@@ -72,7 +72,7 @@ func resourceDataflowCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	optional_args := cleanOptionalArgs(d.Get("optional_args").(map[string]interface{}))
+	optional_args := dataflowCleanOptionalArgs(d.Get("optional_args").(map[string]interface{}))
 	jobids, err := terraformGcloud.CreateDataflow(d.Get("name").(string), d.Get("jarfile").(string), d.Get("class").(string), config.Project, optional_args)
 	if err != nil {
 		return err
