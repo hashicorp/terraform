@@ -16,6 +16,7 @@ resource "aws_cloudtrail" "foobar" {
     name = "tf-trail-foobar"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     s3_key_prefix = "/prefix"
+    enable_logging = true
     include_global_service_events = false
 }
 
@@ -63,6 +64,7 @@ The following arguments are supported:
     endpoint to assume to write to a user’s log group.
 * `cloud_watch_logs_group_arn` - (Optional) Specifies a log group name using an Amazon Resource Name (ARN),
     that represents the log group to which CloudTrail logs will be delivered.
+* `enable_logging` - (Optional) Enables logging for the trail.  Defaults to `false`.
 * `include_global_service_events` - (Optional) Specifies whether the trail is publishing events
     from global services such as IAM to the log files. Defaults to `true`.
 * `sns_topic_name` - (Optional) Specifies the name of the Amazon SNS topic
