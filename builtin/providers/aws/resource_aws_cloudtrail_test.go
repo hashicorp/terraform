@@ -51,6 +51,8 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					// This is a warning test.  AWS sets up new trails with logging disabled
+					// Should that change in the future, this test should fail.
 					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", false, &trail),
 				),
 			},
