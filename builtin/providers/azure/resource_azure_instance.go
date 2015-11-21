@@ -740,7 +740,7 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	err = resource.Retry(5*time.Minute, func() error {
+	err = resource.Retry(20*time.Minute, func() error {
 		exists, err := blobClient.BlobExists(
 			storageContainterName, fmt.Sprintf(osDiskBlobNameFormat, name),
 		)

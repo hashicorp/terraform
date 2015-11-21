@@ -92,6 +92,7 @@ func resourceAzureDataDisk() *schema.Resource {
 func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	mc := meta.(*Client).mgmtClient
 	vmDiskClient := meta.(*Client).vmDiskClient
+	vmClient := meta.(*Client).vmClient
 
 	if err := verifyDataDiskParameters(d); err != nil {
 		return err
@@ -125,7 +126,14 @@ func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error
 
 	deploymentName := d.Get("deployment_name").(string)
 	if deploymentName == "" {
-		deploymentName = vm
+		deptName, err := vmClient.GetDeploymentName(cloudServiceName)
+		if err != nil {
+			return fmt.Errorf("Error creating data disk %d for instance %s while getting deployment name from cloud service %s: %s", lun, vm, cloudServiceName, err)
+		}
+		deploymentName = deptName
+	}
+	if deploymentName == "" {
+		return fmt.Errorf("Error creating data disk %d for instance %s while getting deployment name from cloud service %s: Deployment Name is blank", lun, vm, cloudServiceName)
 	}
 
 	log.Printf("[DEBUG] Adding data disk %d to instance: %s", lun, vm)
@@ -153,6 +161,7 @@ func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error
 
 func resourceAzureDataDiskRead(d *schema.ResourceData, meta interface{}) error {
 	vmDiskClient := meta.(*Client).vmDiskClient
+	vmClient := meta.(*Client).vmClient
 
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
@@ -163,7 +172,14 @@ func resourceAzureDataDiskRead(d *schema.ResourceData, meta interface{}) error {
 
 	deploymentName := d.Get("deployment_name").(string)
 	if deploymentName == "" {
-		deploymentName = vm
+		deptName, err := vmClient.GetDeploymentName(cloudServiceName)
+		if err != nil {
+			return fmt.Errorf("Error reading data disk %d for instance %s while getting deployment name from cloud service %s: %s", lun, vm, cloudServiceName, err)
+		}
+		deploymentName = deptName
+	}
+	if deploymentName == "" {
+		return fmt.Errorf("Error reading data disk %d for instance %s while getting deployment name from cloud service %s: Deployment Name is blank", lun, vm, cloudServiceName)
 	}
 
 	log.Printf("[DEBUG] Retrieving data disk: %s", d.Id())
@@ -199,6 +215,7 @@ func resourceAzureDataDiskRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 	mc := meta.(*Client).mgmtClient
 	vmDiskClient := meta.(*Client).vmDiskClient
+	vmClient := meta.(*Client).vmClient
 
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
@@ -210,7 +227,14 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 
 	deploymentName := d.Get("deployment_name").(string)
 	if deploymentName == "" {
-		deploymentName = vm
+		deptName, err := vmClient.GetDeploymentName(cloudServiceName)
+		if err != nil {
+			return fmt.Errorf("Error updating data disk %d for instance %s while getting deployment name from cloud service %s: %s", lun, vm, cloudServiceName, err)
+		}
+		deploymentName = deptName
+	}
+	if deploymentName == "" {
+		return fmt.Errorf("Error updating data disk %d for instance %s while getting deployment name from cloud service %s: Deployment Name is blank", lun, vm, cloudServiceName)
 	}
 
 	if d.HasChange("lun") || d.HasChange("size") || d.HasChange("virtual_machine") {
@@ -222,7 +246,14 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 		odeploymentName, _ := d.GetChange("deployment_name")
 		if odeploymentName == "" {
-			odeploymentName = ovm
+			odeptName, err := vmClient.GetDeploymentName(ocloudServiceName.(string))
+			if err != nil {
+				return fmt.Errorf("Error updating data disk %d for instance %s while getting deployment name from cloud service %s: %s", lun, ovm, ocloudServiceName, err)
+			}
+			odeploymentName = odeptName
+		}
+		if odeploymentName == "" {
+			return fmt.Errorf("Error updating data disk %d for instance %s while getting deployment name from cloud service %s: Deployment Name is blank", lun, ovm, ocloudServiceName)
 		}
 
 		log.Printf("[DEBUG] Detaching data disk: %s", d.Id())
@@ -325,6 +356,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 func resourceAzureDataDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	mc := meta.(*Client).mgmtClient
 	vmDiskClient := meta.(*Client).vmDiskClient
+	vmClient := meta.(*Client).vmClient
 
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
@@ -336,7 +368,14 @@ func resourceAzureDataDiskDelete(d *schema.ResourceData, meta interface{}) error
 
 	deploymentName := d.Get("deployment_name").(string)
 	if deploymentName == "" {
-		deploymentName = vm
+		deptName, err := vmClient.GetDeploymentName(cloudServiceName)
+		if err != nil {
+			return fmt.Errorf("Error deleting data disk %d for instance %s while getting deployment name from cloud service %s: %s", lun, vm, cloudServiceName, err)
+		}
+		deploymentName = deptName
+	}
+	if deploymentName == "" {
+		return fmt.Errorf("Error deleting data disk %d for instance %s while getting deployment name from cloud service %s: Deployment Name is blank", lun, vm, cloudServiceName)
 	}
 
 	// If a name was not supplied, it means we created a new emtpy disk and we now want to
