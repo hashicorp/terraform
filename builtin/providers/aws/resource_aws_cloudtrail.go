@@ -200,7 +200,7 @@ func cloudTrailGetLoggingStatus(conn *cloudtrail.CloudTrail, id *string) (bool, 
 	}
 	resp, err := conn.GetTrailStatus(GetTrailStatusOpts)
 	if err != nil {
-		return false, fmt.Errorf("Error retrieving logging status of CloudTrail (%s): %s", id, err)
+		return false, fmt.Errorf("Error retrieving logging status of CloudTrail (%s): %s", *id, err)
 	}
 
 	return *resp.IsLogging, err
