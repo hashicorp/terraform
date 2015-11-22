@@ -64,7 +64,8 @@ The following arguments are supported:
     endpoint to assume to write to a user’s log group.
 * `cloud_watch_logs_group_arn` - (Optional) Specifies a log group name using an Amazon Resource Name (ARN),
     that represents the log group to which CloudTrail logs will be delivered.
-* `enable_logging` - (Optional) Enables logging for the trail.  Defaults to `false`.
+* `enable_logging` - (Optional) Enables logging for the trail. Defaults to `true`.
+    Setting this to `false` will pause logging.
 * `include_global_service_events` - (Optional) Specifies whether the trail is publishing events
     from global services such as IAM to the log files. Defaults to `true`.
 * `sns_topic_name` - (Optional) Specifies the name of the Amazon SNS topic

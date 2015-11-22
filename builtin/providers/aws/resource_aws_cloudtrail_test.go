@@ -51,23 +51,23 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 				Config: testAccAWSCloudTrailConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					// This is a warning test.  AWS sets up new trails with logging disabled
-					// Should that change in the future, this test should fail.
-					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", false, &trail),
+					// AWS will create the trail with logging turned off.
+					// Test that "enable_logging" default works.
+					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", true, &trail),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSCloudTrailConfigModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", true, &trail),
+					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", false, &trail),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSCloudTrailConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
-					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", false, &trail),
+					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", true, &trail),
 				),
 			},
 		},
@@ -193,7 +193,7 @@ resource "aws_cloudtrail" "foobar" {
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     s3_key_prefix = "/prefix"
     include_global_service_events = false
-    enable_logging = true
+    enable_logging = false
 }
 
 resource "aws_s3_bucket" "foo" {
