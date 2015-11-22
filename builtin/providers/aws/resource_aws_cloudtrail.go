@@ -91,7 +91,10 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 
 	// AWS CloudTrail sets newly-created trails to false.
 	if v, ok := d.GetOk("enable_logging"); ok && v.(bool) {
-		cloudTrailSetLogging(conn, v.(bool), d.Id())
+		err := cloudTrailSetLogging(conn, v.(bool), d.Id())
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceAwsCloudTrailRead(d, meta)
@@ -125,7 +128,7 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("include_global_service_events", trail.IncludeGlobalServiceEvents)
 	d.Set("sns_topic_name", trail.SnsTopicName)
 
-	logstatus, err := cloudTrailGetLoggingStatus(conn, *trail.Name)
+	logstatus, err := cloudTrailGetLoggingStatus(conn, trail.Name)
 	if err != nil {
 		return err
 	}
@@ -191,11 +194,14 @@ func resourceAwsCloudTrailDelete(d *schema.ResourceData, meta interface{}) error
 	return err
 }
 
-func cloudTrailGetLoggingStatus(conn *cloudtrail.CloudTrail, id string) (bool, error) {
+func cloudTrailGetLoggingStatus(conn *cloudtrail.CloudTrail, id *string) (bool, error) {
 	GetTrailStatusOpts := &cloudtrail.GetTrailStatusInput{
-		Name: aws.String(id),
+		Name: id,
 	}
 	resp, err := conn.GetTrailStatus(GetTrailStatusOpts)
+	if err != nil {
+		return false, fmt.Errorf("Error retrieving logging status of CloudTrail (%s): %s", id, err)
+	}
 
 	return *resp.IsLogging, err
 }

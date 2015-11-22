@@ -115,7 +115,7 @@ func testAccCheckCloudTrailLoggingEnabled(n string, desired bool, trail *cloudtr
 			return err
 		}
 		if *resp.IsLogging != desired {
-			return fmt.Errorf("Logging status is incorrect")
+			return fmt.Errorf("Expected logging status %t, given %t", desired, *resp.IsLogging)
 		}
 
 		return nil
