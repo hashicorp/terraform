@@ -25,7 +25,7 @@ func resourceAwsCloudTrail() *schema.Resource {
 			"enable_logging": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 			},
 			"s3_bucket_name": &schema.Schema{
 				Type:     schema.TypeString,
