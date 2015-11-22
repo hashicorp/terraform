@@ -95,7 +95,7 @@ The supported built-in functions are:
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
     additional subnet number. For example,
     ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
-    
+
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
 
@@ -151,6 +151,11 @@ The supported built-in functions are:
       as `var.amis`.
 
   * `lower(string)` - returns a copy of the string with all Unicode letters mapped to their lower case.
+
+  * `select(value, compare, equal_value, other_value)` - Performs an equality
+      comparison between `value` and `compare`. If equal, the function returns
+      `equal_value`, otherwise `other_value` is returned. Example:
+      `select("a", "b", "bar", "foo")` = "foo".
 
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value

@@ -477,6 +477,23 @@ func TestInterpolateFuncReplace(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSelect(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${select("a", "b", "true", "false")}`,
+				"false",
+				false,
+			},
+			{
+				`${select("a", "a", "true", "false")}`,
+				"true",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncLength(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
