@@ -1,10 +1,14 @@
 package command
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // RefreshCommand is a cli.Command implementation that refreshes the state
@@ -13,7 +17,108 @@ type RefreshCommand struct {
 	Meta
 }
 
+func walkModule(parent string, mod *module.Tree, resources map[string]bool) {
+	var modName string
+	if parent == "" {
+		modName = mod.Name()
+	} else {
+		modName = fmt.Sprintf("%s.%s", parent, mod.Name())
+	}
+	for _, resource := range mod.Config().Resources {
+		key := fmt.Sprintf("%s/%s.%s", modName, resource.Type, resource.Name)
+		resources[key] = true
+	}
+	for _, child := range mod.Children() {
+		walkModule(modName, child, resources)
+	}
+}
+
+// Builds a "set" of module/resource so that we can easily lookup what's
+// configured
+func (c *RefreshCommand) findConfiguredResources(ctx *terraform.Context) map[string]bool {
+	ret := make(map[string]bool)
+
+	mod := ctx.Module()
+	walkModule("", mod, ret)
+
+	return ret
+}
+
+// Import existing (configured) resources by minimally adding them to their
+// module's resources so that a subsequent refresh will pull down their
+// details.
+func (c *RefreshCommand) importResources(s *terraform.State, configuredResources map[string]bool, importPath string) bool {
+	f, err := os.Open(importPath)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error opening import file (%s): %s",
+			importPath, err))
+		return false
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" || line[0] == '#' {
+			// blank line or comment
+			continue
+		}
+		pieces := strings.Split(line, " ")
+		if len(pieces) < 3 {
+			c.Ui.Error(fmt.Sprintf("Error malformed import line %s", line))
+			return false
+		}
+		// Make sure we have a config for this resource
+		key := fmt.Sprintf("%s/%s", pieces[0], pieces[1])
+		if _, ok := configuredResources[key]; ok {
+			// if so try adding it
+			log.Printf("[INFO] adding %s -> %s", key, pieces[2])
+
+			// Find our target module
+			mod := s.ModuleByPath(strings.Split(pieces[0], "."))
+			if mod == nil {
+				c.Ui.Error(fmt.Sprintf("Failed to find module %s", pieces[0]))
+				return false
+			}
+
+			// Ignore resources that already exist
+			if _, ok := mod.Resources[pieces[1]]; ok {
+				log.Printf("[INFO] resource %s already exists in module %s, skipping",
+					pieces[1], pieces[0])
+				continue
+			}
+
+			// Pull in any extra attributes
+			attributes := make(map[string]string)
+			for _, pair := range pieces[3:] {
+				kv := strings.Split(pair, "=")
+				if len(kv) != 2 {
+					c.Ui.Error(fmt.Sprintf("Error malformed import line %s", line))
+					return false
+				}
+				attributes[kv[0]] = kv[1]
+			}
+			// Minimally add it
+			mod.Resources[pieces[1]] = &terraform.ResourceState{
+				Type: strings.Split(pieces[1], ".")[0],
+				Primary: &terraform.InstanceState{
+					ID:         pieces[2],
+					Attributes: attributes,
+				},
+			}
+		}
+	}
+	if err = scanner.Err(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed reading import file (%s): %s",
+			importPath, err))
+		return false
+	}
+
+	return true
+}
+
 func (c *RefreshCommand) Run(args []string) int {
+	var importPath string
+
 	args = c.Meta.process(args, true)
 
 	cmdFlags := c.Meta.flagSet("refresh")
@@ -21,6 +126,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.StringVar(&importPath, "import", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -95,6 +201,22 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
+	if importPath != "" {
+		log.Printf("[INFO] Importing resources from %s", importPath)
+
+		configuredResources := c.findConfiguredResources(ctx)
+
+		s := state.State()
+		resourceMappings := c.importResources(s, configuredResources, importPath)
+		if !resourceMappings {
+			// importResources will have provided an error message
+			return 1
+		}
+
+		log.Printf("[INFO] Updating context state")
+		ctx.UpdateState(s)
+	}
+
 	newState, err := ctx.Refresh()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
@@ -130,6 +252,15 @@ Options:
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
+
+  -import=path        Path to a file containing a mapping, one per line,
+                      between module, resource, and identifier to allow
+                      bringing exiting resources under terraform
+                      management. E.g.
+
+                          module resource id
+                          root aws_vpc.primary vpc-24bd392c
+                          root aws_subnet.public subnet-42ba370e
 
   -input=true         Ask for input for variables if not directly set.
 
