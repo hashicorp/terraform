@@ -24,6 +24,7 @@ resource "digitalocean_droplet" "foobar" {
 
 resource "digitalocean_floating_ip" "foobar" {
     droplet_id = "${digitalocean_droplet.foobar.id}"
+    region = "${digitalocean_droplet.foobar.region}"
 }
 ```
 
@@ -31,7 +32,7 @@ resource "digitalocean_floating_ip" "foobar" {
 
 The following arguments are supported:
 
-* `region` - (Optional) The region that the Floating IP is reserved to. 
+* `region` - (Required) The region that the Floating IP is reserved to.
 * `droplet_id` - (Optional) The ID of Droplet that the Floating IP will be assigned to.
 
 ~> **NOTE:** A Floating IP can be assigned to a region OR a droplet_id. If both region AND droplet_id are specified, then the Floating IP will be assigned to the droplet and use that region
