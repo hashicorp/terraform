@@ -8,20 +8,28 @@ import (
 )
 
 type Config struct {
-	User     string
-	Password string
-	Org      string
-	Href     string
-	VDC      string
+	User         string
+	Password     string
+	Org          string
+	Href         string
+	VDC          string
+	MaxRetryTimeout int
 }
 
-func (c *Config) Client() (*govcd.VCDClient, error) {
+type VCDClient struct {
+	*govcd.VCDClient
+	MaxRetryTimeout int
+}
+
+func (c *Config) Client() (*VCDClient, error) {
 	u, err := url.ParseRequestURI(c.Href)
 	if err != nil {
 		return nil, fmt.Errorf("Something went wrong: %s", err)
 	}
 
-	vcdclient := govcd.NewVCDClient(*u)
+	vcdclient := &VCDClient{
+	   govcd.NewVCDClient(*u),
+	   c.MaxRetryTimeout}
 	org, vcd, err := vcdclient.Authenticate(c.User, c.Password, c.Org, c.VDC)
 	if err != nil {
 		return nil, fmt.Errorf("Something went wrong: %s", err)
