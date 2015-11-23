@@ -44,7 +44,7 @@ func testAccCheckVcdFirewallRulesExists(n string, gateway *govcd.EdgeGateway) re
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*govcd.VCDClient)
+		conn := testAccProvider.Meta().(*VCDClient)
 
 		resp, err := conn.OrgVdc.FindEdgeGateway(rs.Primary.ID)
 		if err != nil {
@@ -77,6 +77,7 @@ func createFirewallRulesConfigs(existingRules *govcd.EdgeGateway) string {
 		Org:      os.Getenv("VCD_ORG"),
 		Href:     os.Getenv("VCD_URL"),
 		VDC:      os.Getenv("VCD_VDC"),
+		MaxRetryTimeout: 240,
 	}
 	conn, err := config.Client()
 	if err != nil {

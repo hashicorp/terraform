@@ -3,7 +3,6 @@ package vcd
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hmrc/vmware-govcd"
 )
 
 func resourceVcdDNAT() *schema.Resource {
@@ -41,7 +40,7 @@ func resourceVcdDNAT() *schema.Resource {
 }
 
 func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	// Multiple VCD components need to run operations on the Edge Gateway, as
 	// the edge gatway will throw back an error if it is already performing an
 	// operation we must wait until we can aquire a lock on the client
@@ -60,7 +59,7 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 	// constrained by out lock. If the edge gateway reurns with a busy error, wait
 	// 3 seconds and then try again. Continue until a non-busy error or success
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := edgeGateway.AddNATMapping("DNAT", d.Get("external_ip").(string),
 			d.Get("internal_ip").(string),
 			portString)
@@ -80,7 +79,7 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdDNATRead(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	e, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
 	if err != nil {
@@ -106,7 +105,7 @@ func resourceVcdDNATRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	// Multiple VCD components need to run operations on the Edge Gateway, as
 	// the edge gatway will throw back an error if it is already performing an
 	// operation we must wait until we can aquire a lock on the client
@@ -119,7 +118,7 @@ func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := edgeGateway.RemoveNATMapping("DNAT", d.Get("external_ip").(string),
 			d.Get("internal_ip").(string),
 			portString)

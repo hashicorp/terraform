@@ -3,7 +3,6 @@ package vcd
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hmrc/vmware-govcd"
 )
 
 func resourceVcdSNAT() *schema.Resource {
@@ -35,7 +34,7 @@ func resourceVcdSNAT() *schema.Resource {
 }
 
 func resourceVcdSNATCreate(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	// Multiple VCD components need to run operations on the Edge Gateway, as
 	// the edge gatway will throw back an error if it is already performing an
 	// operation we must wait until we can aquire a lock on the client
@@ -51,7 +50,7 @@ func resourceVcdSNATCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := edgeGateway.AddNATMapping("SNAT", d.Get("internal_ip").(string),
 			d.Get("external_ip").(string),
 			"any")
@@ -69,7 +68,7 @@ func resourceVcdSNATCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdSNATRead(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	e, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 
 	if err != nil {
@@ -94,7 +93,7 @@ func resourceVcdSNATRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceVcdSNATDelete(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	// Multiple VCD components need to run operations on the Edge Gateway, as
 	// the edge gatway will throw back an error if it is already performing an
 	// operation we must wait until we can aquire a lock on the client
@@ -106,7 +105,7 @@ func resourceVcdSNATDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
 
-	err = retryCall(4, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		task, err := edgeGateway.RemoveNATMapping("SNAT", d.Get("internal_ip").(string),
 			d.Get("external_ip").(string),
 			"")

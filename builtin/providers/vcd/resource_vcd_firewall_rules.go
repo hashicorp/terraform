@@ -3,7 +3,6 @@ package vcd
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hmrc/vmware-govcd"
 	types "github.com/hmrc/vmware-govcd/types/v56"
 	"log"
 	"strings"
@@ -82,7 +81,7 @@ func resourceVcdFirewallRules() *schema.Resource {
 }
 
 func resourceVcdFirewallRulesCreate(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 
@@ -91,7 +90,7 @@ func resourceVcdFirewallRulesCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Unable to find edge gateway: %s", err)
 	}
 
-	err = retryCall(5, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
 		edgeGateway.Refresh()
 		firewallRules, _ := expandFirewallRules(d, edgeGateway.EdgeGateway)
 		task, err := edgeGateway.CreateFirewallRules(d.Get("default_action").(string), firewallRules)
@@ -112,7 +111,7 @@ func resourceVcdFirewallRulesCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceFirewallRulesDelete(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 	vcdClient.Mutex.Lock()
 	defer vcdClient.Mutex.Unlock()
 
@@ -134,7 +133,7 @@ func resourceFirewallRulesDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceFirewallRulesRead(d *schema.ResourceData, meta interface{}) error {
-	vcdClient := meta.(*govcd.VCDClient)
+	vcdClient := meta.(*VCDClient)
 
 	edgeGateway, err := vcdClient.OrgVdc.FindEdgeGateway(d.Get("edge_gateway").(string))
 	if err != nil {
