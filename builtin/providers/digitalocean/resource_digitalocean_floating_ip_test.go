@@ -117,4 +117,5 @@ resource "digitalocean_droplet" "foobar" {
 
 resource "digitalocean_floating_ip" "foobar" {
     droplet_id = "${digitalocean_droplet.foobar.id}"
+    region = "${digitalocean_droplet.foobar.region}"
 }`
