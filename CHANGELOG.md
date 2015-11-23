@@ -74,6 +74,7 @@ BUG FIXES:
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
   * provider/aws: Correctly export ARN in `aws_iam_saml_provider` [GH-3827]
+  * provider/aws: Fix issue deleting users who are attached to a group [GH-4005]
   * provider/aws: Fix crash in Route53 Record if Zone not found [GH-3945]
   * providers/aws: Retry deleting IAM Server Cert on dependency violation [GH-3898]
   * providers/aws: Update Spot Instance request to provide connection information [GH-3940]
