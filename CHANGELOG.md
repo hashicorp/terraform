@@ -68,6 +68,7 @@ BUG FIXES:
   * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
+  * provider/aws: Fix a bug where a non-lower-cased `maintenance_window` can cause unnecessary planned changes [GH-4020]
   * provider/aws: Only set `weight` on an `aws_route53_record` if it has been set in configuration [GH-3900]
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
