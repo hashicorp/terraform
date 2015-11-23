@@ -54,5 +54,5 @@ The following arguments are used to configure the VMware vCloud Director Provide
   amount of time (in seconds) you are prepared to wait for interactions on resources managed
   by vCloud Director to be successful. If a resource action fails, the action will be retried
   (as long as it is still within the `maxRetryTimeout` value) to try and ensure success. 
-  Defaults to 30 seconds if not set.
+  Defaults to 60 seconds if not set.
   Can also be specified with the `VCD_MAX_RETRY_TIMEOUT` environment variable.  
