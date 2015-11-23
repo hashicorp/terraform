@@ -5,7 +5,7 @@ FEATURES:
   * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
   * **New provider: `dyn`** - Manage DNS records on Dyn
   * **New resource: `aws_cloudformation_stack`** [GH-2636]
-  * **New resource: `aws_cloudtrail`** [GH-3094]
+  * **New resource: `aws_cloudtrail`** [GH-3094], [GH-4010]
   * **New resource: `aws_route`** [GH-3548]
   * **New resource: `aws_codecommit_repository`** [GH-3274]
   * **New resource: `aws_kinesis_firehose_delivery_stream`** [GH-3833]
