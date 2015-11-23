@@ -47,8 +47,8 @@ func Provider() terraform.ResourceProvider {
 			"maxRetryTimeout": &schema.Schema{
 				Type:        schema.TypeInt,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VCD_MAX_RETRY_TIMEOUT", 30),
-				Description: "Max num seconds to wait for successful response when operating on resources within vCloud (defaults to 30)",
+				DefaultFunc: schema.EnvDefaultFunc("VCD_MAX_RETRY_TIMEOUT", 60),
+				Description: "Max num seconds to wait for successful response when operating on resources within vCloud (defaults to 60)",
 			},
 		},
 
