@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lib/pq"
+	"strings"
 )
 
 func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
@@ -17,12 +18,19 @@ func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 
 	dbName := d.Get("name").(string)
 	dbOwner := d.Get("owner").(string)
+	connUsername := client.username
 
 	var dbOwnerCfg string
 	if dbOwner != "" {
 		dbOwnerCfg = fmt.Sprintf("WITH OWNER=%s", pq.QuoteIdentifier(dbOwner))
 	} else {
 		dbOwnerCfg = ""
+	}
+
+	//needed in order to set the owner of the db if the connection user is not a superuser
+	err = grantRoleMembership(conn, dbOwner, connUsername)
+	if err != nil {
+		return err
 	}
 
 	query := fmt.Sprintf("CREATE DATABASE %s %s", pq.QuoteIdentifier(dbName), dbOwnerCfg)
@@ -45,6 +53,13 @@ func resourcePostgresqlDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	defer conn.Close()
 
 	dbName := d.Get("name").(string)
+	connUsername := client.username
+	dbOwner := d.Get("owner").(string)
+	//needed in order to set the owner of the db if the connection user is not a superuser
+	err = grantRoleMembership(conn, dbOwner, connUsername)
+	if err != nil {
+		return err
+	}
 
 	query := fmt.Sprintf("DROP DATABASE %s", pq.QuoteIdentifier(dbName))
 	_, err = conn.Query(query)
@@ -105,3 +120,17 @@ func resourcePostgresqlDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 	return resourcePostgresqlDatabaseRead(d, meta)
 }
 
+func grantRoleMembership(conn *sql.DB, dbOwner string, connUsername string) error {
+	if dbOwner != "" && dbOwner != connUsername {
+		query := fmt.Sprintf("GRANT %s TO %s", pq.QuoteIdentifier(dbOwner), pq.QuoteIdentifier(connUsername))
+		_, err := conn.Query(query)
+		if err != nil {
+			//is already member or role
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				return nil
+			}
+			return fmt.Errorf("Error granting membership: %s", err)
+		}
+	}
+	return nil
+}
