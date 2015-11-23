@@ -31,7 +31,7 @@ func TestAccPostgresqlRole_Basic(t *testing.T) {
 }
 
 func testAccCheckPostgresqlRoleDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*sql.DB)
+	client := testAccProvider.Meta().(*Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "postgresql_role" {
@@ -68,7 +68,7 @@ func testAccCheckPostgresqlRoleExists(n string, canLogin string) resource.TestCh
 			return fmt.Errorf("Wrong value for login expected %s got %s", canLogin, actualCanLogin)
 		}
 
-		client := testAccProvider.Meta().(*sql.DB)
+		client := testAccProvider.Meta().(*Client)
 		exists, err := checkRoleExists(client, rs.Primary.ID)
 
 		if err != nil {
@@ -83,9 +83,15 @@ func testAccCheckPostgresqlRoleExists(n string, canLogin string) resource.TestCh
 	}
 }
 
-func checkRoleExists(conn *sql.DB, roleName string) (bool, error) {
+func checkRoleExists(client *Client, roleName string) (bool, error) {
+	conn, err := client.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
 	var _rez int
-	err := conn.QueryRow("SELECT 1 from pg_roles d WHERE rolname=$1", roleName).Scan(&_rez)
+	err = conn.QueryRow("SELECT 1 from pg_roles d WHERE rolname=$1", roleName).Scan(&_rez)
 	switch {
 	case err == sql.ErrNoRows:
 		return false, nil

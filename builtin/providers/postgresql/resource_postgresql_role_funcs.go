@@ -9,7 +9,13 @@ import (
 )
 
 func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	roleName := d.Get("name").(string)
 	loginAttr := getLoginStr(d.Get("login").(bool))
 	password := d.Get("password").(string)
@@ -17,7 +23,7 @@ func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) erro
 	encryptedCfg := getEncryptedStr(d.Get("encrypted").(bool))
 
 	query := fmt.Sprintf("CREATE ROLE %s %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), loginAttr, encryptedCfg, password)
-	_, err := conn.Query(query)
+	_, err = conn.Query(query)
 	if err != nil {
 		return fmt.Errorf("Error creating role: %s", err)
 	}
@@ -28,11 +34,17 @@ func resourcePostgresqlRoleCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourcePostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	roleName := d.Get("name").(string)
 
 	query := fmt.Sprintf("DROP ROLE %s", pq.QuoteIdentifier(roleName))
-	_, err := conn.Query(query)
+	_, err = conn.Query(query)
 	if err != nil {
 		return err
 	}
@@ -43,11 +55,17 @@ func resourcePostgresqlRoleDelete(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	roleName := d.Get("name").(string)
 
 	var canLogin bool
-	err := conn.QueryRow("select rolcanlogin from pg_roles where rolname=$1", roleName).Scan(&canLogin)
+	err = conn.QueryRow("select rolcanlogin from pg_roles where rolname=$1", roleName).Scan(&canLogin)
 	switch {
 	case err == sql.ErrNoRows:
 		d.SetId("")
@@ -61,7 +79,13 @@ func resourcePostgresqlRoleRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourcePostgresqlRoleUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	d.Partial(true)
 
 	roleName := d.Get("name").(string)

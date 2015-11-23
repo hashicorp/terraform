@@ -3,15 +3,21 @@ package postgresql
 import (
 	"database/sql"
 	"fmt"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lib/pq"
 )
 
 func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	dbName := d.Get("name").(string)
 	dbOwner := d.Get("owner").(string)
+
 	var dbOwnerCfg string
 	if dbOwner != "" {
 		dbOwnerCfg = fmt.Sprintf("WITH OWNER=%s", pq.QuoteIdentifier(dbOwner))
@@ -20,9 +26,9 @@ func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	query := fmt.Sprintf("CREATE DATABASE %s %s", pq.QuoteIdentifier(dbName), dbOwnerCfg)
-	_, err := conn.Query(query)
+	_, err = conn.Query(query)
 	if err != nil {
-		return fmt.Errorf("Error creating postgresql database: %s", err)
+		return fmt.Errorf("Error creating postgresql database %s: %s", dbName, err)
 	}
 
 	d.SetId(dbName)
@@ -31,11 +37,17 @@ func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourcePostgresqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	dbName := d.Get("name").(string)
 
 	query := fmt.Sprintf("DROP DATABASE %s", pq.QuoteIdentifier(dbName))
-	_, err := conn.Query(query)
+	_, err = conn.Query(query)
 	if err != nil {
 		return err
 	}
@@ -46,11 +58,17 @@ func resourcePostgresqlDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourcePostgresqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	dbName := d.Get("name").(string)
 
 	var owner string
-	err := conn.QueryRow("SELECT pg_catalog.pg_get_userbyid(d.datdba) from pg_database d WHERE datname=$1", dbName).Scan(&owner)
+	err = conn.QueryRow("SELECT pg_catalog.pg_get_userbyid(d.datdba) from pg_database d WHERE datname=$1", dbName).Scan(&owner)
 	switch {
 	case err == sql.ErrNoRows:
 		d.SetId("")
@@ -64,7 +82,13 @@ func resourcePostgresqlDatabaseRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourcePostgresqlDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*sql.DB)
+	client := meta.(*Client)
+	conn, err := client.Connect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	dbName := d.Get("name").(string)
 
 	if d.HasChange("owner") {
@@ -80,3 +104,4 @@ func resourcePostgresqlDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 
 	return resourcePostgresqlDatabaseRead(d, meta)
 }
+

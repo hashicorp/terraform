@@ -50,7 +50,7 @@ func TestAccPostgresqlDatabase_DefaultOwner(t *testing.T) {
 }
 
 func testAccCheckPostgresqlDatabaseDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*sql.DB)
+	client := testAccProvider.Meta().(*Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "postgresql_database" {
@@ -87,7 +87,7 @@ func testAccCheckPostgresqlDatabaseExists(n string, owner string) resource.TestC
 			return fmt.Errorf("Wrong owner for db expected %s got %s", owner, actualOwner)
 		}
 
-		client := testAccProvider.Meta().(*sql.DB)
+		client := testAccProvider.Meta().(*Client)
 		exists, err := checkDatabaseExists(client, rs.Primary.ID)
 
 		if err != nil {
@@ -102,9 +102,15 @@ func testAccCheckPostgresqlDatabaseExists(n string, owner string) resource.TestC
 	}
 }
 
-func checkDatabaseExists(conn *sql.DB, dbName string) (bool, error) {
+func checkDatabaseExists(client *Client, dbName string) (bool, error) {
+	conn, err := client.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
 	var _rez int
-	err := conn.QueryRow("SELECT 1 from pg_database d WHERE datname=$1", dbName).Scan(&_rez)
+	err = conn.QueryRow("SELECT 1 from pg_database d WHERE datname=$1", dbName).Scan(&_rez)
 	switch {
 	case err == sql.ErrNoRows:
 		return false, nil
@@ -123,6 +129,11 @@ resource "postgresql_role" "myrole" {
 
 resource "postgresql_database" "mydb" {
    name = "mydb"
+   owner = "${postgresql_role.myrole.name}"
+}
+
+resource "postgresql_database" "mydb2" {
+   name = "mydb2"
    owner = "${postgresql_role.myrole.name}"
 }
 
