@@ -76,6 +76,7 @@ BUG FIXES:
   * provider/aws: Correctly export ARN in `aws_iam_saml_provider` [GH-3827]
   * provider/aws: Fix crash in Route53 Record if Zone not found [GH-3945]
   * providers/aws: Retry deleting IAM Server Cert on dependency violation [GH-3898]
+  * providers/aws: Update Spot Instance request to provide connection information [GH-3940]
   * providers/aws: Fix typo in error checking for IAM Policy Attachments [GH-3970]
   * provider/aws: Fix issue with LB Cookie Stickiness and empty expiration period [GH-3908]
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
