@@ -72,3 +72,10 @@ should only be used for informational purposes, not for resource dependencies:
   of the Spot Instance Request.
 * `spot_instance_id` - The Instance ID (if any) that is currently fulfilling
   the Spot Instance request.
+* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
+  is only available if you've enabled DNS hostnames for your VPC
+* `public_ip` - The public IP address assigned to the instance, if applicable.
+* `private_dns` - The private DNS name assigned to the instance. Can only be 
+  used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
+  for your VPC
+* `private_ip` - The private IP address assigned to the instance
