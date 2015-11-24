@@ -178,28 +178,21 @@ A template resource looks like:
 
 ```
 resource "template_file" "example" {
-    filename = "template.txt"
-    vars {
-        hello = "goodnight"
-        world = "moon"
-    }
+  template = "${hello} ${world}!"
+  vars {
+    hello = "goodnight"
+    world = "moon"
+  }
 }
 
 output "rendered" {
-    value = "${template_file.example.rendered}"
+  value = "${template_file.example.rendered}"
 }
-```
-
-Assuming `template.txt` looks like this:
-
-```
-${hello} ${world}!
 ```
 
 Then the rendered value would be `goodnight moon!`.
 
 You may use any of the built-in functions in your template.
-
 
 ### Using Templates with Count
 
@@ -220,8 +213,8 @@ variable "hostnames" {
 
 resource "template_file" "web_init" {
   // here we expand multiple template_files - the same number as we have instances
-  count = "${var.count}"
-  filename = "templates/web_init.tpl"
+  count    = "${var.count}"
+  template = "${file("templates/web_init.tpl")}"
   vars {
     // that gives us access to use count.index to do the lookup
     hostname = "${lookup(var.hostnames, count.index)}"
