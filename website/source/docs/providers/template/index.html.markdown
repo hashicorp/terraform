@@ -25,7 +25,7 @@ Use the navigation to the left to read about the available resources.
 ```
 # Template for initial configuration bash script
 resource "template_file" "init" {
-	template = "init.tpl"
+	template = "${file("init.tpl")}"
 
 	vars {
 		consul_address = "${aws_instance.consul.private_ip}"
