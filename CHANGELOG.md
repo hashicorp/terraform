@@ -1,6 +1,14 @@
 ## 0.6.8 (Unreleased)
 
+FEATURES:
 
+  * **New resource: `digitalocean_floating_ip`** [GH-3748]
+
+IMPROVEMENTS:
+
+BUG FIXES:
+
+  * provider/aws: Fixed a bug which could result in a panic when reading EC2 metadata [GH-4024]
 
 ## 0.6.7 (November 23, 2015)
 
