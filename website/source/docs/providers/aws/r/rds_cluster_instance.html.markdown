@@ -90,4 +90,4 @@ this instance is a read replica
 [3]: /docs/providers/aws/r/rds_cluster.html
 [4]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html
 [5]: /docs/configuration/resources.html#count
-[6]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+[6]: http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
