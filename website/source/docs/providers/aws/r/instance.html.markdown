@@ -130,10 +130,13 @@ The following attributes are exported:
 * `availability_zone` - The availability zone of the instance.
 * `placement_group` - The placement group of the instance.
 * `key_name` - The key name of the instance
-* `private_dns` - The Private DNS name of the instance
-* `private_ip` - The private IP address.
-* `public_dns` - The public DNS name of the instance
-* `public_ip` - The public IP address.
+* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
+  is only available if you've enabled DNS hostnames for your VPC
+* `public_ip` - The public IP address assigned to the instance, if applicable.
+* `private_dns` - The private DNS name assigned to the instance. Can only be 
+  used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
+  for your VPC
+* `private_ip` - The private IP address assigned to the instance
 * `security_groups` - The associated security groups.
 * `vpc_security_group_ids` - The associated security groups in non-default VPC
 * `subnet_id` - The VPC subnet ID.
