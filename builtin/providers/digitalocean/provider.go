@@ -18,10 +18,11 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"digitalocean_domain":  resourceDigitalOceanDomain(),
-			"digitalocean_droplet": resourceDigitalOceanDroplet(),
-			"digitalocean_record":  resourceDigitalOceanRecord(),
-			"digitalocean_ssh_key": resourceDigitalOceanSSHKey(),
+			"digitalocean_domain":      resourceDigitalOceanDomain(),
+			"digitalocean_droplet":     resourceDigitalOceanDroplet(),
+			"digitalocean_floating_ip": resourceDigitalOceanFloatingIp(),
+			"digitalocean_record":      resourceDigitalOceanRecord(),
+			"digitalocean_ssh_key":     resourceDigitalOceanSSHKey(),
 		},
 
 		ConfigureFunc: providerConfigure,
