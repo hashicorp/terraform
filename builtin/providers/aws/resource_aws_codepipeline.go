@@ -19,33 +19,6 @@ func resourceAwsCodePipeline() *schema.Resource {
 	}
 }
 
-// tagsSchema returns the schema to use for tags.
-func pipelineDeclarationSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Required: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"key": &schema.Schema{
-					Type:     schema.TypeString,
-					Required: true,
-				},
-
-				"value": &schema.Schema{
-					Type:     schema.TypeString,
-					Required: true,
-				},
-
-				"propagate_at_launch": &schema.Schema{
-					Type:     schema.TypeBool,
-					Required: true,
-				},
-			},
-		},
-		Set: autoscalingTagsToHash,
-	}
-}
-
 func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) error {
 	//conn := meta.(*AWSClient).codepipelineconn
 	return fmt.Errorf("CodePipelineCreate Not implemented")
