@@ -198,8 +198,8 @@ resource "vsphere_virtual_machine" "foo" {
     gateway = "%s"
     network_interface {
         label = "%s"
-        ip_address = "%s"
-        subnet_mask = "255.255.255.0"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
     }
     disk {
 %s
