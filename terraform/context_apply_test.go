@@ -807,6 +807,46 @@ func TestContext2Apply_countVariable(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_mapVariableOverride(t *testing.T) {
+	m := testModule(t, "apply-map-var-override")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"images.us-west-2": "overridden",
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+aws_instance.bar:
+  ID = foo
+  ami = overridden
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  ami = image-1234
+  type = aws_instance
+	`)
+	if actual != expected {
+		t.Fatalf("got: \n%s\nexpected: \n%s", actual, expected)
+	}
+}
+
 func TestContext2Apply_module(t *testing.T) {
 	m := testModule(t, "apply-module")
 	p := testProvider("aws")
