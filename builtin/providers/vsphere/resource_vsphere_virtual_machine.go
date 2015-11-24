@@ -28,11 +28,13 @@ var DefaultDNSServers = []string{
 }
 
 type networkInterface struct {
-	deviceName  string
-	label       string
-	ipAddress   string
-	subnetMask  string
-	adapterType string // TODO: Make "adapter_type" argument
+	deviceName       string
+	label            string
+	ipv4Address      string
+	ipv4PrefixLength int
+	ipv6Address      string
+	ipv6PrefixLength int
+	adapterType      string // TODO: Make "adapter_type" argument
 }
 
 type hardDisk struct {
@@ -148,15 +150,40 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 
 						"ip_address": &schema.Schema{
+							Type:       schema.TypeString,
+							Optional:   true,
+							Computed:   true,
+							Deprecated: "Please use ipv4_address",
+						},
+
+						"subnet_mask": &schema.Schema{
+							Type:       schema.TypeString,
+							Optional:   true,
+							Computed:   true,
+							Deprecated: "Please use ipv4_prefix_length",
+						},
+
+						"ipv4_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
+						},
+
+						"ipv4_prefix_length": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+						},
+
+						// TODO: Imprement ipv6 parameters to be optional
+						"ipv6_address": &schema.Schema{
+							Type:     schema.TypeString,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"subnet_mask": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+						"ipv6_prefix_length": &schema.Schema{
+							Type:     schema.TypeInt,
 							Computed: true,
 							ForceNew: true,
 						},
@@ -267,10 +294,23 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			network := v.(map[string]interface{})
 			networks[i].label = network["label"].(string)
 			if v, ok := network["ip_address"].(string); ok && v != "" {
-				networks[i].ipAddress = v
+				networks[i].ipv4Address = v
 			}
 			if v, ok := network["subnet_mask"].(string); ok && v != "" {
-				networks[i].subnetMask = v
+				ip := net.ParseIP(v).To4()
+				if ip != nil {
+					mask := net.IPv4Mask(ip[0], ip[1], ip[2], ip[3])
+					pl, _ := mask.Size()
+					networks[i].ipv4PrefixLength = pl
+				} else {
+					return fmt.Errorf("subnet_mask parameter is invalid.")
+				}
+			}
+			if v, ok := network["ipv4_address"].(string); ok && v != "" {
+				networks[i].ipv4Address = v
+			}
+			if v, ok := network["ipv4_prefix_length"].(int); ok && v != 0 {
+				networks[i].ipv4PrefixLength = v
 			}
 		}
 		vm.networkInterfaces = networks
@@ -321,7 +361,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
-	if _, ok := d.GetOk("network_interface.0.ip_address"); !ok {
+	if _, ok := d.GetOk("network_interface.0.ipv4_address"); !ok {
 		if v, ok := d.GetOk("boot_delay"); ok {
 			stateConf := &resource.StateChangeConf{
 				Pending:    []string{"pending"},
@@ -377,15 +417,22 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			log.Printf("[DEBUG] %#v", v.Network)
 			networkInterface := make(map[string]interface{})
 			networkInterface["label"] = v.Network
-			if len(v.IpAddress) > 0 {
-				log.Printf("[DEBUG] %#v", v.IpAddress[0])
-				networkInterface["ip_address"] = v.IpAddress[0]
-
-				m := net.CIDRMask(v.IpConfig.IpAddress[0].PrefixLength, 32)
-				subnetMask := net.IPv4(m[0], m[1], m[2], m[3])
-				networkInterface["subnet_mask"] = subnetMask.String()
-				log.Printf("[DEBUG] %#v", subnetMask.String())
+			for _, ip := range v.IpConfig.IpAddress {
+				p := net.ParseIP(ip.IpAddress)
+				if p.To4() != nil {
+					log.Printf("[DEBUG] %#v", p.String())
+					log.Printf("[DEBUG] %#v", ip.PrefixLength)
+					networkInterface["ipv4_address"] = p.String()
+					networkInterface["ipv4_prefix_length"] = ip.PrefixLength
+				} else if p.To16() != nil {
+					log.Printf("[DEBUG] %#v", p.String())
+					log.Printf("[DEBUG] %#v", ip.PrefixLength)
+					networkInterface["ipv6_address"] = p.String()
+					networkInterface["ipv6_prefix_length"] = ip.PrefixLength
+				}
+				log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 			}
+			log.Printf("[DEBUG] networkInterface: %#v", networkInterface)
 			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
@@ -419,14 +466,6 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	d.Set("memory", mvm.Summary.Config.MemorySizeMB)
 	d.Set("cpu", mvm.Summary.Config.NumCpu)
 	d.Set("datastore", rootDatastore)
-
-	// Initialize the connection info
-	if len(networkInterfaces) > 0 {
-		d.SetConnInfo(map[string]string{
-			"type": "ssh",
-			"host": networkInterfaces[0]["ip_address"].(string),
-		})
-	}
 
 	return nil
 }
@@ -967,23 +1006,31 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		}
 		networkDevices = append(networkDevices, nd)
 
+		// TODO: IPv6 support
 		var ipSetting types.CustomizationIPSettings
-		if network.ipAddress == "" {
+		if network.ipv4Address == "" {
 			ipSetting = types.CustomizationIPSettings{
 				Ip: &types.CustomizationDhcpIpGenerator{},
 			}
 		} else {
+			if network.ipv4PrefixLength == 0 {
+				return fmt.Errorf("Error: ipv4_prefix_length argument is empty.")
+			}
+			m := net.CIDRMask(network.ipv4PrefixLength, 32)
+			sm := net.IPv4(m[0], m[1], m[2], m[3])
+			subnetMask := sm.String()
 			log.Printf("[DEBUG] gateway: %v", vm.gateway)
-			log.Printf("[DEBUG] ip address: %v", network.ipAddress)
-			log.Printf("[DEBUG] subnet mask: %v", network.subnetMask)
+			log.Printf("[DEBUG] ipv4 address: %v", network.ipv4Address)
+			log.Printf("[DEBUG] ipv4 prefix length: %v", network.ipv4PrefixLength)
+			log.Printf("[DEBUG] ipv4 subnet mask: %v", subnetMask)
 			ipSetting = types.CustomizationIPSettings{
 				Gateway: []string{
 					vm.gateway,
 				},
 				Ip: &types.CustomizationFixedIp{
-					IpAddress: network.ipAddress,
+					IpAddress: network.ipv4Address,
 				},
-				SubnetMask: network.subnetMask,
+				SubnetMask: subnetMask,
 			}
 		}
 
