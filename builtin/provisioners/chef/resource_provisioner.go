@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 	"text/template"
@@ -322,7 +322,7 @@ func (p *Provisioner) runChefClientFunc(
 	chefCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
-		fb := filepath.Join(confDir, firstBoot)
+		fb := path.Join(confDir, firstBoot)
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
@@ -337,8 +337,8 @@ func (p *Provisioner) runChefClientFunc(
 				return fmt.Errorf("Error creating logfile directory %s: %v", logfileDir, err)
 			}
 
-			logFile := filepath.Join(logfileDir, p.NodeName)
-			f, err := os.Create(filepath.Join(logFile))
+			logFile := path.Join(logfileDir, p.NodeName)
+			f, err := os.Create(path.Join(logFile))
 			if err != nil {
 				return fmt.Errorf("Error creating logfile %s: %v", logFile, err)
 			}
@@ -354,7 +354,7 @@ func (p *Provisioner) runChefClientFunc(
 
 // Output implementation of terraform.UIOutput interface
 func (p *Provisioner) Output(output string) {
-	logFile := filepath.Join(logfileDir, p.NodeName)
+	logFile := path.Join(logfileDir, p.NodeName)
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Printf("Error creating logfile %s: %v", logFile, err)
@@ -389,7 +389,7 @@ func (p *Provisioner) deployConfigFiles(
 	f := strings.NewReader(contents)
 
 	// Copy the validation key to the new instance
-	if err := comm.Upload(filepath.Join(confDir, validationKey), f); err != nil {
+	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
 	}
 
@@ -400,7 +400,7 @@ func (p *Provisioner) deployConfigFiles(
 		}
 		s := strings.NewReader(contents)
 		// Copy the secret key to the new instance
-		if err := comm.Upload(filepath.Join(confDir, secretKey), s); err != nil {
+		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
 			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
 		}
 	}
@@ -420,7 +420,7 @@ func (p *Provisioner) deployConfigFiles(
 	}
 
 	// Copy the client config to the new instance
-	if err := comm.Upload(filepath.Join(confDir, clienrb), &buf); err != nil {
+	if err := comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", clienrb, err)
 	}
 
@@ -449,7 +449,7 @@ func (p *Provisioner) deployConfigFiles(
 	}
 
 	// Copy the first-boot.json to the new instance
-	if err := comm.Upload(filepath.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
+	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
 		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
 	}
 
@@ -469,8 +469,8 @@ func (p *Provisioner) deployOhaiHints(
 		defer f.Close()
 
 		// Copy the hint to the new instance
-		if err := comm.Upload(filepath.Join(hintDir, filepath.Base(hint)), f); err != nil {
-			return fmt.Errorf("Uploading %s failed: %v", filepath.Base(hint), err)
+		if err := comm.Upload(path.Join(hintDir, path.Base(hint)), f); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", path.Base(hint), err)
 		}
 	}
 
