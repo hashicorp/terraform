@@ -6,6 +6,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * provider/cloudstack: Reduced the number of network call required for common operations [GH-4051]
+
 BUG FIXES:
 
   * provider/aws: Fixed a bug which could result in a panic when reading EC2 metadata [GH-4024]
