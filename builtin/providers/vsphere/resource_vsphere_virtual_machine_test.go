@@ -308,8 +308,6 @@ func testAccCheckVSphereVirtualMachineExistsHasCustomConfig(n string, vm *virtua
 }
 func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// todo how do I return this??
-		//test1 := testAccCheckVSphereVirtualMachineExists(n, vm)
 
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -393,7 +391,7 @@ resource "vsphere_virtual_machine" "car" {
         label = "%s"
     }
     custom_configuration_parameters {
-        "foo" = "bar"
+	"foo" = "bar"
 	"car" = "ferrari"
 	"num" = 42
     }
