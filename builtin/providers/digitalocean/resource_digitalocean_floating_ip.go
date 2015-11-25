@@ -56,7 +56,7 @@ func resourceDigitalOceanFloatingIpCreate(d *schema.ResourceData, meta interface
 
 	if v, ok := d.GetOk("droplet_id"); ok {
 
-		log.Printf("[INFO] Assigning the Floating IP to the Droplet %s", v.(int))
+		log.Printf("[INFO] Assigning the Floating IP to the Droplet %d", v.(int))
 		action, _, err := client.FloatingIPActions.Assign(d.Id(), v.(int))
 		if err != nil {
 			return fmt.Errorf(
