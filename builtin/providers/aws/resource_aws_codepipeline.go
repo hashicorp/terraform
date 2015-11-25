@@ -69,6 +69,101 @@ func resourceAwsCodePipeline() *schema.Resource {
 								}, //schema under Resource
 							}, //ArtifactStore - Resource
 						}, //ArtifactStore - Schema
+
+						"StageDeclaration": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"Name": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+
+									"ActionDeclaration": &schema.Schema{
+										Type:     schema.TypeList,
+										Required: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"Name": &schema.Schema{
+													Type:     schema.TypeString,
+													Required: true,
+												},
+
+												"RoleArn": &schema.Schema{
+													Type:     schema.TypeString,
+													Optional: true,
+												},
+
+												"RunOrder": &schema.Schema{
+													Type:     schema.TypeInt,
+													Optional: true,
+												},
+
+												"Configuration": &schema.Schema{
+													Type:     schema.TypeMap,
+													Required: true,
+												},
+
+												"InputArtifact": &schema.Schema{
+													Type:     schema.TypeList,
+													Required: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"Name": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+														}, //InputArtifact schema
+													}, // InputArtifact schema resource
+												}, //InputArtifact
+
+												"OutputArtifact": &schema.Schema{
+													Type:     schema.TypeList,
+													Required: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"Name": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+														}, //OutputArtifact schema
+													}, // OutputArtifact schema resource
+												}, //OutputArtifact
+
+												"ActionTypeId": &schema.Schema{
+													Type:     schema.TypeList,
+													Required: true,
+													Elem: &schema.Resource{
+														Schema: map[string]*schema.Schema{
+															"Category": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+
+															"Owner": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+
+															"Provider": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+
+															"Version": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+															},
+														}, //ActionTypeId schema
+													}, // ActionTypeId schema resource
+												}, //ActionTypeId
+											}, //ActionDeclaration schema
+										}, // ActionDeclaration schema resource
+									}, //ActionDeclaration
+								}, //schema under Resource
+							}, //StageDeclaration - Resource
+						}, //StageDeclaration - Schema
 					}, //schema PipelineDeclaration resource
 				}, //PipelineDeclaration - Resource
 			}, //PipelineDeclaration
