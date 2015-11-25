@@ -46,6 +46,7 @@ The following arguments are supported:
 * `dns_servers` - (Optional) List of DNS servers for the virtual network adapter; defaults to 8.8.8.8, 8.8.4.4
 * `network_interface` - (Required) Configures virtual network interfaces; see [Network Interfaces](#network-interfaces) below for details.
 * `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for details
+* `cdrom` - (Optional) Configures a CDROM device and mounts an image as its media; see [CDROM](#cdrom) below for more details.
 * `boot_delay` - (Optional) Time in seconds to wait for machine network to be ready.
 * `windows_opt_config` - (Optional) Extra options for clones of Windows machines.
 * `linked_clone` - (Optional) Specifies if the new machine is a [linked clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396) of another machine or not.
@@ -71,6 +72,9 @@ The `windows_opt_config` block supports:
 * `domain_user` - (Optional) User that is a member of the specified domain.
 * `domain_user_password` - (Optional) Password for domain user, in plain text.
 
+<a id="disks"></a>
+## Disks
+
 The `disk` block supports:
 
 * `template` - (Required if size not provided) Template for this disk.
@@ -78,6 +82,14 @@ The `disk` block supports:
 * `size` - (Required if template not provided) Size of this disk (in GB).
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
 * `type` - (Optional) 'eager_zeroed' (the default), or 'thin' are supported options.
+
+<a id="cdrom"></a>
+## CDROM
+
+The `cdrom` block supports:
+
+* `datastore` - (Required) The name of the datastore where the disk image is stored.
+* `path` - (Required) The absolute path to the image within the datastore.
 
 ## Attributes Reference
 
