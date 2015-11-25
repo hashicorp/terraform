@@ -240,7 +240,7 @@ resource "aws_autoscaling_notification" "example" {
 `
 
 const testAccASGNotificationConfig_update = `
-resource "aws_sns_topic" "user_updates" {
+resource "aws_sns_topic" "topic_example" {
   name = "user-updates-topic"
 }
 
@@ -286,7 +286,7 @@ resource "aws_autoscaling_notification" "example" {
 		"autoscaling:EC2_INSTANCE_TERMINATE",
 		"autoscaling:EC2_INSTANCE_LAUNCH_ERROR"
 	]
-	topic_arn = "${aws_sns_topic.user_updates.arn}"
+	topic_arn = "${aws_sns_topic.topic_example.arn}"
 }`
 
 const testAccASGNotificationConfig_pagination = `

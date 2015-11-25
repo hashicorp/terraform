@@ -132,6 +132,44 @@ func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
+	// IAM Users must be removed from all groups before they can be deleted
+	var groups []string
+	var marker *string
+	truncated := aws.Bool(true)
+
+	for *truncated == true {
+		listOpts := iam.ListGroupsForUserInput{
+			UserName: aws.String(d.Id()),
+		}
+
+		if marker != nil {
+			listOpts.Marker = marker
+		}
+
+		r, err := iamconn.ListGroupsForUser(&listOpts)
+		if err != nil {
+			return err
+		}
+
+		for _, g := range r.Groups {
+			groups = append(groups, *g.GroupName)
+		}
+
+		// if there's a marker present, we need to save it for pagination
+		if r.Marker != nil {
+			*marker = *r.Marker
+		}
+		*truncated = *r.IsTruncated
+	}
+
+	for _, g := range groups {
+		// use iam group membership func to remove user from all groups
+		log.Printf("[DEBUG] Removing IAM User %s from IAM Group %s", d.Id(), g)
+		if err := removeUsersFromGroup(iamconn, []*string{aws.String(d.Id())}, g); err != nil {
+			return err
+		}
+	}
+
 	request := &iam.DeleteUserInput{
 		UserName: aws.String(d.Id()),
 	}

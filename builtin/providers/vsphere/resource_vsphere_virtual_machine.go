@@ -581,8 +581,8 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string) e
 	}
 }
 
-// createNetworkDevice creates VirtualDeviceConfigSpec for Network Device.
-func createNetworkDevice(f *find.Finder, label, adapterType string) (*types.VirtualDeviceConfigSpec, error) {
+// buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
+func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.VirtualDeviceConfigSpec, error) {
 	network, err := f.Network(context.TODO(), "*"+label)
 	if err != nil {
 		return nil, err
@@ -626,8 +626,8 @@ func createNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virt
 	}
 }
 
-// createVMRelocateSpec creates VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func createVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine) (types.VirtualMachineRelocateSpec, error) {
+// buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
+func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine) (types.VirtualMachineRelocateSpec, error) {
 	var key int
 
 	devices, err := vm.Device(context.TODO())
@@ -673,8 +673,8 @@ func getDatastoreObject(client *govmomi.Client, f *object.DatacenterFolders, nam
 	return ref.Reference(), nil
 }
 
-// createStoragePlacementSpecCreate creates StoragePlacementSpec for create action.
-func createStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
+// buildStoragePlacementSpecCreate builds StoragePlacementSpec for create action.
+func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
 	spr := storagePod.Reference()
@@ -692,8 +692,8 @@ func createStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.Re
 	return sps
 }
 
-// createStoragePlacementSpecClone creates StoragePlacementSpec for clone action.
-func createStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
+// buildStoragePlacementSpecClone builds StoragePlacementSpec for clone action.
+func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
 	vmr := vm.Reference()
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
@@ -802,7 +802,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	networkDevices := []types.BaseVirtualDeviceConfigSpec{}
 	for _, network := range vm.networkInterfaces {
 		// network device
-		nd, err := createNetworkDevice(finder, network.label, "e1000")
+		nd, err := buildNetworkDevice(finder, network.label, "e1000")
 		if err != nil {
 			return err
 		}
@@ -857,7 +857,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 				sp := object.StoragePod{
 					object.NewFolder(c.Client, d),
 				}
-				sps := createStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
+				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
 				datastore, err = findDatastore(c, sps)
 				if err != nil {
 					return err
@@ -974,7 +974,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 				sp := object.StoragePod{
 					object.NewFolder(c.Client, d),
 				}
-				sps := createStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
+				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
 				datastore, err = findDatastore(c, sps)
 				if err != nil {
 					return err
@@ -986,7 +986,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] datastore: %#v", datastore)
 
-	relocateSpec, err := createVMRelocateSpec(resourcePool, datastore, template)
+	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template)
 	if err != nil {
 		return err
 	}
@@ -997,7 +997,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	networkConfigs := []types.CustomizationAdapterMapping{}
 	for _, network := range vm.networkInterfaces {
 		// network device
-		nd, err := createNetworkDevice(finder, network.label, "vmxnet3")
+		nd, err := buildNetworkDevice(finder, network.label, "vmxnet3")
 		if err != nil {
 			return err
 		}

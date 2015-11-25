@@ -1,11 +1,25 @@
-## 0.6.7 (Unreleased)
+## 0.6.8 (Unreleased)
+
+FEATURES:
+
+  * **New resource: `digitalocean_floating_ip`** [GH-3748]
+
+IMPROVEMENTS:
+
+BUG FIXES:
+
+  * provider/aws: Fixed a bug which could result in a panic when reading EC2 metadata [GH-4024]
+  * provisioner/chef: Fix issue with path separators breaking the Chef provisioner on Windows [GH-4041]
+  * providers/aws: Fix issue recreating security group rule if it has been destroyed [GH-4050]
+
+## 0.6.7 (November 23, 2015)
 
 FEATURES:
 
   * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
   * **New provider: `dyn`** - Manage DNS records on Dyn
   * **New resource: `aws_cloudformation_stack`** [GH-2636]
-  * **New resource: `aws_cloudtrail`** [GH-3094]
+  * **New resource: `aws_cloudtrail`** [GH-3094], [GH-4010]
   * **New resource: `aws_route`** [GH-3548]
   * **New resource: `aws_codecommit_repository`** [GH-3274]
   * **New resource: `aws_kinesis_firehose_delivery_stream`** [GH-3833]
@@ -63,17 +77,24 @@ BUG FIXES:
   * `terraform remote config`: update `--help` output [GH-3632]
   * core: modules on Git branches now update properly [GH-1568]
   * core: Fix issue preventing input prompts for unset variables during plan [GH-3843]
+  * core: Fix issue preventing input prompts for unset variables during refresh [GH-4017]
   * core: Orphan resources can now be targets [GH-3912]
+  * helper/schema: skip StateFunc when value is nil [GH-4002]
   * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
   * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
+  * provider/aws: Fix a bug where a non-lower-cased `maintenance_window` can cause unnecessary planned changes [GH-4020]
   * provider/aws: Only set `weight` on an `aws_route53_record` if it has been set in configuration [GH-3900]
   * provider/aws: ignore association not exist on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
   * provider/aws: Correctly export ARN in `aws_iam_saml_provider` [GH-3827]
+  * provider/aws: Fix issue deleting users who are attached to a group [GH-4005]
   * provider/aws: Fix crash in Route53 Record if Zone not found [GH-3945]
-  * providers/aws: Fix typo in error checking for IAM Policy Attachments #3970
+  * providers/aws: Retry deleting IAM Server Cert on dependency violation [GH-3898]
+  * providers/aws: Update Spot Instance request to provide connection information [GH-3940]
+  * providers/aws: Fix typo in error checking for IAM Policy Attachments [GH-3970]
+  * provider/aws: Fix issue with LB Cookie Stickiness and empty expiration period [GH-3908]
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
   * provider/aws: Downcase Route 53 record names in statefile to match API output [GH-3574]
   * provider/aws: Fix issue that could occur if no ECS Cluster was found for a give name [GH-3829]
@@ -84,6 +105,7 @@ BUG FIXES:
   * provider/aws: Fix issue with updating the `aws_ecs_task_definition` where `aws_ecs_service` didn't wait for a new computed ARN [GH-3924]
   * provider/aws: Prevent crashing when deleting `aws_ecs_service` that is already gone [GH-3914]
   * provider/aws: Allow spaces in `aws_db_subnet_group.name` (undocumented in the API) [GH-3955]
+  * provider/aws: Make VPC ID required on subnets [GH-4021]
   * provider/azure: various bugfixes [GH-3695]
   * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
   * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]

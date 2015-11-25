@@ -174,9 +174,10 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	p := expandIPPerm(d, sg)
 
 	if len(rules) == 0 {
-		return fmt.Errorf(
-			"[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
+		log.Printf("[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
 			ruleType, *sg.GroupName, d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	for _, r := range rules {
