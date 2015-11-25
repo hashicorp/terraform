@@ -14,10 +14,49 @@ func resourceAwsCodePipeline() *schema.Resource {
 		Delete: resourceAwsCodePipelineDelete,
 
 		Schema: map[string]*schema.Schema{
-			"PipelineDeclaration": pipelineDeclarationSchema(),
-		},
-	}
-}
+			"PipelineDeclaration": &schema.Schema{
+				Type:     schema.TypeList,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"Name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"RoleArn": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"Version": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"ArtifactStore": &schema.Schema{
+							Type:     schema.TypeList,
+							Required: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"Location": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+
+									"Type": &schema.Schema{
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								}, //schema under Resource
+							}, //ArtifactStore - Resource
+						}, //ArtifactStore
+					}, //schema under resource
+				}, //PipelineDeclaration - Resource
+			}, //PipelineDeclaration
+		}, //Schema
+	} //return
+} //func
 
 func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) error {
 	//conn := meta.(*AWSClient).codepipelineconn
