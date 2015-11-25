@@ -315,16 +315,23 @@ func resourceVcdVAppDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("error finding vapp: %s", err)
 	}
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
-		task, err := vapp.Undeploy()
-		if err != nil {
-			return fmt.Errorf("Error undeploying: %#v", err)
-		}
-
-		return task.WaitTaskCompletion()
-	})
+	status, err := vapp.GetStatus()
 	if err != nil {
-		return err
+		return fmt.Errorf("Error getting VApp status: %#v", err)
+	}
+
+	if status == "POWERED_ON" {
+		err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+			task, err := vapp.Undeploy()
+			if err != nil {
+				return fmt.Errorf("Error undeploying: %#v", err)
+			}
+
+			return task.WaitTaskCompletion()
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
