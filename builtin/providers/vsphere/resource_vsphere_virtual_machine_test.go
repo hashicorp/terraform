@@ -10,6 +10,9 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/property"
+	"github.com/vmware/govmomi/vim25/mo"
+	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/net/context"
 )
 
@@ -216,8 +219,90 @@ func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckVSphereVirtualMachineExistsHasExtraConfig(n string, vm *virtualMachine) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		client := testAccProvider.Meta().(*govmomi.Client)
+		finder := find.NewFinder(client.Client, true)
+
+		dc, err := finder.Datacenter(context.TODO(), rs.Primary.Attributes["datacenter"])
+		if err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+
+		dcFolders, err := dc.Folders(context.TODO())
+		if err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+
+		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), dcFolders.VmFolder, rs.Primary.Attributes["name"])
+
+		instance, err := finder.VirtualMachine(context.TODO(), rs.Primary.Attributes["name"])
+		if err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+
+		var mvm mo.VirtualMachine
+
+		collector := property.DefaultCollector(client.Client)
+
+		if err := collector.RetrieveOne(context.TODO(), instance.Reference(), []string{"config.extraConfig"}, &mvm); err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+
+		var configMap = make(map[string]types.AnyType)
+		if mvm.Config != nil && mvm.Config.ExtraConfig != nil && len(mvm.Config.ExtraConfig) > 0 {
+			for _, v := range mvm.Config.ExtraConfig {
+				value := v.GetOptionValue()
+				configMap[value.Key] = value.Value
+			}
+		} else {
+			return fmt.Errorf("error no ExtraConfig")
+		}
+
+		if configMap["foo"] == nil {
+			return fmt.Errorf("error no ExtraConfig for 'foo'")
+		}
+
+		if configMap["foo"] != "bar" {
+			return fmt.Errorf("error ExtraConfig 'foo' != bar")
+		}
+
+		if configMap["car"] == nil {
+			return fmt.Errorf("error no ExtraConfig for 'car'")
+		}
+
+		if configMap["car"] != "ferrari" {
+			return fmt.Errorf("error ExtraConfig 'car' != ferrari")
+		}
+
+		if configMap["car"] == nil {
+			return fmt.Errorf("error no ExtraConfig for 'car'")
+		}
+
+		if configMap["car"] != "ferrari" {
+			return fmt.Errorf("error ExtraConfig 'car' != ferrari")
+		}
+		*vm = virtualMachine{
+			name: rs.Primary.ID,
+		}
+
+		return nil
+	}
+}
 func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		// todo how do I return this??
+		//test1 := testAccCheckVSphereVirtualMachineExists(n, vm)
+
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -247,6 +332,7 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 		}
 
 		return nil
+
 	}
 }
 
@@ -300,8 +386,8 @@ resource "vsphere_virtual_machine" "car" {
     }
     custom_configuration_parameters {
         "foo" = "bar"
-	"car" = "ferrai"
-	"num" = 42
+				"car" = "ferrai"
+				"num" = 42
     }
     disk {
 %s
