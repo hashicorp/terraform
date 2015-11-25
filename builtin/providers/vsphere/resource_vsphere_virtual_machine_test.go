@@ -164,7 +164,7 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 					template,
 				),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.car", &vm),
+					testAccCheckVSphereVirtualMachineExistsHasCustomConfig("vsphere_virtual_machine.car", &vm),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "name", "terraform-test-custom"),
 					resource.TestCheckResourceAttr(
@@ -180,7 +180,7 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "custom_configuration_parameters.foo", "bar"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.car", "custom_configuration_parameters.car", "ferrai"),
+						"vsphere_virtual_machine.car", "custom_configuration_parameters.car", "ferrari"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.car", "custom_configuration_parameters.num", "42"),
 					resource.TestCheckResourceAttr(
@@ -219,8 +219,10 @@ func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVSphereVirtualMachineExistsHasExtraConfig(n string, vm *virtualMachine) resource.TestCheckFunc {
+func testAccCheckVSphereVirtualMachineExistsHasCustomConfig(n string, vm *virtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+
+
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -243,8 +245,13 @@ func testAccCheckVSphereVirtualMachineExistsHasExtraConfig(n string, vm *virtual
 			return fmt.Errorf("error %s", err)
 		}
 
-		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), dcFolders.VmFolder, rs.Primary.Attributes["name"])
 
+		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), dcFolders.VmFolder, rs.Primary.Attributes["name"])
+		if err != nil {
+			return fmt.Errorf("error %s", err)
+		}
+
+		finder = finder.SetDatacenter(dc)
 		instance, err := finder.VirtualMachine(context.TODO(), rs.Primary.Attributes["name"])
 		if err != nil {
 			return fmt.Errorf("error %s", err)
@@ -284,12 +291,13 @@ func testAccCheckVSphereVirtualMachineExistsHasExtraConfig(n string, vm *virtual
 			return fmt.Errorf("error ExtraConfig 'car' != ferrari")
 		}
 
-		if configMap["car"] == nil {
-			return fmt.Errorf("error no ExtraConfig for 'car'")
+		if configMap["num"] == nil {
+			return fmt.Errorf("error no ExtraConfig for 'num'")
 		}
 
-		if configMap["car"] != "ferrari" {
-			return fmt.Errorf("error ExtraConfig 'car' != ferrari")
+		// todo this should be an int, getting back a string
+		if configMap["num"] != "42" {
+			return fmt.Errorf("error ExtraConfig 'num' != 42")
 		}
 		*vm = virtualMachine{
 			name: rs.Primary.ID,
@@ -386,8 +394,8 @@ resource "vsphere_virtual_machine" "car" {
     }
     custom_configuration_parameters {
         "foo" = "bar"
-				"car" = "ferrai"
-				"num" = 42
+	"car" = "ferrari"
+	"num" = 42
     }
     disk {
 %s
