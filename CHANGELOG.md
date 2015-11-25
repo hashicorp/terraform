@@ -7,12 +7,13 @@ FEATURES:
 IMPROVEMENTS:
 
   * provider/cloudstack: Reduce the number of network calls required for common operations [GH-4051]
+  * provider/aws: Changing `publically_accessible` on an `aws_db_instance` will no longer force a new resource [GH-3895]
 
 BUG FIXES:
 
   * provider/aws: Fix a bug which could result in a panic when reading EC2 metadata [GH-4024]
-  * provisioner/chef: Fix issue with path separators breaking the Chef provisioner on Windows [GH-4041]
   * provider/aws: Fix issue recreating security group rule if it has been destroyed [GH-4050]
+  * provisioner/chef: Fix issue with path separators breaking the Chef provisioner on Windows [GH-4041]
 
 ## 0.6.7 (November 23, 2015)
 
