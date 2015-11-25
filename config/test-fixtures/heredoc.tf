@@ -22,3 +22,18 @@ resource "aws_iam_policy" "policy" {
 }
 EOF
 }
+
+resource "aws_instance" "test" {
+  ami = "foo"
+
+  provisioner "remote-exec" {
+    inline = [
+<<EOT
+sudo \
+A=val \
+B=val2 \
+sh script.sh
+EOT
+    ]
+  }
+}
