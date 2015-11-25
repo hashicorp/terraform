@@ -14,6 +14,14 @@ import (
 
 // These tests assume the existence of predefined Opsworks IAM roles named `aws-opsworks-ec2-role`
 // and `aws-opsworks-service-role`.
+//
+// If you've never used Opsworks in your AWS account before, you can get these
+// default roles by going to the AWS OpsWorks console and adding a stack.
+// While adding your first stack, the "IAM role" and "Default IAM instance
+// profile" fields can be set to "New IAM role" and "New IAM instance profile"
+// respectively, which will then cause OpsWorks to create the IAM objects
+// these tests expect. It may take a few minutes after creating the stack for
+// these IAM objects to propagate fully.
 
 ///////////////////////////////
 //// Tests for the No-VPC case
