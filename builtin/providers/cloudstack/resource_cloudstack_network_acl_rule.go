@@ -228,6 +228,22 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
+	// Get all the rules from the running environment
+	p := cs.NetworkACL.NewListNetworkACLsParams()
+	p.SetAclid(d.Id())
+	p.SetListall(true)
+
+	l, err := cs.NetworkACL.ListNetworkACLs(p)
+	if err != nil {
+		return err
+	}
+
+	// Make a map of all the rules so we can easily find a rule
+	ruleMap := make(map[string]*cloudstack.NetworkACL, l.Count)
+	for _, r := range l.NetworkACLs {
+		ruleMap[r.Id] = r
+	}
+
 	// Create an empty schema.Set to hold all rules
 	rules := &schema.Set{
 		F: resourceCloudStackNetworkACLRuleHash,
@@ -246,16 +262,14 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 				}
 
 				// Get the rule
-				r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
-				// If the count == 0, there is no object found for this ID
-				if err != nil {
-					if count == 0 {
-						delete(uuids, "icmp")
-						continue
-					}
-
-					return err
+				r, ok := ruleMap[id.(string)]
+				if !ok {
+					delete(uuids, "icmp")
+					continue
 				}
+
+				// Delete the known rule so only unknown rules remain in the ruleMap
+				delete(ruleMap, id.(string))
 
 				// Update the values
 				rule["action"] = strings.ToLower(r.Action)
@@ -274,16 +288,14 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 				}
 
 				// Get the rule
-				r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
-				// If the count == 0, there is no object found for this ID
-				if err != nil {
-					if count == 0 {
-						delete(uuids, "all")
-						continue
-					}
-
-					return err
+				r, ok := ruleMap[id.(string)]
+				if !ok {
+					delete(uuids, "all")
+					continue
 				}
+
+				// Delete the known rule so only unknown rules remain in the ruleMap
+				delete(ruleMap, id.(string))
 
 				// Update the values
 				rule["action"] = strings.ToLower(r.Action)
@@ -312,15 +324,14 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 						}
 
 						// Get the rule
-						r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
-						if err != nil {
-							if count == 0 {
-								delete(uuids, port.(string))
-								continue
-							}
-
-							return err
+						r, ok := ruleMap[id.(string)]
+						if !ok {
+							delete(uuids, port.(string))
+							continue
 						}
+
+						// Delete the known rule so only unknown rules remain in the ruleMap
+						delete(ruleMap, id.(string))
 
 						// Update the values
 						rule["action"] = strings.ToLower(r.Action)
@@ -342,43 +353,21 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
 	managed := d.Get("managed").(bool)
-	if managed {
-		// Get all the rules from the running environment
-		p := cs.NetworkACL.NewListNetworkACLsParams()
-		p.SetAclid(d.Id())
-		p.SetListall(true)
-
-		r, err := cs.NetworkACL.ListNetworkACLs(p)
-		if err != nil {
-			return err
+	if managed && len(ruleMap) > 0 {
+		// Add all UUIDs to a uuids map
+		uuids := make(map[string]interface{}, len(ruleMap))
+		for uuid := range ruleMap {
+			uuids[uuid] = uuid
 		}
 
-		// Add all UUIDs to the uuids map
-		uuids := make(map[string]interface{}, len(r.NetworkACLs))
-		for _, r := range r.NetworkACLs {
-			uuids[r.Id] = r.Id
+		rule := map[string]interface{}{
+			"source_cidr": "N/A",
+			"protocol":    "N/A",
+			"uuids":       uuids,
 		}
 
-		// Delete all expected UUIDs from the uuids map
-		for _, rule := range rules.List() {
-			rule := rule.(map[string]interface{})
-
-			for _, id := range rule["uuids"].(map[string]interface{}) {
-				delete(uuids, id.(string))
-			}
-		}
-
-		if len(uuids) > 0 {
-			// Make a dummy rule to hold all unknown UUIDs
-			rule := map[string]interface{}{
-				"source_cidr": "N/A",
-				"protocol":    "N/A",
-				"uuids":       uuids,
-			}
-
-			// Add the dummy rule to the rules set
-			rules.Add(rule)
-		}
+		// Add the dummy rule to the rules set
+		rules.Add(rule)
 	}
 
 	if rules.Len() > 0 {
