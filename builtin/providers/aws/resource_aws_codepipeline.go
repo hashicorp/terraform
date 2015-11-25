@@ -48,10 +48,28 @@ func resourceAwsCodePipeline() *schema.Resource {
 										Type:     schema.TypeString,
 										Required: true,
 									},
+
+									"EncryptionKey": &schema.Schema{
+										Type:     schema.TypeList,
+										Required: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"Location": &schema.Schema{
+													Type:     schema.TypeString,
+													Required: true,
+												},
+
+												"Type": &schema.Schema{
+													Type:     schema.TypeString,
+													Required: true,
+												},
+											}, //EncryptionKey schema
+										}, // EncryptionKey schema resource
+									}, //EncryptionKey
 								}, //schema under Resource
 							}, //ArtifactStore - Resource
-						}, //ArtifactStore
-					}, //schema under resource
+						}, //ArtifactStore - Schema
+					}, //schema PipelineDeclaration resource
 				}, //PipelineDeclaration - Resource
 			}, //PipelineDeclaration
 		}, //Schema
