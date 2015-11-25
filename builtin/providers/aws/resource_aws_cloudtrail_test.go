@@ -39,6 +39,41 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
+	var trail cloudtrail.Trail
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudTrailConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					// AWS will create the trail with logging turned off.
+					// Test that "enable_logging" default works.
+					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", true, &trail),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCloudTrailConfigModified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", false, &trail),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCloudTrailConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", true, &trail),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudTrailExists(n string, trail *cloudtrail.Trail) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -58,6 +93,30 @@ func testAccCheckCloudTrailExists(n string, trail *cloudtrail.Trail) resource.Te
 			return fmt.Errorf("Trail not found")
 		}
 		*trail = *resp.TrailList[0]
+
+		return nil
+	}
+}
+
+func testAccCheckCloudTrailLoggingEnabled(n string, desired bool, trail *cloudtrail.Trail) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).cloudtrailconn
+		params := cloudtrail.GetTrailStatusInput{
+			Name: aws.String(rs.Primary.ID),
+		}
+		resp, err := conn.GetTrailStatus(&params)
+
+		if err != nil {
+			return err
+		}
+		if *resp.IsLogging != desired {
+			return fmt.Errorf("Expected logging status %t, given %t", desired, *resp.IsLogging)
+		}
 
 		return nil
 	}
@@ -134,6 +193,7 @@ resource "aws_cloudtrail" "foobar" {
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     s3_key_prefix = "/prefix"
     include_global_service_events = false
+    enable_logging = false
 }
 
 resource "aws_s3_bucket" "foo" {

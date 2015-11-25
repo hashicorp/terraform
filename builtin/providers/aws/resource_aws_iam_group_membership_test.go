@@ -33,6 +33,14 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user-two", "test-user-three"}),
 				),
 			},
+
+			resource.TestStep{
+				Config: testAccAWSGroupMemberConfigUpdateDown,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
+					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user-three"}),
+				),
+			},
 		},
 	})
 }
@@ -162,6 +170,26 @@ resource "aws_iam_group_membership" "team" {
 	name = "tf-testing-group-membership"
 	users = [
 		"${aws_iam_user.user_two.name}",
+		"${aws_iam_user.user_three.name}",
+	]
+	group = "${aws_iam_group.group.name}"
+}
+`
+
+const testAccAWSGroupMemberConfigUpdateDown = `
+resource "aws_iam_group" "group" {
+	name = "test-group"
+	path = "/"
+}
+
+resource "aws_iam_user" "user_three" {
+	name = "test-user-three"
+	path = "/"
+}
+
+resource "aws_iam_group_membership" "team" {
+	name = "tf-testing-group-membership"
+	users = [
 		"${aws_iam_user.user_three.name}",
 	]
 	group = "${aws_iam_group.group.name}"

@@ -5,6 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
+GOVERSION="1.5.1"
 SRCROOT="/opt/go"
 SRCPATH="/opt/gopath"
 
@@ -18,8 +19,8 @@ sudo apt-get install -y build-essential curl git-core libpcre3-dev mercurial pkg
 
 # Install Go
 cd /tmp
-wget -q https://storage.googleapis.com/golang/go1.4.2.linux-${ARCH}.tar.gz
-tar -xf go1.4.2.linux-${ARCH}.tar.gz
+wget --quiet https://storage.googleapis.com/golang/go${GOVERSION}.linux-${ARCH}.tar.gz
+tar -xvf go${GOVERSION}.linux-${ARCH}.tar.gz
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
 sudo chown vagrant:vagrant $SRCROOT

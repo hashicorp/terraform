@@ -12,6 +12,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -42,7 +44,7 @@ func Provider() terraform.ResourceProvider {
 		conn, err := net.DialTimeout("tcp", "169.254.169.254:80", 100*time.Millisecond)
 		if err == nil {
 			conn.Close()
-			providers = append(providers, &ec2rolecreds.EC2RoleProvider{})
+			providers = append(providers, &ec2rolecreds.EC2RoleProvider{Client: ec2metadata.New(session.New())})
 		}
 
 		credVal, credErr = credentials.NewChainCredentials(providers).Get()

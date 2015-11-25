@@ -919,7 +919,7 @@ func (m schemaMap) diffString(
 	var originalN interface{}
 	var os, ns string
 	o, n, _, _ := d.diffChange(k)
-	if schema.StateFunc != nil {
+	if schema.StateFunc != nil && n != nil {
 		originalN = n
 		n = schema.StateFunc(n)
 	}
