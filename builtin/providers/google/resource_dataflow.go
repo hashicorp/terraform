@@ -19,7 +19,7 @@ func resourceDataflow() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"jarfile": &schema.Schema{
+			"classpath": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -73,7 +73,7 @@ func resourceDataflowCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	optional_args := dataflowCleanOptionalArgs(d.Get("optional_args").(map[string]interface{}))
-	jobids, err := terraformGcloud.CreateDataflow(d.Get("name").(string), d.Get("jarfile").(string), d.Get("class").(string), config.Project, optional_args)
+	jobids, err := terraformGcloud.CreateDataflow(d.Get("name").(string), d.Get("classpath").(string), d.Get("class").(string), config.Project, optional_args)
 	if err != nil {
 		return err
 	}
