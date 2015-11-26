@@ -8,6 +8,7 @@ IMPROVEMENTS:
 
   * provider/cloudstack: Reduce the number of network calls required for common operations [GH-4051]
   * provider/aws: Changing `publically_accessible` on an `aws_db_instance` will no longer force a new resource [GH-3895]
+  * provider/aws: `block_duration_minutes` can now be set for spot instance requests [GH-4071]
 
 BUG FIXES:
 
