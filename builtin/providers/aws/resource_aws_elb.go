@@ -350,12 +350,12 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		var elbVpc string
 		if lb.VPCId != nil {
 			elbVpc = *lb.VPCId
-		}
-		sgId, err := sourceSGIdByName(meta, *lb.SourceSecurityGroup.GroupName, elbVpc)
-		if err != nil {
-			return fmt.Errorf("[WARN] Error looking up ELB Security Group ID: %s", err)
-		} else {
-			d.Set("source_security_group_id", sgId)
+			sgId, err := sourceSGIdByName(meta, *lb.SourceSecurityGroup.GroupName, elbVpc)
+			if err != nil {
+				return fmt.Errorf("[WARN] Error looking up ELB Security Group ID: %s", err)
+			} else {
+				d.Set("source_security_group_id", sgId)
+			}
 		}
 	}
 	d.Set("subnets", lb.Subnets)
