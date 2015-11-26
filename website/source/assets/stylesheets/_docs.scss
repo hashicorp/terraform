@@ -214,6 +214,22 @@ body.layout-intro{
     }
 }
 
+// on 'large' screens the document side bar is a fixed element
+// see /assets/javascripts/docs.js for functions treating this element
+@media (min-width:993px) {
+  .docs-sidebar{
+    position: fixed;
+    z-index: 20000;
+    top: 90px;
+    bottom: 0px;
+    padding: 0px;
+    overflow-y: scroll;
+    margin-top:0;
+    margin-bottom: 0;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
 
 @media (max-width: 992px) {
 	body.layout-docs,
