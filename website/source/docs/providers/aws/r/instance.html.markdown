@@ -32,6 +32,7 @@ The following arguments are supported:
 * `ami` - (Required) The AMI to use for the instance.
 * `availability_zone` - (Optional) The AZ to start the instance in.
 * `placement_group` - (Optional) The Placement Group to start the instance in.
+* `tenancy` - (Optional) The tenancy of the instance (if the instance is running in a VPC). An instance with a tenancy of dedicated runs on single-tenant hardware. The host tenancy is not supported for the import-instance command.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be
      EBS-optimized.
 * `disable_api_termination` - (Optional) If true, enables [EC2 Instance
