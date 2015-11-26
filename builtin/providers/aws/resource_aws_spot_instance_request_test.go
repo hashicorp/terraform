@@ -36,6 +36,33 @@ func TestAccAWSSpotInstanceRequest_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSSpotInstanceRequest_withBlockDuration(t *testing.T) {
+	var sir ec2.SpotInstanceRequest
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSpotInstanceRequestConfig_withBlockDuration,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSpotInstanceRequestExists(
+						"aws_spot_instance_request.foo", &sir),
+					testAccCheckAWSSpotInstanceRequestAttributes(&sir),
+					testCheckKeyPair("tmp-key", &sir),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo", "spot_bid_status", "fulfilled"),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo", "spot_request_state", "active"),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo", "block_duration_minutes", "60"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSpotInstanceRequest_vpc(t *testing.T) {
 	var sir ec2.SpotInstanceRequest
 
@@ -264,6 +291,33 @@ resource "aws_spot_instance_request" "foo" {
 	// we wait for fulfillment because we want to inspect the launched instance
 	// and verify termination behavior
 	wait_for_fulfillment = true
+
+	tags {
+		Name = "terraform-test"
+	}
+}
+`
+
+const testAccAWSSpotInstanceRequestConfig_withBlockDuration = `
+resource "aws_key_pair" "debugging" {
+	key_name = "tmp-key"
+	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+}
+
+resource "aws_spot_instance_request" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	key_name = "${aws_key_pair.debugging.key_name}"
+
+	// base price is $0.044 hourly, so bidding above that should theoretically
+	// always fulfill
+	spot_price = "0.05"
+
+	// we wait for fulfillment because we want to inspect the launched instance
+	// and verify termination behavior
+	wait_for_fulfillment = true
+
+	block_duration_minutes = 60
 
 	tags {
 		Name = "terraform-test"
