@@ -58,6 +58,11 @@ func resourceAwsSpotInstanceRequest() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			}
+			s["block_duration_minutes"] = &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			}
 
 			return s
 		}(),
@@ -95,6 +100,10 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 			SubnetId:            instanceOpts.SubnetID,
 			UserData:            instanceOpts.UserData64,
 		},
+	}
+
+	if v, ok := d.GetOk("block_duration_minutes"); ok {
+		spotOpts.BlockDurationMinutes = aws.Int64(int64(v.(int)))
 	}
 
 	// If the instance is configured with a Network Interface (a subnet, has
@@ -186,6 +195,7 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 		}
 	}
 	d.Set("spot_request_state", *request.State)
+	d.Set("block_duration_minutes", *request.BlockDurationMinutes)
 	d.Set("tags", tagsToMap(request.Tags))
 
 	return nil
