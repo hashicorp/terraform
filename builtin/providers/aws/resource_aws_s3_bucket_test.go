@@ -71,6 +71,37 @@ func TestAccAWSS3Bucket_Policy(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_UpdateAcl(t *testing.T) {
+
+	ri := genRandInt()
+	preConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAcl, ri)
+	postConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAclUpdate, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "acl", "public-read"),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "acl", "private"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSS3Bucket_Website_Simple(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -521,3 +552,17 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+
+var testAccAWSS3BucketConfigWithAcl = `
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+}
+`
+
+var testAccAWSS3BucketConfigWithAclUpdate = `
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "private"
+}
+`
