@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New resource: `digitalocean_floating_ip`** [GH-3748]
+  * **New provider: `statuscake`** [GH-3340]
 
 IMPROVEMENTS:
 
