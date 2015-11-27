@@ -38,7 +38,6 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Type:     schema.TypeString,
 				Default:  "private",
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"policy": &schema.Schema{
@@ -221,6 +220,11 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("versioning") {
 		if err := resourceAwsS3BucketVersioningUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+	if d.HasChange("acl") {
+		if err := resourceAwsS3BucketAclUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -638,6 +642,24 @@ func WebsiteDomainUrl(region string) string {
 	}
 
 	return fmt.Sprintf("s3-website-%s.amazonaws.com", region)
+}
+
+func resourceAwsS3BucketAclUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	acl := d.Get("acl").(string)
+	bucket := d.Get("bucket").(string)
+
+	i := &s3.PutBucketAclInput{
+		Bucket: aws.String(bucket),
+		ACL:    aws.String(acl),
+	}
+	log.Printf("[DEBUG] S3 put bucket ACL: %#v", i)
+
+	_, err := s3conn.PutBucketAcl(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 ACL: %s", err)
+	}
+
+	return nil
 }
 
 func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
