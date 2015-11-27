@@ -4,12 +4,7 @@ import (
 	"testing"
 
 	r "github.com/hashicorp/terraform/helper/resource"
-	// "github.com/hashicorp/terraform/terraform"
 )
-
-// var testProviders = map[string]terraform.ResourceProvider{
-// 	"template": Provider(),
-// }
 
 func TestRender(t *testing.T) {
 	testCases := []struct {
