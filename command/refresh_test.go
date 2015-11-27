@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -8,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"bytes"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
