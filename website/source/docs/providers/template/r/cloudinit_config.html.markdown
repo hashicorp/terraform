@@ -3,16 +3,17 @@ layout: "Template"
 page_title: "Template: cloudinit_multipart"
 sidebar_current: "docs-template-resource-cloudinit-config"
 description: |-
-  Renders a cloud-init config.
+  Renders a multi-part cloud-init config from source files.
 ---
 
 # template\_cloudinit\_config
 
-Renders a template from a file.
+Renders a multi-part cloud-init config from source files.
 
 ## Example Usage
 
 ```
+# Render a part using a `template_file`
 resource "template_file" "script" {
     template = "${file("${path.module}/init.tpl")}"
 
@@ -21,7 +22,12 @@ resource "template_file" "script" {
     }
 }
 
+# Render a multi-part cloudinit config making use of the part
+# above, and other source files
 resource "template_cloudinit_config" "config" {
+    gzip = true
+    base64_encode = true
+
     # Setup hello world script to be called by the cloud-config
     part {
         filename = "init.cfg"
@@ -29,15 +35,16 @@ resource "template_cloudinit_config" "config" {
         content = "${template_file.script.rendered}"
     }
 
-    # Setup cloud-config yaml
     part {
-        content_type = "text/cloud-config"
-        content = "${file(\"config.yaml\")"
+        content_type = "text/x-shellscript"
+        content = "baz"
+    }
+
+    part {
+        content_type = "text/x-shellscript"
+        content = "ffbaz"
     }
 }
-
-
-
 ```
 
 ## Argument Reference
@@ -48,7 +55,7 @@ The following arguments are supported:
 
 * `base64_encode` - (Optional) Base64 encoding of the rendered output.
 
-* `part` - (Required) One may specify this many times, this creates a fragment of the rendered cloud-init config.
+* `part` - (Required) One may specify this many times, this creates a fragment of the rendered cloud-init config file. The order of the parts is maintained in the configuration is maintained in the rendered template.
 
 The `part` block supports:
 
@@ -60,9 +67,8 @@ The `part` block supports:
 
 * `merge_type` - (Optional) Gives the ability to merge multiple blocks of cloud-config together.
 
-
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `rendered` - The final rendered template.
+* `rendered` - The final rendered multi-part cloudinit config.
