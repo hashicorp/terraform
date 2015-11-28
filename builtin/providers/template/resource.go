@@ -15,12 +15,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resource() *schema.Resource {
+func resourceFile() *schema.Resource {
 	return &schema.Resource{
-		Create: Create,
-		Delete: Delete,
-		Exists: Exists,
-		Read:   Read,
+		Create: resourceFileCreate,
+		Delete: resourceFileDelete,
+		Exists: resourceFileExists,
+		Read:   resourceFileRead,
 
 		Schema: map[string]*schema.Schema{
 			"template": &schema.Schema{
@@ -69,8 +69,8 @@ func resource() *schema.Resource {
 	}
 }
 
-func Create(d *schema.ResourceData, meta interface{}) error {
-	rendered, err := render(d)
+func resourceFileCreate(d *schema.ResourceData, meta interface{}) error {
+	rendered, err := renderFile(d)
 	if err != nil {
 		return err
 	}
@@ -79,13 +79,13 @@ func Create(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func Delete(d *schema.ResourceData, meta interface{}) error {
+func resourceFileDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 	return nil
 }
 
-func Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	rendered, err := render(d)
+func resourceFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	rendered, err := renderFile(d)
 	if err != nil {
 		if _, ok := err.(templateRenderError); ok {
 			log.Printf("[DEBUG] Got error while rendering in Exists: %s", err)
@@ -98,7 +98,7 @@ func Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	return hash(rendered) == d.Id(), nil
 }
 
-func Read(d *schema.ResourceData, meta interface{}) error {
+func resourceFileRead(d *schema.ResourceData, meta interface{}) error {
 	// Logic is handled in Exists, which only returns true if the rendered
 	// contents haven't changed. That means if we get here there's nothing to
 	// do.
@@ -107,7 +107,7 @@ func Read(d *schema.ResourceData, meta interface{}) error {
 
 type templateRenderError error
 
-func render(d *schema.ResourceData) (string, error) {
+func renderFile(d *schema.ResourceData) (string, error) {
 	template := d.Get("template").(string)
 	filename := d.Get("filename").(string)
 	vars := d.Get("vars").(map[string]interface{})
