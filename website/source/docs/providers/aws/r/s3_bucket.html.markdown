@@ -106,7 +106,7 @@ The `website` object supports the following:
 
 * `index_document` - (Required, unless using `redirect_all_requests_to`) Amazon S3 returns this index document when requests are made to the root domain or any of the subfolders.
 * `error_document` - (Optional) An absolute path to the document to return in case of a 4XX error.
-* `redirect_all_requests_to` - (Optional) A hostname to redirect all website requests for this bucket to.
+* `redirect_all_requests_to` - (Optional) A hostname to redirect all website requests for this bucket to. Hostname can optionally be prefixed with a protocol (`http://` or `https://`) to use when redirecting requests. The default is the protocol that is used in the original request.
 
 The `CORS` object supports the following:
 
