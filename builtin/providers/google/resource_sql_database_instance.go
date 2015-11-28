@@ -21,26 +21,31 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
 			"master_instance_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
+
 			"database_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "MYSQL_5_5",
 				ForceNew: true,
 			},
+
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
 			"settings": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
@@ -50,19 +55,23 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
+
 						"tier": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
 						},
+
 						"activation_policy": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
 						"authorized_gae_applications": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+
 						"backup_configuration": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -72,10 +81,12 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 										Type:     schema.TypeBool,
 										Optional: true,
 									},
+
 									"enabled": &schema.Schema{
 										Type:     schema.TypeBool,
 										Optional: true,
 									},
+
 									"start_time": &schema.Schema{
 										Type:     schema.TypeString,
 										Optional: true,
@@ -83,10 +94,12 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 								},
 							},
 						},
+
 						"crash_safe_replication": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
+
 						"database_flags": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -96,6 +109,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
+
 									"name": &schema.Schema{
 										Type:     schema.TypeString,
 										Optional: true,
@@ -103,6 +117,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 								},
 							},
 						},
+
 						"ip_configuration": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -117,10 +132,12 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 													Type:     schema.TypeString,
 													Optional: true,
 												},
+
 												"name": &schema.Schema{
 													Type:     schema.TypeString,
 													Optional: true,
 												},
+
 												"value": &schema.Schema{
 													Type:     schema.TypeString,
 													Optional: true,
@@ -128,10 +145,12 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 											},
 										},
 									},
+
 									"ipv4_enabled": &schema.Schema{
 										Type:     schema.TypeBool,
 										Optional: true,
 									},
+
 									"require_ssl": &schema.Schema{
 										Type:     schema.TypeBool,
 										Optional: true,
@@ -139,6 +158,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 								},
 							},
 						},
+
 						"location_preference": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -148,6 +168,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
+
 									"zone": &schema.Schema{
 										Type:     schema.TypeString,
 										Optional: true,
@@ -155,10 +176,12 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 								},
 							},
 						},
+
 						"pricing_plan": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
 						"replication_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -166,6 +189,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 					},
 				},
 			},
+
 			"replica_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -176,46 +200,55 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"client_certificate": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"client_key": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"connect_retry_interval": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"dump_file_path": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"master_heartbeat_period": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"password": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"ssl_cipher": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"username": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
+
 						"verify_server_certificate": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
