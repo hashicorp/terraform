@@ -768,9 +768,16 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 			}
 		}
 	} else {
-		resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
-		if err != nil {
-			return err
+		if vm.cluster == "" {
+			resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
+			if err != nil {
+				return err
+			}
+		} else {
+			resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources/"+vm.resourcePool)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	log.Printf("[DEBUG] resource pool: %#v", resourcePool)
@@ -907,9 +914,16 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			}
 		}
 	} else {
-		resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
-		if err != nil {
-			return err
+		if vm.cluster == "" {
+			resourcePool, err = finder.ResourcePool(context.TODO(), vm.resourcePool)
+			if err != nil {
+				return err
+			}
+		} else {
+			resourcePool, err = finder.ResourcePool(context.TODO(), "*"+vm.cluster+"/Resources/"+vm.resourcePool)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	log.Printf("[DEBUG] resource pool: %#v", resourcePool)
