@@ -11,6 +11,7 @@ IMPROVEMENTS:
   * provider/aws: Make `publically_accessible` on an `aws_db_instance` update existing instances instead of forcing new ones [GH-3895]
   * provider/aws: Allow `block_duration_minutes` to be set for spot instance requests [GH-4071]
   * provider/aws: Make setting `acl` on S3 buckets update existing buckets instead of forcing new ones [GH-4080]
+  * provider/aws: Make updates to `assume_role_policy` modify existing IAM roles instead of forcing new ones [GH-4107]
 
 BUG FIXES:
 
