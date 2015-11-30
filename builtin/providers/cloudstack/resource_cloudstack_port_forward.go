@@ -150,6 +150,22 @@ func resourceCloudStackPortForwardCreateForward(
 func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
+	// Get all the forwards from the running environment
+	p := cs.Firewall.NewListPortForwardingRulesParams()
+	p.SetIpaddressid(d.Id())
+	p.SetListall(true)
+
+	l, err := cs.Firewall.ListPortForwardingRules(p)
+	if err != nil {
+		return err
+	}
+
+	// Make a map of all the forwards so we can easily find a forward
+	forwardMap := make(map[string]*cloudstack.PortForwardingRule, l.Count)
+	for _, f := range l.PortForwardingRules {
+		forwardMap[f.Id] = f
+	}
+
 	// Create an empty schema.Set to hold all forwards
 	forwards := &schema.Set{
 		F: resourceCloudStackPortForwardHash,
@@ -166,36 +182,34 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			}
 
 			// Get the forward
-			r, count, err := cs.Firewall.GetPortForwardingRuleByID(id.(string))
-			// If the count == 0, there is no object found for this ID
-			if err != nil {
-				if count == 0 {
-					forward["uuid"] = ""
-					continue
-				}
-
-				return err
+			f, ok := forwardMap[id.(string)]
+			if !ok {
+				forward["uuid"] = ""
+				continue
 			}
 
-			privPort, err := strconv.Atoi(r.Privateport)
+			// Delete the known rule so only unknown rules remain in the ruleMap
+			delete(forwardMap, id.(string))
+
+			privPort, err := strconv.Atoi(f.Privateport)
 			if err != nil {
 				return err
 			}
 
-			pubPort, err := strconv.Atoi(r.Publicport)
+			pubPort, err := strconv.Atoi(f.Publicport)
 			if err != nil {
 				return err
 			}
 
 			// Update the values
-			forward["protocol"] = r.Protocol
+			forward["protocol"] = f.Protocol
 			forward["private_port"] = privPort
 			forward["public_port"] = pubPort
 
 			if isID(forward["virtual_machine"].(string)) {
-				forward["virtual_machine"] = r.Virtualmachineid
+				forward["virtual_machine"] = f.Virtualmachineid
 			} else {
-				forward["virtual_machine"] = r.Virtualmachinename
+				forward["virtual_machine"] = f.Virtualmachinename
 			}
 
 			forwards.Add(forward)
@@ -204,33 +218,11 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 
 	// If this is a managed resource, add all unknown forwards to dummy forwards
 	managed := d.Get("managed").(bool)
-	if managed {
-		// Get all the forwards from the running environment
-		p := cs.Firewall.NewListPortForwardingRulesParams()
-		p.SetIpaddressid(d.Id())
-		p.SetListall(true)
-
-		r, err := cs.Firewall.ListPortForwardingRules(p)
-		if err != nil {
-			return err
-		}
-
-		// Add all UUIDs to the uuids map
-		uuids := make(map[string]interface{}, len(r.PortForwardingRules))
-		for _, r := range r.PortForwardingRules {
-			uuids[r.Id] = r.Id
-		}
-
-		// Delete all expected UUIDs from the uuids map
-		for _, forward := range forwards.List() {
-			forward := forward.(map[string]interface{})
-			delete(uuids, forward["uuid"].(string))
-		}
-
-		for uuid := range uuids {
+	if managed && len(forwardMap) > 0 {
+		for uuid := range forwardMap {
 			// Make a dummy forward to hold the unknown UUID
 			forward := map[string]interface{}{
-				"protocol":        "N/A",
+				"protocol":        uuid,
 				"private_port":    0,
 				"public_port":     0,
 				"virtual_machine": uuid,

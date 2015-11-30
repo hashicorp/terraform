@@ -10,7 +10,7 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-// CloudStack uses a "special" ID of -1 to define an unlimited resource
+// UnlimitedResourceID is a "special" ID to define an unlimited resource
 const UnlimitedResourceID = "-1"
 
 type retrieveError struct {
@@ -135,8 +135,8 @@ func Retry(n int, f RetryFunc) (interface{}, error) {
 
 	for i := 0; i < n; i++ {
 		r, err := f()
-		if err == nil {
-			return r, nil
+		if err == nil || err == cloudstack.AsyncTimeoutErr {
+			return r, err
 		}
 
 		lastErr = err

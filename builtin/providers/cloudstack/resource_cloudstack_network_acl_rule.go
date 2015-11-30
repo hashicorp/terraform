@@ -7,7 +7,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
@@ -103,32 +106,72 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 	d.SetId(d.Get("aclid").(string))
 
 	// Create all rules that are configured
-	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
-
-		// Create an empty schema.Set to hold all rules
+	if nrs := d.Get("rule").(*schema.Set); nrs.Len() > 0 {
+		// Create an empty rule set to hold all newly created rules
 		rules := &schema.Set{
 			F: resourceCloudStackNetworkACLRuleHash,
 		}
 
-		for _, rule := range rs.List() {
-			// Create a single rule
-			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule.(map[string]interface{}))
+		err := resourceCloudStackNetworkACLRuleCreateRules(d, meta, rules, nrs)
 
-			// We need to update this first to preserve the correct state
-			rules.Add(rule)
-			d.Set("rule", rules)
+		// We need to update this first to preserve the correct state
+		d.Set("rule", rules)
 
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 	}
 
 	return resourceCloudStackNetworkACLRuleRead(d, meta)
 }
 
+func resourceCloudStackNetworkACLRuleCreateRules(
+	d *schema.ResourceData,
+	meta interface{},
+	rules *schema.Set,
+	nrs *schema.Set) error {
+	var errs *multierror.Error
+
+	var wg sync.WaitGroup
+	wg.Add(nrs.Len())
+
+	sem := make(chan struct{}, 10)
+	for _, rule := range nrs.List() {
+		// Put in a tiny sleep here to avoid DoS'ing the API
+		time.Sleep(500 * time.Millisecond)
+
+		go func(rule map[string]interface{}) {
+			defer wg.Done()
+			sem <- struct{}{}
+
+			// Create a single rule
+			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule)
+
+			// If we have at least one UUID, we need to save the rule
+			if len(rule["uuids"].(map[string]interface{})) > 0 {
+				rules.Add(rule)
+			}
+
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
+
+			<-sem
+		}(rule.(map[string]interface{}))
+	}
+
+	wg.Wait()
+
+	// We need to update this first to preserve the correct state
+	d.Set("rule", rules)
+
+	return errs.ErrorOrNil()
+}
+
 func resourceCloudStackNetworkACLRuleCreateRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d *schema.ResourceData,
+	meta interface{},
+	rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -188,8 +231,16 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 				},
 			}
 
+			// Define a regexp for parsing the port
+			re := regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
+
 			for _, port := range ps.List() {
-				re := regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
+				if _, ok := uuids[port.(string)]; ok {
+					ports.Add(port)
+					rule["ports"] = ports
+					continue
+				}
+
 				m := re.FindStringSubmatch(port.(string))
 
 				startPort, err := strconv.Atoi(m[1])
@@ -354,20 +405,17 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
 	managed := d.Get("managed").(bool)
 	if managed && len(ruleMap) > 0 {
-		// Add all UUIDs to a uuids map
-		uuids := make(map[string]interface{}, len(ruleMap))
 		for uuid := range ruleMap {
-			uuids[uuid] = uuid
-		}
+			// Make a dummy rule to hold the unknown UUID
+			rule := map[string]interface{}{
+				"source_cidr": uuid,
+				"protocol":    uuid,
+				"uuids":       map[string]interface{}{uuid: uuid},
+			}
 
-		rule := map[string]interface{}{
-			"source_cidr": "N/A",
-			"protocol":    "N/A",
-			"uuids":       uuids,
+			// Add the dummy rule to the rules set
+			rules.Add(rule)
 		}
-
-		// Add the dummy rule to the rules set
-		rules.Add(rule)
 	}
 
 	if rules.Len() > 0 {
@@ -391,26 +439,29 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 		ors := o.(*schema.Set).Difference(n.(*schema.Set))
 		nrs := n.(*schema.Set).Difference(o.(*schema.Set))
 
-		// Now first loop through all the old rules and delete any obsolete ones
-		for _, rule := range ors.List() {
-			// Delete the rule as it no longer exists in the config
-			err := resourceCloudStackNetworkACLRuleDeleteRule(d, meta, rule.(map[string]interface{}))
+		// We need to start with a rule set containing all the rules we
+		// already have and want to keep. Any rules that are not deleted
+		// correctly and any newly created rules, will be added to this
+		// set to make sure we end up in a consistent state
+		rules := o.(*schema.Set).Intersection(n.(*schema.Set))
+
+		// Now first loop through all the old rules and delete them
+		if ors.Len() > 0 {
+			err := resourceCloudStackNetworkACLRuleDeleteRules(d, meta, rules, ors)
+
+			// We need to update this first to preserve the correct state
+			d.Set("rule", rules)
+
 			if err != nil {
 				return err
 			}
 		}
 
-		// Make sure we save the state of the currently configured rules
-		rules := o.(*schema.Set).Intersection(n.(*schema.Set))
-		d.Set("rule", rules)
-
-		// Then loop through all the currently configured rules and create the new ones
-		for _, rule := range nrs.List() {
-			// When successfully deleted, re-create it again if it still exists
-			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule.(map[string]interface{}))
+		// Then loop through all the new rules and create them
+		if nrs.Len() > 0 {
+			err := resourceCloudStackNetworkACLRuleCreateRules(d, meta, rules, nrs)
 
 			// We need to update this first to preserve the correct state
-			rules.Add(rule)
 			d.Set("rule", rules)
 
 			if err != nil {
@@ -423,26 +474,71 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interface{}) error {
+	// Create an empty rule set to hold all rules that where
+	// not deleted correctly
+	rules := &schema.Set{
+		F: resourceCloudStackNetworkACLRuleHash,
+	}
+
 	// Delete all rules
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
-		for _, rule := range rs.List() {
-			// Delete a single rule
-			err := resourceCloudStackNetworkACLRuleDeleteRule(d, meta, rule.(map[string]interface{}))
+		err := resourceCloudStackNetworkACLRuleDeleteRules(d, meta, rules, rs)
 
-			// We need to update this first to preserve the correct state
-			d.Set("rule", rs)
+		// We need to update this first to preserve the correct state
+		d.Set("rule", rules)
 
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
+func resourceCloudStackNetworkACLRuleDeleteRules(
+	d *schema.ResourceData,
+	meta interface{},
+	rules *schema.Set,
+	ors *schema.Set) error {
+	var errs *multierror.Error
+
+	var wg sync.WaitGroup
+	wg.Add(ors.Len())
+
+	sem := make(chan struct{}, 10)
+	for _, rule := range ors.List() {
+		// Put a sleep here to avoid DoS'ing the API
+		time.Sleep(500 * time.Millisecond)
+
+		go func(rule map[string]interface{}) {
+			defer wg.Done()
+			sem <- struct{}{}
+
+			// Delete a single rule
+			err := resourceCloudStackNetworkACLRuleDeleteRule(d, meta, rule)
+
+			// If we have at least one UUID, we need to save the rule
+			if len(rule["uuids"].(map[string]interface{})) > 0 {
+				rules.Add(rule)
+			}
+
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
+
+			<-sem
+		}(rule.(map[string]interface{}))
+	}
+
+	wg.Wait()
+
+	return errs.ErrorOrNil()
+}
+
 func resourceCloudStackNetworkACLRuleDeleteRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d *schema.ResourceData,
+	meta interface{},
+	rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -463,6 +559,7 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 				"Invalid parameter id value=%s due to incorrect long value format, "+
 					"or entity does not exist", id.(string))) {
 				delete(uuids, k)
+				rule["uuids"] = uuids
 				continue
 			}
 
@@ -471,10 +568,8 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 
 		// Delete the UUID of this rule
 		delete(uuids, k)
+		rule["uuids"] = uuids
 	}
-
-	// Update the UUIDs
-	rule["uuids"] = uuids
 
 	return nil
 }

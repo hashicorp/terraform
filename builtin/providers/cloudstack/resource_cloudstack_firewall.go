@@ -301,21 +301,17 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
 	managed := d.Get("managed").(bool)
 	if managed && len(ruleMap) > 0 {
-		// Add all UUIDs to a uuids map
-		uuids := make(map[string]interface{}, len(ruleMap))
 		for uuid := range ruleMap {
-			uuids[uuid] = uuid
-		}
+			// Make a dummy rule to hold the unknown UUID
+			rule := map[string]interface{}{
+				"source_cidr": uuid,
+				"protocol":    uuid,
+				"uuids":       map[string]interface{}{uuid: uuid},
+			}
 
-		// Make a dummy rule to hold all unknown UUIDs
-		rule := map[string]interface{}{
-			"source_cidr": "N/A",
-			"protocol":    "N/A",
-			"uuids":       uuids,
+			// Add the dummy rule to the rules set
+			rules.Add(rule)
 		}
-
-		// Add the dummy rule to the rules set
-		rules.Add(rule)
 	}
 
 	if rules.Len() > 0 {
