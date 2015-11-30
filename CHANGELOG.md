@@ -18,6 +18,7 @@ BUG FIXES:
   * core: Fix a bug which prevented HEREDOC syntax being used in lists [GH-4078]
   * provider/aws: Fix a bug which could result in a panic when reading EC2 metadata [GH-4024]
   * provider/aws: Fix issue recreating security group rule if it has been destroyed [GH-4050]
+  * provider/aws: Fix issue where SPF records in Route 53 could show differences with no modification to the configuration [GH-4108]
   * provisioner/chef: Fix issue with path separators breaking the Chef provisioner on Windows [GH-4041]
 
 ## 0.6.7 (November 23, 2015)
