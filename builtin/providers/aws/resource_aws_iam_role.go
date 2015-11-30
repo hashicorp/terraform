@@ -15,8 +15,7 @@ func resourceAwsIamRole() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsIamRoleCreate,
 		Read:   resourceAwsIamRoleRead,
-		// TODO
-		//Update: resourceAwsIamRoleUpdate,
+		Update: resourceAwsIamRoleUpdate,
 		Delete: resourceAwsIamRoleDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -55,7 +54,6 @@ func resourceAwsIamRole() *schema.Resource {
 			"assume_role_policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 		},
 	}
@@ -94,6 +92,26 @@ func resourceAwsIamRoleRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading IAM Role %s: %s", d.Id(), err)
 	}
 	return resourceAwsIamRoleReadResult(d, getResp.Role)
+}
+func resourceAwsIamRoleUpdate(d *schema.ResourceData, meta interface{}) error {
+	iamconn := meta.(*AWSClient).iamconn
+
+	if d.HasChange("assume_role_policy") {
+		assumeRolePolicyInput := &iam.UpdateAssumeRolePolicyInput{
+			RoleName:       aws.String(d.Id()),
+			PolicyDocument: aws.String(d.Get("assume_role_policy").(string)),
+		}
+		_, err := iamconn.UpdateAssumeRolePolicy(assumeRolePolicyInput)
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error Updating IAM Role (%s) Assume Role Policy: %s", d.Id(), err)
+		}
+	}
+
+	return nil
 }
 
 func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error {
