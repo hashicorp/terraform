@@ -500,7 +500,7 @@ func expandResourceRecords(recs []interface{}, typeStr string) []*route53.Resour
 	for _, r := range recs {
 		s := r.(string)
 		switch typeStr {
-		case "TXT":
+		case "TXT", "SPF":
 			str := fmt.Sprintf("\"%s\"", s)
 			records = append(records, &route53.ResourceRecord{Value: aws.String(str)})
 		default:
