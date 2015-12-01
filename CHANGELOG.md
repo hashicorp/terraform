@@ -2,8 +2,9 @@
 
 FEATURES:
 
-  * **New resource: `digitalocean_floating_ip`** [GH-3748]
   * **New provider: `statuscake`** [GH-3340]
+  * **New resource: `digitalocean_floating_ip`** [GH-3748]
+  * **New resource: `aws_lambda_event_source_mapping`** [GH-4093]
 
 IMPROVEMENTS:
 
