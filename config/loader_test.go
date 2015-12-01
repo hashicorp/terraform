@@ -45,6 +45,36 @@ func TestLoadFile_badType(t *testing.T) {
 	}
 }
 
+func TestLoadFileWindowsLineEndings(t *testing.T) {
+	testFile := filepath.Join(fixtureDir, "windows-line-endings.tf")
+
+	contents, err := ioutil.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !strings.Contains(string(contents), "\r\n") {
+		t.Fatalf("Windows line endings test file %s contains no windows line endings - this may be an autocrlf related issue.", testFile)
+	}
+
+	c, err := LoadFile(testFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(windowsHeredocResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFileHeredoc(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "heredoc.tf"))
 	if err != nil {
@@ -671,6 +701,11 @@ const jsonAttributeStr = `
 cloudstack_firewall[test] (x1)
   ipaddress
   rule
+`
+
+const windowsHeredocResourcesStr = `
+aws_instance[test] (x1)
+  user_data
 `
 
 const heredocProvidersStr = `
