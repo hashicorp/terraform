@@ -162,17 +162,17 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 
 		// Check if the root block device exists.
 		if _, ok := blockDevices["/dev/sda1"]; !ok {
-			fmt.Errorf("block device doesn't exist: /dev/sda1")
+			return fmt.Errorf("block device doesn't exist: /dev/sda1")
 		}
 
 		// Check if the secondary block device exists.
 		if _, ok := blockDevices["/dev/sdb"]; !ok {
-			fmt.Errorf("block device doesn't exist: /dev/sdb")
+			return fmt.Errorf("block device doesn't exist: /dev/sdb")
 		}
 
 		// Check if the third block device exists.
 		if _, ok := blockDevices["/dev/sdc"]; !ok {
-			fmt.Errorf("block device doesn't exist: /dev/sdc")
+			return fmt.Errorf("block device doesn't exist: /dev/sdc")
 		}
 
 		// Check if the secondary block device exists.
