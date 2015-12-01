@@ -18,6 +18,7 @@ BUG FIXES:
 
   * core: Fix a bug which prevented HEREDOC syntax being used in lists [GH-4078]
   * core: Fix a bug which prevented HEREDOC syntax where the anchor ends in a number [GH-4128]
+  * core: Fix a bug which prevented HEREDOC syntax being used with Windows line endings [GH-4069]
   * provider/aws: Fix a bug which could result in a panic when reading EC2 metadata [GH-4024]
   * provider/aws: Fix issue recreating security group rule if it has been destroyed [GH-4050]
   * provider/aws: Fix issue with some attributes in Spot Instance Requests returning as nil [GH-4132]
