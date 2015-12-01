@@ -70,6 +70,7 @@ func resourceAwsDeviceFarmProjectRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("name", out.Project.Name)
+	d.Set("arn", out.Project.Arn)
 
 	return nil
 }
