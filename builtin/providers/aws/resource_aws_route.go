@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -9,6 +10,11 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
+
+// How long to sleep if a limit-exceeded event happens
+var routeTargetValidationError = errors.New("Error: more than 1 target specified. Only 1 of gateway_id" +
+	"instance_id, network_interface_id, route_table_id or" +
+	"vpc_peering_connection_id is allowed.")
 
 // AWS Route resource Schema declaration
 func resourceAwsRoute() *schema.Resource {
@@ -94,9 +100,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if numTargets > 1 {
-		fmt.Errorf("Error: more than 1 target specified. Only 1 of gateway_id" +
-			"instance_id, network_interface_id, route_table_id or" +
-			"vpc_peering_connection_id is allowed.")
+		return routeTargetValidationError
 	}
 
 	createOpts := &ec2.CreateRouteInput{}
@@ -127,7 +131,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 			VpcPeeringConnectionId: aws.String(d.Get("vpc_peering_connection_id").(string)),
 		}
 	default:
-		fmt.Errorf("Error: invalid target type specified.")
+		return fmt.Errorf("Error: invalid target type specified.")
 	}
 	log.Printf("[DEBUG] Route create config: %s", createOpts)
 
@@ -139,7 +143,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 
 	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 	if err != nil {
-		fmt.Errorf("Error: %s", err)
+		return err
 	}
 
 	d.SetId(routeIDHash(d, route))
@@ -187,9 +191,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if numTargets > 1 {
-		fmt.Errorf("Error: more than 1 target specified. Only 1 of gateway_id" +
-			"instance_id, network_interface_id, route_table_id or" +
-			"vpc_peering_connection_id is allowed.")
+		return routeTargetValidationError
 	}
 
 	// Formulate ReplaceRouteInput based on the target type
@@ -221,7 +223,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			VpcPeeringConnectionId: aws.String(d.Get("vpc_peering_connection_id").(string)),
 		}
 	default:
-		fmt.Errorf("Error: invalid target type specified.")
+		return fmt.Errorf("Error: invalid target type specified.")
 	}
 	log.Printf("[DEBUG] Route replace config: %s", replaceOpts)
 

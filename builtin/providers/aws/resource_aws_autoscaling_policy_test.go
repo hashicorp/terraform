@@ -34,7 +34,6 @@ func testAccCheckScalingPolicyExists(n string, policy *autoscaling.ScalingPolicy
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			rs = rs
 			return fmt.Errorf("Not found: %s", n)
 		}
 

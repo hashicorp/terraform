@@ -68,7 +68,6 @@ func testAccCheckCloudFormationStackExists(n string, stack *cloudformation.Stack
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			rs = rs
 			return fmt.Errorf("Not found: %s", n)
 		}
 
