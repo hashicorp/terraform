@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/devicefarm"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -59,6 +60,7 @@ type AWSClient struct {
 	cloudtrailconn     *cloudtrail.CloudTrail
 	cloudwatchconn     *cloudwatch.CloudWatch
 	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
+	devicefarmconn     *devicefarm.DeviceFarm
 	dsconn             *directoryservice.DirectoryService
 	dynamodbconn       *dynamodb.DynamoDB
 	ec2conn            *ec2.EC2
@@ -223,6 +225,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CodeCommit SDK connection")
 		client.codecommitconn = codecommit.New(usEast1Sess)
+
+		log.Println("[INFO] Initializing DeviceFarm SDK connection")
+		client.devicefarmconn = devicefarm.New(sess)
 	}
 
 	if len(errs) > 0 {
