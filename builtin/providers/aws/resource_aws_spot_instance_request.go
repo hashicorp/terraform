@@ -195,12 +195,8 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	if request.State != nil {
-		d.Set("spot_request_state", *request.State)
-	}
-	if request.BlockDurationMinutes != nil {
-		d.Set("block_duration_minutes", *request.BlockDurationMinutes)
-	}
+	d.Set("spot_request_state", request.State)
+	d.Set("block_duration_minutes", request.BlockDurationMinutes)
 	d.Set("tags", tagsToMap(request.Tags))
 
 	return nil
