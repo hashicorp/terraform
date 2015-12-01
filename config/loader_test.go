@@ -685,6 +685,11 @@ aws_iam_policy[policy] (x1)
   name
   path
   policy
+aws_instance[heredocwithnumbers] (x1)
+  ami
+  provisioners
+    local-exec
+      command
 aws_instance[test] (x1)
   ami
   provisioners
