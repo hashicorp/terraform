@@ -3,6 +3,7 @@ package infoblox
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/fanatic/go-infoblox"
@@ -20,16 +21,19 @@ func TestAccInfobloxRecord_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckInfobloxRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckInfobloxRecordConfig_basic, domain),
+				Config: fmt.Sprintf(testInfobloxRecordConfigA, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInfobloxRecordExists("infoblox_record.foobar", &record),
-					testAccCheckInfobloxRecordAttributes(&record),
+					testAccCheckInfobloxRecordAExists("infoblox_record.test", &record),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "name", "terraform"),
+						"infoblox_record.test", "name", "testa"),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "domain", domain),
+						"infoblox_record.test", "domain", domain),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "ipv4addr", "192.168.0.10"),
+						"infoblox_record.test", "type", "A"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "value", "10.1.1.43"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "ttl", "600"),
 				),
 			},
 		},
@@ -46,29 +50,93 @@ func TestAccInfobloxRecord_Updated(t *testing.T) {
 		CheckDestroy: testAccCheckInfobloxRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckInfobloxRecordConfig_basic, domain),
+				Config: fmt.Sprintf(testInfobloxRecordConfigA, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInfobloxRecordExists("infoblox_record.foobar", &record),
-					testAccCheckInfobloxRecordAttributes(&record),
+					testAccCheckInfobloxRecordAExists("infoblox_record.test", &record),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "name", "terraform"),
+						"infoblox_record.test", "name", "testa"),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "domain", domain),
+						"infoblox_record.test", "domain", domain),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "ipv4addr", "192.168.0.10"),
+						"infoblox_record.test", "type", "A"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "value", "10.1.1.43"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "ttl", "600"),
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckInfobloxRecordConfig_new_value, domain),
+				Config: fmt.Sprintf(testInfobloxRecordConfigANew, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckInfobloxRecordExists("infoblox_record.foobar", &record),
-					testAccCheckInfobloxRecordAttributesUpdated(&record),
+					testAccCheckInfobloxRecordAExists("infoblox_record.test", &record),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "name", "terraform"),
+						"infoblox_record.test", "name", "testa"),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "domain", domain),
+						"infoblox_record.test", "domain", domain),
 					resource.TestCheckResourceAttr(
-						"infoblox_record.foobar", "ipv4addr", "192.168.0.11"),
+						"infoblox_record.test", "type", "A"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "value", "10.1.1.50"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "ttl", "600"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInfobloxRecordAAAA(t *testing.T) {
+	var record infoblox.RecordAAAAObject
+	domain := os.Getenv("INFOBLOX_DOMAIN")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInfobloxRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testInfobloxRecordConfigAAAA, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInfobloxRecordAAAAExists("infoblox_record.test", &record),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "name", "testaaaa"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "type", "AAAA"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "value", "fe80::c634:6bff:fe73:da10"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "ttl", "600"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInfobloxRecordCname(t *testing.T) {
+	var record infoblox.RecordCnameObject
+	domain := os.Getenv("INFOBLOX_DOMAIN")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInfobloxRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testInfobloxRecordConfigCname, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInfobloxRecordCnameExists("infoblox_record.test", &record),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "name", "testcnamealias"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "type", "CNAME"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "value", "testcname"),
+					resource.TestCheckResourceAttr(
+						"infoblox_record.test", "ttl", "600"),
 				),
 			},
 		},
@@ -82,7 +150,16 @@ func testAccCheckInfobloxRecordDestroy(s *terraform.State) error {
 		if rs.Type != "infoblox_record" {
 			continue
 		}
-		_, err := client.GetRecordA(rs.Primary.ID)
+		var err error
+
+		switch strings.ToUpper(rs.Primary.Attributes["type"]) {
+		case "A":
+			_, err = client.GetRecordA(rs.Primary.ID)
+		case "AAAA":
+			_, err = client.GetRecordAAAA(rs.Primary.ID)
+		case "CNAME":
+			_, err = client.GetRecordCname(rs.Primary.ID)
+		}
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -92,29 +169,7 @@ func testAccCheckInfobloxRecordDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckInfobloxRecordAttributes(record *infoblox.RecordAObject) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if record.Ipv4Addr != "192.168.0.10" {
-			return fmt.Errorf("Bad content: %s", record.Ipv4Addr)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckInfobloxRecordAttributesUpdated(record *infoblox.RecordAObject) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if record.Ipv4Addr != "192.168.0.11" {
-			return fmt.Errorf("Bad content: %s", record.Ipv4Addr)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckInfobloxRecordExists(n string, record *infoblox.RecordAObject) resource.TestCheckFunc {
+func testAccCheckInfobloxRecordAExists(n string, record *infoblox.RecordAObject) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -127,7 +182,6 @@ func testAccCheckInfobloxRecordExists(n string, record *infoblox.RecordAObject) 
 		}
 
 		client := testAccProvider.Meta().(*infoblox.Client)
-
 		foundRecord, err := client.GetRecordA(rs.Primary.ID)
 
 		if err != nil {
@@ -144,18 +198,100 @@ func testAccCheckInfobloxRecordExists(n string, record *infoblox.RecordAObject) 
 	}
 }
 
-const testAccCheckInfobloxRecordConfig_basic = `
-resource "infoblox_record" "foobar" {
-	domain = "%s"
+func testAccCheckInfobloxRecordAAAAExists(n string, record *infoblox.RecordAAAAObject) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
 
-	ipv4addr = "192.168.0.10"
-	name = "terraform"
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Record ID is set")
+		}
+
+		client := testAccProvider.Meta().(*infoblox.Client)
+		foundRecord, err := client.GetRecordAAAA(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+
+		if foundRecord.Ref != rs.Primary.ID {
+			return fmt.Errorf("Record not found")
+		}
+
+		*record = *foundRecord
+
+		return nil
+	}
+}
+
+func testAccCheckInfobloxRecordCnameExists(n string, record *infoblox.RecordCnameObject) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Record ID is set")
+		}
+
+		client := testAccProvider.Meta().(*infoblox.Client)
+		foundRecord, err := client.GetRecordCname(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+
+		if foundRecord.Ref != rs.Primary.ID {
+			return fmt.Errorf("Record not found")
+		}
+
+		*record = *foundRecord
+
+		return nil
+	}
+}
+
+const testInfobloxRecordConfigA = `
+resource "infoblox_record" "test" {
+	domain = "%s"
+	value = "10.1.1.43"
+	name = "testa"
+	type = "A"
+	ttl = 600
+
 }`
 
-const testAccCheckInfobloxRecordConfig_new_value = `
-resource "infoblox_record" "foobar" {
+const testInfobloxRecordConfigANew = `
+resource "infoblox_record" "test" {
 	domain = "%s"
+	value = "10.1.1.50"
+	name = "testa"
+	type = "A"
+	ttl = 600
 
-	ipv4addr = "192.168.0.11"
-        name = "terraform"
+}`
+
+const testInfobloxRecordConfigCname = `
+resource "infoblox_record" "test" {
+	domain = "%s"
+	value = "testcname"
+	name = "testcnamealias"
+	type = "CNAME"
+	ttl = 600
+
+}`
+
+const testInfobloxRecordConfigAAAA = `
+resource "infoblox_record" "test" {
+	domain = "%s"
+	value = "fe80::c634:6bff:fe73:da10"
+	name = "testaaaa"
+	type = "AAAA"
+	ttl = 600
+
 }`
