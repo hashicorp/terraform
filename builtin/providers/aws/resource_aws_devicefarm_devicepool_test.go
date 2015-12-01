@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDeviceFarmdevicePool_basic(t *testing.T) {
+func TestAccAWSDeviceFarmDevicePool_basic(t *testing.T) {
 	var v devicefarm.DevicePool
 
 	resource.Test(t, resource.TestCase{
@@ -20,7 +20,7 @@ func TestAccAWSDeviceFarmdevicePool_basic(t *testing.T) {
 		CheckDestroy: testAccCheckDeviceFarmDevicePoolDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDeviceFarmProjectConfig,
+				Config: testAccDeviceFarmDevicePoolConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDeviceFarmDevicePoolExists(
 						"aws_devicefarm_devicepool.foo", &v),
@@ -149,7 +149,7 @@ resource "aws_devicefarm_devicepool" "foo" {
     rules {
     	attribute = "PLATFORM"
     	operator = "EQUALS"
-    	value = "IOS"
+    	value = "ANDROID"
   	}
 }
 `

@@ -77,7 +77,7 @@ func resourceAwsDeviceFarmDevicePoolCreate(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("DeviceFarm can only be used with us-west-2. You are trying to use it on %s", region)
 	}
 
-	rules, err := expandRules(d.Get("rules").(*schema.Set).List())
+	rules, err := expandDevicePoolRules(d.Get("rules").(*schema.Set).List())
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func resourceAwsDeviceFarmDevicePoolRead(d *schema.ResourceData, meta interface{
 
 	d.Set("name", out.DevicePool.Name)
 	d.Set("description", out.DevicePool.Description)
-	d.Set("rules", flattenRules(out.DevicePool.Rules))
+	d.Set("rules", flattenDevicePoolRules(out.DevicePool.Rules))
 
 	return nil
 }
@@ -140,7 +140,7 @@ func resourceAwsDeviceFarmDevicePoolUpdate(d *schema.ResourceData, meta interfac
 	}
 
 	if d.HasChange("rules") {
-		rules, err := expandRules(d.Get("rules").(*schema.Set).List())
+		rules, err := expandDevicePoolRules(d.Get("rules").(*schema.Set).List())
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ func resourceAwsDeviceFarmDevicePoolDelete(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func expandRules(configured []interface{}) ([]*devicefarm.Rule, error) {
+func expandDevicePoolRules(configured []interface{}) ([]*devicefarm.Rule, error) {
 	rules := make([]*devicefarm.Rule, 0, len(configured))
 
 	for _, lRaw := range configured {
@@ -190,7 +190,7 @@ func expandRules(configured []interface{}) ([]*devicefarm.Rule, error) {
 	return rules, nil
 }
 
-func flattenRules(list []*devicefarm.Rule) []map[string]interface{} {
+func flattenDevicePoolRules(list []*devicefarm.Rule) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		l := map[string]interface{}{
