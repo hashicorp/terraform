@@ -93,7 +93,10 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	perm := expandIPPerm(d, sg)
+	perm, err := expandIPPerm(d, sg)
+	if err != nil {
+		return err
+	}
 
 	ruleType := d.Get("type").(string)
 
@@ -171,7 +174,10 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 		rules = sg.IpPermissionsEgress
 	}
 
-	p := expandIPPerm(d, sg)
+	p, err := expandIPPerm(d, sg)
+	if err != nil {
+		return err
+	}
 
 	if len(rules) == 0 {
 		log.Printf("[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
@@ -262,7 +268,10 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	perm := expandIPPerm(d, sg)
+	perm, err := expandIPPerm(d, sg)
+	if err != nil {
+		return err
+	}
 	ruleType := d.Get("type").(string)
 	switch ruleType {
 	case "ingress":
@@ -383,7 +392,7 @@ func ipPermissionIDHash(sg_id, ruleType string, ip *ec2.IpPermission) string {
 	return fmt.Sprintf("sgrule-%d", hashcode.String(buf.String()))
 }
 
-func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) *ec2.IpPermission {
+func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermission, error) {
 	var perm ec2.IpPermission
 
 	perm.FromPort = aws.Int64(int64(d.Get("from_port").(int)))
@@ -435,9 +444,13 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) *ec2.IpPermissi
 		list := raw.([]interface{})
 		perm.IpRanges = make([]*ec2.IpRange, len(list))
 		for i, v := range list {
-			perm.IpRanges[i] = &ec2.IpRange{CidrIp: aws.String(v.(string))}
+			cidrIP, ok := v.(string)
+			if !ok {
+				return nil, fmt.Errorf("empty element found in cidr_blocks - consider using the compact function")
+			}
+			perm.IpRanges[i] = &ec2.IpRange{CidrIp: aws.String(cidrIP)}
 		}
 	}
 
-	return &perm
+	return &perm, nil
 }
