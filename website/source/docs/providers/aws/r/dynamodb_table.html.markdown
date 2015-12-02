@@ -72,8 +72,9 @@ For both `local_secondary_index` and `global_secondary_index` objects,
 the following properties are supported:
 
 * `name` - (Required) The name of the LSI or GSI
-* `hash_key` - (Required) The name of the hash key in the index; must be
-  defined as an attribute in the resource
+* `hash_key` - (Required for GSI) The name of the hash key in the index; must be
+defined as an attribute in the resource. Only applies to 
+  `global_secondary_index`
 * `range_key` - (Required) The name of the range key; must be defined
 * `projection_type` - (Required) One of "ALL", "INCLUDE" or "KEYS_ONLY"
    where *ALL* projects every attribute into the index, *KEYS_ONLY*
