@@ -54,6 +54,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Cmd = stringListToStringSlice(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("entrypoint"); ok {
+		createOpts.Config.Entrypoint = stringListToStringSlice(v.([]interface{}))
+	}
+
 	exposedPorts := map[dc.Port]struct{}{}
 	portBindings := map[dc.Port][]dc.PortBinding{}
 
@@ -78,19 +82,20 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Volumes = volumes
 	}
 
-	var retContainer *dc.Container
-	if retContainer, err = client.CreateContainer(createOpts); err != nil {
-		return fmt.Errorf("Unable to create container: %s", err)
+	if v, ok := d.GetOk("labels"); ok {
+		createOpts.Config.Labels = mapTypeMapValsToString(v.(map[string]interface{}))
 	}
-	if retContainer == nil {
-		return fmt.Errorf("Returned container is nil")
-	}
-
-	d.SetId(retContainer.ID)
 
 	hostConfig := &dc.HostConfig{
 		Privileged:      d.Get("privileged").(bool),
 		PublishAllPorts: d.Get("publish_all_ports").(bool),
+		RestartPolicy: dc.RestartPolicy{
+			Name:              d.Get("restart").(string),
+			MaximumRetryCount: d.Get("max_retry_count").(int),
+		},
+		LogConfig: dc.LogConfig{
+			Type: d.Get("log_driver").(string),
+		},
 	}
 
 	if len(portBindings) != 0 {
@@ -111,6 +116,38 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	if v, ok := d.GetOk("links"); ok {
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
 	}
+
+	if v, ok := d.GetOk("memory"); ok {
+		hostConfig.Memory = int64(v.(int)) * 1024 * 1024
+	}
+
+	if v, ok := d.GetOk("memory_swap"); ok {
+		swap := int64(v.(int))
+		if swap > 0 {
+			swap = swap * 1024 * 1024
+		}
+		hostConfig.MemorySwap = swap
+	}
+
+	if v, ok := d.GetOk("cpu_shares"); ok {
+		hostConfig.CPUShares = int64(v.(int))
+	}
+
+	if v, ok := d.GetOk("log_opts"); ok {
+		hostConfig.LogConfig.Config = mapTypeMapValsToString(v.(map[string]interface{}))
+	}
+
+	createOpts.HostConfig = hostConfig
+
+	var retContainer *dc.Container
+	if retContainer, err = client.CreateContainer(createOpts); err != nil {
+		return fmt.Errorf("Unable to create container: %s", err)
+	}
+	if retContainer == nil {
+		return fmt.Errorf("Returned container is nil")
+	}
+
+	d.SetId(retContainer.ID)
 
 	creationTime = time.Now()
 	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
@@ -221,6 +258,14 @@ func stringSetToStringSlice(stringSet *schema.Set) []string {
 		ret = append(ret, envVal.(string))
 	}
 	return ret
+}
+
+func mapTypeMapValsToString(typeMap map[string]interface{}) map[string]string {
+	mapped := make(map[string]string, len(typeMap))
+	for k, v := range typeMap {
+		mapped[k] = v.(string)
+	}
+	return mapped
 }
 
 func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, error) {
