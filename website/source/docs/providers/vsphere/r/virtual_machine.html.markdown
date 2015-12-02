@@ -48,6 +48,7 @@ The following arguments are supported:
 * `network_interface` - (Required) Configures virtual network interfaces; see [Network Interfaces](#network-interfaces) below for details.
 * `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for details
 * `boot_delay` - (Optional) Time in seconds to wait for machine network to be ready.
+* `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 
 <a id="network-interfaces"></a>
 ## Network Interfaces
