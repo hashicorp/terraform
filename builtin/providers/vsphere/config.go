@@ -16,12 +16,12 @@ const (
 type Config struct {
 	User          string
 	Password      string
-	VCenterServer string
+	VSphereServer string
 }
 
 // Client() returns a new client for accessing VMWare vSphere.
 func (c *Config) Client() (*govmomi.Client, error) {
-	u, err := url.Parse("https://" + c.VCenterServer + "/sdk")
+	u, err := url.Parse("https://" + c.VSphereServer + "/sdk")
 	if err != nil {
 		return nil, fmt.Errorf("Error parse url: %s", err)
 	}
