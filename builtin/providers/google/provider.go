@@ -70,6 +70,8 @@ func Provider() terraform.ResourceProvider {
 			"google_dns_record_set":                 resourceDnsRecordSet(),
 			"google_sql_database":                   resourceSqlDatabase(),
 			"google_sql_database_instance":          resourceSqlDatabaseInstance(),
+			"google_pubsub_topic":			 resourcePubsubTopic(),
+			"google_pubsub_subscription":		 resourcePubsubSubscription(),
 			"google_storage_bucket":                 resourceStorageBucket(),
 			"google_storage_bucket_acl":             resourceStorageBucketAcl(),
 			"google_storage_bucket_object":          resourceStorageBucketObject(),
