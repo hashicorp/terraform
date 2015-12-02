@@ -10,6 +10,7 @@ IMPROVEMENTS:
   * provider/docker: Add support for setting labels on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting log driver and options on `docker_container` resources [GH-3761]
   * provider/vsphere: Add support for custom vm params on `vsphere_virtual_machine` [GH-3867]
+  * provider/vsphere: rename vcenter_server config parameter to something clearer [GH-3718]
 
 BUG FIXES:
 
