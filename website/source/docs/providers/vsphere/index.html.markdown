@@ -57,8 +57,11 @@ The following arguments are used to configure the VMware vSphere Provider:
 * `vcenter_server` - (Required) This is the vCenter server name for vSphere API
   operations. Can also be specified with the `VSPHERE_VCENTER` environment
   variable.
-* `insecure` - (Optional) Explicitly allow the provider to perform "insecure"
-  SSL requests. If omitted, default value is `false`.
+* `allow_unverified_ssl` - (Optional) Boolean that can be set to true to
+  disable SSL certificate verification. This should be used with care as it
+  could allow an attacker to intercept your auth token. If omitted, default
+  value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
+  environment variable.
 
 ## Acceptance Tests
 
