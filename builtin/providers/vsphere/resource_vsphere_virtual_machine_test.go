@@ -59,7 +59,7 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "memory", "4096"),
 					resource.TestCheckResourceAttr(
-						"vsphere_virtual_machine.foo", "memory_reservation", "1024"),
+						"vsphere_virtual_machine.foo", "memory_reservation", "4096"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.#", "2"),
 					resource.TestCheckResourceAttr(
