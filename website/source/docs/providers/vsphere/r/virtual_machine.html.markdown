@@ -37,6 +37,7 @@ The following arguments are supported:
 * `name` - (Required) The virtual machine name
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
+* `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine
 * `resource_pool` (Optional) The name of a Resource Pool in which to launch the virtual machine

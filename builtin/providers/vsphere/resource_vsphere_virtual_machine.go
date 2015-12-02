@@ -40,6 +40,10 @@ type hardDisk struct {
 	iops int64
 }
 
+type memoryAllocation struct {
+	reservation int64
+}
+
 type virtualMachine struct {
 	name              string
 	datacenter        string
@@ -48,6 +52,7 @@ type virtualMachine struct {
 	datastore         string
 	vcpu              int
 	memoryMb          int64
+	memoryAllocation  memoryAllocation
 	template          string
 	networkInterfaces []networkInterface
 	hardDisks         []hardDisk
@@ -80,6 +85,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"memory": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+				ForceNew: true,
+			},
+
+			"memory_reservation": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -219,6 +230,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		name:     d.Get("name").(string),
 		vcpu:     d.Get("vcpu").(int),
 		memoryMb: int64(d.Get("memory").(int)),
+	}
+
+	if v, ok := d.GetOk("memory_reservation"); ok {
+		vm.memoryAllocation.reservation = int64(v.(int))
+	} else {
+		vm.memoryAllocation.reservation = int64(0)
 	}
 
 	if v, ok := d.GetOk("datacenter"); ok {
@@ -1000,6 +1017,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
+		MemoryAllocation:  &types.ResourceAllocationInfo{
+			Reservation:     vm.memoryAllocation.reservation,
+		},
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
