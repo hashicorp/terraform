@@ -93,6 +93,27 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		PublishAllPorts: d.Get("publish_all_ports").(bool),
 	}
 
+	if v, ok := d.GetOk("restart_policy"); ok {
+		restartPolicy := v.(string)
+		switch {
+		case restartPolicy == "no" || restartPolicy == "always" || restartPolicy == "on-failure":
+			hostConfig.RestartPolicy = dc.RestartPolicy{
+				Name: restartPolicy,
+			}
+		case strings.HasPrefix(restartPolicy, "on-failure:"):
+			count, err := strconv.Atoi(strings.SplitN(restartPolicy, ":", 2)[1])
+			if err != nil {
+				return fmt.Errorf("Invalid restart_policy: %s", restartPolicy)
+			}
+			hostConfig.RestartPolicy = dc.RestartPolicy{
+				Name:              "on-failure",
+				MaximumRetryCount: count,
+			}
+		default:
+			return fmt.Errorf("Invalid restart_policy: %s", restartPolicy)
+		}
+	}
+
 	if len(portBindings) != 0 {
 		hostConfig.PortBindings = portBindings
 	}
