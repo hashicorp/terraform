@@ -1,4 +1,4 @@
-## 0.6.8 (Unreleased)
+## 0.6.8 (December 2, 2015)
 
 FEATURES:
 
