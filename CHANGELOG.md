@@ -1,5 +1,17 @@
 ## 0.6.9 (Unreleased)
 
+FEATURES:
+
+IMPROVEMENTS:
+
+  * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting memory, swap and CPU shares on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting labels on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting log driver and options on `docker_container` resources [GH-3761]
+
+BUG FIXES:
+
 ## 0.6.8 (December 2, 2015)
 
 FEATURES:
