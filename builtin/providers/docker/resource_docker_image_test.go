@@ -17,7 +17,7 @@ func TestAccDockerImage_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"docker_image.foo",
 						"latest",
-						"d52aff8195301dba95e8e3d14f0c3738a874237afd54233d250a2fc4489bfa83"),
+						"8dd8107abd2e22bfd3b45b05733f3d2677d4078b09b5edce56ee3d8677d3c648"),
 				),
 			},
 		},
@@ -44,8 +44,8 @@ func TestAddDockerImage_private(t *testing.T) {
 
 const testAccDockerImageConfig = `
 resource "docker_image" "foo" {
-	name = "ubuntu:trusty-20150320"
-	keep_updated = true
+	name = "alpine:3.1"
+	keep_updated = false
 }
 `
 
