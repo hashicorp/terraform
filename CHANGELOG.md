@@ -14,6 +14,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * provider/docker: Fix an issue running with Docker Swarm by looking up containers by ID instead of name [GH-4148]
+
 ## 0.6.8 (December 2, 2015)
 
 FEATURES:
