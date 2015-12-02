@@ -37,6 +37,14 @@ func resourceAwsEbsVolume() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value < 100 {
+						es = append(es, fmt.Errorf(
+							"%q must be an integer, minimum value 100", k))
+					}
+					return
+				},
 			},
 			"kms_key_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -76,9 +84,6 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	if value, ok := d.GetOk("encrypted"); ok {
 		request.Encrypted = aws.Bool(value.(bool))
 	}
-	if value, ok := d.GetOk("iops"); ok {
-		request.Iops = aws.Int64(int64(value.(int)))
-	}
 	if value, ok := d.GetOk("kms_key_id"); ok {
 		request.KmsKeyId = aws.String(value.(string))
 	}
@@ -88,18 +93,28 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	if value, ok := d.GetOk("snapshot_id"); ok {
 		request.SnapshotId = aws.String(value.(string))
 	}
+	var t string
 	if value, ok := d.GetOk("type"); ok {
-		request.VolumeType = aws.String(value.(string))
+		t = value.(string)
+		request.VolumeType = aws.String(t)
+	}
+	if value, ok := d.GetOk("iops"); ok {
+		if t == "io1" {
+			request.Iops = aws.Int64(int64(value.(int)))
+		} else {
+			return fmt.Errorf("iops is only valid for EBS Volume of type io1")
+		}
 	}
 
+	log.Printf(
+		"[DEBUG] EBS Volume create opts: %s", request)
 	result, err := conn.CreateVolume(request)
 	if err != nil {
 		return fmt.Errorf("Error creating EC2 volume: %s", err)
 	}
 
-	log.Printf(
-		"[DEBUG] Waiting for Volume (%s) to become available",
-		d.Id())
+	log.Println(
+		"[DEBUG] Waiting for Volume to become available")
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating"},
