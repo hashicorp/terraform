@@ -3,7 +3,9 @@ package openstack
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
@@ -128,6 +130,22 @@ func resourceLBVipV1Create(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] LB VIP ID: %s", p.ID)
 
+	log.Printf("[DEBUG] Waiting for OpenStack LB VIP (%s) to become available.", p.ID)
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"PENDING_CREATE"},
+		Target:     "ACTIVE",
+		Refresh:    waitForLBVIPActive(networkingClient, p.ID),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
+
 	floatingIP := d.Get("floating_ip").(string)
 	if floatingIP != "" {
 		lbVipV1AssignFloatingIP(floatingIP, p.PortID, networkingClient)
@@ -245,7 +263,16 @@ func resourceLBVipV1Delete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = vips.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     "DELETED",
+		Refresh:    waitForLBVIPDelete(networkingClient, d.Id()),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB VIP: %s", err)
 	}
@@ -297,4 +324,55 @@ func lbVipV1AssignFloatingIP(floatingIP, portID string, networkingClient *gopher
 	}
 
 	return nil
+}
+
+func waitForLBVIPActive(networkingClient *gophercloud.ServiceClient, vipId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		p, err := vips.Get(networkingClient, vipId).Extract()
+		if err != nil {
+			return nil, "", err
+		}
+
+		log.Printf("[DEBUG] OpenStack LB VIP: %+v", p)
+		if p.Status == "ACTIVE" {
+			return p, "ACTIVE", nil
+		}
+
+		return p, p.Status, nil
+	}
+}
+
+func waitForLBVIPDelete(networkingClient *gophercloud.ServiceClient, vipId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete OpenStack LB VIP %s", vipId)
+
+		p, err := vips.Get(networkingClient, vipId).Extract()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return p, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LB VIP %s", vipId)
+				return p, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack LB VIP: %+v", p)
+		err = vips.Delete(networkingClient, vipId).ExtractErr()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return p, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LB VIP %s", vipId)
+				return p, "DELETED", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack LB VIP %s still active.", vipId)
+		return p, "ACTIVE", nil
+	}
+
 }
