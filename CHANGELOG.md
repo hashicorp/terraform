@@ -1,6 +1,7 @@
 ## 0.6.9 (Unreleased)
 
 FEATURES:
+  * **New provider: `vcd` - VMware vCloud Director** [GH-3785]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
 
