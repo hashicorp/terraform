@@ -271,7 +271,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	if vL, ok := d.GetOk("custom_configuration_parameters"); ok {
 		if custom_configs, ok := vL.(map[string]interface{}); ok {
 			custom := make(map[string]types.AnyType)
-			for k,v := range custom_configs {
+			for k, v := range custom_configs {
 				custom[k] = v
 			}
 			vm.customConfigurations = custom
@@ -763,7 +763,7 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 	return datastore, nil
 }
 
-// createVirtualMchine creates a new VirtualMachine.
+// createVirtualMachine creates a new VirtualMachine.
 func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	dc, err := getDatacenter(c, vm.datacenter)
 	if err != nil {
@@ -831,7 +831,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 				Key:   key,
 				Value: &value,
 			}
-			log.Printf("[DEBUG] virtual machine Extra Config spec: %s,%s", k,v)
+			log.Printf("[DEBUG] virtual machine Extra Config spec: %s,%s", k, v)
 			ov = append(ov, &o)
 		}
 		configSpec.ExtraConfig = ov
@@ -914,7 +914,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	return nil
 }
 
-// deployVirtualMchine deploys a new VirtualMachine.
+// deployVirtualMachine deploys a new VirtualMachine.
 func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	dc, err := getDatacenter(c, vm.datacenter)
 	if err != nil {
@@ -1135,6 +1135,14 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG]VM customization finished")
 
+	for i := 1; i < len(vm.hardDisks); i++ {
+		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, "eager_zeroed")
+		if err != nil {
+			return err
+		}
+	}
+	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
+
 	newVM.PowerOn(context.TODO())
 
 	ip, err := newVM.WaitForIP(context.TODO())
@@ -1143,12 +1151,5 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] ip address: %v", ip)
 
-	for i := 1; i < len(vm.hardDisks); i++ {
-		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, "eager_zeroed")
-		if err != nil {
-			return err
-		}
-	}
-	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 	return nil
 }
