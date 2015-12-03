@@ -1,13 +1,14 @@
 package cloudstack
 
 import (
-	"bytes"
 	"fmt"
+	"sync"
+	"time"
 
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
@@ -63,7 +64,6 @@ func resourceCloudStackPortForward() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceCloudStackPortForwardHash,
 			},
 		},
 	}
@@ -82,32 +82,66 @@ func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{
 	d.SetId(ipaddressid)
 
 	// Create all forwards that are configured
-	if rs := d.Get("forward").(*schema.Set); rs.Len() > 0 {
-
+	if nrs := d.Get("forward").(*schema.Set); nrs.Len() > 0 {
 		// Create an empty schema.Set to hold all forwards
-		forwards := &schema.Set{
-			F: resourceCloudStackPortForwardHash,
-		}
+		forwards := resourceCloudStackPortForward().Schema["forward"].ZeroValue().(*schema.Set)
 
-		for _, forward := range rs.List() {
-			// Create a single forward
-			err := resourceCloudStackPortForwardCreateForward(d, meta, forward.(map[string]interface{}))
+		err := createPortForwards(d, meta, forwards, nrs)
 
-			// We need to update this first to preserve the correct state
-			forwards.Add(forward)
-			d.Set("forward", forwards)
+		// We need to update this first to preserve the correct state
+		d.Set("forward", forwards)
 
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 	}
 
 	return resourceCloudStackPortForwardRead(d, meta)
 }
 
-func resourceCloudStackPortForwardCreateForward(
-	d *schema.ResourceData, meta interface{}, forward map[string]interface{}) error {
+func createPortForwards(
+	d *schema.ResourceData,
+	meta interface{},
+	forwards *schema.Set,
+	nrs *schema.Set) error {
+	var errs *multierror.Error
+
+	var wg sync.WaitGroup
+	wg.Add(nrs.Len())
+
+	sem := make(chan struct{}, 10)
+	for _, forward := range nrs.List() {
+		// Put in a tiny sleep here to avoid DoS'ing the API
+		time.Sleep(500 * time.Millisecond)
+
+		go func(forward map[string]interface{}) {
+			defer wg.Done()
+			sem <- struct{}{}
+
+			// Create a single forward
+			err := createPortForward(d, meta, forward)
+
+			// If we have a UUID, we need to save the forward
+			if forward["uuid"].(string) != "" {
+				forwards.Add(forward)
+			}
+
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
+
+			<-sem
+		}(forward.(map[string]interface{}))
+	}
+
+	wg.Wait()
+
+	return errs.ErrorOrNil()
+}
+func createPortForward(
+	d *schema.ResourceData,
+	meta interface{},
+	forward map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Make sure all required parameters are there
@@ -167,9 +201,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 	}
 
 	// Create an empty schema.Set to hold all forwards
-	forwards := &schema.Set{
-		F: resourceCloudStackPortForwardHash,
-	}
+	forwards := resourceCloudStackPortForward().Schema["forward"].ZeroValue().(*schema.Set)
 
 	// Read all forwards that are configured
 	if rs := d.Get("forward").(*schema.Set); rs.Len() > 0 {
@@ -250,26 +282,29 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 		ors := o.(*schema.Set).Difference(n.(*schema.Set))
 		nrs := n.(*schema.Set).Difference(o.(*schema.Set))
 
-		// Now first loop through all the old forwards and delete any obsolete ones
-		for _, forward := range ors.List() {
-			// Delete the forward as it no longer exists in the config
-			err := resourceCloudStackPortForwardDeleteForward(d, meta, forward.(map[string]interface{}))
+		// We need to start with a rule set containing all the rules we
+		// already have and want to keep. Any rules that are not deleted
+		// correctly and any newly created rules, will be added to this
+		// set to make sure we end up in a consistent state
+		forwards := o.(*schema.Set).Intersection(n.(*schema.Set))
+
+		// First loop through all the new forwards and create (before destroy) them
+		if nrs.Len() > 0 {
+			err := createPortForwards(d, meta, forwards, nrs)
+
+			// We need to update this first to preserve the correct state
+			d.Set("forward", forwards)
+
 			if err != nil {
 				return err
 			}
 		}
 
-		// Make sure we save the state of the currently configured forwards
-		forwards := o.(*schema.Set).Intersection(n.(*schema.Set))
-		d.Set("forward", forwards)
-
-		// Then loop through all the currently configured forwards and create the new ones
-		for _, forward := range nrs.List() {
-			err := resourceCloudStackPortForwardCreateForward(
-				d, meta, forward.(map[string]interface{}))
+		// Then loop through all the old forwards and delete them
+		if ors.Len() > 0 {
+			err := deletePortForwards(d, meta, forwards, ors)
 
 			// We need to update this first to preserve the correct state
-			forwards.Add(forward)
 			d.Set("forward", forwards)
 
 			if err != nil {
@@ -282,26 +317,69 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 }
 
 func resourceCloudStackPortForwardDelete(d *schema.ResourceData, meta interface{}) error {
+	// Create an empty rule set to hold all rules that where
+	// not deleted correctly
+	forwards := resourceCloudStackPortForward().Schema["forward"].ZeroValue().(*schema.Set)
+
 	// Delete all forwards
-	if rs := d.Get("forward").(*schema.Set); rs.Len() > 0 {
-		for _, forward := range rs.List() {
-			// Delete a single forward
-			err := resourceCloudStackPortForwardDeleteForward(d, meta, forward.(map[string]interface{}))
+	if ors := d.Get("forward").(*schema.Set); ors.Len() > 0 {
+		err := deletePortForwards(d, meta, forwards, ors)
 
-			// We need to update this first to preserve the correct state
-			d.Set("forward", rs)
+		// We need to update this first to preserve the correct state
+		d.Set("forward", forwards)
 
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func resourceCloudStackPortForwardDeleteForward(
-	d *schema.ResourceData, meta interface{}, forward map[string]interface{}) error {
+func deletePortForwards(
+	d *schema.ResourceData,
+	meta interface{},
+	forwards *schema.Set,
+	ors *schema.Set) error {
+	var errs *multierror.Error
+
+	var wg sync.WaitGroup
+	wg.Add(ors.Len())
+
+	sem := make(chan struct{}, 10)
+	for _, forward := range ors.List() {
+		// Put a sleep here to avoid DoS'ing the API
+		time.Sleep(500 * time.Millisecond)
+
+		go func(forward map[string]interface{}) {
+			defer wg.Done()
+			sem <- struct{}{}
+
+			// Delete a single forward
+			err := deletePortForward(d, meta, forward)
+
+			// If we have a UUID, we need to save the forward
+			if forward["uuid"].(string) != "" {
+				forwards.Add(forward)
+			}
+
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
+
+			<-sem
+		}(forward.(map[string]interface{}))
+	}
+
+	wg.Wait()
+
+	return errs.ErrorOrNil()
+}
+
+func deletePortForward(
+	d *schema.ResourceData,
+	meta interface{},
+	forward map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create the parameter struct
@@ -321,19 +399,6 @@ func resourceCloudStackPortForwardDeleteForward(
 	forward["uuid"] = ""
 
 	return nil
-}
-
-func resourceCloudStackPortForwardHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf(
-		"%s-%d-%d-%s",
-		m["protocol"].(string),
-		m["private_port"].(int),
-		m["public_port"].(int),
-		m["virtual_machine"].(string)))
-
-	return hashcode.String(buf.String())
 }
 
 func verifyPortForwardParams(d *schema.ResourceData, forward map[string]interface{}) error {
