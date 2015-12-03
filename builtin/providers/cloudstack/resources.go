@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -144,4 +145,37 @@ func Retry(n int, f RetryFunc) (interface{}, error) {
 	}
 
 	return nil, lastErr
+}
+
+// This is a temporary helper function to support both the new
+// cidr_list and the deprecated source_cidr parameter
+func retrieveCidrList(rule map[string]interface{}) []string {
+	sourceCidr := rule["source_cidr"].(string)
+	if sourceCidr != "" {
+		return []string{sourceCidr}
+	}
+
+	var cidrList []string
+	for _, cidr := range rule["cidr_list"].(*schema.Set).List() {
+		cidrList = append(cidrList, cidr.(string))
+	}
+
+	return cidrList
+}
+
+// This is a temporary helper function to support both the new
+// cidr_list and the deprecated source_cidr parameter
+func setCidrList(rule map[string]interface{}, cidrList string) {
+	sourceCidr := rule["source_cidr"].(string)
+	if sourceCidr != "" {
+		rule["source_cidr"] = cidrList
+		return
+	}
+
+	cidrs := &schema.Set{F: schema.HashString}
+	for _, cidr := range strings.Split(cidrList, ",") {
+		cidrs.Add(cidr)
+	}
+
+	rule["cidr_list"] = cidrs
 }

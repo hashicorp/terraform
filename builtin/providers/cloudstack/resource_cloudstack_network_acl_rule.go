@@ -1,17 +1,14 @@
 package cloudstack
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
@@ -47,9 +44,17 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 							Default:  "allow",
 						},
 
+						"cidr_list": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+
 						"source_cidr": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:       schema.TypeString,
+							Optional:   true,
+							Deprecated: "Please use the `cidr_list` field instead",
 						},
 
 						"protocol": &schema.Schema{
@@ -73,9 +78,7 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set: func(v interface{}) int {
-								return hashcode.String(v.(string))
-							},
+							Set:      schema.HashString,
 						},
 
 						"traffic_type": &schema.Schema{
@@ -90,7 +93,6 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceCloudStackNetworkACLRuleHash,
 			},
 		},
 	}
@@ -108,11 +110,9 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 	// Create all rules that are configured
 	if nrs := d.Get("rule").(*schema.Set); nrs.Len() > 0 {
 		// Create an empty rule set to hold all newly created rules
-		rules := &schema.Set{
-			F: resourceCloudStackNetworkACLRuleHash,
-		}
+		rules := resourceCloudStackNetworkACLRule().Schema["rule"].ZeroValue().(*schema.Set)
 
-		err := resourceCloudStackNetworkACLRuleCreateRules(d, meta, rules, nrs)
+		err := createNetworkACLRules(d, meta, rules, nrs)
 
 		// We need to update this first to preserve the correct state
 		d.Set("rule", rules)
@@ -125,7 +125,7 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 	return resourceCloudStackNetworkACLRuleRead(d, meta)
 }
 
-func resourceCloudStackNetworkACLRuleCreateRules(
+func createNetworkACLRules(
 	d *schema.ResourceData,
 	meta interface{},
 	rules *schema.Set,
@@ -145,7 +145,7 @@ func resourceCloudStackNetworkACLRuleCreateRules(
 			sem <- struct{}{}
 
 			// Create a single rule
-			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule)
+			err := createNetworkACLRule(d, meta, rule)
 
 			// If we have at least one UUID, we need to save the rule
 			if len(rule["uuids"].(map[string]interface{})) > 0 {
@@ -162,13 +162,10 @@ func resourceCloudStackNetworkACLRuleCreateRules(
 
 	wg.Wait()
 
-	// We need to update this first to preserve the correct state
-	d.Set("rule", rules)
-
 	return errs.ErrorOrNil()
 }
 
-func resourceCloudStackNetworkACLRuleCreateRule(
+func createNetworkACLRule(
 	d *schema.ResourceData,
 	meta interface{},
 	rule map[string]interface{}) error {
@@ -190,7 +187,7 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 	p.SetAction(rule["action"].(string))
 
 	// Set the CIDR list
-	p.SetCidrlist([]string{rule["source_cidr"].(string)})
+	p.SetCidrlist(retrieveCidrList(rule))
 
 	// Set the traffic type
 	p.SetTraffictype(rule["traffic_type"].(string))
@@ -225,11 +222,7 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 		if ps := rule["ports"].(*schema.Set); ps.Len() > 0 {
 
 			// Create an empty schema.Set to hold all processed ports
-			ports := &schema.Set{
-				F: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
-			}
+			ports := &schema.Set{F: schema.HashString}
 
 			// Define a regexp for parsing the port
 			re := regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
@@ -296,9 +289,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 	}
 
 	// Create an empty schema.Set to hold all rules
-	rules := &schema.Set{
-		F: resourceCloudStackNetworkACLRuleHash,
-	}
+	rules := resourceCloudStackNetworkACLRule().Schema["rule"].ZeroValue().(*schema.Set)
 
 	// Read all rules that are configured
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
@@ -324,11 +315,11 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 
 				// Update the values
 				rule["action"] = strings.ToLower(r.Action)
-				rule["source_cidr"] = r.Cidrlist
 				rule["protocol"] = r.Protocol
 				rule["icmp_type"] = r.Icmptype
 				rule["icmp_code"] = r.Icmpcode
 				rule["traffic_type"] = strings.ToLower(r.Traffictype)
+				setCidrList(rule, r.Cidrlist)
 				rules.Add(rule)
 			}
 
@@ -350,9 +341,9 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 
 				// Update the values
 				rule["action"] = strings.ToLower(r.Action)
-				rule["source_cidr"] = r.Cidrlist
 				rule["protocol"] = r.Protocol
 				rule["traffic_type"] = strings.ToLower(r.Traffictype)
+				setCidrList(rule, r.Cidrlist)
 				rules.Add(rule)
 			}
 
@@ -361,11 +352,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 				if ps := rule["ports"].(*schema.Set); ps.Len() > 0 {
 
 					// Create an empty schema.Set to hold all ports
-					ports := &schema.Set{
-						F: func(v interface{}) int {
-							return hashcode.String(v.(string))
-						},
-					}
+					ports := &schema.Set{F: schema.HashString}
 
 					// Loop through all ports and retrieve their info
 					for _, port := range ps.List() {
@@ -386,9 +373,9 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 
 						// Update the values
 						rule["action"] = strings.ToLower(r.Action)
-						rule["source_cidr"] = r.Cidrlist
 						rule["protocol"] = r.Protocol
 						rule["traffic_type"] = strings.ToLower(r.Traffictype)
+						setCidrList(rule, r.Cidrlist)
 						ports.Add(port)
 					}
 
@@ -402,15 +389,20 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 		}
 	}
 
-	// If this is a managed firewall, add all unknown rules into a single dummy rule
+	// If this is a managed firewall, add all unknown rules into dummy rules
 	managed := d.Get("managed").(bool)
 	if managed && len(ruleMap) > 0 {
 		for uuid := range ruleMap {
+			// We need to create and add a dummy value to a schema.Set as the
+			// cidr_list is a required field and thus needs a value
+			cidrs := &schema.Set{F: schema.HashString}
+			cidrs.Add(uuid)
+
 			// Make a dummy rule to hold the unknown UUID
 			rule := map[string]interface{}{
-				"source_cidr": uuid,
-				"protocol":    uuid,
-				"uuids":       map[string]interface{}{uuid: uuid},
+				"cidr_list": cidrs,
+				"protocol":  uuid,
+				"uuids":     map[string]interface{}{uuid: uuid},
 			}
 
 			// Add the dummy rule to the rules set
@@ -445,9 +437,9 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 		// set to make sure we end up in a consistent state
 		rules := o.(*schema.Set).Intersection(n.(*schema.Set))
 
-		// Now first loop through all the old rules and delete them
-		if ors.Len() > 0 {
-			err := resourceCloudStackNetworkACLRuleDeleteRules(d, meta, rules, ors)
+		// First loop through all the new rules and create (before destroy) them
+		if nrs.Len() > 0 {
+			err := createNetworkACLRules(d, meta, rules, nrs)
 
 			// We need to update this first to preserve the correct state
 			d.Set("rule", rules)
@@ -457,9 +449,9 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 			}
 		}
 
-		// Then loop through all the new rules and create them
-		if nrs.Len() > 0 {
-			err := resourceCloudStackNetworkACLRuleCreateRules(d, meta, rules, nrs)
+		// Then loop through all the old rules and delete them
+		if ors.Len() > 0 {
+			err := deleteNetworkACLRules(d, meta, rules, ors)
 
 			// We need to update this first to preserve the correct state
 			d.Set("rule", rules)
@@ -476,13 +468,11 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	// Create an empty rule set to hold all rules that where
 	// not deleted correctly
-	rules := &schema.Set{
-		F: resourceCloudStackNetworkACLRuleHash,
-	}
+	rules := resourceCloudStackNetworkACLRule().Schema["rule"].ZeroValue().(*schema.Set)
 
 	// Delete all rules
-	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
-		err := resourceCloudStackNetworkACLRuleDeleteRules(d, meta, rules, rs)
+	if ors := d.Get("rule").(*schema.Set); ors.Len() > 0 {
+		err := deleteNetworkACLRules(d, meta, rules, ors)
 
 		// We need to update this first to preserve the correct state
 		d.Set("rule", rules)
@@ -495,7 +485,7 @@ func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleDeleteRules(
+func deleteNetworkACLRules(
 	d *schema.ResourceData,
 	meta interface{},
 	rules *schema.Set,
@@ -515,7 +505,7 @@ func resourceCloudStackNetworkACLRuleDeleteRules(
 			sem <- struct{}{}
 
 			// Delete a single rule
-			err := resourceCloudStackNetworkACLRuleDeleteRule(d, meta, rule)
+			err := deleteNetworkACLRule(d, meta, rule)
 
 			// If we have at least one UUID, we need to save the rule
 			if len(rule["uuids"].(map[string]interface{})) > 0 {
@@ -535,7 +525,7 @@ func resourceCloudStackNetworkACLRuleDeleteRules(
 	return errs.ErrorOrNil()
 }
 
-func resourceCloudStackNetworkACLRuleDeleteRule(
+func deleteNetworkACLRule(
 	d *schema.ResourceData,
 	meta interface{},
 	rule map[string]interface{}) error {
@@ -574,58 +564,6 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-
-	// This is a little ugly, but it's needed because these arguments have
-	// a default value that needs to be part of the string to hash
-	var action, trafficType string
-	if a, ok := m["action"]; ok {
-		action = a.(string)
-	} else {
-		action = "allow"
-	}
-	if t, ok := m["traffic_type"]; ok {
-		trafficType = t.(string)
-	} else {
-		trafficType = "ingress"
-	}
-
-	buf.WriteString(fmt.Sprintf(
-		"%s-%s-%s-%s-",
-		action,
-		m["source_cidr"].(string),
-		m["protocol"].(string),
-		trafficType))
-
-	if v, ok := m["icmp_type"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
-	}
-
-	if v, ok := m["icmp_code"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
-	}
-
-	// We need to make sure to sort the strings below so that we always
-	// generate the same hash code no matter what is in the set.
-	if v, ok := m["ports"]; ok {
-		vs := v.(*schema.Set).List()
-		s := make([]string, len(vs))
-
-		for i, raw := range vs {
-			s[i] = raw.(string)
-		}
-		sort.Strings(s)
-
-		for _, v := range s {
-			buf.WriteString(fmt.Sprintf("%s-", v))
-		}
-	}
-
-	return hashcode.String(buf.String())
-}
-
 func verifyNetworkACLParams(d *schema.ResourceData) error {
 	managed := d.Get("managed").(bool)
 	_, rules := d.GetOk("rule")
@@ -642,6 +580,17 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 	action := rule["action"].(string)
 	if action != "allow" && action != "deny" {
 		return fmt.Errorf("Parameter action only accepts 'allow' or 'deny' as values")
+	}
+
+	cidrList := rule["cidr_list"].(*schema.Set)
+	sourceCidr := rule["source_cidr"].(string)
+	if cidrList.Len() == 0 && sourceCidr == "" {
+		return fmt.Errorf(
+			"Parameter cidr_list is a required parameter")
+	}
+	if cidrList.Len() > 0 && sourceCidr != "" {
+		return fmt.Errorf(
+			"Parameter source_cidr is deprecated and cannot be used together with cidr_list")
 	}
 
 	protocol := rule["protocol"].(string)

@@ -84,8 +84,11 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("CLOUDSTACK_NETWORK_1"); v == "" {
 		t.Fatal("CLOUDSTACK_NETWORK_1 must be set for acceptance tests")
 	}
-	if v := os.Getenv("CLOUDSTACK_NETWORK_1_IPADDRESS"); v == "" {
-		t.Fatal("CLOUDSTACK_NETWORK_1_IPADDRESS must be set for acceptance tests")
+	if v := os.Getenv("CLOUDSTACK_NETWORK_1_IPADDRESS1"); v == "" {
+		t.Fatal("CLOUDSTACK_NETWORK_1_IPADDRESS1 must be set for acceptance tests")
+	}
+	if v := os.Getenv("CLOUDSTACK_NETWORK_1_IPADDRESS2"); v == "" {
+		t.Fatal("CLOUDSTACK_NETWORK_1_IPADDRESS2 must be set for acceptance tests")
 	}
 	if v := os.Getenv("CLOUDSTACK_NETWORK_2"); v == "" {
 		t.Fatal("CLOUDSTACK_NETWORK_2 must be set for acceptance tests")
@@ -159,7 +162,10 @@ var CLOUDSTACK_SERVICE_OFFERING_2 = os.Getenv("CLOUDSTACK_SERVICE_OFFERING_2")
 var CLOUDSTACK_NETWORK_1 = os.Getenv("CLOUDSTACK_NETWORK_1")
 
 // A valid IP address in CLOUDSTACK_NETWORK_1
-var CLOUDSTACK_NETWORK_1_IPADDRESS = os.Getenv("CLOUDSTACK_NETWORK_1_IPADDRESS")
+var CLOUDSTACK_NETWORK_1_IPADDRESS1 = os.Getenv("CLOUDSTACK_NETWORK_1_IPADDRESS1")
+
+// A valid IP address in CLOUDSTACK_NETWORK_1
+var CLOUDSTACK_NETWORK_1_IPADDRESS2 = os.Getenv("CLOUDSTACK_NETWORK_1_IPADDRESS2")
 
 // Name for a network that will be created
 var CLOUDSTACK_NETWORK_2 = os.Getenv("CLOUDSTACK_NETWORK_2")
