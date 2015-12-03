@@ -10,6 +10,7 @@ import (
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
+	"time"
 )
 
 func resourceLBVipV1() *schema.Resource {
@@ -275,6 +276,16 @@ func resourceLBVipV1Delete(d *schema.ResourceData, meta interface{}) error {
 	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB VIP: %s", err)
+	}
+
+	for {
+		_, err := vips.Get(networkingClient, d.Id()).Extract()
+		if err == nil {
+			log.Printf("[DEBUG] VIP (%s) is not deleted yet, waiting for 1 second", d.Id())
+			time.Sleep(1000 * time.Millisecond)
+		} else {
+			break;
+		}
 	}
 
 	d.SetId("")
