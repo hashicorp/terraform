@@ -14,7 +14,7 @@ func resourceAwsCodePipeline() *schema.Resource {
 		Delete: resourceAwsCodePipelineDelete,
 
 		Schema: map[string]*schema.Schema{
-			"PipelineDeclaration": &schema.Schema{
+			"Pipeline": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
@@ -51,7 +51,7 @@ func resourceAwsCodePipeline() *schema.Resource {
 
 									"EncryptionKey": &schema.Schema{
 										Type:     schema.TypeList,
-										Required: true,
+										Optional: true,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"Location": &schema.Schema{
@@ -70,7 +70,7 @@ func resourceAwsCodePipeline() *schema.Resource {
 							}, //ArtifactStore - Resource
 						}, //ArtifactStore - Schema
 
-						"StageDeclaration": &schema.Schema{
+						"Stages": &schema.Schema{
 							Type:     schema.TypeSet,
 							Required: true,
 							Elem: &schema.Resource{
@@ -80,8 +80,8 @@ func resourceAwsCodePipeline() *schema.Resource {
 										Required: true,
 									},
 
-									"ActionDeclaration": &schema.Schema{
-										Type:     schema.TypeList,
+									"Actions": &schema.Schema{
+										Type:     schema.TypeSet,
 										Required: true,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
@@ -106,8 +106,8 @@ func resourceAwsCodePipeline() *schema.Resource {
 												},
 
 												"InputArtifact": &schema.Schema{
-													Type:     schema.TypeList,
-													Required: true,
+													Type:     schema.TypeSet,
+													Optional: true,
 													Elem: &schema.Resource{
 														Schema: map[string]*schema.Schema{
 															"Name": &schema.Schema{
@@ -120,7 +120,7 @@ func resourceAwsCodePipeline() *schema.Resource {
 
 												"OutputArtifact": &schema.Schema{
 													Type:     schema.TypeList,
-													Required: true,
+													Optional: true,
 													Elem: &schema.Resource{
 														Schema: map[string]*schema.Schema{
 															"Name": &schema.Schema{
