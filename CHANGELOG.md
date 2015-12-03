@@ -1,6 +1,8 @@
 ## 0.6.9 (Unreleased)
 
 FEATURES:
+  * **New resource: `google_pubsub_topic`** [GH-3671]
+  * **New resource: `google_pubsub_subscription`** [GH-3671]
 
 IMPROVEMENTS:
 
