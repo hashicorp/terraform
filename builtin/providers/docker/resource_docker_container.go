@@ -118,16 +118,69 @@ func resourceDockerContainer() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
-				Elem:     getVolumesElem(),
-				Set:      resourceDockerVolumesHash,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"from_container": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"container_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"host_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"read_only": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceDockerVolumesHash,
 			},
 
 			"ports": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
-				Elem:     getPortsElem(),
-				Set:      resourceDockerPortsHash,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"internal": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"external": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"ip": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Default:  "tcp",
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceDockerPortsHash,
 			},
 
 			"hosts": &schema.Schema{
@@ -256,67 +309,6 @@ func resourceDockerContainer() *schema.Resource {
 
 			"log_opts": &schema.Schema{
 				Type:     schema.TypeMap,
-				Optional: true,
-				ForceNew: true,
-			},
-		},
-	}
-}
-
-func getVolumesElem() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"from_container": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"container_path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"host_path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"read_only": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
-		},
-	}
-}
-
-func getPortsElem() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"internal": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"external": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"ip": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"protocol": &schema.Schema{
-				Type:     schema.TypeString,
-				Default:  "tcp",
 				Optional: true,
 				ForceNew: true,
 			},
