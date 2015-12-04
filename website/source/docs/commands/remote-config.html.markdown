@@ -57,6 +57,10 @@ The following backends are supported:
   * `scheme` - Specifies what protocol to use when talking to the given
     `address`, either `http` or `https`. SSL support can also be triggered
     by setting then environment variable `CONSUL_HTTP_SSL` to `true`.
+  * `http_auth` - HTTP Basic Authentication credentials to be used when
+    communicating with Consul, in the format of either `user` or `user:pass`.
+    This may also be specified using the `CONSUL_HTTP_AUTH` environment
+    variable.
 
 * Etcd - Stores the state in etcd at a given path.
   Requires the `path` and `endpoints` variables. The `username` and `password`
