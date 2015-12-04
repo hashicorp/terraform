@@ -49,6 +49,8 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "termination_policies.0", "OldestInstance"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "termination_policies.1", "ClosestToNextInstanceHour"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "placement_group", "test"),
 				),
 			},
 
@@ -401,6 +403,11 @@ resource "aws_launch_configuration" "foobar" {
   instance_type = "t1.micro"
 }
 
+resource "aws_placement_group" "test" {
+  name = "test"
+  strategy = "cluster"
+}
+
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
   name = "foobar3-terraform-test"
@@ -411,6 +418,7 @@ resource "aws_autoscaling_group" "bar" {
   desired_capacity = 4
   force_delete = true
   termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+  placement_group = "${aws_placement_group.test.name}"
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 
