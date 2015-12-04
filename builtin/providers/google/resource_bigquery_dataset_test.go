@@ -33,7 +33,7 @@ func testAccCheckBigQueryDatasetDestroy(s *terraform.State) error {
 		}
 
 		config := testAccProvider.Meta().(*Config)
-		_, err := config.clientBigQuery.Datasets.Get(config.Project, rs.Primary.Attributes["name"]).Do()
+		_, err := config.clientBigQuery.Datasets.Get(config.Project, rs.Primary.Attributes["datasetId"]).Do()
 		if err != nil {
 			fmt.Errorf("Dataset still present")
 		}
@@ -53,7 +53,7 @@ func testAccBigQueryDatasetExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 		config := testAccProvider.Meta().(*Config)
-		_, err := config.clientBigQuery.Datasets.Get(config.Project, rs.Primary.Attributes["name"]).Do()
+		_, err := config.clientBigQuery.Datasets.Get(config.Project, rs.Primary.Attributes["datasetId"]).Do()
 		if err != nil {
 			fmt.Errorf("BigQuery Dataset not present")
 		}
@@ -64,6 +64,6 @@ func testAccBigQueryDatasetExists(n string) resource.TestCheckFunc {
 
 const testAccBigQueryDataset = `
 resource "google_bigquery_dataset" "foobar" {
-	name = "foobar"
-	can_delete = true
+	datasetId = "foobar"
+	friendlyName = "hi"
 }`

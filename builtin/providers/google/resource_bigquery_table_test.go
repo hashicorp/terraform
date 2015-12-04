@@ -64,13 +64,12 @@ func testAccBigQueryTableExists(n string) resource.TestCheckFunc {
 
 const testAccBigQueryTable = `
 resource "google_bigquery_dataset" "foobar" {
-	name = "foobar"
-	can_delete = true
+	datasetId = "foobar"
 }
 
 resource "google_bigquery_table" "foobar" {
 	name = "foobar"
-	datasetId = "${google_bigquery_dataset.foobar.name}"
+	datasetId = "${google_bigquery_dataset.foobar.datasetId}"
 	can_delete = true
 }`
 
