@@ -1509,9 +1509,9 @@ func TestResourceDataSet(t *testing.T) {
 
 			Key: "ports",
 			Value: &Set{
-				m: map[int]interface{}{
-					1: 1,
-					2: 2,
+				m: map[string]interface{}{
+					"1": 1,
+					"2": 2,
 				},
 			},
 
@@ -1546,7 +1546,7 @@ func TestResourceDataSet(t *testing.T) {
 			Err:   true,
 
 			GetKey:   "ports",
-			GetValue: []interface{}{80, 100},
+			GetValue: []interface{}{100, 80},
 		},
 
 		// #11: Set with nested set
