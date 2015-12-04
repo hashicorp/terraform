@@ -17,7 +17,7 @@ resource "cloudstack_firewall" "default" {
   ipaddress = "192.168.0.1"
 
   rule {
-    source_cidr = "10.0.0.0/8"
+    cidr_list = ["10.0.0.0/8"]
     protocol = "tcp"
     ports = ["80", "1000-2000"]
   }
@@ -40,7 +40,10 @@ The following arguments are supported:
 
 The `rule` block supports:
 
-* `source_cidr` - (Required) The source CIDR to allow access to the given ports.
+* `cidr_list` - (Required) A CIDR list to allow access to the given ports.
+
+* `source_cidr` - (Optional, Deprecated) The source CIDR to allow access to the
+    given ports. This attribute is deprecated, please use `cidr_list` instead.
 
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp` and `icmp`.

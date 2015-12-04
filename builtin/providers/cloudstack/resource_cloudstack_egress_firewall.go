@@ -1,14 +1,14 @@
 package cloudstack
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
@@ -38,9 +38,17 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"cidr_list": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+
 						"source_cidr": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:       schema.TypeString,
+							Optional:   true,
+							Deprecated: "Please use the `cidr_list` field instead",
 						},
 
 						"protocol": &schema.Schema{
@@ -64,9 +72,7 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set: func(v interface{}) int {
-								return hashcode.String(v.(string))
-							},
+							Set:      schema.HashString,
 						},
 
 						"uuids": &schema.Schema{
@@ -75,7 +81,6 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceCloudStackEgressFirewallRuleHash,
 			},
 		},
 	}
@@ -99,32 +104,66 @@ func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interfa
 	d.SetId(networkid)
 
 	// Create all rules that are configured
-	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
-
+	if nrs := d.Get("rule").(*schema.Set); nrs.Len() > 0 {
 		// Create an empty schema.Set to hold all rules
-		rules := &schema.Set{
-			F: resourceCloudStackEgressFirewallRuleHash,
-		}
+		rules := resourceCloudStackEgressFirewall().Schema["rule"].ZeroValue().(*schema.Set)
 
-		for _, rule := range rs.List() {
-			// Create a single rule
-			err := resourceCloudStackEgressFirewallCreateRule(d, meta, rule.(map[string]interface{}))
+		err := createEgressFirewallRules(d, meta, rules, nrs)
 
-			// We need to update this first to preserve the correct state
-			rules.Add(rule)
-			d.Set("rule", rules)
+		// We need to update this first to preserve the correct state
+		d.Set("rule", rules)
 
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 	}
 
 	return resourceCloudStackEgressFirewallRead(d, meta)
 }
 
-func resourceCloudStackEgressFirewallCreateRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+func createEgressFirewallRules(
+	d *schema.ResourceData,
+	meta interface{},
+	rules *schema.Set,
+	nrs *schema.Set) error {
+	var errs *multierror.Error
+
+	var wg sync.WaitGroup
+	wg.Add(nrs.Len())
+
+	sem := make(chan struct{}, 10)
+	for _, rule := range nrs.List() {
+		// Put in a tiny sleep here to avoid DoS'ing the API
+		time.Sleep(500 * time.Millisecond)
+
+		go func(rule map[string]interface{}) {
+			defer wg.Done()
+			sem <- struct{}{}
+
+			// Create a single rule
+			err := createEgressFirewallRule(d, meta, rule)
+
+			// If we have at least one UUID, we need to save the rule
+			if len(rule["uuids"].(map[string]interface{})) > 0 {
+				rules.Add(rule)
+			}
+
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
+
+			<-sem
+		}(rule.(map[string]interface{}))
+	}
+
+	wg.Wait()
+
+	return errs.ErrorOrNil()
+}
+func createEgressFirewallRule(
+	d *schema.ResourceData,
+	meta interface{},
+	rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -137,7 +176,7 @@ func resourceCloudStackEgressFirewallCreateRule(
 	p := cs.Firewall.NewCreateEgressFirewallRuleParams(d.Id(), rule["protocol"].(string))
 
 	// Set the CIDR list
-	p.SetCidrlist([]string{rule["source_cidr"].(string)})
+	p.SetCidrlist(retrieveCidrList(rule))
 
 	// If the protocol is ICMP set the needed ICMP parameters
 	if rule["protocol"].(string) == "icmp" {
@@ -157,14 +196,18 @@ func resourceCloudStackEgressFirewallCreateRule(
 		if ps := rule["ports"].(*schema.Set); ps.Len() > 0 {
 
 			// Create an empty schema.Set to hold all processed ports
-			ports := &schema.Set{
-				F: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
-			}
+			ports := &schema.Set{F: schema.HashString}
+
+			// Define a regexp for parsing the port
+			re := regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
 
 			for _, port := range ps.List() {
-				re := regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
+				if _, ok := uuids[port.(string)]; ok {
+					ports.Add(port)
+					rule["ports"] = ports
+					continue
+				}
+
 				m := re.FindStringSubmatch(port.(string))
 
 				startPort, err := strconv.Atoi(m[1])
@@ -220,9 +263,7 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 	}
 
 	// Create an empty schema.Set to hold all rules
-	rules := &schema.Set{
-		F: resourceCloudStackEgressFirewallRuleHash,
-	}
+	rules := resourceCloudStackEgressFirewall().Schema["rule"].ZeroValue().(*schema.Set)
 
 	// Read all rules that are configured
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
@@ -247,10 +288,10 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 				delete(ruleMap, id.(string))
 
 				// Update the values
-				rule["source_cidr"] = r.Cidrlist
 				rule["protocol"] = r.Protocol
 				rule["icmp_type"] = r.Icmptype
 				rule["icmp_code"] = r.Icmpcode
+				setCidrList(rule, r.Cidrlist)
 				rules.Add(rule)
 			}
 
@@ -259,11 +300,7 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 				if ps := rule["ports"].(*schema.Set); ps.Len() > 0 {
 
 					// Create an empty schema.Set to hold all ports
-					ports := &schema.Set{
-						F: func(v interface{}) int {
-							return hashcode.String(v.(string))
-						},
-					}
+					ports := &schema.Set{F: schema.HashString}
 
 					// Loop through all ports and retrieve their info
 					for _, port := range ps.List() {
@@ -283,8 +320,8 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 						delete(ruleMap, id.(string))
 
 						// Update the values
-						rule["source_cidr"] = r.Cidrlist
 						rule["protocol"] = r.Protocol
+						setCidrList(rule, r.Cidrlist)
 						ports.Add(port)
 					}
 
@@ -301,21 +338,22 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
 	managed := d.Get("managed").(bool)
 	if managed && len(ruleMap) > 0 {
-		// Add all UUIDs to a uuids map
-		uuids := make(map[string]interface{}, len(ruleMap))
 		for uuid := range ruleMap {
-			uuids[uuid] = uuid
-		}
+			// We need to create and add a dummy value to a schema.Set as the
+			// cidr_list is a required field and thus needs a value
+			cidrs := &schema.Set{F: schema.HashString}
+			cidrs.Add(uuid)
 
-		// Make a dummy rule to hold all unknown UUIDs
-		rule := map[string]interface{}{
-			"source_cidr": "N/A",
-			"protocol":    "N/A",
-			"uuids":       ruleMap,
-		}
+			// Make a dummy rule to hold the unknown UUID
+			rule := map[string]interface{}{
+				"cidr_list": uuid,
+				"protocol":  uuid,
+				"uuids":     map[string]interface{}{uuid: uuid},
+			}
 
-		// Add the dummy rule to the rules set
-		rules.Add(rule)
+			// Add the dummy rule to the rules set
+			rules.Add(rule)
+		}
 	}
 
 	if rules.Len() > 0 {
@@ -339,27 +377,29 @@ func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interfa
 		ors := o.(*schema.Set).Difference(n.(*schema.Set))
 		nrs := n.(*schema.Set).Difference(o.(*schema.Set))
 
-		// Now first loop through all the old rules and delete any obsolete ones
-		for _, rule := range ors.List() {
-			// Delete the rule as it no longer exists in the config
-			err := resourceCloudStackEgressFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
+		// We need to start with a rule set containing all the rules we
+		// already have and want to keep. Any rules that are not deleted
+		// correctly and any newly created rules, will be added to this
+		// set to make sure we end up in a consistent state
+		rules := o.(*schema.Set).Intersection(n.(*schema.Set))
+
+		// First loop through all the old rules and delete them
+		if ors.Len() > 0 {
+			err := deleteEgressFirewallRules(d, meta, rules, ors)
+
+			// We need to update this first to preserve the correct state
+			d.Set("rule", rules)
+
 			if err != nil {
 				return err
 			}
 		}
 
-		// Make sure we save the state of the currently configured rules
-		rules := o.(*schema.Set).Intersection(n.(*schema.Set))
-		d.Set("rule", rules)
-
-		// Then loop through all the currently configured rules and create the new ones
-		for _, rule := range nrs.List() {
-			// When successfully deleted, re-create it again if it still exists
-			err := resourceCloudStackEgressFirewallCreateRule(
-				d, meta, rule.(map[string]interface{}))
+		// Then loop through all the new rules and create them
+		if nrs.Len() > 0 {
+			err := createEgressFirewallRules(d, meta, rules, nrs)
 
 			// We need to update this first to preserve the correct state
-			rules.Add(rule)
 			d.Set("rule", rules)
 
 			if err != nil {
@@ -372,26 +412,69 @@ func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceCloudStackEgressFirewallDelete(d *schema.ResourceData, meta interface{}) error {
+	// Create an empty rule set to hold all rules that where
+	// not deleted correctly
+	rules := resourceCloudStackEgressFirewall().Schema["rule"].ZeroValue().(*schema.Set)
+
 	// Delete all rules
-	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
-		for _, rule := range rs.List() {
-			// Delete a single rule
-			err := resourceCloudStackEgressFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
+	if ors := d.Get("rule").(*schema.Set); ors.Len() > 0 {
+		err := deleteEgressFirewallRules(d, meta, rules, ors)
 
-			// We need to update this first to preserve the correct state
-			d.Set("rule", rs)
+		// We need to update this first to preserve the correct state
+		d.Set("rule", rules)
 
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func resourceCloudStackEgressFirewallDeleteRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+func deleteEgressFirewallRules(
+	d *schema.ResourceData,
+	meta interface{},
+	rules *schema.Set,
+	ors *schema.Set) error {
+	var errs *multierror.Error
+
+	var wg sync.WaitGroup
+	wg.Add(ors.Len())
+
+	sem := make(chan struct{}, 10)
+	for _, rule := range ors.List() {
+		// Put a sleep here to avoid DoS'ing the API
+		time.Sleep(500 * time.Millisecond)
+
+		go func(rule map[string]interface{}) {
+			defer wg.Done()
+			sem <- struct{}{}
+
+			// Delete a single rule
+			err := deleteEgressFirewallRule(d, meta, rule)
+
+			// If we have at least one UUID, we need to save the rule
+			if len(rule["uuids"].(map[string]interface{})) > 0 {
+				rules.Add(rule)
+			}
+
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
+
+			<-sem
+		}(rule.(map[string]interface{}))
+	}
+
+	wg.Wait()
+
+	return errs.ErrorOrNil()
+}
+
+func deleteEgressFirewallRule(
+	d *schema.ResourceData,
+	meta interface{},
+	rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -420,45 +503,10 @@ func resourceCloudStackEgressFirewallDeleteRule(
 
 		// Delete the UUID of this rule
 		delete(uuids, k)
+		rule["uuids"] = uuids
 	}
-
-	// Update the UUIDs
-	rule["uuids"] = uuids
 
 	return nil
-}
-
-func resourceCloudStackEgressFirewallRuleHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf(
-		"%s-%s-", m["source_cidr"].(string), m["protocol"].(string)))
-
-	if v, ok := m["icmp_type"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
-	}
-
-	if v, ok := m["icmp_code"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
-	}
-
-	// We need to make sure to sort the strings below so that we always
-	// generate the same hash code no matter what is in the set.
-	if v, ok := m["ports"]; ok {
-		vs := v.(*schema.Set).List()
-		s := make([]string, len(vs))
-
-		for i, raw := range vs {
-			s[i] = raw.(string)
-		}
-		sort.Strings(s)
-
-		for _, v := range s {
-			buf.WriteString(fmt.Sprintf("%s-", v))
-		}
-	}
-
-	return hashcode.String(buf.String())
 }
 
 func verifyEgressFirewallParams(d *schema.ResourceData) error {
@@ -474,6 +522,17 @@ func verifyEgressFirewallParams(d *schema.ResourceData) error {
 }
 
 func verifyEgressFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
+	cidrList := rule["cidr_list"].(*schema.Set)
+	sourceCidr := rule["source_cidr"].(string)
+	if cidrList.Len() == 0 && sourceCidr == "" {
+		return fmt.Errorf(
+			"Parameter cidr_list is a required parameter")
+	}
+	if cidrList.Len() > 0 && sourceCidr != "" {
+		return fmt.Errorf(
+			"Parameter source_cidr is deprecated and cannot be used together with cidr_list")
+	}
+
 	protocol := rule["protocol"].(string)
 	if protocol != "tcp" && protocol != "udp" && protocol != "icmp" {
 		return fmt.Errorf(
