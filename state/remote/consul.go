@@ -3,6 +3,7 @@ package remote
 import (
 	"crypto/md5"
 	"fmt"
+	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
@@ -22,6 +23,17 @@ func consulFactory(conf map[string]string) (Client, error) {
 	}
 	if scheme, ok := conf["scheme"]; ok && scheme != "" {
 		config.Scheme = scheme
+	}
+	if auth, ok := conf["http_auth"]; ok && auth != "" {
+		var username, password string
+		if strings.Contains(auth, ":") {
+			split := strings.SplitN(auth, ":", 2)
+			username = split[0]
+			password = split[1]
+		} else {
+			username = auth
+		}
+		config.HttpAuth = &consulapi.HttpBasicAuth{username, password}
 	}
 
 	client, err := consulapi.NewClient(config)
