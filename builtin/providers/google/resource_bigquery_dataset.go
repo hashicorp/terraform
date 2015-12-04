@@ -111,6 +111,7 @@ func resourceBigQueryDataset() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+
 		},
 	}
 }
