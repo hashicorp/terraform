@@ -49,8 +49,6 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "termination_policies.0", "OldestInstance"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "termination_policies.1", "ClosestToNextInstanceHour"),
-					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "placement_group", "test"),
 				),
 			},
 
@@ -167,6 +165,26 @@ func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(&group),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAutoScalingGroup_withPlacementGroup(t *testing.T) {
+	var group autoscaling.Group
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_withPlacementGroup,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "placement_group", "test"),
 				),
 			},
 		},
@@ -418,7 +436,6 @@ resource "aws_autoscaling_group" "bar" {
   desired_capacity = 4
   force_delete = true
   termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
-  placement_group = "${aws_placement_group.test.name}"
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 
@@ -634,5 +651,38 @@ resource "aws_autoscaling_group" "bar" {
   force_delete = true
   termination_policies = ["OldestInstance"]
   launch_configuration = "${aws_launch_configuration.foobar.name}"
+}
+`
+
+const testAccAWSAutoScalingGroupConfig_withPlacementGroup = `
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "c3.large"
+}
+
+resource "aws_placement_group" "test" {
+  name = "test"
+  strategy = "cluster"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "foobar3-terraform-test"
+  max_size = 1
+  min_size = 1
+  health_check_grace_period = 300
+  health_check_type = "ELB"
+  desired_capacity = 1
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+  placement_group = "${aws_placement_group.test.name}"
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  tag {
+    key = "Foo"
+    value = "foo-bar"
+    propagate_at_launch = true
+  }
 }
 `
