@@ -29,6 +29,13 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_SERVER", nil),
 				Description: "The vSphere Server name for vSphere API operations.",
 			},
+
+			"allow_unverified_ssl": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_ALLOW_UNVERIFIED_SSL", false),
+				Description: "If set, VMware vSphere client will permit unverifiable SSL certificates.",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -44,6 +51,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		User:          d.Get("user").(string),
 		Password:      d.Get("password").(string),
 		VSphereServer: d.Get("vsphere_server").(string),
+		InsecureFlag:  d.Get("allow_unverified_ssl").(bool),
 	}
 
 	return config.Client()
