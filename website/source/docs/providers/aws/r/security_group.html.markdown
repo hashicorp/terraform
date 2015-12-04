@@ -68,6 +68,8 @@ The following arguments are supported:
 
 * `name` - (Optional) The name of the security group. If omitted, Terraform will
 assign a random, unique name
+* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+  prefix. Conflicts with `name`.
 * `description` - (Optional) The security group description. Defaults to "Managed by Terraform". Cannot be "".
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
