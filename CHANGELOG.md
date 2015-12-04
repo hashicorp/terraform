@@ -7,6 +7,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * provider/aws: Add placement_group as an option for `aws_autoscaling_group` [GH-3704]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting memory, swap and CPU shares on `docker_container` resources [GH-3761]
