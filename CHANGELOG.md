@@ -5,6 +5,7 @@ FEATURES:
   * **New provider: `postgresql` - Create PostgreSQL databases and roles** [GH-3653]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
+  * **New resource: `tls_locally_signed_cert`** [GH-3930]
 
 IMPROVEMENTS:
 
