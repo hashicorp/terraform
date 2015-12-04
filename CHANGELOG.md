@@ -17,6 +17,7 @@ IMPROVEMENTS:
   * provider/vsphere: Add support for custom vm params on `vsphere_virtual_machine` [GH-3867]
   * provider/vsphere: Rename vcenter_server config parameter to something clearer [GH-3718]
   * provider/vsphere: Make allow_unverified_ssl a configuable on the provider [GH-3933]
+  * core: change set internals and make (extreme) performance improvements [GH-3992]
 
 BUG FIXES:
 
