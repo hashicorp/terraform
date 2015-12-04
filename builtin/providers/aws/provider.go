@@ -224,6 +224,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_kinesis_stream":                   resourceAwsKinesisStream(),
 			"aws_lambda_function":                  resourceAwsLambdaFunction(),
 			"aws_lambda_event_source_mapping":      resourceAwsLambdaEventSourceMapping(),
+			"aws_lambda_alias":                     resourceAwsLambdaAlias(),
 			"aws_launch_configuration":             resourceAwsLaunchConfiguration(),
 			"aws_lb_cookie_stickiness_policy":      resourceAwsLBCookieStickinessPolicy(),
 			"aws_main_route_table_association":     resourceAwsMainRouteTableAssociation(),
