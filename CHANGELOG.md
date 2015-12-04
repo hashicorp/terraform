@@ -2,6 +2,7 @@
 
 FEATURES:
   * **New provider: `vcd` - VMware vCloud Director** [GH-3785]
+  * **New provider: `postgresql` - Create PostgreSQL databases and roles** [GH-3653]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
 
