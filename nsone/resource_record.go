@@ -325,7 +325,12 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 						a.Meta[key] = nsone.NewMetaFeed(value.(string))
 					}
 					if value, ok := meta["value"]; ok && value.(string) != "" {
-						a.Meta[key] = value.(string)
+				        	meta_array := strings.Split(value.(string), ",")
+                                                if len(meta_array) > 1 {
+                                                  a.Meta[key] = meta_array
+                                                } else {
+                                                 a.Meta[key] = value.(string)
+                                                }
 					}
 				}
 			}
