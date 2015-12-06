@@ -3,7 +3,6 @@ package digitalocean
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -56,11 +55,11 @@ func resourceDigitalOceanDomainCreate(d *schema.ResourceData, meta interface{}) 
 func resourceDigitalOceanDomainRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*godo.Client)
 
-	domain, _, err := client.Domains.Get(d.Id())
+	domain, resp, err := client.Domains.Get(d.Id())
 	if err != nil {
 		// If the domain is somehow already destroyed, mark as
 		// successfully gone
-		if strings.Contains(err.Error(), "404 Not Found") {
+		if resp.StatusCode == 404 {
 			d.SetId("")
 			return nil
 		}
