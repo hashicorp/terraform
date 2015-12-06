@@ -172,6 +172,14 @@ func resourceAwsDeviceFarmDevicePoolDelete(d *schema.ResourceData, meta interfac
 	return nil
 }
 
+func expandDevicePoolValue(value string) string {
+	return fmt.Sprintf("\"%s\"", value)
+}
+
+func flattenDevicePoolValue(value string) string {
+	return strings.Replace(value, "\"", "", 2)
+}
+
 func expandDevicePoolRules(configured []interface{}) ([]*devicefarm.Rule, error) {
 	rules := make([]*devicefarm.Rule, 0, len(configured))
 
@@ -181,7 +189,7 @@ func expandDevicePoolRules(configured []interface{}) ([]*devicefarm.Rule, error)
 		rule := &devicefarm.Rule{
 			Attribute: aws.String(data["attribute"].(string)),
 			Operator:  aws.String(data["operator"].(string)),
-			Value:     aws.String(data["value"].(string)),
+			Value:     aws.String(expandDevicePoolValue(data["value"].(string))),
 		}
 
 		rules = append(rules, rule)
@@ -196,7 +204,7 @@ func flattenDevicePoolRules(list []*devicefarm.Rule) []map[string]interface{} {
 		l := map[string]interface{}{
 			"attribute": *i.Attribute,
 			"operator":  *i.Operator,
-			"value":     *i.Value,
+			"value":     flattenDevicePoolValue(*i.Value),
 		}
 		result = append(result, l)
 	}
