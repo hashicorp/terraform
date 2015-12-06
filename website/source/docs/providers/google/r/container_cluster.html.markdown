@@ -41,7 +41,7 @@ resource "google_container_cluster" "primary" {
 * `monitoring_service` - (Optional) The monitoring service that the cluster should write metrics to.
   Available options include `monitoring.googleapis.com` and `none`. Defaults to `monitoring.googleapis.com`
 * `network` - (Optional) The name of the Google Compute Engine network to which the cluster is connected
-* `node_config` -  (Optional)The machine type and image to use for all nodes in this cluster
+* `node_config` -  (Optional) The machine type and image to use for all nodes in this cluster
 
 **Master Auth** supports the following arguments:
 
