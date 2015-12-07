@@ -2567,6 +2567,40 @@ func TestSchemaMap_InputDefault(t *testing.T) {
 	}
 }
 
+func TestSchemaMap_InputDeprecated(t *testing.T) {
+	emptyConfig := make(map[string]interface{})
+	c, err := config.NewRawConfig(emptyConfig)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	rc := terraform.NewResourceConfig(c)
+	rc.Config = make(map[string]interface{})
+
+	input := new(terraform.MockUIInput)
+	input.InputFn = func(opts *terraform.InputOpts) (string, error) {
+		t.Fatalf("InputFn should not be called on: %#v", opts)
+		return "", nil
+	}
+
+	schema := map[string]*Schema{
+		"availability_zone": &Schema{
+			Type:       TypeString,
+			Deprecated: "long gone",
+			Optional:   true,
+		},
+	}
+	actual, err := schemaMap(schema).Input(input, rc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := map[string]interface{}{}
+
+	if !reflect.DeepEqual(expected, actual.Config) {
+		t.Fatalf("got: %#v\nexpected: %#v", actual.Config, expected)
+	}
+}
+
 func TestSchemaMap_InternalValidate(t *testing.T) {
 	cases := map[string]struct {
 		In  map[string]*Schema
