@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-// CloudStack uses a "special" ID of -1 to define an unlimited resource
+// UnlimitedResourceID is a "special" ID to define an unlimited resource
 const UnlimitedResourceID = "-1"
 
 type retrieveError struct {
@@ -135,8 +136,8 @@ func Retry(n int, f RetryFunc) (interface{}, error) {
 
 	for i := 0; i < n; i++ {
 		r, err := f()
-		if err == nil {
-			return r, nil
+		if err == nil || err == cloudstack.AsyncTimeoutErr {
+			return r, err
 		}
 
 		lastErr = err
@@ -144,4 +145,37 @@ func Retry(n int, f RetryFunc) (interface{}, error) {
 	}
 
 	return nil, lastErr
+}
+
+// This is a temporary helper function to support both the new
+// cidr_list and the deprecated source_cidr parameter
+func retrieveCidrList(rule map[string]interface{}) []string {
+	sourceCidr := rule["source_cidr"].(string)
+	if sourceCidr != "" {
+		return []string{sourceCidr}
+	}
+
+	var cidrList []string
+	for _, cidr := range rule["cidr_list"].(*schema.Set).List() {
+		cidrList = append(cidrList, cidr.(string))
+	}
+
+	return cidrList
+}
+
+// This is a temporary helper function to support both the new
+// cidr_list and the deprecated source_cidr parameter
+func setCidrList(rule map[string]interface{}, cidrList string) {
+	sourceCidr := rule["source_cidr"].(string)
+	if sourceCidr != "" {
+		rule["source_cidr"] = cidrList
+		return
+	}
+
+	cidrs := &schema.Set{F: schema.HashString}
+	for _, cidr := range strings.Split(cidrList, ",") {
+		cidrs.Add(cidr)
+	}
+
+	rule["cidr_list"] = cidrs
 }

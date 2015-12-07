@@ -74,7 +74,7 @@ const testAccComputeSslCertificate_basic = `
 resource "google_compute_ssl_certificate" "foobar" {
 	name = "terraform-test"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
 `

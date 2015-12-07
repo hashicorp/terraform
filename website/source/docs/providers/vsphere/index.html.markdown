@@ -27,7 +27,7 @@ provider at this time only supports IPv4 addresses on virtual machines.
 provider "vsphere" {
   user           = "${var.vsphere_user}"
   password       = "${var.vsphere_password}"
-  vcenter_server = "${var.vsphere_vcenter_server}"
+  vsphere_server = "${var.vsphere_server}"
 }
 
 # Create a virtual machine
@@ -55,9 +55,14 @@ The following arguments are used to configure the VMware vSphere Provider:
   be specified with the `VSPHERE_USER` environment variable.
 * `password` - (Required) This is the password for vSphere API operations. Can
   also be specified with the `VSPHERE_PASSWORD` environment variable.
-* `vcenter_server` - (Required) This is the vCenter server name for vSphere API
-  operations. Can also be specified with the `VSPHERE_VCENTER` environment
+* `vsphere_server` - (Required) This is the vCenter server name for vSphere API
+  operations. Can also be specified with the `VSPHERE_SERVER` environment
   variable.
+* `allow_unverified_ssl` - (Optional) Boolean that can be set to true to
+  disable SSL certificate verification. This should be used with care as it
+  could allow an attacker to intercept your auth token. If omitted, default
+  value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
+  environment variable.
 
 ## Acceptance Tests
 

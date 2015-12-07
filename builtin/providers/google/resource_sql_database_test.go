@@ -101,6 +101,7 @@ func testAccGoogleSqlDatabaseDestroy(s *terraform.State) error {
 var testGoogleSqlDatabase_basic = fmt.Sprintf(`
 resource "google_sql_database_instance" "instance" {
 	name = "tf-lw-%d"
+	region = "us-central"
 	settings {
 		tier = "D0"
 	}

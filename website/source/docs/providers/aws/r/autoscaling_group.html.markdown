@@ -13,6 +13,11 @@ Provides an AutoScaling Group resource.
 ## Example Usage
 
 ```
+resource "aws_placement_group" "test" {
+  name = "test"
+  strategy = "cluster"
+}
+
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-east-1a"]
   name = "foobar3-terraform-test"
@@ -22,6 +27,7 @@ resource "aws_autoscaling_group" "bar" {
   health_check_type = "ELB"
   desired_capacity = 4
   force_delete = true
+  placement_group = "${aws_placement_group.test.id}"
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 
   tag {
@@ -48,7 +54,7 @@ The following arguments are supported:
 * `availability_zones` - (Optional) A list of AZs to launch resources in.
    Required only if you do not specify any `vpc_zone_identifier`
 * `launch_configuration` - (Required) The name of the launch configuration to use.
-* `health_check_grace_period` - (Optional) Time after instance comes into service before checking health. 
+* `health_check_grace_period` - (Optional) Time after instance comes into service before checking health.
 * `health_check_type` - (Optional) "EC2" or "ELB". Controls how health checking is done.
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that
     should be running in the group. (See also [Waiting for
@@ -66,6 +72,7 @@ The following arguments are supported:
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
 * `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated.
 * `tag` (Optional) A list of tag blocks. Tags documented below.
+* `placement_group` (Optional) The name of the placement group into which you'll launch your instances, if any.
 * `wait_for_capacity_timeout` (Default: "10m") A maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
   wait for ASG instances to be healthy before timing out.  (See also [Waiting

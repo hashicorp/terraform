@@ -46,7 +46,7 @@ $ terraform get
 
 This command will download the modules if they haven't been already.
 By default, the command will not check for updates, so it is safe (and fast)
-to run multiple times. You can use the `-u` flag to check and download
+to run multiple times. You can use the `-update` flag to check and download
 updates.
 
 ## Configuration

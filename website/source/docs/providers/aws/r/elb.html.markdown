@@ -120,5 +120,5 @@ The following attributes are exported:
   instances. Use this for Classic or Default VPC only.
 * `source_security_group_id` - The ID of the security group that you can use as
   part of your inbound rules for your load balancer's back-end application
-  instances. Only available on ELBs launch in a VPC.
+  instances. Only available on ELBs launched in a VPC.
 * `zone_id` - The canonical hosted zone ID of the ELB (to be used in a Route 53 Alias record)

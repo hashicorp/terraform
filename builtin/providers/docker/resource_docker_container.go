@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"regexp"
 )
 
 func resourceDockerContainer() *schema.Resource {
@@ -71,6 +72,13 @@ func resourceDockerContainer() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"entrypoint": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"dns": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -81,6 +89,27 @@ func resourceDockerContainer() *schema.Resource {
 
 			"publish_all_ports": &schema.Schema{
 				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"restart": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "no",
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(no|on-failure|always)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"no\", \"on-failure\", or \"always\"", k))
+					}
+					return
+				},
+			},
+
+			"max_retry_count": &schema.Schema{
+				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -139,6 +168,72 @@ func resourceDockerContainer() *schema.Resource {
 
 			"privileged": &schema.Schema{
 				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"labels": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"memory": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value < 0 {
+						es = append(es, fmt.Errorf("%q must be greater than or equal to 0", k))
+					}
+					return
+				},
+			},
+
+			"memory_swap": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value < -1 {
+						es = append(es, fmt.Errorf("%q must be greater than or equal to -1", k))
+					}
+					return
+				},
+			},
+
+			"cpu_shares": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value < 0 {
+						es = append(es, fmt.Errorf("%q must be greater than or equal to 0", k))
+					}
+					return
+				},
+			},
+
+			"log_driver": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "json-file",
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(json-file|syslog|journald|gelf|fluentd)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"json-file\", \"syslog\", \"journald\", \"gelf\", or \"fluentd\"", k))
+					}
+					return
+				},
+			},
+
+			"log_opts": &schema.Schema{
+				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 			},

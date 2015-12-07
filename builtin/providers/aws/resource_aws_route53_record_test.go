@@ -82,6 +82,23 @@ func TestAccAWSRoute53Record_txtSupport(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_spfSupport(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfigSPF,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_record.default", "records.2930149397", "include:notexample.com"),
+				),
+			},
+		},
+	})
+}
 func TestAccAWSRoute53Record_generatesSuffix(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -398,6 +415,19 @@ resource "aws_route53_record" "default" {
 	type = "TXT"
 	ttl = "30"
 	records = ["lalalala"]
+}
+`
+const testAccRoute53RecordConfigSPF = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = "test"
+	type = "SPF"
+	ttl = "30"
+	records = ["include:notexample.com"]
 }
 `
 

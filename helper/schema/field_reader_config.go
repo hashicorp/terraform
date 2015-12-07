@@ -18,10 +18,12 @@ type ConfigFieldReader struct {
 	Config *terraform.ResourceConfig
 	Schema map[string]*Schema
 
-	lock sync.Mutex
+	indexMaps map[string]map[string]int
+	once      sync.Once
 }
 
 func (r *ConfigFieldReader) ReadField(address []string) (FieldReadResult, error) {
+	r.once.Do(func() { r.indexMaps = make(map[string]map[string]int) })
 	return r.readField(address, false)
 }
 
@@ -55,20 +57,18 @@ func (r *ConfigFieldReader) readField(
 				continue
 			}
 
-			// Get the code
-			code, err := strconv.ParseInt(address[i+1], 0, 0)
-			if err != nil {
-				return FieldReadResult{}, err
+			indexMap, ok := r.indexMaps[strings.Join(address[:i+1], ".")]
+			if !ok {
+				// Get the set so we can get the index map that tells us the
+				// mapping of the hash code to the list index
+				_, err := r.readSet(address[:i+1], v)
+				if err != nil {
+					return FieldReadResult{}, err
+				}
+				indexMap = r.indexMaps[strings.Join(address[:i+1], ".")]
 			}
 
-			// Get the set so we can get the index map that tells us the
-			// mapping of the hash code to the list index
-			_, indexMap, err := r.readSet(address[:i+1], v)
-			if err != nil {
-				return FieldReadResult{}, err
-			}
-
-			index, ok := indexMap[int(code)]
+			index, ok := indexMap[address[i+1]]
 			if !ok {
 				return FieldReadResult{}, nil
 			}
@@ -87,8 +87,7 @@ func (r *ConfigFieldReader) readField(
 	case TypeMap:
 		return r.readMap(k)
 	case TypeSet:
-		result, _, err := r.readSet(address, schema)
-		return result, err
+		return r.readSet(address, schema)
 	case typeObject:
 		return readObjectField(
 			&nestedConfigFieldReader{r},
@@ -112,7 +111,7 @@ func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
 	switch m := mraw.(type) {
 	case []interface{}:
 		for i, innerRaw := range m {
-			for ik, _ := range innerRaw.(map[string]interface{}) {
+			for ik := range innerRaw.(map[string]interface{}) {
 				key := fmt.Sprintf("%s.%d.%s", k, i, ik)
 				if r.Config.IsComputed(key) {
 					computed = true
@@ -125,7 +124,7 @@ func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
 		}
 	case []map[string]interface{}:
 		for i, innerRaw := range m {
-			for ik, _ := range innerRaw {
+			for ik := range innerRaw {
 				key := fmt.Sprintf("%s.%d.%s", k, i, ik)
 				if r.Config.IsComputed(key) {
 					computed = true
@@ -137,7 +136,7 @@ func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
 			}
 		}
 	case map[string]interface{}:
-		for ik, _ := range m {
+		for ik := range m {
 			key := fmt.Sprintf("%s.%s", k, ik)
 			if r.Config.IsComputed(key) {
 				computed = true
@@ -198,17 +197,17 @@ func (r *ConfigFieldReader) readPrimitive(
 }
 
 func (r *ConfigFieldReader) readSet(
-	address []string, schema *Schema) (FieldReadResult, map[int]int, error) {
-	indexMap := make(map[int]int)
+	address []string, schema *Schema) (FieldReadResult, error) {
+	indexMap := make(map[string]int)
 	// Create the set that will be our result
 	set := schema.ZeroValue().(*Set)
 
 	raw, err := readListField(&nestedConfigFieldReader{r}, address, schema)
 	if err != nil {
-		return FieldReadResult{}, indexMap, err
+		return FieldReadResult{}, err
 	}
 	if !raw.Exists {
-		return FieldReadResult{Value: set}, indexMap, nil
+		return FieldReadResult{Value: set}, nil
 	}
 
 	// If the list is computed, the set is necessarilly computed
@@ -217,7 +216,7 @@ func (r *ConfigFieldReader) readSet(
 			Value:    set,
 			Exists:   true,
 			Computed: raw.Computed,
-		}, indexMap, nil
+		}, nil
 	}
 
 	// Build up the set from the list elements
@@ -226,19 +225,16 @@ func (r *ConfigFieldReader) readSet(
 		computed := r.hasComputedSubKeys(
 			fmt.Sprintf("%s.%d", strings.Join(address, "."), i), schema)
 
-		code := set.add(v)
+		code := set.add(v, computed)
 		indexMap[code] = i
-		if computed {
-			set.m[-code] = set.m[code]
-			delete(set.m, code)
-			code = -code
-		}
 	}
+
+	r.indexMaps[strings.Join(address, ".")] = indexMap
 
 	return FieldReadResult{
 		Value:  set,
 		Exists: true,
-	}, indexMap, nil
+	}, nil
 }
 
 // hasComputedSubKeys walks through a schema and returns whether or not the

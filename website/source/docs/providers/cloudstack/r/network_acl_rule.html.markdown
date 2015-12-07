@@ -18,7 +18,7 @@ resource "cloudstack_network_acl_rule" "default" {
 
   rule {
     action = "allow"
-    source_cidr = "10.0.0.0/8"
+    cidr_list = ["10.0.0.0/8"]
     protocol = "tcp"
     ports = ["80", "1000-2000"]
     traffic_type = "ingress"
@@ -45,7 +45,10 @@ The `rule` block supports:
 * `action` - (Optional) The action for the rule. Valid options are: `allow` and
     `deny` (defaults allow).
 
-* `source_cidr` - (Required) The source CIDR to allow access to the given ports.
+* `cidr_list` - (Required) A CIDR list to allow access to the given ports.
+
+* `source_cidr` - (Optional, Deprecated) The source CIDR to allow access to the
+    given ports. This attribute is deprecated, please use `cidr_list` instead.
 
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp`, `icmp`, `all` or a valid protocol number.

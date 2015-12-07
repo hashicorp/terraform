@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -410,6 +411,34 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	}
 	if p.ConfigureConfig.Config["value"].(string) != "bar" {
 		t.Fatalf("bad: %#v", p.ConfigureConfig.Config)
+	}
+}
+
+func TestRefresh_varsUnset(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	defaultInputReader = bytes.NewBufferString("bar\n")
+
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh-unset-var"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 

@@ -30,7 +30,7 @@ func TestAccHerokuCert_Basic(t *testing.T) {
 
     resource "heroku_cert" "ssl_certificate" {
         app = "${heroku_app.foobar.name}"
-        depends_on = "heroku_addon.ssl"
+        depends_on = ["heroku_addon.ssl"]
         certificate_chain="${file("` + certificateChainFile + `")}"
         private_key="${file("` + wd + `/test-fixtures/terraform.key")}"
     }

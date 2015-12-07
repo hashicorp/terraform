@@ -32,6 +32,7 @@ The following arguments are supported:
 * `ami` - (Required) The AMI to use for the instance.
 * `availability_zone` - (Optional) The AZ to start the instance in.
 * `placement_group` - (Optional) The Placement Group to start the instance in.
+* `tenancy` - (Optional) The tenancy of the instance (if the instance is running in a VPC). An instance with a tenancy of dedicated runs on single-tenant hardware. The host tenancy is not supported for the import-instance command.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be
      EBS-optimized.
 * `disable_api_termination` - (Optional) If true, enables [EC2 Instance
@@ -130,10 +131,13 @@ The following attributes are exported:
 * `availability_zone` - The availability zone of the instance.
 * `placement_group` - The placement group of the instance.
 * `key_name` - The key name of the instance
-* `private_dns` - The Private DNS name of the instance
-* `private_ip` - The private IP address.
-* `public_dns` - The public DNS name of the instance
-* `public_ip` - The public IP address.
+* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
+  is only available if you've enabled DNS hostnames for your VPC
+* `public_ip` - The public IP address assigned to the instance, if applicable.
+* `private_dns` - The private DNS name assigned to the instance. Can only be 
+  used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
+  for your VPC
+* `private_ip` - The private IP address assigned to the instance
 * `security_groups` - The associated security groups.
 * `vpc_security_group_ids` - The associated security groups in non-default VPC
 * `subnet_id` - The VPC subnet ID.

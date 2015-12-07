@@ -335,18 +335,17 @@
                 </ul>
               </li>
 
-
-                <li<%= sidebar_current(/^docs-aws-resource-lambda/) %>>
-                    <a href="#">Lambda Resources</a>
-                    <ul class="nav nav-visible">
-
-                        <li<%= sidebar_current("docs-aws-resource-lambda-function") %>>
-                            <a href="/docs/providers/aws/r/lambda_function.html">aws_lambda_function</a>
-                        </li>
-
-                    </ul>
-                </li>
-
+              <li<%= sidebar_current(/^docs-aws-resource-lambda/) %>>
+                  <a href="#">Lambda Resources</a>
+                  <ul class="nav nav-visible">
+                      <li<%= sidebar_current("docs-aws-resource-lambda-function") %>>
+                          <a href="/docs/providers/aws/r/lambda_function.html">aws_lambda_function</a>
+                      </li>
+                      <li<%= sidebar_current("docs-aws-resource-aws-lambda-event-source-mapping") %>>
+                          <a href="/docs/providers/aws/r/lambda_event_source_mapping.html">aws_lambda_event_source_mapping</a>
+                      </li>
+                  </ul>
+              </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-opsworks/) %>>
                     <a href="#">OpsWorks Resources</a>
@@ -454,10 +453,6 @@
                         <li<%= sidebar_current("docs-aws-resource-route53-zone-association") %>>
                             <a href="/docs/providers/aws/r/route53_zone_association.html">aws_route53_zone_association</a>
                         </li>
-
-                        <li<%= sidebar_current("docs-aws-resource-route|") %>>
-                            <a href="/docs/providers/aws/r/route.html">aws_route</a>
-                        </li>
                         
                     </ul>
                 </li>
@@ -537,6 +532,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-network-interface") %>>
                             <a href="/docs/providers/aws/r/network_interface.html">aws_network_interface</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-route|") %>>
+                          <a href="/docs/providers/aws/r/route.html">aws_route</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-route-table|") %>>

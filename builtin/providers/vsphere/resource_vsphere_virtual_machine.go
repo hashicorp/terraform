@@ -41,21 +41,22 @@ type hardDisk struct {
 }
 
 type virtualMachine struct {
-	name              string
-	datacenter        string
-	cluster           string
-	resourcePool      string
-	datastore         string
-	vcpu              int
-	memoryMb          int64
-	template          string
-	networkInterfaces []networkInterface
-	hardDisks         []hardDisk
-	gateway           string
-	domain            string
-	timeZone          string
-	dnsSuffixes       []string
-	dnsServers        []string
+	name                 string
+	datacenter           string
+	cluster              string
+	resourcePool         string
+	datastore            string
+	vcpu                 int
+	memoryMb             int64
+	template             string
+	networkInterfaces    []networkInterface
+	hardDisks            []hardDisk
+	gateway              string
+	domain               string
+	timeZone             string
+	dnsSuffixes          []string
+	dnsServers           []string
+	customConfigurations map[string](types.AnyType)
 }
 
 func resourceVSphereVirtualMachine() *schema.Resource {
@@ -132,6 +133,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				ForceNew: true,
+			},
+
+			"custom_configuration_parameters": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -259,6 +266,17 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 	} else {
 		vm.dnsServers = DefaultDNSServers
+	}
+
+	if vL, ok := d.GetOk("custom_configuration_parameters"); ok {
+		if custom_configs, ok := vL.(map[string]interface{}); ok {
+			custom := make(map[string]types.AnyType)
+			for k,v := range custom_configs {
+				custom[k] = v
+			}
+			vm.customConfigurations = custom
+			log.Printf("[DEBUG] custom_configuration_parameters init: %v", vm.customConfigurations)
+		}
 	}
 
 	if vL, ok := d.GetOk("network_interface"); ok {
@@ -563,8 +581,8 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string) e
 	}
 }
 
-// createNetworkDevice creates VirtualDeviceConfigSpec for Network Device.
-func createNetworkDevice(f *find.Finder, label, adapterType string) (*types.VirtualDeviceConfigSpec, error) {
+// buildNetworkDevice builds VirtualDeviceConfigSpec for Network Device.
+func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.VirtualDeviceConfigSpec, error) {
 	network, err := f.Network(context.TODO(), "*"+label)
 	if err != nil {
 		return nil, err
@@ -608,8 +626,8 @@ func createNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virt
 	}
 }
 
-// createVMRelocateSpec creates VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func createVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine) (types.VirtualMachineRelocateSpec, error) {
+// buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
+func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine) (types.VirtualMachineRelocateSpec, error) {
 	var key int
 
 	devices, err := vm.Device(context.TODO())
@@ -655,8 +673,8 @@ func getDatastoreObject(client *govmomi.Client, f *object.DatacenterFolders, nam
 	return ref.Reference(), nil
 }
 
-// createStoragePlacementSpecCreate creates StoragePlacementSpec for create action.
-func createStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
+// buildStoragePlacementSpecCreate builds StoragePlacementSpec for create action.
+func buildStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.ResourcePool, storagePod object.StoragePod, configSpec types.VirtualMachineConfigSpec) types.StoragePlacementSpec {
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
 	spr := storagePod.Reference()
@@ -674,8 +692,8 @@ func createStoragePlacementSpecCreate(f *object.DatacenterFolders, rp *object.Re
 	return sps
 }
 
-// createStoragePlacementSpecClone creates StoragePlacementSpec for clone action.
-func createStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
+// buildStoragePlacementSpecClone builds StoragePlacementSpec for clone action.
+func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolders, vm *object.VirtualMachine, rp *object.ResourcePool, storagePod object.StoragePod) types.StoragePlacementSpec {
 	vmr := vm.Reference()
 	vmfr := f.VmFolder.Reference()
 	rpr := rp.Reference()
@@ -784,7 +802,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	networkDevices := []types.BaseVirtualDeviceConfigSpec{}
 	for _, network := range vm.networkInterfaces {
 		// network device
-		nd, err := createNetworkDevice(finder, network.label, "e1000")
+		nd, err := buildNetworkDevice(finder, network.label, "e1000")
 		if err != nil {
 			return err
 		}
@@ -801,6 +819,24 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 		DeviceChange:      networkDevices,
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
+
+	// make ExtraConfig
+	log.Printf("[DEBUG] virtual machine Extra Config spec start")
+	if len(vm.customConfigurations) > 0 {
+		var ov []types.BaseOptionValue
+		for k, v := range vm.customConfigurations {
+			key := k
+			value := v
+			o := types.OptionValue{
+				Key:   key,
+				Value: &value,
+			}
+			log.Printf("[DEBUG] virtual machine Extra Config spec: %s,%s", k,v)
+			ov = append(ov, &o)
+		}
+		configSpec.ExtraConfig = ov
+		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
+	}
 
 	var datastore *object.Datastore
 	if vm.datastore == "" {
@@ -821,7 +857,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 				sp := object.StoragePod{
 					object.NewFolder(c.Client, d),
 				}
-				sps := createStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
+				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
 				datastore, err = findDatastore(c, sps)
 				if err != nil {
 					return err
@@ -938,7 +974,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 				sp := object.StoragePod{
 					object.NewFolder(c.Client, d),
 				}
-				sps := createStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
+				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
 				datastore, err = findDatastore(c, sps)
 				if err != nil {
 					return err
@@ -950,7 +986,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] datastore: %#v", datastore)
 
-	relocateSpec, err := createVMRelocateSpec(resourcePool, datastore, template)
+	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template)
 	if err != nil {
 		return err
 	}
@@ -961,7 +997,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	networkConfigs := []types.CustomizationAdapterMapping{}
 	for _, network := range vm.networkInterfaces {
 		// network device
-		nd, err := createNetworkDevice(finder, network.label, "vmxnet3")
+		nd, err := buildNetworkDevice(finder, network.label, "vmxnet3")
 		if err != nil {
 			return err
 		}
@@ -1002,6 +1038,24 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		MemoryMB:          vm.memoryMb,
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
+
+	log.Printf("[DEBUG] starting extra custom config spec: %v", vm.customConfigurations)
+
+	// make ExtraConfig
+	if len(vm.customConfigurations) > 0 {
+		var ov []types.BaseOptionValue
+		for k, v := range vm.customConfigurations {
+			key := k
+			value := v
+			o := types.OptionValue{
+				Key:   key,
+				Value: &value,
+			}
+			ov = append(ov, &o)
+		}
+		configSpec.ExtraConfig = ov
+		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
+	}
 
 	// create CustomizationSpec
 	customSpec := types.CustomizationSpec{
@@ -1095,5 +1149,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			return err
 		}
 	}
+	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 	return nil
 }

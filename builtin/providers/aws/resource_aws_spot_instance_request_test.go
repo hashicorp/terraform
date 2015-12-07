@@ -36,6 +36,33 @@ func TestAccAWSSpotInstanceRequest_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSSpotInstanceRequest_withBlockDuration(t *testing.T) {
+	var sir ec2.SpotInstanceRequest
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSpotInstanceRequestConfig_withBlockDuration,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSpotInstanceRequestExists(
+						"aws_spot_instance_request.foo", &sir),
+					testAccCheckAWSSpotInstanceRequestAttributes(&sir),
+					testCheckKeyPair("tmp-key", &sir),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo", "spot_bid_status", "fulfilled"),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo", "spot_request_state", "active"),
+					resource.TestCheckResourceAttr(
+						"aws_spot_instance_request.foo", "block_duration_minutes", "60"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSpotInstanceRequest_vpc(t *testing.T) {
 	var sir ec2.SpotInstanceRequest
 
@@ -56,6 +83,26 @@ func TestAccAWSSpotInstanceRequest_vpc(t *testing.T) {
 						"aws_spot_instance_request.foo_VPC", "spot_bid_status", "fulfilled"),
 					resource.TestCheckResourceAttr(
 						"aws_spot_instance_request.foo_VPC", "spot_request_state", "active"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSpotInstanceRequest_SubnetAndSG(t *testing.T) {
+	var sir ec2.SpotInstanceRequest
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSpotInstanceRequestConfig_SubnetAndSG,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSpotInstanceRequestExists(
+						"aws_spot_instance_request.foo", &sir),
+					testAccCheckAWSSpotInstanceRequest_InstanceAttributes(&sir),
 				),
 			},
 		},
@@ -178,6 +225,44 @@ func testAccCheckAWSSpotInstanceRequestAttributes(
 	}
 }
 
+func testAccCheckAWSSpotInstanceRequest_InstanceAttributes(
+	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{sir.InstanceId},
+		})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
+				return fmt.Errorf("Spot Instance not found")
+			}
+			return err
+		}
+
+		// If nothing was found, then return no state
+		if len(resp.Reservations) == 0 {
+			return fmt.Errorf("Spot Instance not found")
+		}
+
+		instance := resp.Reservations[0].Instances[0]
+
+		var sgMatch bool
+		for _, s := range instance.SecurityGroups {
+			// Hardcoded name for the security group that should be added inside the
+			// VPC
+			if *s.GroupName == "tf_test_sg_ssh" {
+				sgMatch = true
+			}
+		}
+
+		if !sgMatch {
+			return fmt.Errorf("Error in matching Spot Instance Security Group, expected 'tf_test_sg_ssh', got %s", instance.SecurityGroups)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSSpotInstanceRequestAttributesVPC(
 	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -206,6 +291,33 @@ resource "aws_spot_instance_request" "foo" {
 	// we wait for fulfillment because we want to inspect the launched instance
 	// and verify termination behavior
 	wait_for_fulfillment = true
+
+	tags {
+		Name = "terraform-test"
+	}
+}
+`
+
+const testAccAWSSpotInstanceRequestConfig_withBlockDuration = `
+resource "aws_key_pair" "debugging" {
+	key_name = "tmp-key"
+	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+}
+
+resource "aws_spot_instance_request" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	key_name = "${aws_key_pair.debugging.key_name}"
+
+	// base price is $0.044 hourly, so bidding above that should theoretically
+	// always fulfill
+	spot_price = "0.05"
+
+	// we wait for fulfillment because we want to inspect the launched instance
+	// and verify termination behavior
+	wait_for_fulfillment = true
+
+	block_duration_minutes = 60
 
 	tags {
 		Name = "terraform-test"
@@ -247,5 +359,46 @@ resource "aws_spot_instance_request" "foo_VPC" {
 	tags {
 		Name = "terraform-test-VPC"
 	}
+}
+`
+
+const testAccAWSSpotInstanceRequestConfig_SubnetAndSG = `
+resource "aws_spot_instance_request" "foo" {
+  ami                         = "ami-6f6d635f"
+  spot_price                  = "0.05"
+  instance_type               = "t1.micro"
+  wait_for_fulfillment        = true
+  subnet_id                   = "${aws_subnet.tf_test_subnet.id}"
+  vpc_security_group_ids      = ["${aws_security_group.tf_test_sg_ssh.id}"]
+  associate_public_ip_address = true
+}
+
+resource "aws_vpc" "default" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "tf_test_vpc"
+  }
+}
+
+resource "aws_subnet" "tf_test_subnet" {
+  vpc_id                  = "${aws_vpc.default.id}"
+  cidr_block              = "10.0.0.0/24"
+  map_public_ip_on_launch = true
+
+  tags {
+    Name = "tf_test_subnet"
+  }
+}
+
+resource "aws_security_group" "tf_test_sg_ssh" {
+  name        = "tf_test_sg_ssh"
+  description = "tf_test_sg_ssh"
+  vpc_id      = "${aws_vpc.default.id}"
+
+  tags {
+    Name = "tf_test_sg_ssh"
+  }
 }
 `

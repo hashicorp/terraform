@@ -1,0 +1,38 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+        </li>
+
+        <li<%= sidebar_current("docs-vcd-index") %>>
+          <a href="/docs/providers/vcd/index.html">VMware vCloudDirector Provider</a>
+        </li>
+
+        <li<%= sidebar_current(/^docs-vcd-resource/) %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-vcd-resource-dnat") %>>
+              <a href="/docs/providers/vcd/r/dnat.html">vcd_dnat</a>
+            </li>
+            <li<%= sidebar_current("docs-vcd-resource-firewall-rules") %>>
+              <a href="/docs/providers/vcd/r/firewall_rules.html">vcd_firewall_rules</a>
+            </li>
+            <li<%= sidebar_current("docs-vcd-resource-network") %>>
+              <a href="/docs/providers/vcd/r/network.html">vcd_network</a>
+            </li>
+            <li<%= sidebar_current("docs-vcd-resource-snat") %>>
+              <a href="/docs/providers/vcd/r/snat.html">vcd_snat</a>
+            </li>
+            <li<%= sidebar_current("docs-vcd-resource-vapp") %>>
+              <a href="/docs/providers/vcd/r/vapp.html">vcd_vapp</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+<% end %>

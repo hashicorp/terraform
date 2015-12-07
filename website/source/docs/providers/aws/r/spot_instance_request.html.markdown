@@ -54,6 +54,9 @@ Spot Instance Requests support all the same arguments as
 * `spot_type` - (Optional; Default: "persistent") If set to "one-time", after
   the instance is terminated, the spot request will be closed. Also, Terraform
   can't manage one-time spot requests, just launch them.
+* `block_duration_minutes` - (Optional) The required duration for the Spot instances, in minutes. This value must be a multiple of 60 (60, 120, 180, 240, 300, or 360).
+  The duration period starts as soon as your Spot instance receives its instance ID. At the end of the duration period, Amazon EC2 marks the Spot instance for termination and provides a Spot instance termination notice, which gives the instance a two-minute warning before it terminates.
+  Note that you can't specify an Availability Zone group or a launch group if you specify a duration.
 
 ## Attributes Reference
 
@@ -72,3 +75,10 @@ should only be used for informational purposes, not for resource dependencies:
   of the Spot Instance Request.
 * `spot_instance_id` - The Instance ID (if any) that is currently fulfilling
   the Spot Instance request.
+* `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
+  is only available if you've enabled DNS hostnames for your VPC
+* `public_ip` - The public IP address assigned to the instance, if applicable.
+* `private_dns` - The private DNS name assigned to the instance. Can only be 
+  used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
+  for your VPC
+* `private_ip` - The private IP address assigned to the instance

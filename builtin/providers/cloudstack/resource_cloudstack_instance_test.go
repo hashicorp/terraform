@@ -80,7 +80,7 @@ func TestAccCloudStackInstance_fixedIP(t *testing.T) {
 					testAccCheckCloudStackInstanceExists(
 						"cloudstack_instance.foobar", &instance),
 					resource.TestCheckResourceAttr(
-						"cloudstack_instance.foobar", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS),
+						"cloudstack_instance.foobar", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS1),
 				),
 			},
 		},
@@ -268,7 +268,7 @@ resource "cloudstack_instance" "foobar" {
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,
-	CLOUDSTACK_NETWORK_1_IPADDRESS,
+	CLOUDSTACK_NETWORK_1_IPADDRESS1,
 	CLOUDSTACK_TEMPLATE,
 	CLOUDSTACK_ZONE)
 
@@ -290,7 +290,7 @@ resource "cloudstack_instance" "foobar" {
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,
-	CLOUDSTACK_NETWORK_1_IPADDRESS,
+	CLOUDSTACK_NETWORK_1_IPADDRESS1,
 	CLOUDSTACK_TEMPLATE,
 	CLOUDSTACK_ZONE)
 

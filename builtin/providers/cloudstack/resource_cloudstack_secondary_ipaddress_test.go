@@ -43,7 +43,7 @@ func TestAccCloudStackSecondaryIPAddress_fixedIP(t *testing.T) {
 						"cloudstack_secondary_ipaddress.foo", &ip),
 					testAccCheckCloudStackSecondaryIPAddressAttributes(&ip),
 					resource.TestCheckResourceAttr(
-						"cloudstack_secondary_ipaddress.foo", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS),
+						"cloudstack_secondary_ipaddress.foo", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS1),
 				),
 			},
 		},
@@ -117,7 +117,7 @@ func testAccCheckCloudStackSecondaryIPAddressAttributes(
 	ip *cloudstack.AddIpToNicResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if ip.Ipaddress != CLOUDSTACK_NETWORK_1_IPADDRESS {
+		if ip.Ipaddress != CLOUDSTACK_NETWORK_1_IPADDRESS1 {
 			return fmt.Errorf("Bad IP address: %s", ip.Ipaddress)
 		}
 		return nil
@@ -222,4 +222,4 @@ resource "cloudstack_secondary_ipaddress" "foo" {
 	CLOUDSTACK_NETWORK_1,
 	CLOUDSTACK_TEMPLATE,
 	CLOUDSTACK_ZONE,
-	CLOUDSTACK_NETWORK_1_IPADDRESS)
+	CLOUDSTACK_NETWORK_1_IPADDRESS1)

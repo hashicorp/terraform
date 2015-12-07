@@ -168,24 +168,34 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
 		d.Id(),
 		d.Get("vpc_id").(string))
 
-	_, err := conn.AttachVpnGateway(&ec2.AttachVpnGatewayInput{
+	req := &ec2.AttachVpnGatewayInput{
 		VpnGatewayId: aws.String(d.Id()),
 		VpcId:        aws.String(d.Get("vpc_id").(string)),
+	}
+
+	err := resource.Retry(30*time.Second, func() error {
+		_, err := conn.AttachVpnGateway(req)
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok {
+				if "InvalidVpnGatewayID.NotFound" == ec2err.Code() {
+					//retry
+					return fmt.Errorf("Gateway not found, retry for eventual consistancy")
+				}
+			}
+			return resource.RetryError{Err: err}
+		}
+		return nil
 	})
+
 	if err != nil {
 		return err
 	}
-
-	// A note on the states below: the AWS docs (as of July, 2014) say
-	// that the states would be: attached, attaching, detached, detaching,
-	// but when running, I noticed that the state is usually "available" when
-	// it is attached.
 
 	// Wait for it to be fully attached before continuing
 	log.Printf("[DEBUG] Waiting for VPN gateway (%s) to attach", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"detached", "attaching"},
-		Target:  "available",
+		Target:  "attached",
 		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id(), "available"),
 		Timeout: 1 * time.Minute,
 	}
@@ -271,6 +281,7 @@ func vpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string)
 		resp, err := conn.DescribeVpnGateways(&ec2.DescribeVpnGatewaysInput{
 			VpnGatewayIds: []*string{aws.String(id)},
 		})
+
 		if err != nil {
 			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnGatewayID.NotFound" {
 				resp = nil
@@ -287,10 +298,6 @@ func vpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string)
 		}
 
 		vpnGateway := resp.VpnGateways[0]
-
-		if time.Now().Sub(start) > 10*time.Second {
-			return vpnGateway, expected, nil
-		}
 
 		if len(vpnGateway.VpcAttachments) == 0 {
 			// No attachments, we're detached

@@ -31,8 +31,11 @@ for FILENAME in $(find ./pkg -mindepth 1 -maxdepth 1 -type f); do
 done
 
 # Make the checksums
+echo "==> Signing..."
 pushd ./pkg/dist
+rm -f ./terraform_${VERSION}_SHA256SUMS*
 shasum -a256 * > ./terraform_${VERSION}_SHA256SUMS
+gpg --default-key 348FFC4C --detach-sig ./terraform_${VERSION}_SHA256SUMS
 popd
 
 # Upload
