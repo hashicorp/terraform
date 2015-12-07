@@ -85,17 +85,24 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	if value, ok := d.GetOk("snapshot_id"); ok {
 		request.SnapshotId = aws.String(value.(string))
 	}
+
+	// IOPs are only valid, and required for, storage type io1. The current minimu
+	// is 100. Instead of a hard validation we we only apply the IOPs to the
+	// request if the type is io1, and log a warning otherwise. This allows users
+	// to "disable" iops. See https://github.com/hashicorp/terraform/pull/4146
 	var t string
 	if value, ok := d.GetOk("type"); ok {
 		t = value.(string)
 		request.VolumeType = aws.String(t)
 	}
-	if value, ok := d.GetOk("iops"); ok {
-		if t == "io1" {
-			request.Iops = aws.Int64(int64(value.(int)))
-		} else {
-			return fmt.Errorf("iops is only valid for EBS Volume of type io1")
-		}
+
+	iops := d.Get("iops").(int)
+	if t != "io1" && iops > 0 {
+		log.Printf("[WARN] IOPs is only valid for storate type io1 for EBS Volumes")
+	} else if t == "io1" {
+		// We add the iops value without validating it's size, to allow AWS to
+		// enforce a size requirement (currently 100)
+		request.Iops = aws.Int64(int64(iops))
 	}
 
 	log.Printf(
@@ -206,9 +213,6 @@ func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
 	if volume.Encrypted != nil {
 		d.Set("encrypted", *volume.Encrypted)
 	}
-	if volume.Iops != nil {
-		d.Set("iops", *volume.Iops)
-	}
 	if volume.KmsKeyId != nil {
 		d.Set("kms_key_id", *volume.KmsKeyId)
 	}
@@ -221,6 +225,17 @@ func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
 	if volume.VolumeType != nil {
 		d.Set("type", *volume.VolumeType)
 	}
+
+	if volume.VolumeType != nil && *volume.VolumeType == "io1" {
+		// Only set the iops attribute if the volume type is io1. Setting otherwise
+		// can trigger a refresh/plan loop based on the computed value that is given
+		// from AWS, and prevent us from specifying 0 as a valid iops.
+		//   See https://github.com/hashicorp/terraform/pull/4146
+		if volume.Iops != nil {
+			d.Set("iops", *volume.Iops)
+		}
+	}
+
 	if volume.Tags != nil {
 		d.Set("tags", tagsToMap(volume.Tags))
 	}

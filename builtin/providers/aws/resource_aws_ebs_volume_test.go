@@ -26,14 +26,14 @@ func TestAccAWSEBSVolume_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSEBSVolume_Iops(t *testing.T) {
+func TestAccAWSEBSVolume_NoIops(t *testing.T) {
 	var v ec2.Volume
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsEbsVolumeConfigWithIops,
+				Config: testAccAwsEbsVolumeConfigWithNoIops,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVolumeExists("aws_ebs_volume.iops_test", &v),
 				),
@@ -103,7 +103,7 @@ resource "aws_ebs_volume" "tags_test" {
 }
 `
 
-const testAccAwsEbsVolumeConfigWithIops = `
+const testAccAwsEbsVolumeConfigWithNoIops = `
 resource "aws_ebs_volume" "iops_test" {
 	availability_zone = "us-west-2a"
 	size = 10
