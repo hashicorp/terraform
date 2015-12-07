@@ -41,12 +41,6 @@ The following arguments are supported:
 * `database_version` - (Optional, Default: `MYSQL_5_5`) The MySQL version to
   use. Can be either `MYSQL_5_5` or `MYSQL_5_6`.
 
-* `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
-  `PER_USE` or `PACKAGE`.
-
-* `replication_type` - (Optional) Replication type for this instance, can be one of
-  `ASYNCHRONOUS` or `SYNCHRONOUS`.
-
 The required `settings` block supports:
 
 * `tier` - (Required) The machine tier to use. See
@@ -61,6 +55,12 @@ The required `settings` block supports:
 
 * `crash_safe_replication` - (Optional) Specific to read instances, indicates
   when crash-safe replication flags are enabled.
+
+* `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
+  `PER_USE` or `PACKAGE`.
+
+* `replication_type` - (Optional) Replication type for this instance, can be one of
+  `ASYNCHRONOUS` or `SYNCHRONOUS`.
 
 The optional `settings.database_flags` sublist supports:
 
