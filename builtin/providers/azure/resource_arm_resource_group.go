@@ -1,6 +1,9 @@
 package azure
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/Azure/azure-sdk-for-go/arm/resources"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -36,6 +39,8 @@ func resourceArmResourceGroupCreate(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 
+	log.Println("[INFO] Issuing Azure ARM creation request for resource group '%s'.", name)
+
 	_, err := resGroupClient.CreateOrUpdate(
 		name,
 		resources.ResourceGroup{
@@ -43,8 +48,11 @@ func resourceArmResourceGroupCreate(d *schema.ResourceData, meta interface{}) er
 			Location: &location,
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("Error issuing Azure ARM create request for resource group '%s': %s", name, err)
+	}
 
-	return err
+	return nil
 }
 
 // resourceArmResourceGroupRead goes ahead and reads the state of the corresponding ARM resource group.
@@ -53,9 +61,11 @@ func resourceArmResourceGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	name := d.Get("name").(string)
 
+	log.Println("[INFO] Issuing read request to Azure ARM for resource group '%s'.", name)
+
 	res, err := resGroupClient.Get(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error issuing read request to Azure ARM for resource group '%s': %s", name, err)
 	}
 
 	// only real thing to check for is location:

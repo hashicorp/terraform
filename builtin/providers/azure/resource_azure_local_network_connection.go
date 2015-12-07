@@ -21,16 +21,33 @@ func resourceAzureLocalNetworkConnection() *schema.Resource {
 				ForceNew:    true,
 				Description: parameterDescriptions["name"],
 			},
+
+			"location": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"use_asm_api"},
+			},
+
+			"resource_group_name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"use_asm_api"},
+			},
+
 			"use_asm_api": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
+
 			"vpn_gateway_address": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["vpn_gateway_address"],
 			},
+
 			"address_space_prefixes": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,

@@ -82,6 +82,7 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 
 		s["name"] = *subnet.Name
 		s["address_prefix"] = *subnet.Properties.AddressPrefix
+		// NOTE(aznashwan): ID's necessary?
 		s["security_group"] = *subnet.Properties.NetworkSecurityGroup.ID
 
 		subnets.Add(s)
@@ -95,6 +96,7 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	}
 	d.Set("dns_servers_names", dnses)
 
+	d.SetId(name)
 	return nil
 }
 

@@ -594,8 +594,15 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		loadBalancer.Properties.InboundNatPools = &inNatPools
 	}
 
+	log.Printf("[INFO] Issuing Azure ARM creation request for load balancer '%s'.", name)
+
 	_, err := lbClient.CreateOrUpdate(resGrp, name, loadBalancer)
-	return err
+	if err != nil {
+		return fmt.Errorf("Error issuing Azure ARM creation request for load balancer '%s': %s", name, err)
+	}
+
+	d.SetId(name)
+	return nil
 }
 
 // resourceArmLoadBalancerRead goes ahead and reads the state of the corresponding ARM load balancer.
@@ -605,14 +612,14 @@ func resourceArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 	name := d.Get("name").(string)
 	resGrp := d.Get("resource_group_name").(string)
 
-	log.Printf("[INFO] Issuing read request of LoadBalancer '%s' off Azure.", name)
+	log.Printf("[INFO] Issuing read request of load balancer '%s' off Azure.", name)
 
 	loadBalancer, err := lbClient.Get(resGrp, name)
 	if err != nil {
-		return fmt.Errorf("Error reading the state of the LoadBalancer off Azure: %s", err)
+		return fmt.Errorf("Error reading the state of the load balancer off Azure: %s", err)
 	}
 
-	log.Printf("[INFO] Succesfully retrieved details for LoadBalancer '%s'.", *loadBalancer.Name)
+	log.Printf("[INFO] Succesfully retrieved details for load balancer '%s'.", *loadBalancer.Name)
 
 	// read all the required details:
 
@@ -723,8 +730,10 @@ func resourceArmLoadBalancerDelete(d *schema.ResourceData, meta interface{}) err
 	name := d.Get("name").(string)
 	resGroup := d.Get("resource_group_name").(string)
 
-	log.Printf("[INFO] Sending Load Balancer delete request to Azure.")
-	_, err := lbClient.Delete(resGroup, name)
+	log.Printf("[INFO] Issuing deletion request to Azure ARM for load balancer '%s'.", name)
+	if _, err := lbClient.Delete(resGroup, name); err != nil {
+		return fmt.Errorf("Error issuing Azure ARM delete request for load balancer '%s': %s", name, err)
+	}
 
-	return err
+	return nil
 }
