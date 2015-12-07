@@ -398,6 +398,11 @@ func (m schemaMap) Input(
 			continue
 		}
 
+		// Deprecated fields should never prompt
+		if v.Deprecated != "" {
+			continue
+		}
+
 		// Skip things that have a value of some sort already
 		if _, ok := c.Raw[k]; ok {
 			continue
