@@ -37,14 +37,6 @@ func resourceAwsEbsVolume() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(int)
-					if value < 100 {
-						es = append(es, fmt.Errorf(
-							"%q must be an integer, minimum value 100", k))
-					}
-					return
-				},
 			},
 			"kms_key_id": &schema.Schema{
 				Type:     schema.TypeString,
