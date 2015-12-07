@@ -26,6 +26,22 @@ func TestAccAWSEBSVolume_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSEBSVolume_Iops(t *testing.T) {
+	var v ec2.Volume
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAwsEbsVolumeConfigWithIops,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.iops_test", &v),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSEBSVolume_withTags(t *testing.T) {
 	var v ec2.Volume
 	resource.Test(t, resource.TestCase{
@@ -81,6 +97,18 @@ const testAccAwsEbsVolumeConfigWithTags = `
 resource "aws_ebs_volume" "tags_test" {
 	availability_zone = "us-west-2a"
 	size = 1
+	tags {
+		Name = "TerraformTest"
+	}
+}
+`
+
+const testAccAwsEbsVolumeConfigWithIops = `
+resource "aws_ebs_volume" "iops_test" {
+	availability_zone = "us-west-2a"
+	size = 10
+  type = "gp2"
+	iops = 0
 	tags {
 		Name = "TerraformTest"
 	}
