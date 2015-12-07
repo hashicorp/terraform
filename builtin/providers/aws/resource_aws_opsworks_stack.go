@@ -306,9 +306,26 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 
 	req := &opsworks.CreateStackInput{
 		DefaultInstanceProfileArn: aws.String(d.Get("default_instance_profile_arn").(string)),
-		Name:           aws.String(d.Get("name").(string)),
-		Region:         aws.String(d.Get("region").(string)),
-		ServiceRoleArn: aws.String(d.Get("service_role_arn").(string)),
+		Name:                      aws.String(d.Get("name").(string)),
+		Region:                    aws.String(d.Get("region").(string)),
+		ServiceRoleArn:            aws.String(d.Get("service_role_arn").(string)),
+		DefaultOs:                 aws.String(d.Get("default_os").(string)),
+		DefaultRootDeviceType:     aws.String(d.Get("default_root_device_type").(string)),
+		DefaultSshKeyName:         aws.String(d.Get("default_ssh_key_name").(string)),
+		HostnameTheme:             aws.String(d.Get("hostname_theme").(string)),
+		UseCustomCookbooks:        aws.Bool(d.Get("use_custom_cookbooks").(bool)),
+		UseOpsworksSecurityGroups: aws.Bool(d.Get("use_opsworks_security_groups").(bool)),
+		CustomCookbooksSource:     resourceAwsOpsworksStackCustomCookbooksSource(d),
+		CustomJson:                aws.String(d.Get("custom_json").(string)),
+		ChefConfiguration: &opsworks.ChefConfiguration{
+			BerkshelfVersion: aws.String(d.Get("berkshelf_version").(string)),
+			ManageBerkshelf:  aws.Bool(d.Get("manage_berkshelf").(bool)),
+		},
+		ConfigurationManager: &opsworks.StackConfigurationManager{
+			Name:    aws.String(d.Get("configuration_manager_name").(string)),
+			Version: aws.String(d.Get("configuration_manager_version").(string)),
+		},
+		Attributes: make(map[string]*string),
 	}
 	inVpc := false
 	if vpcId, ok := d.GetOk("vpc_id"); ok {
@@ -320,6 +337,9 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	if defaultAvailabilityZone, ok := d.GetOk("default_availability_zone"); ok {
 		req.DefaultAvailabilityZone = aws.String(defaultAvailabilityZone.(string))
+	}
+	if color, ok := d.GetOk("color"); ok {
+		req.Attributes["Color"] = aws.String(color.(string))
 	}
 
 	log.Printf("[DEBUG] Creating OpsWorks stack: %s", *req.Name)
@@ -356,7 +376,7 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 	d.SetId(stackId)
 	d.Set("id", stackId)
 
-	if inVpc {
+	if inVpc && *req.UseOpsworksSecurityGroups {
 		// For VPC-based stacks, OpsWorks asynchronously creates some default
 		// security groups which must exist before layers can be created.
 		// Unfortunately it doesn't tell us what the ids of these are, so
@@ -447,7 +467,10 @@ func resourceAwsOpsworksStackDelete(d *schema.ResourceData, meta interface{}) er
 	// wait for the security groups to be deleted.
 	// There is no robust way to check for this, so we'll just wait a
 	// nominal amount of time.
-	if _, ok := d.GetOk("vpc_id"); ok {
+	_, inVpc := d.GetOk("vpc_id")
+	_, useOpsworksDefaultSg := d.GetOk("use_opsworks_security_group")
+
+	if inVpc && useOpsworksDefaultSg {
 		log.Print("[INFO] Waiting for Opsworks built-in security groups to be deleted")
 		time.Sleep(30 * time.Second)
 	}
