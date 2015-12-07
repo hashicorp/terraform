@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/digitalocean/godo"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -71,11 +70,11 @@ func resourceDigitalOceanSSHKeyRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("invalid SSH key id: %v", err)
 	}
 
-	key, _, err := client.Keys.GetByID(id)
+	key, resp, err := client.Keys.GetByID(id)
 	if err != nil {
 		// If the key is somehow already destroyed, mark as
 		// successfully gone
-		if strings.Contains(err.Error(), "404 Not Found") {
+		if resp.StatusCode == 404 {
 			d.SetId("")
 			return nil
 		}

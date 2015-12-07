@@ -115,11 +115,11 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("invalid record ID: %v", err)
 	}
 
-	rec, _, err := client.Domains.Record(domain, id)
+	rec, resp, err := client.Domains.Record(domain, id)
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone
-		if strings.Contains(err.Error(), "404 Not Found") {
+		if resp.StatusCode == 404 {
 			d.SetId("")
 			return nil
 		}
@@ -183,15 +183,15 @@ func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Deleting record: %s, %d", domain, id)
 
-	_, err = client.Domains.DeleteRecord(domain, id)
-	if err != nil {
+  resp, delErr := client.Domains.DeleteRecord(domain, id)
+	if delErr != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone
-		if strings.Contains(err.Error(), "404 Not Found") {
+		if resp.StatusCode == 404 {
 			return nil
 		}
 
-		return fmt.Errorf("Error deleting record: %s", err)
+		return fmt.Errorf("Error deleting record: %s", delErr)
 	}
 
 	return nil
