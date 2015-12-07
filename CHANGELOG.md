@@ -24,6 +24,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * core: skip provider input for deprecated fields [GH-4193]
   * provider/docker: Fix an issue running with Docker Swarm by looking up containers by ID instead of name [GH-4148]
   * provider/openstack: Better handling of load balancing resource state changes [GH-3926]
   * provider/aws: Skip `source_security_group_id` determination logic for Classic ELBs [GH-4075]
