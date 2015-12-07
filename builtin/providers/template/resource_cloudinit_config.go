@@ -6,12 +6,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/textproto"
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/sthulb/mime/multipart"
 )
 
 func resourceCloudinitConfig() *schema.Resource {
