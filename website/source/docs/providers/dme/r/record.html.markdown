@@ -20,6 +20,7 @@ resource "dme_record" "www" {
   type = "A"
   value = "192.168.1.1"
   ttl = 3600
+  gtdLocation = "DEFAULT"
 }
 ```
 
@@ -34,6 +35,7 @@ The following arguments are supported:
 * `value` - (Required) The value of the record; its usage
   will depend on the `type` (see below)
 * `ttl` - (Integer, Optional) The TTL of the record
+* `gtdLocation` - (String, Optional) The GTD Location of the record on GTD enabled domains; Unless GTD is enabled this should be omitted or set to "DEFAULT" 
 
 Additional arguments are listed below under DNS Record Types.
 
@@ -117,6 +119,7 @@ The following attributes are exported:
 * `value` - The value of the record
   `type` (see below)
 * `ttl` - The TTL of the record
+* `gtdLocation` - The GTD Location of the record on GTD enabled domains
 
 Additional fields may also be exported by some record types -
 see DNS Record Types.
@@ -141,6 +144,7 @@ resource "dme_record" "testa" {
   type = "A"
   value = "1.1.1.1"
   ttl = 1000
+  gtdLocation = "DEFAULT"
 }
 
 # CNAME record
