@@ -3,6 +3,8 @@ package azurerm
 import (
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/resources"
@@ -21,10 +23,10 @@ func resourceArmResourceGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				//TODO(jen20) - implement validation func: {resource-group-name} must uniquely identify the resource group within the subscription. It must be no longer than 80 characters long. It can only contain alphanumeric characters, dash, underscore, opening parenthesis, closing parenthesis or period. The name cannot end with a period.
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArmResourceGroupName,
 			},
 			"location": &schema.Schema{
 				Type:      schema.TypeString,
@@ -34,6 +36,26 @@ func resourceArmResourceGroup() *schema.Resource {
 			},
 		},
 	}
+}
+
+// validateArmResourceGroupName validates inputs to the name argument against the requirements
+// documented in the ARM REST API guide: http://bit.ly/1NEXclG
+func validateArmResourceGroupName(v interface{}, k string) (ws []string, es []error) {
+	value := v.(string)
+
+	if len(value) > 80 {
+		es = append(es, fmt.Errorf("%q may not exceed 80 characters in length", k))
+	}
+
+	if strings.HasSuffix(value, ".") {
+		es = append(es, fmt.Errorf("%q may not end with a period", k))
+	}
+
+	if matched := regexp.MustCompile(`^[\(\)\.a-zA-Z0-9_-]$`).Match([]byte(value)); !matched {
+		es = append(es, fmt.Errorf("%q may only contain alphanumeric characters, dash, underscores, parentheses and periods", k))
+	}
+
+	return
 }
 
 // resourceArmResourceGroupCreate goes ahead and creates the specified ARM resource group.

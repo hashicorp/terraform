@@ -23,7 +23,7 @@ func Provider() terraform.ResourceProvider {
 			"subscription_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("AZURE_SUBSCRIPTION_ID", ""),
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
 			},
 
 			"client_id": &schema.Schema{

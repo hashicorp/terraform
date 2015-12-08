@@ -182,15 +182,6 @@ func (c *Config) readArmSettings(contents string) error {
 	return err
 }
 
-// configFileContentsWarning represents the warning message returned when the
-// path to the 'arm_config_file' is provided instead of its sourced contents.
-var configFileContentsWarning = `
-The path to the 'arm_config_file' was provided instead of its contents.
-Support for accepting filepaths instead of their contents will be removed
-in the near future. Do please consider switching over to using
-'${file("/path/to/config.arm")}' instead.
-`[1:]
-
 // validateArmConfigFile is a helper function which verifies that
 // the provided ARM configuration file is valid.
 func validateArmConfigFile(v interface{}, _ string) (ws []string, es []error) {
@@ -199,13 +190,9 @@ func validateArmConfigFile(v interface{}, _ string) (ws []string, es []error) {
 		return nil, nil
 	}
 
-	pathOrContents, wasPath, err := pathorcontents.Read(v.(string))
+	pathOrContents, _, err := pathorcontents.Read(v.(string))
 	if err != nil {
 		es = append(es, fmt.Errorf("Error reading 'arm_config_file': %s", err))
-	}
-
-	if wasPath {
-		ws = append(ws, configFileContentsWarning)
 	}
 
 	data := armConfigData{}

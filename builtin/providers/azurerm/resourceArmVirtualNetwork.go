@@ -32,7 +32,7 @@ func resourceArmVirtualNetwork() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"dns_servers_names": &schema.Schema{
+			"dns_servers": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -158,7 +158,6 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 
 		s["name"] = *subnet.Name
 		s["address_prefix"] = *subnet.Properties.AddressPrefix
-		// NOTE(aznashwan): ID's necessary?
 		if subnet.Properties.NetworkSecurityGroup != nil {
 			s["security_group"] = *subnet.Properties.NetworkSecurityGroup.ID
 		}
@@ -172,7 +171,7 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	for _, dns := range *vnet.DhcpOptions.DNSServers {
 		dnses = append(dnses, dns)
 	}
-	d.Set("dns_servers_names", dnses)
+	d.Set("dns_servers", dnses)
 
 	return nil
 }
@@ -206,7 +205,7 @@ func getVirtualNetworkProperties(d *schema.ResourceData) *network.VirtualNetwork
 
 	// then; the dns servers:
 	dnses := []string{}
-	for _, dns := range d.Get("dns_servers_names").([]interface{}) {
+	for _, dns := range d.Get("dns_servers").([]interface{}) {
 		dnses = append(dnses, dns.(string))
 	}
 
