@@ -61,6 +61,18 @@ $ make test TEST=./terraform
 ...
 ```
 
+If you're working on a specific provider and only wish to rebuild that provider, you can use the `plugin-dev` target. For example, to build only the Azure provider:
+
+```sh
+$ make plugin-dev PLUGIN=provider-azure
+```
+
+If you're working on the core of Terraform, and only wish to rebuild that without rebuilding providers, you can use the `core-dev` target. It is important to note that some types of changes may require both core and providers to be rebuilt - for example work on the RPC interface. To build just the core of Terraform:
+
+```sh
+$ make core-dev
+```
+
 ### Acceptance Tests
 
 Terraform also has a comprehensive [acceptance test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering most of the major features of the built-in providers.
@@ -85,3 +97,41 @@ TF_ACC=1 go test ./builtin/providers/aws -v -run=Vpc -timeout 90m
 The `TEST` variable is required, and you should specify the folder where the provider is. The `TESTARGS` variable is recommended to filter down to a specific resource to test, since testing all of them at once can take a very long time.
 
 Acceptance tests typically require other environment variables to be set for things such as access keys. The provider itself should error early and tell you what to set, so it is not documented here.
+
+### Cross Compilation and Building for Distribution
+
+If you wish to cross-compile Terraform for another architecture, you can set the `XC_OS` and `XC_ARCH` environment variables to values representing the target operating system and architecture before calling `make`. The output is placed in the `pkg` subdirectory tree both expanded in a directory representing the OS/architecture combination and as a ZIP archive.
+
+For example, to compile 64-bit Linux binaries on Mac OS X Linux, you can run:
+
+```sh
+$ XC_OS=linux XC_ARCH=amd64 make bin 
+...
+$ file pkg/linux_amd64/terraform
+terraform: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped
+```
+
+`XC_OS` and `XC_ARCH` can be space separated lists representing different combinations of operating system and architecture. For example, to compile for both Linux and Mac OS X, targeting both 32- and 64-bit architectures, you can run:
+
+```sh
+$ XC_OS="linux darwin" XC_ARCH="386 amd64" make bin
+...
+$ tree ./pkg/ -P "terraform|*.zip"
+./pkg/
+├── darwin_386
+│   └── terraform
+├── darwin_386.zip
+├── darwin_amd64
+│   └── terraform
+├── darwin_amd64.zip
+├── linux_386
+│   └── terraform
+├── linux_386.zip
+├── linux_amd64
+│   └── terraform
+└── linux_amd64.zip
+
+4 directories, 8 files
+```
+
+_Note: Cross-compilation uses [gox](https://github.com/mitchellh/gox), which requires toolchains to be built with versions of Go prior to 1.5. In order to successfully cross-compile with older versions of Go, you will need to run `gox -build-toolchain` before running the commands detailed above._
