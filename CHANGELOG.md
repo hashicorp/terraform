@@ -29,6 +29,7 @@ BUG FIXES:
   * provider/openstack: Better handling of load balancing resource state changes [GH-3926]
   * provider/aws: Skip `source_security_group_id` determination logic for Classic ELBs [GH-4075]
   * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
+  * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
 
 ## 0.6.8 (December 2, 2015)
