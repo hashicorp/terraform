@@ -31,6 +31,11 @@ func resourceAwsDbInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"username": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -553,6 +558,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", name)
 	} else {
+		d.Set("arn", arn)
 		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
 			ResourceName: aws.String(arn),
 		})
