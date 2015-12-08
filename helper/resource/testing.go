@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -102,6 +103,12 @@ func Test(t TestT, c TestCase) {
 			TestEnvVar))
 		return
 	}
+
+	logWriter, err := logging.LogOutput()
+	if err != nil {
+		t.Error(fmt.Errorf("error setting up logging: %s", err))
+	}
+	log.SetOutput(logWriter)
 
 	// We require verbose mode so that the user knows what is going on.
 	if !testTesting && !testing.Verbose() {
