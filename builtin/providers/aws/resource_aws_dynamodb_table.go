@@ -172,6 +172,7 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 					value := v.(string)
 					return strings.ToUpper(value)
 				},
+				ValidateFunc: validateStreamViewType,
 			},
 		},
 	}
@@ -799,4 +800,19 @@ func waitForTableToBeActive(tableName string, meta interface{}) error {
 
 	return nil
 
+}
+
+func validateStreamViewType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	viewTypes := map[string]bool {
+		"KEYS_ONLY": true,
+		"NEW_IMAGE": true,
+		"OLD_IMAGE": true,
+		"NEW_AND_OLD_IMAGES": true,
+	}
+
+	if !viewTypes[value] {
+		errors = append(errors, fmt.Errorf("%q be a valid DynamoDB StreamViewType", k))
+	}
+	return
 }
