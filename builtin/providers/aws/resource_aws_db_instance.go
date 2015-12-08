@@ -271,6 +271,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			CopyTagsToSnapshot:         aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 			DBInstanceClass:            aws.String(d.Get("instance_class").(string)),
 			DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
+			DBSubnetGroupName:          aws.String(d.Get("db_subnet_group_name").(string)),
 			Tags:                       tags,
 		}
 		if attr, ok := d.GetOk("iops"); ok {
@@ -287,6 +288,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("publicly_accessible"); ok {
 			opts.PubliclyAccessible = aws.Bool(attr.(bool))
+		}
+
+		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
+			opts.DBSubnetGroupName = aws.String(attr.(string))
 		}
 		_, err := conn.CreateDBInstanceReadReplica(&opts)
 		if err != nil {
