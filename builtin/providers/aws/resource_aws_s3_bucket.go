@@ -406,30 +406,46 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 				log.Printf("[DEBUG] S3 Bucket attempting to forceDestroy %+v", err)
 
 				bucket := d.Get("bucket").(string)
-				resp, err := s3conn.ListObjects(
-					&s3.ListObjectsInput{
+				resp, err := s3conn.ListObjectVersions(
+					&s3.ListObjectVersionsInput{
 						Bucket: aws.String(bucket),
 					},
 				)
 
 				if err != nil {
-					return fmt.Errorf("Error S3 Bucket list Objects err: %s", err)
+					return fmt.Errorf("Error S3 Bucket list Object Versions err: %s", err)
 				}
 
-				objectsToDelete := make([]*s3.ObjectIdentifier, len(resp.Contents))
-				for i, v := range resp.Contents {
-					objectsToDelete[i] = &s3.ObjectIdentifier{
-						Key: v.Key,
+				objectsToDelete := make([]*s3.ObjectIdentifier, 0)
+
+				if len(resp.DeleteMarkers) != 0 {
+
+					for _, v := range resp.DeleteMarkers {
+						objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+							Key:       v.Key,
+							VersionId: v.VersionId,
+						})
 					}
 				}
-				_, err = s3conn.DeleteObjects(
-					&s3.DeleteObjectsInput{
-						Bucket: aws.String(bucket),
-						Delete: &s3.Delete{
-							Objects: objectsToDelete,
-						},
+
+				if len(resp.Versions) != 0 {
+					for _, v := range resp.Versions {
+						objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+							Key:       v.Key,
+							VersionId: v.VersionId,
+						})
+					}
+				}
+
+				params := &s3.DeleteObjectsInput{
+					Bucket: aws.String(bucket),
+					Delete: &s3.Delete{
+						Objects: objectsToDelete,
 					},
-				)
+				}
+
+				_, err = s3conn.DeleteObjects(params)
+
 				if err != nil {
 					return fmt.Errorf("Error S3 Bucket force_destroy error deleting: %s", err)
 				}
