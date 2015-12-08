@@ -82,11 +82,10 @@ func resourceDigitalOceanFloatingIpRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error retrieving FloatingIP: %s", err)
 	}
 
-	if _, ok := d.GetOk("droplet_id"); ok {
-		if floatingIp.Droplet != nil {
-			log.Printf("[INFO] The region of the Droplet is %s", floatingIp.Droplet.Region)
-			d.Set("region", floatingIp.Droplet.Region.Slug)
-		}
+	if floatingIp.Droplet != nil {
+		log.Printf("[INFO] A droplet was detected on the FloatingIP so setting the Region based on the Droplet")
+		log.Printf("[INFO] The region of the Droplet is %s", floatingIp.Droplet.Region.Slug)
+		d.Set("region", floatingIp.Droplet.Region.Slug)
 	} else {
 		d.Set("region", floatingIp.Region.Slug)
 	}
