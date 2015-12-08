@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"strings"
 )
 
 // Number of times to retry if a throttling-related exception occurs
@@ -158,6 +159,20 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 					return hashcode.String(buf.String())
 				},
 			},
+			"stream_enabled": &schema.Schema{
+				Type: schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"stream_view_type": &schema.Schema{
+				Type: schema.TypeString,
+				Optional: true,
+				Computed: true,
+				StateFunc: func(v interface{}) string {
+					value := v.(string)
+					return strings.ToUpper(value)
+				},
+			},
 		},
 	}
 }
@@ -263,6 +278,16 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		req.GlobalSecondaryIndexes = globalSecondaryIndexes
 	}
 
+	if _, ok := d.GetOk("stream_enabled"); ok {
+		
+		req.StreamSpecification = &dynamodb.StreamSpecification{
+			StreamEnabled: aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
+		}
+
+		fmt.Printf("[DEBUG] Adding StreamSpecifications to the table")
+	}
+
 	attemptCount := 1
 	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
 		output, err := dynamodbconn.CreateTable(req)
@@ -330,6 +355,25 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
 		}
 		req.ProvisionedThroughput = throughput
+
+		_, err := dynamodbconn.UpdateTable(req)
+
+		if err != nil {
+			return err
+		}
+
+		waitForTableToBeActive(d.Id(), meta)
+	}
+
+	if d.HasChange("stream_enabled") || d.HasChange("stream_view_type") {
+		req := &dynamodb.UpdateTableInput{
+			TableName: aws.String(d.Id()),
+		}
+
+		req.StreamSpecification = &dynamodb.StreamSpecification{
+			StreamEnabled: aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
+		}
 
 		_, err := dynamodbconn.UpdateTable(req)
 
@@ -585,6 +629,11 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 
 		gsiList = append(gsiList, gsi)
 		log.Printf("[DEBUG] Added GSI: %s - Read: %d / Write: %d", gsi["name"], gsi["read_capacity"], gsi["write_capacity"])
+	}
+
+	if table.StreamSpecification != nil {
+		d.Set("stream_view_type", table.StreamSpecification.StreamViewType)
+		d.Set("stream_enabled", table.StreamSpecification.StreamEnabled)
 	}
 
 	err = d.Set("global_secondary_index", gsiList)
