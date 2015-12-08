@@ -53,6 +53,46 @@ func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
 	})
 }
 
+func TestResourceAWSDynamoDbTableStreamViewType_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "KEYS-ONLY",
+			ErrCount: 1,
+		},
+		{
+			Value:    "RANDOM-STRING",
+			ErrCount: 1,
+		},
+		{
+			Value:    "KEYS_ONLY",
+			ErrCount: 0,
+		},
+		{
+			Value:    "NEW_AND_OLD_IMAGES",
+			ErrCount: 0,
+		},
+		{
+			Value:    "NEW_IMAGE",
+			ErrCount: 0,
+		},
+		{
+			Value:    "OLD_IMAGE",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateStreamViewType(tc.Value, "aws_dynamodb_table_stream_view_type")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DynamoDB stream_view_type to trigger a validation error")
+		}
+	}
+}
+
 func testAccCheckAWSDynamoDbTableDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).dynamodbconn
 
