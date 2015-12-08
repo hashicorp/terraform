@@ -95,6 +95,9 @@ func testAccCheckCodeCommitRepositoryDestroy(s *terraform.State) error {
 }
 
 const testAccCodeCommitRepository_basic = `
+provider "aws" {
+  region = "us-east-1"
+}
 resource "aws_codecommit_repository" "test" {
   repository_name = "my_test_repository"
   description = "This is a test description"
@@ -102,6 +105,9 @@ resource "aws_codecommit_repository" "test" {
 `
 
 const testAccCodeCommitRepository_withChanges = `
+provider "aws" {
+  region = "us-east-1"
+}
 resource "aws_codecommit_repository" "test" {
   repository_name = "my_test_repository"
   description = "This is a test description - with changes"
