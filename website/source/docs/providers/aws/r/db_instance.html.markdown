@@ -93,6 +93,7 @@ The following attributes are exported:
 
 * `id` - The RDS instance ID.
 * `address` - The address of the RDS instance.
+* `arn` - The ARN of the RDS instance.
 * `allocated_storage` - The amount of allocated storage
 * `availability_zone` - The availability zone of the instance
 * `backup_retention_period` - The backup retention period
