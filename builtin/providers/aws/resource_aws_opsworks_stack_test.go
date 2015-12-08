@@ -123,7 +123,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 `
 
-func TestAccAwsOpsworksStackNoVpc(t *testing.T) {
+func TestAccAWSOpsworksStackNoVpc(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -200,7 +200,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 `
 
-func TestAccAwsOpsworksStackVpc(t *testing.T) {
+func TestAccAWSOpsworksStackVpc(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
