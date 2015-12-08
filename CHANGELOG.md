@@ -28,6 +28,7 @@ BUG FIXES:
   * provider/docker: Fix an issue running with Docker Swarm by looking up containers by ID instead of name [GH-4148]
   * provider/openstack: Better handling of load balancing resource state changes [GH-3926]
   * provider/aws: Skip `source_security_group_id` determination logic for Classic ELBs [GH-4075]
+  * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
 
 ## 0.6.8 (December 2, 2015)
 
