@@ -27,10 +27,6 @@ plugin-dev: generate
 	go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
-release: updatedeps
-	gox
-	@$(MAKE) bin
-
 # test runs the unit tests and vets the code
 test: generate
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
