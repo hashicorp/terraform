@@ -169,9 +169,9 @@ resource "aws_subnet" "foo" {
 resource "aws_instance" "test" {
     // This AMI has one block device mapping, so we expect to have
     // one snapshot in our created AMI.
-    // This is an Amazon Linux HVM AMI. A public HVM AMI is required
+    // This is an Ubuntu Linux HVM AMI. A public HVM AMI is required
     // because paravirtual images cannot be copied between accounts.
-    ami = "ami-5449393e"
+    ami = "ami-0f8bce65"
     instance_type = "t2.micro"
     tags {
         Name = "terraform-acc-ami-copy-victim"
