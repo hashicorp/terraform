@@ -191,6 +191,140 @@ func TestAccVSphereVirtualMachine_custom_configs(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_createInExistingFolder(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+	var datacenter string
+
+	folder := "tf_test_createInExistingFolder"
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+		datacenter = v
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccCheckVSphereVirtualMachineDestroy,
+			removeVSphereFolder(datacenter, folder, ""),
+		),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				PreConfig: func() { createVSphereFolder(datacenter, folder) },
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_createInFolder,
+					folder,
+					locationOpt,
+					label,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.folder", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "name", "terraform-test-folder"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "folder", folder),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.folder", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
+func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
+	var vm virtualMachine
+	var f folder
+	var locationOpt string
+	var folderLocationOpt string
+	var datastoreOpt string
+
+	folder := "tf_test_createWithFolder"
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		folderLocationOpt = fmt.Sprintf("    datacenter = \"%s\"\n", v)
+		locationOpt += folderLocationOpt
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccCheckVSphereVirtualMachineDestroy,
+			testAccCheckVSphereFolderDestroy,
+		),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_createWithFolder,
+					folder,
+					folderLocationOpt,
+					locationOpt,
+					label,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.with_folder", &vm),
+					testAccCheckVSphereFolderExists("vsphere_folder.with_folder", &f),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_folder", "name", "terraform-test-with-folder"),
+					// resource.TestCheckResourceAttr(
+					// 	"vsphere_virtual_machine.with_folder", "folder", folder),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_folder", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_folder", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_folder", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_folder", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_folder", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_folder", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
@@ -210,7 +344,21 @@ func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 			return fmt.Errorf("error %s", err)
 		}
 
-		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), dcFolders.VmFolder, rs.Primary.Attributes["name"])
+
+		folder := dcFolders.VmFolder
+		if len(rs.Primary.Attributes["folder"]) > 0 {
+			si := object.NewSearchIndex(client.Client)
+			folderRef, err := si.FindByInventoryPath(
+				context.TODO(), fmt.Sprintf("%v/vm/%v", rs.Primary.Attributes["datacenter"], rs.Primary.Attributes["folder"]))
+			if err != nil {
+				return err
+			} else if folderRef != nil {
+				folder = folderRef.(*object.Folder)
+			}
+		}
+
+		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), folder, rs.Primary.Attributes["name"])
+
 		if err == nil {
 			return fmt.Errorf("Record still exists")
 		}
@@ -306,9 +454,9 @@ func testAccCheckVSphereVirtualMachineExistsHasCustomConfig(n string, vm *virtua
 		return nil
 	}
 }
+
 func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -331,14 +479,26 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 			return fmt.Errorf("error %s", err)
 		}
 
-		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), dcFolders.VmFolder, rs.Primary.Attributes["name"])
+		folder := dcFolders.VmFolder
+		if len(rs.Primary.Attributes["folder"]) > 0 {
+			si := object.NewSearchIndex(client.Client)
+			folderRef, err := si.FindByInventoryPath(
+				context.TODO(), fmt.Sprintf("%v/vm/%v", rs.Primary.Attributes["datacenter"], rs.Primary.Attributes["folder"]))
+			if err != nil {
+				return err
+			} else if folderRef != nil {
+				folder = folderRef.(*object.Folder)
+			}
+		}
+
+		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), folder, rs.Primary.Attributes["name"])
+
 
 		*vm = virtualMachine{
 			name: rs.Primary.ID,
 		}
 
 		return nil
-
 	}
 }
 
@@ -394,6 +554,44 @@ resource "vsphere_virtual_machine" "car" {
 	"foo" = "bar"
 	"car" = "ferrari"
 	"num" = 42
+    }
+    disk {
+%s
+        template = "%s"
+    }
+}
+`
+
+const testAccCheckVSphereVirtualMachineConfig_createInFolder = `
+resource "vsphere_virtual_machine" "folder" {
+    name = "terraform-test-folder"
+    folder = "%s"
+%s
+    vcpu = 2
+    memory = 4096
+    network_interface {
+        label = "%s"
+    }
+    disk {
+%s
+        template = "%s"
+    }
+}
+`
+
+const testAccCheckVSphereVirtualMachineConfig_createWithFolder = `
+resource "vsphere_folder" "with_folder" {
+	path = "%s"	
+%s
+}
+resource "vsphere_virtual_machine" "with_folder" {
+    name = "terraform-test-with-folder"
+    folder = "${vsphere_folder.with_folder.path}"
+%s
+    vcpu = 2
+    memory = 4096
+    network_interface {
+        label = "%s"
     }
     disk {
 %s
