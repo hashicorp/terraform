@@ -220,7 +220,11 @@ func setAll(d *schema.ResourceData, rec *dnsmadeeasy.Record) error {
 	d.Set("name", rec.Name)
 	d.Set("ttl", rec.TTL)
 	d.Set("value", rec.Value)
-	d.Set("gtdLocation", rec.GtdLocation)
+        // only set gtdLocation if it is given as this is optional.
+        if rec.GtdLocation != "" {
+	    d.Set("gtdLocation", rec.GtdLocation)
+            }
+
 	switch rec.Type {
 	case "A", "CNAME", "ANAME", "TXT", "SPF", "NS", "PTR":
 		// all done
