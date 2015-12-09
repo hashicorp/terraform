@@ -21,6 +21,9 @@ type FormatStateOpts struct {
 	// ModuleDepth is the depth of the modules to expand. By default this
 	// is zero which will not expand modules at all.
 	ModuleDepth int
+
+	// Types of resources to show, by default will show all resources.
+	ShowResourceTypes map[string]bool
 }
 
 // FormatState takes a state and returns a string
@@ -85,6 +88,10 @@ func formatStateModuleExpand(
 
 	// Go through each resource and begin building up the output.
 	for _, k := range names {
+		resourceType := strings.Split(k, ".")[0]
+		if opts.ShowResourceTypes != nil && !opts.ShowResourceTypes[resourceType] {
+			continue
+		}
 		name := k
 		if moduleName != "" {
 			name = moduleName + "." + name

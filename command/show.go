@@ -20,8 +20,10 @@ func (c *ShowCommand) Run(args []string) int {
 
 	args = c.Meta.process(args, false)
 
+	var resourceTypes string
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+	cmdFlags.StringVar(&resourceTypes, "resource-types", "", "resource-types")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -100,11 +102,21 @@ func (c *ShowCommand) Run(args []string) int {
 		return 0
 	}
 
-	c.Ui.Output(FormatState(&FormatStateOpts{
+	formatOptions := FormatStateOpts{
 		State:       state,
 		Color:       c.Colorize(),
 		ModuleDepth: moduleDepth,
-	}))
+	}
+
+	if resourceTypes != "" {
+		resourceTypes := strings.Split(resourceTypes, ",")
+		formatOptions.ShowResourceTypes = make(map[string]bool, len(resourceTypes))
+		for _, resourceType := range resourceTypes {
+			formatOptions.ShowResourceTypes[resourceType] = true
+		}
+	}
+
+	c.Ui.Output(FormatState(&formatOptions))
 	return 0
 }
 
@@ -121,6 +133,9 @@ Options:
                       By default this is zero. -1 will expand all.
 
   -no-color           If specified, output won't contain any color.
+
+  -resource-types     If specified, limits the output to specified resource types.
+                      Comma-separated string.
 
 `
 	return strings.TrimSpace(helpText)
