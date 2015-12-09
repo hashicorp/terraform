@@ -404,7 +404,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		Pending:    []string{"BUILD"},
 		Target:     "ACTIVE",
 		Refresh:    ServerV2StateRefreshFunc(computeClient, server.ID),
-		Timeout:    10 * time.Minute,
+		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -791,7 +791,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		Pending:    []string{"ACTIVE"},
 		Target:     "DELETED",
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
