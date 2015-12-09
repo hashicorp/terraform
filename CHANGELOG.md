@@ -35,6 +35,7 @@ BUG FIXES:
   * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
   * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
   * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
+  * providers/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
   * provider/openstack: Handle volumes in "deleting" state [GH-4204]
   * provider/vsphere: Create and attach additional disks before bootup [GH-4196]
