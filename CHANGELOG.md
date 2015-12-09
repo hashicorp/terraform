@@ -35,6 +35,7 @@ BUG FIXES:
   * provider/aws: Skip `source_security_group_id` determination logic for Classic ELBs [GH-4075]
   * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
   * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
+  * provider/aws: Update DB Replica to honor storage type #4155
   * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
   * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
