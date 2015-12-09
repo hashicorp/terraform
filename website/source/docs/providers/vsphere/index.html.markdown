@@ -41,8 +41,7 @@ resource "vsphere_virtual_machine" "web" {
   }
 
   disk {
-    size = 1
-    iops = 500
+    template = "centos-7"
   }
 }
 ```
