@@ -34,6 +34,7 @@ BUG FIXES:
   * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
   * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
+  * provider/openstack: Handle volumes in "deleting" state [GH-4204]
 
 ## 0.6.8 (December 2, 2015)
 
