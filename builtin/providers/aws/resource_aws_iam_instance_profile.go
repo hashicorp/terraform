@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -139,6 +140,17 @@ func instanceProfileSetRoles(d *schema.ResourceData, iamconn *iam.IAM) error {
 	}
 
 	d.Partial(false)
+
+
+	name := d.Get("name").(string)
+	log.Printf("[DEBUG] Waiting for the IAM Instance Profile to Exist %s", name)
+	r := &iam.GetInstanceProfileInput{
+		InstanceProfileName: aws.String(name),
+	}
+	waitErr := iamconn.WaitUntilInstanceProfileExists(r)
+	if waitErr != nil {
+		return fmt.Errorf("Error Waiting for IAM instance profile to Exist %s: %s", name, waitErr)
+	}
 
 	return nil
 }
