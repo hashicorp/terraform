@@ -12,6 +12,7 @@ IMPROVEMENTS:
   * core: Change set internals for performance improvements [GH-3992]
   * core: Support HTTP basic auth in consul remote state [GH-4166]
   * provider/aws: Add `placement_group` as an option for `aws_autoscaling_group` [GH-3704]
+  * provider/aws: Add support for DynamoDB Table StreamSpecifications [GH-4208]
   * provider/cloudstack: performance improvements [GH-4150]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
