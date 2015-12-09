@@ -46,6 +46,26 @@ func TestAccAWSSecurityGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroup_namePrefix( t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupPrefixNameConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.baz", &group),
+					testAccCheckAWSSecurityGroupGeneratedNamePrefix(
+						"aws_security_group.baz", "baz-"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSecurityGroup_self(t *testing.T) {
 	var group ec2.SecurityGroup
 
@@ -322,6 +342,24 @@ func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCheckAWSSecurityGroupGeneratedNamePrefix(
+resource, prefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		r, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("Resource not found")
+		}
+		name, ok := r.Primary.Attributes["name"]
+		if !ok {
+			return fmt.Errorf("Name attr not found: %#v", r.Primary.Attributes)
+		}
+		if !strings.HasPrefix(name, prefix) {
+			return fmt.Errorf("Name: %q, does not have prefix: %q", name, prefix)
+		}
+		return nil
+	}
 }
 
 func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) resource.TestCheckFunc {
@@ -807,5 +845,16 @@ provider "aws" {
 resource "aws_security_group" "web" {
   name = "terraform_acceptance_test_example_1"
   description = "Used in the terraform acceptance tests"
+}
+`
+
+const testAccAWSSecurityGroupPrefixNameConfig = `
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_security_group" "baz" {
+   name_prefix = "baz-"
+   description = "Used in the terraform acceptance tests"
 }
 `
