@@ -3,6 +3,7 @@ package azurerm
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -12,8 +13,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// resourceArmResourceGroup returns the *schema.Resource
-// associated to resource group resources on ARM.
 func resourceArmResourceGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmResourceGroupCreate,
@@ -38,8 +37,6 @@ func resourceArmResourceGroup() *schema.Resource {
 	}
 }
 
-// validateArmResourceGroupName validates inputs to the name argument against the requirements
-// documented in the ARM REST API guide: http://bit.ly/1NEXclG
 func validateArmResourceGroupName(v interface{}, k string) (ws []string, es []error) {
 	value := v.(string)
 
@@ -51,14 +48,13 @@ func validateArmResourceGroupName(v interface{}, k string) (ws []string, es []er
 		es = append(es, fmt.Errorf("%q may not end with a period", k))
 	}
 
-	if matched := regexp.MustCompile(`^[\(\)\.a-zA-Z0-9_-]$`).Match([]byte(value)); !matched {
+	if matched := regexp.MustCompile(`[\(\)\.a-zA-Z0-9_-]`).Match([]byte(value)); !matched {
 		es = append(es, fmt.Errorf("%q may only contain alphanumeric characters, dash, underscores, parentheses and periods", k))
 	}
 
 	return
 }
 
-// resourceArmResourceGroupCreate goes ahead and creates the specified ARM resource group.
 func resourceArmResourceGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	resGroupClient := client.resourceGroupClient
@@ -66,64 +62,67 @@ func resourceArmResourceGroupCreate(d *schema.ResourceData, meta interface{}) er
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 
-	log.Printf("[INFO] Issuing Azure ARM creation request for resource group '%s'.", name)
-
 	rg := resources.ResourceGroup{
 		Name:     &name,
 		Location: &location,
 	}
 
-	_, err := resGroupClient.CreateOrUpdate(name, rg)
+	resp, err := resGroupClient.CreateOrUpdate(name, rg)
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM create request for resource group '%s': %s", name, err)
 	}
 
-	d.SetId(*rg.Name)
+	d.SetId(*resp.ID)
 
-	// Wait for the resource group to become available
-	// TODO(jen20): Is there any need for this?
-	log.Printf("[DEBUG] Waiting for Resource Group (%s) to become available", d.Id())
+	log.Printf("[DEBUG] Waiting for Resource Group (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted"},
 		Target:  "Succeeded",
-		Refresh: resourceGroupStateRefreshFunc(client, d.Id()),
+		Refresh: resourceGroupStateRefreshFunc(client, name),
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Resource Group (%s) to become available: %s", d.Id(), err)
+		return fmt.Errorf("Error waiting for Resource Group (%s) to become available: %s", name, err)
 	}
 
 	return resourceArmResourceGroupRead(d, meta)
 }
 
-// resourceArmResourceGroupRead goes ahead and reads the state of the corresponding ARM resource group.
 func resourceArmResourceGroupRead(d *schema.ResourceData, meta interface{}) error {
 	resGroupClient := meta.(*ArmClient).resourceGroupClient
 
-	name := d.Id()
-	log.Printf("[INFO] Issuing read request to Azure ARM for resource group '%s'.", name)
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	name := id.ResourceGroup
 
 	res, err := resGroupClient.Get(name)
 	if err != nil {
+		if res.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error issuing read request to Azure ARM for resource group '%s': %s", name, err)
 	}
 
-	d.Set("name", *res.Name)
-	d.Set("location", *res.Location)
+	d.Set("name", res.Name)
+	d.Set("location", res.Location)
 
 	return nil
 }
 
-// resourceArmResourceGroupExists goes ahead and checks for the existence of the correspoding ARM resource group.
 func resourceArmResourceGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	resGroupClient := meta.(*ArmClient).resourceGroupClient
 
-	name := d.Id()
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return false, err
+	}
+	name := id.ResourceGroup
 
 	resp, err := resGroupClient.CheckExistence(name)
 	if err != nil {
-		// TODO(aznashwan): implement some error switching helpers in the SDK
-		// to avoid HTTP error checks such as the below:
 		if resp.StatusCode != 200 {
 			return false, err
 		}
@@ -134,13 +133,16 @@ func resourceArmResourceGroupExists(d *schema.ResourceData, meta interface{}) (b
 	return true, nil
 }
 
-// resourceArmResourceGroupDelete deletes the specified ARM resource group.
 func resourceArmResourceGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroupClient := meta.(*ArmClient).resourceGroupClient
 
-	name := d.Id()
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	name := id.ResourceGroup
 
-	_, err := resGroupClient.Delete(name)
+	_, err = resGroupClient.Delete(name)
 	if err != nil {
 		return err
 	}
@@ -148,8 +150,6 @@ func resourceArmResourceGroupDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-// resourceGroupStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// a resource group.
 func resourceGroupStateRefreshFunc(client *ArmClient, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		res, err := client.resourceGroupClient.Get(id)
