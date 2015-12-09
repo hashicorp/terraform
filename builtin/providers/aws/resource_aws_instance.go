@@ -364,6 +364,13 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 				time.Sleep(2 * time.Second)
 				continue
 			}
+
+			// Warn if the AWS Error involves group ids, to help identify situation
+			// where a user uses group ids in security_groups for the Default VPC.
+			//   See https://github.com/hashicorp/terraform/issues/3798
+			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "groupId is invalid") {
+				return fmt.Errorf("Error launching instance, possible mismatch of Security Group IDs and Names. See AWS Instance docs here: %s.\n\n\tAWS Error: %s", "https://terraform.io/docs/providers/aws/r/instance.html", awsErr.Message())
+			}
 		}
 		break
 	}
