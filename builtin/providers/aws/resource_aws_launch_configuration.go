@@ -386,6 +386,11 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn); err == nil {
+				if dn == nil {
+					return fmt.Errorf(
+						"Expected to find a Root Device name for AMI (%s), but got none",
+						d.Get("image_id").(string))
+				}
 				blockDevices = append(blockDevices, &autoscaling.BlockDeviceMapping{
 					DeviceName: dn,
 					Ebs:        ebs,
