@@ -28,6 +28,10 @@ func resourceAwsInstance() *schema.Resource {
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsInstanceMigrateState,
 
+		ValidateFunc: schema.ComposeResourceValidateFunc(
+			resourceAwsInstanceValidateSubnetAndSecurityGroups,
+		),
+
 		Schema: map[string]*schema.Schema{
 			"ami": &schema.Schema{
 				Type:     schema.TypeString,
@@ -642,6 +646,38 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId("")
 	return nil
+}
+
+var errMsgSecurityGroupsNamesWithSubnetID = fmt.Errorf(
+	"The security_groups attribute is only valid for instances launched into " +
+		"EC2-Classic or a Default VPC. Therefore, cannot use security_groups " +
+		"with subnet_id; use vpc_security_group_ids instead.")
+var errMsgSecurityGroupIDSWithoutSubnetID = fmt.Errorf(
+	"Cannot use vpc_security_group_ids without subnet_id. Either specify a " +
+		"subnet_id or use security_groups if you are launching instances into " +
+		"EC2-Classic or a Default VPC.")
+
+func resourceAwsInstanceValidateSubnetAndSecurityGroups(g schema.ResourceConfigGetter) (ws []string, es []error) {
+	var hasSubnetID bool
+	if v, known := g.GetIfKnown("subnet_id"); known {
+		hasSubnetID = (v.(string) != "")
+	}
+
+	var securityGroups, vpcSecurityGroups *schema.Set
+	if v, known := g.GetIfKnown("security_groups"); known {
+		securityGroups = v.(*schema.Set)
+	}
+	if v, known := g.GetIfKnown("vpc_security_group_ids"); known {
+		vpcSecurityGroups = v.(*schema.Set)
+	}
+
+	if hasSubnetID && securityGroups.Len() > 0 {
+		es = append(es, errMsgSecurityGroupsNamesWithSubnetID)
+	}
+	if !hasSubnetID && vpcSecurityGroups.Len() > 0 {
+		es = append(es, errMsgSecurityGroupIDSWithoutSubnetID)
+	}
+	return
 }
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -620,6 +622,76 @@ func TestInstanceTenancySchema(t *testing.T) {
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			actualSchema,
 			expectedSchema)
+	}
+}
+
+func TestAWSInstanceValidate(t *testing.T) {
+	r := resourceAwsInstance()
+	cases := map[string]struct {
+		Config           map[string]interface{}
+		Vars             map[string]ast.Variable
+		ExpectedErrors   []error
+		ExpectedWarnings []string
+	}{
+		"errors when subnet_id used with security_groups": {
+			Config: map[string]interface{}{
+				"ami":             "ami-abc123",
+				"instance_type":   "t2.micro",
+				"subnet_id":       "subnet-abc123",
+				"security_groups": []interface{}{"my-sg-name"},
+			},
+			ExpectedErrors: []error{errMsgSecurityGroupsNamesWithSubnetID},
+		},
+		"errors when vpc_security_group_ids used without subnet_id": {
+			Config: map[string]interface{}{
+				"ami":                    "ami-abc123",
+				"instance_type":          "t2.micro",
+				"vpc_security_group_ids": []interface{}{"sg-abc123"},
+			},
+			ExpectedErrors: []error{errMsgSecurityGroupIDSWithoutSubnetID},
+		},
+		"does not error in a VPC/Classic optional config setup": {
+			Config: map[string]interface{}{
+				"ami":                    "ami-abc123",
+				"instance_type":          "t2.micro",
+				"subnet_id":              "${var.subnet_id}",
+				"security_groups":        []interface{}{`${split(",", var.sg_names)}`},
+				"vpc_security_group_ids": []interface{}{`${split(",", var.vpc_sg_ids)}`},
+			},
+			Vars: map[string]ast.Variable{
+				"var.subnet_id": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				},
+				"var.sg_names": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				},
+				"var.vpc_sg_ids": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				},
+			},
+		},
+	}
+
+	for n, tc := range cases {
+		rawConfig, err := config.NewRawConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if err := rawConfig.Interpolate(tc.Vars); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		config := terraform.NewResourceConfig(rawConfig)
+
+		warns, errs := r.Validate(config)
+		if !reflect.DeepEqual(tc.ExpectedErrors, errs) {
+			t.Fatalf("%q - errs, wanted: %v, got: %v", n, tc.ExpectedErrors, errs)
+		}
+		if !reflect.DeepEqual(tc.ExpectedWarnings, warns) {
+			t.Fatalf("%q - warns, wanted: %v, got: %v", n, tc.ExpectedWarnings, warns)
+		}
 	}
 }
 

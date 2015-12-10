@@ -108,6 +108,13 @@ func TestSetUnion(t *testing.T) {
 	}
 }
 
+func TestSetLenNil(t *testing.T) {
+	var nilSet *Set
+	if nilSet.Len() != 0 {
+		t.Fatalf("Nil schema.Set should have 0 Len()")
+	}
+}
+
 func testSetInt(v interface{}) int {
 	return v.(int)
 }
