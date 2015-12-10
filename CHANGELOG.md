@@ -16,6 +16,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for DynamoDB Table StreamSpecifications [GH-4208]
   * provider/aws: Add `name_prefix` to Security Groups [GH-4167]
   * provider/aws: Add support for removing nodes to `aws_elasticache_cluster` [GH-3809]
+  * provider/aws: Add support for `skip_final_snapshot` to `aws_db_instance` [GH-3853]
   * provider/cloudstack: performance improvements [GH-4150]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
