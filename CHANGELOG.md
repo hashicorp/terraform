@@ -42,6 +42,7 @@ BUG FIXES:
   * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
   * provider/aws: Fix missing AMI issue with Launch Configurations [GH-4242]
   * provider/aws: Opsworks stack SSH key is write-only [GH-4241]
+  * provider/aws: Fix issue with ElasticSearch Domain `access_policies` always appear changed [GH-4245]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
   * provider/openstack: Handle volumes in "deleting" state [GH-4204]
   * provider/vsphere: Create and attach additional disks before bootup [GH-4196]
