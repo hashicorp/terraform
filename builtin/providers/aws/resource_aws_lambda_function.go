@@ -2,6 +2,7 @@ package aws
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -79,6 +80,11 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Optional: true,
 				Default:  3,
 			},
+			"update_code": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -90,7 +96,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 			"source_code_hash": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
-				ForceNew: true,
+			},
+			"remote_code_hash": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -197,6 +206,26 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("role", function.Role)
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
+
+	// Compare code hashes, and see if an update is required to code. If there
+	// is, set the "update_code" attribute.
+
+	remoteSum, err := decodeBase64(*function.CodeSha256)
+	if err != nil {
+		return err
+	}
+	_, localSum, err := loadLocalZipFile(d.Get("filename").(string))
+	if err != nil {
+		return err
+	}
+	d.Set("remote_code_hash", remoteSum)
+	d.Set("source_code_hash", localSum)
+
+	if remoteSum != localSum {
+		d.Set("update_code", true)
+	} else {
+		d.Set("update_code", false)
+	}
 
 	return nil
 }
@@ -308,6 +337,7 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	return resourceAwsLambdaFunctionRead(d, meta)
 }
 
+// loads the local ZIP data and the SHA sum of the data.
 func loadLocalZipFile(v string) ([]byte, string, error) {
 	filename, err := homedir.Expand(v)
 	if err != nil {
@@ -318,5 +348,14 @@ func loadLocalZipFile(v string) ([]byte, string, error) {
 		return nil, "", err
 	}
 	sum := sha256.Sum256(zipfile)
-	return zipfile, string(sum[:32]), nil
+	return zipfile, fmt.Sprintf("%x", sum), nil
+}
+
+// Decodes a base64 string to a string.
+func decodeBase64(s string) (string, error) {
+	sum, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", sum), nil
 }
