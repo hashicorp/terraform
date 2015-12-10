@@ -39,6 +39,7 @@ BUG FIXES:
   * provider/aws: Update DB Replica to honor storage type [GH-4155]
   * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
   * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
+  * provider/aws: Fix missing AMI issue with Launch Configurations [GH-4242]
   * provider/aws: Opsworks stack SSH key is write-only [GH-4241]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
   * provider/openstack: Handle volumes in "deleting" state [GH-4204]
