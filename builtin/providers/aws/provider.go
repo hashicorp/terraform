@@ -1,19 +1,10 @@
 package aws
 
 import (
-	"net"
-	"sync"
-	"time"
-
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -21,95 +12,27 @@ func Provider() terraform.ResourceProvider {
 	// TODO: Move the validation to this, requires conditional schemas
 	// TODO: Move the configuration to this, requires validation
 
-	// These variables are closed within the `getCreds` function below.
-	// This function is responsible for reading credentials from the
-	// environment in the case that they're not explicitly specified
-	// in the Terraform configuration.
-	//
-	// By using the getCreds function here instead of making the default
-	// empty, we avoid asking for input on credentials if they're available
-	// in the environment.
-	var credVal credentials.Value
-	var credErr error
-	var once sync.Once
-	getCreds := func() {
-		// Build the list of providers to look for creds in
-		providers := []credentials.Provider{
-			&credentials.EnvProvider{},
-			&credentials.SharedCredentialsProvider{},
-		}
-
-		// We only look in the EC2 metadata API if we can connect
-		// to the metadata service within a reasonable amount of time
-		conn, err := net.DialTimeout("tcp", "169.254.169.254:80", 100*time.Millisecond)
-		if err == nil {
-			conn.Close()
-			providers = append(providers, &ec2rolecreds.EC2RoleProvider{Client: ec2metadata.New(session.New())})
-		}
-
-		credVal, credErr = credentials.NewChainCredentials(providers).Get()
-
-		// If we didn't successfully find any credentials, just
-		// set the error to nil.
-		if credErr == credentials.ErrNoValidProvidersFoundInChain {
-			credErr = nil
-		}
-	}
-
-	// getCredDefault is a function used by DefaultFunc below to
-	// get the default value for various parts of the credentials.
-	// This function properly handles loading the credentials, checking
-	// for errors, etc.
-	getCredDefault := func(def interface{}, f func() string) (interface{}, error) {
-		once.Do(getCreds)
-
-		// If there was an error, that is always first
-		if credErr != nil {
-			return nil, credErr
-		}
-
-		// If the value is empty string, return nil (not set)
-		val := f()
-		if val == "" {
-			return def, nil
-		}
-
-		return val, nil
-	}
-
 	// The actual provider
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: func() (interface{}, error) {
-					return getCredDefault(nil, func() string {
-						return credVal.AccessKeyID
-					})
-				},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
 				Description: descriptions["access_key"],
 			},
 
 			"secret_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: func() (interface{}, error) {
-					return getCredDefault(nil, func() string {
-						return credVal.SecretAccessKey
-					})
-				},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
 				Description: descriptions["secret_key"],
 			},
 
 			"token": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: func() (interface{}, error) {
-					return getCredDefault("", func() string {
-						return credVal.SessionToken
-					})
-				},
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
 				Description: descriptions["token"],
 			},
 
