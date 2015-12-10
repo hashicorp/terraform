@@ -47,7 +47,8 @@ supported node types
 
 * `num_cache_nodes` – (Required) The initial number of cache nodes that the
 cache cluster will have. For Redis, this value must be 1. For Memcache, this
-value must be between 1 and 20
+value must be between 1 and 20. If this number is reduced on subsequent runs,
+the highest numbered nodes will be removed.
 
 * `parameter_group_name` – (Required) Name of the parameter group to associate
 with this cache cluster
