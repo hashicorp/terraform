@@ -45,6 +45,17 @@ func TestLoadFile_badType(t *testing.T) {
 	}
 }
 
+func TestLoadFile_resourceArityMistake(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "resource-arity-mistake.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+	expected := "Error loading test-fixtures/resource-arity-mistake.tf: position 2:10: resource must be followed by exactly two strings, a type and a name"
+	if err.Error() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
+	}
+}
+
 func TestLoadFileWindowsLineEndings(t *testing.T) {
 	testFile := filepath.Join(fixtureDir, "windows-line-endings.tf")
 
