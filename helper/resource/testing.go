@@ -247,6 +247,11 @@ func testStep(
 		log.Printf("[WARN] Test: Step plan: %s", p)
 	}
 
+	// We need to keep a copy of the state prior to destroying
+	// such that destroy steps can verify their behaviour in the check
+	// function
+	stateBeforeApplication := state.DeepCopy()
+
 	// Apply!
 	state, err = ctx.Apply()
 	if err != nil {
@@ -255,8 +260,14 @@ func testStep(
 
 	// Check! Excitement!
 	if step.Check != nil {
-		if err := step.Check(state); err != nil {
-			return state, fmt.Errorf("Check failed: %s", err)
+		if step.Destroy {
+			if err := step.Check(stateBeforeApplication); err != nil {
+				return state, fmt.Errorf("Check failed: %s", err)
+			}
+		} else {
+			if err := step.Check(state); err != nil {
+				return state, fmt.Errorf("Check failed: %s", err)
+			}
 		}
 	}
 
