@@ -28,8 +28,8 @@ resource in your configuration and change it to the following:
 
 ```
 resource "aws_instance" "example" {
-	ami = "ami-aa7ab6c2"
-	instance_type = "t1.micro"
+	ami = "ami-8eb061e6"
+	instance_type = "t2.micro"
 }
 ```
 
@@ -47,7 +47,7 @@ $ terraform plan
 ...
 
 -/+ aws_instance.example
-    ami:               "ami-408c7f28" => "ami-aa7ab6c2" (forces new resource)
+    ami:               "ami-d05e75b8" => "ami-8eb061e6" (forces new resource)
     availability_zone: "us-east-1c" => "<computed>"
     key_name:          "" => "<computed>"
     private_dns:       "domU-12-31-39-12-38-AB.compute-1.internal" => "<computed>"
@@ -79,7 +79,7 @@ the change.
 $ terraform apply
 aws_instance.example: Destroying...
 aws_instance.example: Modifying...
-  ami: "ami-408c7f28" => "ami-aa7ab6c2"
+  ami: "ami-d05e75b8" => "ami-8eb061e6"
 
 Apply complete! Resources: 0 added, 1 changed, 1 destroyed.
 
