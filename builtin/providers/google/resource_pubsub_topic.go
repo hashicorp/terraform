@@ -2,8 +2,8 @@ package google
 
 import (
 	"fmt"
-	"google.golang.org/api/pubsub/v1"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/pubsub/v1"
 )
 
 func resourcePubsubTopic() *schema.Resource {
@@ -18,7 +18,6 @@ func resourcePubsubTopic() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
 		},
 	}
 }
@@ -34,7 +33,7 @@ func resourcePubsubTopicCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	d.SetId(res.Name)
 
 	return nil
@@ -42,7 +41,7 @@ func resourcePubsubTopicCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourcePubsubTopicRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	
+
 	name := d.Id()
 	call := config.clientPubsub.Projects.Topics.Get(name)
 	_, err := call.Do()
@@ -53,7 +52,6 @@ func resourcePubsubTopicRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-
 func resourcePubsubTopicDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -61,8 +59,8 @@ func resourcePubsubTopicDelete(d *schema.ResourceData, meta interface{}) error {
 	call := config.clientPubsub.Projects.Topics.Delete(name)
 	_, err := call.Do()
 	if err != nil {
-		return err 
+		return err
 	}
-	
+
 	return nil
 }
