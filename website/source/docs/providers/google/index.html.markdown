@@ -73,7 +73,10 @@ the process more straightforwarded, it is documented here:
 1. Log into the [Google Developers Console](https://console.developers.google.com)
    and select a project.
 
-2. Under the "APIs & Auth" section, click "Credentials."
+2. Click the menu button in the top left corner, and navigate to "Permissions",
+   then "Service accounts", and finally "Create service account".
 
-3. Create a new OAuth client ID and select "Service account" as the type
-   of account. Once created, and after a P12 key is downloaded, a JSON file should be downloaded. This is your _account file_.
+3. Provide a name and ID in the corresponding fields, select
+   "Furnish a new private key", and select "JSON" as the key type.
+
+4. Clicking "Create" will download your `credentials`.
