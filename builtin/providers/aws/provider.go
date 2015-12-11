@@ -96,6 +96,31 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["kinesis_endpoint"],
 			},
+                        "iam_endpoint": &schema.Schema{
+                                Type:        schema.TypeString,
+                                Optional:    true,
+                                Default:     "",
+                                Description: descriptions["iam_endpoint"],
+                        },
+
+                        "ec2_endpoint": &schema.Schema{
+                                Type:        schema.TypeString,
+                                Optional:    true,
+                                Default:     "",
+                                Description: descriptions["ec2_endpoint"],
+                        },
+                        "elb_endpoint": &schema.Schema{
+                                Type:        schema.TypeString,
+                                Optional:    true,
+                                Default:     "",
+                                Description: descriptions["elb_endpoint"],
+                        },
+                        "insecure": &schema.Schema{
+                                Type:        schema.TypeBool,
+                                Optional:    true,
+                                Default:     false,
+                                Description: descriptions["insecure"],
+                        },
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -249,6 +274,15 @@ func init() {
 
 		"kinesis_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to kinesalite.",
+
+                "iam_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+                "ec2_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+                "elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+                "insecure" : "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
+                        "default value is `false`",
 	}
 }
 
@@ -263,6 +297,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		MaxRetries:       d.Get("max_retries").(int),
 		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
 		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
+                IamEndpoint:	  d.Get("iam_endpoint").(string),
+                Ec2Endpoint:	  d.Get("ec2_endpoint").(string),
+                ElbEndpoint:	  d.Get("elb_endpoint").(string),
+                Insecure:		  d.Get("insecure").(bool),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
