@@ -2,8 +2,8 @@ package google
 
 import (
 	"fmt"
-	"google.golang.org/api/pubsub/v1"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/pubsub/v1"
 )
 
 func resourcePubsubSubscription() *schema.Resource {
@@ -29,7 +29,7 @@ func resourcePubsubSubscription() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
-				Elem:     &schema.Resource{
+				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"attributes": &schema.Schema{
 							Type:     schema.TypeMap,
@@ -52,14 +52,13 @@ func resourcePubsubSubscription() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
 		},
 	}
 }
 
 func cleanAdditionalArgs(args map[string]interface{}) map[string]string {
 	cleaned_args := make(map[string]string)
-	for k,v := range  args {
+	for k, v := range args {
 		cleaned_args[k] = v.(string)
 	}
 	return cleaned_args
@@ -91,7 +90,7 @@ func resourcePubsubSubscriptionCreate(d *schema.ResourceData, meta interface{}) 
 		attributesClean := cleanAdditionalArgs(attributes)
 		pushConfig := &pubsub.PushConfig{Attributes: attributesClean, PushEndpoint: push_config["push_endpoint"].(string)}
 		subscription = &pubsub.Subscription{AckDeadlineSeconds: ackDeadlineSeconds, Topic: computed_topic_name, PushConfig: pushConfig}
-	}  else {
+	} else {
 		subscription = &pubsub.Subscription{AckDeadlineSeconds: ackDeadlineSeconds, Topic: computed_topic_name}
 	}
 
@@ -100,7 +99,7 @@ func resourcePubsubSubscriptionCreate(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return err
 	}
-	
+
 	d.SetId(res.Name)
 
 	return nil
@@ -108,7 +107,7 @@ func resourcePubsubSubscriptionCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourcePubsubSubscriptionRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	
+
 	name := d.Id()
 	call := config.clientPubsub.Projects.Subscriptions.Get(name)
 	_, err := call.Do()
@@ -119,7 +118,6 @@ func resourcePubsubSubscriptionRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-
 func resourcePubsubSubscriptionDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -127,8 +125,8 @@ func resourcePubsubSubscriptionDelete(d *schema.ResourceData, meta interface{}) 
 	call := config.clientPubsub.Projects.Subscriptions.Delete(name)
 	_, err := call.Do()
 	if err != nil {
-		return err 
+		return err
 	}
-	
+
 	return nil
 }

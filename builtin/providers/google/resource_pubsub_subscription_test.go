@@ -71,4 +71,3 @@ resource "google_pubsub_subscription" "foobar_sub" {
 	name = "foobar_sub"
 	topic = "${google_pubsub_topic.foobar_sub.name}"
 }`
-
