@@ -33,6 +33,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the DB security group.
 * `description` - (Required) The description of the DB security group.
 * `ingress` - (Optional) A list of ingress rules.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Ingress blocks support the following:
 
@@ -47,4 +48,5 @@ Ingress blocks support the following:
 The following attributes are exported:
 
 * `id` - The db security group ID.
+* `arn` - The arn of the DB security group.
 
