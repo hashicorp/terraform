@@ -44,6 +44,8 @@ func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 						"aws_db_parameter_group.bar", "parameter.2478663599.name", "character_set_client"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "tags.#", "1"),
 				),
 			},
 			resource.TestStep{
@@ -77,6 +79,8 @@ func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 						"aws_db_parameter_group.bar", "parameter.2478663599.name", "character_set_client"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "tags.#", "2"),
 				),
 			},
 		},
@@ -174,7 +178,7 @@ func testAccCheckAWSDBParameterGroupDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if newerr.Code() != "InvalidDBParameterGroup.NotFound" {
+		if newerr.Code() != "DBParameterGroupNotFound" {
 			return err
 		}
 	}
@@ -262,6 +266,9 @@ resource "aws_db_parameter_group" "bar" {
 	  name = "character_set_results"
 	  value = "utf8"
 	}
+	tags {
+		foo = "bar"
+	}
 }
 `
 
@@ -289,6 +296,10 @@ resource "aws_db_parameter_group" "bar" {
 	parameter {
 	  name = "collation_connection"
 	  value = "utf8_unicode_ci"
+	}
+	tags {
+		foo = "bar"
+		baz = "foo"
 	}
 }
 `
