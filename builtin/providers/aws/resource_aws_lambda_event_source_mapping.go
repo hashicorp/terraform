@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -88,10 +89,17 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 		Enabled:          aws.Bool(d.Get("enabled").(bool)),
 	}
 
-	eventSourceMappingConfiguration, err := conn.CreateEventSourceMapping(params)
+	out, err := retryWaiter(
+		func() (interface{}, error) { return conn.CreateEventSourceMapping(params) },
+		[]string{"InvalidParameterValueException"},
+		1*time.Minute,
+	)
+
 	if err != nil {
 		return fmt.Errorf("Error creating Lambda event source mapping: %s", err)
 	}
+
+	eventSourceMappingConfiguration := out.(*lambda.EventSourceMappingConfiguration)
 
 	d.Set("uuid", eventSourceMappingConfiguration.UUID)
 	d.SetId(*eventSourceMappingConfiguration.UUID)
