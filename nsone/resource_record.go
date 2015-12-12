@@ -293,7 +293,7 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 				meta["feed"] = t["feed"].(string)
 			case string:
 				meta["value"] = t
-                        case []interface{}:
+			case []interface{}:
 				var val_array []string
 				for _, pref := range t {
 					val_array = append(val_array, pref.(string))
@@ -346,13 +346,13 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 						a.Meta[key] = nsone.NewMetaFeed(value.(string))
 					}
 					if value, ok := meta["value"]; ok && value.(string) != "" {
-				        	meta_array := strings.Split(value.(string), ",")
-                                                if len(meta_array) > 1 {
-                                                  sort.Strings(meta_array)
-                                                  a.Meta[key] = meta_array
-                                                } else {
-                                                 a.Meta[key] = value.(string)
-                                                }
+						meta_array := strings.Split(value.(string), ",")
+						if len(meta_array) > 1 {
+							sort.Strings(meta_array)
+							a.Meta[key] = meta_array
+						} else {
+							a.Meta[key] = value.(string)
+						}
 					}
 				}
 			}
