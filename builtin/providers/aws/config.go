@@ -281,21 +281,26 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 
 	out, err := iamconn.GetUser(nil)
 
-	if err != nil {
+	if err == nil {
+		account_id := strings.Split(*out.User.Arn, ":")[4]
+	} else {
 		awsErr, _ := err.(awserr.Error)
-		if awsErr.Code() == "ValidationError" {
-			log.Printf("[WARN] ValidationError with iam.GetUser, assuming its an IAM profile")
-			// User may be an IAM instance profile, so fail silently.
-			// If it is an IAM instance profile
-			// validating account might be superfluous
-			return nil
-		} else {
-			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
-			// return error if the account id is explicitly not authorised
-		}
-	}
 
-	account_id := strings.Split(*out.User.Arn, ":")[4]
+		if awsErr.Code() != "ValidationError" {
+			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
+		}
+
+		out, err := iamconn.ListRoles(&iam.ListRolesInput{
+			MaxItems: 1,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
+		} else if len(resp.Roles) < 1 {
+			return fmt.Errorf("Failed getting account ID from IAM: Couldn't determine current user or role")
+		}
+
+		account_id := strings.Split(*out.Roles[0].Arn, ":")[4]
+	}
 
 	if c.ForbiddenAccountIds != nil {
 		for _, id := range c.ForbiddenAccountIds {
