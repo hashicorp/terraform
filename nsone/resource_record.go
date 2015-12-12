@@ -293,12 +293,33 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 				meta["feed"] = t["feed"].(string)
 			case string:
 				meta["value"] = t
+			case []interface{}:
+				var val_array []string
+				for _, pref := range t {
+					val_array = append(val_array, pref.(string))
+				}
+				sort.Strings(val_array)
+				string_val := strings.Join(val_array, ",")
+				meta["value"] = string_val
+			case bool:
+				int_val := btoi(t)
+				meta["value"] = strconv.Itoa(int_val)
+			case float64:
+				int_val := int(t)
+				meta["value"] = strconv.Itoa(int_val)
 			}
 			metas.Add(meta)
 		}
 		m["meta"] = metas
 	}
 	return m
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
@@ -325,12 +346,13 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 						a.Meta[key] = nsone.NewMetaFeed(value.(string))
 					}
 					if value, ok := meta["value"]; ok && value.(string) != "" {
-				        	meta_array := strings.Split(value.(string), ",")
-                                                if len(meta_array) > 1 {
-                                                  a.Meta[key] = meta_array
-                                                } else {
-                                                 a.Meta[key] = value.(string)
-                                                }
+						meta_array := strings.Split(value.(string), ",")
+						if len(meta_array) > 1 {
+							sort.Strings(meta_array)
+							a.Meta[key] = meta_array
+						} else {
+							a.Meta[key] = value.(string)
+						}
 					}
 				}
 			}
