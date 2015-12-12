@@ -291,11 +291,11 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 		}
 
 		out, err := iamconn.ListRoles(&iam.ListRolesInput{
-			MaxItems: 1,
+			MaxItems: aws.Int64(int64(1)),
 		})
 		if err != nil {
 			return fmt.Errorf("Failed getting account ID from IAM: %s", err)
-		} else if len(resp.Roles) < 1 {
+		} else if len(out.Roles) < 1 {
 			return fmt.Errorf("Failed getting account ID from IAM: Couldn't determine current user or role")
 		}
 
