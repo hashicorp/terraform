@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"testing"
@@ -16,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Returns test configuration
@@ -940,5 +944,170 @@ func TestFlattenApiGatewayThrottleSettings(t *testing.T) {
 	}
 	if rateLimitFloat != expectedRateLimit {
 		t.Fatalf("Expected 'rate_limit' to equal %f, got %f", expectedRateLimit, rateLimitFloat)
+	}
+}
+
+// Returns a test policy document with the scenarios we wnat to test against
+// included, ie: out-of-order keys, unsorted actions, etc.
+const testPolicyDocument = `
+{
+  "Statement": [
+    {
+      "Action": "es:*",
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": [
+            "192.168.0.10/32"
+          ]
+        }
+      },
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Resource": [
+				"arn:aws:es:us-east-1:123456789012:domain/test/*"
+			],
+      "Sid": "ES"
+    },
+		{
+      "Action": [ "s3:GetObject", "s3:PutObject", "s3:DeleteObject" ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::test-bucket/*",
+      "Principal": { "AWS": [
+				"arn:aws:iam::123456789012:role/TestRole"
+			]}
+    },
+    {
+      "Action": [ "s3:ListBucket" ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::test-bucket",
+      "Principal": { "AWS": [
+				"arn:aws:iam::987654321012:role/TestRole",
+				"arn:aws:iam::123456789012:role/TestRole"
+			]}
+    },
+		{
+      "Action": [ "s3:ListBucket" ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::test-bucket",
+      "Principal": "*"
+    },
+		{
+      "Action": [ "s3:ListBucket" ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:s3:::test-bucket",
+			"NotPrincipal": { "AWS": [
+				"arn:aws:iam::123456789012:role/TestRole"
+			]}
+    }
+	],
+  "Version": "2012-10-17"
+}
+`
+
+func testPolicyDocumentTop() policyDocument {
+	normalizedPolicyJSON := normalizePolicyDocument(testPolicyDocument)
+	var normalizedPolicyStruct policyDocument
+	log.Printf("[DEBUG] json doc after normalization: %s", normalizedPolicyJSON)
+	err := json.Unmarshal([]byte(normalizedPolicyJSON), &normalizedPolicyStruct)
+	if err != nil {
+		// Things are really broken
+		panic(fmt.Errorf("Error parsing normalized JSON document: %s", err))
+	}
+	return normalizedPolicyStruct
+}
+
+func testPolicyDocumentStatementIndex(i int) policyDocumentStatement {
+	return testPolicyDocumentTop().Statement[i]
+}
+
+func TestNormalizePolicyDocumentTopLevel(t *testing.T) {
+	normalizedPolicyStruct := testPolicyDocumentTop()
+	if normalizedPolicyStruct.Version != "2012-10-17" {
+		t.Fatalf("Expected Version to be 2012-10-17, got %s", normalizedPolicyStruct.Version)
+	}
+	if normalizedPolicyStruct.Id != "" {
+		t.Fatalf("Expected Id to be blank, got %s", normalizedPolicyStruct.Id)
+	}
+}
+
+func TestNormalizePolicyDocumentEmptySid(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(1)
+	if normalizedPolicyStatementStruct.Sid != "" {
+		t.Fatalf("Expected Sid to blank, got %s", normalizedPolicyStatementStruct.Sid)
+	}
+}
+
+func TestNormalizePolicyDocumentFlattenActionArray(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(2)
+	switch action := normalizedPolicyStatementStruct.Action.(type) {
+	default:
+		t.Fatalf("Expected Action to be string, got %T", action)
+	case string:
+	}
+}
+
+func TestNormalizePolicyDocumentFlattenConditionArray(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(0)
+	switch action := normalizedPolicyStatementStruct.Condition["IpAddress"]["aws:SourceIp"].(type) {
+	default:
+		t.Fatalf("Expected Condition[\"IpAddress\"][\"aws:SourceIp\"] to be string, got %T", action)
+	case string:
+	}
+}
+
+func TestNormalizePolicyDocumentSortActions(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(1)
+	if normalizedPolicyStatementStruct.Action.([]interface{})[0].(string) != "s3:DeleteObject" {
+		t.Fatalf("Expected first action to be s3:DeleteObject, got %s", normalizedPolicyStatementStruct.Action)
+	}
+}
+
+func TestNormalizePolicyDocumentWildcardPrincipal(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(3)
+	if normalizedPolicyStatementStruct.Principal != "*" {
+		t.Fatalf("Expected wildcard principal, got %v", normalizedPolicyStatementStruct.Principal)
+	}
+}
+
+func TestNormalizePolicyDocumentFlattenedPrincipalAWS(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(1)
+	var principalStruct policyStatementPrincipal
+	_ = mapstructure.Decode(normalizedPolicyStatementStruct.Principal, &principalStruct)
+	if principalStruct.AWS != "arn:aws:iam::123456789012:role/TestRole" {
+		t.Fatalf("Expected non-array AWS principal, got %v", principalStruct.AWS)
+	}
+}
+
+func TestNormalizePolicyDocumentMissingNotPrincipal(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(1)
+	if normalizedPolicyStatementStruct.NotPrincipal != nil {
+		t.Fatalf("Expected missing NotPrincipal, got %v", normalizedPolicyStatementStruct.NotPrincipal)
+	}
+}
+
+func TestNormalizePolicyDocumentFlattenedNotPrincipalAWS(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(4)
+	var notPrincipalStruct policyStatementPrincipal
+	_ = mapstructure.Decode(normalizedPolicyStatementStruct.NotPrincipal, &notPrincipalStruct)
+	if notPrincipalStruct.AWS != "arn:aws:iam::123456789012:role/TestRole" {
+		t.Fatalf("Expected non-array AWS non-principal, got %v", notPrincipalStruct.AWS)
+	}
+}
+
+func TestNormalizePolicyDocumentMissingPrincipal(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(4)
+	if normalizedPolicyStatementStruct.Principal != nil {
+		t.Fatalf("Expected missing Principal, got %v", normalizedPolicyStatementStruct.Principal)
+	}
+}
+
+func TestNormalizePolicyDocumentSortedPrincipalAWS(t *testing.T) {
+	normalizedPolicyStatementStruct := testPolicyDocumentStatementIndex(2)
+	var principalStruct policyStatementPrincipal
+	_ = mapstructure.Decode(normalizedPolicyStatementStruct.Principal, &principalStruct)
+	if principalStruct.AWS.([]interface{})[0].(string) != "arn:aws:iam::123456789012:role/TestRole" {
+		t.Fatalf("Expected first principal to be arn:aws:iam::123456789012:role/TestRole, got %s", principalStruct.AWS.([]interface{})[0].(string))
 	}
 }
