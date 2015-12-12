@@ -176,12 +176,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: true,
 			},
 			"block_device": &schema.Schema{
-				// TODO: This is a set because we don't support singleton
-				//       sub-resources today. We'll enforce that the set only ever has
-				//       length zero or one below. When TF gains support for
-				//       sub-resources this can be converted.
-				//       As referenced in resource_aws_instance.go
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -212,10 +207,6 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Default:  false,
 						},
 					},
-				},
-				Set: func(v interface{}) int {
-					// there can only be one bootable block device; no need to hash anything
-					return 0
 				},
 			},
 			"volume": &schema.Schema{
@@ -352,9 +343,8 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if v, ok := d.GetOk("block_device"); ok {
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
+	if vL, ok := d.GetOk("block_device"); ok {
+		for _, v := range vL.([]interface{}) {
 			blockDeviceRaw := v.(map[string]interface{})
 			blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
 			createOpts = &bootfromvolume.CreateOptsExt{
@@ -1239,9 +1229,8 @@ func checkVolumeConfig(d *schema.ResourceData) error {
 		}
 	}
 
-	if v, ok := d.GetOk("block_device"); ok {
-		vL := v.(*schema.Set).List()
-		if len(vL) > 1 {
+	if vL, ok := d.GetOk("block_device"); ok {
+		if len(vL.([]interface{})) > 1 {
 			return fmt.Errorf("Can only specify one block device to boot from.")
 		}
 	}

@@ -253,9 +253,9 @@ func TestAccComputeV2Instance_multi_secgroups(t *testing.T) {
 	})
 }
 
-func TestAccComputeV2Instance_bootFromVolume(t *testing.T) {
+func TestAccComputeV2Instance_bootFromVolumeImage(t *testing.T) {
 	var instance servers.Server
-	var testAccComputeV2Instance_bootFromVolume = fmt.Sprintf(`
+	var testAccComputeV2Instance_bootFromVolumeImage = fmt.Sprintf(`
 		resource "openstack_compute_instance_v2" "foo" {
 			name = "terraform-test"
 			security_groups = ["default"]
@@ -276,7 +276,46 @@ func TestAccComputeV2Instance_bootFromVolume(t *testing.T) {
 		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeV2Instance_bootFromVolume,
+				Config: testAccComputeV2Instance_bootFromVolumeImage,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceBootVolumeAttachment(&instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_bootFromVolumeVolume(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_bootFromVolumeVolume = fmt.Sprintf(`
+	  resource "openstack_blockstorage_volume_v1" "foo" {
+			name = "terraform-test"
+			size = 5
+			image_id = "%s"
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+			block_device {
+				uuid = "${openstack_blockstorage_volume_v1.foo.id}"
+				source_type = "volume"
+				volume_size = 5
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_bootFromVolumeVolume,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceBootVolumeAttachment(&instance),
