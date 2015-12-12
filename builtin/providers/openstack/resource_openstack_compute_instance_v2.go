@@ -191,13 +191,13 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"uuid": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"source_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"uuid": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"volume_size": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -215,6 +215,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
+						},
+						"guest_format": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -380,14 +384,10 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if vL, ok := d.GetOk("block_device"); ok {
-		for _, v := range vL.([]interface{}) {
-			blockDeviceRaw := v.(map[string]interface{})
-			blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
-			createOpts = &bootfromvolume.CreateOptsExt{
-				CreateOptsBuilder: createOpts,
-				BlockDevice:       blockDevice,
-			}
-			log.Printf("[DEBUG] Create BFV Options: %+v", createOpts)
+		blockDevices := resourceInstanceBlockDevicesV2(d, vL.([]interface{}))
+		createOpts = &bootfromvolume.CreateOptsExt{
+			createOpts,
+			blockDevices,
 		}
 	}
 
@@ -1091,20 +1091,24 @@ func resourceInstanceMetadataV2(d *schema.ResourceData) map[string]string {
 	return m
 }
 
-func resourceInstanceBlockDeviceV2(d *schema.ResourceData, bd map[string]interface{}) []bootfromvolume.BlockDevice {
-	sourceType := bootfromvolume.SourceType(bd["source_type"].(string))
-	bfvOpts := []bootfromvolume.BlockDevice{
-		bootfromvolume.BlockDevice{
-			UUID:                bd["uuid"].(string),
+func resourceInstanceBlockDevicesV2(d *schema.ResourceData, bds []interface{}) []bootfromvolume.BlockDevice {
+	blockDeviceOpts := make([]bootfromvolume.BlockDevice, len(bds))
+	for i, bd := range bds {
+		bdM := bd.(map[string]interface{})
+		sourceType := bootfromvolume.SourceType(bdM["source_type"].(string))
+		blockDeviceOpts[i] = bootfromvolume.BlockDevice{
+			UUID:                bdM["uuid"].(string),
 			SourceType:          sourceType,
-			VolumeSize:          bd["volume_size"].(int),
-			DestinationType:     bd["destination_type"].(string),
-			BootIndex:           bd["boot_index"].(int),
-			DeleteOnTermination: bd["delete_on_termination"].(bool),
-		},
+			VolumeSize:          bdM["volume_size"].(int),
+			DestinationType:     bdM["destination_type"].(string),
+			BootIndex:           bdM["boot_index"].(int),
+			DeleteOnTermination: bdM["delete_on_termination"].(bool),
+			GuestFormat:         bdM["guest_format"].(string),
+		}
 	}
 
-	return bfvOpts
+	log.Printf("[DEBUG] Block Device Options: %+v", blockDeviceOpts)
+	return blockDeviceOpts
 }
 
 func resourceInstanceSchedulerHintsV2(d *schema.ResourceData, schedulerHintsRaw map[string]interface{}) schedulerhints.SchedulerHints {
@@ -1142,10 +1146,19 @@ func resourceInstanceSchedulerHintsV2(d *schema.ResourceData, schedulerHintsRaw 
 }
 
 func getImageIDFromConfig(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
-	// If block_device was used, an Image does not need to be specified.
-	// If an Image was specified, ignore it
-	if _, ok := d.GetOk("block_device"); ok {
-		return "", nil
+	// If block_device was used, an Image does not need to be specified, unless an image/local
+	// combination was used. This emulates normal boot behavior. Otherwise, ignore the image altogether.
+	if vL, ok := d.GetOk("block_device"); ok {
+		needImage := false
+		for _, v := range vL.([]interface{}) {
+			vM := v.(map[string]interface{})
+			if vM["source_type"] == "image" && vM["destination_type"] == "local" {
+				needImage = true
+			}
+		}
+		if !needImage {
+			return "", nil
+		}
 	}
 
 	if imageId := d.Get("image_id").(string); imageId != "" {
@@ -1177,11 +1190,20 @@ func getImageIDFromConfig(computeClient *gophercloud.ServiceClient, d *schema.Re
 }
 
 func setImageInformation(computeClient *gophercloud.ServiceClient, server *servers.Server, d *schema.ResourceData) error {
-	// If block_device was used, an Image does not need to be specified.
-	// If an Image was specified, ignore it
-	if _, ok := d.GetOk("block_device"); ok {
-		d.Set("image_id", "Attempt to boot from volume - no image supplied")
-		return nil
+	// If block_device was used, an Image does not need to be specified, unless an image/local
+	// combination was used. This emulates normal boot behavior. Otherwise, ignore the image altogether.
+	if vL, ok := d.GetOk("block_device"); ok {
+		needImage := false
+		for _, v := range vL.([]interface{}) {
+			vM := v.(map[string]interface{})
+			if vM["source_type"] == "image" && vM["destination_type"] == "local" {
+				needImage = true
+			}
+		}
+		if !needImage {
+			d.Set("image_id", "Attempt to boot from volume - no image supplied")
+			return nil
+		}
 	}
 
 	imageId := server.Image["id"].(string)
@@ -1395,8 +1417,11 @@ func checkVolumeConfig(d *schema.ResourceData) error {
 	}
 
 	if vL, ok := d.GetOk("block_device"); ok {
-		if len(vL.([]interface{})) > 1 {
-			return fmt.Errorf("Can only specify one block device to boot from.")
+		for _, v := range vL.([]interface{}) {
+			vM := v.(map[string]interface{})
+			if vM["source_type"] != "blank" && vM["uuid"] == "" {
+				return fmt.Errorf("You must specify a uuid for %s block device types", vM["source_type"])
+			}
 		}
 	}
 

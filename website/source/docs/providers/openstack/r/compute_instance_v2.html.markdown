@@ -82,6 +82,8 @@ The following arguments are supported:
 
 * `block_device` - (Optional) The object for booting by volume. The block_device
     object structure is documented below. Changing this creates a new server.
+    You can specify multiple block devices which will create an instance with
+    multiple ephemeral (local) disks.
 
 * `volume` - (Optional) Attach an existing volume to the instance. The volume
     structure is described below.
@@ -187,6 +189,8 @@ The following attributes are exported:
 
 ## Notes
 
+### Floating IPs
+
 Floating IPs can be associated in one of two ways:
 
 * You can specify a Floating IP address by using the top-level `floating_ip`
@@ -199,3 +203,46 @@ defined in the `network` block. Each `network` block can have its own floating
 IP address.
 
 Only one of the above methods can be used.
+
+### Multiple Ephemeral Disks
+
+It's possible to specify multiple `block_device` entries to create an instance
+with multiple ephemeral (local) disks. In order to create multiple ephemeral
+disks, the sum of the total amount of ephemeral space must be less than or
+equal to what the chosen flavor supports.
+
+The following example shows how to create an instance with multiple ephemeral
+disks:
+
+```
+resource "openstack_compute_instance_v2" "foo" {
+  name = "terraform-test"
+  security_groups = ["default"]
+
+  block_device {
+    boot_index = 0
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "image"
+    uuid = "<image uuid>"
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    guest_format = "ext4"
+    source_type = "blank"
+    volume_size = 1
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    guest_format = "ext4"
+    source_type = "blank"
+    volume_size = 1
+  }
+}
+```
