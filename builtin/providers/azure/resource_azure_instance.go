@@ -682,7 +682,7 @@ func retrieveImageDetails(
 func retrieveVMImageDetails(
 	vmImageClient virtualmachineimage.Client,
 	label string) (func(*virtualmachine.Role) error, string, []string, error) {
-	imgs, err := vmImageClient.ListVirtualMachineImages()
+	imgs, err := vmImageClient.ListVirtualMachineImages(virtualmachineimage.ListParameters{})
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("Error retrieving image details: %s", err)
 	}
