@@ -281,8 +281,10 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 
 	out, err := iamconn.GetUser(nil)
 
+	var account_id string
+
 	if err == nil {
-		account_id := strings.Split(*out.User.Arn, ":")[4]
+		account_id = strings.Split(*out.User.Arn, ":")[4]
 	} else {
 		awsErr, _ := err.(awserr.Error)
 
@@ -299,7 +301,7 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 			return fmt.Errorf("Failed getting account ID from IAM: Couldn't determine current user or role")
 		}
 
-		account_id := strings.Split(*out.Roles[0].Arn, ":")[4]
+		account_id = strings.Split(*out.Roles[0].Arn, ":")[4]
 	}
 
 	if c.ForbiddenAccountIds != nil {
