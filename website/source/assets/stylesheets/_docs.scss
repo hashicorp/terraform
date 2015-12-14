@@ -202,7 +202,9 @@ body.layout-intro{
 
 	h1{
 		color: $purple;
+    font-size: 36px;
 		text-transform: uppercase;
+    word-wrap: break-word;
 		padding-bottom: 24px;
     margin-top: 40px;
 		margin-bottom: 24px;
@@ -218,7 +220,6 @@ body.layout-intro{
         margin-top: 30px;
     }
 }
-
 
 @media (max-width: 992px) {
 	body.layout-docs,
@@ -280,6 +281,7 @@ body.layout-intro{
 
   .bs-docs-section{
     h1{
+      font-size: 32px;
       padding-top: 24px;
       border-top: 1px solid #eeeeee;
     }
@@ -293,7 +295,7 @@ body.layout-intro{
         }
 
 		h1{
-			font-size: 32px;
+			font-size: 28px;
 		}
 	}
 }
