@@ -1,7 +1,8 @@
-package main
+package logging
 
 import (
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -18,9 +19,9 @@ const (
 
 var validLevels = []logutils.LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 
-// logOutput determines where we should send logs (if anywhere) and the log level.
-func logOutput() (logOutput io.Writer, err error) {
-	logOutput = nil
+// LogOutput determines where we should send logs (if anywhere) and the log level.
+func LogOutput() (logOutput io.Writer, err error) {
+	logOutput = ioutil.Discard
 	envLevel := os.Getenv(EnvLog)
 	if envLevel == "" {
 		return

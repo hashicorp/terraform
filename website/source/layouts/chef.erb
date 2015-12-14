@@ -1,0 +1,38 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+				<li<%= sidebar_current("docs-chef-index") %>>
+				<a href="/docs/providers/consul/index.html">Chef Provider</a>
+                </li>
+
+				<li<%= sidebar_current(/^docs-chef-resource/) %>>
+				<a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-chef-resource-data-bag") %>>
+					<a href="/docs/providers/chef/r/data_bag.html">chef_data_bag</a>
+					</li>
+                    <li<%= sidebar_current("docs-chef-resource-data-bag-item") %>>
+					<a href="/docs/providers/chef/r/data_bag_item.html">chef_data_bag_item</a>
+					</li>
+                    <li<%= sidebar_current("docs-chef-resource-environment") %>>
+					<a href="/docs/providers/chef/r/environment.html">chef_environment</a>
+					</li>
+                    <li<%= sidebar_current("docs-chef-resource-node") %>>
+					<a href="/docs/providers/chef/r/node.html">chef_node</a>
+					</li>
+                    <li<%= sidebar_current("docs-chef-resource-role") %>>
+					<a href="/docs/providers/chef/r/role.html">chef_role</a>
+					</li>
+				</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>

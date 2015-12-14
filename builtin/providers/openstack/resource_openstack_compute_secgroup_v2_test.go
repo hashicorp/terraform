@@ -97,9 +97,9 @@ func TestAccComputeV2SecGroup_self(t *testing.T) {
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.test_group_1", &secgroup),
 					testAccCheckComputeV2SecGroupGroupIDMatch(t, &secgroup, &secgroup),
 					resource.TestCheckResourceAttr(
-						"openstack_compute_secgroup_v2.test_group_1", "rule.1118853483.self", "true"),
+						"openstack_compute_secgroup_v2.test_group_1", "rule.3170486100.self", "true"),
 					resource.TestCheckResourceAttr(
-						"openstack_compute_secgroup_v2.test_group_1", "rule.1118853483.from_group_id", ""),
+						"openstack_compute_secgroup_v2.test_group_1", "rule.3170486100.from_group_id", ""),
 				),
 			},
 		},

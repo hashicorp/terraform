@@ -47,7 +47,8 @@ supported node types
 
 * `num_cache_nodes` – (Required) The initial number of cache nodes that the
 cache cluster will have. For Redis, this value must be 1. For Memcache, this
-value must be between 1 and 20
+value must be between 1 and 20. If this number is reduced on subsequent runs,
+the highest numbered nodes will be removed.
 
 * `parameter_group_name` – (Required) Name of the parameter group to associate
 with this cache cluster
@@ -76,7 +77,7 @@ Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 * `snapshot_window` - (Optional) The daily time range (in UTC) during which ElastiCache will 
 begin taking a daily snapshot of your cache cluster. Can only be used for the Redis engine. Example: 05:00-09:00
 
-* `snapshow_retention_limit` - (Optional) The number of days for which ElastiCache will 
+* `snapshot_retention_limit` - (Optional) The number of days for which ElastiCache will 
 retain automatic cache cluster snapshots before deleting them. For example, if you set 
 SnapshotRetentionLimit to 5, then a snapshot that was taken today will be retained for 5 days 
 before being deleted. If the value of SnapshotRetentionLimit is set to zero (0), backups are turned off. 

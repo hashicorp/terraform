@@ -406,8 +406,9 @@ func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 	// all of the actual resources.
 	for _, item := range list.Items {
 		if len(item.Keys) != 2 {
-			// TODO: bad error message
-			return nil, fmt.Errorf("resource needs exactly 2 names")
+			return nil, fmt.Errorf(
+				"position %s: resource must be followed by exactly two strings, a type and a name",
+				item.Pos())
 		}
 
 		t := item.Keys[0].Token.Value().(string)

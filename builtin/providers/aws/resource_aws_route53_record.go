@@ -245,6 +245,11 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	// get expanded name
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
 	if err != nil {
+		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
+			log.Printf("[DEBUG] No matching Route 53 Record found for: %s, removing from state file", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
@@ -312,6 +317,11 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
 	if err != nil {
+		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
+			log.Printf("[DEBUG] No matching Route 53 Record found for: %s, removing from state file", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 	// Get the records

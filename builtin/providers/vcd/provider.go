@@ -66,11 +66,11 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		User:         d.Get("user").(string),
-		Password:     d.Get("password").(string),
-		Org:          d.Get("org").(string),
-		Href:         d.Get("url").(string),
-		VDC:          d.Get("vdc").(string),
+		User:            d.Get("user").(string),
+		Password:        d.Get("password").(string),
+		Org:             d.Get("org").(string),
+		Href:            d.Get("url").(string),
+		VDC:             d.Get("vdc").(string),
 		MaxRetryTimeout: d.Get("maxRetryTimeout").(int),
 	}
 

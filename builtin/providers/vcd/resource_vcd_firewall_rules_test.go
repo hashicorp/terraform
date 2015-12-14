@@ -72,11 +72,11 @@ func testAccCheckVcdFirewallRulesAttributes(newRules, existingRules *govcd.EdgeG
 
 func createFirewallRulesConfigs(existingRules *govcd.EdgeGateway) string {
 	config := Config{
-		User:     os.Getenv("VCD_USER"),
-		Password: os.Getenv("VCD_PASSWORD"),
-		Org:      os.Getenv("VCD_ORG"),
-		Href:     os.Getenv("VCD_URL"),
-		VDC:      os.Getenv("VCD_VDC"),
+		User:            os.Getenv("VCD_USER"),
+		Password:        os.Getenv("VCD_PASSWORD"),
+		Org:             os.Getenv("VCD_ORG"),
+		Href:            os.Getenv("VCD_URL"),
+		VDC:             os.Getenv("VCD_VDC"),
 		MaxRetryTimeout: 240,
 	}
 	conn, err := config.Client()

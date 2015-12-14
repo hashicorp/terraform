@@ -3,6 +3,8 @@
 FEATURES:
   * **New provider: `vcd` - VMware vCloud Director** [GH-3785]
   * **New provider: `postgresql` - Create PostgreSQL databases and roles** [GH-3653]
+  * **New provider: `chef` - Create chef environments, roles, etc** [GH-3084]
+  * **New resource: `aws_autoscaling_schedule`** [GH-4256]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
   * **New resource: `tls_locally_signed_cert`** [GH-3930]
@@ -11,7 +13,15 @@ IMPROVEMENTS:
 
   * core: Change set internals for performance improvements [GH-3992]
   * core: Support HTTP basic auth in consul remote state [GH-4166]
-  * provider/aws: Add placement_group as an option for `aws_autoscaling_group` [GH-3704]
+  * core: Improve error message on resource arity mismatch [GH-4244]
+  * provider/aws: Add `placement_group` as an option for `aws_autoscaling_group` [GH-3704]
+  * provider/aws: Add support for DynamoDB Table StreamSpecifications [GH-4208]
+  * provider/aws: Add `name_prefix` to Security Groups [GH-4167]
+  * provider/aws: Add support for removing nodes to `aws_elasticache_cluster` [GH-3809]
+  * provider/aws: Add support for `skip_final_snapshot` to `aws_db_instance` [GH-3853]
+  * provider/aws: Adding support for Tags to DB SecurityGroup [GH-4260]
+  * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
+  * provider/aws: DB Subnet group arn output [GH-4261]
   * provider/cloudstack: performance improvements [GH-4150]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
@@ -21,13 +31,29 @@ IMPROVEMENTS:
   * provider/vsphere: Add support for custom vm params on `vsphere_virtual_machine` [GH-3867]
   * provider/vsphere: Rename vcenter_server config parameter to something clearer [GH-3718]
   * provider/vsphere: Make allow_unverified_ssl a configuable on the provider [GH-3933]
+  * provider/vsphere: Add folder handling for folder-qualified vm names [GH-3939]
+  * provider/vsphere: Change ip_address parameter for ipv6 support [GH-4035]
+  * provider/openstack: Increase instance timeout from 10 to 30 minutes [GH-4223]
 
 BUG FIXES:
 
   * core: skip provider input for deprecated fields [GH-4193]
+  * core: Fix issue which could cause fields that become empty to retain old values in the state [GH-3257]
   * provider/docker: Fix an issue running with Docker Swarm by looking up containers by ID instead of name [GH-4148]
   * provider/openstack: Better handling of load balancing resource state changes [GH-3926]
   * provider/aws: Skip `source_security_group_id` determination logic for Classic ELBs [GH-4075]
+  * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
+  * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
+  * provider/aws: Update DB Replica to honor storage type [GH-4155]
+  * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
+  * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
+  * provider/aws: Fix missing AMI issue with Launch Configurations [GH-4242]
+  * provider/aws: Opsworks stack SSH key is write-only [GH-4241]
+  * provider/aws: Fix issue with ElasticSearch Domain `access_policies` always appear changed [GH-4245]
+  * provider/azure: Update for [breaking change to upstream client library](https://github.com/Azure/azure-sdk-for-go/commit/68d50cb53a73edfeb7f17f5e86cdc8eb359a9528). [GH-4300]
+  * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
+  * provider/openstack: Handle volumes in "deleting" state [GH-4204]
+  * provider/vsphere: Create and attach additional disks before bootup [GH-4196]
 
 ## 0.6.8 (December 2, 2015)
 

@@ -28,11 +28,26 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					if len(value) > 255 {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
+			},
+
+			"name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 100 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 100 characters, name is limited to 255", k))
 					}
 					return
 				},
@@ -178,6 +193,8 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	var groupName string
 	if v, ok := d.GetOk("name"); ok {
 		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
 	} else {
 		groupName = resource.UniqueId()
 	}

@@ -45,6 +45,7 @@ The following arguments are supported:
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.
+* `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB instance is deleted. If true is specified, no DBSnapshot is created. If false is specified, a DB snapshot is created before the DB instance is deleted. Default is true.
 * `copy_tags_to_snapshot` – (Optional, boolean) On delete, copy all Instance `tags` to
 the final snapshot (if `final_snapshot_identifier` is specified). Default
 `false`
@@ -82,6 +83,8 @@ database, and to use this value as the source database. This correlates to the
  more information on using Replication.
 * `snapshot_identifier` - (Optional) Specifies whether or not to create this database from a snapshot. This correlates to the snapshot ID you'd find in the RDS console, e.g: rds:production-2015-06-26-06-05.
 * `license_model` - (Optional, but required for some DB engines, i.e. Oracle SE1) License model information for this DB instance.
+* `auto_minor_version_upgrade` - (Optional) Indicates that minor engine upgrades will be applied automatically to the DB instance during the maintenance window. Defaults to true.
+* `auto_major_version_upgrade` - (Optional) Indicates that major version upgrades are allowed. Changing this parameter does not result in an outage and the change is asynchronously applied as soon as possible.
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
 Replicate database managed by Terraform will promote the database to a fully
@@ -93,6 +96,7 @@ The following attributes are exported:
 
 * `id` - The RDS instance ID.
 * `address` - The address of the RDS instance.
+* `arn` - The ARN of the RDS instance.
 * `allocated_storage` - The amount of allocated storage
 * `availability_zone` - The availability zone of the instance
 * `backup_retention_period` - The backup retention period
