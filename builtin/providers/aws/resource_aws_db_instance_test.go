@@ -9,10 +9,11 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
+	"log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
-	"log"
 )
 
 func TestAccAWSDBInstance_basic(t *testing.T) {
@@ -191,7 +192,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 
 		} else {
 			if len(resp.DBInstances) != 0 &&
-			*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
 				return fmt.Errorf("DB Instance still exists")
 			}
 		}
@@ -245,7 +246,7 @@ func testAccCheckAWSDBInstanceNoSnapshot(s *terraform.State) error {
 
 		} else {
 			if len(resp.DBInstances) != 0 &&
-			*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
 				return fmt.Errorf("DB Instance still exists")
 			}
 		}
@@ -288,11 +289,11 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 
 		if err != nil {
 			return err
-		}
-
-		if len(resp.DBInstances) != 1 ||
-			*resp.DBInstances[0].DBInstanceIdentifier != rs.Primary.ID {
-			return fmt.Errorf("DB Instance not found")
+		} else {
+			if len(resp.DBInstances) != 0 &&
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				return fmt.Errorf("DB Instance still exists")
+			}
 		}
 
 		*v = *resp.DBInstances[0]
