@@ -353,8 +353,12 @@ func getCreds(key, secret, token string) *awsCredentials.Credentials {
 	}
 
 	r, err := c.Get(metadataURL)
+	// Flag to determine if we should add the EC2Meta data provider. Default false
 	var useIAM bool
 	if err == nil {
+		// AWS will add a "Server: EC2ws" header value for the metadata request. We
+		// check the headers for this value to ensure something else didn't just
+		// happent to be listening on that IP:Port
 		if r.Header["Server"] != nil && strings.Contains(r.Header["Server"][0], "EC2") {
 			useIAM = true
 		}
