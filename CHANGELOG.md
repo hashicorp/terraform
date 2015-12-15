@@ -34,6 +34,7 @@ IMPROVEMENTS:
   * provider/vsphere: Add folder handling for folder-qualified vm names [GH-3939]
   * provider/vsphere: Change ip_address parameter for ipv6 support [GH-4035]
   * provider/openstack: Increase instance timeout from 10 to 30 minutes [GH-4223]
+  * provider/google: Add `restart_policy` attribute to `google_managed_instance_group` [GH-3892]
 
 BUG FIXES:
 
