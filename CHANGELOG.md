@@ -21,6 +21,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for `skip_final_snapshot` to `aws_db_instance` [GH-3853]
   * provider/aws: Adding support for Tags to DB SecurityGroup [GH-4260]
   * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
+  * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
   * provider/aws: DB Subnet group arn output [GH-4261]
   * provider/cloudstack: performance improvements [GH-4150]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
