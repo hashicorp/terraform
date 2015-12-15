@@ -241,21 +241,18 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
+	serviceName := d.Id()
+	clusterName := d.Get("cluster").(string)
+
 	// Check if it's not already gone
 	resp, err := conn.DescribeServices(&ecs.DescribeServicesInput{
-		Services: []*string{aws.String(d.Id())},
-		Cluster:  aws.String(d.Get("cluster").(string)),
+		Services: []*string{aws.String(serviceName)},
+		Cluster:  aws.String(clusterName),
 	})
 	if err != nil {
 		return err
 	}
-
-	if len(resp.Services) == 0 {
-		log.Printf("[DEBUG] ECS Service %q is already gone", d.Id())
-		return nil
-	}
-
-	log.Printf("[DEBUG] ECS service %s is currently %s", d.Id(), *resp.Services[0].Status)
+	log.Printf("[DEBUG] ECS service %s is currently %s", serviceName, *resp.Services[0].Status)
 
 	if *resp.Services[0].Status == "INACTIVE" {
 		return nil
@@ -265,8 +262,8 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	if *resp.Services[0].Status != "DRAINING" {
 		log.Printf("[DEBUG] Draining ECS service %s", d.Id())
 		_, err = conn.UpdateService(&ecs.UpdateServiceInput{
-			Service:      aws.String(d.Id()),
-			Cluster:      aws.String(d.Get("cluster").(string)),
+			Service:      aws.String(serviceName),
+			Cluster:      aws.String(clusterName),
 			DesiredCount: aws.Int64(int64(0)),
 		})
 		if err != nil {
@@ -275,8 +272,8 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	input := ecs.DeleteServiceInput{
-		Service: aws.String(d.Id()),
-		Cluster: aws.String(d.Get("cluster").(string)),
+		Service: aws.String(serviceName),
+		Cluster: aws.String(clusterName),
 	}
 
 	log.Printf("[DEBUG] Deleting ECS service %s", input)
@@ -292,16 +289,48 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if ECS service %s is INACTIVE", d.Id())
+			// The DescribeServices returns "DRAINING" for several hours/days
+			// even when the service is actually deleted and no longer visible
+			// in the cluster
+			log.Printf("[DEBUG] Check if ECS service %s exists in the cluster %s", serviceName, clusterName)
+			servicesListResp, servicesListErr := conn.ListServices(&ecs.ListServicesInput{
+				Cluster: aws.String(clusterName),
+			})
+
+			if servicesListErr != nil {
+				return servicesListErr, "FAILED", servicesListErr
+			}
+
+			foundService := false
+			for _, serviceArn := range servicesListResp.ServiceArns {
+				foundServiceName := strings.Split(*serviceArn, "/")[1]
+				if foundServiceName == serviceName {
+					foundService = true
+					break
+				}
+			}
+
+			if !foundService {
+				return servicesListResp, "INACTIVE", nil
+			}
+
+			log.Printf("[DEBUG] Checking if ECS service %s is INACTIVE or MISSING", d.Id())
 			resp, err := conn.DescribeServices(&ecs.DescribeServicesInput{
-				Services: []*string{aws.String(d.Id())},
-				Cluster:  aws.String(d.Get("cluster").(string)),
+				Services: []*string{aws.String(serviceName)},
+				Cluster:  aws.String(clusterName),
 			})
 			if err != nil {
 				return resp, "FAILED", err
 			}
 
-			return resp, *resp.Services[0].Status, nil
+			status := *resp.Services[0].Status
+			log.Printf("[DEBUG] ECS service %s is %s", serviceName, status)
+
+			// both these statuses means that the service is deleted
+			if status == "MISSING" {
+				status = "INACTIVE"
+			}
+			return resp, status, nil
 		},
 	}
 
