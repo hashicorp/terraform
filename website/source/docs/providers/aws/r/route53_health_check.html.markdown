@@ -38,5 +38,5 @@ The following arguments are supported:
 * `search_string` - (Optional) String searched in respoonse body for check to considered healthy.
 * `tags` - (Optional) A mapping of tags to assign to the health check.
 
-Exactly one of `fqdn` or `ip_address` must be specified.
+At least one of either `fqdn` or `ip_address` must be specified.
 
