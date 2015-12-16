@@ -49,6 +49,7 @@ BUG FIXES:
   * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
   * provider/aws: Update DB Replica to honor storage type [GH-4155]
   * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
+  * provider/aws: Refactor AWS Authentication chain to fix issue with authentication and IAM [GH-4254]
   * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
   * provider/aws: Fix missing AMI issue with Launch Configurations [GH-4242]
   * provider/aws: Opsworks stack SSH key is write-only [GH-4241]
