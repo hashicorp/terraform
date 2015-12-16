@@ -243,7 +243,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 
 			// Wait for the operation to complete
 			err = computeOperationWaitZoneTime(config, op, d.Get("zone").(string),
-				managedInstanceCount * 4, "Restarting InstanceGroupManagers instances")
+				managedInstanceCount*4, "Restarting InstanceGroupManagers instances")
 			if err != nil {
 				return err
 			}
