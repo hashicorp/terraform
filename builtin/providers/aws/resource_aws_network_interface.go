@@ -33,7 +33,6 @@ func resourceAwsNetworkInterface() *schema.Resource {
 			"private_ips": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
@@ -200,6 +199,14 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 	return nil
 }
 
+func convertToAwsStringSlice(s []interface{}) []*string {
+	var b []*string
+	for _, i := range s {
+		b = append(b, aws.String(i.(string)))
+	}
+	return b
+}
+
 func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	d.Partial(true)
@@ -228,6 +235,47 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		d.SetPartial("attachment")
+	}
+
+	if d.HasChange("private_ips") {
+		o, n := d.GetChange("private_ips")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		// Unassign old IP addresses
+		unassignIps := os.Difference(ns)
+		if unassignIps.Len() != 0 {
+			input := &ec2.UnassignPrivateIpAddressesInput{
+				NetworkInterfaceId: aws.String(d.Id()),
+				PrivateIpAddresses: convertToAwsStringSlice(unassignIps.List()),
+			}
+			_, err := conn.UnassignPrivateIpAddresses(input)
+			if err != nil {
+				return fmt.Errorf("Failure to unassign Private IPs: %s", err)
+			}
+		}
+
+		// Assign new IP addresses
+		assignIps := ns.Difference(os)
+		if assignIps.Len() != 0 {
+			input := &ec2.AssignPrivateIpAddressesInput{
+				NetworkInterfaceId: aws.String(d.Id()),
+				PrivateIpAddresses: convertToAwsStringSlice(assignIps.List()),
+			}
+			_, err := conn.AssignPrivateIpAddresses(input)
+			if err != nil {
+				return fmt.Errorf("Failure to assign Private IPs: %s", err)
+			}
+		}
+
+		d.SetPartial("private_ips")
 	}
 
 	request := &ec2.ModifyNetworkInterfaceAttributeInput{
