@@ -78,6 +78,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_template_deployment":    resourceArmTemplateDeployment(),
 			"azurerm_virtual_machine":        resourceArmVirtualMachine(),
 			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
+			"azurerm_load_balancer":          resourceArmLoadBalancer(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
