@@ -24,6 +24,7 @@ IMPROVEMENTS:
   * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
   * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
   * provider/aws: DB Subnet group arn output [GH-4261]
+  * provider/aws: Allow changing private IPs for ENIs [GH-4307]
   * provider/aws: Retry MalformedPolicy errors due to newly created principals in S3 Buckets [GH-4315]
   * provider/aws: Validate `name` on `db_subnet_group` against AWS requirements [GH-4340]
   * provider/cloudstack: performance improvements [GH-4150]
