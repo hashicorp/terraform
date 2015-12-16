@@ -199,14 +199,6 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 	return nil
 }
 
-func convertToAwsStringSlice(s []interface{}) []*string {
-	var b []*string
-	for _, i := range s {
-		b = append(b, aws.String(i.(string)))
-	}
-	return b
-}
-
 func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	d.Partial(true)
@@ -254,7 +246,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		if unassignIps.Len() != 0 {
 			input := &ec2.UnassignPrivateIpAddressesInput{
 				NetworkInterfaceId: aws.String(d.Id()),
-				PrivateIpAddresses: convertToAwsStringSlice(unassignIps.List()),
+				PrivateIpAddresses: expandStringList(unassignIps.List()),
 			}
 			_, err := conn.UnassignPrivateIpAddresses(input)
 			if err != nil {
@@ -267,7 +259,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		if assignIps.Len() != 0 {
 			input := &ec2.AssignPrivateIpAddressesInput{
 				NetworkInterfaceId: aws.String(d.Id()),
-				PrivateIpAddresses: convertToAwsStringSlice(assignIps.List()),
+				PrivateIpAddresses: expandStringList(assignIps.List()),
 			}
 			_, err := conn.AssignPrivateIpAddresses(input)
 			if err != nil {
