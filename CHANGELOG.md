@@ -24,6 +24,7 @@ IMPROVEMENTS:
   * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
   * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
   * provider/aws: DB Subnet group arn output [GH-4261]
+  * provider/aws: Validate `name` on `db_subnet_group` against AWS requirements [GH-4340]
   * provider/cloudstack: performance improvements [GH-4150]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
