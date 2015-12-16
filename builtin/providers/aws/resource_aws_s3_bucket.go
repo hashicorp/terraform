@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -466,9 +468,24 @@ func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) erro
 	if policy != "" {
 		log.Printf("[DEBUG] S3 bucket: %s, put policy: %s", bucket, policy)
 
-		_, err := s3conn.PutBucketPolicy(&s3.PutBucketPolicyInput{
+		params := &s3.PutBucketPolicyInput{
 			Bucket: aws.String(bucket),
 			Policy: aws.String(policy),
+		}
+
+		err := resource.Retry(1*time.Minute, func() error {
+			if _, err := s3conn.PutBucketPolicy(params); err != nil {
+				if awserr, ok := err.(awserr.Error); ok {
+					if awserr.Code() == "MalformedPolicy" {
+						// Retryable
+						return awserr
+					}
+				}
+				// Not retryable
+				return resource.RetryError{Err: err}
+			}
+			// No error
+			return nil
 		})
 
 		if err != nil {
