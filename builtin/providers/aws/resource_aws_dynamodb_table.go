@@ -160,12 +160,12 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				},
 			},
 			"stream_enabled": &schema.Schema{
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 			"stream_view_type": &schema.Schema{
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				StateFunc: func(v interface{}) string {
@@ -280,9 +280,9 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if _, ok := d.GetOk("stream_enabled"); ok {
-		
+
 		req.StreamSpecification = &dynamodb.StreamSpecification{
-			StreamEnabled: aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
 			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
 		}
 
@@ -372,7 +372,7 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		req.StreamSpecification = &dynamodb.StreamSpecification{
-			StreamEnabled: aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
 			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
 		}
 
@@ -804,10 +804,10 @@ func waitForTableToBeActive(tableName string, meta interface{}) error {
 
 func validateStreamViewType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	viewTypes := map[string]bool {
-		"KEYS_ONLY": true,
-		"NEW_IMAGE": true,
-		"OLD_IMAGE": true,
+	viewTypes := map[string]bool{
+		"KEYS_ONLY":          true,
+		"NEW_IMAGE":          true,
+		"OLD_IMAGE":          true,
 		"NEW_AND_OLD_IMAGES": true,
 	}
 
