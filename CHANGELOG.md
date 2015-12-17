@@ -48,6 +48,7 @@ BUG FIXES:
   * core: Fix issue which could cause fields that become empty to retain old values in the state [GH-3257]
   * provider/docker: Fix an issue running with Docker Swarm by looking up containers by ID instead of name [GH-4148]
   * provider/openstack: Better handling of load balancing resource state changes [GH-3926]
+  * provider/aws: Treat `INACTIVE` ECS cluster as deleted [GH-4364]
   * provider/aws: Skip `source_security_group_id` determination logic for Classic ELBs [GH-4075]
   * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
   * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
