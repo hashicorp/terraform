@@ -5,6 +5,7 @@ FEATURES:
   * **New provider: `postgresql` - Create PostgreSQL databases and roles** [GH-3653]
   * **New provider: `chef` - Create chef environments, roles, etc** [GH-3084]
   * **New provider: `azurerm` - Preliminary support for Azure Resource Manager** [GH-4226]
+  * **New provider: `mysql` - Create MySQL databases** [GH-3122]
   * **New resource: `aws_autoscaling_schedule`** [GH-4256]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
