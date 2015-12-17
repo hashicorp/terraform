@@ -63,6 +63,7 @@ BUG FIXES:
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
   * provider/openstack: Handle volumes in "deleting" state [GH-4204]
   * provider/vsphere: Create and attach additional disks before bootup [GH-4196]
+  * provider/openstack: Convert block_device from a Set to a List [GH-4288]
 
 ## 0.6.8 (December 2, 2015)
 
