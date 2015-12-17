@@ -18,6 +18,7 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd}
 
+
 # Get dependencies unless running in quick mode
 if [ "${TF_QUICKDEV}x" == "x" ]; then
     echo "==> Getting dependencies..."
@@ -29,6 +30,7 @@ echo "==> Removing old directory..."
 rm -f bin/*
 rm -rf pkg/*
 mkdir -p bin/
+
 
 # If its dev mode, only build for ourself
 if [ "${TF_DEV}x" != "x" ]; then
