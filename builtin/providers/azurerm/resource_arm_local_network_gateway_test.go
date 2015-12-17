@@ -40,22 +40,23 @@ func testCheckAzureRMLocalNetworkGatewayExists(name string) resource.TestCheckFu
 			return fmt.Errorf("Local network gateway '%s' not found.", name)
 		}
 
-		// then, extranct the name and the resource group:
-		localNetName := res.Primary.Attributes["name"]
-		resGrp, hasResGrp := res.Primary.Attributes["resource_group_name"]
-		if !hasResGrp {
-			return fmt.Errorf("Local network gateway '%s' has no resource group set.", name)
+		// then, extract the name and the resource group:
+		id, err := parseAzureResourceID(res.Primary.ID)
+		if err != nil {
+			return err
 		}
+		localNetName := id.Path["localNetworkGateways"]
+		resGrp := id.ResourceGroup
 
 		// and finally, check that it exists on Azure:
 		lnetClient := testAccProvider.Meta().(*ArmClient).localNetConnClient
 
-		resp, err := lnetClient.Get(resGrp, name)
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Local network gateway '%s' (resource group '%s') does not exist on Azure.", localNetName, resGrp)
-		}
-
+		resp, err := lnetClient.Get(resGrp, localNetName)
 		if err != nil {
+			if resp.StatusCode == http.StatusNotFound {
+				return fmt.Errorf("Local network gateway '%s' (resource group '%s') does not exist on Azure.", localNetName, resGrp)
+			}
+
 			return fmt.Errorf("Error reading the state of local network gateway '%s'.", localNetName)
 		}
 
@@ -63,20 +64,21 @@ func testCheckAzureRMLocalNetworkGatewayExists(name string) resource.TestCheckFu
 	}
 }
 
-// testCheckAzureRMLocalNetworkGatewayDestroy is the resurce.TestCheckFunc
-// which checks whether or not the expected local network gateway still
-// exists on Azure.
 func testCheckAzureRMLocalNetworkGatewayDestroy(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azurerm_local_network_gateway" {
+	for _, res := range s.RootModule().Resources {
+		if res.Type != "azurerm_local_network_gateway" {
 			continue
 		}
 
-		name := rs.Primary.Attributes["name"]
-		resourceGroup := rs.Primary.Attributes["resource_group_name"]
+		id, err := parseAzureResourceID(res.Primary.ID)
+		if err != nil {
+			return err
+		}
+		localNetName := id.Path["localNetworkGateways"]
+		resGrp := id.ResourceGroup
 
 		lnetClient := testAccProvider.Meta().(*ArmClient).localNetConnClient
-		resp, err := lnetClient.Get(resourceGroup, name)
+		resp, err := lnetClient.Get(resGrp, localNetName)
 
 		if err != nil {
 			return nil
