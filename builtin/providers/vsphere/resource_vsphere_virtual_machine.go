@@ -426,7 +426,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	
+
 	log.Printf("[DEBUG] reading virtual machine: %#v", d)
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
@@ -1021,7 +1021,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	if err != nil {
 		return err
 	}
-	
+
 	log.Printf("[DEBUG] folder: %#v", vm.folder)
 	folder := dcFolders.VmFolder
 	if len(vm.folder) > 0 {

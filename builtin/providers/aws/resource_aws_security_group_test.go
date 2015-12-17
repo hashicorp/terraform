@@ -46,7 +46,7 @@ func TestAccAWSSecurityGroup_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSSecurityGroup_namePrefix( t *testing.T) {
+func TestAccAWSSecurityGroup_namePrefix(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
@@ -345,7 +345,7 @@ func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 }
 
 func testAccCheckAWSSecurityGroupGeneratedNamePrefix(
-resource, prefix string) resource.TestCheckFunc {
+	resource, prefix string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		r, ok := s.RootModule().Resources[resource]
 		if !ok {
