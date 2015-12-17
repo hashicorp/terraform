@@ -191,7 +191,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 
 		} else {
 			if len(resp.DBInstances) != 0 &&
-			*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
 				return fmt.Errorf("DB Instance still exists")
 			}
 		}
@@ -245,7 +245,7 @@ func testAccCheckAWSDBInstanceNoSnapshot(s *terraform.State) error {
 
 		} else {
 			if len(resp.DBInstances) != 0 &&
-			*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
 				return fmt.Errorf("DB Instance still exists")
 			}
 		}
