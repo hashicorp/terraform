@@ -209,6 +209,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_eip_association":                          resourceAwsEipAssociation(),
 			"aws_elasticache_cluster":                      resourceAwsElasticacheCluster(),
 			"aws_elasticache_parameter_group":              resourceAwsElasticacheParameterGroup(),
+			"aws_elasticache_replication_group":            resourceAwsElasticacheReplicationGroup(),
 			"aws_elasticache_security_group":               resourceAwsElasticacheSecurityGroup(),
 			"aws_elasticache_subnet_group":                 resourceAwsElasticacheSubnetGroup(),
 			"aws_elastic_beanstalk_application":            resourceAwsElasticBeanstalkApplication(),
