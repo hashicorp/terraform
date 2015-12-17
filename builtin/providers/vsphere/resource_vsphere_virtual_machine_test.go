@@ -216,8 +216,8 @@ func TestAccVSphereVirtualMachine_createInExistingFolder(t *testing.T) {
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCheckVSphereVirtualMachineDestroy,
 			removeVSphereFolder(datacenter, folder, ""),
@@ -283,8 +283,8 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccCheckVSphereVirtualMachineDestroy,
 			testAccCheckVSphereFolderDestroy,
@@ -344,7 +344,6 @@ func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 			return fmt.Errorf("error %s", err)
 		}
 
-
 		folder := dcFolders.VmFolder
 		if len(rs.Primary.Attributes["folder"]) > 0 {
 			si := object.NewSearchIndex(client.Client)
@@ -370,7 +369,6 @@ func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 func testAccCheckVSphereVirtualMachineExistsHasCustomConfig(n string, vm *virtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -392,7 +390,6 @@ func testAccCheckVSphereVirtualMachineExistsHasCustomConfig(n string, vm *virtua
 		if err != nil {
 			return fmt.Errorf("error %s", err)
 		}
-
 
 		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), dcFolders.VmFolder, rs.Primary.Attributes["name"])
 		if err != nil {
@@ -492,7 +489,6 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 		}
 
 		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), folder, rs.Primary.Attributes["name"])
-
 
 		*vm = virtualMachine{
 			name: rs.Primary.ID,
