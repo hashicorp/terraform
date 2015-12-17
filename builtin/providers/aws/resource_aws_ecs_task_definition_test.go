@@ -82,17 +82,19 @@ func testAccCheckAWSEcsTaskDefinitionDestroy(s *terraform.State) error {
 			continue
 		}
 
-		out, err := conn.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
-			TaskDefinition: aws.String(rs.Primary.ID),
-		})
-
-		if err == nil {
-			if out.TaskDefinition != nil {
-				return fmt.Errorf("ECS task definition still exists:\n%#v", *out.TaskDefinition)
-			}
+		input := ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: aws.String(rs.Primary.Attributes["arn"]),
 		}
 
-		return err
+		out, err := conn.DescribeTaskDefinition(&input)
+
+		if err != nil {
+			return err
+		}
+
+		if out.TaskDefinition != nil && *out.TaskDefinition.Status != "INACTIVE" {
+			return fmt.Errorf("ECS task definition still exists:\n%#v", *out.TaskDefinition)
+		}
 	}
 
 	return nil
