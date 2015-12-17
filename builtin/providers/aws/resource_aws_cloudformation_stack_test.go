@@ -101,9 +101,12 @@ func testAccCheckAWSCloudFormationDestroy(s *terraform.State) error {
 
 		resp, err := conn.DescribeStacks(&params)
 
-		if err == nil {
-			if len(resp.Stacks) != 0 &&
-				*resp.Stacks[0].StackId == rs.Primary.ID {
+		if err != nil {
+			return err
+		}
+
+		for _, s := range resp.Stacks {
+			if *s.StackId == rs.Primary.ID && *s.StackStatus != "DELETE_COMPLETE" {
 				return fmt.Errorf("CloudFormation stack still exists: %q", rs.Primary.ID)
 			}
 		}
