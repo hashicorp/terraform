@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -61,6 +62,13 @@ func resourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error {
 
 	for _, c := range out.Clusters {
 		if *c.ClusterName == clusterName {
+			// Status==INACTIVE means deleted cluster
+			if *c.Status == "INACTIVE" {
+				log.Printf("[DEBUG] Removing ECS cluster %q because it's INACTIVE", *c.ClusterArn)
+				d.SetId("")
+				return nil
+			}
+
 			d.SetId(*c.ClusterArn)
 			d.Set("name", c.ClusterName)
 			return nil
@@ -77,7 +85,7 @@ func resourceAwsEcsClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Deleting ECS cluster %s", d.Id())
 
-	return resource.Retry(10*time.Minute, func() error {
+	err := resource.Retry(10*time.Minute, func() error {
 		out, err := conn.DeleteCluster(&ecs.DeleteClusterInput{
 			Cluster: aws.String(d.Id()),
 		})
@@ -104,4 +112,37 @@ func resourceAwsEcsClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 		return resource.RetryError{Err: err}
 	})
+	if err != nil {
+		return err
+	}
+
+	clusterName := d.Get("name").(string)
+	err = resource.Retry(5*time.Minute, func() error {
+		log.Printf("[DEBUG] Checking if ECS Cluster %q is INACTIVE", d.Id())
+		out, err := conn.DescribeClusters(&ecs.DescribeClustersInput{
+			Clusters: []*string{aws.String(clusterName)},
+		})
+
+		for _, c := range out.Clusters {
+			if *c.ClusterName == clusterName {
+				if *c.Status == "INACTIVE" {
+					return nil
+				}
+
+				return fmt.Errorf("ECS Cluster %q is still %q", clusterName, *c.Status)
+			}
+		}
+
+		if err != nil {
+			return resource.RetryError{Err: err}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] ECS cluster %q deleted", d.Id())
+	return nil
 }
