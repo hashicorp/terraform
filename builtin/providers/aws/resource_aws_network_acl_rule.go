@@ -112,7 +112,7 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	log.Printf("[INFO] Creating Network Acl Rule: %d (%s)", d.Get("rule_number").(int), d.Get("egress").(bool))
+	log.Printf("[INFO] Creating Network Acl Rule: %d (%t)", d.Get("rule_number").(int), d.Get("egress").(bool))
 	_, err := conn.CreateNetworkAclEntry(params)
 	if err != nil {
 		return fmt.Errorf("Error Creating Network Acl Rule: %s", err.Error())
