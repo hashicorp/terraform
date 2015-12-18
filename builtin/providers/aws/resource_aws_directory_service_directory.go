@@ -232,7 +232,7 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 				d.Id(), *ds.Stage)
 			return ds, *ds.Stage, nil
 		},
-		Timeout: 10 * time.Minute,
+		Timeout: 30 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
@@ -355,7 +355,7 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 				d.Id(), *ds.Stage)
 			return ds, *ds.Stage, nil
 		},
-		Timeout: 10 * time.Minute,
+		Timeout: 30 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
