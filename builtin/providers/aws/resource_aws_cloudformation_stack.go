@@ -190,7 +190,17 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 
 	stacks := resp.Stacks
 	if len(stacks) < 1 {
+		log.Printf("[DEBUG] Removing CloudFormation stack %s as it's already gone", d.Id())
+		d.SetId("")
 		return nil
+	}
+	for _, s := range stacks {
+		if *s.StackId == d.Id() && *s.StackStatus == "DELETE_COMPLETE" {
+			log.Printf("[DEBUG] Removing CloudFormation stack %s"+
+				" as it has been already deleted", d.Id())
+			d.SetId("")
+			return nil
+		}
 	}
 
 	tInput := cloudformation.GetTemplateInput{
