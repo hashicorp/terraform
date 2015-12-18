@@ -64,6 +64,7 @@ BUG FIXES:
   * provider/azure: Update for [breaking change to upstream client library](https://github.com/Azure/azure-sdk-for-go/commit/68d50cb53a73edfeb7f17f5e86cdc8eb359a9528). [GH-4300]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
   * provider/openstack: Handle volumes in "deleting" state [GH-4204]
+  * provider/rundeck: Tolerate Rundeck server not returning project name when reading a job [GH-4301]
   * provider/vsphere: Create and attach additional disks before bootup [GH-4196]
   * provider/openstack: Convert block_device from a Set to a List [GH-4288]
 
