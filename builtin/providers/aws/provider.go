@@ -113,6 +113,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
+			"aws_ami_description":                          resourceAwsAmiDescription(),
 			"aws_ami_from_instance":                        resourceAwsAmiFromInstance(),
 			"aws_api_gateway_account":                      resourceAwsApiGatewayAccount(),
 			"aws_api_gateway_api_key":                      resourceAwsApiGatewayApiKey(),
