@@ -119,12 +119,12 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		add := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
 		if len(add) > 0 {
 			input.AddRouteTableIds = add
 		}
 
-		remove := expandStringList(ns.Difference(os).List())
+		remove := expandStringList(os.Difference(ns).List())
 		if len(remove) > 0 {
 			input.RemoveRouteTableIds = remove
 		}
