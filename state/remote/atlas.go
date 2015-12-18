@@ -13,7 +13,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -77,14 +77,14 @@ type AtlasClient struct {
 	Name        string
 	AccessToken string
 	RunId       string
-	HTTPClient  *http.Client
+	HTTPClient  *retryablehttp.Client
 
 	conflictHandlingAttempted bool
 }
 
 func (c *AtlasClient) Get() (*Payload, error) {
 	// Make the HTTP request
-	req, err := http.NewRequest("GET", c.url().String(), nil)
+	req, err := retryablehttp.NewRequest("GET", c.url().String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make HTTP request: %v", err)
 	}
@@ -158,7 +158,7 @@ func (c *AtlasClient) Put(state []byte) error {
 	b64 := base64.StdEncoding.EncodeToString(hash[:])
 
 	// Make the HTTP client and request
-	req, err := http.NewRequest("PUT", base.String(), bytes.NewReader(state))
+	req, err := retryablehttp.NewRequest("PUT", base.String(), bytes.NewReader(state))
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %v", err)
 	}
@@ -191,7 +191,7 @@ func (c *AtlasClient) Put(state []byte) error {
 
 func (c *AtlasClient) Delete() error {
 	// Make the HTTP request
-	req, err := http.NewRequest("DELETE", c.url().String(), nil)
+	req, err := retryablehttp.NewRequest("DELETE", c.url().String(), nil)
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %v", err)
 	}
@@ -249,11 +249,11 @@ func (c *AtlasClient) url() *url.URL {
 	}
 }
 
-func (c *AtlasClient) http() *http.Client {
+func (c *AtlasClient) http() *retryablehttp.Client {
 	if c.HTTPClient != nil {
 		return c.HTTPClient
 	}
-	return cleanhttp.DefaultClient()
+	return retryablehttp.NewClient()
 }
 
 // Atlas returns an HTTP 409 - Conflict if the pushed state reports the same
