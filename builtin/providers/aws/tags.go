@@ -52,6 +52,62 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 	return nil
 }
 
+// setTagsSpotRequest also set the tags to the spot instance.
+func setTagsSpotRequest(conn *ec2.EC2, d *schema.ResourceData) error {
+	if d.HasChange("tags") {
+		oraw, nraw := d.GetChange("tags")
+		o := oraw.(map[string]interface{})
+		n := nraw.(map[string]interface{})
+		create, remove := diffTags(tagsFromMap(o), tagsFromMap(n))
+
+		// Set tags
+		if len(remove) > 0 {
+			log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
+			_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
+				Resources: []*string{aws.String(d.Id())},
+				Tags:      remove,
+			})
+			if err != nil {
+				return err
+			}
+
+			if instanceId := d.Get("spot_instance_id").(string); instanceId != "" {
+				log.Printf("[DEBUG] Removing tags: %#v from %s", remove, instanceId)
+				_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
+					Resources: []*string{aws.String(instanceId)},
+					Tags:      remove,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+		if len(create) > 0 {
+			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
+			_, err := conn.CreateTags(&ec2.CreateTagsInput{
+				Resources: []*string{aws.String(d.Id())},
+				Tags:      create,
+			})
+			if err != nil {
+				return err
+			}
+
+			if instanceId := d.Get("spot_instance_id").(string); instanceId != "" {
+				log.Printf("[DEBUG] Creating tags: %s for %s", create, instanceId)
+				_, err := conn.CreateTags(&ec2.CreateTagsInput{
+					Resources: []*string{aws.String(instanceId)},
+					Tags:      create,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // diffTags takes our tags locally and the ones remotely and returns
 // the set of tags that must be created, and the set of tags that must
 // be destroyed.

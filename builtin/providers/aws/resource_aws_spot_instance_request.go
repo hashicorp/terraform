@@ -140,10 +140,34 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		}
 
 		log.Printf("[DEBUG] waiting for spot bid to resolve... this may take several minutes.")
-		_, err = spotStateConf.WaitForState()
+		result, err := spotStateConf.WaitForState()
 
 		if err != nil {
 			return fmt.Errorf("Error while waiting for spot request (%s) to resolve: %s", sir, err)
+		}
+
+		sir = *result.(*ec2.SpotInstanceRequest)
+		d.Set("spot_instance_id", sir.InstanceId)
+
+		// Wait for the spot instance running
+		log.Printf(
+			"[DEBUG] Waiting for instance (%s) to become running",
+			*sir.InstanceId)
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"pending"},
+			Target:     "running",
+			Refresh:    InstanceStateRefreshFunc(conn, *sir.InstanceId),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance (%s) to become ready: %s",
+				*sir.InstanceId, err)
 		}
 	}
 
@@ -254,7 +278,7 @@ func resourceAwsSpotInstanceRequestUpdate(d *schema.ResourceData, meta interface
 	conn := meta.(*AWSClient).ec2conn
 
 	d.Partial(true)
-	if err := setTags(conn, d); err != nil {
+	if err := setTagsSpotRequest(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
