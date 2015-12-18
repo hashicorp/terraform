@@ -23,6 +23,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for `skip_final_snapshot` to `aws_db_instance` [GH-3853]
   * provider/aws: Adding support for Tags to DB SecurityGroup [GH-4260]
   * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
+  * provider/aws: Fix issue with updated route ids for VPC Endpoints [GH-4264]
   * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
   * provider/aws: DB Subnet group arn output [GH-4261]
   * provider/aws: Allow changing private IPs for ENIs [GH-4307]
