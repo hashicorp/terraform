@@ -24,9 +24,51 @@ func registerBuiltins(scope *ast.BasicScope) *ast.BasicScope {
 	scope.FuncMap["__builtin_StringToInt"] = builtinStringToInt()
 
 	// Math operations
+	scope.FuncMap["__builtin_UnaryIntMath"] = builtinUnaryIntMath()
+	scope.FuncMap["__builtin_UnaryFloatMath"] = builtinUnaryFloatMath()
 	scope.FuncMap["__builtin_IntMath"] = builtinIntMath()
 	scope.FuncMap["__builtin_FloatMath"] = builtinFloatMath()
 	return scope
+}
+
+func builtinUnaryIntMath() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeInt},
+		Variadic:   false,
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			op := args[0].(ast.ArithmeticOp)
+			result := args[1].(int)
+			switch op {
+			case ast.ArithmeticOpAdd:
+				result = result
+			case ast.ArithmeticOpSub:
+				result = -result
+			}
+
+			return result, nil
+		},
+	}
+}
+
+func builtinUnaryFloatMath() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat},
+		Variadic:   false,
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			op := args[0].(ast.ArithmeticOp)
+			result := args[1].(float64)
+			switch op {
+			case ast.ArithmeticOpAdd:
+				result = result
+			case ast.ArithmeticOpSub:
+				result = -result
+			}
+
+			return result, nil
+		},
+	}
 }
 
 func builtinFloatMath() ast.Function {

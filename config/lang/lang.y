@@ -130,6 +130,14 @@ expr:
             Posx:  $1.Pos(),
         }
     }
+|   ARITH_OP expr
+    {
+        $$ = &ast.UnaryArithmetic{
+            Op:    $1.Value.(ast.ArithmeticOp),
+            Expr:  $2,
+            Posx:  $1.Pos,
+        }
+    }
 |   IDENTIFIER
     {
         $$ = &ast.VariableAccess{Name: $1.Value.(string), Posx: $1.Pos}
