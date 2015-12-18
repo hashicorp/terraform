@@ -12,6 +12,11 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
+var directoryCreationFuncs = map[string]func(*directoryservice.DirectoryService, *schema.ResourceData) (string, error){
+	"SimpleAD":    createSimpleDirectoryService,
+	"MicrosoftAD": createActiveDirectoryService,
+}
+
 func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDirectoryServiceDirectoryCreate,
@@ -92,6 +97,17 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 				Optional: true,
 				Default:  "SimpleAD",
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					validTypes := []string{"SimpleAD", "MicrosoftAD"}
+					value := v.(string)
+					for validType, _ := range directoryCreationFuncs {
+						if validType == value {
+							return
+						}
+					}
+					es = append(es, fmt.Errorf("%q must be one of %q", k, validTypes))
+					return
+				},
 			},
 		},
 	}
@@ -184,19 +200,13 @@ func createActiveDirectoryService(dsconn *directoryservice.DirectoryService, d *
 func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta interface{}) error {
 	dsconn := meta.(*AWSClient).dsconn
 
-	var (
-		directoryId string
-		err         error
-	)
-
-	switch d.Get("type").(string) {
-	case "SimpleAD":
-		directoryId, err = createSimpleDirectoryService(dsconn, d)
-	case "MicrosoftAD":
-		directoryId, err = createActiveDirectoryService(dsconn, d)
-	default:
+	creationFunc, ok := directoryCreationFuncs[d.Get("type").(string)]
+	if !ok {
+		// Shouldn't happen as this is validated above
 		return fmt.Errorf("Unsupported directory type: %s", d.Get("type"))
 	}
+
+	directoryId, err := creationFunc(dsconn, d)
 	if err != nil {
 		return err
 	}
