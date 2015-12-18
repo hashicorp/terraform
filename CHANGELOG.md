@@ -8,6 +8,7 @@ FEATURES:
   * **New provider: `mysql` - Create MySQL databases** [GH-3122]
   * **New resource: `aws_autoscaling_schedule`** [GH-4256]
   * **New resource: `aws_nat_gateway`** [GH-4381]
+  * **New resource: `aws_network_acl_rule`** [GH-4286]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
   * **New resource: `tls_locally_signed_cert`** [GH-3930]
