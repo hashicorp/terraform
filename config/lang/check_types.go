@@ -55,6 +55,9 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	var result ast.Node
 	var err error
 	switch n := raw.(type) {
+	case *ast.UnaryArithmetic:
+		tc := &typeCheckUnaryArithmetic{n}
+		result, err = tc.TypeCheck(v)
 	case *ast.Arithmetic:
 		tc := &typeCheckArithmetic{n}
 		result, err = tc.TypeCheck(v)
@@ -87,6 +90,48 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	}
 
 	return result
+}
+
+type typeCheckUnaryArithmetic struct {
+	n *ast.UnaryArithmetic
+}
+
+func (tc *typeCheckUnaryArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
+	// Only support + or - as unary op
+	if tc.n.Op != ast.ArithmeticOpAdd && tc.n.Op != ast.ArithmeticOpSub {
+		fmt.Printf("%+v\n", tc.n.Op)
+		return nil, fmt.Errorf("only + or - supported as unary operator")
+	}
+	expr := v.StackPop()
+
+	mathFunc := "__builtin_UnaryIntMath"
+	mathType := ast.TypeInt
+	switch expr {
+	case ast.TypeInt:
+		mathFunc = "__builtin_UnaryIntMath"
+		mathType = expr
+	case ast.TypeFloat:
+		mathFunc = "__builtin_UnaryFloatMath"
+		mathType = expr
+	}
+
+	// Return type
+	v.StackPush(mathType)
+
+	args := make([]ast.Node, 2)
+	args[0] = &ast.LiteralNode{
+		Value: tc.n.Op,
+		Typex: ast.TypeInt,
+		Posx:  tc.n.Pos(),
+	}
+	args[1] = tc.n.Expr
+	// Replace our node with a call to the proper function. This isn't
+	// type checked but we already verified types.
+	return &ast.Call{
+		Func: mathFunc,
+		Args: args,
+		Posx: tc.n.Pos(),
+	}, nil
 }
 
 type typeCheckArithmetic struct {
