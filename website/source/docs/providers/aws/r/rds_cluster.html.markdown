@@ -23,7 +23,7 @@ phase because a modification has not yet taken place. You can use the
 (see documentation below). 
 
 ~> **Note:** using `apply_immediately` can result in a 
-brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2] 
+brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][4] 
 for more information.
 
 ## Example Usage
@@ -104,3 +104,4 @@ The following attributes are exported:
 
 [2]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
+[4]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
