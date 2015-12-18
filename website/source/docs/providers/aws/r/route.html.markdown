@@ -35,12 +35,14 @@ The following arguments are supported:
 * `destination_cidr_block` - (Required) The destination CIDR block.
 * `vpc_peering_connection_id` - (Optional) An ID of a VPC peering connection.
 * `gateway_id` - (Optional) An ID of a VPC internet gateway or a virtual private gateway.
+* `nat_gateway_id` - (Optional) An ID of a VPC NAT gateway.
 * `instance_id` - (Optional) An ID of a NAT instance.
 * `network_interface_id` - (Optional) An ID of a network interface.
 
-Each route must contain either a `gateway_id`, an `instance_id` or a `vpc_peering_connection_id`
-or a `network_interface_id`. Note that the default route, mapping the VPC's CIDR block to "local",
-is created implicitly and cannot be specified.
+Each route must contain either a `gateway_id`, a `nat_gateway_id`, an
+`instance_id` or a `vpc_peering_connection_id` or a `network_interface_id`.
+Note that the default route, mapping the VPC's CIDR block to "local", is
+created implicitly and cannot be specified.
 
 ## Attributes Reference
 
@@ -53,5 +55,6 @@ will be exported as an attribute once the resource is created.
 * `destination_cidr_block` - The destination CIDR block.
 * `vpc_peering_connection_id` - An ID of a VPC peering connection.
 * `gateway_id` - An ID of a VPC internet gateway or a virtual private gateway.
+* `nat_gateway_id` - An ID of a VPC NAT gateway.
 * `instance_id` - An ID of a NAT instance.
 * `network_interface_id` - An ID of a network interface.
