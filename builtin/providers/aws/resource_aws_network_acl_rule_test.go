@@ -37,9 +37,6 @@ func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 			continue
 		}
 
-		rule_number := rs.Primary.Attributes["rule_number"].(int)
-		egress := rs.Primary.Attributes["egress"].(bool)
-
 		req := &ec2.DescribeNetworkAclsInput{
 			NetworkAclIds: []*string{aws.String(rs.Primary.ID)},
 		}
@@ -48,11 +45,7 @@ func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 			if len(resp.NetworkAcls) > 0 && *resp.NetworkAcls[0].NetworkAclId == rs.Primary.ID {
 				networkAcl := resp.NetworkAcls[0]
 				if networkAcl.Entries != nil {
-					for _, i := range networkAcl.Entries {
-						if *i.RuleNumber == int64(rule_number) && *i.Egress == egress {
-							return fmt.Errorf("Network ACL Rule (%s) still exists.", rs.Primary.ID)
-						}
-					}
+					return fmt.Errorf("Network ACL Entries still exist")
 				}
 			}
 		}
@@ -61,7 +54,6 @@ func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		// Confirm error code is what we want
 		if ec2err.Code() != "InvalidNetworkAclEntry.NotFound" {
 			return err
 		}
@@ -71,6 +63,8 @@ func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 }
 
 func testAccCheckAWSNetworkAclRuleExists(n string, networkAcl *ec2.NetworkAcl) resource.TestCheckFunc {
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -78,7 +72,28 @@ func testAccCheckAWSNetworkAclRuleExists(n string, networkAcl *ec2.NetworkAcl) r
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Security Group is set")
+			return fmt.Errorf("No Network ACL Id is set")
+		}
+
+		req := &ec2.DescribeNetworkAclsInput{
+			NetworkAclIds: []*string{aws.String(rs.Primary.ID)},
+		}
+		resp, err := conn.DescribeNetworkAcls(req)
+		if err == nil {
+			if len(resp.NetworkAcls) > 0 && *resp.NetworkAcls[0].NetworkAclId == rs.Primary.ID {
+				networkAcl := resp.NetworkAcls[0]
+				if networkAcl.Entries == nil {
+					return fmt.Errorf("No Network ACL Entries exist")
+				}
+			}
+		}
+
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
+			return err
+		}
+		if ec2err.Code() != "InvalidNetworkAclEntry.NotFound" {
+			return err
 		}
 
 		return nil
