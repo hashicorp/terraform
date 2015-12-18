@@ -15,6 +15,7 @@ import (
 var directoryCreationFuncs = map[string]func(*directoryservice.DirectoryService, *schema.ResourceData) (string, error){
 	"SimpleAD":    createSimpleDirectoryService,
 	"MicrosoftAD": createActiveDirectoryService,
+	"ADConnector": createDirectoryConnector,
 }
 
 func resourceAwsDirectoryServiceDirectory() *schema.Resource {
@@ -59,9 +60,43 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			},
 			"vpc_settings": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"subnet_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"vpc_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
+			"connect_settings": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"customer_username": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"customer_dns_ips": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
 						"subnet_ids": &schema.Schema{
 							Type:     schema.TypeSet,
 							Required: true,
@@ -114,7 +149,9 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 }
 
 func buildVpcSettings(d *schema.ResourceData) (vpcSettings *directoryservice.DirectoryVpcSettings, err error) {
-	if v, ok := d.GetOk("vpc_settings"); ok {
+	if v, ok := d.GetOk("vpc_settings"); !ok {
+		return nil, fmt.Errorf("vpc_settings is required for type = SimpleAD or MicrosoftAD")
+	} else {
 		settings := v.([]interface{})
 
 		if len(settings) > 1 {
@@ -134,6 +171,72 @@ func buildVpcSettings(d *schema.ResourceData) (vpcSettings *directoryservice.Dir
 	}
 
 	return vpcSettings, nil
+}
+
+func buildConnectSettings(d *schema.ResourceData) (connectSettings *directoryservice.DirectoryConnectSettings, err error) {
+	if v, ok := d.GetOk("connect_settings"); !ok {
+		return nil, fmt.Errorf("connect_settings is required for type = ADConnector")
+	} else {
+		settings := v.([]interface{})
+
+		if len(settings) > 1 {
+			return nil, fmt.Errorf("Only a single connect_settings block is expected")
+		} else if len(settings) == 1 {
+			s := settings[0].(map[string]interface{})
+
+			var subnetIds []*string
+			for _, id := range s["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
+
+			var customerDnsIps []*string
+			for _, id := range s["customer_dns_ips"].(*schema.Set).List() {
+				customerDnsIps = append(customerDnsIps, aws.String(id.(string)))
+			}
+
+			connectSettings = &directoryservice.DirectoryConnectSettings{
+				CustomerDnsIps:   customerDnsIps,
+				CustomerUserName: aws.String(s["customer_username"].(string)),
+				SubnetIds:        subnetIds,
+				VpcId:            aws.String(s["vpc_id"].(string)),
+			}
+		}
+	}
+
+	return connectSettings, nil
+}
+
+func createDirectoryConnector(dsconn *directoryservice.DirectoryService, d *schema.ResourceData) (directoryId string, err error) {
+	if _, ok := d.GetOk("size"); !ok {
+		return "", fmt.Errorf("size is required for type = ADConnector")
+	}
+
+	input := directoryservice.ConnectDirectoryInput{
+		Name:     aws.String(d.Get("name").(string)),
+		Password: aws.String(d.Get("password").(string)),
+		Size:     aws.String(d.Get("size").(string)),
+	}
+
+	if v, ok := d.GetOk("description"); ok {
+		input.Description = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("short_name"); ok {
+		input.ShortName = aws.String(v.(string))
+	}
+
+	input.ConnectSettings, err = buildConnectSettings(d)
+	if err != nil {
+		return "", err
+	}
+
+	log.Printf("[DEBUG] Creating Directory Connector: %s", input)
+	out, err := dsconn.ConnectDirectory(&input)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[DEBUG] Directory Connector created: %s", out)
+
+	return *out.DirectoryId, nil
 }
 
 func createSimpleDirectoryService(dsconn *directoryservice.DirectoryService, d *schema.ResourceData) (directoryId string, err error) {
@@ -307,7 +410,12 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	if dir.Description != nil {
 		d.Set("description", *dir.Description)
 	}
-	d.Set("dns_ip_addresses", schema.NewSet(schema.HashString, flattenStringList(dir.DnsIpAddrs)))
+
+	if *dir.Type == "ADConnector" {
+		d.Set("dns_ip_addresses", schema.NewSet(schema.HashString, flattenStringList(dir.ConnectSettings.ConnectIps)))
+	} else {
+		d.Set("dns_ip_addresses", schema.NewSet(schema.HashString, flattenStringList(dir.DnsIpAddrs)))
+	}
 	d.Set("name", *dir.Name)
 	if dir.ShortName != nil {
 		d.Set("short_name", *dir.ShortName)
@@ -317,6 +425,7 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	}
 	d.Set("type", *dir.Type)
 	d.Set("vpc_settings", flattenDSVpcSettings(dir.VpcSettings))
+	d.Set("connect_settings", flattenDSConnectSettings(dir.DnsIpAddrs, dir.ConnectSettings))
 	d.Set("enable_sso", *dir.SsoEnabled)
 
 	return nil
