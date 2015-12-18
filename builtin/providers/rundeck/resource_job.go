@@ -463,7 +463,14 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 	d.Set("id", job.ID)
 	d.Set("name", job.Name)
 	d.Set("group_name", job.GroupName)
-	d.Set("project_name", job.ProjectName)
+
+	// The project name is not consistently returned in all rundeck versions,
+	// so we'll only update it if it's set. Jobs can't move between projects
+	// anyway, so this is harmless.
+	if job.ProjectName != "" {
+		d.Set("project_name", job.ProjectName)
+	}
+
 	d.Set("description", job.Description)
 	d.Set("log_level", job.LogLevel)
 	d.Set("allow_concurrent_executions", job.AllowConcurrentExecutions)
