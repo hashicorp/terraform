@@ -651,6 +651,28 @@ func flattenDSVpcSettings(
 	s *directoryservice.DirectoryVpcSettingsDescription) []map[string]interface{} {
 	settings := make(map[string]interface{}, 0)
 
+	if s == nil {
+		return nil
+	}
+
+	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["vpc_id"] = *s.VpcId
+
+	return []map[string]interface{}{settings}
+}
+
+func flattenDSConnectSettings(
+	customerDnsIps []*string,
+	s *directoryservice.DirectoryConnectSettingsDescription) []map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+
+	settings := make(map[string]interface{}, 0)
+
+	settings["customer_dns_ips"] = schema.NewSet(schema.HashString, flattenStringList(customerDnsIps))
+	settings["connect_ips"] = schema.NewSet(schema.HashString, flattenStringList(s.ConnectIps))
+	settings["customer_username"] = *s.CustomerUserName
 	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
 	settings["vpc_id"] = *s.VpcId
 
