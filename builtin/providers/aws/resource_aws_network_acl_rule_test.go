@@ -30,9 +30,9 @@ func TestAccAWSNetworkAclRule_basic(t *testing.T) {
 }
 
 func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		if rs.Type != "aws_network_acl_rule" {
 			continue
 		}
@@ -63,9 +63,9 @@ func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 }
 
 func testAccCheckAWSNetworkAclRuleExists(n string, networkAcl *ec2.NetworkAcl) resource.TestCheckFunc {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
