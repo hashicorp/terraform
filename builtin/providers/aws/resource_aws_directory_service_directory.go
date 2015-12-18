@@ -32,7 +32,7 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			},
 			"size": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"alias": &schema.Schema{
@@ -89,14 +89,41 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				Default:  "SimpleAD",
+				ForceNew: true,
 			},
 		},
 	}
 }
 
-func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta interface{}) error {
-	dsconn := meta.(*AWSClient).dsconn
+func buildVpcSettings(d *schema.ResourceData) (vpcSettings *directoryservice.DirectoryVpcSettings, err error) {
+	if v, ok := d.GetOk("vpc_settings"); ok {
+		settings := v.([]interface{})
+
+		if len(settings) > 1 {
+			return nil, fmt.Errorf("Only a single vpc_settings block is expected")
+		} else if len(settings) == 1 {
+			s := settings[0].(map[string]interface{})
+			var subnetIds []*string
+			for _, id := range s["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
+
+			vpcSettings = &directoryservice.DirectoryVpcSettings{
+				SubnetIds: subnetIds,
+				VpcId:     aws.String(s["vpc_id"].(string)),
+			}
+		}
+	}
+
+	return vpcSettings, nil
+}
+
+func createSimpleDirectoryService(dsconn *directoryservice.DirectoryService, d *schema.ResourceData) (directoryId string, err error) {
+	if _, ok := d.GetOk("size"); !ok {
+		return "", fmt.Errorf("size is required for type = SimpleAD")
+	}
 
 	input := directoryservice.CreateDirectoryInput{
 		Name:     aws.String(d.Get("name").(string)),
@@ -111,33 +138,70 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 		input.ShortName = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("vpc_settings"); ok {
-		settings := v.([]interface{})
-
-		if len(settings) > 1 {
-			return fmt.Errorf("Only a single vpc_settings block is expected")
-		} else if len(settings) == 1 {
-			s := settings[0].(map[string]interface{})
-			var subnetIds []*string
-			for _, id := range s["subnet_ids"].(*schema.Set).List() {
-				subnetIds = append(subnetIds, aws.String(id.(string)))
-			}
-
-			vpcSettings := directoryservice.DirectoryVpcSettings{
-				SubnetIds: subnetIds,
-				VpcId:     aws.String(s["vpc_id"].(string)),
-			}
-			input.VpcSettings = &vpcSettings
-		}
+	input.VpcSettings, err = buildVpcSettings(d)
+	if err != nil {
+		return "", err
 	}
 
-	log.Printf("[DEBUG] Creating Directory Service: %s", input)
+	log.Printf("[DEBUG] Creating Simple Directory Service: %s", input)
 	out, err := dsconn.CreateDirectory(&input)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[DEBUG] Simple Directory Service created: %s", out)
+
+	return *out.DirectoryId, nil
+}
+
+func createActiveDirectoryService(dsconn *directoryservice.DirectoryService, d *schema.ResourceData) (directoryId string, err error) {
+	input := directoryservice.CreateMicrosoftADInput{
+		Name:     aws.String(d.Get("name").(string)),
+		Password: aws.String(d.Get("password").(string)),
+	}
+
+	if v, ok := d.GetOk("description"); ok {
+		input.Description = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("short_name"); ok {
+		input.ShortName = aws.String(v.(string))
+	}
+
+	input.VpcSettings, err = buildVpcSettings(d)
+	if err != nil {
+		return "", err
+	}
+
+	log.Printf("[DEBUG] Creating Microsoft AD Directory Service: %s", input)
+	out, err := dsconn.CreateMicrosoftAD(&input)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[DEBUG] Microsoft AD Directory Service created: %s", out)
+
+	return *out.DirectoryId, nil
+}
+
+func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta interface{}) error {
+	dsconn := meta.(*AWSClient).dsconn
+
+	var (
+		directoryId string
+		err         error
+	)
+
+	switch d.Get("type").(string) {
+	case "SimpleAD":
+		directoryId, err = createSimpleDirectoryService(dsconn, d)
+	case "MicrosoftAD":
+		directoryId, err = createActiveDirectoryService(dsconn, d)
+	default:
+		return fmt.Errorf("Unsupported directory type: %s", d.Get("type"))
+	}
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Directory Service created: %s", out)
-	d.SetId(*out.DirectoryId)
+
+	d.SetId(directoryId)
 
 	// Wait for creation
 	log.Printf("[DEBUG] Waiting for DS (%q) to become available", d.Id())
@@ -238,7 +302,9 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	if dir.ShortName != nil {
 		d.Set("short_name", *dir.ShortName)
 	}
-	d.Set("size", *dir.Size)
+	if dir.Size != nil {
+		d.Set("size", *dir.Size)
+	}
 	d.Set("type", *dir.Type)
 	d.Set("vpc_settings", flattenDSVpcSettings(dir.VpcSettings))
 	d.Set("enable_sso", *dir.SsoEnabled)
