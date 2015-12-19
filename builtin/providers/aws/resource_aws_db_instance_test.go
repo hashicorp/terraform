@@ -2,6 +2,8 @@ package aws
 
 import (
 	"fmt"
+	"log"
+
 	"math/rand"
 	"testing"
 	"time"
@@ -12,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
-	"log"
 )
 
 func TestAccAWSDBInstance_basic(t *testing.T) {
