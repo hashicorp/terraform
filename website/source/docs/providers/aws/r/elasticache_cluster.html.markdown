@@ -10,6 +10,17 @@ description: |-
 
 Provides an ElastiCache Cluster resource.
 
+Changes to a Cache Cluster can occur when you manually change a
+parameter, such as `node_type`, and are reflected in the next maintenance
+window. Because of this, Terraform may report a difference in it's planning
+phase because a modification has not yet taken place. You can use the
+`apply_immediately` flag to instruct the service to apply the change immediately 
+(see documentation below). 
+
+~> **Note:** using `apply_immediately` can result in a 
+brief downtime as the server reboots. See the AWS Docs on 
+[Modifying an ElastiCache Cache Cluster][2] for more information.
+
 ## Example Usage
 
 ```
@@ -101,3 +112,4 @@ The following attributes are exported:
 * `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery
 
 [1]: http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html
+[2]: http://docs.aws.amazon.com/fr_fr/AmazonElastiCache/latest/UserGuide/Clusters.Modify.html
