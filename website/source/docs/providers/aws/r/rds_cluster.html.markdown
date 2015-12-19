@@ -15,6 +15,17 @@ database engine.
 
 For more information on Amazon Aurora, see [Aurora on Amazon RDS][2] in the Amazon RDS User Guide.
 
+Changes to a RDS Cluster can occur when you manually change a
+parameter, such as `port`, and are reflected in the next maintenance
+window. Because of this, Terraform may report a difference in it's planning
+phase because a modification has not yet taken place. You can use the
+`apply_immediately` flag to instruct the service to apply the change immediately 
+(see documentation below). 
+
+~> **Note:** using `apply_immediately` can result in a 
+brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][4] 
+for more information.
+
 ## Example Usage
 
 ```
@@ -93,3 +104,4 @@ The following attributes are exported:
 
 [2]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
+[4]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html

@@ -8,7 +8,21 @@ description: |-
 
 # aws\_db\_instance
 
-Provides an RDS instance resource.
+Provides an RDS instance resource.  A DB instance is an isolated database 
+environment in the cloud.  A DB instance can contain multiple user-created 
+databases. 
+
+Changes to a DB instance can occur when you manually change a
+parameter, such as `allocated_storage`, and are reflected in the next maintenance
+window. Because of this, Terraform may report a difference in it's planning
+phase because a modification has not yet taken place. You can use the
+`apply_immediately` flag to instruct the service to apply the change immediately 
+(see documentation below). 
+
+~> **Note:** using `apply_immediately` can result in a 
+brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2] 
+for more information.
+
 
 ## Example Usage
 
@@ -114,3 +128,4 @@ The following attributes are exported:
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
 
 [1]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
+[2]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
