@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -265,6 +266,9 @@ func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
 			Bucket: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoSuchBucket" {
+				return nil
+			}
 			return err
 		}
 	}
