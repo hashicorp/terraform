@@ -246,7 +246,8 @@
     }
   }
 
-  &:focus{
+  &:focus,
+  &:hover{
     text-decoration: none;
   }
 
@@ -286,6 +287,13 @@
 
     path,
     line{
+      @include transition(all 300ms ease-in);
+
+      &:hover{
+        @include transition(all 300ms ease-in);
+      }
+    }
+    .svg-bg-line{
       @include transition(all 300ms ease-in);
 
       &:hover{
