@@ -15,35 +15,42 @@ Renders a multi-part cloud-init config from source files.
 ```
 # Render a part using a `template_file`
 resource "template_file" "script" {
-    template = "${file("${path.module}/init.tpl")}"
+  template = "${file("${path.module}/init.tpl")}"
 
-    vars {
-        consul_address = "${aws_instance.consul.private_ip}"
-    }
+  vars {
+    consul_address = "${aws_instance.consul.private_ip}"
+  }
 }
 
 # Render a multi-part cloudinit config making use of the part
 # above, and other source files
 resource "template_cloudinit_config" "config" {
-    gzip = true
-    base64_encode = true
+  gzip          = true
+  base64_encode = true
 
-    # Setup hello world script to be called by the cloud-config
-    part {
-        filename = "init.cfg"
-        content_type = "text/part-handler"
-        content = "${template_file.script.rendered}"
-    }
+  # Setup hello world script to be called by the cloud-config
+  part {
+    filename     = "init.cfg"
+    content_type = "text/part-handler"
+    content      = "${template_file.script.rendered}"
+  }
 
-    part {
-        content_type = "text/x-shellscript"
-        content = "baz"
-    }
+  part {
+    content_type = "text/x-shellscript"
+    content      = "baz"
+  }
 
-    part {
-        content_type = "text/x-shellscript"
-        content = "ffbaz"
-    }
+  part {
+    content_type = "text/x-shellscript"
+    content      = "ffbaz"
+  }
+}
+
+# Start an AWS instance with the cloudinit config as user data
+resource "aws_instance" "web" {
+  ami           = "ami-d05e75b8"
+  instance_type = "t2.micro"
+  user_data     = "${template_cloudinit_config.config.rendered}"
 }
 ```
 
