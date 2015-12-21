@@ -59,8 +59,8 @@ provider "aws" {
 }
 
 resource "aws_instance" "example" {
-	ami = "ami-d05e75b8"
-	instance_type = "t2.micro"
+	ami = "ami-408c7f28"
+	instance_type = "t1.micro"
 }
 ```
 
@@ -111,9 +111,9 @@ $ terraform plan
 ...
 
 + aws_instance.example
-    ami:               "" => "ami-d05e75b8"
+    ami:               "" => "ami-408c7f28"
     availability_zone: "" => "<computed>"
-    instance_type:     "" => "t2.micro"
+    instance_type:     "" => "t1.micro"
     key_name:          "" => "<computed>"
     private_dns:       "" => "<computed>"
     private_ip:        "" => "<computed>"
@@ -148,8 +148,8 @@ since Terraform waits for the EC2 instance to become available.
 ```
 $ terraform apply
 aws_instance.example: Creating...
-  ami:           "" => "ami-d05e75b8"
-  instance_type: "" => "t2.micro"
+  ami:           "" => "ami-408c7f28"
+  instance_type: "" => "t1.micro"
 
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
@@ -172,9 +172,9 @@ You can inspect the state using `terraform show`:
 $ terraform show
 aws_instance.example:
   id = i-e60900cd
-  ami = ami-d05e75b8
+  ami = ami-408c7f28
   availability_zone = us-east-1c
-  instance_type = t2.micro
+  instance_type = t1.micro
   key_name =
   private_dns = domU-12-31-39-12-38-AB.compute-1.internal
   private_ip = 10.200.59.89
