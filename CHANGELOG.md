@@ -13,6 +13,7 @@ FEATURES:
   * **New resource: `google_pubsub_subscription`** [GH-3671]
   * **New resource: `template_cloudinit_config`** [GH-4095]
   * **New resource: `tls_locally_signed_cert`** [GH-3930]
+  * **New remote state backend: `artifactory`** [GH-3684]
 
 IMPROVEMENTS:
 
