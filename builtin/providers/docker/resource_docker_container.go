@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"regexp"
+
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"regexp"
 )
 
 func resourceDockerContainer() *schema.Resource {

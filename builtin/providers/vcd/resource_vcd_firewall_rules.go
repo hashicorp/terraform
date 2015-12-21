@@ -2,10 +2,11 @@ package vcd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
-	types "github.com/hmrc/vmware-govcd/types/v56"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	types "github.com/hmrc/vmware-govcd/types/v56"
 )
 
 func resourceVcdFirewallRules() *schema.Resource {
