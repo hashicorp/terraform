@@ -82,6 +82,13 @@ The following backends are supported:
   * `acl` - [Canned ACL](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl)
     to be applied to the state file.
 
+* Artifactory - Stores the state as an artifact in a given repository in
+  Artifactory. Requires the `url`, `username`, `password`, `repo` and `subpath`
+  variables. Generic HTTP repositories are supported, and state from different
+  configurations may be kept at different subpaths within the repository. The URL
+  must include the path to the Artifactory installation - it will likely end in
+  `/artifactory`.
+
 * HTTP - Stores the state using a simple REST client. State will be fetched
   via GET, updated via POST, and purged with DELETE. Requires the `address` variable.
 
