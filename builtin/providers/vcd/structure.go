@@ -2,11 +2,12 @@ package vcd
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/hmrc/vmware-govcd/types/v56"
-	"strconv"
-	"time"
 )
 
 func expandIPRange(configured []interface{}) types.IPRanges {
