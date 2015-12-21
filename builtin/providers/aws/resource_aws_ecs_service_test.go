@@ -356,7 +356,6 @@ EOF
 }
 
 resource "aws_elb" "main" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a"]
 
   listener {

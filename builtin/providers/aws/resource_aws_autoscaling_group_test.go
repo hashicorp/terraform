@@ -161,7 +161,7 @@ func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfigWithLoadBalancer,
+				Config: fmt.Sprintf(testAccAWSAutoScalingGroupConfigWithLoadBalancer),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(&group),
@@ -280,8 +280,8 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group) resourc
 
 func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *group.LoadBalancerNames[0] != "foobar-terraform-test" {
-			return fmt.Errorf("Bad load_balancers: %#v", group.LoadBalancerNames[0])
+		if len(group.LoadBalancerNames) != 1 {
+			return fmt.Errorf("Bad load_balancers: %v", group.LoadBalancerNames)
 		}
 
 		return nil
@@ -513,7 +513,6 @@ resource "aws_security_group" "foo" {
 }
 
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   subnets = ["${aws_subnet.foo.id}"]
 	security_groups = ["${aws_security_group.foo.id}"]
 
