@@ -11,6 +11,7 @@ FEATURES:
   * **New resource: `aws_network_acl_rule`** [GH-4286]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
+  * **New resource: `template_cloudinit_config`** [GH-4095]
   * **New resource: `tls_locally_signed_cert`** [GH-3930]
 
 IMPROVEMENTS:
