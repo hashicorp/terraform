@@ -262,6 +262,43 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	return parameters, nil
 }
 
+func expandOptionConfiguration(configured []interface{}) ([]*rds.OptionConfiguration, error) {
+	var option []*rds.OptionConfiguration
+
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		o := &rds.OptionConfiguration{
+			OptionName: aws.String(data["option_name"].(string)),
+		}
+
+		if raw, ok := data["port"]; ok {
+			port := raw.(int)
+			if port != 0 {
+				o.Port = aws.Int64(int64(port))
+			}
+		}
+
+		if raw, ok := data["db_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.DBSecurityGroupMemberships = memberships
+			}
+		}
+
+		if raw, ok := data["vpc_security_group_memberships"]; ok {
+			memberships := expandStringList(raw.(*schema.Set).List())
+			if len(memberships) > 0 {
+				o.VpcSecurityGroupMemberships = memberships
+			}
+		}
+
+		option = append(option, o)
+	}
+
+	return option, nil
+}
+
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
 func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
@@ -504,6 +541,41 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 
 	n := bytes.Index(byteArray, []byte{0})
 	return string(byteArray[:n]), nil
+}
+
+func flattenOptions(list []*rds.Option) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		if i.OptionName != nil {
+			r := make(map[string]interface{})
+			r["option_name"] = strings.ToLower(*i.OptionName)
+			// Default empty string, guard against nil parameter values
+			r["port"] = ""
+			if i.Port != nil {
+				r["port"] = int(*i.Port)
+			}
+			if i.VpcSecurityGroupMemberships != nil {
+				vpcs := make([]string, 0, len(i.VpcSecurityGroupMemberships))
+				for _, vpc := range i.VpcSecurityGroupMemberships {
+					id := vpc.VpcSecurityGroupId
+					vpcs = append(vpcs, *id)
+				}
+
+				r["vpc_security_group_memberships"] = vpcs
+			}
+			if i.DBSecurityGroupMemberships != nil {
+				dbs := make([]string, 0, len(i.DBSecurityGroupMemberships))
+				for _, db := range i.DBSecurityGroupMemberships {
+					id := db.DBSecurityGroupName
+					dbs = append(dbs, *id)
+				}
+
+				r["db_security_group_memberships"] = dbs
+			}
+			result = append(result, r)
+		}
+	}
+	return result
 }
 
 // Flattens an array of Parameters into a []map[string]interface{}
