@@ -147,6 +147,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_customer_gateway":                         resourceAwsCustomerGateway(),
 			"aws_db_event_subscription":                    resourceAwsDbEventSubscription(),
 			"aws_db_instance":                              resourceAwsDbInstance(),
+			"aws_db_option_group":                          resourceAwsDbOptionGroup(),
 			"aws_db_parameter_group":                       resourceAwsDbParameterGroup(),
 			"aws_db_security_group":                        resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":                          resourceAwsDbSubnetGroup(),
@@ -255,7 +256,6 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpn_connection_route":                     resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                              resourceAwsVpnGateway(),
 		},
-
 		ConfigureFunc: providerConfigure,
 	}
 }

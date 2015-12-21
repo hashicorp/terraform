@@ -283,6 +283,12 @@ func resourceAwsDbInstance() *schema.Resource {
 				Default:  0,
 			},
 
+			"option_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -343,6 +349,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("monitoring_interval"); ok {
 			opts.MonitoringInterval = aws.Int64(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("option_group_name"); ok {
+			opts.OptionGroupName = aws.String(attr.(string))
 		}
 
 		log.Printf("[DEBUG] DB Instance Replica create configuration: %#v", opts)
@@ -546,6 +556,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.MonitoringInterval = aws.Int64(int64(attr.(int)))
 		}
 
+		if attr, ok := d.GetOk("option_group_name"); ok {
+			opts.OptionGroupName = aws.String(attr.(string))
+		}
+
 		log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
 		var err error
 		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
@@ -638,6 +652,9 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("status", v.DBInstanceStatus)
 	d.Set("storage_encrypted", v.StorageEncrypted)
+	if v.OptionGroupMemberships != nil {
+		d.Set("option_group_name", v.OptionGroupMemberships[0].OptionGroupName)
+	}
 
 	if v.MonitoringInterval != nil {
 		d.Set("monitoring_interval", v.MonitoringInterval)
@@ -871,6 +888,12 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 			req.DBSecurityGroups = s
 		}
+		requestUpdate = true
+	}
+
+	if d.HasChange("option_group_name") {
+		d.SetPartial("option_group_name")
+		req.OptionGroupName = aws.String(d.Get("option_group_name").(string))
 		requestUpdate = true
 	}
 
