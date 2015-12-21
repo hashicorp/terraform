@@ -171,11 +171,9 @@
     font-weight: 300;
     svg{
       path,
-      polygon{
+      polygon,
+      rect{
         fill: white;
-      }
-      line{
-        stroke: white;
       }
     }
 
@@ -212,15 +210,13 @@
 
     path,
     polygon{
-      fill: black;
       @include transition(all 300ms ease-in);
 
       &:hover{
         @include transition(all 300ms ease-in);
       }
     }
-    line{
-      stroke: black;
+    .svg-bg-line{
       @include transition(all 300ms ease-in);
 
       &:hover{
@@ -243,26 +239,22 @@
     color: white;
     svg{
       path,
+      rect,
       polygon{
         fill: white;
-      }
-      line{
-        stroke: white;
       }
     }
   }
 
-  &:focus{
+  &:focus,
+  &:hover{
     text-decoration: none;
   }
 
   &:hover{
-    text-decoration: none;
     svg{
-      &.svg-by{
-        line{
-          stroke: $purple;
-        }
+      .svg-bg-line{
+        fill: $purple;
       }
     }
   }
@@ -295,7 +287,13 @@
 
     path,
     line{
-      fill: $black;
+      @include transition(all 300ms ease-in);
+
+      &:hover{
+        @include transition(all 300ms ease-in);
+      }
+    }
+    .svg-bg-line{
       @include transition(all 300ms ease-in);
 
       &:hover{

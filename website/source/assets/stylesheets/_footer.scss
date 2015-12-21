@@ -2,6 +2,17 @@ body.page-sub{
   #footer{
     padding: 40px 0;
     margin-top: 0;
+
+    .hashicorp-project{
+      margin-top: 24px;
+      &:hover{
+        svg{
+          .svg-bg-line{
+            opacity: .4;
+          }
+        }
+      }      
+    }
   }
 }
 
