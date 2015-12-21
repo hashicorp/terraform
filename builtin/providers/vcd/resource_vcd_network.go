@@ -5,10 +5,11 @@ import (
 
 	"bytes"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/hmrc/vmware-govcd/types/v56"
-	"strings"
 )
 
 func resourceVcdNetwork() *schema.Resource {
