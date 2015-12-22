@@ -12,6 +12,12 @@ Provides an ECR repository policy.
 
 Note that currently only one policy may be applied to a repository.
 
+~> **NOTE on ECR Availability**: The EC2 Container Registry has an [initial
+launch region of
+`us-east-1`](https://aws.amazon.com/blogs/aws/ec2-container-registry-now-generally-available/).
+As more regions become available, they will be listed [in the AWS
+Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#ecr_region)
+
 ## Example Usage
 
 ```
