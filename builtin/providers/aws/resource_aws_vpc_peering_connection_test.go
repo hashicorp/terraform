@@ -38,7 +38,7 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 	var connection ec2.VpcPeeringConnection
 	peerId := os.Getenv("TF_PEER_ID")
 	if peerId == "" {
-		t.Fatalf("Error: TestAccAWSVPCPeeringConnection_tags requires a peer id to be set")
+		t.Skip("Error: TestAccAWSVPCPeeringConnection_tags requires a peer id to be set")
 	}
 
 	resource.Test(t, resource.TestCase{
