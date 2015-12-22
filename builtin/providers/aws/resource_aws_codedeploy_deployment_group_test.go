@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -44,6 +45,10 @@ func testAccCheckAWSCodeDeployDeploymentGroupDestroy(s *terraform.State) error {
 			ApplicationName:     aws.String(rs.Primary.Attributes["app_name"]),
 			DeploymentGroupName: aws.String(rs.Primary.Attributes["deployment_group_name"]),
 		})
+
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ApplicationDoesNotExistException" {
+			continue
+		}
 
 		if err == nil {
 			if resp.DeploymentGroupInfo.DeploymentGroupName != nil {

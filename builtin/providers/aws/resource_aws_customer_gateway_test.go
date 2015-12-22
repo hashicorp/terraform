@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -46,8 +47,33 @@ func TestAccAWSCustomerGateway_basic(t *testing.T) {
 }
 
 func testAccCheckCustomerGatewayDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_customer_gatewah" {
+			continue
+		}
+
+		gatewayFilter := &ec2.Filter{
+			Name:   aws.String("customer-gateway-id"),
+			Values: []*string{aws.String(rs.Primary.ID)},
+		}
+
+		resp, err := conn.DescribeCustomerGateways(&ec2.DescribeCustomerGatewaysInput{
+			Filters: []*ec2.Filter{gatewayFilter},
+		})
+
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidCustomerGatewayID.NotFound" {
+			continue
+		}
+
+		if err == nil {
+			if len(resp.CustomerGateways) > 0 {
+				return fmt.Errorf("Customer gateway still exists: %v", resp.CustomerGateways)
+			}
+		}
+
+		return err
 	}
 
 	return nil

@@ -120,6 +120,10 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 				DBInstanceIdentifier: aws.String(rs.Primary.ID),
 			})
 
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "DBInstanceNotFound" {
+			continue
+		}
+
 		if err == nil {
 			if len(resp.DBInstances) != 0 &&
 				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {

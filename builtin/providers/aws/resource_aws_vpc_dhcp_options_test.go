@@ -50,9 +50,12 @@ func testAccCheckDHCPOptionsDestroy(s *terraform.State) error {
 				aws.String(rs.Primary.ID),
 			},
 		})
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidDhcpOptionID.NotFound" {
+			continue
+		}
 		if err == nil {
 			if len(resp.DhcpOptions) > 0 {
-				return fmt.Errorf("still exist.")
+				return fmt.Errorf("still exists")
 			}
 
 			return nil
