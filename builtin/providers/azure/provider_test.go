@@ -127,50 +127,20 @@ func TestAzure_validateSettingsFile(t *testing.T) {
 }
 
 func TestAzure_providerConfigure(t *testing.T) {
-	home, err := homedir.Dir()
-	if err != nil {
-		t.Fatalf("Error fetching homedir: %s", err)
+	rp := Provider()
+	raw := map[string]interface{}{
+		"publish_settings": testAzurePublishSettingsStr,
 	}
-	fh, err := ioutil.TempFile(home, "tf-test-home")
-	if err != nil {
-		t.Fatalf("Error creating homedir-based temporary file: %s", err)
-	}
-	defer os.Remove(fh.Name())
 
-	_, err = io.WriteString(fh, testAzurePublishSettingsStr)
+	rawConfig, err := config.NewRawConfig(raw)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	fh.Close()
 
-	r := strings.NewReplacer(home, "~")
-	homePath := r.Replace(fh.Name())
-
-	cases := []struct {
-		SettingsFile string // String of XML or a path to an XML file
-		NilMeta      bool   // whether meta is expected to be nil
-	}{
-		{testAzurePublishSettingsStr, false},
-		{homePath, false},
-	}
-
-	for _, tc := range cases {
-		rp := Provider()
-		raw := map[string]interface{}{
-			"settings_file": tc.SettingsFile,
-		}
-
-		rawConfig, err := config.NewRawConfig(raw)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		err = rp.Configure(terraform.NewResourceConfig(rawConfig))
-		meta := rp.(*schema.Provider).Meta()
-		if (meta == nil) != tc.NilMeta {
-			t.Fatalf("expected NilMeta: %t, got meta: %#v, settings_file: %q",
-				tc.NilMeta, meta, tc.SettingsFile)
-		}
+	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
+	meta := rp.(*schema.Provider).Meta()
+	if meta == nil {
+		t.Fatal("Expected metadata, got nil: err: %s", err)
 	}
 }
 
