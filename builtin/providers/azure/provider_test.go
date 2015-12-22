@@ -140,7 +140,7 @@ func TestAzure_providerConfigure(t *testing.T) {
 	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
 	meta := rp.(*schema.Provider).Meta()
 	if meta == nil {
-		t.Fatal("Expected metadata, got nil: err: %s", err)
+		t.Fatalf("Expected metadata, got nil: err: %s", err)
 	}
 }
 
