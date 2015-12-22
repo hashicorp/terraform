@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -67,6 +68,7 @@ type AWSClient struct {
 	dsconn             *directoryservice.DirectoryService
 	dynamodbconn       *dynamodb.DynamoDB
 	ec2conn            *ec2.EC2
+	ecrconn            *ecr.ECR
 	ecsconn            *ecs.ECS
 	efsconn            *efs.EFS
 	elbconn            *elb.ELB
@@ -188,6 +190,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(sess)
+
+		log.Println("[INFO] Initializing ECR Connection")
+		client.ecrconn = ecr.New(sess)
 
 		log.Println("[INFO] Initializing ECS Connection")
 		client.ecsconn = ecs.New(sess)
