@@ -51,12 +51,15 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("AZURE_PUBLISH_SETTINGS"); v == "" {
+	v1 := os.Getenv("AZURE_PUBLISH_SETTINGS")
+	v2 := os.Getenv("AZURE_SETTINGS_FILE")
+
+	if v1 == "" && v2 == "" {
 		subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
 		certificate := os.Getenv("AZURE_CERTIFICATE")
 
 		if subscriptionID == "" || certificate == "" {
-			t.Fatal("either AZURE_PUBLISH_SETTINGS, or AZURE_SUBSCRIPTION_ID " +
+			t.Fatal("either AZURE_PUBLISH_SETTINGS, AZURE_SETTINGS_FILE, or AZURE_SUBSCRIPTION_ID " +
 				"and AZURE_CERTIFICATE must be set for acceptance tests")
 		}
 	}
