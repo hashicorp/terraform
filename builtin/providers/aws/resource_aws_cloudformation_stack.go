@@ -268,12 +268,14 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		StackName: aws.String(d.Get("name").(string)),
 	}
 
-	if d.HasChange("template_body") {
-		input.TemplateBody = aws.String(normalizeJson(d.Get("template_body").(string)))
+	// Either TemplateBody or TemplateURL are required for each change
+	if v, ok := d.GetOk("template_body"); ok {
+		input.TemplateBody = aws.String(normalizeJson(v.(string)))
 	}
-	if d.HasChange("template_url") {
-		input.TemplateURL = aws.String(d.Get("template_url").(string))
+	if v, ok := d.GetOk("template_url"); ok {
+		input.TemplateURL = aws.String(v.(string))
 	}
+
 	if d.HasChange("capabilities") {
 		input.Capabilities = expandStringList(d.Get("capabilities").(*schema.Set).List())
 	}
