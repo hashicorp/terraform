@@ -68,6 +68,7 @@ BUG FIXES:
   * provider/aws: Fix issue with ElasticSearch Domain `access_policies` always appear changed [GH-4245]
   * provider/aws: Fix issue with nil parameter group value causing panic in `aws_db_parameter_group` [GH-4318]
   * provider/aws: Fix issue with Elastic IPs not recognizing when they have been unassigned manually [GH-4387]
+  * provider/aws: Use body or URL for all CloudFormation stack updates [GH-4370]
   * provider/azure: Update for [breaking change to upstream client library](https://github.com/Azure/azure-sdk-for-go/commit/68d50cb53a73edfeb7f17f5e86cdc8eb359a9528). [GH-4300]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
   * provider/openstack: Handle volumes in "deleting" state [GH-4204]
