@@ -540,26 +540,25 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 		}
 
 		// Try to find the resource
-		var err error
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 			InstanceIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
-			if len(resp.Reservations) > 0 {
-				return fmt.Errorf("still exist.")
+			for _, r := range resp.Reservations {
+				for _, i := range r.Instances {
+					if i.State != nil && *i.State.Name != "terminated" {
+						return fmt.Errorf("Found unterminated instance: %s", i)
+					}
+				}
 			}
-
-			return nil
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
-			return err
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidInstanceID.NotFound" {
+			continue
 		}
-		if ec2err.Code() != "InvalidInstanceID.NotFound" {
-			return err
-		}
+
+		return err
 	}
 
 	return nil
