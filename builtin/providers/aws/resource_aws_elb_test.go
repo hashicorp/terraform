@@ -54,7 +54,7 @@ func TestAccAWSELB_basic(t *testing.T) {
 func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 
-	lbName := fmt.Sprintf("FoobarTerraform-test123-%d",
+	lbName := fmt.Sprintf("Tf-%d",
 		rand.New(rand.NewSource(time.Now().UnixNano())).Int())
 
 	resource.Test(t, resource.TestCase{
@@ -560,7 +560,7 @@ func testAccCheckAWSELBDestroy(s *terraform.State) error {
 			return err
 		}
 
-		if providerErr.Code() != "InvalidLoadBalancerName.NotFound" {
+		if providerErr.Code() != "LoadBalancerNotFound" {
 			return fmt.Errorf("Unexpected error: %s", err)
 		}
 	}
