@@ -112,7 +112,7 @@ func testAccCheckAWSElasticacheParameterGroupDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if newerr.Code() != "InvalidCacheParameterGroup.NotFound" {
+		if newerr.Code() != "CacheParameterGroupNotFound" {
 			return err
 		}
 	}
