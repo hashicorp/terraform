@@ -64,9 +64,13 @@ func resourceAwsRoute53Record() *schema.Resource {
 				ConflictsWith: []string{"alias"},
 			},
 
+			// Weight uses a special sentinel value to indicate it's presense.
+			// Because 0 is a valid value for Weight, we default to -1 so that any
+			// inclusion of a weight (zero or not) will be a usable value
 			"weight": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Default:  -1,
 			},
 
 			"set_identifier": &schema.Schema{
@@ -171,8 +175,8 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		ChangeBatch:  changeBatch,
 	}
 
-	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s",
-		zone, *rec.Name)
+	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s\n\n%s",
+		zone, *rec.Name, req)
 
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
@@ -292,7 +296,12 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		}
 
 		d.Set("ttl", record.TTL)
-		d.Set("weight", record.Weight)
+		// Only set the weight if it's non-nil, otherwise we end up with a 0 weight
+		// which has actual contextual meaning with Route 53 records
+		//   See http://docs.aws.amazon.com/fr_fr/Route53/latest/APIReference/API_ChangeResourceRecordSets_Examples.html
+		if record.Weight != nil {
+			d.Set("weight", record.Weight)
+		}
 		d.Set("set_identifier", record.SetIdentifier)
 		d.Set("failover", record.Failover)
 		d.Set("health_check_id", record.HealthCheckId)
@@ -439,8 +448,9 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 		rec.SetIdentifier = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("weight"); ok {
-		rec.Weight = aws.Int64(int64(v.(int)))
+	w := d.Get("weight").(int)
+	if w > -1 {
+		rec.Weight = aws.Int64(int64(w))
 	}
 
 	return rec, nil
