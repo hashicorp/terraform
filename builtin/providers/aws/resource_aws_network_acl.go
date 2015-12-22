@@ -50,7 +50,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
-				Computed: false,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from_port": &schema.Schema{
@@ -93,7 +93,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
-				Computed: false,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from_port": &schema.Schema{
