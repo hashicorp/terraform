@@ -64,6 +64,31 @@ func TestAccAWSCloudFormation_allAttributes(t *testing.T) {
 	})
 }
 
+// Regression for https://github.com/hashicorp/terraform/issues/4332
+func TestAccAWSCloudFormation_withParams(t *testing.T) {
+	var stack cloudformation.Stack
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudFormationConfig_withParams,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with_params", &stack),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCloudFormationConfig_withParams_modified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with_params", &stack),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudFormationStackExists(n string, stack *cloudformation.Stack) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -228,3 +253,43 @@ resource "aws_sns_topic" "cf-updates" {
   name = "tf-cf-notifications"
 }
 `
+
+var tpl_testAccAWSCloudFormationConfig_withParams = `
+resource "aws_cloudformation_stack" "with_params" {
+  name = "tf-stack-with-params"
+  parameters {
+    VpcCIDR = "%s"
+  }
+  template_body = <<STACK
+{
+  "Parameters" : {
+    "VpcCIDR" : {
+      "Description" : "CIDR to be used for the VPC",
+      "Type" : "String"
+    }
+  },
+  "Resources" : {
+    "MyVPC": {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : {"Ref": "VpcCIDR"},
+        "Tags" : [
+          {"Key": "Name", "Value": "Primary_CF_VPC"}
+        ]
+      }
+    }
+  }
+}
+STACK
+
+  on_failure = "DELETE"
+  timeout_in_minutes = 1
+}
+`
+
+var testAccAWSCloudFormationConfig_withParams = fmt.Sprintf(
+	tpl_testAccAWSCloudFormationConfig_withParams,
+	"10.0.0.0/16")
+var testAccAWSCloudFormationConfig_withParams_modified = fmt.Sprintf(
+	tpl_testAccAWSCloudFormationConfig_withParams,
+	"12.0.0.0/16")
