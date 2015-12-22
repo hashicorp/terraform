@@ -65,6 +65,7 @@ BUG FIXES:
   * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
   * provider/aws: Fix missing AMI issue with Launch Configurations [GH-4242]
   * provider/aws: Opsworks stack SSH key is write-only [GH-4241]
+  * provider/aws: Update VPC Endpoint to correctly set route table ids [GH-4392]
   * provider/aws: Fix issue with ElasticSearch Domain `access_policies` always appear changed [GH-4245]
   * provider/aws: Fix issue with nil parameter group value causing panic in `aws_db_parameter_group` [GH-4318]
   * provider/aws: Fix issue with Elastic IPs not recognizing when they have been unassigned manually [GH-4387]
