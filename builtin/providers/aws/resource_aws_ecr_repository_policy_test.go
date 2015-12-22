@@ -62,6 +62,11 @@ func testAccCheckAWSEcrRepositoryPolicyExists(name string) resource.TestCheckFun
 }
 
 var testAccAWSEcrRepositoryPolicy = `
+# ECR initially only available in us-east-1
+# https://aws.amazon.com/blogs/aws/ec2-container-registry-now-generally-available/
+provider "aws" {
+	region = "us-east-1"
+}
 resource "aws_ecr_repository" "foo" {
 	name = "bar"
 }

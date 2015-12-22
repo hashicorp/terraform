@@ -3,12 +3,18 @@ layout: "aws"
 page_title: "AWS: aws_ecr_repository"
 sidebar_current: "docs-aws-resource-ecr-repository"
 description: |-
-  Provides an ECR Repository.
+  Provides an EC2 Container Registry Repository.
 ---
 
 # aws\_ecr\_repository
 
-Provides an ECR repository.
+Provides an EC2 Container Registry Repository.
+
+~> **NOTE on ECR Availability**: The EC2 Container Registry has an [initial
+launch region of
+`us-east-1`](https://aws.amazon.com/blogs/aws/ec2-container-registry-now-generally-available/).
+As more regions become available, they will be listed [in the AWS
+Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#ecr_region)
 
 ## Example Usage
 
