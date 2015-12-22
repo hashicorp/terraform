@@ -9,6 +9,7 @@ FEATURES:
   * **New resource: `aws_autoscaling_schedule`** [GH-4256]
   * **New resource: `aws_nat_gateway`** [GH-4381]
   * **New resource: `aws_network_acl_rule`** [GH-4286]
+  * **New resources: `aws_ecr_repository` and `aws_ecr_repository_policy`** [GH-4415]
   * **New resource: `google_pubsub_topic`** [GH-3671]
   * **New resource: `google_pubsub_subscription`** [GH-3671]
   * **New resource: `template_cloudinit_config`** [GH-4095]
