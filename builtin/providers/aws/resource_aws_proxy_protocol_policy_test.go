@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -43,10 +45,28 @@ func TestAccAWSProxyProtocolPolicy_basic(t *testing.T) {
 }
 
 func testAccCheckProxyProtocolPolicyDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
-	}
+	conn := testAccProvider.Meta().(*AWSClient).elbconn
 
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_placement_group" {
+			continue
+		}
+
+		req := &elb.DescribeLoadBalancersInput{
+			LoadBalancerNames: []*string{
+				aws.String(rs.Primary.Attributes["load_balancer"])},
+		}
+		_, err := conn.DescribeLoadBalancers(req)
+		if err != nil {
+			// Verify the error is what we want
+			if isLoadBalancerNotFound(err) {
+				continue
+			}
+			return err
+		}
+
+		return fmt.Errorf("still exists")
+	}
 	return nil
 }
 
