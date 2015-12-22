@@ -114,6 +114,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_directory_service_directory":      resourceAwsDirectoryServiceDirectory(),
 			"aws_dynamodb_table":                   resourceAwsDynamoDbTable(),
 			"aws_ebs_volume":                       resourceAwsEbsVolume(),
+			"aws_ecr_repository":                   resourceAwsEcrRepository(),
+			"aws_ecr_repository_policy":            resourceAwsEcrRepositoryPolicy(),
 			"aws_ecs_cluster":                      resourceAwsEcsCluster(),
 			"aws_ecs_service":                      resourceAwsEcsService(),
 			"aws_ecs_task_definition":              resourceAwsEcsTaskDefinition(),
