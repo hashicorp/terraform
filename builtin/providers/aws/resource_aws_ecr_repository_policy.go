@@ -67,9 +67,14 @@ func resourceAwsEcrRepositoryPolicyRead(d *schema.ResourceData, meta interface{}
 		RepositoryName: aws.String(d.Id()),
 	})
 	if err != nil {
-		if ecrerr, ok := err.(awserr.Error); ok && ecrerr.Code() == "RepositoryPolicyNotFoundException" {
-			d.SetId("")
-			return nil
+		if ecrerr, ok := err.(awserr.Error); ok {
+			switch ecrerr.Code() {
+			case "RepositoryNotFoundException", "RepositoryPolicyNotFoundException":
+				d.SetId("")
+				return nil
+			default:
+				return err
+			}
 		}
 		return err
 	}
@@ -119,9 +124,12 @@ func resourceAwsEcrRepositoryPolicyDelete(d *schema.ResourceData, meta interface
 	})
 	if err != nil {
 		if ecrerr, ok := err.(awserr.Error); ok {
-			if ecrerr.Code() == "RepositoryPolicyNotFoundException" || ecrerr.Code() == "RepositoryNotFoundException" {
+			switch ecrerr.Code() {
+			case "RepositoryNotFoundException", "RepositoryPolicyNotFoundException":
 				d.SetId("")
 				return nil
+			default:
+				return err
 			}
 		}
 		return err
