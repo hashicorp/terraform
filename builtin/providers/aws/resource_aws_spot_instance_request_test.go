@@ -135,10 +135,24 @@ func testAccCheckAWSSpotInstanceRequestDestroy(s *terraform.State) error {
 		}
 
 		resp, err := conn.DescribeSpotInstanceRequests(req)
+		var s *ec2.SpotInstanceRequest
 		if err == nil {
-			if len(resp.SpotInstanceRequests) > 0 {
-				return fmt.Errorf("Spot instance request is still here.")
+			for _, sir := range resp.SpotInstanceRequests {
+				if sir.SpotInstanceRequestId != nil && *sir.SpotInstanceRequestId == rs.Primary.ID {
+					s = sir
+				}
+				continue
 			}
+		}
+
+		if s == nil {
+			// not found
+			return nil
+		}
+
+		if *s.State == "canceled" {
+			// Requests stick around for a while, so we make sure it's cancelled
+			return nil
 		}
 
 		// Verify the error is what we expect
