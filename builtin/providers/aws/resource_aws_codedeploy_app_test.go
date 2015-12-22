@@ -41,7 +41,7 @@ func testAccCheckAWSCodeDeployAppDestroy(s *terraform.State) error {
 		}
 
 		resp, err := conn.GetApplication(&codedeploy.GetApplicationInput{
-			ApplicationName: aws.String(rs.Primary.ID),
+			ApplicationName: aws.String(rs.Primary.Attributes["name"]),
 		})
 
 		if err == nil {
