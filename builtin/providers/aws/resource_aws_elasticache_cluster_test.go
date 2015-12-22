@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -152,6 +153,10 @@ func testAccCheckAWSElasticacheClusterDestroy(s *terraform.State) error {
 			CacheClusterId: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
+			// Verify the error is what we want
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "CacheClusterNotFound" {
+				continue
+			}
 			return err
 		}
 		if len(res.CacheClusters) > 0 {

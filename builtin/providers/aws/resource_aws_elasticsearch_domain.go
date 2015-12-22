@@ -247,7 +247,9 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 
 	ds := out.DomainStatus
 
-	d.Set("access_policies", normalizeJson(*ds.AccessPolicies))
+	if ds.AccessPolicies != nil && *ds.AccessPolicies != "" {
+		d.Set("access_policies", normalizeJson(*ds.AccessPolicies))
+	}
 	err = d.Set("advanced_options", pointersMapToStringList(ds.AdvancedOptions))
 	if err != nil {
 		return err
