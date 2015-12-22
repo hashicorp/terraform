@@ -51,27 +51,32 @@ func resourceAwsEcsService() *schema.Resource {
 
 			"iam_role": &schema.Schema{
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Optional: true,
 			},
 
 			"load_balancer": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"elb_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"container_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"container_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
+							ForceNew: true,
 						},
 					},
 				},
