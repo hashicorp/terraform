@@ -209,6 +209,7 @@ func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 
 		out, err := conn.DescribeServices(&ecs.DescribeServicesInput{
 			Services: []*string{aws.String(rs.Primary.ID)},
+			Cluster:  aws.String(rs.Primary.Attributes["cluster"]),
 		})
 
 		if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ClusterNotFoundException" {
@@ -217,8 +218,19 @@ func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 
 		if err == nil {
 			if len(out.Services) > 0 {
-				return fmt.Errorf("ECS service still exists:\n%#v", out.Services)
+				var activeServices []*ecs.Service
+				for _, svc := range out.Services {
+					if *svc.Status != "INACTIVE" {
+						activeServices = append(activeServices, svc)
+					}
+				}
+				if len(activeServices) == 0 {
+					return nil
+				}
+
+				return fmt.Errorf("ECS service still exists:\n%#v", activeServices)
 			}
+			return nil
 		}
 
 		return err
