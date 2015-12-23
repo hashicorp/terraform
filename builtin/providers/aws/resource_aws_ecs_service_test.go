@@ -179,6 +179,29 @@ func TestAccAWSEcsService_withIamRole(t *testing.T) {
 	})
 }
 
+// Regression for https://github.com/hashicorp/terraform/issues/3444
+func TestAccAWSEcsService_withLbChanges(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsService_withLbChanges,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.with_lb_changes"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSEcsService_withLbChanges_modified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.with_lb_changes"),
+				),
+			},
+		},
+	})
+}
+
 // Regression for https://github.com/hashicorp/terraform/issues/3361
 func TestAccAWSEcsService_withEcsClusterName(t *testing.T) {
 	clusterName := regexp.MustCompile("^terraformecstestcluster$")
@@ -399,6 +422,107 @@ resource "aws_ecs_service" "ghost" {
   depends_on = ["aws_iam_role_policy.ecs_service"]
 }
 `
+
+var tpl_testAccAWSEcsService_withLbChanges = `
+resource "aws_ecs_cluster" "main" {
+	name = "terraformecstest12"
+}
+
+resource "aws_ecs_task_definition" "with_lb_changes" {
+  family = "ghost_lbd"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "%s",
+    "memory": 128,
+    "name": "%s",
+    "portMappings": [
+      {
+        "containerPort": %d,
+        "hostPort": %d
+      }
+    ]
+  }
+]
+DEFINITION
+}
+
+resource "aws_iam_role" "ecs_service" {
+    name = "EcsServiceLbd"
+    assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "sts:AssumeRole",
+            "Principal": {"AWS": "*"},
+            "Effect": "Allow",
+            "Sid": ""
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "ecs_service" {
+    name = "EcsServiceLbd"
+    role = "${aws_iam_role.ecs_service.name}"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:*",
+        "ec2:*",
+        "ecs:*"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_elb" "main" {
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = %d
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+
+resource "aws_ecs_service" "with_lb_changes" {
+  name = "ghost"
+  cluster = "${aws_ecs_cluster.main.id}"
+  task_definition = "${aws_ecs_task_definition.with_lb_changes.arn}"
+  desired_count = 1
+  iam_role = "${aws_iam_role.ecs_service.name}"
+
+  load_balancer {
+    elb_name = "${aws_elb.main.id}"
+    container_name = "%s"
+    container_port = "%d"
+  }
+
+  depends_on = ["aws_iam_role_policy.ecs_service"]
+}
+`
+
+var testAccAWSEcsService_withLbChanges = fmt.Sprintf(
+	tpl_testAccAWSEcsService_withLbChanges,
+	"ghost:latest", "ghost", 2368, 8080, 8080, "ghost", 2368)
+var testAccAWSEcsService_withLbChanges_modified = fmt.Sprintf(
+	tpl_testAccAWSEcsService_withLbChanges,
+	"nginx:latest", "nginx", 80, 8080, 8080, "nginx", 80)
 
 var testAccAWSEcsServiceWithFamilyAndRevision = `
 resource "aws_ecs_cluster" "default" {
