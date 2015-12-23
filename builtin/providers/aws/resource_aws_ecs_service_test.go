@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -234,10 +233,6 @@ func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 			Services: []*string{aws.String(rs.Primary.ID)},
 			Cluster:  aws.String(rs.Primary.Attributes["cluster"]),
 		})
-
-		if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ClusterNotFoundException" {
-			continue
-		}
 
 		if err == nil {
 			if len(out.Services) > 0 {
