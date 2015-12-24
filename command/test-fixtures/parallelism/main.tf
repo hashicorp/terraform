@@ -1,13 +1,10 @@
-resource "test_instance" "foo1" {
-	ami = "bar"
-
-	// shell has been configured to sleep for one second
-	provisioner "shell" {}
-}
-
-resource "test_instance" "foo2" {
-	ami = "bar"
-
-	// shell has been configured to sleep for one second
-	provisioner "shell" {}
-}
+resource "test_instance" "foo1" {}
+resource "test_instance" "foo2" {}
+resource "test_instance" "foo3" {}
+resource "test_instance" "foo4" {}
+resource "test_instance" "foo5" {}
+resource "test_instance" "foo6" {}
+resource "test_instance" "foo7" {}
+resource "test_instance" "foo8" {}
+resource "test_instance" "foo9" {}
+resource "test_instance" "foo10" {}

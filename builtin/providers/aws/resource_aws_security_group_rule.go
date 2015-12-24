@@ -84,8 +84,11 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	sg_id := d.Get("security_group_id").(string)
-	sg, err := findResourceSecurityGroup(conn, sg_id)
 
+	awsMutexKV.Lock(sg_id)
+	defer awsMutexKV.Unlock(sg_id)
+
+	sg, err := findResourceSecurityGroup(conn, sg_id)
 	if err != nil {
 		return err
 	}
@@ -171,9 +174,10 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	p := expandIPPerm(d, sg)
 
 	if len(rules) == 0 {
-		return fmt.Errorf(
-			"[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
+		log.Printf("[WARN] No %s rules were found for Security Group (%s) looking for Security Group Rule (%s)",
 			ruleType, *sg.GroupName, d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	for _, r := range rules {
@@ -249,8 +253,11 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	sg_id := d.Get("security_group_id").(string)
-	sg, err := findResourceSecurityGroup(conn, sg_id)
 
+	awsMutexKV.Lock(sg_id)
+	defer awsMutexKV.Unlock(sg_id)
+
+	sg, err := findResourceSecurityGroup(conn, sg_id)
 	if err != nil {
 		return err
 	}

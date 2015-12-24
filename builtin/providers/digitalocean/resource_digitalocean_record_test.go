@@ -104,33 +104,6 @@ func TestAccDigitalOceanRecord_HostnameValue(t *testing.T) {
 	})
 }
 
-func TestAccDigitalOceanRecord_RelativeHostnameValue(t *testing.T) {
-	var record godo.DomainRecord
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckDigitalOceanRecordConfig_relative_cname,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDigitalOceanRecordExists("digitalocean_record.foobar", &record),
-					testAccCheckDigitalOceanRecordAttributesHostname("a.b", &record),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "name", "terraform"),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "domain", "foobar-test-terraform.com"),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "value", "a.b"),
-					resource.TestCheckResourceAttr(
-						"digitalocean_record.foobar", "type", "CNAME"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccDigitalOceanRecord_ExternalHostnameValue(t *testing.T) {
 	var record godo.DomainRecord
 

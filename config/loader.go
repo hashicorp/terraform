@@ -25,7 +25,7 @@ func LoadJSON(raw json.RawMessage) (*Config, error) {
 
 	// Start building the result
 	hclConfig := &hclConfigurable{
-		Object: obj,
+		Root: obj,
 	}
 
 	return hclConfig.Config()

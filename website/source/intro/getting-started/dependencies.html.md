@@ -67,9 +67,9 @@ $ terraform plan
     public_ip:  "" => "<computed>"
 
 + aws_instance.example
-    ami:               "" => "ami-aa7ab6c2"
+    ami:               "" => "ami-8eb061e6"
     availability_zone: "" => "<computed>"
-    instance_type:     "" => "t1.micro"
+    instance_type:     "" => "t2.micro"
     key_name:          "" => "<computed>"
     private_dns:       "" => "<computed>"
     private_ip:        "" => "<computed>"
@@ -90,8 +90,8 @@ following:
 
 ```
 aws_instance.example: Creating...
-  ami:           "" => "ami-aa7ab6c2"
-  instance_type: "" => "t1.micro"
+  ami:           "" => "ami-8eb061e6"
+  instance_type: "" => "t2.micro"
 aws_eip.ip: Creating...
   instance: "" => "i-0e737b25"
 
@@ -144,8 +144,8 @@ created in parallel to everything else.
 
 ```
 resource "aws_instance" "another" {
-	ami = "ami-aa7ab6c2"
-	instance_type = "t1.micro"
+	ami = "ami-8eb061e6"
+	instance_type = "t2.micro"
 }
 ```
 

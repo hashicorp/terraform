@@ -1,8 +1,9 @@
 package aws
 
 import (
-	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 func makeAwsStringList(in []interface{}) []*string {

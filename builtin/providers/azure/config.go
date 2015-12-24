@@ -35,8 +35,6 @@ type Client struct {
 
 	hostedServiceClient hostedservice.HostedServiceClient
 
-	secGroupClient networksecuritygroup.SecurityGroupClient
-
 	osImageClient osimage.OSImageClient
 
 	sqlClient sql.SQLDatabaseClient
@@ -52,7 +50,11 @@ type Client struct {
 	// unfortunately; because of how Azure's network API works; doing networking operations
 	// concurrently is very hazardous, and we need a mutex to guard the VirtualNetworkClient.
 	vnetClient virtualnetwork.VirtualNetworkClient
-	mutex      *sync.Mutex
+	vnetMutex  *sync.Mutex
+
+	// same as the above for security group rule operations:
+	secGroupClient networksecuritygroup.SecurityGroupClient
+	secGroupMutex  *sync.Mutex
 }
 
 // getStorageClientForStorageService is helper method which returns the
@@ -106,6 +108,7 @@ func (c *Config) NewClientFromSettingsData() (*Client, error) {
 		affinityGroupClient:  affinitygroup.NewClient(mc),
 		hostedServiceClient:  hostedservice.NewClient(mc),
 		secGroupClient:       networksecuritygroup.NewClient(mc),
+		secGroupMutex:        &sync.Mutex{},
 		osImageClient:        osimage.NewClient(mc),
 		sqlClient:            sql.NewClient(mc),
 		storageServiceClient: storageservice.NewClient(mc),
@@ -113,7 +116,7 @@ func (c *Config) NewClientFromSettingsData() (*Client, error) {
 		vmDiskClient:         virtualmachinedisk.NewClient(mc),
 		vmImageClient:        virtualmachineimage.NewClient(mc),
 		vnetClient:           virtualnetwork.NewClient(mc),
-		mutex:                &sync.Mutex{},
+		vnetMutex:            &sync.Mutex{},
 	}, nil
 }
 
@@ -130,6 +133,7 @@ func (c *Config) NewClient() (*Client, error) {
 		affinityGroupClient:  affinitygroup.NewClient(mc),
 		hostedServiceClient:  hostedservice.NewClient(mc),
 		secGroupClient:       networksecuritygroup.NewClient(mc),
+		secGroupMutex:        &sync.Mutex{},
 		osImageClient:        osimage.NewClient(mc),
 		sqlClient:            sql.NewClient(mc),
 		storageServiceClient: storageservice.NewClient(mc),
@@ -137,6 +141,6 @@ func (c *Config) NewClient() (*Client, error) {
 		vmDiskClient:         virtualmachinedisk.NewClient(mc),
 		vmImageClient:        virtualmachineimage.NewClient(mc),
 		vnetClient:           virtualnetwork.NewClient(mc),
-		mutex:                &sync.Mutex{},
+		vnetMutex:            &sync.Mutex{},
 	}, nil
 }

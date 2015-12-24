@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,6 +42,14 @@ func resourceAwsLBCookieStickinessPolicy() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value <= 0 {
+						es = append(es, fmt.Errorf(
+							"LB Cookie Expiration Period must be greater than zero if specified"))
+					}
+					return
+				},
 			},
 		},
 	}
@@ -51,11 +60,15 @@ func resourceAwsLBCookieStickinessPolicyCreate(d *schema.ResourceData, meta inte
 
 	// Provision the LBStickinessPolicy
 	lbspOpts := &elb.CreateLBCookieStickinessPolicyInput{
-		CookieExpirationPeriod: aws.Int64(int64(d.Get("cookie_expiration_period").(int))),
-		LoadBalancerName:       aws.String(d.Get("load_balancer").(string)),
-		PolicyName:             aws.String(d.Get("name").(string)),
+		LoadBalancerName: aws.String(d.Get("load_balancer").(string)),
+		PolicyName:       aws.String(d.Get("name").(string)),
 	}
 
+	if v := d.Get("cookie_expiration_period").(int); v > 0 {
+		lbspOpts.CookieExpirationPeriod = aws.Int64(int64(v))
+	}
+
+	log.Printf("[DEBUG] LB Cookie Stickiness Policy opts: %#v", lbspOpts)
 	if _, err := elbconn.CreateLBCookieStickinessPolicy(lbspOpts); err != nil {
 		return fmt.Errorf("Error creating LBCookieStickinessPolicy: %s", err)
 	}
@@ -66,6 +79,7 @@ func resourceAwsLBCookieStickinessPolicyCreate(d *schema.ResourceData, meta inte
 		PolicyNames:      []*string{aws.String(d.Get("name").(string))},
 	}
 
+	log.Printf("[DEBUG] LB Cookie Stickiness create configuration: %#v", setLoadBalancerOpts)
 	if _, err := elbconn.SetLoadBalancerPoliciesOfListener(setLoadBalancerOpts); err != nil {
 		return fmt.Errorf("Error setting LBCookieStickinessPolicy: %s", err)
 	}

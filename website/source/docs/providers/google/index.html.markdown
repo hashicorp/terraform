@@ -19,14 +19,14 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Google Cloud provider
 provider "google" {
-    account_file = "${file("account.json")}"
-    project = "my-gce-project"
-    region = "us-central1"
+  credentials = "${file("account.json")}"
+  project     = "my-gce-project"
+  region      = "us-central1"
 }
 
 # Create a new instance
 resource "google_compute_instance" "default" {
-    ...
+  ...
 }
 ```
 
@@ -34,12 +34,12 @@ resource "google_compute_instance" "default" {
 
 The following keys can be used to configure the provider.
 
-* `account_file` - (Required) Contents of the JSON file used to describe your
+* `credentials` - (Optional) Contents of the JSON file used to describe your
   account credentials, downloaded from Google Cloud Console. More details on
-  retrieving this file are below. The `account file` can be "" if you are running
-  terraform from a GCE instance with a properly-configured [Compute Engine
+  retrieving this file are below. Credentials may be blank if you are running
+  Terraform from a GCE instance with a properly-configured [Compute Engine
   Service Account](https://cloud.google.com/compute/docs/authentication). This
-  can also be specified with the `GOOGLE_ACCOUNT_FILE` shell environment
+  can also be specified with the `GOOGLE_CREDENTIALS` shell environment
   variable.
 
 * `project` - (Required) The ID of the project to apply any resources to.  This
@@ -47,6 +47,19 @@ The following keys can be used to configure the provider.
 
 * `region` - (Required) The region to operate under. This can also be specified
   with the `GOOGLE_REGION` shell environment variable.
+
+The following keys are supported for backwards compatibility, and may be
+removed in a future version:
+
+* `account_file` - __Deprecated: please use `credentials` instead.__
+  Path to or contents of the JSON file used to describe your
+  account credentials, downloaded from Google Cloud Console. More details on
+  retrieving this file are below. The `account file` can be "" if you are running
+  terraform from a GCE instance with a properly-configured [Compute Engine
+  Service Account](https://cloud.google.com/compute/docs/authentication). This
+  can also be specified with the `GOOGLE_ACCOUNT_FILE` shell environment
+  variable.
+
 
 ## Authentication JSON File
 
@@ -60,7 +73,10 @@ the process more straightforwarded, it is documented here:
 1. Log into the [Google Developers Console](https://console.developers.google.com)
    and select a project.
 
-2. Under the "APIs & Auth" section, click "Credentials."
+2. Click the menu button in the top left corner, and navigate to "Permissions",
+   then "Service accounts", and finally "Create service account".
 
-3. Create a new OAuth client ID and select "Service account" as the type
-   of account. Once created, and after a P12 key is downloaded, a JSON file should be downloaded. This is your _account file_.
+3. Provide a name and ID in the corresponding fields, select
+   "Furnish a new private key", and select "JSON" as the key type.
+
+4. Clicking "Create" will download your `credentials`.

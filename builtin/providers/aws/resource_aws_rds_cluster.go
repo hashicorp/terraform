@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -122,6 +123,38 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+
+			"preferred_backup_window": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"preferred_maintenance_window": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				StateFunc: func(val interface{}) string {
+					if val == nil {
+						return ""
+					}
+					return strings.ToLower(val.(string))
+				},
+			},
+
+			"backup_retention_period": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  1,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(int)
+					if value > 35 {
+						es = append(es, fmt.Errorf(
+							"backup retention period cannot be more than 35 days"))
+					}
+					return
+				},
+			},
 		},
 	}
 }
@@ -154,6 +187,18 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
 		createOpts.AvailabilityZones = expandStringList(attr.List())
+	}
+
+	if v, ok := d.GetOk("backup_retention_period"); ok {
+		createOpts.BackupRetentionPeriod = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("preferred_backup_window"); ok {
+		createOpts.PreferredBackupWindow = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("preferred_maintenance_window"); ok {
+		createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] RDS Cluster create options: %s", createOpts)
@@ -223,6 +268,9 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("engine", dbc.Engine)
 	d.Set("master_username", dbc.MasterUsername)
 	d.Set("port", dbc.Port)
+	d.Set("backup_retention_period", dbc.BackupRetentionPeriod)
+	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
+	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -261,6 +309,18 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		} else {
 			req.VpcSecurityGroupIds = []*string{}
 		}
+	}
+
+	if d.HasChange("preferred_backup_window") {
+		req.PreferredBackupWindow = aws.String(d.Get("preferred_backup_window").(string))
+	}
+
+	if d.HasChange("preferred_maintenance_window") {
+		req.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
+	}
+
+	if d.HasChange("backup_retention_period") {
+		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
 	}
 
 	_, err := conn.ModifyDBCluster(req)

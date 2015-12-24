@@ -111,11 +111,27 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 	if !destroyForce && c.Destroy {
+		// Default destroy message
+		desc := "Terraform will delete all your managed infrastructure.\n" +
+			"There is no undo. Only 'yes' will be accepted to confirm."
+
+		// If targets are specified, list those to user
+		if c.Meta.targets != nil {
+			var descBuffer bytes.Buffer
+			descBuffer.WriteString("Terraform will delete the following infrastructure:\n")
+			for _, target := range c.Meta.targets {
+				descBuffer.WriteString("\t")
+				descBuffer.WriteString(target)
+				descBuffer.WriteString("\n")
+			}
+			descBuffer.WriteString("There is no undo. Only 'yes' will be accepted to confirm")
+			desc = descBuffer.String()
+		}
+
 		v, err := c.UIInput().Input(&terraform.InputOpts{
-			Id:    "destroy",
-			Query: "Do you really want to destroy?",
-			Description: "Terraform will delete all your managed infrastructure.\n" +
-				"There is no undo. Only 'yes' will be accepted to confirm.",
+			Id:          "destroy",
+			Query:       "Do you really want to destroy?",
+			Description: desc,
 		})
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))

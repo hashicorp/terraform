@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAwsVpnConnectionRoute_basic(t *testing.T) {
+func TestAccAWSVpnConnectionRoute_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

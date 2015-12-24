@@ -147,6 +147,33 @@ func TestInterpolateFuncCidrSubnet(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncCoalesce(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${coalesce("first", "second", "third")}`,
+				"first",
+				false,
+			},
+			{
+				`${coalesce("", "second", "third")}`,
+				"second",
+				false,
+			},
+			{
+				`${coalesce("", "", "")}`,
+				"",
+				false,
+			},
+			{
+				`${coalesce("foo")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncDeprecatedConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -504,6 +531,12 @@ func TestInterpolateFuncLength(t *testing.T) {
 			{
 				`${length(split(".", "one.two.three.four.five"))}`,
 				"5",
+				false,
+			},
+			// Want length 0 if we split an empty string then compact
+			{
+				`${length(compact(split(",", "")))}`,
+				"0",
 				false,
 			},
 		},

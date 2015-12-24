@@ -163,9 +163,9 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		// expand orphans, which have all the same semantics in a destroy
 		// as a primary.
 		steps = append(steps, &OrphanTransformer{
-			State:     state,
-			View:      n.Resource.Id(),
-			Targeting: len(n.Targets) > 0,
+			State:   state,
+			View:    n.Resource.Id(),
+			Targets: n.Targets,
 		})
 
 		steps = append(steps, &DeposedTransformer{

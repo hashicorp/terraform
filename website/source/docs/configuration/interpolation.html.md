@@ -95,6 +95,9 @@ The supported built-in functions are:
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
     additional subnet number. For example,
     ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
+    
+  * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
+    the given arguments. At least two arguments must be provided.
 
   * `compact(list)` - Removes empty string elements from a list. This can be
      useful in some cases, for example when passing joined lists as module
@@ -175,28 +178,21 @@ A template resource looks like:
 
 ```
 resource "template_file" "example" {
-    filename = "template.txt"
-    vars {
-        hello = "goodnight"
-        world = "moon"
-    }
+  template = "${hello} ${world}!"
+  vars {
+    hello = "goodnight"
+    world = "moon"
+  }
 }
 
 output "rendered" {
-    value = "${template_file.example.rendered}"
+  value = "${template_file.example.rendered}"
 }
-```
-
-Assuming `template.txt` looks like this:
-
-```
-${hello} ${world}!
 ```
 
 Then the rendered value would be `goodnight moon!`.
 
 You may use any of the built-in functions in your template.
-
 
 ### Using Templates with Count
 
@@ -217,8 +213,8 @@ variable "hostnames" {
 
 resource "template_file" "web_init" {
   // here we expand multiple template_files - the same number as we have instances
-  count = "${var.count}"
-  filename = "templates/web_init.tpl"
+  count    = "${var.count}"
+  template = "${file("templates/web_init.tpl")}"
   vars {
     // that gives us access to use count.index to do the lookup
     hostname = "${lookup(var.hostnames, count.index)}"

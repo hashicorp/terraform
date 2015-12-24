@@ -3,15 +3,12 @@ sudo: false
 language: go
 
 go:
-  - 1.4
-  - tip
+  - 1.5
 
 install: make updatedeps
 
 script:
-  - go test ./...
-  - make vet
-  #- go test -race ./...
+  - make test
 
 branches:
   only:

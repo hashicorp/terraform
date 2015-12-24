@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,17 +30,55 @@ func resourceAwsS3Bucket() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"acl": &schema.Schema{
 				Type:     schema.TypeString,
 				Default:  "private",
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"policy": &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				StateFunc: normalizeJson,
+			},
+
+			"cors_rule": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"allowed_headers": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"allowed_methods": &schema.Schema{
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"allowed_origins": &schema.Schema{
+							Type:     schema.TypeList,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"expose_headers": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"max_age_seconds": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
 			},
 
 			"website": &schema.Schema{
@@ -168,6 +208,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("cors_rule") {
+		if err := resourceAwsS3BucketCorsUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
 	if d.HasChange("website") {
 		if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
 			return err
@@ -176,6 +222,11 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("versioning") {
 		if err := resourceAwsS3BucketVersioningUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+	if d.HasChange("acl") {
+		if err := resourceAwsS3BucketAclUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -218,6 +269,27 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
 			return err
+		}
+	}
+
+	// Read the CORS
+	cors, err := s3conn.GetBucketCors(&s3.GetBucketCorsInput{
+		Bucket: aws.String(d.Id()),
+	})
+	log.Printf("[DEBUG] S3 bucket: %s, read CORS: %v", d.Id(), cors)
+	if err != nil {
+		rules := make([]map[string]interface{}, 0, len(cors.CORSRules))
+		for _, ruleObject := range cors.CORSRules {
+			rule := make(map[string]interface{})
+			rule["allowed_headers"] = ruleObject.AllowedHeaders
+			rule["allowed_methods"] = ruleObject.AllowedMethods
+			rule["allowed_origins"] = ruleObject.AllowedOrigins
+			rule["expose_headers"] = ruleObject.ExposeHeaders
+			rule["max_age_seconds"] = ruleObject.MaxAgeSeconds
+			rules = append(rules, rule)
+		}
+		if err := d.Set("cors_rule", rules); err != nil {
+			return fmt.Errorf("error reading S3 bucket \"%s\" CORS rules: %s", d.Id(), err)
 		}
 	}
 
@@ -316,6 +388,8 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.Set("arn", fmt.Sprint("arn:aws:s3:::", d.Id()))
+
 	return nil
 }
 
@@ -334,30 +408,46 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 				log.Printf("[DEBUG] S3 Bucket attempting to forceDestroy %+v", err)
 
 				bucket := d.Get("bucket").(string)
-				resp, err := s3conn.ListObjects(
-					&s3.ListObjectsInput{
+				resp, err := s3conn.ListObjectVersions(
+					&s3.ListObjectVersionsInput{
 						Bucket: aws.String(bucket),
 					},
 				)
 
 				if err != nil {
-					return fmt.Errorf("Error S3 Bucket list Objects err: %s", err)
+					return fmt.Errorf("Error S3 Bucket list Object Versions err: %s", err)
 				}
 
-				objectsToDelete := make([]*s3.ObjectIdentifier, len(resp.Contents))
-				for i, v := range resp.Contents {
-					objectsToDelete[i] = &s3.ObjectIdentifier{
-						Key: v.Key,
+				objectsToDelete := make([]*s3.ObjectIdentifier, 0)
+
+				if len(resp.DeleteMarkers) != 0 {
+
+					for _, v := range resp.DeleteMarkers {
+						objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+							Key:       v.Key,
+							VersionId: v.VersionId,
+						})
 					}
 				}
-				_, err = s3conn.DeleteObjects(
-					&s3.DeleteObjectsInput{
-						Bucket: aws.String(bucket),
-						Delete: &s3.Delete{
-							Objects: objectsToDelete,
-						},
+
+				if len(resp.Versions) != 0 {
+					for _, v := range resp.Versions {
+						objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+							Key:       v.Key,
+							VersionId: v.VersionId,
+						})
+					}
+				}
+
+				params := &s3.DeleteObjectsInput{
+					Bucket: aws.String(bucket),
+					Delete: &s3.Delete{
+						Objects: objectsToDelete,
 					},
-				)
+				}
+
+				_, err = s3conn.DeleteObjects(params)
+
 				if err != nil {
 					return fmt.Errorf("Error S3 Bucket force_destroy error deleting: %s", err)
 				}
@@ -378,9 +468,24 @@ func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) erro
 	if policy != "" {
 		log.Printf("[DEBUG] S3 bucket: %s, put policy: %s", bucket, policy)
 
-		_, err := s3conn.PutBucketPolicy(&s3.PutBucketPolicyInput{
+		params := &s3.PutBucketPolicyInput{
 			Bucket: aws.String(bucket),
 			Policy: aws.String(policy),
+		}
+
+		err := resource.Retry(1*time.Minute, func() error {
+			if _, err := s3conn.PutBucketPolicy(params); err != nil {
+				if awserr, ok := err.(awserr.Error); ok {
+					if awserr.Code() == "MalformedPolicy" {
+						// Retryable
+						return awserr
+					}
+				}
+				// Not retryable
+				return resource.RetryError{Err: err}
+			}
+			// No error
+			return nil
 		})
 
 		if err != nil {
@@ -394,6 +499,65 @@ func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) erro
 
 		if err != nil {
 			return fmt.Errorf("Error deleting S3 policy: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketCorsUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	rawCors := d.Get("cors_rule").([]interface{})
+
+	if len(rawCors) == 0 {
+		// Delete CORS
+		log.Printf("[DEBUG] S3 bucket: %s, delete CORS", bucket)
+		_, err := s3conn.DeleteBucketCors(&s3.DeleteBucketCorsInput{
+			Bucket: aws.String(bucket),
+		})
+		if err != nil {
+			return fmt.Errorf("Error deleting S3 CORS: %s", err)
+		}
+	} else {
+		// Put CORS
+		rules := make([]*s3.CORSRule, 0, len(rawCors))
+		for _, cors := range rawCors {
+			corsMap := cors.(map[string]interface{})
+			r := &s3.CORSRule{}
+			for k, v := range corsMap {
+				log.Printf("[DEBUG] S3 bucket: %s, put CORS: %#v, %#v", bucket, k, v)
+				if k == "max_age_seconds" {
+					r.MaxAgeSeconds = aws.Int64(int64(v.(int)))
+				} else {
+					vMap := make([]*string, len(v.([]interface{})))
+					for i, vv := range v.([]interface{}) {
+						str := vv.(string)
+						vMap[i] = aws.String(str)
+					}
+					switch k {
+					case "allowed_headers":
+						r.AllowedHeaders = vMap
+					case "allowed_methods":
+						r.AllowedMethods = vMap
+					case "allowed_origins":
+						r.AllowedOrigins = vMap
+					case "expose_headers":
+						r.ExposeHeaders = vMap
+					}
+				}
+			}
+			rules = append(rules, r)
+		}
+		corsInput := &s3.PutBucketCorsInput{
+			Bucket: aws.String(bucket),
+			CORSConfiguration: &s3.CORSConfiguration{
+				CORSRules: rules,
+			},
+		}
+		log.Printf("[DEBUG] S3 bucket: %s, put CORS: %#v", bucket, corsInput)
+		_, err := s3conn.PutBucketCors(corsInput)
+		if err != nil {
+			return fmt.Errorf("Error putting S3 CORS: %s", err)
 		}
 	}
 
@@ -511,6 +675,24 @@ func WebsiteDomainUrl(region string) string {
 	}
 
 	return fmt.Sprintf("s3-website-%s.amazonaws.com", region)
+}
+
+func resourceAwsS3BucketAclUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	acl := d.Get("acl").(string)
+	bucket := d.Get("bucket").(string)
+
+	i := &s3.PutBucketAclInput{
+		Bucket: aws.String(bucket),
+		ACL:    aws.String(acl),
+	}
+	log.Printf("[DEBUG] S3 put bucket ACL: %#v", i)
+
+	_, err := s3conn.PutBucketAcl(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 ACL: %s", err)
+	}
+
+	return nil
 }
 
 func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) error {

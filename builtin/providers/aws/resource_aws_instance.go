@@ -370,6 +370,9 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error launching source instance: %s", err)
 	}
+	if runResp == nil || len(runResp.Instances) == 0 {
+		return fmt.Errorf("Error launching source instance: no instances returned in response")
+	}
 
 	instance := runResp.Instances[0]
 	log.Printf("[INFO] Instance ID: %s", *instance.InstanceId)
@@ -1082,5 +1085,6 @@ func iamInstanceProfileArnToName(ip *ec2.IamInstanceProfile) string {
 	if ip == nil || ip.Arn == nil {
 		return ""
 	}
-	return strings.Split(*ip.Arn, "/")[1]
+	parts := strings.Split(*ip.Arn, "/")
+	return parts[len(parts)-1]
 }

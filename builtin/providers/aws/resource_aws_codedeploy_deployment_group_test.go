@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -23,7 +24,7 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCodeDeployDeploymentGroupModifier,
+				Config: testAccAWSCodeDeployDeploymentGroupModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo"),
 				),
@@ -44,6 +45,10 @@ func testAccCheckAWSCodeDeployDeploymentGroupDestroy(s *terraform.State) error {
 			ApplicationName:     aws.String(rs.Primary.Attributes["app_name"]),
 			DeploymentGroupName: aws.String(rs.Primary.Attributes["deployment_group_name"]),
 		})
+
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ApplicationDoesNotExistException" {
+			continue
+		}
 
 		if err == nil {
 			if resp.DeploymentGroupInfo.DeploymentGroupName != nil {
@@ -133,7 +138,7 @@ resource "aws_codedeploy_deployment_group" "foo" {
 	}
 }`
 
-var testAccAWSCodeDeployDeploymentGroupModifier = `
+var testAccAWSCodeDeployDeploymentGroupModified = `
 resource "aws_codedeploy_app" "foo_app" {
 	name = "foo_app"
 }

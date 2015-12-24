@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -50,6 +51,12 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 			"instance_template": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"update_strategy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "RESTART",
 			},
 
 			"target_pools": &schema.Schema{
@@ -109,6 +116,11 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 			s = append(s, v.(string))
 		}
 		manager.TargetPools = s
+	}
+
+	updateStrategy := d.Get("update_strategy").(string)
+	if !(updateStrategy == "NONE" || updateStrategy == "RESTART") {
+		return fmt.Errorf("Update strategy must be \"NONE\" or \"RESTART\"")
 	}
 
 	log.Printf("[DEBUG] InstanceGroupManager insert request: %#v", manager)
@@ -208,6 +220,35 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 			return err
 		}
 
+		if d.Get("update_strategy").(string) == "RESTART" {
+			managedInstances, err := config.clientCompute.InstanceGroupManagers.ListManagedInstances(
+				config.Project, d.Get("zone").(string), d.Id()).Do()
+
+			managedInstanceCount := len(managedInstances.ManagedInstances)
+			instances := make([]string, managedInstanceCount)
+			for i, v := range managedInstances.ManagedInstances {
+				instances[i] = v.Instance
+			}
+
+			recreateInstances := &compute.InstanceGroupManagersRecreateInstancesRequest{
+				Instances: instances,
+			}
+
+			op, err = config.clientCompute.InstanceGroupManagers.RecreateInstances(
+				config.Project, d.Get("zone").(string), d.Id(), recreateInstances).Do()
+
+			if err != nil {
+				return fmt.Errorf("Error restarting instance group managers instances: %s", err)
+			}
+
+			// Wait for the operation to complete
+			err = computeOperationWaitZoneTime(config, op, d.Get("zone").(string),
+				managedInstanceCount*4, "Restarting InstanceGroupManagers instances")
+			if err != nil {
+				return err
+			}
+		}
+
 		d.SetPartial("instance_template")
 	}
 
@@ -247,10 +288,32 @@ func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta inte
 		return fmt.Errorf("Error deleting instance group manager: %s", err)
 	}
 
+	currentSize := int64(d.Get("target_size").(int))
+
 	// Wait for the operation to complete
 	err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
-	if err != nil {
-		return err
+
+	for err != nil && currentSize > 0 {
+		if !strings.Contains(err.Error(), "timeout") {
+			return err
+		}
+
+		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
+			config.Project, d.Get("zone").(string), d.Id()).Do()
+
+		if err != nil {
+			return fmt.Errorf("Error getting instance group size: %s", err)
+		}
+
+		if instanceGroup.Size >= currentSize {
+			return fmt.Errorf("Error, instance group isn't shrinking during delete")
+		}
+
+		log.Printf("[INFO] timeout occured, but instance group is shrinking (%d < %d)", instanceGroup.Size, currentSize)
+
+		currentSize = instanceGroup.Size
+
+		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Deleting InstanceGroupManager")
 	}
 
 	d.SetId("")

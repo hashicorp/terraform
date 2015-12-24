@@ -41,6 +41,7 @@ func resourceAwsRouteTable() *schema.Resource {
 
 			"route": &schema.Schema{
 				Type:     schema.TypeSet,
+				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -55,6 +56,11 @@ func resourceAwsRouteTable() *schema.Resource {
 						},
 
 						"instance_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"nat_gateway_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -161,6 +167,9 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		if r.GatewayId != nil {
 			m["gateway_id"] = *r.GatewayId
+		}
+		if r.NatGatewayId != nil {
+			m["nat_gateway_id"] = *r.NatGatewayId
 		}
 		if r.InstanceId != nil {
 			m["instance_id"] = *r.InstanceId
@@ -281,6 +290,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				RouteTableId:           aws.String(d.Id()),
 				DestinationCidrBlock:   aws.String(m["cidr_block"].(string)),
 				GatewayId:              aws.String(m["gateway_id"].(string)),
+				NatGatewayId:           aws.String(m["nat_gateway_id"].(string)),
 				InstanceId:             aws.String(m["instance_id"].(string)),
 				VpcPeeringConnectionId: aws.String(m["vpc_peering_connection_id"].(string)),
 				NetworkInterfaceId:     aws.String(m["network_interface_id"].(string)),
@@ -325,6 +335,14 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 		_, err := conn.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{
 			AssociationId: a.RouteTableAssociationId,
 		})
+		if err != nil {
+			// First check if the association ID is not found. If this
+			// is the case, then it was already disassociated somehow,
+			// and that is okay.
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAssociationID.NotFound" {
+				err = nil
+			}
+		}
 		if err != nil {
 			return err
 		}
@@ -376,6 +394,12 @@ func resourceAwsRouteTableHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
+	natGatewaySet := false
+	if v, ok := m["nat_gateway_id"]; ok {
+		natGatewaySet = v.(string) != ""
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
 	instanceSet := false
 	if v, ok := m["instance_id"]; ok {
 		instanceSet = v.(string) != ""
@@ -386,7 +410,7 @@ func resourceAwsRouteTableHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	if v, ok := m["network_interface_id"]; ok && !instanceSet {
+	if v, ok := m["network_interface_id"]; ok && !(instanceSet || natGatewaySet) {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 

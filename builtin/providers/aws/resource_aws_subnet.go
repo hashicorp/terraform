@@ -22,9 +22,8 @@ func resourceAwsSubnet() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
-				Computed: true,
 			},
 
 			"cidr_block": &schema.Schema{

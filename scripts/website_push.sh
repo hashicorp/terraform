@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Switch to the stable-website branch
+git checkout stable-website
+
 # Set the tmpdir
 if [ -z "$TMPDIR" ]; then
   TMPDIR="/tmp"

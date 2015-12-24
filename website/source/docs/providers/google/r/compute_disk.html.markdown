@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_disk"
-sidebar_current: "docs-google-resource-disk"
+sidebar_current: "docs-google-compute-disk"
 description: |-
   Creates a new persistent disk within GCE, based on another disk.
 ---

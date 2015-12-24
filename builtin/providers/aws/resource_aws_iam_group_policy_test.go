@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -39,8 +40,30 @@ func TestAccAWSIAMGroupPolicy_basic(t *testing.T) {
 }
 
 func testAccCheckIAMGroupPolicyDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	conn := testAccProvider.Meta().(*AWSClient).iamconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_iam_group_policy" {
+			continue
+		}
+
+		group, name := resourceAwsIamGroupPolicyParseId(rs.Primary.ID)
+
+		request := &iam.GetGroupPolicyInput{
+			PolicyName: aws.String(name),
+			GroupName:  aws.String(group),
+		}
+
+		_, err := conn.GetGroupPolicy(request)
+		if err != nil {
+			// Verify the error is what we want
+			if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchEntity" {
+				continue
+			}
+			return err
+		}
+
+		return fmt.Errorf("still exists")
 	}
 
 	return nil

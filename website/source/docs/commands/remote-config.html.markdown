@@ -16,7 +16,7 @@ disk. When remote state storage is enabled, Terraform will automatically
 fetch the latest state from the remote server when necessary and if any
 updates are made, the newest state is persisted back to the remote server.
 In this mode, users do not need to durably store the state using version
-control or shared storaged.
+control or shared storage.
 
 ## Usage
 
@@ -57,6 +57,10 @@ The following backends are supported:
   * `scheme` - Specifies what protocol to use when talking to the given
     `address`, either `http` or `https`. SSL support can also be triggered
     by setting then environment variable `CONSUL_HTTP_SSL` to `true`.
+  * `http_auth` - HTTP Basic Authentication credentials to be used when
+    communicating with Consul, in the format of either `user` or `user:pass`.
+    This may also be specified using the `CONSUL_HTTP_AUTH` environment
+    variable.
 
 * Etcd - Stores the state in etcd at a given path.
   Requires the `path` and `endpoints` variables. The `username` and `password`
@@ -77,6 +81,13 @@ The following backends are supported:
     of the state file
   * `acl` - [Canned ACL](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl)
     to be applied to the state file.
+
+* Artifactory - Stores the state as an artifact in a given repository in
+  Artifactory. Requires the `url`, `username`, `password`, `repo` and `subpath`
+  variables. Generic HTTP repositories are supported, and state from different
+  configurations may be kept at different subpaths within the repository. The URL
+  must include the path to the Artifactory installation - it will likely end in
+  `/artifactory`.
 
 * HTTP - Stores the state using a simple REST client. State will be fetched
   via GET, updated via POST, and purged with DELETE. Requires the `address` variable.

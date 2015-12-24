@@ -22,7 +22,7 @@ The guide below outlines the steps HashiCorp takes to build the official release
 binaries for Terraform. This process will generate a set of binaries for each supported
 platform, using the [gox](https://github.com/mitchellh/gox) tool.
 
-A Vagrant virtual machine is used to provide a consistent envirornment with
+A Vagrant virtual machine is used to provide a consistent environment with
 the pre-requisite tools in place. The specifics of this VM are defined in the 
 [Vagrantfile](Vagrantfile).
 

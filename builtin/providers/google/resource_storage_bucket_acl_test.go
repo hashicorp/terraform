@@ -2,9 +2,7 @@ package google
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -20,7 +18,7 @@ var roleEntityBasic3_owner = "OWNER:user-yetanotheremail@gmail.com"
 
 var roleEntityBasic3_reader = "READER:user-yetanotheremail@gmail.com"
 
-var testAclBucketName = fmt.Sprintf("%s-%d", "tf-test-acl-bucket", rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+var testAclBucketName = fmt.Sprintf("%s-%d", "tf-test-acl-bucket", genRandInt())
 
 func TestAccGoogleStorageBucketAcl_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{

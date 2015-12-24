@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/route53"
 )
 
@@ -82,6 +83,23 @@ func TestAccAWSRoute53Record_txtSupport(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53Record_spfSupport(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfigSPF,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_record.default", "records.2930149397", "include:notexample.com"),
+				),
+			},
+		},
+	})
+}
 func TestAccAWSRoute53Record_generatesSuffix(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -122,7 +140,24 @@ func TestAccAWSRoute53Record_wildcard(t *testing.T) {
 	})
 }
 
-func TestAccAWSRoute53Record_weighted(t *testing.T) {
+func TestAccAWSRoute53Record_failover(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53FailoverCNAMERecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.www-primary"),
+					testAccCheckRoute53RecordExists("aws_route53_record.www-secondary"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRoute53Record_weighted_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -243,6 +278,12 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 
 		resp, err := conn.ListResourceRecordSets(lopts)
 		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				// if NoSuchHostedZone, then all the things are destroyed
+				if awsErr.Code() == "NoSuchHostedZone" {
+					return nil
+				}
+			}
 			return err
 		}
 		if len(resp.ResourceRecordSets) == 0 {
@@ -291,7 +332,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		// rec := resp.ResourceRecordSets[0]
 		for _, rec := range resp.ResourceRecordSets {
 			recName := cleanRecordName(*rec.Name)
-			if FQDN(recName) == FQDN(en) && *rec.Type == rType {
+			if FQDN(strings.ToLower(recName)) == FQDN(strings.ToLower(en)) && *rec.Type == rType {
 				return nil
 			}
 		}
@@ -306,7 +347,7 @@ resource "aws_route53_zone" "main" {
 
 resource "aws_route53_record" "default" {
 	zone_id = "${aws_route53_zone.main.zone_id}"
-	name = "www.notexample.com"
+	name = "www.NOTexamplE.com"
 	type = "A"
 	ttl = "30"
 	records = ["127.0.0.1", "127.0.0.27"]
@@ -381,6 +422,59 @@ resource "aws_route53_record" "default" {
 	type = "TXT"
 	ttl = "30"
 	records = ["lalalala"]
+}
+`
+const testAccRoute53RecordConfigSPF = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = "test"
+	type = "SPF"
+	ttl = "30"
+	records = ["include:notexample.com"]
+}
+`
+
+const testAccRoute53FailoverCNAMERecord = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_health_check" "foo" {
+  fqdn = "dev.notexample.com"
+  port = 80
+  type = "HTTP"
+  resource_path = "/"
+  failure_threshold = "2"
+  request_interval = "30"
+
+  tags = {
+    Name = "tf-test-health-check"
+   }
+}
+
+resource "aws_route53_record" "www-primary" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  failover = "PRIMARY"
+  health_check_id = "${aws_route53_health_check.foo.id}"
+  set_identifier = "www-primary"
+  records = ["primary.notexample.com"]
+}
+
+resource "aws_route53_record" "www-secondary" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  failover = "SECONDARY"
+  set_identifier = "www-secondary"
+  records = ["secondary.notexample.com"]
 }
 `
 

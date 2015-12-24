@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_project_metadata"
-sidebar_current: "docs-google-resource-project-metadata"
+sidebar_current: "docs-google-compute-project-metadata"
 description: |-
   Manages common instance metadata
 ---

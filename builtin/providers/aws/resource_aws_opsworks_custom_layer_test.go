@@ -11,17 +11,14 @@ import (
 // These tests assume the existence of predefined Opsworks IAM roles named `aws-opsworks-ec2-role`
 // and `aws-opsworks-service-role`.
 
-func TestAccAwsOpsworksCustomLayer(t *testing.T) {
-	opsiam := testAccAwsOpsworksStackIam{}
-	testAccAwsOpsworksStackPopulateIam(t, &opsiam)
-
+func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksCustomLayerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccAwsOpsworksCustomLayerConfigCreate, opsiam.ServiceRoleArn, opsiam.InstanceProfileArn),
+				Config: testAccAwsOpsworksCustomLayerConfigCreate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",
@@ -68,7 +65,7 @@ func TestAccAwsOpsworksCustomLayer(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccAwsOpsworksCustomLayerConfigUpdate, opsiam.ServiceRoleArn, opsiam.InstanceProfileArn),
+				Config: testAccAwsOpsworksCustomLayerConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",

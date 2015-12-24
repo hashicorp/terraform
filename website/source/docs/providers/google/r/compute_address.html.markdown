@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_address"
-sidebar_current: "docs-google-resource-address"
+sidebar_current: "docs-google-compute-address"
 description: |-
   Creates a static IP address resource for Google Compute Engine.
 ---

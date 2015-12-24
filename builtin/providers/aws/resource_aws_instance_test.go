@@ -112,22 +112,22 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 
 			// Check if the root block device exists.
 			if _, ok := blockDevices["/dev/sda1"]; !ok {
-				fmt.Errorf("block device doesn't exist: /dev/sda1")
+				return fmt.Errorf("block device doesn't exist: /dev/sda1")
 			}
 
 			// Check if the secondary block device exists.
 			if _, ok := blockDevices["/dev/sdb"]; !ok {
-				fmt.Errorf("block device doesn't exist: /dev/sdb")
+				return fmt.Errorf("block device doesn't exist: /dev/sdb")
 			}
 
 			// Check if the third block device exists.
 			if _, ok := blockDevices["/dev/sdc"]; !ok {
-				fmt.Errorf("block device doesn't exist: /dev/sdc")
+				return fmt.Errorf("block device doesn't exist: /dev/sdc")
 			}
 
 			// Check if the encrypted block device exists
 			if _, ok := blockDevices["/dev/sdd"]; !ok {
-				fmt.Errorf("block device doesn't exist: /dev/sdd")
+				return fmt.Errorf("block device doesn't exist: /dev/sdd")
 			}
 
 			return nil
@@ -540,26 +540,25 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 		}
 
 		// Try to find the resource
-		var err error
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 			InstanceIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
-			if len(resp.Reservations) > 0 {
-				return fmt.Errorf("still exist.")
+			for _, r := range resp.Reservations {
+				for _, i := range r.Instances {
+					if i.State != nil && *i.State.Name != "terminated" {
+						return fmt.Errorf("Found unterminated instance: %s", i)
+					}
+				}
 			}
-
-			return nil
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
-			return err
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidInstanceID.NotFound" {
+			continue
 		}
-		if ec2err.Code() != "InvalidInstanceID.NotFound" {
-			return err
-		}
+
+		return err
 	}
 
 	return nil

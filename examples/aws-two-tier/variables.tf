@@ -1,9 +1,11 @@
-variable "key_name" {
-  description = "Name of the SSH keypair to use in AWS."
-}
+variable "public_key_path" {
+  description = <<DESCRIPTION
+Path to the SSH public key to be used for authentication.
+Ensure this keypair is added to your local SSH agent so provisioners can
+connect.
 
-variable "key_path" {
-  description = "Path to the private portion of the SSH key specified."
+Example: ~/.ssh/id_rsa.pub
+DESCRIPTION
 }
 
 variable "aws_region" {

@@ -9,7 +9,7 @@ description: |-
 # packet\_ssh_key
 
 Provides a Packet SSH key resource to allow you manage SSH
-keys on your account. All ssh keys on your account are loaded on
+keys on your account. All SSH keys on your account are loaded on
 all new devices, they do not have to be explicitly declared on
 device creation.
 
@@ -40,4 +40,4 @@ The following attributes are exported:
 * `public_key` - The text of the public key
 * `fingerprint` - The fingerprint of the SSH key
 * `created` - The timestamp for when the SSH key was created
-* `updated` - The timestamp for the last time the SSH key was udpated
+* `updated` - The timestamp for the last time the SSH key was updated

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -178,6 +179,26 @@ func TestAccAWSEcsService_withIamRole(t *testing.T) {
 	})
 }
 
+// Regression for https://github.com/hashicorp/terraform/issues/3361
+func TestAccAWSEcsService_withEcsClusterName(t *testing.T) {
+	clusterName := regexp.MustCompile("^terraformecstestcluster$")
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsServiceWithEcsClusterName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
+					resource.TestMatchResourceAttr(
+						"aws_ecs_service.jenkins", "cluster", clusterName),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -189,6 +210,10 @@ func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 		out, err := conn.DescribeServices(&ecs.DescribeServicesInput{
 			Services: []*string{aws.String(rs.Primary.ID)},
 		})
+
+		if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ClusterNotFoundException" {
+			continue
+		}
 
 		if err == nil {
 			if len(out.Services) > 0 {
@@ -299,7 +324,7 @@ resource "aws_iam_role" "ecs_service" {
     name = "EcsService"
     assume_role_policy = <<EOF
 {
-    "Version": "2008-10-17",
+    "Version": "2012-10-17",
     "Statement": [
         {
             "Action": "sts:AssumeRole",
@@ -336,7 +361,6 @@ EOF
 }
 
 resource "aws_elb" "main" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a"]
 
   listener {
@@ -468,6 +492,34 @@ resource "aws_ecs_service" "ghost" {
   name = "ghost"
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.ghost.family}:${aws_ecs_task_definition.ghost.revision}"
+  desired_count = 1
+}
+`
+
+var testAccAWSEcsServiceWithEcsClusterName = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstestcluster"
+}
+
+resource "aws_ecs_task_definition" "jenkins" {
+  family = "jenkins"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "jenkins:latest",
+    "memory": 128,
+    "name": "jenkins"
+  }
+]
+DEFINITION
+}
+
+resource "aws_ecs_service" "jenkins" {
+  name = "jenkins"
+  cluster = "${aws_ecs_cluster.default.name}"
+  task_definition = "${aws_ecs_task_definition.jenkins.arn}"
   desired_count = 1
 }
 `

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -327,6 +328,30 @@ func TestPlan_vars(t *testing.T) {
 
 	if actual != "bar" {
 		t.Fatal("didn't work")
+	}
+}
+
+func TestPlan_varsUnset(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	defaultInputReader = bytes.NewBufferString("bar\n")
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		testFixturePath("plan-vars"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 

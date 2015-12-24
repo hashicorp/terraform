@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_autoscaler"
-sidebar_current: "docs-google-resource-compute-autoscaler"
+sidebar_current: "docs-google-compute-autoscaler"
 description: |-
   Manages an Autoscaler within GCE.
 ---

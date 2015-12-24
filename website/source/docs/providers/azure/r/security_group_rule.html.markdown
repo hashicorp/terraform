@@ -8,7 +8,19 @@ description: |-
 
 # azure\_security\_group\_rule
 
-Creates a new network security rule to be associated with a given security group.
+Creates a new network Security Group Rule to be associated with a number of
+given Security Groups.
+
+~> **NOTE on Security Group Rules**: for usability purposes; Terraform allows the
+addition of a single Security Group Rule to multiple Security Groups, despite
+it having to define each rule individually per Security Group on Azure. As a
+result; in the event that one of the Rules on one of the Groups is modified by
+external factors, Terraform cannot reason as to whether or not that change
+should be propagated to the others; let alone choose one changed Rule
+configuration over another in case of a conflic. As such; `terraform refresh`
+only checks that the rule is still defined for each of the specified
+`security_group_names`; ignoring the actual parameters of the Rule and **not**
+updating the state with regards to them.
 
 ## Example Usage
 

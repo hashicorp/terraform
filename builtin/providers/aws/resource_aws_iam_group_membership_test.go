@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -33,6 +34,14 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user-two", "test-user-three"}),
 				),
 			},
+
+			resource.TestStep{
+				Config: testAccAWSGroupMemberConfigUpdateDown,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
+					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user-three"}),
+				),
+			},
 		},
 	})
 }
@@ -47,23 +56,18 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 
 		group := rs.Primary.Attributes["group"]
 
-		resp, err := conn.GetGroup(&iam.GetGroupInput{
+		_, err := conn.GetGroup(&iam.GetGroupInput{
 			GroupName: aws.String(group),
 		})
 		if err != nil {
-			// might error here
+			// Verify the error is what we want
+			if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchEntity" {
+				continue
+			}
 			return err
 		}
 
-		users := []string{"test-user", "test-user-two", "test-user-three"}
-		for _, u := range resp.Users {
-			for _, i := range users {
-				if i == *u.UserName {
-					return fmt.Errorf("Error: User (%s) still a member of Group (%s)", i, *resp.Group.GroupName)
-				}
-			}
-		}
-
+		return fmt.Errorf("still exists")
 	}
 
 	return nil
@@ -162,6 +166,26 @@ resource "aws_iam_group_membership" "team" {
 	name = "tf-testing-group-membership"
 	users = [
 		"${aws_iam_user.user_two.name}",
+		"${aws_iam_user.user_three.name}",
+	]
+	group = "${aws_iam_group.group.name}"
+}
+`
+
+const testAccAWSGroupMemberConfigUpdateDown = `
+resource "aws_iam_group" "group" {
+	name = "test-group"
+	path = "/"
+}
+
+resource "aws_iam_user" "user_three" {
+	name = "test-user-three"
+	path = "/"
+}
+
+resource "aws_iam_group_membership" "team" {
+	name = "tf-testing-group-membership"
+	users = [
 		"${aws_iam_user.user_three.name}",
 	]
 	group = "${aws_iam_group.group.name}"

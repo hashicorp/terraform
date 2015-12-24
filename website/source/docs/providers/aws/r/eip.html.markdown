@@ -42,4 +42,4 @@ The following attributes are exported:
 * `network_interface` - Contains the ID of the attached network interface.
 
 
-[1]: http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_AssociateAddress.html
+[1]: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AssociateAddress.html

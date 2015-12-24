@@ -9,8 +9,8 @@ if [ -z $VERSION ]; then
 fi
 
 # Make sure we have a bintray API key
-if [ -z $BINTRAY_API_KEY ]; then
-    echo "Please set your bintray API key in the BINTRAY_API_KEY env var."
+if [[ -z $AWS_ACCESS_KEY_ID  || -z $AWS_SECRET_ACCESS_KEY ]]; then
+    echo "Please set AWS access keys as env vars before running this script."
     exit 1
 fi
 
@@ -31,19 +31,14 @@ for FILENAME in $(find ./pkg -mindepth 1 -maxdepth 1 -type f); do
 done
 
 # Make the checksums
+echo "==> Signing..."
 pushd ./pkg/dist
+rm -f ./terraform_${VERSION}_SHA256SUMS*
 shasum -a256 * > ./terraform_${VERSION}_SHA256SUMS
+gpg --default-key 348FFC4C --detach-sig ./terraform_${VERSION}_SHA256SUMS
 popd
 
 # Upload
-for ARCHIVE in ./pkg/dist/*; do
-    ARCHIVE_NAME=$(basename ${ARCHIVE})
-
-    echo Uploading: $ARCHIVE_NAME
-    curl \
-        -T ${ARCHIVE} \
-        -umitchellh:${BINTRAY_API_KEY} \
-        "https://api.bintray.com/content/mitchellh/terraform/terraform/${VERSION}/${ARCHIVE_NAME}"
-done
+hc-releases -upload=./pkg/dist
 
 exit 0

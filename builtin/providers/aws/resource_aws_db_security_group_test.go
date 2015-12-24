@@ -32,6 +32,8 @@ func TestAccAWSDBSecurityGroup_basic(t *testing.T) {
 						"aws_db_security_group.bar", "ingress.3363517775.cidr", "10.0.0.1/24"),
 					resource.TestCheckResourceAttr(
 						"aws_db_security_group.bar", "ingress.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_db_security_group.bar", "tags.#", "1"),
 				),
 			},
 		},
@@ -64,7 +66,7 @@ func testAccCheckAWSDBSecurityGroupDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if newerr.Code() != "InvalidDBSecurityGroup.NotFound" {
+		if newerr.Code() != "DBSecurityGroupNotFound" {
 			return err
 		}
 	}
@@ -148,6 +150,10 @@ resource "aws_db_security_group" "bar" {
 
     ingress {
         cidr = "10.0.0.1/24"
+    }
+
+    tags {
+		foo = "bar"
     }
 }
 `

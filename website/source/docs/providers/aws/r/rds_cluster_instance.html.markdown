@@ -27,7 +27,7 @@ For more information on Amazon Aurora, see [Aurora on Amazon RDS][2] in the Amaz
 resource "aws_rds_cluster_instance" "cluster_instances" {
   count = 2
   identifier = "aurora-cluster-demo"
-  cluster_identifer = "${aws_rds_cluster.default.id}"
+  cluster_identifier = "${aws_rds_cluster.default.id}"
   instance_class = "db.r3.large"
 }
 
@@ -64,6 +64,10 @@ and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
 Default `false`. See the documentation on [Creating DB Instances][6] for more
 details on controlling this property.
 
+* `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance.
+
+~> **NOTE:** `db_subnet_group_name` is a required field when you are trying to create a private instance (`publicly_accessible` = false)
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -86,4 +90,4 @@ this instance is a read replica
 [3]: /docs/providers/aws/r/rds_cluster.html
 [4]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html
 [5]: /docs/configuration/resources.html#count
-[6]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+[6]: http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html

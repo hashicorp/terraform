@@ -30,6 +30,14 @@ func TestAccAWSLaunchConfiguration_basic(t *testing.T) {
 						"aws_launch_configuration.bar", "terraform-"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSLaunchConfigurationPrefixNameConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.baz", &conf),
+					testAccCheckAWSLaunchConfigurationGeneratedNamePrefix(
+						"aws_launch_configuration.baz", "baz-"),
+				),
+			},
 		},
 	})
 }
@@ -154,17 +162,17 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 
 		// Check if the root block device exists.
 		if _, ok := blockDevices["/dev/sda1"]; !ok {
-			fmt.Errorf("block device doesn't exist: /dev/sda1")
+			return fmt.Errorf("block device doesn't exist: /dev/sda1")
 		}
 
 		// Check if the secondary block device exists.
 		if _, ok := blockDevices["/dev/sdb"]; !ok {
-			fmt.Errorf("block device doesn't exist: /dev/sdb")
+			return fmt.Errorf("block device doesn't exist: /dev/sdb")
 		}
 
 		// Check if the third block device exists.
 		if _, ok := blockDevices["/dev/sdc"]; !ok {
-			fmt.Errorf("block device doesn't exist: /dev/sdc")
+			return fmt.Errorf("block device doesn't exist: /dev/sdc")
 		}
 
 		// Check if the secondary block device exists.
@@ -249,6 +257,16 @@ resource "aws_launch_configuration" "bar" {
 
 const testAccAWSLaunchConfigurationNoNameConfig = `
 resource "aws_launch_configuration" "bar" {
+   image_id = "ami-21f78e11"
+   instance_type = "t1.micro"
+   user_data = "foobar-user-data-change"
+   associate_public_ip_address = false
+}
+`
+
+const testAccAWSLaunchConfigurationPrefixNameConfig = `
+resource "aws_launch_configuration" "baz" {
+   name_prefix = "baz-"
    image_id = "ami-21f78e11"
    instance_type = "t1.micro"
    user_data = "foobar-user-data-change"

@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_storage_bucket"
-sidebar_current: "docs-google-resource-storage"
+sidebar_current: "docs-google-storage-bucket"
 description: |-
   Creates a new bucket in Google Cloud Storage.
 ---

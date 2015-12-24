@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
@@ -34,12 +35,19 @@ func testAccCheckAWSPlacementGroupDestroy(s *terraform.State) error {
 		if rs.Type != "aws_placement_group" {
 			continue
 		}
-		_, err := conn.DeletePlacementGroup(&ec2.DeletePlacementGroupInput{
-			GroupName: aws.String(rs.Primary.ID),
+
+		_, err := conn.DescribePlacementGroups(&ec2.DescribePlacementGroupsInput{
+			GroupNames: []*string{aws.String(rs.Primary.Attributes["name"])},
 		})
 		if err != nil {
+			// Verify the error is what we want
+			if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidPlacementGroup.Unknown" {
+				continue
+			}
 			return err
 		}
+
+		return fmt.Errorf("still exists")
 	}
 	return nil
 }

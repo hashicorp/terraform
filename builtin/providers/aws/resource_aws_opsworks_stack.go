@@ -231,9 +231,6 @@ func resourceAwsOpsworksSetStackCustomCookbooksSource(d *schema.ResourceData, v 
 		if v.Revision != nil {
 			m["revision"] = *v.Revision
 		}
-		if v.SshKey != nil {
-			m["ssh_key"] = *v.SshKey
-		}
 		nv = append(nv, m)
 	}
 

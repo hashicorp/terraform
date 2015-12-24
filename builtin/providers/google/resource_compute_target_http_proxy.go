@@ -1,0 +1,147 @@
+package google
+
+import (
+	"fmt"
+	"log"
+	"strconv"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
+)
+
+func resourceComputeTargetHttpProxy() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceComputeTargetHttpProxyCreate,
+		Read:   resourceComputeTargetHttpProxyRead,
+		Delete: resourceComputeTargetHttpProxyDelete,
+		Update: resourceComputeTargetHttpProxyUpdate,
+
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"url_map": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+	}
+}
+
+func resourceComputeTargetHttpProxyCreate(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	proxy := &compute.TargetHttpProxy{
+		Name:   d.Get("name").(string),
+		UrlMap: d.Get("url_map").(string),
+	}
+
+	if v, ok := d.GetOk("description"); ok {
+		proxy.Description = v.(string)
+	}
+
+	log.Printf("[DEBUG] TargetHttpProxy insert request: %#v", proxy)
+	op, err := config.clientCompute.TargetHttpProxies.Insert(
+		config.Project, proxy).Do()
+	if err != nil {
+		return fmt.Errorf("Error creating TargetHttpProxy: %s", err)
+	}
+
+	err = computeOperationWaitGlobal(config, op, "Creating Target Http Proxy")
+	if err != nil {
+		return err
+	}
+
+	d.SetId(proxy.Name)
+
+	return resourceComputeTargetHttpProxyRead(d, meta)
+}
+
+func resourceComputeTargetHttpProxyUpdate(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	d.Partial(true)
+
+	if d.HasChange("url_map") {
+		url_map := d.Get("url_map").(string)
+		url_map_ref := &compute.UrlMapReference{UrlMap: url_map}
+		op, err := config.clientCompute.TargetHttpProxies.SetUrlMap(
+			config.Project, d.Id(), url_map_ref).Do()
+		if err != nil {
+			return fmt.Errorf("Error updating target: %s", err)
+		}
+
+		err = computeOperationWaitGlobal(config, op, "Updating Target Http Proxy")
+		if err != nil {
+			return err
+		}
+
+		d.SetPartial("url_map")
+	}
+
+	d.Partial(false)
+
+	return resourceComputeTargetHttpProxyRead(d, meta)
+}
+
+func resourceComputeTargetHttpProxyRead(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	proxy, err := config.clientCompute.TargetHttpProxies.Get(
+		config.Project, d.Id()).Do()
+	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
+		return fmt.Errorf("Error reading TargetHttpProxy: %s", err)
+	}
+
+	d.Set("self_link", proxy.SelfLink)
+	d.Set("id", strconv.FormatUint(proxy.Id, 10))
+
+	return nil
+}
+
+func resourceComputeTargetHttpProxyDelete(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	// Delete the TargetHttpProxy
+	log.Printf("[DEBUG] TargetHttpProxy delete request")
+	op, err := config.clientCompute.TargetHttpProxies.Delete(
+		config.Project, d.Id()).Do()
+	if err != nil {
+		return fmt.Errorf("Error deleting TargetHttpProxy: %s", err)
+	}
+
+	err = computeOperationWaitGlobal(config, op, "Deleting Target Http Proxy")
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
+	return nil
+}

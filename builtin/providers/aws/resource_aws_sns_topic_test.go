@@ -27,6 +27,22 @@ func TestAccAWSSNSTopic_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSSNSTopic_withIAMRole(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSNSTopicDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSNSTopicConfig_withIAMRole,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSNSTopicDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).snsconn
 
@@ -83,5 +99,49 @@ func testAccCheckAWSSNSTopicExists(n string) resource.TestCheckFunc {
 const testAccAWSSNSTopicConfig = `
 resource "aws_sns_topic" "test_topic" {
     name = "terraform-test-topic"
+}
+`
+
+// Test for https://github.com/hashicorp/terraform/issues/3660
+const testAccAWSSNSTopicConfig_withIAMRole = `
+resource "aws_iam_role" "example" {
+  name = "terraform_bug"
+  path = "/test/"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_sns_topic" "test_topic" {
+  name = "example"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Id": "Policy1445931846145",
+  "Statement": [
+    {
+      "Sid": "Stmt1445931846145",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "${aws_iam_role.example.arn}"
+			},
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:us-west-2::example"
+    }
+  ]
+}
+EOF
 }
 `

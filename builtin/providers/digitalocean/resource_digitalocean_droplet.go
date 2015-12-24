@@ -100,6 +100,7 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 			"user_data": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -140,14 +141,17 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 		opts.SSHKeys = make([]godo.DropletCreateSSHKey, 0, sshKeys)
 		for i := 0; i < sshKeys; i++ {
 			key := fmt.Sprintf("ssh_keys.%d", i)
-			id, err := strconv.Atoi(d.Get(key).(string))
-			if err != nil {
-				return err
+			sshKeyRef := d.Get(key).(string)
+
+			var sshKey godo.DropletCreateSSHKey
+			// sshKeyRef can be either an ID or a fingerprint
+			if id, err := strconv.Atoi(sshKeyRef); err == nil {
+				sshKey.ID = id
+			} else {
+				sshKey.Fingerprint = sshKeyRef
 			}
 
-			opts.SSHKeys = append(opts.SSHKeys, godo.DropletCreateSSHKey{
-				ID: id,
-			})
+			opts.SSHKeys = append(opts.SSHKeys, sshKey)
 		}
 	}
 
@@ -182,10 +186,11 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Retrieve the droplet properties for updating the state
-	droplet, _, err := client.Droplets.Get(id)
+	droplet, resp, err := client.Droplets.Get(id)
 	if err != nil {
 		// check if the droplet no longer exists.
-		if err.Error() == "Error retrieving droplet: API Error: 404 Not Found" {
+		if resp.StatusCode == 404 {
+			log.Printf("[WARN] DigitalOcean Droplet (%s) not found", d.Id())
 			d.SetId("")
 			return nil
 		}

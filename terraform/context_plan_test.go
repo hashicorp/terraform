@@ -1627,6 +1627,53 @@ STATE:
 	}
 }
 
+func TestContext2Plan_targetedOrphan(t *testing.T) {
+	m := testModule(t, "plan-targeted-orphan")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.orphan": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-789xyz",
+							},
+						},
+					},
+				},
+			},
+		},
+		Destroy: true,
+		Targets: []string{"aws_instance.orphan"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`DIFF:
+
+DESTROY: aws_instance.orphan
+
+STATE:
+
+aws_instance.orphan:
+  ID = i-789xyz`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_provider(t *testing.T) {
 	m := testModule(t, "plan-provider")
 	p := testProvider("aws")

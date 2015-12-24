@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_forwarding_rule"
-sidebar_current: "docs-google-resource-forwarding_rule"
+sidebar_current: "docs-google-compute-forwarding-rule"
 description: |-
   Manages a Target Pool within GCE.
 ---

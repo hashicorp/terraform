@@ -1,7 +1,7 @@
 ---
 layout: "google"
 page_title: "Google: google_compute_network"
-sidebar_current: "docs-google-resource-network"
+sidebar_current: "docs-google-compute-network"
 description: |-
   Manages a network within GCE.
 ---

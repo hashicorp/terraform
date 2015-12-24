@@ -36,7 +36,6 @@ func testAccCheckLifecycleHookExists(n string, hook *autoscaling.LifecycleHook) 
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			rs = rs
 			return fmt.Errorf("Not found: %s", n)
 		}
 
