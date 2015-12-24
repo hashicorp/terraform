@@ -4,22 +4,19 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"strconv"
-	"strings"
-
-	"github.com/zorkian/go-datadog-api"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/zorkian/go-datadog-api"
 )
 
 // resourceDatadogOutlierAlert is a Datadog monitor resource
 func resourceDatadogOutlierAlert() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDatadogOutlierAlertCreate,
-		Read:   resourceDatadogOutlierAlertRead,
+		Read:   resourceDatadogGenericRead,
 		Update: resourceDatadogOutlierAlertUpdate,
-		Delete: resourceDatadogOutlierAlertDelete,
-		Exists: resourceDatadogOutlierAlertExists,
+		Delete: resourceDatadogGenericDelete,
+		Exists: resourceDatadogGenericExists,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -56,17 +53,14 @@ func resourceDatadogOutlierAlert() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-
-			// Alert Settings
-			"warning": &schema.Schema{
-				Type:     schema.TypeMap,
+			"notify": &schema.Schema{
+				Type:     schema.TypeString,
 				Required: true,
 			},
-			"critical": &schema.Schema{
-				Type:     schema.TypeMap,
+			"threshold": &schema.Schema{
+				Type:     schema.TypeString,
 				Required: true,
 			},
-
 			// Additional Settings
 			"notify_no_data": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -84,12 +78,18 @@ func resourceDatadogOutlierAlert() *schema.Resource {
 				Optional: true,
 				Default:  "dbscan",
 			},
+
+			"renotify_interval": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  0,
+			},
 		},
 	}
 }
 
 // buildMonitorStruct returns a monitor struct
-func buildOutlierAlertStruct(d *schema.ResourceData, typeStr string) *datadog.Monitor {
+func buildOutlierAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 	name := d.Get("name").(string)
 	message := d.Get("message").(string)
 	timeAggr := d.Get("time_aggr").(string)
@@ -104,7 +104,7 @@ func buildOutlierAlertStruct(d *schema.ResourceData, typeStr string) *datadog.Mo
 		list := raw.([]interface{})
 		length := (len(list) - 1)
 		for i, v := range list {
-            if length > 1 && v == "*" {
+			if length > 1 && v == "*" {
 				log.Print(fmt.Sprintf("[DEBUG] found wildcard, this is not supported for this type: %s", v))
 				continue
 			}
@@ -143,20 +143,21 @@ func buildOutlierAlertStruct(d *schema.ResourceData, typeStr string) *datadog.Mo
 		tagsParsed,
 		keys,
 		algorithm,
-		d.Get(fmt.Sprintf("%s.threshold", typeStr)))
+		d.Get("threshold"))
 
 	log.Print(fmt.Sprintf("[DEBUG] submitting query: %s", query))
 
 	o := datadog.Options{
-		NotifyNoData:    d.Get("notify_no_data").(bool),
-		NoDataTimeframe: d.Get("no_data_timeframe").(int),
+		NotifyNoData:     d.Get("notify_no_data").(bool),
+		NoDataTimeframe:  d.Get("no_data_timeframe").(int),
+		RenotifyInterval: d.Get("renotify_interval").(int),
 	}
 
 	m := datadog.Monitor{
 		Type:    "query alert",
 		Query:   query,
-		Name:    fmt.Sprintf("[%s] %s", typeStr, name),
-		Message: fmt.Sprintf("%s %s", message, d.Get(fmt.Sprintf("%s.notify", typeStr))),
+		Name:    name,
+		Message: fmt.Sprintf("%s %s", message, d.Get("notify")),
 		Options: o,
 	}
 
@@ -165,93 +166,11 @@ func buildOutlierAlertStruct(d *schema.ResourceData, typeStr string) *datadog.Mo
 
 // resourceDatadogOutlierAlertCreate creates a monitor.
 func resourceDatadogOutlierAlertCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*datadog.Client)
 
-	w, err := client.CreateMonitor(buildOutlierAlertStruct(d, "warning"))
-
-	if err != nil {
-		return fmt.Errorf("error creating warning: %s", err)
+	m := buildOutlierAlertStruct(d)
+	if err := monitorCreator(d, meta, m); err != nil {
+		return err
 	}
-
-	c, cErr := client.CreateMonitor(buildOutlierAlertStruct(d, "critical"))
-
-	if cErr != nil {
-		return fmt.Errorf("error creating warning: %s", cErr)
-	}
-
-	log.Printf("[DEBUG] Saving IDs: %s__%s", strconv.Itoa(w.Id), strconv.Itoa(c.Id))
-
-	d.SetId(fmt.Sprintf("%s__%s", strconv.Itoa(w.Id), strconv.Itoa(c.Id)))
-
-	return nil
-}
-
-// resourceDatadogOutlierAlertDelete deletes a monitor.
-func resourceDatadogOutlierAlertDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*datadog.Client)
-
-	for _, v := range strings.Split(d.Id(), "__") {
-		if v == "" {
-			return fmt.Errorf("Id not set.")
-		}
-		ID, iErr := strconv.Atoi(v)
-
-		if iErr != nil {
-			return iErr
-		}
-
-		err := client.DeleteMonitor(ID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// resourceDatadogOutlierAlertExists verifies a monitor exists.
-func resourceDatadogOutlierAlertExists(d *schema.ResourceData, meta interface{}) (b bool, e error) {
-	// Exists - This is called to verify a resource still exists. It is called prior to Read,
-	// and lowers the burden of Read to be able to assume the resource exists.
-
-	client := meta.(*datadog.Client)
-
-	exists := false
-	for _, v := range strings.Split(d.Id(), "__") {
-		if v == "" {
-			log.Printf("[DEBUG] Could not parse IDs: %s", v)
-			return false, fmt.Errorf("Id not set.")
-		}
-		ID, iErr := strconv.Atoi(v)
-
-		if iErr != nil {
-			log.Printf("[DEBUG] Received error converting string: %s", iErr)
-			return false, iErr
-		}
-		_, err := client.GetMonitor(ID)
-		if err != nil {
-			if strings.EqualFold(err.Error(), "API error: 404 Not Found") {
-				log.Printf("[DEBUG] monitor does not exist: %s", err)
-				exists = false
-				continue
-			} else {
-				e = err
-				continue
-			}
-		}
-		exists = true
-	}
-
-	return exists, nil
-}
-
-// resourceDatadogOutlierAlertRead synchronises Datadog and local state .
-func resourceDatadogOutlierAlertRead(d *schema.ResourceData, meta interface{}) error {
-	// TODO: add support for this a read function.
-	/* Read - This is called to resync the local state with the remote state.
-	Terraform guarantees that an existing ID will be set. This ID should be
-	used to look up the resource. Any remote data should be updated into the
-	local data. No changes to the remote resource are to be made.
-	*/
 
 	return nil
 }
@@ -260,48 +179,9 @@ func resourceDatadogOutlierAlertRead(d *schema.ResourceData, meta interface{}) e
 func resourceDatadogOutlierAlertUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] running update.")
 
-	split := strings.Split(d.Id(), "__")
-
-	wID, cID := split[0], split[1]
-
-	if wID == "" {
-		return fmt.Errorf("Id not set.")
-	}
-
-	if cID == "" {
-		return fmt.Errorf("Id not set.")
-	}
-
-	warningID, iErr := strconv.Atoi(wID)
-
-	if iErr != nil {
-		return iErr
-	}
-
-	criticalID, iErr := strconv.Atoi(cID)
-
-	if iErr != nil {
-		return iErr
-	}
-
-	client := meta.(*datadog.Client)
-
-	warningBody := buildOutlierAlertStruct(d, "warning")
-	criticalBody := buildOutlierAlertStruct(d, "critical")
-
-	warningBody.Id = warningID
-	criticalBody.Id = criticalID
-
-	wErr := client.UpdateMonitor(warningBody)
-
-	if wErr != nil {
-		return fmt.Errorf("error updating warning: %s", wErr.Error())
-	}
-
-	cErr := client.UpdateMonitor(criticalBody)
-
-	if cErr != nil {
-		return fmt.Errorf("error updating critical: %s", cErr.Error())
+	m := buildOutlierAlertStruct(d)
+	if err := monitorUpdater(d, meta, m); err != nil {
+		return err
 	}
 
 	return nil

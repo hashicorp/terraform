@@ -1,9 +1,6 @@
 package datadog
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -47,7 +44,12 @@ func TestAccDatadogMetricAlert_Basic(t *testing.T) {
 						"datadog_metric_alert.foo", "operator", "<"),
 					resource.TestCheckResourceAttr(
 						"datadog_metric_alert.foo", "notify_no_data", "false"),
-					// TODO: add warning and critical
+					resource.TestCheckResourceAttr(
+						"datadog_metric_alert.foo", "renotify_interval", "60"),
+					resource.TestCheckResourceAttr(
+						"datadog_metric_alert.foo", "notify", "@hipchat-<name>"),
+					resource.TestCheckResourceAttr(
+						"datadog_metric_alert.foo", "threshold", "1"),
 				),
 			},
 		},
@@ -55,34 +57,10 @@ func TestAccDatadogMetricAlert_Basic(t *testing.T) {
 }
 
 func testAccCheckDatadogMetricAlertDestroy(s *terraform.State) error {
-
 	client := testAccProvider.Meta().(*datadog.Client)
-	for _, rs := range s.RootModule().Resources {
-		for _, v := range strings.Split(rs.Primary.ID, "__") {
-			if v == "" {
-				fmt.Printf("Could not parse IDs. %s", v)
-				return fmt.Errorf("Id not set.")
-			}
-			ID, iErr := strconv.Atoi(v)
 
-			if iErr != nil {
-				fmt.Printf("Received error converting string %s", iErr)
-				return iErr
-			}
-			_, err := client.GetMonitor(ID)
-			if err != nil {
-				// 404 is what we want, anything else is an error. Sadly our API will return a string like so:
-				// return errors.New("API error: " + resp.Status)
-				// For now we'll use unfold :|
-				if strings.EqualFold(err.Error(), "API error: 404 Not Found") {
-					continue
-				} else {
-					fmt.Errorf("Received an error retrieving monitor %s", err)
-				}
-			} else {
-				fmt.Errorf("Monitor still exists. %s", err)
-			}
-		}
+	if err := destroyHelper(s, client); err != nil {
+		return err
 	}
 	return nil
 }
@@ -90,22 +68,8 @@ func testAccCheckDatadogMetricAlertDestroy(s *terraform.State) error {
 func testAccCheckDatadogMetricAlertExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*datadog.Client)
-		for _, rs := range s.RootModule().Resources {
-			for _, v := range strings.Split(rs.Primary.ID, "__") {
-				if v == "" {
-					fmt.Printf("Could not parse IDs. %s", v)
-					return fmt.Errorf("Id not set.")
-				}
-				ID, iErr := strconv.Atoi(v)
-
-				if iErr != nil {
-					return fmt.Errorf("Received error converting string %s", iErr)
-				}
-				_, err := client.GetMonitor(ID)
-				if err != nil {
-					return fmt.Errorf("Received an error retrieving monitor %s", err)
-				}
-			}
+		if err := existsHelper(s, client); err != nil {
+			return err
 		}
 		return nil
 	}
@@ -125,17 +89,10 @@ resource "datadog_metric_alert" "foo" {
   space_aggr = "avg" // avg, sum, min, or max
   operator = "<" // <, <=, >, >=, ==, or !=
 
-  warning {
-    threshold = 0
-    notify = "@hipchat-<name>"
-  }
-
-  critical {
-    threshold = 0
-    notify = "@pagerduty"
-  }
+  threshold = 1
+  notify = "@hipchat-<name>"
 
   notify_no_data = false
-
+  renotify_interval = 60
 }
 `

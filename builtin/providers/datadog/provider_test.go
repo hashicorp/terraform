@@ -29,8 +29,6 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	// TODO: Check if both are set, (don't die on first failure, making
-	// troubleshooting an annoying iterative experience
 	if v := os.Getenv("DATADOG_API_KEY"); v == "" {
 		t.Fatal("DATADOG_API_KEY must be set for acceptance tests")
 	}

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/zorkian/go-datadog-api"
@@ -15,10 +13,10 @@ import (
 func resourceDatadogServiceCheck() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDatadogServiceCheckCreate,
-		Read:   resourceDatadogServiceCheckRead,
+		Read:   resourceDatadogGenericRead,
 		Update: resourceDatadogServiceCheckUpdate,
-		Delete: resourceDatadogServiceCheckDelete,
-		Exists: resourceDatadogServiceCheckExists,
+		Delete: resourceDatadogGenericDelete,
+		Exists: resourceDatadogGenericExists,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -142,71 +140,11 @@ func buildServiceCheckStruct(d *schema.ResourceData) *datadog.Monitor {
 // resourceDatadogServiceCheckCreate creates a monitor.
 func resourceDatadogServiceCheckCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Print("[DEBUG] creating monitor")
-	client := meta.(*datadog.Client)
 
-	log.Print("[DEBUG] Creating service check")
-	m, err := client.CreateMonitor(buildServiceCheckStruct(d))
-
-	if err != nil {
-		return fmt.Errorf("error creating service check: %s", err)
-	}
-
-	d.SetId(strconv.Itoa(m.Id))
-	return nil
-}
-
-// resourceDatadogServiceCheckDelete deletes a monitor.
-func resourceDatadogServiceCheckDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Print("[DEBUG] deleting monitor")
-	client := meta.(*datadog.Client)
-
-	log.Print("[DEBUG] Deleting service check")
-	ID, err := strconv.Atoi(d.Id())
-	if err != nil {
+	m := buildServiceCheckStruct(d)
+	if err := monitorCreator(d, meta, m); err != nil {
 		return err
 	}
-
-	err = client.DeleteMonitor(ID)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// resourceDatadogServiceCheckExists verifies a monitor exists.
-func resourceDatadogServiceCheckExists(d *schema.ResourceData, meta interface{}) (b bool, e error) {
-	// Exists - This is called to verify a resource still exists. It is called prior to Read,
-	// and lowers the burden of Read to be able to assume the resource exists.
-
-	client := meta.(*datadog.Client)
-
-	log.Print("[DEBUG] verifying service check exists")
-	ID, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return false, err
-	}
-
-	_, err = client.GetMonitor(ID)
-
-	if err != nil {
-		if strings.EqualFold(err.Error(), "API error: 404 Not Found") {
-			log.Printf("[DEBUG] Service Check does not exist: %s", err)
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
-}
-
-// resourceDatadogServiceCheckRead synchronises Datadog and local state .
-func resourceDatadogServiceCheckRead(d *schema.ResourceData, meta interface{}) error {
-	// TODO: add support for this a read function.
-	/* Read - This is called to resync the local state with the remote state.
-	Terraform guarantees that an existing ID will be set. This ID should be
-	used to look up the resource. Any remote data should be updated into the
-	local data. No changes to the remote resource are to be made.
-	*/
 
 	return nil
 }
@@ -215,20 +153,10 @@ func resourceDatadogServiceCheckRead(d *schema.ResourceData, meta interface{}) e
 func resourceDatadogServiceCheckUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] running update.")
 
-	client := meta.(*datadog.Client)
-
-	body := buildServiceCheckStruct(d)
-
-	ID, err := strconv.Atoi(d.Id())
-	if err != nil {
+	m := buildServiceCheckStruct(d)
+	if err := monitorUpdater(d, meta, m); err != nil {
 		return err
 	}
 
-	body.Id = ID
-	err = client.UpdateMonitor(body)
-
-	if err != nil {
-		return fmt.Errorf("error updating warning: %s", err.Error())
-	}
 	return nil
 }
