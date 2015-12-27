@@ -117,6 +117,12 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	metadata := resp.KeyMetadata
 
+	if *metadata.KeyState == "PendingDeletion" {
+		log.Printf("[WARN] Removing KMS key %s because it's already gone", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	d.SetId(*metadata.KeyId)
 
 	d.Set("arn", metadata.Arn)
@@ -337,7 +343,35 @@ func resourceAwsKmsKeyDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] KMS Key: %s deactivated.", keyId)
+	// Wait for propagation since KMS is eventually consistent
+	wait := resource.StateChangeConf{
+		Pending:                   []string{"Enabled", "Disabled"},
+		Target:                    []string{"PendingDeletion"},
+		Timeout:                   20 * time.Minute,
+		MinTimeout:                2 * time.Second,
+		ContinuousTargetOccurence: 10,
+		Refresh: func() (interface{}, string, error) {
+			log.Printf("[DEBUG] Checking if KMS key %s state is PendingDeletion", keyId)
+			resp, err := conn.DescribeKey(&kms.DescribeKeyInput{
+				KeyId: aws.String(keyId),
+			})
+			if err != nil {
+				return resp, "Failed", err
+			}
+
+			metadata := *resp.KeyMetadata
+			log.Printf("[DEBUG] KMS key %s state is %s, retrying", keyId, *metadata.KeyState)
+
+			return resp, *metadata.KeyState, nil
+		},
+	}
+
+	_, err = wait.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Failed deactivating KMS key %s: %s", keyId, err)
+	}
+
+	log.Printf("[DEBUG] KMS Key %s deactivated.", keyId)
 	d.SetId("")
 	return nil
 }

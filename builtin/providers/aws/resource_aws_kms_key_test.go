@@ -86,11 +86,15 @@ func testAccCheckAWSKmsKeyDestroy(s *terraform.State) error {
 			KeyId: aws.String(rs.Primary.ID),
 		})
 
-		if err == nil {
-			return fmt.Errorf("KMS key still exists:\n%#v", out.KeyMetadata)
+		if err != nil {
+			return err
 		}
 
-		return err
+		if *out.KeyMetadata.KeyState == "PendingDeletion" {
+			return nil
+		}
+
+		return fmt.Errorf("KMS key still exists:\n%#v", out.KeyMetadata)
 	}
 
 	return nil
