@@ -62,17 +62,18 @@ range to open. Changing this creates a new security group rule.
 * `ip_protocol` - (Required) The protocol type that will be allowed. Changing
 this creates a new security group rule.
 
-* `cidr` - (Optional) Required if `from_group_id` is empty. The IP range that
-will be the source of network traffic to the security group. Use 0.0.0.0./0
-to allow all IP addresses. Changing this creates a new security group rule.
+* `cidr` - (Optional) Required if `from_group_id` or `self` is empty. The IP range
+that will be the source of network traffic to the security group. Use 0.0.0.0/0
+to allow all IP addresses. Changing this creates a new security group rule. Cannot
+be combined with `from_group_id` or `self`.
 
-* `from_group_id` - (Optional) Required if `cidr` is empty. The ID of a group
-from which to forward traffic to the parent group. Changing
-this creates a new security group rule.
+* `from_group_id` - (Optional) Required if `cidr` or `self` is empty. The ID of a
+group from which to forward traffic to the parent group. Changing this creates a
+new security group rule. Cannot be combined with `cidr` or `self`.
 
 * `self` - (Optional) Required if `cidr` and `from_group_id` is empty. If true,
-the security group itself will be added as a source to this ingress rule. `cidr`
-and `from_group_id` will be ignored if either are set while `self` is true.
+the security group itself will be added as a source to this ingress rule. Cannot
+be combined with `cidr` or `from_group_id`.
 
 ## Attributes Reference
 
