@@ -35,7 +35,7 @@ output "ip" {
 }
 ```
 
-This defines an output variables named "ip". The `value` field
+This defines an output variable named "ip". The `value` field
 specifies what the value will be, and almost always contains
 one or more interpolations, since the output data is typically
 dynamic. In this case, we're outputting the
