@@ -36,6 +36,7 @@ more information.
 
 The following attributes are exported:
 
+* `id` - Contains the EIP allocation ID.
 * `private_ip` - Contains the private IP address (if in VPC).
 * `public_ip` - Contains the public IP address.
 * `instance` - Contains the ID of the attached instance.
