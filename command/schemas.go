@@ -49,6 +49,11 @@ type FunctionInfo struct {
 	VariadicType string `json:",omitempty"`
 }
 
+type functionSchema struct {
+	resultBase
+	FunctionInfo `json:"schema"`
+}
+
 type functionsSchema struct {
 	resultBase
 	Functions map[string]FunctionInfo `json:"schema"`
@@ -58,12 +63,15 @@ func (c *SchemasCommand) Run(args []string) int {
 	var indent bool
 	var inJson bool
 	var inXml bool
+	var expectedType string
 
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("schemas", flag.ContinueOnError)
 	cmdFlags.BoolVar(&indent, "indent", false, "Indent output")
 	cmdFlags.BoolVar(&inJson, "json", false, "In JSON format")
+	cmdFlags.StringVar(&expectedType, "type", "any", "In JSON format")
+	expectedType = strings.ToLower(expectedType)
 	// Temporarily disabled due to not-implemented xml serializer for SchemaInfo (which is map[string]interface{})
 	//cmdFlags.BoolVar(&inXml, "xml", false, "In XML format")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -98,7 +106,7 @@ func (c *SchemasCommand) Run(args []string) int {
 	}
 
 	var s interface{}
-	s = getAnythingOrErrorResult(c.Meta.ContextOpts, args[0])
+	s = getOrErrorResult(c.Meta.ContextOpts, args[0], expectedType)
 
 	c.Ui.Output(FormatSchema(&FormatSchemaOpts{
 		Name:      args[0],
@@ -131,12 +139,39 @@ Options:
   -indent		      If specified, output would be indented.
 
   -json		          If specified, output would be in JSON format. Implies '--no-color'.
+
+  -type	<type>            If specified, would search for specific type, e.g. provider, resource, provisioner or function.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *SchemasCommand) Synopsis() string {
 	return "Shows schemas of Terraform providers/resources"
+}
+
+func getOrErrorResult(context *terraform.ContextOpts, name string, expectedType string) interface{} {
+	var s interface{}
+	var e error
+	switch expectedType {
+	case "function":
+		s = getFunctionSchema(name)
+	case "provider":
+		s, e = getProviderSchema(context.Providers, name)
+	case "resource":
+		s, e = getResourceSchema(context.Providers, name)
+	case "provisioner":
+		s, e = getProvisionerSchema(context.Provisioners, name)
+	case "any":
+		s = getAnythingOrErrorResult(context, name)
+	default:
+		return errorResult{resultBase{name, "unknown"}, "Unexpected type " + expectedType}
+	}
+	if e != nil {
+		return errorResult{resultBase{name, expectedType}, e.Error()}
+	} else if s != nil {
+		return s
+	}
+	return errorResult{resultBase{name, expectedType}, "Not found"}
 }
 
 func getAnythingOrErrorResult(context *terraform.ContextOpts, name string) interface{} {
@@ -183,6 +218,32 @@ func getInterpolationFunctions() map[string]FunctionInfo {
 	}
 
 	return result
+}
+
+func getInterpolationFunction(name string) (*FunctionInfo, bool) {
+	vars := make(map[string]ast.Variable)
+	cfg := config.LangEvalConfig(vars)
+	fm := cfg.GlobalScope.FuncMap
+	if fun, ok := fm[name]; ok {
+		args := make([]string, len(fun.ArgTypes))
+		for i, at := range fun.ArgTypes {
+			args[i] = at.String()
+		}
+		vt := ""
+		if fun.Variadic {
+			vt = fun.VariadicType.String()
+		}
+		return &FunctionInfo{name, args, fun.ReturnType.String(), fun.Variadic, vt}, true
+	}
+	return nil, false
+}
+
+func getFunctionSchema(name string) interface{} {
+	function, found := getInterpolationFunction(name)
+	if !found {
+		return nil
+	}
+	return functionSchema{resultBase{name, "function"}, *function}
 }
 
 func getProviderSchema(providers map[string]terraform.ResourceProviderFactory, name string) (interface{}, error) {
