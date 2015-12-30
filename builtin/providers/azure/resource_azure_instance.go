@@ -695,7 +695,7 @@ func retrieveVMImageDetails(
 			}
 
 			configureForImage := func(role *virtualmachine.Role) error {
-				return vmutils.ConfigureDeploymentFromVMImage(
+				return vmutils.ConfigureDeploymentFromPublishedVMImage(
 					role,
 					img.Name,
 					"",
