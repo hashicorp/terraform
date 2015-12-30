@@ -39,6 +39,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"azurerm_resource_group":  resourceArmResourceGroup(),
 			"azurerm_virtual_network": resourceArmVirtualNetwork(),
+			"azurerm_load_balancer":   resourceArmLoadBalancer(),
 		},
 
 		ConfigureFunc: providerConfigure,
