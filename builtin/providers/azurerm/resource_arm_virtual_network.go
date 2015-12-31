@@ -45,6 +45,10 @@ func resourceArmVirtualNetwork() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -145,6 +149,7 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	for _, subnet := range *vnet.Subnets {
 		s := map[string]interface{}{}
 
+		s["id"] = *subnet.ID
 		s["name"] = *subnet.Name
 		s["address_prefix"] = *subnet.Properties.AddressPrefix
 		if subnet.Properties.NetworkSecurityGroup != nil {
