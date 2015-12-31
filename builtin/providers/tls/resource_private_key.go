@@ -121,7 +121,7 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("failed to marshal public key: %s", err)
 		}
 		pubKeyPemBlock := &pem.Block{Type: "EC PUBLIC KEY", Bytes: pubKeyBytes}
-		pubkeyPem := string(pem.EncodeToMemory(pubkeyPemBlock))
+		pubKeyPem := string(pem.EncodeToMemory(pubKeyPemBlock))
 		d.Set("public_key_pem", pubKeyPem)
 		d.SetId(hashForState(string(pubKeyBytes)))
 	default:
