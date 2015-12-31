@@ -107,24 +107,26 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 	case *rsa.PrivateKey:
 		keyPemBlock = &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
 	case *ecdsa.PrivateKey:
-		b, err := x509.MarshalECPrivateKey(k)
+		keyBytes, err := x509.MarshalECPrivateKey(k)
 		if err != nil {
 			return fmt.Errorf("error encoding key to PEM: %s", err)
 		}
-		keyPemBlock = &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
+		keyPemBlock = &pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes}
+		keyPem := string(pem.EncodeToMemory(keyPemBlock))
+		d.Set("private_key_pem", keyPem)
+		d.SetId(hashForState(string(keyBytes)))
 	case *ecdsa.PublicKey:
 		pubKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey(key))
 		if err != nil {
 			return fmt.Errorf("failed to marshal public key: %s", err)
 		}
 		pubKeyPemBlock := &pem.Block{Type: "EC PUBLIC KEY", Bytes: pubKeyBytes}
-		d.SetId(hashForState(string((pubKeyBytes))))
+		pubkeyPem := string(pem.EncodeToMemory(pubkeyPemBlock))
+		d.Set("public_key_pem", pubKeyPem)
+		d.SetId(hashForState(string(pubKeyBytes)))
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
-	keyPem := string(pem.EncodeToMemory(keyPemBlock))
-
-	d.Set("private_key_pem", keyPem)
 
 	return nil
 }
