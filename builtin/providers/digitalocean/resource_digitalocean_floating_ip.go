@@ -32,7 +32,6 @@ func resourceDigitalOceanFloatingIp() *schema.Resource {
 			"droplet_id": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}
