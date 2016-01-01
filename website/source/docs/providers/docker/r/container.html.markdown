@@ -68,6 +68,7 @@ The following arguments are supported:
   Defaults to "json-file".
 * `log_opts` - (Optional) Key/value pairs to use as options for the logging
   driver.
+* `network_mode` - (Optional) Network mode of the container.
 
 <a id="ports"></a>
 ## Ports
