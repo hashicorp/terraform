@@ -136,6 +136,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.LogConfig.Config = mapTypeMapValsToString(v.(map[string]interface{}))
 	}
 
+	if v, ok := d.GetOk("network_mode"); ok {
+		hostConfig.NetworkMode = v
+	}
+
 	createOpts.HostConfig = hostConfig
 
 	var retContainer *dc.Container
