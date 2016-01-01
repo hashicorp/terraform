@@ -30,7 +30,7 @@ func Provider() terraform.ResourceProvider {
 			//"grafana_graph_panel_config":          ResourceGraphPanelConfig(),
 			//"grafana_single_stat_panel_config":    ResourceSingleStatPanelConfig(),
 			"grafana_text_panel_config":           ResourceTextPanelConfig(),
-			//"grafana_dashboard_list_panel_config": ResourceDashboardListPanelConfig(),
+			"grafana_dashboard_list_panel_config": ResourceDashboardListPanelConfig(),
 			"grafana_data_source":                 ResourceDataSource(),
 		},
 
