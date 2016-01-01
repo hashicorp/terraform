@@ -144,6 +144,7 @@ Each `ebs_block_device` supports the following:
   This must be set with a `volume_type` of `"io1"`.
 * `delete_on_termination` - (Optional) Whether the volume should be destroyed
   on instance termination (Default: `true`).
+* `encryption` - (Optional) Whether the volume should be encrypted or not. Do not use this option if you are using `snapshot_id` as the encryption flag will be determined by the snapshot. (Default: `false`).
 
 Modifying any `ebs_block_device` currently requires resource replacement.
 
