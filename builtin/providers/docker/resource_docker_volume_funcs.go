@@ -10,8 +10,9 @@ import (
 func resourceDockerVolumeCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dc.Client)
 
-	createOpts := dc.CreateVolumeOptions{
-		Name: d.Get("name").(string),
+	createOpts := dc.CreateVolumeOptions{}
+	if v, ok := d.GetOk("name"); ok {
+		createOpts.Name = v.(string)
 	}
 	if v, ok := d.GetOk("driver"); ok {
 		createOpts.Driver = v.(string)
@@ -47,6 +48,7 @@ func resourceDockerVolumeRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
+	d.Set("name", retVolume.Driver)
 	d.Set("driver", retVolume.Driver)
 	d.Set("mountpoint", retVolume.Mountpoint)
 

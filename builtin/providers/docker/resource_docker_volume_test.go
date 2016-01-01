@@ -60,6 +60,5 @@ func testAccVolume(n string, volume *dc.Volume) resource.TestCheckFunc {
 
 const testAccDockerVolumeConfig = `
 resource "docker_volume" "foo" {
-	name = "volume_name"
 }
 `
