@@ -31,6 +31,9 @@ func resourceDockerVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.SetId(retVolume.Name)
+	d.Set("name", retVolume.Name)
+	d.Set("driver", retVolume.Driver)
+	d.Set("mountpoint", retVolume.Mountpoint)
 
 	return nil
 }
