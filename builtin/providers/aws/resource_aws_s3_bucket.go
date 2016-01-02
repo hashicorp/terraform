@@ -151,6 +151,30 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"logging": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"target_bucket": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"target_prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["target_bucket"]))
+					buf.WriteString(fmt.Sprintf("%s-", m["target_prefix"]))
+					return hashcode.String(buf.String())
+				},
+			},
+
 			"tags": tagsSchema(),
 
 			"force_destroy": &schema.Schema{
@@ -227,6 +251,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if d.HasChange("acl") {
 		if err := resourceAwsS3BucketAclUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("logging") {
+		if err := resourceAwsS3BucketLoggingUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -337,6 +367,29 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		vcl = append(vcl, vc)
 		if err := d.Set("versioning", vcl); err != nil {
+			return err
+		}
+	}
+
+	// Read the logging configuration
+	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, logging: %v", d.Id(), logging)
+	if v := logging.LoggingEnabled; v != nil {
+		lcl := make([]map[string]interface{}, 0, 1)
+		lc := make(map[string]interface{})
+		if *v.TargetBucket != "" {
+			lc["target_bucket"] = *v.TargetBucket
+		}
+		if *v.TargetPrefix != "" {
+			lc["target_prefix"] = *v.TargetPrefix
+		}
+		lcl = append(lcl, lc)
+		if err := d.Set("logging", lcl); err != nil {
 			return err
 		}
 	}
@@ -721,6 +774,39 @@ func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) 
 	_, err := s3conn.PutBucketVersioning(i)
 	if err != nil {
 		return fmt.Errorf("Error putting S3 versioning: %s", err)
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketLoggingUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	logging := d.Get("logging").(*schema.Set).List()
+	bucket := d.Get("bucket").(string)
+	loggingStatus := &s3.BucketLoggingStatus{}
+
+	if len(logging) > 0 {
+		c := logging[0].(map[string]interface{})
+
+		loggingEnabled := &s3.LoggingEnabled{}
+		if val, ok := c["target_bucket"]; ok {
+			loggingEnabled.TargetBucket = aws.String(val.(string))
+		}
+		if val, ok := c["target_prefix"]; ok {
+			loggingEnabled.TargetPrefix = aws.String(val.(string))
+		}
+
+		loggingStatus.LoggingEnabled = loggingEnabled
+	}
+
+	i := &s3.PutBucketLoggingInput{
+		Bucket:              aws.String(bucket),
+		BucketLoggingStatus: loggingStatus,
+	}
+	log.Printf("[DEBUG] S3 put bucket logging: %#v", i)
+
+	_, err := s3conn.PutBucketLogging(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 logging: %s", err)
 	}
 
 	return nil
