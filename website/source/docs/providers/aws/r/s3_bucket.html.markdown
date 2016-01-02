@@ -70,6 +70,23 @@ resource "aws_s3_bucket" "b" {
 }
 ```
 
+### Enable Logging
+
+```
+resource "aws_s3_bucket" "log_bucket" {
+   bucket = "my_tf_log_bucket"
+   acl = "log-delivery-write"
+}
+resource "aws_s3_bucket" "b" {
+   bucket = "my_tf_test_bucket"
+   acl = "private"
+   logging {
+	   target_bucket = "${aws_s3_bucket.log_bucket.id}"
+	   target_prefix = "log/"
+   }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -83,6 +100,7 @@ The following arguments are supported:
 * `website` - (Optional) A website object (documented below).
 * `cors_rule` - (Optional) A rule of [Cross-Origin Resource Sharing](http://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html) (documented below).
 * `versioning` - (Optional) A state of [versioning](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) (documented below)
+* `logging` - (Optional) A settings of [bucket logging](http://docs.aws.amazon.com/AmazonS3/latest/UG/ManagingBucketLogging.html) (documented below).
 
 The website object supports the following:
 
@@ -101,6 +119,11 @@ The CORS supports the following:
 The versioning supports the following:
 
 * `enabled` - (Optional) Enable versioning. Once you version-enable a bucket, it can never return to an unversioned state. You can, however, suspend versioning on that bucket.
+
+The logging supports the following:
+
+* `target_bucket` - (Required) The name of the bucket that will receive the log objects.
+* `target_prefix` - (Optional) To specify a key prefix for log objects.
 
 ## Attributes Reference
 
