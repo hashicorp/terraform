@@ -246,23 +246,25 @@ func getVolumesElem() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"from_container": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"container_path", "host_path", "volume_name", "read_only"},
 			},
 
 			"container_path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"from_container"},
 			},
 
 			"host_path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ConflictsWith: []string{"volume_name"},
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"from_container", "volume_name"},
+				ValidateFunc:  func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(string)
 					if !regexp.MustCompile(`^/`).MatchString(value) {
 						es = append(es, fmt.Errorf(
@@ -273,16 +275,17 @@ func getVolumesElem() *schema.Resource {
 			},
 
 			"volume_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				ConflictsWith: []string{"host_path"},
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"from_container", "host_path"},
 			},
 
 			"read_only": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
+				Type:           schema.TypeBool,
+				Optional:       true,
+				ForceNew:       true,
+				ConflictsWith: []string{"from_container"},
 			},
 		},
 	}
