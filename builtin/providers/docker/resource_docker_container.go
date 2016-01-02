@@ -249,21 +249,18 @@ func getVolumesElem() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"volumes.container_path", "volumes.host_path", "volumes.volume_name", "volumes.read_only"},
 			},
 
 			"container_path": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"volumes.from_container"},
 			},
 
 			"host_path": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"volumes.from_container", "volumes.volume_name"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(string)
 					if !regexp.MustCompile(`^/`).MatchString(value) {
@@ -278,14 +275,12 @@ func getVolumesElem() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"volumes.from_container", "volumes.host_path"},
 			},
 
 			"read_only": &schema.Schema{
 				Type:          schema.TypeBool,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"volumes.from_container"},
 			},
 		},
 	}
