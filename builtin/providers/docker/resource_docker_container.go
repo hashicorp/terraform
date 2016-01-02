@@ -264,7 +264,7 @@ func getVolumesElem() *schema.Resource {
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"from_container", "volume_name"},
-				ValidateFunc:  func(v interface{}, k string) (ws []string, es []error) {
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(string)
 					if !regexp.MustCompile(`^/`).MatchString(value) {
 						es = append(es, fmt.Errorf(
@@ -282,9 +282,9 @@ func getVolumesElem() *schema.Resource {
 			},
 
 			"read_only": &schema.Schema{
-				Type:           schema.TypeBool,
-				Optional:       true,
-				ForceNew:       true,
+				Type:          schema.TypeBool,
+				Optional:      true,
+				ForceNew:      true,
 				ConflictsWith: []string{"from_container"},
 			},
 		},
