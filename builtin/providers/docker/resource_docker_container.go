@@ -359,6 +359,10 @@ func resourceDockerVolumesHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
 	}
 
+	if v, ok := m["volume_name"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
 	if v, ok := m["read_only"]; ok {
 		buf.WriteString(fmt.Sprintf("%v-", v.(bool)))
 	}
