@@ -40,7 +40,7 @@ func resourceDockerVolumeRead(d *schema.ResourceData, meta interface{}) error {
 
 	var err error
 	var retVolume *dc.Volume
-	if retVolume, err = client.InspectVolume(d.Id()); err != nil {
+	if retVolume, err = client.InspectVolume(d.Id()); err != nil && err != dc.ErrNoSuchVolume {
 		return fmt.Errorf("Unable to inspect volume: %s", err)
 	}
 	if retVolume == nil {
@@ -48,7 +48,7 @@ func resourceDockerVolumeRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	d.Set("name", retVolume.Driver)
+	d.Set("name", retVolume.Name)
 	d.Set("driver", retVolume.Driver)
 	d.Set("mountpoint", retVolume.Mountpoint)
 
@@ -58,7 +58,7 @@ func resourceDockerVolumeRead(d *schema.ResourceData, meta interface{}) error {
 func resourceDockerVolumeDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dc.Client)
 
-	if err := client.RemoveVolume(d.Id()); err != nil {
+	if err := client.RemoveVolume(d.Id()); err != nil && err != dc.ErrNoSuchVolume {
 		return fmt.Errorf("Error deleting volume %s: %s", d.Id(), err)
 	}
 
