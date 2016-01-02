@@ -261,6 +261,22 @@ func getVolumesElem() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				ConflictsWith: []string{"volume_name"},
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^/`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be an absolute path", k))
+					}
+					return
+				},
+			},
+
+			"volume_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ConflictsWith: []string{"host_path"},
 			},
 
 			"read_only": &schema.Schema{

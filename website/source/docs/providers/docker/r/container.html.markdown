@@ -95,6 +95,7 @@ the following:
   volume will be mounted.
 * `host_path` - (Optional, string) The path on the host where the volume
   is coming from.
+* `volume_name` - (Optional, string) Name of the volume to use.
 * `read_only` - (Optional, bool) If true, this volume will be readonly.
   Defaults to false.
 
