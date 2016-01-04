@@ -69,7 +69,7 @@ func testAccCheckInstanceGroupManagerDestroy(s *terraform.State) error {
 		}
 		_, err := config.clientCompute.InstanceGroupManagers.Get(
 			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
-		if err != nil {
+		if err == nil {
 			return fmt.Errorf("InstanceGroupManager still exists")
 		}
 	}
