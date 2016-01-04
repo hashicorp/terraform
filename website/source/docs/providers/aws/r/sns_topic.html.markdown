@@ -23,6 +23,7 @@ resource "aws_sns_topic" "user_updates" {
 The following arguments are supported:
 
 * `name` - (Required) The friendly name for the SNS topic
+* `display_name` - (Optional) The display name for the SNS topic
 * `policy` - (Optional) The fully-formed AWS policy as JSON
 * `delivery_policy` - (Optional) The SNS delivery policy
 
