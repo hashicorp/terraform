@@ -101,21 +101,26 @@ func testAccCheckDigitalOceanFloatingIPExists(n string, floatingIP *godo.Floatin
 
 var testAccCheckDigitalOceanFloatingIPConfig_region = `
 resource "digitalocean_floating_ip" "foobar" {
-    region = "nyc3"
+  region = "nyc3"
 }`
 
-var testAccCheckDigitalOceanFloatingIPConfig_droplet = `
+var testAccCheckDigitalOceanFloatingIPConfig_droplet = fmt.Sprintf(`
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
+}
 
 resource "digitalocean_droplet" "foobar" {
-    name = "baz"
-    size = "1gb"
-    image = "centos-5-8-x32"
-    region = "sgp1"
-    ipv6 = true
-    private_networking = true
+  name               = "baz"
+  size               = "1gb"
+  image              = "centos-5-8-x32"
+  region             = "sgp1"
+  ipv6               = true
+  private_networking = true
+  ssh_keys           = ["${digitalocean_ssh_key.foobar.id}"]
 }
 
 resource "digitalocean_floating_ip" "foobar" {
-    droplet_id = "${digitalocean_droplet.foobar.id}"
-    region = "${digitalocean_droplet.foobar.region}"
-}`
+  droplet_id = "${digitalocean_droplet.foobar.id}"
+  region     = "${digitalocean_droplet.foobar.region}"
+}`, testAccValidPublicKey)
