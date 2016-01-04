@@ -61,6 +61,7 @@ BUG FIXES:
   * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
   * provider/aws: Update DB Replica to honor storage type [GH-4155]
   * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
+  * provider/aws: Fix issue with Route53 and zero weighted records [GH-4427]
   * provider/aws: Fix issue with iam_profile in aws_instance when a path is specified [GH-3663]
   * provider/aws: Refactor AWS Authentication chain to fix issue with authentication and IAM [GH-4254]
   * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
