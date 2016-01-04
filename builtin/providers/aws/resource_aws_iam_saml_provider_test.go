@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -33,8 +34,28 @@ func TestAccAWSIAMSamlProvider_basic(t *testing.T) {
 }
 
 func testAccCheckIAMSamlProviderDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_iam_saml_provider" {
+			continue
+		}
+
+		input := &iam.GetSAMLProviderInput{
+			SAMLProviderArn: aws.String(rs.Primary.ID),
+		}
+		out, err := iamconn.GetSAMLProvider(input)
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				// none found, that's good
+				return nil
+			}
+			return fmt.Errorf("Error reading IAM SAML Provider, out: %s, err: %s", out, err)
+		}
+
+		if out != nil {
+			return fmt.Errorf("Found IAM SAML Provider, expected none: %s", out)
+		}
 	}
 
 	return nil
