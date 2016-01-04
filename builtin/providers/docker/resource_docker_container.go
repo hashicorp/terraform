@@ -238,6 +238,12 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"networks": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
