@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -39,8 +40,33 @@ func TestAccAWSIAMUserPolicy_basic(t *testing.T) {
 }
 
 func testAccCheckIAMUserPolicyDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_iam_user_policy" {
+			continue
+		}
+
+		role, name := resourceAwsIamRolePolicyParseId(rs.Primary.ID)
+
+		request := &iam.GetRolePolicyInput{
+			PolicyName: aws.String(name),
+			RoleName:   aws.String(role),
+		}
+
+		var err error
+		getResp, err := iamconn.GetRolePolicy(request)
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				// none found, that's good
+				return nil
+			}
+			return fmt.Errorf("Error reading IAM policy %s from role %s: %s", name, role, err)
+		}
+
+		if getResp != nil {
+			return fmt.Errorf("Found IAM Role, expected none: %s", getResp)
+		}
 	}
 
 	return nil
