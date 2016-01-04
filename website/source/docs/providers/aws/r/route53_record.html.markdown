@@ -103,7 +103,7 @@ record from one another. Required for each weighted record.
 default in Terraform. This allows Terraform to distinquish between a `0` value
 and an empty value in the configuration (none specified). As a result, a 
 `weight` of `-1` will be present in the statefile if `weight` is omitted in the 
-configuraiton.
+configuration.
 
 Exactly one of `records` or `alias` must be specified: this determines whether it's an alias record.
 
