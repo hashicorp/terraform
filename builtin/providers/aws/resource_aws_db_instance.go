@@ -383,7 +383,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 				"[INFO] Waiting for DB Instance to be available")
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"creating", "backing-up", "modifying"},
+				Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
+					"maintenance", "renaming", "rebooting", "upgrading"},
 				Target:     "available",
 				Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 				Timeout:    40 * time.Minute,
@@ -494,7 +495,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		"[INFO] Waiting for DB Instance to be available")
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "backing-up", "modifying"},
+		Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
+			"maintenance", "renaming", "rebooting", "upgrading"},
 		Target:     "available",
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
