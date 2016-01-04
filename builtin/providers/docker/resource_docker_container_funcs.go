@@ -149,7 +149,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(retContainer.ID)
 
 	if v, ok := d.GetOk("networks"); ok {
-		connectionOpts := &dc.NetworkConnectionOptions{Container: retContainer.ID}
+		connectionOpts := dc.NetworkConnectionOptions{Container: retContainer.ID}
 
 		for _, network := range v.(*schema.Set).List() {
 			client.ConnectNetwork(network.(string), connectionOpts)
