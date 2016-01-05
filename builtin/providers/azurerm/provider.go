@@ -1,6 +1,8 @@
 package azurerm
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -70,7 +72,35 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
+	err = registerAzureResourceProvidersWithSubscription(&config, client)
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
+}
+
+// registerAzureResourceProvidersWithSubscription uses the providers client to register
+// all Azure resource providers which the Terraform provider may require (regardless of
+// whether they are actually used by the configuration or not). It was confirmed by Microsoft
+// that this is the approach their own internal tools also take.
+func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
+	providerClient := client.providers
+
+	providers := []string{"Microsoft.Network"}
+
+	for _, v := range providers {
+		res, err := providerClient.Register(v)
+		if err != nil {
+			return err
+		}
+
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf("Error registering provider %q with subscription %q", v, config.SubscriptionID)
+		}
+	}
+
+	return nil
 }
 
 func azureRMNormalizeLocation(location interface{}) string {
