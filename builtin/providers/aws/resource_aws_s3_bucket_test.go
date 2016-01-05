@@ -188,6 +188,7 @@ func TestAccAWSS3Bucket_shouldFailNotFound(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3DestroyBucket("aws_s3_bucket.bucket"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})

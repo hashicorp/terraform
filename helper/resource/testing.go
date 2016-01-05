@@ -82,6 +82,10 @@ type TestStep struct {
 
 	// Destroy will create a destroy plan if set to true.
 	Destroy bool
+
+	// ExpectNonEmptyPlan can be set to true for specific types of tests that are
+	// looking to verify that a diff occurs
+	ExpectNonEmptyPlan bool
 }
 
 // Test performs an acceptance test on a resource.
@@ -273,13 +277,13 @@ func testStep(
 
 	// Now, verify that Plan is now empty and we don't have a perpetual diff issue
 	// We do this with TWO plans. One without a refresh.
-	if p, err := ctx.Plan(); err != nil {
+	var p *terraform.Plan
+	if p, err = ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on follow-up plan: %s", err)
-	} else {
-		if p.Diff != nil && !p.Diff.Empty() {
-			return state, fmt.Errorf(
-				"After applying this step, the plan was not empty:\n\n%s", p)
-		}
+	}
+	if p.Diff != nil && !p.Diff.Empty() && !step.ExpectNonEmptyPlan {
+		return state, fmt.Errorf(
+			"After applying this step, the plan was not empty:\n\n%s", p)
 	}
 
 	// And another after a Refresh.
@@ -288,13 +292,17 @@ func testStep(
 		return state, fmt.Errorf(
 			"Error on follow-up refresh: %s", err)
 	}
-	if p, err := ctx.Plan(); err != nil {
+	if p, err = ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
-	} else {
-		if p.Diff != nil && !p.Diff.Empty() {
-			return state, fmt.Errorf(
-				"After applying this step and refreshing, the plan was not empty:\n\n%s", p)
-		}
+	}
+	if p.Diff != nil && !p.Diff.Empty() && !step.ExpectNonEmptyPlan {
+		return state, fmt.Errorf(
+			"After applying this step and refreshing, the plan was not empty:\n\n%s", p)
+	}
+
+	// Made it here, but expected a non-empty plan, fail!
+	if step.ExpectNonEmptyPlan && (p.Diff == nil || p.Diff.Empty()) {
+		return state, fmt.Errorf("Expected a non-empty plan, but got an empty plan!")
 	}
 
 	// Made it here? Good job test step!
