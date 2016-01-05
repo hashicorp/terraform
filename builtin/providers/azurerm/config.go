@@ -36,6 +36,7 @@ type ArmClient struct {
 	vnetGatewayClient            network.VirtualNetworkGatewaysClient
 	vnetClient                   network.VirtualNetworksClient
 
+	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
 	tagsClient          resources.TagsClient
 
@@ -159,6 +160,11 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	rgc.Authorizer = spt
 	rgc.Sender = autorest.CreateSender(withRequestLogging())
 	client.resourceGroupClient = rgc
+
+	pc := resources.NewProvidersClient(c.SubscriptionID)
+	pc.Authorizer = spt
+	pc.Sender = autorest.CreateSender(withRequestLogging())
+	client.providers = pc
 
 	tc := resources.NewTagsClient(c.SubscriptionID)
 	tc.Authorizer = spt
