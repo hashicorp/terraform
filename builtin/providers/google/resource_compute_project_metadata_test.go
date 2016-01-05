@@ -38,6 +38,8 @@ func TestAccComputeProjectMetadata_basic(t *testing.T) {
 func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 	var project compute.Project
 
+	t.Skip("See https://github.com/hashicorp/terraform/issues/4504")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -73,6 +75,8 @@ func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 // Add two key value pairs, and replace both
 func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
 	var project compute.Project
+
+	t.Skip("See https://github.com/hashicorp/terraform/issues/4504")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
