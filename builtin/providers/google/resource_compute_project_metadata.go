@@ -90,7 +90,7 @@ func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}
 
 	md := project.CommonInstanceMetadata
 
-	if err = d.Set("metadata", MetadataFormatSchema(md)); err != nil {
+	if err = d.Set("metadata", MetadataFormatSchema(d.Get("metadata").(map[string]interface{}), md)); err != nil {
 		return fmt.Errorf("Error setting metadata: %s", err)
 	}
 
