@@ -3,10 +3,13 @@ package aws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -88,13 +91,27 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 		Enabled:          aws.Bool(d.Get("enabled").(bool)),
 	}
 
-	eventSourceMappingConfiguration, err := conn.CreateEventSourceMapping(params)
+	err := resource.Retry(1*time.Minute, func() error {
+		eventSourceMappingConfiguration, err := conn.CreateEventSourceMapping(params)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "InvalidParameterValueException" {
+					// Retryable
+					return awserr
+				}
+			}
+			// Not retryable
+			return resource.RetryError{Err: err}
+		}
+		// No error
+		d.Set("uuid", eventSourceMappingConfiguration.UUID)
+		d.SetId(*eventSourceMappingConfiguration.UUID)
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating Lambda event source mapping: %s", err)
 	}
-
-	d.Set("uuid", eventSourceMappingConfiguration.UUID)
-	d.SetId(*eventSourceMappingConfiguration.UUID)
 
 	return resourceAwsLambdaEventSourceMappingRead(d, meta)
 }
