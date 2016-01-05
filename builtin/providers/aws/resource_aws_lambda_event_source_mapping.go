@@ -179,7 +179,22 @@ func resourceAwsLambdaEventSourceMappingUpdate(d *schema.ResourceData, meta inte
 		Enabled:      aws.Bool(d.Get("enabled").(bool)),
 	}
 
-	_, err := conn.UpdateEventSourceMapping(params)
+	err := resource.Retry(1*time.Minute, func() error {
+		_, err := conn.UpdateEventSourceMapping(params)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "InvalidParameterValueException" {
+					// Retryable
+					return awserr
+				}
+			}
+			// Not retryable
+			return resource.RetryError{Err: err}
+		}
+		// No error
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error updating Lambda event source mapping: %s", err)
 	}
