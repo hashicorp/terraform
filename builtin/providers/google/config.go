@@ -13,13 +13,13 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/bigquery/v2"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
+	"google.golang.org/api/pubsub/v1"
 	"google.golang.org/api/sqladmin/v1beta4"
 	"google.golang.org/api/storage/v1"
-	"google.golang.org/api/pubsub/v1"
-	"google.golang.org/api/bigquery/v2"
 )
 
 // Config is the configuration structure used to instantiate the Google
@@ -34,7 +34,7 @@ type Config struct {
 	clientDns       *dns.Service
 	clientStorage   *storage.Service
 	clientSqlAdmin  *sqladmin.Service
-	clientPubsub	*pubsub.Service
+	clientPubsub    *pubsub.Service
 	clientBigQuery  *bigquery.Service
 }
 

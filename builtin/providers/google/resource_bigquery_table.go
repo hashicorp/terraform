@@ -1,8 +1,8 @@
 package google
 
 import (
-	"google.golang.org/api/bigquery/v2"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/bigquery/v2"
 )
 
 func resourceBigQueryTable() *schema.Resource {
@@ -24,36 +24,36 @@ func resourceBigQueryTable() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			
+
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			
+
 			"expirationTime": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			
+
 			"friendlyName": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			
+
 			"schemaFile": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			
+
 			"schema": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Elem:     schema.Resource{
+				Elem: schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"fields": &schema.Schema{
-							Type:	 schema.TypeList,
+							Type:    schema.TypeList,
 							Optiona: true,
-							Elem:	 schema.Resource{
+							Elem: schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"description": &schema.Schema{
 										Type:     schema.TypeString,
@@ -72,17 +72,17 @@ func resourceBigQueryTable() *schema.Resource {
 										Required: true,
 									},
 								},
-							},								
+							},
 						},
 					},
 				},
 			},
-			
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			
+
 			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -97,9 +97,8 @@ func resourceBigQueryTable() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-
 		},
-	},
+	}
 }
 
 // convert raw field config into TableFieldSchema ref
@@ -108,23 +107,23 @@ func parseField(fieldDef map[string]interface{}) (*bigquery.TableFieldSchema, er
 	if description, ok := fieldDef["description"]; ok {
 		fieldParsed.Description = description.(string)
 	}
-		
+
 	if mode, ok := fieldDef["mode"]; ok {
 		fieldParsed.Mode = mode.(string)
 	}
-	
+
 	if name, ok := fieldDef["name"]; ok {
 		fieldParsed.Name = name.(string)
 	} else {
 		return fmt.Errorf("All fields must have 'name' defined.  The following field did not:  %q\n", field_def)
 	}
-		
-	if type, ok := fieldDef["type"]; ok {
-		fieldParsed.Type = type.(string)
+
+	if fieldType, ok := fieldDef["type"]; ok {
+		fieldParsed.Type = fieldType.(string)
 	} else {
 		return fmt.Errorf("All fields must have 'type' defined.  The following field did not:  %q\n", field_def)
 	}
-		
+
 	if tableFieldSchema, ok := fieldDef["fields"]; ok {
 		fieldList, err := parseFieldList(tableFieldSchema)
 		if err != nil {
@@ -132,7 +131,7 @@ func parseField(fieldDef map[string]interface{}) (*bigquery.TableFieldSchema, er
 		}
 		fieldParse.TableFieldSchema = fieldList
 	}
-		
+
 	return fieldParsed
 }
 
@@ -156,28 +155,28 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 	datasetId := d.Get("datasetId").(string)
 	tableId := d.Get("tableId").(string)
 	tRef := &bigquery.TableReference{DatasetId: datasetId, ProjectId: config.Project, TableId: tableName}
-	
+
 	// build the table
 	table := &bigquery.Table{TableReference: tRef}
-	
+
 	if description, ok := d.GetOk("description"); ok {
 		table.Description = description.(string)
 	}
-	
+
 	if expirationTime, ok := d.GetOk("expirationTime"); ok {
 		table.ExpirationTime = expirationTime.(int64)
 	}
-	
+
 	if friendlyName, ok := d.GetOk("friendlyName"); ok {
 		table.FriendlyName = friendlyName.(string)
 	}
-	
+
 	// build arbitrarily deep table schema
 	//   first check that didn't specify both schema and schemaFile
 	schema, schemaOk := d.GetOk("schema")
 	schemaFile, schemaFileOk := d.GetOk("schemaFile")
 	if schemaOk && schemaFileOk {
-			return fmt.Errorf("Config contains both schema and schemaFile.  Specify at most one\n");
+		return fmt.Errorf("Config contains both schema and schemaFile.  Specify at most one\n")
 	} else if schemaOk {
 		fieldList, err := parse_field_list(schema.([]interface{}))
 		if err != nil {
@@ -195,15 +194,13 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 		}
 		table.Schema = &bigquery.TableSchema{Fields: fieldList}
 	}
-	
-	
-	
+
 	call := config.clientBigQuery.Tables.Insert(config.Project, datasetId, table)
 	_, err := call.Do()
 	if err != nil {
 		return err
 	}
-	
+
 	err = resourceBigQueryTableRead(d, meta)
 	if err != nil {
 		return err
@@ -214,7 +211,7 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 
 func resourceBigQueryTableRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	
+
 	call := config.clientBigQuery.Tables.Get(config.Project, d.Get("datasetId").(string), d.Get("name").(string))
 	res, err := call.Do()
 	if err != nil {
@@ -236,6 +233,6 @@ func resourceBigQueryTableUpdate(d *schema.ResourceData, meta interface{}) error
 func resourceBigQueryTableDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	d.SetId("")	
+	d.SetId("")
 	return nil
 }

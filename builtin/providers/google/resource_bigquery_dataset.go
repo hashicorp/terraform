@@ -2,9 +2,9 @@ package google
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/bigquery/v2"
 	"google.golang.org/api/googleapi"
-	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceBigQueryDataset() *schema.Resource {
@@ -44,56 +44,56 @@ func resourceBigQueryDataset() *schema.Resource {
 			"access": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Elem:     &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"role": &schema.Schema{
-								Type:     schema.TypeString,
-								Optional: true,
-							},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"role": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-							"userByEmail": &schema.Schema{
-								Type:     schema.TypeString,
-								Optional: true,
-							},
-		
-							"groupByEmail": &schema.Schema{
-								Type:     schema.TypeString,
-								Optional: true,
-							},
+						"userByEmail": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-							"domain": &schema.Schema{
-								Type:     schema.TypeString,
-								Optional: true,
-							},
+						"groupByEmail": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-							"specialGroup": &schema.Schema{
-								Type:     schema.TypeString,
-								Optional: true,
-							},
+						"domain": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-							"view": &schema.Schema{
-								Type:     schema.TypeList,
-								Optional: true,
-								Elem:     &schema.Resource{
-										Schema: map[string]*schema.Schema{
-											"projectId": &schema.Schema{
-												Type:     schema.TypeString,
-												Optional: true,
-											},
+						"specialGroup": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 
-											"datasetId": &schema.Schema{
-												Type:     schema.TypeString,
-												Optional: true,
-											},
+						"view": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"projectId": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
 
-											"tableId": &schema.Schema{
-												Type:     schema.TypeString,
-												Optional: true,
-											},
-										},
-									  },
+									"datasetId": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+
+									"tableId": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
 							},
 						},
+					},
 				},
 			},
 
@@ -111,7 +111,6 @@ func resourceBigQueryDataset() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-
 		},
 	}
 }
@@ -126,7 +125,7 @@ func resourceBigQueryDatasetCreate(d *schema.ResourceData, meta interface{}) err
 	if v, ok := d.GetOk("friendlyName"); ok {
 		dataset.FriendlyName = v.(string)
 	}
-	
+
 	if v, ok := d.GetOk("description"); ok {
 		dataset.Description = v.(string)
 	}
@@ -135,7 +134,7 @@ func resourceBigQueryDatasetCreate(d *schema.ResourceData, meta interface{}) err
 		dataset.Location = v.(string)
 	}
 
-	if v, ok := d.GetOk("defaultTableExpirationMs"); ok{
+	if v, ok := d.GetOk("defaultTableExpirationMs"); ok {
 		dataset.DefaultTableExpirationMs = v.(int64)
 	}
 
@@ -167,7 +166,7 @@ func resourceBigQueryDatasetCreate(d *schema.ResourceData, meta interface{}) err
 				view_parsed := &bigquery.TableReference{}
 				view_zero := view_raw[0].(map[string]interface{})
 				if projectId, ok := view_zero["projectId"]; ok {
-					view_parsed.ProjectId =  projectId.(string)
+					view_parsed.ProjectId = projectId.(string)
 				}
 				if datasetId, ok := view_zero["datasetId"]; ok {
 					view_parsed.DatasetId = datasetId.(string)
@@ -184,20 +183,18 @@ func resourceBigQueryDatasetCreate(d *schema.ResourceData, meta interface{}) err
 		dataset.Access = accessList
 	}
 
-
-
 	call := config.clientBigQuery.Datasets.Insert(config.Project, dataset)
 	_, err := call.Do()
 	if err != nil {
 		return err
 	}
-	
+
 	return resourceBigQueryDatasetRead(d, meta)
 }
 
 func resourceBigQueryDatasetRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	
+
 	call := config.clientBigQuery.Datasets.Get(config.Project, d.Get("datasetId").(string))
 	res, err := call.Do()
 	if err != nil {
@@ -230,6 +227,6 @@ func resourceBigQueryDatasetDelete(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	d.SetId("")	
+	d.SetId("")
 	return nil
 }
