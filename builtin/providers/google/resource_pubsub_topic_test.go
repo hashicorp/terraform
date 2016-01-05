@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -62,7 +63,7 @@ func testAccPubsubTopicExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccPubsubTopic = `
+var testAccPubsubTopic = fmt.Sprintf(`
 resource "google_pubsub_topic" "foobar" {
-	name = "foobar"
-}`
+	name = "pstopic-test-%s"
+}`, acctest.RandString(10))
