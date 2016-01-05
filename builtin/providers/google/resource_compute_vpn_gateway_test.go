@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -79,13 +80,13 @@ func testAccCheckComputeVpnGatewayExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccComputeVpnGateway_basic = `
+var testAccComputeVpnGateway_basic = fmt.Sprintf(`
 resource "google_compute_network" "foobar" {
-	name = "tf-test-network"
+	name = "gateway-test-%s"
 	ipv4_range = "10.0.0.0/16"
 }
 resource "google_compute_vpn_gateway" "foobar" {
-	name = "tf-test-vpn-gateway"
+	name = "gateway-test-%s"
 	network = "${google_compute_network.foobar.self_link}"
 	region = "us-central1"
-} `
+}`, acctest.RandString(10), acctest.RandString(10))

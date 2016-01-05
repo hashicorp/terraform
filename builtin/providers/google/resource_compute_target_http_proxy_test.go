@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -97,27 +98,27 @@ func testAccCheckComputeTargetHttpProxyExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccComputeTargetHttpProxy_basic1 = `
+var testAccComputeTargetHttpProxy_basic1 = fmt.Sprintf(`
 resource "google_compute_target_http_proxy" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test"
+	name = "httpproxy-test-%s"
 	url_map = "${google_compute_url_map.foobar1.self_link}"
 }
 
 resource "google_compute_backend_service" "foobar" {
-	name = "service"
+	name = "httpproxy-test-%s"
 	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-	name = "tf-test-zero"
+	name = "httpproxy-test-%s"
 	request_path = "/"
 	check_interval_sec = 1
 	timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar1" {
-	name = "myurlmap1"
+	name = "httpproxy-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -139,7 +140,7 @@ resource "google_compute_url_map" "foobar1" {
 }
 
 resource "google_compute_url_map" "foobar2" {
-	name = "myurlmap2"
+	name = "httpproxy-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -159,29 +160,29 @@ resource "google_compute_url_map" "foobar2" {
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeTargetHttpProxy_basic2 = `
+var testAccComputeTargetHttpProxy_basic2 = fmt.Sprintf(`
 resource "google_compute_target_http_proxy" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test"
+	name = "httpproxy-test-%s"
 	url_map = "${google_compute_url_map.foobar2.self_link}"
 }
 
 resource "google_compute_backend_service" "foobar" {
-	name = "service"
+	name = "httpproxy-test-%s"
 	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-	name = "tf-test-zero"
+	name = "httpproxy-test-%s"
 	request_path = "/"
 	check_interval_sec = 1
 	timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar1" {
-	name = "myurlmap1"
+	name = "httpproxy-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -203,7 +204,7 @@ resource "google_compute_url_map" "foobar1" {
 }
 
 resource "google_compute_url_map" "foobar2" {
-	name = "myurlmap2"
+	name = "httpproxy-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -223,4 +224,4 @@ resource "google_compute_url_map" "foobar2" {
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

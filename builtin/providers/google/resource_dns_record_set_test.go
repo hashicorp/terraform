@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -76,9 +77,9 @@ func testAccCheckDnsRecordSetExists(name string) resource.TestCheckFunc {
 	}
 }
 
-const testAccDnsRecordSet_basic = `
+var testAccDnsRecordSet_basic = fmt.Sprintf(`
 resource "google_dns_managed_zone" "parent-zone" {
-	name = "terraform-test-zone"
+	name = "dnsrecord-test-%s"
 	dns_name = "terraform.test."
 	description = "Test Description"
 }
@@ -89,4 +90,4 @@ resource "google_dns_record_set" "foobar" {
 	rrdatas = ["127.0.0.1", "127.0.0.10"]
 	ttl = 600
 }
-`
+`, acctest.RandString(10))

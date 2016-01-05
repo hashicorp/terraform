@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -436,9 +437,9 @@ func testAccCheckComputeInstanceServiceAccount(instance *compute.Instance, scope
 	}
 }
 
-const testAccComputeInstance_basic_deprecated_network = `
+var testAccComputeInstance_basic_deprecated_network = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	can_ip_forward = false
@@ -455,11 +456,11 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstance_update_deprecated_network = `
+var testAccComputeInstance_update_deprecated_network = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	tags = ["baz"]
@@ -475,11 +476,11 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		bar = "baz"
 	}
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstance_basic = `
+var testAccComputeInstance_basic = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	can_ip_forward = false
@@ -499,11 +500,11 @@ resource "google_compute_instance" "foobar" {
 	}
 
 	metadata_startup_script = "echo Hello"
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstance_basic2 = `
+var testAccComputeInstance_basic2 = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	can_ip_forward = false
@@ -521,11 +522,11 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstance_basic3 = `
+var testAccComputeInstance_basic3 = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	can_ip_forward = false
@@ -542,13 +543,13 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10))
 
 // Update zone to ForceNew, and change metadata k/v entirely
 // Generates diff mismatch
-const testAccComputeInstance_forceNewAndChangeMetadata = `
+var testAccComputeInstance_forceNewAndChangeMetadata = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	zone = "us-central1-b"
@@ -566,12 +567,12 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		qux = "true"
 	}
-}`
+}`, acctest.RandString(10))
 
 // Update metadata, tags, and network_interface
-const testAccComputeInstance_update = `
+var testAccComputeInstance_update = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	tags = ["baz"]
@@ -588,15 +589,15 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		bar = "baz"
 	}
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstance_ip = `
+var testAccComputeInstance_ip = fmt.Sprintf(`
 resource "google_compute_address" "foo" {
-	name = "foo"
+	name = "instance-test-%s"
 }
 
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 	tags = ["foo", "bar"]
@@ -615,18 +616,18 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeInstance_disks = `
+var testAccComputeInstance_disks = fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
-	name = "terraform-test-disk"
+	name = "instance-test-%s"
 	size = 10
 	type = "pd-ssd"
 	zone = "us-central1-a"
 }
 
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 
@@ -646,11 +647,11 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeInstance_local_ssd = `
+var testAccComputeInstance_local_ssd = fmt.Sprintf(`
 resource "google_compute_instance" "local-ssd" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 
@@ -667,11 +668,11 @@ resource "google_compute_instance" "local-ssd" {
 		network = "default"
 	}
 
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstance_service_account = `
+var testAccComputeInstance_service_account = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 
@@ -690,11 +691,11 @@ resource "google_compute_instance" "foobar" {
 			"storage-ro",
 		]
 	}
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstance_scheduling = `
+var testAccComputeInstance_scheduling = fmt.Sprintf(`
 resource "google_compute_instance" "foobar" {
-	name = "terraform-test"
+	name = "instance-test-%s"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
 
@@ -708,4 +709,4 @@ resource "google_compute_instance" "foobar" {
 
 	scheduling {
 	}
-}`
+}`, acctest.RandString(10))
