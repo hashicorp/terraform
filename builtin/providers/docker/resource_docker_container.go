@@ -243,6 +243,8 @@ func resourceDockerContainer() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      stringSetHash,
 			},
 		},
 	}
