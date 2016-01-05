@@ -13,7 +13,7 @@ func resourceBigQueryTable() *schema.Resource {
 		Update: resourceBigQueryTableUpdate,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"tableId": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -24,22 +24,143 @@ func resourceBigQueryTable() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
-			"can_delete": &schema.Schema{
-				Type:     schema.TypeBool,
+			
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
-				Default: false,
 			},
+			
+			"expirationTime": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			
+			"friendlyName": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			
+			"schema": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     schema.Resource{
+						Schema: map[string]*schema.Schema{
+								"fields": &schema.Schema{
+										Type:	 schema.TypeList,
+										Optiona: true,
+										Elem:	 schema.Resource{
+												Schema: map[string]*schema.Schema{
+														"description": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+														},
+														"mode": &schema.Schema{
+																Type:     schema.TypeString,
+																Optional: true,
+														},
+														"name": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+														},
+														"type": &schema.Schema{
+																Type:     schema.TypeString,
+																Required: true,
+														},
+														"fields": &schema.Schema{
+																Type:	 schema.TypeList,
+																Optiona: true,
+																Elem:	 schema.Resource{
+																		Schema: map[string]*schema.Schema{
+																				"description": &schema.Schema{
+																						Type:     schema.TypeString,
+																						Optional: true,
+																				},
+																				"mode": &schema.Schema{
+																						Type:     schema.TypeString,
+																						Optional: true,
+																				},
+																				"name": &schema.Schema{
+																						Type:     schema.TypeString,
+																						Required: true,
+																				},
+																				"type": &schema.Schema{
+																						Type:     schema.TypeString,
+																						Required: true,
+																				},
+																				"fields": &schema.Schema{
+																						Type:	 schema.TypeList,
+																						Optiona: true,
+																						Elem:	 schema.Resource{
+																								Schema: map[string]*schema.Schema{
+																										"description": &schema.Schema{
+																												Type:     schema.TypeString,
+																												Optional: true,
+																										},
+																										"mode": &schema.Schema{
+																												Type:     schema.TypeString,
+																												Optional: true,
+																										},
+																										"name": &schema.Schema{
+																												Type:     schema.TypeString,
+																												Required: true,
+																										},
+																										"type": &schema.Schema{
+																												Type:     schema.TypeString,
+																												Required: true,
+																										},
+																										"fields": &schema.Schema{
+																												Type:	 schema.TypeList,
+																												Optiona: true,
+																												Elem:	 schema.Resource{
+																														Schema: map[string]*schema.Schema{
+																																"description": &schema.Schema{
+																																		Type:     schema.TypeString,
+																																		Optional: true,
+																																},
+																																"mode": &schema.Schema{
+																																		Type:     schema.TypeString,
+																																		Optional: true,
+																																},
+																																"name": &schema.Schema{
+																																		Type:     schema.TypeString,
+																																		Required: true,
+																																},
+																																"type": &schema.Schema{
+																																		Type:     schema.TypeString,
+																																		Required: true,
+																																},
+																														},
+																												},
+																										},
+																								},
+																						},
+																				},
+																		},
+																},
+														},
+												},
+										},
+								},
+						},
+				},
+			},
+			
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 		},
-	}
+	},
 }
 
 func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	datasetId := d.Get("datasetId").(string)
-	tableName := d.Get("name").(string)
+	tableId := d.Get("tableId").(string)
 	tRef := &bigquery.TableReference{DatasetId: datasetId, ProjectId: config.Project, TableId: tableName}
+	
 	table := &bigquery.Table{TableReference: tRef}
 
 	call := config.clientBigQuery.Tables.Insert(config.Project, datasetId, table)
@@ -69,22 +190,12 @@ func resourceBigQueryTableRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-//  basically a no-op from terraform's point of view.  but it allows can_delete
-//  setting to be altered
 func resourceBigQueryTableUpdate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
 func resourceBigQueryTableDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-
-	if d.Get("can_delete").(bool) == true {
-		call := config.clientBigQuery.Tables.Delete(config.Project, d.Get("datasetId").(string), d.Get("name").(string))
-		err := call.Do()
-		if err != nil {
-			return err
-		}
-	}
 
 	d.SetId("")	
 	return nil
