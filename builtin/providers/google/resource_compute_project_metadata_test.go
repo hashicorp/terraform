@@ -13,6 +13,8 @@ import (
 func TestAccComputeProjectMetadata_basic(t *testing.T) {
 	var project compute.Project
 
+	t.Skip("See https://github.com/hashicorp/terraform/issues/4504")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -193,7 +195,7 @@ resource "google_compute_project_metadata" "fizzbuzz" {
 const testAccComputeProject_basic1_metadata = `
 resource "google_compute_project_metadata" "fizzbuzz" {
 	metadata {
-		kiwi = "papaya"	
+		kiwi = "papaya"
 		finches = "darwinism"
 	}
 }`
@@ -201,7 +203,7 @@ resource "google_compute_project_metadata" "fizzbuzz" {
 const testAccComputeProject_modify0_metadata = `
 resource "google_compute_project_metadata" "fizzbuzz" {
 	metadata {
-		paper = "pen"	
+		paper = "pen"
 		genghis_khan = "french bread"
 		happy = "smiling"
 	}
@@ -210,7 +212,7 @@ resource "google_compute_project_metadata" "fizzbuzz" {
 const testAccComputeProject_modify1_metadata = `
 resource "google_compute_project_metadata" "fizzbuzz" {
 	metadata {
-		paper = "pen"	
+		paper = "pen"
 		paris = "french bread"
 		happy = "laughing"
 	}
