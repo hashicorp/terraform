@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -71,10 +72,10 @@ func testAccCheckComputeTargetPoolExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccComputeTargetPool_basic = `
+var testAccComputeTargetPool_basic = fmt.Sprintf(`
 resource "google_compute_target_pool" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
 	instances = ["us-central1-a/foo", "us-central1-b/bar"]
-	name = "terraform-test"
+	name = "tpool-test-%s"
 	session_affinity = "CLIENT_IP_PROTO"
-}`
+}`, acctest.RandString(10))

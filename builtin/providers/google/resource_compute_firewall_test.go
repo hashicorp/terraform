@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -118,14 +119,14 @@ func testAccCheckComputeFirewallPorts(
 	}
 }
 
-const testAccComputeFirewall_basic = `
+var testAccComputeFirewall_basic = fmt.Sprintf(`
 resource "google_compute_network" "foobar" {
-	name = "terraform-test"
+	name = "firewall-test-%s"
 	ipv4_range = "10.0.0.0/16"
 }
 
 resource "google_compute_firewall" "foobar" {
-	name = "terraform-test"
+	name = "firewall-test-%s"
 	description = "Resource created for Terraform acceptance testing"
 	network = "${google_compute_network.foobar.name}"
 	source_tags = ["foo"]
@@ -133,16 +134,16 @@ resource "google_compute_firewall" "foobar" {
 	allow {
 		protocol = "icmp"
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeFirewall_update = `
+var testAccComputeFirewall_update = fmt.Sprintf(`
 resource "google_compute_network" "foobar" {
-	name = "terraform-test"
+	name = "firewall-test-%s"
 	ipv4_range = "10.0.0.0/16"
 }
 
 resource "google_compute_firewall" "foobar" {
-	name = "terraform-test"
+	name = "firewall-test-%s"
 	description = "Resource created for Terraform acceptance testing"
 	network = "${google_compute_network.foobar.name}"
 	source_tags = ["foo"]
@@ -151,4 +152,4 @@ resource "google_compute_firewall" "foobar" {
 		protocol = "tcp"
 		ports = ["80-255"]
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))

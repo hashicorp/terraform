@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -130,9 +131,9 @@ func testAccCheckAutoscalerUpdated(n string, max int64) resource.TestCheckFunc {
 	}
 }
 
-const testAccAutoscaler_basic = `
+var testAccAutoscaler_basic = fmt.Sprintf(`
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test-template-foobar"
+	name = "ascaler-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -158,13 +159,13 @@ resource "google_compute_instance_template" "foobar" {
 
 resource "google_compute_target_pool" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-tpool-foobar"
+	name = "ascaler-test-%s"
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
 resource "google_compute_instance_group_manager" "foobar" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test-groupmanager"
+	name = "ascaler-test-%s"
 	instance_template = "${google_compute_instance_template.foobar.self_link}"
 	target_pools = ["${google_compute_target_pool.foobar.self_link}"]
 	base_instance_name = "foobar"
@@ -173,7 +174,7 @@ resource "google_compute_instance_group_manager" "foobar" {
 
 resource "google_compute_autoscaler" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-ascaler"
+	name = "ascaler-test-%s"
 	zone = "us-central1-a"
 	target = "${google_compute_instance_group_manager.foobar.self_link}"
 	autoscaling_policy = {
@@ -185,11 +186,11 @@ resource "google_compute_autoscaler" "foobar" {
 		}
 	}
 
-}`
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccAutoscaler_update = `
+var testAccAutoscaler_update = fmt.Sprintf(`
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test-template-foobar"
+	name = "ascaler-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -215,13 +216,13 @@ resource "google_compute_instance_template" "foobar" {
 
 resource "google_compute_target_pool" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-tpool-foobar"
+	name = "ascaler-test-%s"
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
 resource "google_compute_instance_group_manager" "foobar" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test-groupmanager"
+	name = "ascaler-test-%s"
 	instance_template = "${google_compute_instance_template.foobar.self_link}"
 	target_pools = ["${google_compute_target_pool.foobar.self_link}"]
 	base_instance_name = "foobar"
@@ -230,7 +231,7 @@ resource "google_compute_instance_group_manager" "foobar" {
 
 resource "google_compute_autoscaler" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-ascaler"
+	name = "ascaler-test-%s"
 	zone = "us-central1-a"
 	target = "${google_compute_instance_group_manager.foobar.self_link}"
 	autoscaling_policy = {
@@ -242,4 +243,4 @@ resource "google_compute_autoscaler" "foobar" {
 		}
 	}
 
-}`
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

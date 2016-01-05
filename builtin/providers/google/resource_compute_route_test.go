@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -75,16 +76,16 @@ func testAccCheckComputeRouteExists(n string, route *compute.Route) resource.Tes
 	}
 }
 
-const testAccComputeRoute_basic = `
+var testAccComputeRoute_basic = fmt.Sprintf(`
 resource "google_compute_network" "foobar" {
-	name = "terraform-test"
+	name = "route-test-%s"
 	ipv4_range = "10.0.0.0/16"
 }
 
 resource "google_compute_route" "foobar" {
-	name = "terraform-test"
+	name = "route-test-%s"
 	dest_range = "15.0.0.0/24"
 	network = "${google_compute_network.foobar.name}"
 	next_hop_ip = "10.0.1.5"
 	priority = 100
-}`
+}`, acctest.RandString(10), acctest.RandString(10))
