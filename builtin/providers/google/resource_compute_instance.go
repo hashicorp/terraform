@@ -562,7 +562,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Synch metadata
 	md := instance.Metadata
 
-	_md := MetadataFormatSchema(md)
+	_md := MetadataFormatSchema(d.Get("metadata").(map[string]interface{}), md)
 	delete(_md, "startup-script")
 
 	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {

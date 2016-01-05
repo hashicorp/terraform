@@ -60,11 +60,13 @@ func MetadataUpdate(oldMDMap map[string]interface{}, newMDMap map[string]interfa
 }
 
 // Format metadata from the server data format -> schema data format
-func MetadataFormatSchema(md *compute.Metadata) map[string]interface{} {
+func MetadataFormatSchema(curMDMap map[string]interface{}, md *compute.Metadata) map[string]interface{} {
 	newMD := make(map[string]interface{})
 
 	for _, kv := range md.Items {
-		newMD[kv.Key] = *kv.Value
+		if _, ok := curMDMap[kv.Key]; ok {
+			newMD[kv.Key] = *kv.Value
+		}
 	}
 
 	return newMD
