@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -95,41 +96,41 @@ func testAccCheckComputeGlobalForwardingRuleExists(n string) resource.TestCheckF
 	}
 }
 
-const testAccComputeGlobalForwardingRule_basic1 = `
+var testAccComputeGlobalForwardingRule_basic1 = fmt.Sprintf(`
 resource "google_compute_global_forwarding_rule" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
 	ip_protocol = "TCP"
-	name = "terraform-test"
+	name = "gforward-test-%s"
 	port_range = "80"
 	target = "${google_compute_target_http_proxy.foobar1.self_link}"
 }
 
 resource "google_compute_target_http_proxy" "foobar1" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test1"
+	name = "gforward-test-%s"
 	url_map = "${google_compute_url_map.foobar.self_link}"
 }
 
 resource "google_compute_target_http_proxy" "foobar2" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test2"
+	name = "gforward-test-%s"
 	url_map = "${google_compute_url_map.foobar.self_link}"
 }
 
 resource "google_compute_backend_service" "foobar" {
-	name = "service"
+	name = "gforward-test-%s"
 	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-	name = "tf-test-zero"
+	name = "gforward-test-%s"
 	request_path = "/"
 	check_interval_sec = 1
 	timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+	name = "gforward-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -149,43 +150,44 @@ resource "google_compute_url_map" "foobar" {
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
+	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeGlobalForwardingRule_basic2 = `
+var testAccComputeGlobalForwardingRule_basic2 = fmt.Sprintf(`
 resource "google_compute_global_forwarding_rule" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
 	ip_protocol = "TCP"
-	name = "terraform-test"
+	name = "gforward-test-%s"
 	port_range = "80"
 	target = "${google_compute_target_http_proxy.foobar2.self_link}"
 }
 
 resource "google_compute_target_http_proxy" "foobar1" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test1"
+	name = "gforward-test-%s"
 	url_map = "${google_compute_url_map.foobar.self_link}"
 }
 
 resource "google_compute_target_http_proxy" "foobar2" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test2"
+	name = "gforward-test-%s"
 	url_map = "${google_compute_url_map.foobar.self_link}"
 }
 
 resource "google_compute_backend_service" "foobar" {
-	name = "service"
+	name = "gforward-test-%s"
 	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-	name = "tf-test-zero"
+	name = "gforward-test-%s"
 	request_path = "/"
 	check_interval_sec = 1
 	timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+	name = "gforward-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -205,4 +207,5 @@ resource "google_compute_url_map" "foobar" {
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
+	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

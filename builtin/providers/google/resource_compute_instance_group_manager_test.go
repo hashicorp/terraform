@@ -6,6 +6,7 @@ import (
 
 	"google.golang.org/api/compute/v1"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -146,9 +147,9 @@ func testAccCheckInstanceGroupManagerUpdated(n string, size int64, targetPool st
 	}
 }
 
-const testAccInstanceGroupManager_basic = `
+var testAccInstanceGroupManager_basic = fmt.Sprintf(`
 resource "google_compute_instance_template" "igm-basic" {
-	name = "terraform-test-igm-basic"
+	name = "igm-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -174,13 +175,13 @@ resource "google_compute_instance_template" "igm-basic" {
 
 resource "google_compute_target_pool" "igm-basic" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-igm-basic"
+	name = "igm-test-%s"
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
 resource "google_compute_instance_group_manager" "igm-basic" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test-igm-basic"
+	name = "igm-test-%s"
 	instance_template = "${google_compute_instance_template.igm-basic.self_link}"
 	target_pools = ["${google_compute_target_pool.igm-basic.self_link}"]
 	base_instance_name = "igm-basic"
@@ -190,17 +191,17 @@ resource "google_compute_instance_group_manager" "igm-basic" {
 
 resource "google_compute_instance_group_manager" "igm-no-tp" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test-igm-no-tp"
+	name = "igm-test-%s"
 	instance_template = "${google_compute_instance_template.igm-basic.self_link}"
 	base_instance_name = "igm-no-tp"
 	zone = "us-central1-c"
 	target_size = 2
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccInstanceGroupManager_update = `
+var testAccInstanceGroupManager_update = fmt.Sprintf(`
 resource "google_compute_instance_template" "igm-update" {
-	name = "terraform-test-igm-update"
+	name = "igm-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -226,24 +227,24 @@ resource "google_compute_instance_template" "igm-update" {
 
 resource "google_compute_target_pool" "igm-update" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-igm-update"
+	name = "igm-test-%s"
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
 resource "google_compute_instance_group_manager" "igm-update" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test-igm-update"
+	name = "igm-test-%s"
 	instance_template = "${google_compute_instance_template.igm-update.self_link}"
 	target_pools = ["${google_compute_target_pool.igm-update.self_link}"]
 	base_instance_name = "igm-update"
 	zone = "us-central1-c"
 	target_size = 2
-}`
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
 // Change IGM's instance template and target size
-const testAccInstanceGroupManager_update2 = `
+var testAccInstanceGroupManager_update2 = fmt.Sprintf(`
 resource "google_compute_instance_template" "igm-update" {
-	name = "terraform-test-igm-update"
+	name = "igm-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -269,12 +270,12 @@ resource "google_compute_instance_template" "igm-update" {
 
 resource "google_compute_target_pool" "igm-update" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test-igm-update"
+	name = "igm-test-%s"
 	session_affinity = "CLIENT_IP_PROTO"
 }
 
 resource "google_compute_instance_template" "igm-update2" {
-	name = "terraform-test-igm-update2"
+	name = "igm-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -300,10 +301,10 @@ resource "google_compute_instance_template" "igm-update2" {
 
 resource "google_compute_instance_group_manager" "igm-update" {
 	description = "Terraform test instance group manager"
-	name = "terraform-test-igm-update"
+	name = "igm-test-%s"
 	instance_template = "${google_compute_instance_template.igm-update2.self_link}"
 	target_pools = ["${google_compute_target_pool.igm-update.self_link}"]
 	base_instance_name = "igm-update"
 	zone = "us-central1-c"
 	target_size = 3
-}`
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/dns/v1"
@@ -75,9 +76,9 @@ func testAccCheckDnsManagedZoneExists(n string, zone *dns.ManagedZone) resource.
 	}
 }
 
-const testAccDnsManagedZone_basic = `
+var testAccDnsManagedZone_basic = fmt.Sprintf(`
 resource "google_dns_managed_zone" "foobar" {
-	name = "terraform-test"
+	name = "mzone-test-%s"
 	dns_name = "terraform.test."
 	description = "Test Description"
-}`
+}`, acctest.RandString(10))
