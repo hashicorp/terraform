@@ -157,7 +157,7 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 			// IAM profiles can take ~10 seconds to propagate in AWS:
 			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 			// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
-			if awsErr.Code() == "InvalidParameterValueException" && strings.Contains(awsErr.Message(), "The role defined for the task cannot be assumed by Lambda.") {
+			if awsErr.Code() == "InvalidParameterValueException" && strings.Contains(awsErr.Message(), "cannot be assumed by Lambda.") {
 				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
 				time.Sleep(2 * time.Second)
 				continue
