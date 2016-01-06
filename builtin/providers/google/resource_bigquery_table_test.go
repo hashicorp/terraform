@@ -26,6 +26,24 @@ func TestAccBigqueryTableCreate(t *testing.T) {
 	})
 }
 
+func TestAccBigqueryTableCreateFieldsFile(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBigQueryTableDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBigQueryTableJsonFile,
+				Check: resource.ComposeTestCheckFunc(
+					testAccBigQueryTableExists(
+						"google_bigquery_table.foobar"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBigQueryTableDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "google_bigquery_table" {
@@ -70,4 +88,28 @@ resource "google_bigquery_dataset" "foobar" {
 resource "google_bigquery_table" "foobar" {
 	tableId = "foobar"
 	datasetId = "${google_bigquery_dataset.foobar.datasetId}"
+	
+	schema {
+		description = "field"
+		mode = "nullable"
+		name = "foo"
+		type = "string"
+	}
+	
+	schema {
+		name = "bar"
+		type = "string"
+	}
+}`
+
+const testAccBigQueryTableJsonFile = `
+resource "google_bigquery_dataset" "foobar" {
+	datasetId = "foobar"
+}
+
+resource "google_bigquery_table" "foobar" {
+	tableId = "foobar"
+	datasetId = "${google_bigquery_dataset.foobar.datasetId}"
+
+	schemaFile = "./test-fixtures/fake_bigquery_table.json"
 }`

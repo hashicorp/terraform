@@ -53,29 +53,21 @@ func resourceBigQueryTable() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"fields": &schema.Schema{
-							Type:     schema.TypeList,
+						"description": &schema.Schema{
+							Type:     schema.TypeString,
 							Optional: true,
-							Elem: schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"description": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
-									},
-									"mode": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
-									},
-									"name": &schema.Schema{
-										Type:     schema.TypeString,
-										Required: true,
-									},
-									"type": &schema.Schema{
-										Type:     schema.TypeString,
-										Required: true,
-									},
-								},
-							},
+						},
+						"mode": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
 						},
 					},
 				},
