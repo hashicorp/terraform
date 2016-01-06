@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -185,6 +186,10 @@ func testAccCheckAzureVirtualNetworkDestroy(s *terraform.State) error {
 
 		nc, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
+			if management.IsResourceNotFoundError(err) {
+				// This is desirable - no configuration = no networks
+				continue
+			}
 			return fmt.Errorf("Error retrieving Virtual Network Configuration: %s", err)
 		}
 
