@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -98,6 +99,10 @@ func testAccCheckAzureDnsServerDestroy(s *terraform.State) error {
 
 		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
+			// This is desirable - if there is no network config there can't be any DNS Servers
+			if management.IsResourceNotFoundError(err) {
+				continue
+			}
 			return fmt.Errorf("Error retrieving networking configuration from Azure: %s", err)
 		}
 
