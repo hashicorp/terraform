@@ -1,8 +1,11 @@
 package google
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/bigquery/v2"
+	"io/ioutil"
 )
 
 func resourceBigQueryTable() *schema.Resource {
@@ -48,11 +51,11 @@ func resourceBigQueryTable() *schema.Resource {
 			"schema": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Elem: schema.Resource{
+				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"fields": &schema.Schema{
-							Type:    schema.TypeList,
-							Optiona: true,
+							Type:     schema.TypeList,
+							Optional: true,
 							Elem: schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"description": &schema.Schema{
@@ -115,37 +118,37 @@ func parseField(fieldDef map[string]interface{}) (*bigquery.TableFieldSchema, er
 	if name, ok := fieldDef["name"]; ok {
 		fieldParsed.Name = name.(string)
 	} else {
-		return fmt.Errorf("All fields must have 'name' defined.  The following field did not:  %q\n", field_def)
+		return nil, fmt.Errorf("All fields must have 'name' defined.  The following field did not:  %q\n", fieldDef)
 	}
 
 	if fieldType, ok := fieldDef["type"]; ok {
 		fieldParsed.Type = fieldType.(string)
 	} else {
-		return fmt.Errorf("All fields must have 'type' defined.  The following field did not:  %q\n", field_def)
+		return nil, fmt.Errorf("All fields must have 'type' defined.  The following field did not:  %q\n", fieldDef)
 	}
 
 	if tableFieldSchema, ok := fieldDef["fields"]; ok {
-		fieldList, err := parseFieldList(tableFieldSchema)
+		fieldList, err := parseFieldList(tableFieldSchema.([]interface{}))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		fieldParse.TableFieldSchema = fieldList
+		fieldParsed.Fields = fieldList
 	}
 
-	return fieldParsed
+	return fieldParsed, nil
 }
 
 //  convert list of raw field data into list of TableFieldSchema refs
 func parseFieldList(schema []interface{}) ([]*bigquery.TableFieldSchema, error) {
 	tableFieldList := make([]*bigquery.TableFieldSchema, 0)
-	for _, fieldInterface := range schema.([]interface{}) {
+	for _, fieldInterface := range schema {
 		fieldParsed, err := parseField(fieldInterface.(map[string]interface{}))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tableFieldList = append(tableFieldList, fieldParsed)
 	}
-	return tableFieldList
+	return tableFieldList, nil
 }
 
 func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error {
@@ -154,7 +157,7 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 	// build tableRef
 	datasetId := d.Get("datasetId").(string)
 	tableId := d.Get("tableId").(string)
-	tRef := &bigquery.TableReference{DatasetId: datasetId, ProjectId: config.Project, TableId: tableName}
+	tRef := &bigquery.TableReference{DatasetId: datasetId, ProjectId: config.Project, TableId: tableId}
 
 	// build the table
 	table := &bigquery.Table{TableReference: tRef}
@@ -178,17 +181,24 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 	if schemaOk && schemaFileOk {
 		return fmt.Errorf("Config contains both schema and schemaFile.  Specify at most one\n")
 	} else if schemaOk {
-		fieldList, err := parse_field_list(schema.([]interface{}))
+		fieldList, err := parseFieldList(schema.([]interface{}))
 		if err != nil {
 			return err
 		}
 		table.Schema = &bigquery.TableSchema{Fields: fieldList}
 	} else if schemaFileOk {
-		schemaJson, err := ioutil.ReadFile(schemaFile)
+		schemaJson, err := ioutil.ReadFile(schemaFile.(string))
 		if err != nil {
 			return err
 		}
-		fieldList, err := parse_field_list(schemaJson)
+
+		var schemaJsonInterface []interface{}
+		err = json.Unmarshal(schemaJson, &schemaJsonInterface)
+		if err != nil {
+			return fmt.Errorf("Failed to decode json file with error: %q", err)
+		}
+
+		fieldList, err := parseFieldList(schemaJsonInterface)
 		if err != nil {
 			return err
 		}
@@ -212,7 +222,7 @@ func resourceBigQueryTableCreate(d *schema.ResourceData, meta interface{}) error
 func resourceBigQueryTableRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	call := config.clientBigQuery.Tables.Get(config.Project, d.Get("datasetId").(string), d.Get("name").(string))
+	call := config.clientBigQuery.Tables.Get(config.Project, d.Get("datasetId").(string), d.Get("tableId").(string))
 	res, err := call.Do()
 	if err != nil {
 		return err
@@ -232,6 +242,12 @@ func resourceBigQueryTableUpdate(d *schema.ResourceData, meta interface{}) error
 
 func resourceBigQueryTableDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	call := config.clientBigQuery.Tables.Delete(config.Project, d.Get("datasetId").(string), d.Get("tableId").(string))
+	err := call.Do()
+	if err != nil {
+		return err
+	}
 
 	d.SetId("")
 	return nil

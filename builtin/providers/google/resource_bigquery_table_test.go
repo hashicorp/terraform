@@ -68,6 +68,6 @@ resource "google_bigquery_dataset" "foobar" {
 }
 
 resource "google_bigquery_table" "foobar" {
-	name = "foobar"
+	tableId = "foobar"
 	datasetId = "${google_bigquery_dataset.foobar.datasetId}"
 }`
