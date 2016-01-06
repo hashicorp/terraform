@@ -2,6 +2,7 @@ package heroku
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/cyberdelia/heroku-go/v3"
@@ -96,6 +97,31 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 						"heroku_app.foobar", "name", "terraform-test-app"),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "config_vars.0.FOO", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccHerokuApp_Organization(t *testing.T) {
+	var app heroku.OrganizationApp
+	org := os.Getenv("HEROKU_ORGANIZATION")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if org == "" {
+				t.Skip("HEROKU_ORGANIZATION is not set; skipping test.")
+			}
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckHerokuAppDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckHerokuAppConfig_organization, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),
+					testAccCheckHerokuAppAttributesOrg(&app, org),
 				),
 			},
 		},
@@ -197,6 +223,39 @@ func testAccCheckHerokuAppAttributesNoVars(app *heroku.App) resource.TestCheckFu
 	}
 }
 
+func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, org string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*heroku.Service)
+
+		if app.Region.Name != "us" {
+			return fmt.Errorf("Bad region: %s", app.Region.Name)
+		}
+
+		if app.Stack.Name != "cedar-14" {
+			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
+		}
+
+		if app.Name != "terraform-test-app" {
+			return fmt.Errorf("Bad name: %s", app.Name)
+		}
+
+		if app.Organization == nil || app.Organization.Name != org {
+			return fmt.Errorf("Bad org: %v", app.Organization)
+		}
+
+		vars, err := client.ConfigVarInfo(app.Name)
+		if err != nil {
+			return err
+		}
+
+		if vars["FOO"] != "bar" {
+			return fmt.Errorf("Bad config vars: %v", vars)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -227,29 +286,73 @@ func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFu
 	}
 }
 
+func testAccCheckHerokuAppExistsOrg(n string, app *heroku.OrganizationApp) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No App Name is set")
+		}
+
+		client := testAccProvider.Meta().(*heroku.Service)
+
+		foundApp, err := client.OrganizationAppInfo(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+
+		if foundApp.Name != rs.Primary.ID {
+			return fmt.Errorf("App not found")
+		}
+
+		*app = *foundApp
+
+		return nil
+	}
+}
+
 const testAccCheckHerokuAppConfig_basic = `
 resource "heroku_app" "foobar" {
-	name = "terraform-test-app"
-	region = "us"
+  name   = "terraform-test-app"
+  region = "us"
 
-	config_vars {
-		FOO = "bar"
-	}
+  config_vars {
+    FOO = "bar"
+  }
 }`
 
 const testAccCheckHerokuAppConfig_updated = `
 resource "heroku_app" "foobar" {
-	name = "terraform-test-renamed"
-	region = "us"
+  name   = "terraform-test-renamed"
+  region = "us"
 
-	config_vars {
-		FOO = "bing"
-		BAZ = "bar"
-	}
+  config_vars {
+    FOO = "bing"
+    BAZ = "bar"
+  }
 }`
 
 const testAccCheckHerokuAppConfig_no_vars = `
 resource "heroku_app" "foobar" {
-	name = "terraform-test-app"
-	region = "us"
+  name   = "terraform-test-app"
+  region = "us"
+}`
+
+const testAccCheckHerokuAppConfig_organization = `
+resource "heroku_app" "foobar" {
+  name   = "terraform-test-app"
+  region = "us"
+
+  organization {
+    name = "%s"
+  }
+
+  config_vars {
+    FOO = "bar"
+  }
 }`
