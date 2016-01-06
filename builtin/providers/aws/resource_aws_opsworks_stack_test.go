@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 )
 
@@ -358,9 +359,29 @@ func testAccAwsOpsworksCheckVpc(s *terraform.State) error {
 }
 
 func testAccCheckAwsOpsworksStackDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
-	}
+	opsworksconn := testAccProvider.Meta().(*AWSClient).opsworksconn
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_opsworks_stack" {
+			continue
+		}
 
-	return nil
+		req := &opsworks.DescribeStacksInput{
+			StackIds: []*string{
+				aws.String(rs.Primary.ID),
+			},
+		}
+
+		_, err := opsworksconn.DescribeStacks(req)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "ResourceNotFoundException" {
+					// not found, all good
+					return nil
+				}
+			}
+			return err
+		}
+
+	}
+	return fmt.Errorf("Fall through error for OpsWorks stack test")
 }
