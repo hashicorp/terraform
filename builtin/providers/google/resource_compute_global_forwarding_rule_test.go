@@ -10,13 +10,20 @@ import (
 )
 
 func TestAccComputeGlobalForwardingRule_basic(t *testing.T) {
+	fr := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	proxy1 := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	proxy2 := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	backend := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	hc := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	urlmap := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeGlobalForwardingRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeGlobalForwardingRule_basic1,
+				Config: testAccComputeGlobalForwardingRule_basic1(fr, proxy1, proxy2, backend, hc, urlmap),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeGlobalForwardingRuleExists(
 						"google_compute_global_forwarding_rule.foobar"),
@@ -27,13 +34,20 @@ func TestAccComputeGlobalForwardingRule_basic(t *testing.T) {
 }
 
 func TestAccComputeGlobalForwardingRule_update(t *testing.T) {
+	fr := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	proxy1 := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	proxy2 := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	backend := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	hc := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+	urlmap := fmt.Sprintf("forwardrule-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeGlobalForwardingRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeGlobalForwardingRule_basic1,
+				Config: testAccComputeGlobalForwardingRule_basic1(fr, proxy1, proxy2, backend, hc, urlmap),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeGlobalForwardingRuleExists(
 						"google_compute_global_forwarding_rule.foobar"),
@@ -41,7 +55,7 @@ func TestAccComputeGlobalForwardingRule_update(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccComputeGlobalForwardingRule_basic2,
+				Config: testAccComputeGlobalForwardingRule_basic2(fr, proxy1, proxy2, backend, hc, urlmap),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeGlobalForwardingRuleExists(
 						"google_compute_global_forwarding_rule.foobar"),
@@ -96,116 +110,116 @@ func testAccCheckComputeGlobalForwardingRuleExists(n string) resource.TestCheckF
 	}
 }
 
-var testAccComputeGlobalForwardingRule_basic1 = fmt.Sprintf(`
-resource "google_compute_global_forwarding_rule" "foobar" {
-	description = "Resource created for Terraform acceptance testing"
-	ip_protocol = "TCP"
-	name = "gforward-test-%s"
-	port_range = "80"
-	target = "${google_compute_target_http_proxy.foobar1.self_link}"
-}
-
-resource "google_compute_target_http_proxy" "foobar1" {
-	description = "Resource created for Terraform acceptance testing"
-	name = "gforward-test-%s"
-	url_map = "${google_compute_url_map.foobar.self_link}"
-}
-
-resource "google_compute_target_http_proxy" "foobar2" {
-	description = "Resource created for Terraform acceptance testing"
-	name = "gforward-test-%s"
-	url_map = "${google_compute_url_map.foobar.self_link}"
-}
-
-resource "google_compute_backend_service" "foobar" {
-	name = "gforward-test-%s"
-	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
-}
-
-resource "google_compute_http_health_check" "zero" {
-	name = "gforward-test-%s"
-	request_path = "/"
-	check_interval_sec = 1
-	timeout_sec = 1
-}
-
-resource "google_compute_url_map" "foobar" {
-	name = "gforward-test-%s"
-	default_service = "${google_compute_backend_service.foobar.self_link}"
-	host_rule {
-		hosts = ["mysite.com", "myothersite.com"]
-		path_matcher = "boop"
+func testAccComputeGlobalForwardingRule_basic1(fr, proxy1, proxy2, backend, hc, urlmap string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_global_forwarding_rule" "foobar" {
+		description = "Resource created for Terraform acceptance testing"
+		ip_protocol = "TCP"
+		name = "%s"
+		port_range = "80"
+		target = "${google_compute_target_http_proxy.foobar1.self_link}"
 	}
-	path_matcher {
+
+	resource "google_compute_target_http_proxy" "foobar1" {
+		description = "Resource created for Terraform acceptance testing"
+		name = "%s"
+		url_map = "${google_compute_url_map.foobar.self_link}"
+	}
+
+	resource "google_compute_target_http_proxy" "foobar2" {
+		description = "Resource created for Terraform acceptance testing"
+		name = "%s"
+		url_map = "${google_compute_url_map.foobar.self_link}"
+	}
+
+	resource "google_compute_backend_service" "foobar" {
+		name = "%s"
+		health_checks = ["${google_compute_http_health_check.zero.self_link}"]
+	}
+
+	resource "google_compute_http_health_check" "zero" {
+		name = "%s"
+		request_path = "/"
+		check_interval_sec = 1
+		timeout_sec = 1
+	}
+
+	resource "google_compute_url_map" "foobar" {
+		name = "%s"
 		default_service = "${google_compute_backend_service.foobar.self_link}"
-		name = "boop"
-		path_rule {
-			paths = ["/*"]
+		host_rule {
+			hosts = ["mysite.com", "myothersite.com"]
+			path_matcher = "boop"
+		}
+		path_matcher {
+			default_service = "${google_compute_backend_service.foobar.self_link}"
+			name = "boop"
+			path_rule {
+				paths = ["/*"]
+				service = "${google_compute_backend_service.foobar.self_link}"
+			}
+		}
+		test {
+			host = "mysite.com"
+			path = "/*"
 			service = "${google_compute_backend_service.foobar.self_link}"
 		}
+	}`, fr, proxy1, proxy2, backend, hc, urlmap)
+}
+
+func testAccComputeGlobalForwardingRule_basic2(fr, proxy1, proxy2, backend, hc, urlmap string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_global_forwarding_rule" "foobar" {
+		description = "Resource created for Terraform acceptance testing"
+		ip_protocol = "TCP"
+		name = "%s"
+		port_range = "80"
+		target = "${google_compute_target_http_proxy.foobar2.self_link}"
 	}
-	test {
-		host = "mysite.com"
-		path = "/*"
-		service = "${google_compute_backend_service.foobar.self_link}"
+
+	resource "google_compute_target_http_proxy" "foobar1" {
+		description = "Resource created for Terraform acceptance testing"
+		name = "%s"
+		url_map = "${google_compute_url_map.foobar.self_link}"
 	}
-}
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
-	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-var testAccComputeGlobalForwardingRule_basic2 = fmt.Sprintf(`
-resource "google_compute_global_forwarding_rule" "foobar" {
-	description = "Resource created for Terraform acceptance testing"
-	ip_protocol = "TCP"
-	name = "gforward-test-%s"
-	port_range = "80"
-	target = "${google_compute_target_http_proxy.foobar2.self_link}"
-}
-
-resource "google_compute_target_http_proxy" "foobar1" {
-	description = "Resource created for Terraform acceptance testing"
-	name = "gforward-test-%s"
-	url_map = "${google_compute_url_map.foobar.self_link}"
-}
-
-resource "google_compute_target_http_proxy" "foobar2" {
-	description = "Resource created for Terraform acceptance testing"
-	name = "gforward-test-%s"
-	url_map = "${google_compute_url_map.foobar.self_link}"
-}
-
-resource "google_compute_backend_service" "foobar" {
-	name = "gforward-test-%s"
-	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
-}
-
-resource "google_compute_http_health_check" "zero" {
-	name = "gforward-test-%s"
-	request_path = "/"
-	check_interval_sec = 1
-	timeout_sec = 1
-}
-
-resource "google_compute_url_map" "foobar" {
-	name = "gforward-test-%s"
-	default_service = "${google_compute_backend_service.foobar.self_link}"
-	host_rule {
-		hosts = ["mysite.com", "myothersite.com"]
-		path_matcher = "boop"
+	resource "google_compute_target_http_proxy" "foobar2" {
+		description = "Resource created for Terraform acceptance testing"
+		name = "%s"
+		url_map = "${google_compute_url_map.foobar.self_link}"
 	}
-	path_matcher {
+
+	resource "google_compute_backend_service" "foobar" {
+		name = "%s"
+		health_checks = ["${google_compute_http_health_check.zero.self_link}"]
+	}
+
+	resource "google_compute_http_health_check" "zero" {
+		name = "%s"
+		request_path = "/"
+		check_interval_sec = 1
+		timeout_sec = 1
+	}
+
+	resource "google_compute_url_map" "foobar" {
+		name = "%s"
 		default_service = "${google_compute_backend_service.foobar.self_link}"
-		name = "boop"
-		path_rule {
-			paths = ["/*"]
+		host_rule {
+			hosts = ["mysite.com", "myothersite.com"]
+			path_matcher = "boop"
+		}
+		path_matcher {
+			default_service = "${google_compute_backend_service.foobar.self_link}"
+			name = "boop"
+			path_rule {
+				paths = ["/*"]
+				service = "${google_compute_backend_service.foobar.self_link}"
+			}
+		}
+		test {
+			host = "mysite.com"
+			path = "/*"
 			service = "${google_compute_backend_service.foobar.self_link}"
 		}
-	}
-	test {
-		host = "mysite.com"
-		path = "/*"
-		service = "${google_compute_backend_service.foobar.self_link}"
-	}
+	}`, fr, proxy1, proxy2, backend, hc, urlmap)
 }
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
-	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
