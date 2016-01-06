@@ -91,10 +91,10 @@ resource "aws_iam_instance_profile" "opsworks_instance" {
 var testAccAwsOpsworksStackConfigNoVpcCreate = testAccAwsOpsworksStackIamConfig + `
 resource "aws_opsworks_stack" "tf-acc" {
   name = "tf-opsworks-acc"
-  region = "us-west-2"
+  region = "us-east-1"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_availability_zone = "us-west-2a"
+  default_availability_zone = "us-east-1c"
   default_os = "Amazon Linux 2014.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
@@ -105,10 +105,10 @@ resource "aws_opsworks_stack" "tf-acc" {
 var testAccAWSOpsworksStackConfigNoVpcUpdate = testAccAwsOpsworksStackIamConfig + `
 resource "aws_opsworks_stack" "tf-acc" {
   name = "tf-opsworks-acc"
-  region = "us-west-2"
+  region = "us-east-1"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_availability_zone = "us-west-2a"
+  default_availability_zone = "us-east-1c"
   default_os = "Amazon Linux 2014.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
@@ -153,11 +153,11 @@ resource "aws_vpc" "tf-acc" {
 resource "aws_subnet" "tf-acc" {
   vpc_id = "${aws_vpc.tf-acc.id}"
   cidr_block = "${aws_vpc.tf-acc.cidr_block}"
-  availability_zone = "us-west-2a"
+  availability_zone = "us-east-1c"
 }
 resource "aws_opsworks_stack" "tf-acc" {
   name = "tf-opsworks-acc"
-  region = "us-west-2"
+  region = "us-east-1"
   vpc_id = "${aws_vpc.tf-acc.id}"
   default_subnet_id = "${aws_subnet.tf-acc.id}"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
@@ -177,11 +177,11 @@ resource "aws_vpc" "tf-acc" {
 resource "aws_subnet" "tf-acc" {
   vpc_id = "${aws_vpc.tf-acc.id}"
   cidr_block = "${aws_vpc.tf-acc.cidr_block}"
-  availability_zone = "us-west-2a"
+  availability_zone = "us-east-1c"
 }
 resource "aws_opsworks_stack" "tf-acc" {
   name = "tf-opsworks-acc"
-  region = "us-west-2"
+  region = "us-east-1"
   vpc_id = "${aws_vpc.tf-acc.id}"
   default_subnet_id = "${aws_subnet.tf-acc.id}"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
@@ -235,7 +235,7 @@ var testAccAwsOpsworksStackCheckResourceAttrsCreate = resource.ComposeTestCheckF
 	resource.TestCheckResourceAttr(
 		"aws_opsworks_stack.tf-acc",
 		"default_availability_zone",
-		"us-west-2a",
+		"us-east-1c",
 	),
 	resource.TestCheckResourceAttr(
 		"aws_opsworks_stack.tf-acc",
@@ -273,7 +273,7 @@ var testAccAwsOpsworksStackCheckResourceAttrsUpdate = resource.ComposeTestCheckF
 	resource.TestCheckResourceAttr(
 		"aws_opsworks_stack.tf-acc",
 		"default_availability_zone",
-		"us-west-2a",
+		"us-east-1c",
 	),
 	resource.TestCheckResourceAttr(
 		"aws_opsworks_stack.tf-acc",
