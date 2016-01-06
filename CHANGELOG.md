@@ -41,6 +41,7 @@ IMPROVEMENTS:
   * provider/docker: Add support for setting memory, swap and CPU shares on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting labels on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting log driver and options on `docker_container` resources [GH-3761]
+  * provider/heroku: Improve handling of Applications within an Organization [GH-4495]
   * provider/vsphere: Add support for custom vm params on `vsphere_virtual_machine` [GH-3867]
   * provider/vsphere: Rename vcenter_server config parameter to something clearer [GH-3718]
   * provider/vsphere: Make allow_unverified_ssl a configuable on the provider [GH-3933]
