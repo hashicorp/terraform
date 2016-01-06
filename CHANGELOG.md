@@ -23,6 +23,7 @@ IMPROVEMENTS:
   * core: Improve error message on resource arity mismatch [GH-4244]
   * core: Add support for unary operators + and - to the interpolation syntax [GH-3621]
   * core: Add SSH agent support for Windows [GH-4323]
+  * core: Add `sha1()` interpolation function [GH-4450]
   * provider/aws: Add `placement_group` as an option for `aws_autoscaling_group` [GH-3704]
   * provider/aws: Add support for DynamoDB Table StreamSpecifications [GH-4208]
   * provider/aws: Add `name_prefix` to Security Groups [GH-4167]
