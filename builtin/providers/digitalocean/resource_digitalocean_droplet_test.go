@@ -293,43 +293,67 @@ func testAccCheckDigitalOceanDropletRecreated(t *testing.T,
 //
 //}
 
-const testAccCheckDigitalOceanDropletConfig_basic = `
-resource "digitalocean_droplet" "foobar" {
-    name = "foo"
-    size = "512mb"
-    image = "centos-5-8-x32"
-    region = "nyc3"
-    user_data  = "foobar"
+var testAccCheckDigitalOceanDropletConfig_basic = fmt.Sprintf(`
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
 }
-`
 
-const testAccCheckDigitalOceanDropletConfig_userdata_update = `
 resource "digitalocean_droplet" "foobar" {
-    name = "foo"
-    size = "512mb"
-    image = "centos-5-8-x32"
-    region = "nyc3"
-    user_data  = "foobar foobar"
+  name      = "foo"
+  size      = "512mb"
+  image     = "centos-5-8-x32"
+  region    = "nyc3"
+  user_data = "foobar"
+  ssh_keys  = ["${digitalocean_ssh_key.foobar.id}"]
 }
-`
+`, testAccValidPublicKey)
 
-const testAccCheckDigitalOceanDropletConfig_RenameAndResize = `
-resource "digitalocean_droplet" "foobar" {
-    name = "baz"
-    size = "1gb"
-    image = "centos-5-8-x32"
-    region = "nyc3"
+var testAccCheckDigitalOceanDropletConfig_userdata_update = fmt.Sprintf(`
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
 }
-`
+
+resource "digitalocean_droplet" "foobar" {
+  name      = "foo"
+  size      = "512mb"
+  image     = "centos-5-8-x32"
+  region    = "nyc3"
+  user_data = "foobar foobar"
+  ssh_keys  = ["${digitalocean_ssh_key.foobar.id}"]
+}
+`, testAccValidPublicKey)
+
+var testAccCheckDigitalOceanDropletConfig_RenameAndResize = fmt.Sprintf(`
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
+}
+
+resource "digitalocean_droplet" "foobar" {
+  name     = "baz"
+  size     = "1gb"
+  image    = "centos-5-8-x32"
+  region   = "nyc3"
+  ssh_keys = ["${digitalocean_ssh_key.foobar.id}"]
+}
+`, testAccValidPublicKey)
 
 // IPV6 only in singapore
-const testAccCheckDigitalOceanDropletConfig_PrivateNetworkingIpv6 = `
-resource "digitalocean_droplet" "foobar" {
-    name = "baz"
-    size = "1gb"
-    image = "centos-5-8-x32"
-    region = "sgp1"
-    ipv6 = true
-    private_networking = true
+var testAccCheckDigitalOceanDropletConfig_PrivateNetworkingIpv6 = fmt.Sprintf(`
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
 }
-`
+
+resource "digitalocean_droplet" "foobar" {
+  name               = "baz"
+  size               = "1gb"
+  image              = "centos-5-8-x32"
+  region             = "sgp1"
+  ipv6               = true
+  private_networking = true
+  ssh_keys           = ["${digitalocean_ssh_key.foobar.id}"]
+}
+`, testAccValidPublicKey)

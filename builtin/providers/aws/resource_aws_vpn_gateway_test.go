@@ -128,10 +128,21 @@ func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
 			VpnGatewayIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
-			if len(resp.VpnGateways) > 0 {
-				return fmt.Errorf("still exists")
+			var v *ec2.VpnGateway
+			for _, g := range resp.VpnGateways {
+				if *g.VpnGatewayId == rs.Primary.ID {
+					v = g
+				}
 			}
 
+			if v == nil {
+				// wasn't found
+				return nil
+			}
+
+			if *v.State != "deleted" {
+				return fmt.Errorf("Expected VpnGateway to be in deleted state, but was not: %s", v)
+			}
 			return nil
 		}
 

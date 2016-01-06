@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,6 +14,7 @@ import (
 
 	"errors"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -149,22 +149,24 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		Timeout:      aws.Int64(int64(d.Get("timeout").(int))),
 	}
 
-	var err error
-	for i := 0; i < 5; i++ {
-		_, err = conn.CreateFunction(params)
-		if awsErr, ok := err.(awserr.Error); ok {
-
-			// IAM profiles can take ~10 seconds to propagate in AWS:
-			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-			// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
-			if awsErr.Code() == "InvalidParameterValueException" && strings.Contains(awsErr.Message(), "The role defined for the task cannot be assumed by Lambda.") {
-				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
-				time.Sleep(2 * time.Second)
-				continue
+	// IAM profiles can take ~10 seconds to propagate in AWS:
+	//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
+	err := resource.Retry(1*time.Minute, func() error {
+		_, err := conn.CreateFunction(params)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "InvalidParameterValueException" {
+					// Retryable
+					return awserr
+				}
 			}
+			// Not retryable
+			return resource.RetryError{Err: err}
 		}
-		break
-	}
+		// No error
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating Lambda function: %s", err)
 	}
