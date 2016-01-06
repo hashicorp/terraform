@@ -36,6 +36,7 @@ IMPROVEMENTS:
   * provider/aws: Allow changing private IPs for ENIs [GH-4307]
   * provider/aws: Retry MalformedPolicy errors due to newly created principals in S3 Buckets [GH-4315]
   * provider/aws: Validate `name` on `db_subnet_group` against AWS requirements [GH-4340]
+  * provider/aws: wait for ASG capacity on update [GH-3947]
   * provider/cloudstack: performance improvements [GH-4150]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
