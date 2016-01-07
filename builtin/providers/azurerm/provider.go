@@ -42,6 +42,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_resource_group":        resourceArmResourceGroup(),
 			"azurerm_virtual_network":       resourceArmVirtualNetwork(),
 			"azurerm_local_network_gateway": resourceArmLocalNetworkGateway(),
+			"azurerm_availability_set":      resourceArmAvailabilitySet(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -87,7 +88,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)
