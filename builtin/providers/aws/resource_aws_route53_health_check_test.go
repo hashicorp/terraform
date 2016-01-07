@@ -20,6 +20,8 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 				Config: testAccRoute53HealthCheckConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "measure_latency", "true"),
 				),
 			},
 			resource.TestStep{
@@ -124,6 +126,7 @@ resource "aws_route53_health_check" "foo" {
   resource_path = "/"
   failure_threshold = "2"
   request_interval = "30"
+  measure_latency = true
 
   tags = {
     Name = "tf-test-health-check"
