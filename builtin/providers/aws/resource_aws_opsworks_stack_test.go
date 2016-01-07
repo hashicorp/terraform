@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -376,7 +375,7 @@ func testAccCheckAwsOpsworksStackDestroy(s *terraform.State) error {
 			},
 		}
 
-		r, err := opsworksconn.DescribeStacks(req)
+		_, err := opsworksconn.DescribeStacks(req)
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "ResourceNotFoundException" {
@@ -386,11 +385,6 @@ func testAccCheckAwsOpsworksStackDestroy(s *terraform.State) error {
 			}
 			return err
 		}
-
-		if r != nil {
-			log.Printf("\n---\nStack response: %s\n---\n", r)
-		}
-
 	}
 	return fmt.Errorf("Fall through error for OpsWorks stack test")
 }
