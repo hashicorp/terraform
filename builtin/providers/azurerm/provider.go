@@ -43,6 +43,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_virtual_network":       resourceArmVirtualNetwork(),
 			"azurerm_local_network_gateway": resourceArmLocalNetworkGateway(),
 			"azurerm_availability_set":      resourceArmAvailabilitySet(),
+			"azurerm_security_group":        resourceArmSecurityGroup(),
 		},
 
 		ConfigureFunc: providerConfigure,
