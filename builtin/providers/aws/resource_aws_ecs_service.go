@@ -51,27 +51,32 @@ func resourceAwsEcsService() *schema.Resource {
 
 			"iam_role": &schema.Schema{
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Optional: true,
 			},
 
 			"load_balancer": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"elb_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"container_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"container_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
+							ForceNew: true,
 						},
 					},
 				},
@@ -274,13 +279,33 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	input := ecs.DeleteServiceInput{
-		Service: aws.String(d.Id()),
-		Cluster: aws.String(d.Get("cluster").(string)),
-	}
+	// Wait until the ECS service is drained
+	err = resource.Retry(5*time.Minute, func() error {
+		input := ecs.DeleteServiceInput{
+			Service: aws.String(d.Id()),
+			Cluster: aws.String(d.Get("cluster").(string)),
+		}
 
-	log.Printf("[DEBUG] Deleting ECS service %s", input)
-	out, err := conn.DeleteService(&input)
+		log.Printf("[DEBUG] Trying to delete ECS service %s", input)
+		_, err := conn.DeleteService(&input)
+		if err == nil {
+			return nil
+		}
+
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
+			return &resource.RetryError{Err: err}
+		}
+		if ec2err.Code() == "InvalidParameterException" {
+			// Prevent "The service cannot be stopped while deployments are active."
+			log.Printf("[DEBUG] Trying to delete ECS service again: %q",
+				ec2err.Message())
+			return err
+		}
+
+		return &resource.RetryError{Err: err}
+
+	})
 	if err != nil {
 		return err
 	}
@@ -301,6 +326,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 				return resp, "FAILED", err
 			}
 
+			log.Printf("[DEBUG] ECS service %s is currently %q", *resp.Services[0].Status)
 			return resp, *resp.Services[0].Status, nil
 		},
 	}
@@ -310,7 +336,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	log.Printf("[DEBUG] ECS service %s deleted.", *out.Service.ServiceArn)
+	log.Printf("[DEBUG] ECS service %s deleted.", d.Id())
 	return nil
 }
 
