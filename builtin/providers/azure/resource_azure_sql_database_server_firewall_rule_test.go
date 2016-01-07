@@ -2,6 +2,7 @@ package azure
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -149,6 +150,10 @@ func testAccAzureDatabaseServerFirewallRuleDeleted(servers []string) resource.Te
 			for _, server := range servers {
 				rules, err := sqlClient.ListFirewallRules(server)
 				if err != nil {
+					// ¯\_(ツ)_/¯
+					if strings.Contains(err.Error(), "Cannot open server") {
+						return nil
+					}
 					return fmt.Errorf("Error listing Azure Database Server Firewall Rules for Server %q: %s", server, err)
 				}
 
