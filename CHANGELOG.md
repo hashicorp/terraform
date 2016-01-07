@@ -32,6 +32,7 @@ IMPROVEMENTS:
   * provider/aws: Adding support for Tags to DB SecurityGroup [GH-4260]
   * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
   * provider/aws: Fix issue with updated route ids for VPC Endpoints [GH-4264]
+  * provider/aws: Added measure_latency option to Route 53 Health Check resource [GH-3688]
   * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
   * provider/aws: DB Subnet group arn output [GH-4261]
   * provider/aws: Get full Kinesis streams view with pagination [GH-4368]
