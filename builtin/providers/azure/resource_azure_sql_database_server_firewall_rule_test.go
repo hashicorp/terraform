@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Azure/azure-sdk-for-go/management/sql"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -101,32 +103,42 @@ func TestAccAzureSqlDatabaseServerFirewallRuleUpdate(t *testing.T) {
 
 func testAccAzureDatabaseServerFirewallRuleExists(name string, servers []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		resource, ok := s.RootModule().Resources[name]
+		res, ok := s.RootModule().Resources[name]
 		if !ok {
 			return fmt.Errorf("Azure Database Server Firewall Rule %q doesn't exist.", name)
 		}
 
-		if resource.Primary.ID == "" {
-			return fmt.Errorf("Azure Database Server Firewall Rule %q resource ID not set.", name)
+		if res.Primary.ID == "" {
+			return fmt.Errorf("Azure Database Server Firewall Rule %q res ID not set.", name)
 		}
 
 		sqlClient := testAccProvider.Meta().(*Client).sqlClient
 
 		for _, server := range servers {
-			rules, err := sqlClient.ListFirewallRules(server)
+			var rules sql.ListFirewallRulesResponse
+
+			err := resource.Retry(10*time.Minute, func() error {
+				var erri error
+				rules, erri = sqlClient.ListFirewallRules(server)
+				if erri != nil {
+					return fmt.Errorf("Error listing Azure Database Server Firewall Rules for Server %q: %s", server, erri)
+				}
+
+				return nil
+			})
 			if err != nil {
-				return fmt.Errorf("Error listing Azure Database Server Firewall Rules for Server %q: %s", server, err)
+				return err
 			}
 
 			var found bool
 			for _, rule := range rules.FirewallRules {
-				if rule.Name == resource.Primary.ID {
+				if rule.Name == res.Primary.ID {
 					found = true
 					break
 				}
 			}
 			if !found {
-				return fmt.Errorf("Azure Database Server Firewall Rule %q doesn't exists on server %q.", resource.Primary.ID, server)
+				return fmt.Errorf("Azure Database Server Firewall Rule %q doesn't exists on server %q.", res.Primary.ID, server)
 			}
 		}
 
