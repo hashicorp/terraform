@@ -411,7 +411,7 @@ resource "azure_instance" "foo" {
 
 var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
-    name = "terraform-vnet"
+    name = "terraform-vnet-advanced-test"
     address_space = ["10.1.2.0/24"]
 		location = "West US"
 
@@ -467,7 +467,7 @@ resource "azure_instance" "foo" {
 
 var testAccAzureInstance_update = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
-    name = "terraform-vnet"
+    name = "terraform-vnet-update-test"
     address_space = ["10.1.2.0/24"]
 		location = "West US"
 
@@ -501,7 +501,7 @@ resource "azure_security_group_rule" "foo" {
 }
 
 resource "azure_security_group" "bar" {
-    name = "terraform-security-group2"
+    name = "terraform-security-update-group2"
     location = "West US"
 }
 
