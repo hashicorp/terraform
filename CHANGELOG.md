@@ -34,6 +34,7 @@ IMPROVEMENTS:
   * provider/aws: Fix issue with updated route ids for VPC Endpoints [GH-4264]
   * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
   * provider/aws: DB Subnet group arn output [GH-4261]
+  * provider/aws: Get full Kinesis streams view with pagination [GH-4368]
   * provider/aws: Allow changing private IPs for ENIs [GH-4307]
   * provider/aws: Retry MalformedPolicy errors due to newly created principals in S3 Buckets [GH-4315]
   * provider/aws: Validate `name` on `db_subnet_group` against AWS requirements [GH-4340]
