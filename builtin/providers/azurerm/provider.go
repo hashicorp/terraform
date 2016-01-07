@@ -39,11 +39,11 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"azurerm_resource_group":        resourceArmResourceGroup(),
-			"azurerm_virtual_network":       resourceArmVirtualNetwork(),
-			"azurerm_local_network_gateway": resourceArmLocalNetworkGateway(),
-			"azurerm_availability_set":      resourceArmAvailabilitySet(),
-			"azurerm_security_group":        resourceArmSecurityGroup(),
+			"azurerm_resource_group":         resourceArmResourceGroup(),
+			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
+			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
+			"azurerm_availability_set":       resourceArmAvailabilitySet(),
+			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
 		},
 
 		ConfigureFunc: providerConfigure,
