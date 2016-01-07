@@ -269,11 +269,11 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 	}
 
 	// Either TemplateBody or TemplateURL are required for each change
-	if v, ok := d.GetOk("template_body"); ok {
-		input.TemplateBody = aws.String(normalizeJson(v.(string)))
-	}
 	if v, ok := d.GetOk("template_url"); ok {
 		input.TemplateURL = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("template_body"); ok && input.TemplateURL == nil {
+		input.TemplateBody = aws.String(normalizeJson(v.(string)))
 	}
 
 	if d.HasChange("capabilities") {
