@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestResourceAzureRMSecurityGroupProtocol_validation(t *testing.T) {
+func TestResourceAzureRMNetworkSecurityGroupProtocol_validation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -41,15 +41,15 @@ func TestResourceAzureRMSecurityGroupProtocol_validation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, errors := validateSecurityRuleProtocol(tc.Value, "azurerm_security_group")
+		_, errors := validateNetworkSecurityRuleProtocol(tc.Value, "azurerm_network_security_group")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM Security Group protocol to trigger a validation error")
+			t.Fatalf("Expected the Azure RM Network Security Group protocol to trigger a validation error")
 		}
 	}
 }
 
-func TestResourceAzureRMSecurityGroupAccess_validation(t *testing.T) {
+func TestResourceAzureRMNetworkSecurityGroupAccess_validation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -77,15 +77,15 @@ func TestResourceAzureRMSecurityGroupAccess_validation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, errors := validateSecurityRuleAccess(tc.Value, "azurerm_security_group")
+		_, errors := validateNetworkSecurityRuleAccess(tc.Value, "azurerm_network_security_group")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM Security Group access to trigger a validation error")
+			t.Fatalf("Expected the Azure RM Network Security Group access to trigger a validation error")
 		}
 	}
 }
 
-func TestResourceAzureRMSecurityGroupDirection_validation(t *testing.T) {
+func TestResourceAzureRMNetworkSecurityGroupDirection_validation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -113,60 +113,60 @@ func TestResourceAzureRMSecurityGroupDirection_validation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, errors := validateSecurityRuleDirection(tc.Value, "azurerm_security_group")
+		_, errors := validateNetworkSecurityRuleDirection(tc.Value, "azurerm_network_security_group")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM Security Group direction to trigger a validation error")
+			t.Fatalf("Expected the Azure RM Network Security Group direction to trigger a validation error")
 		}
 	}
 }
 
-func TestAccAzureRMSecurityGroup_basic(t *testing.T) {
+func TestAccAzureRMNetworkSecurityGroup_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSecurityGroupDestroy,
+		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMSecurityGroup_basic,
+				Config: testAccAzureRMNetworkSecurityGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMSecurityGroupExists("azurerm_security_group.test"),
+					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMSecurityGroup_addingExtraRules(t *testing.T) {
+func TestAccAzureRMNetworkSecurityGroup_addingExtraRules(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSecurityGroupDestroy,
+		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMSecurityGroup_basic,
+				Config: testAccAzureRMNetworkSecurityGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMSecurityGroupExists("azurerm_security_group.test"),
+					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_security_group.test", "security_rule.#", "1"),
+						"azurerm_network_security_group.test", "security_rule.#", "1"),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMSecurityGroup_anotherRule,
+				Config: testAccAzureRMNetworkSecurityGroup_anotherRule,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMSecurityGroupExists("azurerm_security_group.test"),
+					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
 					resource.TestCheckResourceAttr(
-						"azurerm_security_group.test", "security_rule.#", "2"),
+						"azurerm_network_security_group.test", "security_rule.#", "2"),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMSecurityGroupExists(name string) resource.TestCheckFunc {
+func testCheckAzureRMNetworkSecurityGroupExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		rs, ok := s.RootModule().Resources[name]
@@ -177,7 +177,7 @@ func testCheckAzureRMSecurityGroupExists(name string) resource.TestCheckFunc {
 		sgName := rs.Primary.Attributes["name"]
 		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for security group: %s", sgName)
+			return fmt.Errorf("Bad: no resource group found in state for network security group: %s", sgName)
 		}
 
 		conn := testAccProvider.Meta().(*ArmClient).secGroupClient
@@ -188,18 +188,18 @@ func testCheckAzureRMSecurityGroupExists(name string) resource.TestCheckFunc {
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: Security Group %q (resource group: %q) does not exist", name, resourceGroup)
+			return fmt.Errorf("Bad: Network Security Group %q (resource group: %q) does not exist", name, resourceGroup)
 		}
 
 		return nil
 	}
 }
 
-func testCheckAzureRMSecurityGroupDestroy(s *terraform.State) error {
+func testCheckAzureRMNetworkSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).secGroupClient
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azurerm_security_group" {
+		if rs.Type != "azurerm_network_security_group" {
 			continue
 		}
 
@@ -213,20 +213,20 @@ func testCheckAzureRMSecurityGroupDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Security Group still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Network Security Group still exists:\n%#v", resp.Properties)
 		}
 	}
 
 	return nil
 }
 
-var testAccAzureRMSecurityGroup_basic = `
+var testAccAzureRMNetworkSecurityGroup_basic = `
 resource "azurerm_resource_group" "test" {
     name = "acceptanceTestResourceGroup1"
     location = "West US"
 }
 
-resource "azurerm_security_group" "test" {
+resource "azurerm_network_security_group" "test" {
     name = "acceptanceTestSecurityGroup1"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -245,13 +245,13 @@ resource "azurerm_security_group" "test" {
 }
 `
 
-var testAccAzureRMSecurityGroup_anotherRule = `
+var testAccAzureRMNetworkSecurityGroup_anotherRule = `
 resource "azurerm_resource_group" "test" {
     name = "acceptanceTestResourceGroup1"
     location = "West US"
 }
 
-resource "azurerm_security_group" "test" {
+resource "azurerm_network_security_group" "test" {
     name = "acceptanceTestSecurityGroup1"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"

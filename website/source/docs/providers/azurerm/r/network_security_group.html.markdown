@@ -1,7 +1,7 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_security_group"
-sidebar_current: "docs-azurerm-resource-security-group"
+page_title: "Azure Resource Manager: azurerm_network_security_group"
+sidebar_current: "docs-azurerm-resource-network-security-group"
 description: |-
   Create a network security group that contains a list of network security rules. Network security groups enable inbound or outbound traffic to be enabled or denied.
 ---
@@ -18,7 +18,7 @@ resource "azurerm_resource_group" "test" {
     location = "West US"
 }
 
-resource "azurerm_security_group" "test" {
+resource "azurerm_network_security_group" "test" {
     name = "acceptanceTestSecurityGroup1"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
