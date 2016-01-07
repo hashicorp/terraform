@@ -245,8 +245,13 @@ func resourcePortSecurityGroupsV2(d *schema.ResourceData) []string {
 	return groups
 }
 
-func resourcePortFixedIpsV2(d *schema.ResourceData) []ports.IP {
+func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
 	rawIP := d.Get("fixed_ip").([]interface{})
+
+	if len(rawIP) == 0 {
+		return nil
+	}
+
 	ip := make([]ports.IP, len(rawIP))
 	for i, raw := range rawIP {
 		rawMap := raw.(map[string]interface{})
@@ -255,8 +260,8 @@ func resourcePortFixedIpsV2(d *schema.ResourceData) []ports.IP {
 			IPAddress: rawMap["ip_address"].(string),
 		}
 	}
-
 	return ip
+
 }
 
 func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {
