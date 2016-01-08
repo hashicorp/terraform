@@ -320,9 +320,9 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("all_config_vars", app.Vars)
 	if organizationApp {
 		orgDetails := map[string]interface{}{
-			"name":    app.App.OrganizationName,
-			"locked":  app.App.Locked,
-			"private": false,
+			"name":     app.App.OrganizationName,
+			"locked":   app.App.Locked,
+			"personal": false,
 		}
 		err := d.Set("organization", []interface{}{orgDetails})
 		if err != nil {
