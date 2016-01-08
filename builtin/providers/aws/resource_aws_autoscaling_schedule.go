@@ -93,7 +93,7 @@ func resourceAwsAutoscalingScheduleCreate(d *schema.ResourceData, meta interface
 		params.EndTime = aws.Time(t)
 	}
 
-	if attr, ok := d.GetOk("recurrance"); ok {
+	if attr, ok := d.GetOk("recurrence"); ok {
 		params.Recurrence = aws.String(attr.(string))
 	}
 
@@ -131,9 +131,15 @@ func resourceAwsAutoscalingScheduleRead(d *schema.ResourceData, meta interface{}
 	d.Set("desired_capacity", sa.DesiredCapacity)
 	d.Set("min_size", sa.MinSize)
 	d.Set("max_size", sa.MaxSize)
-	d.Set("recurrance", sa.Recurrence)
-	d.Set("start_time", sa.StartTime.Format(awsAutoscalingScheduleTimeLayout))
-	d.Set("end_time", sa.EndTime.Format(awsAutoscalingScheduleTimeLayout))
+	d.Set("recurrence", sa.Recurrence)
+
+	if sa.StartTime != nil {
+		d.Set("start_time", sa.StartTime.Format(awsAutoscalingScheduleTimeLayout))
+	}
+
+	if sa.EndTime != nil {
+		d.Set("end_time", sa.EndTime.Format(awsAutoscalingScheduleTimeLayout))
+	}
 
 	return nil
 }
