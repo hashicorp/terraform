@@ -94,7 +94,7 @@ func TestAccAzureInstance_advanced(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "subnet", "subnet1"),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "virtual_network", "terraform-vnet"),
+						"azure_instance.foo", "virtual_network", "terraform-vnet-advanced-test"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "security_group", "terraform-security-group1"),
 					resource.TestCheckResourceAttr(
@@ -128,7 +128,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "subnet", "subnet1"),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "virtual_network", "terraform-vnet"),
+						"azure_instance.foo", "virtual_network", "terraform-vnet-advanced-test"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "security_group", "terraform-security-group1"),
 					resource.TestCheckResourceAttr(
