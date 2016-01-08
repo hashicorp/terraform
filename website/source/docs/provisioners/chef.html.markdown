@@ -98,6 +98,10 @@ The following arguments are supported:
 * `ssl_verify_mode (string)` - (Optional) Use to set the verify mode for Chef Client HTTPS
   requests.
 
+* `disable_reporting (boolean)` - (Optional) Use to disable the chef-client data sending to
+  the Chef server for use with Chef reporting, if flag is omitted default behavior is to send
+  reporting data.
+
 * `validation_client_name (string)` - (Required) The name of the validation client to use
   for the initial communication with the Chef Server.
 
