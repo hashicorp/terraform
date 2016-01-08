@@ -273,6 +273,63 @@ func testAccCheckAzureInstanceAdvancedAttributes(
 	}
 }
 
+func testAccCheckAzureInstanceAdvancedUpdatedAttributes(
+	dpmt *virtualmachine.DeploymentResponse) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if dpmt.Name != "terraform-test1" {
+			return fmt.Errorf("Bad name: %s", dpmt.Name)
+		}
+
+		if dpmt.VirtualNetworkName != "terraform-vnet-update-test" {
+			return fmt.Errorf("Bad virtual network: %s", dpmt.VirtualNetworkName)
+		}
+
+		if len(dpmt.RoleList) != 1 {
+			return fmt.Errorf(
+				"Instance %s has an unexpected number of roles: %d", dpmt.Name, len(dpmt.RoleList))
+		}
+
+		if dpmt.RoleList[0].RoleSize != "Basic_A1" {
+			return fmt.Errorf("Bad size: %s", dpmt.RoleList[0].RoleSize)
+		}
+
+		for _, c := range dpmt.RoleList[0].ConfigurationSets {
+			if c.ConfigurationSetType == virtualmachine.ConfigurationSetTypeNetwork {
+				if len(c.InputEndpoints) != 1 {
+					return fmt.Errorf(
+						"Instance %s has an unexpected number of endpoints %d",
+						dpmt.Name, len(c.InputEndpoints))
+				}
+
+				if c.InputEndpoints[0].Name != "RDP" {
+					return fmt.Errorf("Bad endpoint name: %s", c.InputEndpoints[0].Name)
+				}
+
+				if c.InputEndpoints[0].Port != 3389 {
+					return fmt.Errorf("Bad endpoint port: %d", c.InputEndpoints[0].Port)
+				}
+
+				if len(c.SubnetNames) != 1 {
+					return fmt.Errorf(
+						"Instance %s has an unexpected number of associated subnets %d",
+						dpmt.Name, len(c.SubnetNames))
+				}
+
+				if c.SubnetNames[0] != "subnet1" {
+					return fmt.Errorf("Bad subnet: %s", c.SubnetNames[0])
+				}
+
+				if c.NetworkSecurityGroup != "terraform-security-group1" {
+					return fmt.Errorf("Bad security group: %s", c.NetworkSecurityGroup)
+				}
+			}
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAzureInstanceUpdatedAttributes(
 	dpmt *virtualmachine.DeploymentResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
