@@ -24,11 +24,6 @@ func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"auto": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -56,7 +51,6 @@ func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData,
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	application := d.Get("application").(string)
-	auto := d.Get("auto").(bool)
 	description := d.Get("description").(string)
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
@@ -69,7 +63,6 @@ func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData,
 
 	createOpts := elasticbeanstalk.CreateApplicationVersionInput{
 		ApplicationName:       aws.String(application),
-		AutoCreateApplication: aws.Bool(auto),
 		Description:           aws.String(description),
 		SourceBundle:          &s3Location,
 		VersionLabel:          aws.String(name),
