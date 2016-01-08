@@ -28,7 +28,10 @@ resource "google_sql_database_instance" "master" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the instance.
+* `name` - (Optional, Computed) The name of the instance. If the name is left
+  blank, Terraform will randomly generate one when the instance is first
+  created. This is done because after a name is used, it cannot be reused 
+  for up to [two months](https://cloud.google.com/sql/docs/delete-instance).
 
 * `region` - (Required) The region the instance will sit in. Note, this does
   not line up with the Google Compute Engine (GCE) regions - your options are
