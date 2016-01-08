@@ -155,5 +155,6 @@ resource "docker_container" "foo" {
     max-size = "10m"
     max-file = 20
 	}
+	network_mode = "bridge"
 }
 `
