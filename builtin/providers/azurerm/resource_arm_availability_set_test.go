@@ -95,7 +95,7 @@ func testCheckAzureRMAvailabilitySetDestroy(s *terraform.State) error {
 		name := rs.Primary.Attributes["name"]
 		resourceGroup := rs.Primary.Attributes["resource_group_name"]
 
-		resp, err := conn.Get(resourceGroup, name)
+		resp, err := conn.Get(resourceGroup, name, "")
 
 		if err != nil {
 			return nil
