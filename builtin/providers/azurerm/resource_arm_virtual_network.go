@@ -42,7 +42,8 @@ func resourceArmVirtualNetwork() *schema.Resource {
 
 			"subnet": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{

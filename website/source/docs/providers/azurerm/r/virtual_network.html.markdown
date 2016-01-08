@@ -57,7 +57,7 @@ The following arguments are supported:
 * `dns_servers` - (Optional) List of names of DNS servers previously registered
     on Azure.
 
-* `subnet` - (Required) Can be specified multiple times to define multiple
+* `subnet` - (Optional) Can be specified multiple times to define multiple
     subnets. Each `subnet` block supports fields documented below.
 
 The `subnet` block supports:
