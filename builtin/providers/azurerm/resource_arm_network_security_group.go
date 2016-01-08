@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"strings"
-
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -132,7 +130,7 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
 
-	sgRules, sgErr := expandAzureRmSecurityGroupRules(d)
+	sgRules, sgErr := expandAzureRmSecurityRules(d)
 	if sgErr != nil {
 		return fmt.Errorf("Error Building list of Network Security Group Rules: %s", sgErr)
 	}
@@ -185,6 +183,10 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error making Read request on Azure Network Security Group %s: %s", name, err)
 	}
 
+	if resp.Properties.SecurityRules != nil {
+		d.Set("security_rule", flattenNetworkSecurityRules(resp.Properties.SecurityRules))
+	}
+
 	return nil
 }
 
@@ -229,7 +231,30 @@ func securityGroupStateRefreshFunc(client *ArmClient, resourceGroupName string, 
 	}
 }
 
-func expandAzureRmSecurityGroupRules(d *schema.ResourceData) ([]network.SecurityRule, error) {
+func flattenNetworkSecurityRules(rules *[]network.SecurityRule) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(*rules))
+	for _, rule := range *rules {
+		sgRule := make(map[string]interface{})
+		sgRule["name"] = *rule.Name
+		sgRule["destination_address_prefix"] = *rule.Properties.DestinationAddressPrefix
+		sgRule["destination_port_range"] = *rule.Properties.DestinationPortRange
+		sgRule["source_address_prefix"] = *rule.Properties.SourceAddressPrefix
+		sgRule["source_port_range"] = *rule.Properties.SourcePortRange
+		sgRule["priority"] = int(*rule.Properties.Priority)
+		sgRule["access"] = rule.Properties.Access
+		sgRule["direction"] = rule.Properties.Direction
+		sgRule["protocol"] = rule.Properties.Protocol
+
+		if rule.Properties.Description != nil {
+			sgRule["description"] = *rule.Properties.Description
+		}
+
+		result = append(result, sgRule)
+	}
+	return result
+}
+
+func expandAzureRmSecurityRules(d *schema.ResourceData) ([]network.SecurityRule, error) {
 	sgRules := d.Get("security_rule").(*schema.Set).List()
 	rules := make([]network.SecurityRule, 0, len(sgRules))
 
@@ -267,44 +292,4 @@ func expandAzureRmSecurityGroupRules(d *schema.ResourceData) ([]network.Security
 	}
 
 	return rules, nil
-}
-
-func validateNetworkSecurityRuleProtocol(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	viewTypes := map[string]bool{
-		"tcp": true,
-		"udp": true,
-		"*":   true,
-	}
-
-	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("Network Security Rule Protocol can only be Tcp, Udp or *"))
-	}
-	return
-}
-
-func validateNetworkSecurityRuleAccess(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	viewTypes := map[string]bool{
-		"allow": true,
-		"deny":  true,
-	}
-
-	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("Network Security Rule Access can only be Allow or Deny"))
-	}
-	return
-}
-
-func validateNetworkSecurityRuleDirection(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	viewTypes := map[string]bool{
-		"inbound":  true,
-		"outbound": true,
-	}
-
-	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("Network Security Rule Directions can only be Inbound or Outbound"))
-	}
-	return
 }
