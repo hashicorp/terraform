@@ -42,7 +42,7 @@ func TestAccDigitalOceanFloatingIP_Droplet(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanFloatingIPExists("digitalocean_floating_ip.foobar", &floatingIP),
 					resource.TestCheckResourceAttr(
-						"digitalocean_floating_ip.foobar", "region", "sgp1"),
+						"digitalocean_floating_ip.foobar", "region", "nyc3"),
 				),
 			},
 		},
@@ -114,7 +114,7 @@ resource "digitalocean_droplet" "foobar" {
   name               = "baz"
   size               = "1gb"
   image              = "centos-5-8-x32"
-  region             = "sgp1"
+  region             = "nyc3"
   ipv6               = true
   private_networking = true
   ssh_keys           = ["${digitalocean_ssh_key.foobar.id}"]
