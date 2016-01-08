@@ -62,6 +62,8 @@ ENV['HTTPS_PROXY'] = "{{ .HTTPSProxy }}"
 
 {{ if .NOProxy }}no_proxy "{{ join .NOProxy "," }}"{{ end }}
 {{ if .SSLVerifyMode }}ssl_verify_mode {{ .SSLVerifyMode }}{{ end }}
+
+{{ if .DisableReporting }}enable_reporting false{{ end }}
 `
 
 // Provisioner represents a specificly configured chef provisioner
@@ -84,6 +86,7 @@ type Provisioner struct {
 	ServerURL            string      `mapstructure:"server_url"`
 	SkipInstall          bool        `mapstructure:"skip_install"`
 	SSLVerifyMode        string      `mapstructure:"ssl_verify_mode"`
+	DisableReporting     bool        `mapstructure:"disable_reporting"`
 	ValidationClientName string      `mapstructure:"validation_client_name"`
 	ValidationKey        string      `mapstructure:"validation_key"`
 	Version              string      `mapstructure:"version"`
