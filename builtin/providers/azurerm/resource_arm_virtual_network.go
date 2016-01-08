@@ -125,7 +125,7 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	resGroup := id.ResourceGroup
 	name := id.Path["virtualNetworks"]
 
-	resp, err := vnetClient.Get(resGroup, name)
+	resp, err := vnetClient.Get(resGroup, name, "")
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
@@ -208,7 +208,7 @@ func getVirtualNetworkProperties(d *schema.ResourceData) *network.VirtualNetwork
 			subnetObj.Properties.AddressPrefix = &prefix
 
 			if secGroup != "" {
-				subnetObj.Properties.NetworkSecurityGroup = &network.SubResource{
+				subnetObj.Properties.NetworkSecurityGroup = &network.SecurityGroup{
 					ID: &secGroup,
 				}
 			}
@@ -240,7 +240,7 @@ func resourceAzureSubnetHash(v interface{}) int {
 
 func virtualNetworkStateRefreshFunc(client *ArmClient, resourceGroupName string, networkName string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		res, err := client.vnetClient.Get(resourceGroupName, networkName)
+		res, err := client.vnetClient.Get(resourceGroupName, networkName, "")
 		if err != nil {
 			return nil, "", fmt.Errorf("Error issuing read request in virtualNetworkStateRefreshFunc to Azure ARM for virtual network '%s' (RG: '%s'): %s", networkName, resourceGroupName, err)
 		}

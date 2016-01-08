@@ -42,7 +42,7 @@ func testCheckAzureRMVirtualNetworkExists(name string) resource.TestCheckFunc {
 		// Ensure resource group/virtual network combination exists in API
 		conn := testAccProvider.Meta().(*ArmClient).vnetClient
 
-		resp, err := conn.Get(resourceGroup, virtualNetworkName)
+		resp, err := conn.Get(resourceGroup, virtualNetworkName, "")
 		if err != nil {
 			return fmt.Errorf("Bad: Get on vnetClient: %s", err)
 		}
@@ -66,7 +66,7 @@ func testCheckAzureRMVirtualNetworkDestroy(s *terraform.State) error {
 		name := rs.Primary.Attributes["name"]
 		resourceGroup := rs.Primary.Attributes["resource_group_name"]
 
-		resp, err := conn.Get(resourceGroup, name)
+		resp, err := conn.Get(resourceGroup, name, "")
 
 		if err != nil {
 			return nil

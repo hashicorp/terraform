@@ -182,7 +182,7 @@ func testCheckAzureRMNetworkSecurityGroupExists(name string) resource.TestCheckF
 
 		conn := testAccProvider.Meta().(*ArmClient).secGroupClient
 
-		resp, err := conn.Get(resourceGroup, sgName)
+		resp, err := conn.Get(resourceGroup, sgName, "")
 		if err != nil {
 			return fmt.Errorf("Bad: Get on secGroupClient: %s", err)
 		}
@@ -206,7 +206,7 @@ func testCheckAzureRMNetworkSecurityGroupDestroy(s *terraform.State) error {
 		name := rs.Primary.Attributes["name"]
 		resourceGroup := rs.Primary.Attributes["resource_group_name"]
 
-		resp, err := conn.Get(resourceGroup, name)
+		resp, err := conn.Get(resourceGroup, name, "")
 
 		if err != nil {
 			return nil
