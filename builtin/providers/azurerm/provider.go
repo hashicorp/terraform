@@ -44,6 +44,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
 			"azurerm_availability_set":       resourceArmAvailabilitySet(),
 			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
+			"azurerm_public_ip":              resourceArmPublicIp(),
 		},
 
 		ConfigureFunc: providerConfigure,
