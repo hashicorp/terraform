@@ -224,7 +224,7 @@ func testAccCheckAzureInstanceAdvancedAttributes(
 			return fmt.Errorf("Bad name: %s", dpmt.Name)
 		}
 
-		if dpmt.VirtualNetworkName != "terraform-vnet" {
+		if dpmt.VirtualNetworkName != "terraform-vnet-advanced-test" {
 			return fmt.Errorf("Bad virtual network: %s", dpmt.VirtualNetworkName)
 		}
 
