@@ -145,7 +145,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "size", "Basic_A2"),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "security_group", "terraform-security-group2"),
+						"azure_instance.foo", "security_group", "terraform-security-update-group2"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "endpoint.1814039778.public_port", "3389"),
 					resource.TestCheckResourceAttr(
@@ -338,7 +338,7 @@ func testAccCheckAzureInstanceUpdatedAttributes(
 			return fmt.Errorf("Bad name: %s", dpmt.Name)
 		}
 
-		if dpmt.VirtualNetworkName != "terraform-vnet" {
+		if dpmt.VirtualNetworkName != "terraform-vnet-update-test" {
 			return fmt.Errorf("Bad virtual network: %s", dpmt.VirtualNetworkName)
 		}
 
@@ -377,7 +377,7 @@ func testAccCheckAzureInstanceUpdatedAttributes(
 					return fmt.Errorf("Bad subnet: %s", c.SubnetNames[0])
 				}
 
-				if c.NetworkSecurityGroup != "terraform-security-group2" {
+				if c.NetworkSecurityGroup != "terraform-security-update-group2" {
 					return fmt.Errorf("Bad security group: %s", c.NetworkSecurityGroup)
 				}
 			}
