@@ -80,4 +80,4 @@ The `security_rule` block supports:
 
 The following attributes are exported:
 
-* `id` - The virtual AvailabilitySet ID.
+* `id` - The Network Security Group ID.
