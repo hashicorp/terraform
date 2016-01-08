@@ -176,7 +176,7 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 	resGroup := id.ResourceGroup
 	name := id.Path["networkSecurityGroups"]
 
-	resp, err := secGroupClient.Get(resGroup, name)
+	resp, err := secGroupClient.Get(resGroup, name, "")
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
@@ -220,7 +220,7 @@ func resourceArmNetworkSecurityGroupRuleHash(v interface{}) int {
 
 func securityGroupStateRefreshFunc(client *ArmClient, resourceGroupName string, securityGroupName string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		res, err := client.secGroupClient.Get(resourceGroupName, securityGroupName)
+		res, err := client.secGroupClient.Get(resourceGroupName, securityGroupName, "")
 		if err != nil {
 			return nil, "", fmt.Errorf("Error issuing read request in securityGroupStateRefreshFunc to Azure ARM for network security group '%s' (RG: '%s'): %s", securityGroupName, resourceGroupName, err)
 		}

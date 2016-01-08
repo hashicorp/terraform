@@ -159,7 +159,7 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["publicIPAddresses"]
 
-	resp, err := publicIPClient.Get(resGroup, name)
+	resp, err := publicIPClient.Get(resGroup, name, "")
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
 		return nil
@@ -196,7 +196,7 @@ func resourceArmPublicIpDelete(d *schema.ResourceData, meta interface{}) error {
 
 func publicIPStateRefreshFunc(client *ArmClient, resourceGroupName string, publicIpName string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		res, err := client.publicIPClient.Get(resourceGroupName, publicIpName)
+		res, err := client.publicIPClient.Get(resourceGroupName, publicIpName, "")
 		if err != nil {
 			return nil, "", fmt.Errorf("Error issuing read request in publicIPStateRefreshFunc to Azure ARM for public ip '%s' (RG: '%s'): %s", publicIpName, resourceGroupName, err)
 		}
