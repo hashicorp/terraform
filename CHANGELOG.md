@@ -1,11 +1,19 @@
 ## 0.6.10 (Unreleased)
 
 FEATURES:
+
   * **New resource: `azurerm_network_security_rule`** [GH-4586]
+
+IMPROVEMENTS:
+
+  * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
+
+BUG FIXES:
 
 ## 0.6.9 (January 8, 2016)
 
 FEATURES:
+
   * **New provider: `vcd` - VMware vCloud Director** [GH-3785]
   * **New provider: `postgresql` - Create PostgreSQL databases and roles** [GH-3653]
   * **New provider: `chef` - Create chef environments, roles, etc** [GH-3084]
