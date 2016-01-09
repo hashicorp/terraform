@@ -84,7 +84,6 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Set:      schema.HashString,
 			},
@@ -597,6 +596,43 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("security_groups")
+	}
+
+	if d.HasChange("subnets") {
+		o, n := d.GetChange("subnets")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		removed := expandStringList(os.Difference(ns).List())
+		added := expandStringList(ns.Difference(os).List())
+
+		if len(added) > 0 {
+			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          added,
+			}
+
+			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
+			_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
+			if err != nil {
+				return fmt.Errorf("Failure adding ELB subnets: %s", err)
+			}
+		}
+
+		if len(removed) > 0 {
+			detachOpts := &elb.DetachLoadBalancerFromSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          removed,
+			}
+
+			log.Printf("[DEBUG] ELB detach subnets opts: %s", detachOpts)
+			_, err := elbconn.DetachLoadBalancerFromSubnets(detachOpts)
+			if err != nil {
+				return fmt.Errorf("Failure removing ELB subnets: %s", err)
+			}
+		}
+
+		d.SetPartial("subnets")
 	}
 
 	if err := setTagsELB(elbconn, d); err != nil {
