@@ -48,7 +48,6 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Set:      schema.HashString,
 			},
@@ -596,6 +595,43 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("security_groups")
+	}
+
+	if d.HasChange("availability_zones") {
+		o, n := d.GetChange("availability_zones")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		removed := expandStringList(os.Difference(ns).List())
+		added := expandStringList(ns.Difference(os).List())
+
+		if len(added) > 0 {
+			enableOpts := &elb.EnableAvailabilityZonesForLoadBalancerInput{
+				LoadBalancerName:  aws.String(d.Id()),
+				AvailabilityZones: added,
+			}
+
+			log.Printf("[DEBUG] ELB enable availability zones opts: %s", enableOpts)
+			_, err := elbconn.EnableAvailabilityZonesForLoadBalancer(enableOpts)
+			if err != nil {
+				return fmt.Errorf("Failure enabling ELB availability zones: %s", err)
+			}
+		}
+
+		if len(removed) > 0 {
+			disableOpts := &elb.DisableAvailabilityZonesForLoadBalancerInput{
+				LoadBalancerName:  aws.String(d.Id()),
+				AvailabilityZones: removed,
+			}
+
+			log.Printf("[DEBUG] ELB disable availability zones opts: %s", disableOpts)
+			_, err := elbconn.DisableAvailabilityZonesForLoadBalancer(disableOpts)
+			if err != nil {
+				return fmt.Errorf("Failure disabling ELB availability zones: %s", err)
+			}
+		}
+
+		d.SetPartial("availability_zones")
 	}
 
 	if d.HasChange("subnets") {
