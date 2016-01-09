@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -185,7 +186,8 @@ func TestAccAWSELB_iam_server_cert(t *testing.T) {
 		CheckDestroy: testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccELBIAMServerCertConfig,
+				Config: testAccELBIAMServerCertConfig(
+					fmt.Sprintf("tf-acctest-%s", acctest.RandString(10))),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testCheck,
@@ -994,9 +996,10 @@ resource "aws_security_group" "bar" {
 
 // This IAM Server config is lifted from
 // builtin/providers/aws/resource_aws_iam_server_certificate_test.go
-var testAccELBIAMServerCertConfig = `
+func testAccELBIAMServerCertConfig(certName string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_server_certificate" "test_cert" {
-  name = "terraform-test-cert-elb"
+  name = "%s"
   certificate_body = <<EOF
 -----BEGIN CERTIFICATE-----
 MIIDCDCCAfACAQEwDQYJKoZIhvcNAQELBQAwgY4xCzAJBgNVBAYTAlVTMREwDwYD
@@ -1083,4 +1086,5 @@ resource "aws_elb" "bar" {
 
   cross_zone_load_balancing = true
 }
-`
+`, certName)
+}
