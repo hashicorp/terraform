@@ -1,5 +1,8 @@
 ## 0.6.10 (Unreleased)
 
+FEATURES:
+  * **New resource: `azurerm_network_security_rule`** [GH-4586]
+
 ## 0.6.9 (January 8, 2016)
 
 FEATURES:
