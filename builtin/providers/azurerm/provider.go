@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -44,9 +45,9 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
 			"azurerm_availability_set":       resourceArmAvailabilitySet(),
 			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
+			"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
 			"azurerm_public_ip":              resourceArmPublicIp(),
 		},
-
 		ConfigureFunc: providerConfigure,
 	}
 }
@@ -110,3 +111,6 @@ func azureRMNormalizeLocation(location interface{}) string {
 	input := location.(string)
 	return strings.Replace(strings.ToLower(input), " ", "", -1)
 }
+
+// armMutexKV is the instance of MutexKV for ARM resources
+var armMutexKV = mutexkv.NewMutexKV()
