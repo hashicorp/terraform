@@ -52,6 +52,12 @@ The following arguments are supported:
 * `attributes (map)` - (Optional) A map with initial node attributes for the new node.
   See example.
 
+* `client_options (array)` - (Optional) A list of optional Chef Client configuration
+  options. See the Chef Client [documentation](https://docs.chef.io/config_rb_client.html) for all available options.
+
+* `disable_reporting (boolean)` - (Optional) If true the Chef Client will not try to send
+  reporting data (used by Chef Reporting) to the Chef Server (defaults false)
+
 * `environment (string)` - (Optional) The Chef environment the new node will be joining
   (defaults `_default`).
 
@@ -97,10 +103,6 @@ The following arguments are supported:
 
 * `ssl_verify_mode (string)` - (Optional) Use to set the verify mode for Chef Client HTTPS
   requests.
-
-* `disable_reporting (boolean)` - (Optional) Use to disable the chef-client data sending to
-  the Chef server for use with Chef reporting, if flag is omitted default behavior is to send
-  reporting data.
 
 * `validation_client_name (string)` - (Required) The name of the validation client to use
   for the initial communication with the Chef Server.
