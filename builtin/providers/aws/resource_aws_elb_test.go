@@ -140,6 +140,45 @@ func TestAccAWSELB_generatedName(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_availabilityZones(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "3"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2050015877", "us-west-2c"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfig_AvailabilityZonesUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_tags(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 	var td elb.TagDescription
@@ -776,6 +815,19 @@ resource "aws_elb" "foo" {
 const testAccAWSELBGeneratedName = `
 resource "aws_elb" "foo" {
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+
+const testAccAWSELBConfig_AvailabilityZonesUpdate = `
+resource "aws_elb" "bar" {
+  availability_zones = ["us-west-2a", "us-west-2b"]
 
   listener {
     instance_port = 8000
