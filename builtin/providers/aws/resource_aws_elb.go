@@ -338,7 +338,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("dns_name", *lb.DNSName)
 	d.Set("zone_id", *lb.CanonicalHostedZoneNameID)
 	d.Set("internal", *lb.Scheme == "internal")
-	d.Set("availability_zones", lb.AvailabilityZones)
+	d.Set("availability_zones", flattenStringList(lb.AvailabilityZones))
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
 	d.Set("security_groups", lb.SecurityGroups)
@@ -357,7 +357,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 	}
-	d.Set("subnets", lb.Subnets)
+	d.Set("subnets", flattenStringList(lb.Subnets))
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)

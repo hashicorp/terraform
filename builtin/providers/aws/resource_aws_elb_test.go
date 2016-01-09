@@ -30,11 +30,16 @@ func TestAccAWSELB_basic(t *testing.T) {
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
 					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "3"),
+					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.2050015877", "us-west-2c"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "subnets.#", "3"),
+					// NOTE: Subnet IDs are different across AWS accounts and cannot be checked.
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.206423021.instance_port", "8000"),
 					resource.TestCheckResourceAttr(
