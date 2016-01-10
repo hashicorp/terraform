@@ -53,6 +53,25 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Required: true,
 			},
 
+			"named_port": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+			},
+
 			"update_strategy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -118,6 +137,29 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 		manager.TargetPools = s
 	}
 
+	// Prepare the list of named ports
+	namedPortsCount := d.Get("named_port.#").(int)
+
+	var namedPorts []*compute.NamedPort
+
+	if namedPortsCount > 0 {
+		// Build up the list of namedPorts
+		namedPorts = make([]*compute.NamedPort, 0, namedPortsCount)
+		for i := 0; i < namedPortsCount; i++ {
+			prefix := fmt.Sprintf("named_port.%d", i)
+
+			// Build a namedPort
+			namedPort := compute.NamedPort{
+				Name: d.Get(prefix + ".name").(string),
+				Port: int64(d.Get(prefix + ".port").(int)),
+			}
+
+			// Add it to the list of namedPorts
+			namedPorts = append(namedPorts, &namedPort)
+		}
+		manager.NamedPorts = namedPorts
+	}
+
 	updateStrategy := d.Get("update_strategy").(string)
 	if !(updateStrategy == "NONE" || updateStrategy == "RESTART") {
 		return fmt.Errorf("Update strategy must be \"NONE\" or \"RESTART\"")
@@ -164,6 +206,22 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 	d.Set("instance_group", manager.InstanceGroup)
 	d.Set("target_size", manager.TargetSize)
 	d.Set("self_link", manager.SelfLink)
+
+	// Prepare the list of named ports
+	namedPortsCount := d.Get("named_port.#").(int)
+
+	namedPorts := make([]map[string]interface{}, 0, 1)
+	if namedPortsCount > 0 {
+		for _, namedPort := range manager.NamedPorts {
+
+			named_port := make(map[string]interface{})
+			named_port["name"] = namedPort.Name
+			named_port["port"] = namedPort.Port
+
+			namedPorts = append(namedPorts, named_port)
+		}
+	}
+	d.Set("named_port", namedPorts)
 
 	return nil
 }
@@ -251,6 +309,51 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		d.SetPartial("instance_template")
+	}
+
+	// If named_port changes then update
+	if d.HasChange("named_port") {
+
+		// Prepare the list of named ports
+		namedPortsCount := d.Get("named_port.#").(int)
+
+		var namedPorts []*compute.NamedPort
+
+		if namedPortsCount > 0 {
+			// Build up the list of namedPorts
+			namedPorts = make([]*compute.NamedPort, 0, namedPortsCount)
+			for i := 0; i < namedPortsCount; i++ {
+				prefix := fmt.Sprintf("named_port.%d", i)
+
+				// Build a namedPort
+				namedPort := compute.NamedPort{
+					Name: d.Get(prefix + ".name").(string),
+					Port: int64(d.Get(prefix + ".port").(int)),
+				}
+
+				// Add it to the list of namedPorts
+				namedPorts = append(namedPorts, &namedPort)
+			}
+		}
+
+		// Build the parameter
+		setNamedPorts := &compute.InstanceGroupsSetNamedPortsRequest{
+			NamedPorts: namedPorts,
+		}
+
+		op, err := config.clientCompute.InstanceGroups.SetNamedPorts(
+			config.Project, d.Get("zone").(string), d.Id(), setNamedPorts).Do()
+		if err != nil {
+			return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
+		}
+
+		// Wait for the operation to complete
+		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
+		if err != nil {
+			return err
+		}
+
+		d.SetPartial("named_port")
 	}
 
 	// If size changes trigger a resize

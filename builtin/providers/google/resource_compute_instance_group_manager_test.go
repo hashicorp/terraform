@@ -252,6 +252,10 @@ func testAccInstanceGroupManager_update(template, target, igm string) string {
 		base_instance_name = "igm-update"
 		zone = "us-central1-c"
 		target_size = 2
+		named_port {
+			name = "customHTTP"
+			port = 8888
+		}
 	}`, template, target, igm)
 }
 
@@ -322,5 +326,13 @@ func testAccInstanceGroupManager_update2(template1, target, template2, igm strin
 		base_instance_name = "igm-update"
 		zone = "us-central1-c"
 		target_size = 3
+		named_port {
+			name = "customHTTP"
+			port = 8888
+		}
+		named_port {
+			name = "customHTTPs"
+			port = 8889
+		}
 	}`, template1, target, template2, igm)
 }
