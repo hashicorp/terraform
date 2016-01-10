@@ -5,6 +5,7 @@ FEATURES:
   * **New resource: `azurerm_network_security_rule`** [GH-4586]
   * **New resource: `azurerm_subnet`** [GH-4595]
   * **New resource: `azurerm_network_interface`** [GH-4598]
+  * **New resource: `azurerm_route_table`** [GH-4602]
 
 IMPROVEMENTS:
 
