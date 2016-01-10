@@ -50,6 +50,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_subnet":                 resourceArmSubnet(),
 			"azurerm_network_interface":      resourceArmNetworkInterface(),
 			"azurerm_route_table":            resourceArmRouteTable(),
+			"azurerm_route":                  resourceArmRoute(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
