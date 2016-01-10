@@ -38,6 +38,7 @@ type ArmClient struct {
 	vnetGatewayClient            network.VirtualNetworkGatewaysClient
 	vnetClient                   network.VirtualNetworksClient
 	routeTablesClient            network.RouteTablesClient
+	routesClient                 network.RoutesClient
 
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
@@ -192,6 +193,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	rtc.Authorizer = spt
 	rtc.Sender = autorest.CreateSender(withRequestLogging())
 	client.routeTablesClient = rtc
+
+	rc := network.NewRoutesClient(c.SubscriptionID)
+	setUserAgent(&rc.Client)
+	rc.Authorizer = spt
+	rc.Sender = autorest.CreateSender(withRequestLogging())
+	client.routesClient = rc
 
 	rgc := resources.NewGroupsClient(c.SubscriptionID)
 	setUserAgent(&rgc.Client)
