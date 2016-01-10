@@ -1,7 +1,7 @@
 ---
 layout: "azurerm"
 page_title: "Azure Resource Manager: azurerm_availability_set"
-sidebar_current: "docs-azurerm-resource-availability-set"
+sidebar_current: "docs-azurerm-resource-virtualmachine-availability-set"
 description: |-
   Create an availability set for virtual machines.
 ---
