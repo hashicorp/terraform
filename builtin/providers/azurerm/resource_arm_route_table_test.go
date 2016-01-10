@@ -35,7 +35,7 @@ func TestResourceAzureRMRouteTableNextHopType_validation(t *testing.T) {
 			ErrCount: 0,
 		},
 		{
-			Value:    "Null",
+			Value:    "None",
 			ErrCount: 0,
 		},
 		{
