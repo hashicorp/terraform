@@ -14,6 +14,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
+
 ## 0.6.9 (January 8, 2016)
 
 FEATURES:
