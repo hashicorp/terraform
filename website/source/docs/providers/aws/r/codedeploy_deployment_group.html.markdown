@@ -88,7 +88,7 @@ The following arguments are supported:
 * `autoscaling_groups` - (Optional) Autoscaling groups associated with the deployment group.
 * `deployment_config_name` - (Optional) The name of the group's deployment config. The default is "CodeDeployDefault.OneAtATime".
 * `ec2_tag_filter` - (Optional) Tag filters associated with the group. See the AWS docs for details.
-* `on_premises_instance_tag_filter" - (Optional) On premise tag filters associated with the group. See the AWS docs for details.
+* `on_premises_instance_tag_filter` - (Optional) On premise tag filters associated with the group. See the AWS docs for details.
 
 Both ec2_tag_filter and on_premises_tag_filter blocks support the following:
 

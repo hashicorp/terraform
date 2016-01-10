@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/hashicorp/terraform/helper/resource"
 )
@@ -252,6 +253,8 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 	input := directoryservice.DeleteDirectoryInput{
 		DirectoryId: aws.String(d.Id()),
 	}
+
+	log.Printf("[DEBUG] Delete Directory input: %s", input)
 	_, err := dsconn.DeleteDirectory(&input)
 	if err != nil {
 		return err
@@ -261,17 +264,20 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] Waiting for DS (%q) to be deleted", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Deleting"},
-		Target:  "",
+		Target:  "Deleted",
 		Refresh: func() (interface{}, string, error) {
 			resp, err := dsconn.DescribeDirectories(&directoryservice.DescribeDirectoriesInput{
 				DirectoryIds: []*string{aws.String(d.Id())},
 			})
 			if err != nil {
-				return nil, "", err
+				if dserr, ok := err.(awserr.Error); ok && dserr.Code() == "EntityDoesNotExistException" {
+					return 42, "Deleted", nil
+				}
+				return nil, "error", err
 			}
 
 			if len(resp.DirectoryDescriptions) == 0 {
-				return nil, "", nil
+				return 42, "Deleted", nil
 			}
 
 			ds := resp.DirectoryDescriptions[0]

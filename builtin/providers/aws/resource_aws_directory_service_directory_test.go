@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -65,12 +66,33 @@ func TestAccAWSDirectoryServiceDirectory_withAliasAndSso(t *testing.T) {
 }
 
 func testAccCheckDirectoryServiceDirectoryDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v",
-			s.RootModule().Resources)
+	dsconn := testAccProvider.Meta().(*AWSClient).dsconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_directory_service_directory" {
+			continue
+		}
+
+		input := directoryservice.DescribeDirectoriesInput{
+			DirectoryIds: []*string{aws.String(rs.Primary.ID)},
+		}
+		out, err := dsconn.DescribeDirectories(&input)
+		if err != nil {
+			// EntityDoesNotExistException means it's gone, this is good
+			if dserr, ok := err.(awserr.Error); ok && dserr.Code() == "EntityDoesNotExistException" {
+				return nil
+			}
+			return err
+		}
+
+		if out != nil && len(out.DirectoryDescriptions) > 0 {
+			return fmt.Errorf("Expected AWS Directory Service Directory to be gone, but was still found")
+		}
+
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("Default error in Service Directory Test")
 }
 
 func testAccCheckServiceDirectoryExists(name string) resource.TestCheckFunc {

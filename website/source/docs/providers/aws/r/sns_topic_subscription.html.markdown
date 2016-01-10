@@ -49,7 +49,7 @@ resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
 The following arguments are supported:
 
 * `topic_arn` - (Required) The ARN of the SNS topic to subscribe to
-* `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`, `http`, `https`, `sms`, or `application`. (`email` is an option but unsupported, see below)
+* `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`, `http`, `https`, `lambda`, `sms`, or `application`. (`email` is an option but unsupported, see below)
 * `endpoint` - (Required) The endpoint to send data to, the contents will vary with the protocol. (see below for more information)
 * `raw_message_delivery` - (Optional) Boolean indicating whether or not to enable raw message delivery (the original message is directly passed, not wrapped in JSON with the original message in the message property).
 

@@ -285,6 +285,7 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 		config.Project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Instance %q because it's gone", d.Get("name").(string))
 			// The resource doesn't exist anymore
 			id := d.Id()
 			d.SetId("")
@@ -562,7 +563,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Synch metadata
 	md := instance.Metadata
 
-	_md := MetadataFormatSchema(md)
+	_md := MetadataFormatSchema(d.Get("metadata").(map[string]interface{}), md)
 	delete(_md, "startup-script")
 
 	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {

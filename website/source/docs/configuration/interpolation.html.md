@@ -80,6 +80,10 @@ The supported built-in functions are:
   * `base64encode(string)` - Returns a base64-encoded representation of the
     given string.
 
+  * `sha1(string)` - Returns a sha1 hash representation of the
+    given string.
+    Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
     ``cidrhost("10.0.0.0/8", 2)`` returns ``10.0.0.2``.
@@ -95,7 +99,7 @@ The supported built-in functions are:
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
     additional subnet number. For example,
     ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
-    
+
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
 

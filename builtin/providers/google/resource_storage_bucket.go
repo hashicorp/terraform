@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/storage/v1"
 )
 
@@ -174,8 +175,15 @@ func resourceStorageBucketRead(d *schema.ResourceData, meta interface{}) error {
 	res, err := config.clientStorage.Buckets.Get(bucket).Do()
 
 	if err != nil {
-		fmt.Printf("Error reading bucket %s: %v", bucket, err)
-		return err
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Bucket %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
+		return fmt.Errorf("Error reading bucket %s: %v", bucket, err)
 	}
 
 	log.Printf("[DEBUG] Read bucket %v at location %v\n\n", res.Name, res.SelfLink)

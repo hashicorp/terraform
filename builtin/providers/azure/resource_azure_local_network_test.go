@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -109,6 +110,10 @@ func testAccAzureLocalNetworkConnectionDestroyed(s *terraform.State) error {
 
 		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
+			// This is desirable - if there is no network config there can be no gateways
+			if management.IsResourceNotFoundError(err) {
+				continue
+			}
 			return err
 		}
 

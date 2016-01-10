@@ -1,8 +1,11 @@
 package azurerm
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -37,11 +40,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"azurerm_resource_group":        resourceArmResourceGroup(),
-			"azurerm_virtual_network":       resourceArmVirtualNetwork(),
-			"azurerm_local_network_gateway": resourceArmLocalNetworkGateway(),
+			"azurerm_resource_group":         resourceArmResourceGroup(),
+			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
+			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
+			"azurerm_availability_set":       resourceArmAvailabilitySet(),
+			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
+			"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
+			"azurerm_public_ip":              resourceArmPublicIp(),
+			"azurerm_subnet":                 resourceArmSubnet(),
 		},
-
 		ConfigureFunc: providerConfigure,
 	}
 }
@@ -70,10 +77,41 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, err
 	}
 
+	err = registerAzureResourceProvidersWithSubscription(&config, client)
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
+}
+
+// registerAzureResourceProvidersWithSubscription uses the providers client to register
+// all Azure resource providers which the Terraform provider may require (regardless of
+// whether they are actually used by the configuration or not). It was confirmed by Microsoft
+// that this is the approach their own internal tools also take.
+func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
+	providerClient := client.providers
+
+	providers := []string{"Microsoft.Network", "Microsoft.Compute"}
+
+	for _, v := range providers {
+		res, err := providerClient.Register(v)
+		if err != nil {
+			return err
+		}
+
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf("Error registering provider %q with subscription %q", v, config.SubscriptionID)
+		}
+	}
+
+	return nil
 }
 
 func azureRMNormalizeLocation(location interface{}) string {
 	input := location.(string)
 	return strings.Replace(strings.ToLower(input), " ", "", -1)
 }
+
+// armMutexKV is the instance of MutexKV for ARM resources
+var armMutexKV = mutexkv.NewMutexKV()

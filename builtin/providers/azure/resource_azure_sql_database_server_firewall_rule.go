@@ -209,6 +209,9 @@ func resourceAzureSqlDatabaseServerFirewallRuleDelete(d *schema.ResourceData, me
 				// go ahead and delete the rule:
 				log.Printf("[INFO] Issuing deletion of Azure Database Server Firewall Rule %q in Server %q.", name, serverName)
 				if err := sqlClient.DeleteFirewallRule(serverName, name); err != nil {
+					if strings.Contains(err.Error(), "Cannot open server") {
+						break
+					}
 					return fmt.Errorf("Error deleting Azure Database Server Firewall Rule %q for Server %q: %s", name, serverName, err)
 				}
 

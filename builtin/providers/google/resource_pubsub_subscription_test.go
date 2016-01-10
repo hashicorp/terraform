@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -62,12 +63,12 @@ func testAccPubsubSubscriptionExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccPubsubSubscription = `
+var testAccPubsubSubscription = fmt.Sprintf(`
 resource "google_pubsub_topic" "foobar_sub" {
-	name = "foobar_sub"
+	name = "pssub-test-%s"
 }
 
 resource "google_pubsub_subscription" "foobar_sub" {
-	name = "foobar_sub"
+	name = "pssub-test-%s"
 	topic = "${google_pubsub_topic.foobar_sub.name}"
-}`
+}`, acctest.RandString(10), acctest.RandString(10))

@@ -256,6 +256,7 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		if awserr, ok := err.(awserr.Error); ok {
 			if awserr.Code() == "ResourceNotFoundException" {
+				log.Printf("[DEBUG] OpsWorks stack (%s) not found", d.Id())
 				d.SetId("")
 				return nil
 			}
@@ -319,7 +320,7 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 		req.DefaultAvailabilityZone = aws.String(defaultAvailabilityZone.(string))
 	}
 
-	log.Printf("[DEBUG] Creating OpsWorks stack: %s", *req.Name)
+	log.Printf("[DEBUG] Creating OpsWorks stack: %s", req)
 
 	var resp *opsworks.CreateStackOutput
 	err = resource.Retry(20*time.Minute, func() error {
@@ -336,7 +337,9 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 				// The full error we're looking for looks something like
 				// the following:
 				// Service Role Arn: [...] is not yet propagated, please try again in a couple of minutes
-				if opserr.Code() == "ValidationException" && strings.Contains(opserr.Message(), "not yet propagated") {
+				propErr := "not yet propagated"
+				trustErr := "not the necessary trust relationship"
+				if opserr.Code() == "ValidationException" && (strings.Contains(opserr.Message(), trustErr) || strings.Contains(opserr.Message(), propErr)) {
 					log.Printf("[INFO] Waiting for service IAM role to propagate")
 					return cerr
 				}
@@ -411,7 +414,7 @@ func resourceAwsOpsworksStackUpdate(d *schema.ResourceData, meta interface{}) er
 		Version: aws.String(d.Get("configuration_manager_version").(string)),
 	}
 
-	log.Printf("[DEBUG] Updating OpsWorks stack: %s", d.Id())
+	log.Printf("[DEBUG] Updating OpsWorks stack: %s", req)
 
 	_, err = client.UpdateStack(req)
 	if err != nil {
