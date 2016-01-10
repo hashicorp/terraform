@@ -339,7 +339,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("availability_zones", flattenStringList(lb.AvailabilityZones))
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
-	d.Set("security_groups", lb.SecurityGroups)
+	d.Set("security_groups", flattenStringList(lb.SecurityGroups))
 	if lb.SourceSecurityGroup != nil {
 		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
 
