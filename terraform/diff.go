@@ -26,7 +26,7 @@ const (
 // to an existing infrastructure.
 type Diff struct {
 	// Modules contains all the modules that have a diff
-	Modules []*ModuleDiff
+	Modules []*ModuleDiff `json:"modules"`
 }
 
 // AddModule adds the module with the given path to the diff.
@@ -124,9 +124,9 @@ func (d *Diff) init() {
 // ModuleDiff tracks the differences between resources to apply within
 // a single module.
 type ModuleDiff struct {
-	Path      []string
-	Resources map[string]*InstanceDiff
-	Destroy   bool // Set only by the destroy plan
+	Path      []string                 `json:"path"`
+	Resources map[string]*InstanceDiff `json:"resources"`
+	Destroy   bool                     `json:"destroy"` // Set only by the destroy plan
 }
 
 func (d *ModuleDiff) init() {
@@ -270,20 +270,20 @@ func (d *ModuleDiff) String() string {
 
 // InstanceDiff is the diff of a resource from some state to another.
 type InstanceDiff struct {
-	Attributes     map[string]*ResourceAttrDiff
-	Destroy        bool
-	DestroyTainted bool
+	Attributes     map[string]*ResourceAttrDiff `json:"attributes"`
+	Destroy        bool                         `json:"destroy"`
+	DestroyTainted bool                         `json:"destroy_tainted"`
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {
-	Old         string      // Old Value
-	New         string      // New Value
-	NewComputed bool        // True if new value is computed (unknown currently)
-	NewRemoved  bool        // True if this attribute is being removed
-	NewExtra    interface{} // Extra information for the provider
-	RequiresNew bool        // True if change requires new resource
-	Type        DiffAttrType
+	Old         string       `json:"old_value"`    // Old Value
+	New         string       `json:"new_value"`    // New Value
+	NewComputed bool         `json:"new_computed"` // True if new value is computed (unknown currently)
+	NewRemoved  bool         `json:"new_removed"`  // True if this attribute is being removed
+	NewExtra    interface{}  `json:"new_extra"`    // Extra information for the provider
+	RequiresNew bool         `json:"requires_new"` // True if change requires new resource
+	Type        DiffAttrType `json:"type"`
 }
 
 func (d *ResourceAttrDiff) GoString() string {
@@ -302,6 +302,32 @@ const (
 	DiffAttrInput
 	DiffAttrOutput
 )
+
+func (t DiffAttrType) MarshalJSON() ([]byte, error) {
+	switch t {
+	case DiffAttrInput:
+		return []byte{'"', 'i', 'n', 'p', 'u', 't', '"'}, nil
+	case DiffAttrOutput:
+		return []byte{'"', 'o', 'u', 't', 'p', 'u', 't', '"'}, nil
+	default:
+		return []byte{'"', 'u', 'n', 'k', 'n', 'o', 'w', 'n', '"'}, nil
+	}
+}
+
+func (t *DiffAttrType) UnmarshalJSON(b []byte) error {
+	if len(b) < 3 || b[0] != '"' {
+		return fmt.Errorf("DiffAttrType must be string in JSON")
+	}
+	switch b[1] {
+	case 'i':
+		*t = DiffAttrInput
+	case 'o':
+		*t = DiffAttrOutput
+	default:
+		*t = DiffAttrUnknown
+	}
+	return nil
+}
 
 func (d *InstanceDiff) init() {
 	if d.Attributes == nil {

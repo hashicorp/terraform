@@ -26,14 +26,14 @@ type Config struct {
 	// Dir is the path to the directory where this configuration was
 	// loaded from. If it is blank, this configuration wasn't loaded from
 	// any meaningful directory.
-	Dir string
+	Dir string `json:"dir"`
 
-	Atlas           *AtlasConfig
-	Modules         []*Module
-	ProviderConfigs []*ProviderConfig
-	Resources       []*Resource
-	Variables       []*Variable
-	Outputs         []*Output
+	Atlas           *AtlasConfig      `json:"atlas,omitempty"`
+	Modules         []*Module         `json:"modules,omitempty"`
+	ProviderConfigs []*ProviderConfig `json:"provider_configs,omitempty"`
+	Resources       []*Resource       `json:"resources,omitempty"`
+	Variables       []*Variable       `json:"variables,omitempty"`
+	Outputs         []*Output         `json:"outputs,omitempty"`
 
 	// The fields below can be filled in by loaders for validation
 	// purposes.
@@ -42,9 +42,9 @@ type Config struct {
 
 // AtlasConfig is the configuration for building in HashiCorp's Atlas.
 type AtlasConfig struct {
-	Name    string
-	Include []string
-	Exclude []string
+	Name    string   `json:"name"`
+	Include []string `json:"include"`
+	Exclude []string `json:"exclude"`
 }
 
 // Module is a module used within a configuration.
@@ -52,9 +52,9 @@ type AtlasConfig struct {
 // This does not represent a module itself, this represents a module
 // call-site within an existing configuration.
 type Module struct {
-	Name      string
-	Source    string
-	RawConfig *RawConfig
+	Name      string     `json:"name"`
+	Source    string     `json:"source"`
+	RawConfig *RawConfig `json:"raw_config"`
 }
 
 // ProviderConfig is the configuration for a resource provider.
@@ -62,52 +62,52 @@ type Module struct {
 // For example, Terraform needs to set the AWS access keys for the AWS
 // resource provider.
 type ProviderConfig struct {
-	Name      string
-	Alias     string
-	RawConfig *RawConfig
+	Name      string     `json:"name"`
+	Alias     string     `json:"source"`
+	RawConfig *RawConfig `json:"raw_config"`
 }
 
 // A resource represents a single Terraform resource in the configuration.
 // A Terraform resource is something that represents some component that
 // can be created and managed, and has some properties associated with it.
 type Resource struct {
-	Name         string
-	Type         string
-	RawCount     *RawConfig
-	RawConfig    *RawConfig
-	Provisioners []*Provisioner
-	Provider     string
-	DependsOn    []string
-	Lifecycle    ResourceLifecycle
+	Name         string            `json:"name"`
+	Type         string            `json:"type"`
+	RawCount     *RawConfig        `json:"raw_count"`
+	RawConfig    *RawConfig        `json:"raw_config"`
+	Provisioners []*Provisioner    `json:"provisioners,omitempty"`
+	Provider     string            `json:"provider,omitempty"`
+	DependsOn    []string          `json:"depends_on,omitempty"`
+	Lifecycle    ResourceLifecycle `json:"lifecycle"`
 }
 
 // ResourceLifecycle is used to store the lifecycle tuning parameters
 // to allow customized behavior
 type ResourceLifecycle struct {
-	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy"`
-	PreventDestroy      bool     `mapstructure:"prevent_destroy"`
-	IgnoreChanges       []string `mapstructure:"ignore_changes"`
+	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy" json:"create_before_destroy"`
+	PreventDestroy      bool     `mapstructure:"prevent_destroy" json:"prevent_destroy"`
+	IgnoreChanges       []string `mapstructure:"ignore_changes" json:"ignore_changes,omitempty"`
 }
 
 // Provisioner is a configured provisioner step on a resource.
 type Provisioner struct {
-	Type      string
-	RawConfig *RawConfig
-	ConnInfo  *RawConfig
+	Type      string     `json:"type"`
+	RawConfig *RawConfig `json:"raw_config"`
+	ConnInfo  *RawConfig `json:"conn_info"`
 }
 
 // Variable is a variable defined within the configuration.
 type Variable struct {
-	Name        string
-	Default     interface{}
-	Description string
+	Name        string      `json:"name"`
+	Default     interface{} `json:"default"`
+	Description string      `json:"description"`
 }
 
 // Output is an output defined within the configuration. An output is
 // resulting data that is highlighted by Terraform when finished.
 type Output struct {
-	Name      string
-	RawConfig *RawConfig
+	Name      string     `json:"name"`
+	RawConfig *RawConfig `json:"raw_config"`
 }
 
 // VariableType is the type of value a variable is holding, and returned
