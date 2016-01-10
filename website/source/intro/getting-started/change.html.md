@@ -29,7 +29,7 @@ resource in your configuration and change it to the following:
 ```
 resource "aws_instance" "example" {
 	ami = "ami-b8b061d0"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 }
 ```
 
