@@ -49,6 +49,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_public_ip":              resourceArmPublicIp(),
 			"azurerm_subnet":                 resourceArmSubnet(),
 			"azurerm_network_interface":      resourceArmNetworkInterface(),
+			"azurerm_route_table":            resourceArmRouteTable(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
