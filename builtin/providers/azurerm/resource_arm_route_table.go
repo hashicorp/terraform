@@ -242,7 +242,7 @@ func validateRouteTableNextHopType(v interface{}, k string) (ws []string, errors
 		"vnetlocal":             true,
 		"internet":              true,
 		"virtualappliance":      true,
-		"null":                  true,
+		"none":                  true,
 	}
 
 	if !hopTypes[value] {
