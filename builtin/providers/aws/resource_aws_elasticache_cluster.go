@@ -120,6 +120,10 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
+						"availability_zone": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -160,6 +164,13 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 					}
 					return
 				},
+			},
+
+			"availability_zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"tags": tagsSchema(),
@@ -234,6 +245,10 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] Restoring Redis cluster from S3 snapshot: %#v", s)
 	}
 
+	if v, ok := d.GetOk("availability_zone"); ok {
+		req.PreferredAvailabilityZone = aws.String(v.(string))
+	}
+
 	resp, err := conn.CreateCacheCluster(req)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache: %s", err)
@@ -306,6 +321,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 				d.Set("notification_topic_arn", c.NotificationConfiguration.TopicArn)
 			}
 		}
+		d.Set("availability_zone", c.PreferredAvailabilityZone)
 
 		if err := setCacheNodeData(d, c); err != nil {
 			return err
@@ -454,13 +470,14 @@ func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error
 	cacheNodeData := make([]map[string]interface{}, 0, len(sortedCacheNodes))
 
 	for _, node := range sortedCacheNodes {
-		if node.CacheNodeId == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil {
+		if node.CacheNodeId == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil || node.CustomerAvailabilityZone == nil {
 			return fmt.Errorf("Unexpected nil pointer in: %s", node)
 		}
 		cacheNodeData = append(cacheNodeData, map[string]interface{}{
-			"id":      *node.CacheNodeId,
-			"address": *node.Endpoint.Address,
-			"port":    int(*node.Endpoint.Port),
+			"id":                *node.CacheNodeId,
+			"address":           *node.Endpoint.Address,
+			"port":              int(*node.Endpoint.Port),
+			"availability_zone": *node.CustomerAvailabilityZone,
 		})
 	}
 

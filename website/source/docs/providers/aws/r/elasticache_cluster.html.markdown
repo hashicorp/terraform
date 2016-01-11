@@ -98,6 +98,8 @@ Can only be used for the Redis engine.
 SNS topic to send ElastiCache notifications to. Example: 
 `arn:aws:sns:us-east-1:012345678999:my_sns_topic`
 
+* `availability_zone` - (Optional) The AZ for the cache cluster.
+
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ~> **NOTE:** Snapshotting functionality is not compatible with t2 instance types.
@@ -106,7 +108,7 @@ SNS topic to send ElastiCache notifications to. Example:
 
 The following attributes are exported:
 
-* `cache_nodes` - List of node objects including `id`, `address` and `port`.
+* `cache_nodes` - List of node objects including `id`, `address`, `port` and `availability_zone`.
    Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
    
 * `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery
