@@ -122,6 +122,29 @@ func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
 					testAccCheckAWSElasticacheClusterAttributes(&ec),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "availability_zone", "us-west-2a"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSElasticacheCluster_multiAZInVpc(t *testing.T) {
+	var csg elasticache.CacheSubnetGroup
+	var ec elasticache.CacheCluster
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSElasticacheClusterMultiAZInVPCConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "availability_zone", "Multiple"),
 				),
 			},
 		},
@@ -414,9 +437,74 @@ resource "aws_elasticache_cluster" "bar" {
     security_group_ids = ["${aws_security_group.bar.id}"]
     parameter_group_name = "default.redis2.8"
     notification_topic_arn      = "${aws_sns_topic.topic_example.arn}"
+    availability_zone = "us-west-2a"
 }
 
 resource "aws_sns_topic" "topic_example" {
   name = "tf-ecache-cluster-test"
 }
 `, genRandInt(), genRandInt(), genRandInt())
+
+var testAccAWSElasticacheClusterMultiAZInVPCConfig = fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+    cidr_block = "192.168.0.0/16"
+    tags {
+            Name = "tf-test"
+    }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "192.168.0.0/20"
+    availability_zone = "us-west-2a"
+    tags {
+            Name = "tf-test-%03d"
+    }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "192.168.16.0/20"
+    availability_zone = "us-west-2b"
+    tags {
+            Name = "tf-test-%03d"
+    }
+}
+
+resource "aws_elasticache_subnet_group" "bar" {
+    name = "tf-test-cache-subnet-%03d"
+    description = "tf-test-cache-subnet-group-descr"
+    subnet_ids = [
+        "${aws_subnet.foo.id}",
+        "${aws_subnet.bar.id}"
+    ]
+}
+
+resource "aws_security_group" "bar" {
+    name = "tf-test-security-group-%03d"
+    description = "tf-test-security-group-descr"
+    vpc_id = "${aws_vpc.foo.id}"
+    ingress {
+        from_port = -1
+        to_port = -1
+        protocol = "icmp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+
+resource "aws_elasticache_cluster" "bar" {
+    cluster_id = "tf-test-%03d"
+    engine = "memcached"
+    node_type = "cache.m1.small"
+    num_cache_nodes = 2
+    port = 11211
+    subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
+    security_group_ids = ["${aws_security_group.bar.id}"]
+    parameter_group_name = "default.memcached1.4"
+    az_mode = "cross-az"
+    availability_zones = [
+        "us-west-2a",
+        "us-west-2b"
+    ]
+}
+`, genRandInt(), genRandInt(), genRandInt(), genRandInt(), genRandInt())
