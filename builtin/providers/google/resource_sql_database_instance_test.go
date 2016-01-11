@@ -41,6 +41,27 @@ func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccGoogleSqlDatabaseInstance_basic2(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleSqlDatabaseInstance_basic2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance", &instance),
+				),
+			},
+		},
+	})
+}
+
 func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
 	databaseID := genRandInt()
@@ -332,6 +353,16 @@ func testAccGoogleSqlDatabaseInstanceDestroy(s *terraform.State) error {
 var testGoogleSqlDatabaseInstance_basic = `
 resource "google_sql_database_instance" "instance" {
 	name = "tf-lw-%d"
+	region = "us-central"
+	settings {
+		tier = "D0"
+		crash_safe_replication = false
+	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_basic2 = `
+resource "google_sql_database_instance" "instance" {
 	region = "us-central"
 	settings {
 		tier = "D0"
