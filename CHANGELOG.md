@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
   * provider/aws: Add new parameters `az_mode` and `availabiliy_zone(s)` in ElastiCache [GH-4631]
+  * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
 
 FEATURES:
 
