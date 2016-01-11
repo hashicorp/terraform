@@ -29,6 +29,20 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["secret_key"],
 			},
 
+			"profile": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["profile"],
+			},
+
+			"shared_credentials_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["shared_credentials_file"],
+			},
+
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -222,6 +236,12 @@ func init() {
 		"secret_key": "The secret key for API operations. You can retrieve this\n" +
 			"from the 'Security & Credentials' section of the AWS console.",
 
+		"profile": "The profile for API operations. If not set, the default profile\n" +
+			"created with `aws configure` will be used.",
+
+		"shared_credentials_file": "The path to the shared credentials file. If not set\n" +
+			"this defaults to ~/.aws/credentials.",
+
 		"token": "session token. A session token is only required if you are\n" +
 			"using temporary security credentials.",
 
@@ -241,6 +261,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccessKey:        d.Get("access_key").(string),
 		SecretKey:        d.Get("secret_key").(string),
+		Profile:          d.Get("profile").(string),
+		CredsFilename:    d.Get("shared_credentials_file").(string),
 		Token:            d.Get("token").(string),
 		Region:           d.Get("region").(string),
 		MaxRetries:       d.Get("max_retries").(int),
