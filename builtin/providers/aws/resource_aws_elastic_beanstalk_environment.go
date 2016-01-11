@@ -268,6 +268,13 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 
 	env := resp.Environments[0]
 
+	if *env.Status == "Terminated" {
+		log.Printf("[DEBUG] Elastic Beanstalk environment %s was terminated", d.Id())
+
+		d.SetId("")
+		return nil
+	}
+
 	if err := d.Set("description", env.Description); err != nil {
 		return err
 	}
