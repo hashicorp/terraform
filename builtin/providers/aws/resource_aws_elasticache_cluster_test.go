@@ -122,6 +122,8 @@ func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
 					testAccCheckAWSElasticacheClusterAttributes(&ec),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "availability_zone", "us-west-2a"),
 				),
 			},
 		},
@@ -414,6 +416,7 @@ resource "aws_elasticache_cluster" "bar" {
     security_group_ids = ["${aws_security_group.bar.id}"]
     parameter_group_name = "default.redis2.8"
     notification_topic_arn      = "${aws_sns_topic.topic_example.arn}"
+    availability_zone = "us-west-2a"
 }
 
 resource "aws_sns_topic" "topic_example" {
