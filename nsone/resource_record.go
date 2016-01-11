@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/bobtfish/go-nsone-api"
 	"log"
 	"regexp"
 	"sort"
@@ -54,6 +54,10 @@ func recordResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+			"use_client_subnet": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -124,6 +128,10 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"up": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
 					},
 				},
 				Set: regionsToHash,
@@ -163,6 +171,7 @@ func regionsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", r["georegion"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", r["country"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", r["us_state"].(string)))
+	buf.WriteString(fmt.Sprintf("%t-", r["up"].(bool)))
 	return hashcode.String(buf.String())
 }
 
@@ -262,6 +271,11 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 			}
 			if len(region.Meta.USState) > 0 {
 				new_region["us_state"] = region.Meta.USState[0]
+			}
+			if region.Meta.Up {
+				new_region["up"] = region.Meta.Up
+			} else {
+				new_region["up"] = false
 			}
 			regions = append(regions, new_region)
 		}
@@ -369,6 +383,9 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
 	}
+	if v, ok := d.GetOk("useClientSubnet"); ok {
+		r.UseClientSubnet = (v.(bool))
+	}
 	if rawFilters := d.Get("filters").([]interface{}); len(rawFilters) > 0 {
 		f := make([]nsone.Filter, len(rawFilters))
 		for i, filter_raw := range rawFilters {
@@ -410,6 +427,10 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 			if g := region["us_state"].(string); g != "" {
 				nsone_r.Meta.USState = []string{g}
 			}
+			if g := region["up"].(bool); g {
+				nsone_r.Meta.Up = g
+			}
+
 			rm[region["name"].(string)] = nsone_r
 		}
 		r.Regions = rm
