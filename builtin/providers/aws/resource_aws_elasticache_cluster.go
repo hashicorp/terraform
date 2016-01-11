@@ -166,11 +166,28 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				},
 			},
 
+			"az_mode": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"availability_zones": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			"tags": tagsSchema(),
@@ -245,8 +262,18 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] Restoring Redis cluster from S3 snapshot: %#v", s)
 	}
 
+	if v, ok := d.GetOk("az_mode"); ok {
+		req.AZMode = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("availability_zone"); ok {
 		req.PreferredAvailabilityZone = aws.String(v.(string))
+	}
+
+	preferred_azs := d.Get("availability_zones").(*schema.Set).List()
+	if len(preferred_azs) > 0 {
+		azs := expandStringList(preferred_azs)
+		req.PreferredAvailabilityZones = azs
 	}
 
 	resp, err := conn.CreateCacheCluster(req)
@@ -414,6 +441,9 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 		oraw, nraw := d.GetChange("num_cache_nodes")
 		o := oraw.(int)
 		n := nraw.(int)
+		if v, ok := d.GetOk("az_mode"); ok && v.(string) == "cross-az" && n == 1 {
+			return fmt.Errorf("[WARN] Error updateing Elasticache cluster (%s), error: Cross-AZ mode is not supported in a single cache node.", d.Id())
+		}
 		if n < o {
 			log.Printf("[INFO] Cluster %s is marked for Decreasing cache nodes from %d to %d", d.Id(), o, n)
 			nodesToRemove := getCacheNodesToRemove(d, o, o-n)
