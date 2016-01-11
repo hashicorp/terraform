@@ -44,8 +44,8 @@ The following arguments are used to configure the VMware vCloud Director Provide
 * `org` - (Required) This is the vCloud Director Org on which to run API
   operations. Can also be specified with the `VCD_ORG` environment
   variable.
-* `url` - (Required) This is the URL for the vCloud Director API.
-  Can also be specified with the `VCD_URL` environment variable.
+* `url` - (Required) This is the URL for the vCloud Director API endpoint. e.g.
+  https://server.domain.com/api. Can also be specified with the `VCD_URL` environment variable.
 * `vdc` - (Optional) This is the virtual datacenter within vCloud Director to run
   API operations against. If not set the plugin will select the first virtual
   datacenter available to your Org. Can also be specified with the `VCD_VDC` environment
