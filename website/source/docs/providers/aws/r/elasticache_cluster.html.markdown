@@ -98,6 +98,12 @@ Can only be used for the Redis engine.
 SNS topic to send ElastiCache notifications to. Example: 
 `arn:aws:sns:us-east-1:012345678999:my_sns_topic`
 
+* `az_mode` - (Optional, Memcached only) Specifies whether the nodes in this Memcached node group are created in a single Availability Zone or created across multiple Availability Zones in the cluster's region. Valid values for this parameter are `single-az` or `cross-az`, default is `single-az`. If you want to choose `cross-az`, `num_cache_nodes` must be greater than `1`.
+
+* `availability_zone` - (Optional) The AZ for the cache cluster. If you want to create cache nodes in multi-az, use `availability_zones`.
+
+* `availability_zones` - (Optional, Memcached only) List of AZ in which the cache nodes will be created. If you want to create cache nodes in single-az, use `availability_zone`.
+
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ~> **NOTE:** Snapshotting functionality is not compatible with t2 instance types.
@@ -106,7 +112,7 @@ SNS topic to send ElastiCache notifications to. Example:
 
 The following attributes are exported:
 
-* `cache_nodes` - List of node objects including `id`, `address` and `port`.
+* `cache_nodes` - List of node objects including `id`, `address`, `port` and `availability_zone`.
    Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
    
 * `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery
