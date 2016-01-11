@@ -24,7 +24,9 @@ resource "vsphere_virtual_machine" "web" {
   }
 
   disk {
-    template = "centos-7"
+    template {
+      label = "centos-7"
+    }
   }
 }
 ```
@@ -78,11 +80,12 @@ The following arguments are supported:
 * `cdrom` - (Optional) Configures a CDROM device and mounts an image as its media; see [CDROM](#cdrom) below for more details.
 * `boot_delay` - (Optional) Time in seconds to wait for machine network to be ready.
 * `windows_opt_config` - (Optional) Extra options for clones of Windows machines.
-* `linked_clone` - (Optional) Specifies if the new machine is a [linked clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396) of another machine or not.
+* `linked_clone` - __Deprecated, please use `disk.clone.linked` instead__.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 * `skip_customization` - (Optional) skip virtual machine customization (useful if OS is not in the guest OS support matrix of VMware like "other3xLinux64Guest").
 
-The `network_interface` block supports:
+<a id="network-interfaces"></a>
+## Network interfaces
 
 * `label` - (Required) Label to assign to this network interface
 * `ipv4_address` - (Optional) Static IPv4 to assign to this network interface. Interface will use DHCP if this is left blank.
@@ -111,7 +114,7 @@ The `windows_opt_config` block supports:
 
 The `disk` block supports:
 
-* `template` - (Required if size and bootable_vmdk_path not provided) Template for this disk.
+* `clone` - (Required if `size` is not provided) Cloning source for this disk; see [Clones](#clones) below for details.
 * `datastore` - (Optional) Datastore for this disk
 * `size` - (Required if template and bootable_vmdks_path not provided) Size of this disk (in GB).
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
@@ -126,6 +129,15 @@ The `cdrom` block supports:
 
 * `datastore` - (Required) The name of the datastore where the disk image is stored.
 * `path` - (Required) The absolute path to the image within the datastore.
+
+<a id="clones"></a>
+## Clones
+
+The `clone` block supports:
+
+* `label` - (Required) The template label (label of the virtual machine/template to clone from).
+* `linked` - (Optional) Set to true if this should be a linked clone. Linked cloning requires the source virtual machine/template to have at least one existing snapshot which can be cloned from. Defaults to false.
+* `snapshot` - (Optional) This is silently ignored if `linked` is false. Linked clones are, by default, cloned from the latest snapshot. However, here you can specify the label of the snapshot you want to clone from.
 
 ## Attributes Reference
 
