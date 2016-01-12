@@ -58,6 +58,7 @@ func recordResource() *schema.Resource {
 			"use_client_subnet": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -383,9 +384,11 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
 	}
-	if v, ok := d.GetOk("useClientSubnet"); ok {
-		r.UseClientSubnet = (v.(bool))
+	useClientSubnetVal := d.Get("use_client_subnet").(bool)
+	if v := strconv.FormatBool(useClientSubnetVal); v != "" {
+		r.UseClientSubnet = useClientSubnetVal
 	}
+
 	if rawFilters := d.Get("filters").([]interface{}); len(rawFilters) > 0 {
 		f := make([]nsone.Filter, len(rawFilters))
 		for i, filter_raw := range rawFilters {
