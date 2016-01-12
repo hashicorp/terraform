@@ -58,7 +58,7 @@ func resourceAwsVpc() *schema.Resource {
 			"enable_classiclink": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
+				Default:  false,
 			},
 
 			"main_route_table_id": &schema.Schema{
@@ -177,7 +177,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames)
 
 	DescribeClassiclinkOpts := &ec2.DescribeVpcClassicLinkInput{
-		VpcIds: []*string{ &vpcid },
+		VpcIds: []*string{&vpcid},
 	}
 	respClassiclink, err := conn.DescribeVpcClassicLink(DescribeClassiclinkOpts)
 	if err != nil {
