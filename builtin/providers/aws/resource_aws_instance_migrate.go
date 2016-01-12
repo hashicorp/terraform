@@ -22,7 +22,7 @@ func resourceAwsInstanceMigrateState(
 }
 
 func migrateStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceState, error) {
-	if is.Empty() {
+	if is.Empty() || is.Attributes == nil {
 		log.Println("[DEBUG] Empty InstanceState; nothing to migrate.")
 		return is, nil
 	}
