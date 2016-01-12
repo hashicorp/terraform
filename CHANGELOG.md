@@ -14,6 +14,7 @@ IMPROVEMENTS:
   * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
   * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
+  * provider/awS: Store instance state [GH-3261]
 
 BUG FIXES:
 
