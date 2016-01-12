@@ -49,7 +49,7 @@ resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
 The following arguments are supported:
 
 * `topic_arn` - (Required) The ARN of the SNS topic to subscribe to
-* `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`, `http`, `https`, `lambda`, `sms`, or `application`. (`email` is an option but unsupported, see below)
+* `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`,  `lambda`,  or `application`. (`email`, `http`, `https`, `sms`, are options but unsupported, see below)
 * `endpoint` - (Required) The endpoint to send data to, the contents will vary with the protocol. (see below for more information)
 * `raw_message_delivery` - (Optional) Boolean indicating whether or not to enable raw message delivery (the original message is directly passed, not wrapped in JSON with the original message in the message property).
 
@@ -57,10 +57,7 @@ The following arguments are supported:
 
 Supported SNS protocols include:
 
-* `http` -- delivery of JSON-encoded message via HTTP POST
-* `https` -- delivery of JSON-encoded message via HTTPS POST
 * `lambda` -- delivery of JSON-encoded message to a lambda function
-* `sms` -- delivery of message via SMS
 * `sqs` -- delivery of JSON-encoded message to an Amazon SQS queue
 * `application` -- delivery of JSON-encoded message to an EndpointArn for a mobile app and device
 
@@ -68,16 +65,18 @@ Unsupported protocols include the following:
 
 * `email` -- delivery of message via SMTP
 * `email-json` -- delivery of JSON-encoded message via SMTP
+* `http` -- delivery via HTTP
+* `http(s)` -- delivery via HTTPS
+* `sms` -- delivery text message
 
-These are unsupported because the email address needs to be authorized and does not generate an ARN until the target email address has been validated. This breaks
+These are unsupported because the endpoint needs to be authorized and does not 
+generate an ARN until the target email address has been validated. This breaks
 the Terraform model and as a result are not currently supported.
 
 ### Specifying endpoints
 
 Endpoints have different format requirements according to the protocol that is chosen.
 
-* HTTP/HTTPS endpoints will require a URL to POST data to
-* SMS endpoints are mobile numbers that are capable of receiving an SMS
 * SQS endpoints come in the form of the SQS queue's ARN (not the URL of the queue) e.g: `arn:aws:sqs:us-west-2:432981146916:terraform-queue-too`
 * Application endpoints are also the endpoint ARN for the mobile app and device.
 
