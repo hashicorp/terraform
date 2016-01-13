@@ -10,6 +10,7 @@ Provides a Redshift Cluster Resource.
 
 ## Example Usage
 
+```
 resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster"
   database_name = "mydb"
@@ -18,6 +19,7 @@ resource "aws_redshift_cluster" "default" {
   node_type = "dc1.large"
   cluster_type = "single-node"
 }
+```
 
 ## Argument Reference
 
