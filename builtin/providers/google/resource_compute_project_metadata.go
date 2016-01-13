@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	//	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
-	//	"google.golang.org/api/googleapi"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeProjectMetadata() *schema.Resource {
@@ -85,6 +84,14 @@ func resourceComputeProjectMetadataRead(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Loading project service: %s", config.Project)
 	project, err := config.clientCompute.Projects.Get(config.Project).Do()
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Project Metadata because it's gone")
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error loading project '%s': %s", config.Project, err)
 	}
 

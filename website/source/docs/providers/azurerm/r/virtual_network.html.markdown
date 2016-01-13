@@ -1,7 +1,7 @@
 ---
 layout: "azurerm"
 page_title: "Azure Resource Manager: azure_virtual_network"
-sidebar_current: "docs-azurerm-resource-virtual-network"
+sidebar_current: "docs-azurerm-resource-network-virtual-network"
 description: |-
   Creates a new virtual network including any configured subnets. Each subnet can optionally be configured with a security group to be associated with the subnet.
 ---
@@ -57,7 +57,7 @@ The following arguments are supported:
 * `dns_servers` - (Optional) List of names of DNS servers previously registered
     on Azure.
 
-* `subnet` - (Required) Can be specified multiple times to define multiple
+* `subnet` - (Optional) Can be specified multiple times to define multiple
     subnets. Each `subnet` block supports fields documented below.
 
 The `subnet` block supports:

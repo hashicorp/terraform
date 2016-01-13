@@ -85,8 +85,12 @@ The following arguments are supported:
 * `volume` - (Optional) Attach an existing volume to the instance. The volume
     structure is described below.
 
-* `scheduler_hints` - (Optional) Provider the Nova scheduler with hints on how
+* `scheduler_hints` - (Optional) Provide the Nova scheduler with hints on how
     the instance should be launched. The available hints are described below.
+
+* `personality` - (Optional) Customize the personality of an instance by
+    defining one or more files and their contents. The personality structure
+    is described below.
 
 The `network` block supports:
 
@@ -142,6 +146,12 @@ The `scheduler_hints` block supports:
 
 * `build_near_host_ip` - (Optional) An IP Address in CIDR form. The instance
     will be placed on a compute node that is in the same subnet.
+
+The `personality` block supports:
+
+* `file` - (Required) The absolute path of the destination file.
+
+* `contents` - (Required) The contents of the file. Limited to 255 bytes.
 
 ## Attributes Reference
 

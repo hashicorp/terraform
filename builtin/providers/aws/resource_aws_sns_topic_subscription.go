@@ -3,12 +3,15 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 )
+
+const awsSNSPendingConfirmationMessage = "pending confirmation"
 
 func resourceAwsSnsTopicSubscription() *schema.Resource {
 	return &schema.Resource{
@@ -22,6 +25,19 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					forbidden := []string{"email", "sms", "http"}
+					for _, f := range forbidden {
+						if strings.Contains(value, f) {
+							errors = append(
+								errors,
+								fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
+							)
+						}
+					}
+					return
+				},
 			},
 			"endpoint": &schema.Schema{
 				Type:     schema.TypeString,
@@ -55,14 +71,15 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	if d.Get("protocol") == "email" {
-		return fmt.Errorf("Email endpoints are not supported!")
-	}
-
 	output, err := subscribeToSNSTopic(d, snsconn)
 
 	if err != nil {
 		return err
+	}
+
+	if output.SubscriptionArn != nil && *output.SubscriptionArn == awsSNSPendingConfirmationMessage {
+		log.Printf("[WARN] Invalid SNS Subscription, received a \"%s\" ARN", awsSNSPendingConfirmationMessage)
+		return nil
 	}
 
 	log.Printf("New subscription ARN: %s", *output.SubscriptionArn)
@@ -92,7 +109,7 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 		// Re-subscribe and set id
 		output, err := subscribeToSNSTopic(d, snsconn)
 		d.SetId(*output.SubscriptionArn)
-
+		d.Set("arn", *output.SubscriptionArn)
 	}
 
 	if d.HasChange("raw_message_delivery") {

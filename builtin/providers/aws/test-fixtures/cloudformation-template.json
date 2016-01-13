@@ -1,0 +1,19 @@
+{
+  "Parameters" : {
+    "VpcCIDR" : {
+      "Description" : "CIDR to be used for the VPC",
+      "Type" : "String"
+    }
+  },
+  "Resources" : {
+    "MyVPC": {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : {"Ref": "VpcCIDR"},
+        "Tags" : [
+          {"Key": "Name", "Value": "Primary_CF_VPC"}
+        ]
+      }
+    }
+  }
+}

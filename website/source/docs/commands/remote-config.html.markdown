@@ -69,11 +69,11 @@ The following backends are supported:
 
 * S3 - Stores the state as a given key in a given bucket on Amazon S3.
   Requires the `bucket` and `key` variables. Supports and honors the standard
-  AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-  and `AWS_DEFAULT_REGION`. These can optionally be provided as parameters
-  in the `access_key`, `secret_key` and `region` variables
-  respectively, but passing credentials this way is not recommended since they
-  will be included in cleartext inside the persisted state.
+  AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+  `AWS_S3_ENDPOINT` and `AWS_DEFAULT_REGION`. These can optionally be provided
+  as parameters in the `access_key`, `secret_key`, `endpoint` and `region`
+  variables respectively, but passing credentials this way is not recommended
+  since they will be included in cleartext inside the persisted state.
   Other supported parameters include:
   * `bucket` - the name of the S3 bucket
   * `key` - path where to place/look for state file inside the bucket

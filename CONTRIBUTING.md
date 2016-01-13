@@ -47,6 +47,24 @@ it raises the chances we can quickly merge or address your contributions.
    the issue tracker clean. The issue is still indexed and available for
    future viewers, or can be re-opened if necessary.
 
+# Contributing to Terraform
+
+Thank you for contributing! We do have some requests that we ask you to include
+in your contribution 
+
+## Providers or Resources
+
+Contributions to Providers or their Resources need to be documented and include
+relevant acceptance tests. Information on setting up the terraform.io site
+locally can be found in the [website folder][1]
+of this repository, in the README. 
+
+Instructions on how to run acceptance tests can be found in our [README][2]
+in the root of this project. 
+
+If you have questions about this process, please checkout our [mailing list][3]
+or #terraform-tool on Freenode.
+
 ## Setting up Go to work on Terraform
 
 If you have never worked with Go before, you will have to complete the
@@ -71,3 +89,7 @@ use the Vagrantfile in this repo to stand up a dev VM).
 
 7. If everything works well and the tests pass, run `go fmt` on your code
    before submitting a pull request.
+
+[1]: https://github.com/hashicorp/terraform/tree/master/website
+[2]: https://github.com/hashicorp/terraform#acceptance-tests
+[3]: https://groups.google.com/group/terraform-tool
