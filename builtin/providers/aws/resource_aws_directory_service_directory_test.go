@@ -28,6 +28,38 @@ func TestAccAWSDirectoryServiceDirectory_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDirectoryServiceDirectory_microsoft(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDirectoryServiceDirectoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDirectoryServiceDirectoryConfig_microsoft,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceDirectoryExists("aws_directory_service_directory.bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDirectoryServiceDirectory_connector(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDirectoryServiceDirectoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDirectoryServiceDirectoryConfig_connector,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceDirectoryExists("aws_directory_service_directory.connector"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDirectoryServiceDirectory_withAliasAndSso(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -191,6 +223,76 @@ resource "aws_directory_service_directory" "bar" {
   name = "corp.notexample.com"
   password = "SuperSecretPassw0rd"
   size = "Small"
+
+  vpc_settings {
+    vpc_id = "${aws_vpc.main.id}"
+    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2a"
+  cidr_block = "10.0.1.0/24"
+}
+resource "aws_subnet" "bar" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2b"
+  cidr_block = "10.0.2.0/24"
+}
+`
+
+const testAccDirectoryServiceDirectoryConfig_connector = `
+resource "aws_directory_service_directory" "bar" {
+  name = "corp.notexample.com"
+  password = "SuperSecretPassw0rd"
+  size = "Small"
+
+  vpc_settings {
+    vpc_id = "${aws_vpc.main.id}"
+    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+  }
+}
+
+resource "aws_directory_service_directory" "connector" {
+  name = "corp.notexample.com"
+  password = "SuperSecretPassw0rd"
+  size = "Small"
+  type = "ADConnector"
+
+  connect_settings {
+    customer_dns_ips = ["${aws_directory_service_directory.bar.dns_ip_addresses}"]
+    customer_username = "Administrator"
+    vpc_id = "${aws_vpc.main.id}"
+    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2a"
+  cidr_block = "10.0.1.0/24"
+}
+resource "aws_subnet" "bar" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2b"
+  cidr_block = "10.0.2.0/24"
+}
+`
+
+const testAccDirectoryServiceDirectoryConfig_microsoft = `
+resource "aws_directory_service_directory" "bar" {
+  name = "corp.notexample.com"
+  password = "SuperSecretPassw0rd"
+  type = "MicrosoftAD"
 
   vpc_settings {
     vpc_id = "${aws_vpc.main.id}"
