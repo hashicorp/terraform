@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/arm/dns"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
@@ -24,6 +25,9 @@ type ArmClient struct {
 	vmExtensionClient      compute.VirtualMachineExtensionsClient
 	vmImageClient          compute.VirtualMachineImagesClient
 	vmClient               compute.VirtualMachinesClient
+
+	dnsZonesClient   dns.ZonesClient
+	dnsRecordsClient dns.RecordSetsClient
 
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
@@ -241,6 +245,18 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	suc.Authorizer = spt
 	suc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageUsageClient = suc
+
+	dnsz := dns.NewZonesClient(c.SubscriptionID)
+	setUserAgent(&dnsz.Client)
+	dnsz.Authorizer = spt
+	dnsz.Sender = autorest.CreateSender(withRequestLogging())
+	client.dnsZonesClient = dnsz
+
+	dnsr := dns.NewRecordSetsClient(c.SubscriptionID)
+	setUserAgent(&dnsr.Client)
+	dnsr.Authorizer = spt
+	dnsr.Sender = autorest.CreateSender(withRequestLogging())
+	client.dnsRecordsClient = dnsr
 
 	return &client, nil
 }
