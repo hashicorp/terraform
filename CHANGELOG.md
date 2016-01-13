@@ -16,6 +16,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
   * provider/aws: Add AWS Classiclink for AWS VPC resource [GH-3994]
   * provider/awS: Store instance state [GH-3261]
+  * provider/openstack: Add "personality" support to instance resource [GH-4623]
 
 BUG FIXES:
 
