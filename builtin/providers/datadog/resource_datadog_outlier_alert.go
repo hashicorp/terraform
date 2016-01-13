@@ -53,10 +53,6 @@ func resourceDatadogOutlierAlert() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"notify": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
 			"threshold": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -157,7 +153,7 @@ func buildOutlierAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 		Type:    "query alert",
 		Query:   query,
 		Name:    name,
-		Message: fmt.Sprintf("%s %s", message, d.Get("notify")),
+		Message: message,
 		Options: o,
 	}
 

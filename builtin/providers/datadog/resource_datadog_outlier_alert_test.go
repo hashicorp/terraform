@@ -21,7 +21,7 @@ func TestAccDatadogOutlierAlert_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_outlier_alert.foo", "name", "name for outlier_alert foo"),
 					resource.TestCheckResourceAttr(
-						"datadog_outlier_alert.foo", "message", "description for outlier_alert foo"),
+						"datadog_outlier_alert.foo", "message", "description for outlier_alert foo @hipchat-name"),
 					resource.TestCheckResourceAttr(
 						"datadog_outlier_alert.foo", "metric", "system.load.5"),
 					resource.TestCheckResourceAttr(
@@ -48,8 +48,6 @@ func TestAccDatadogOutlierAlert_Basic(t *testing.T) {
 						"datadog_outlier_alert.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
 						"datadog_outlier_alert.foo", "threshold", "2"),
-					resource.TestCheckResourceAttr(
-						"datadog_outlier_alert.foo", "notify", "@hipchat-<name>"),
 				),
 			},
 		},
@@ -78,7 +76,7 @@ func testAccCheckDatadogOutlierAlertExists(n string) resource.TestCheckFunc {
 const testAccCheckDatadogOutlierAlertConfigBasic = `
 resource "datadog_outlier_alert" "foo" {
   name = "name for outlier_alert foo"
-  message = "description for outlier_alert foo"
+  message = "description for outlier_alert foo @hipchat-name"
 
   algorithm = "mad"
 
@@ -91,7 +89,6 @@ resource "datadog_outlier_alert" "foo" {
   space_aggr = "avg" // avg, sum, min, or max
 
   threshold = 2.0
-  notify = "@hipchat-<name>"
 
   notify_no_data = false
   renotify_interval = 60

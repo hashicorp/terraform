@@ -27,10 +27,9 @@ func resourceDatadogServiceCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"check_count": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
+
+			"thresholds": thresholdSchema(),
+
 			"tags": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -110,11 +109,12 @@ func buildServiceCheckStruct(d *schema.ResourceData) *datadog.Monitor {
 	var query string
 
 	check := d.Get("check").(string)
-	checkCount := d.Get("check_count").(string)
 
 	// Examples queries
 	// "http.can_connect".over("instance:buildeng_http","production").last(2).count_by_status()
 	// "http.can_connect".over("*").by("host","instance","url").last(2).count_by_status()
+
+	checkCount, thresholds := getThresholds(d)
 
 	query = fmt.Sprintf("\"%s\".over(%s)%s.last(%s).count_by_status()", check, tagsParsed, keys, checkCount)
 	log.Print(fmt.Sprintf("[DEBUG] submitting query: %s", query))
@@ -124,13 +124,14 @@ func buildServiceCheckStruct(d *schema.ResourceData) *datadog.Monitor {
 		NotifyNoData:     d.Get("notify_no_data").(bool),
 		NoDataTimeframe:  d.Get("no_data_timeframe").(int),
 		RenotifyInterval: d.Get("renotify_interval").(int),
+		Thresholds:       thresholds,
 	}
 
 	m := datadog.Monitor{
 		Type:    "service check",
 		Query:   query,
 		Name:    monitorName,
-		Message: fmt.Sprintf("%s", message),
+		Message: message,
 		Options: o,
 	}
 

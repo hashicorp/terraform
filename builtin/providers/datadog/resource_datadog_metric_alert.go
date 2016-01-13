@@ -58,15 +58,7 @@ func resourceDatadogMetricAlert() *schema.Resource {
 				Required: true,
 			},
 
-			"threshold": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"notify": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
+			"thresholds": thresholdSchema(),
 
 			// Additional Settings
 			"notify_no_data": &schema.Schema{
@@ -132,6 +124,8 @@ func buildMetricAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 
 	keys := b.String()
 
+	threshold, thresholds := getThresholds(d)
+
 	operator := d.Get("operator").(string)
 	query := fmt.Sprintf("%s(%s):%s:%s{%s} %s %s %s", timeAggr,
 		timeWindow,
@@ -140,7 +134,7 @@ func buildMetricAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 		tagsParsed,
 		keys,
 		operator,
-		d.Get("threshold"))
+		threshold)
 
 	log.Print(fmt.Sprintf("[DEBUG] submitting query: %s", query))
 
@@ -148,13 +142,14 @@ func buildMetricAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 		NotifyNoData:     d.Get("notify_no_data").(bool),
 		NoDataTimeframe:  d.Get("no_data_timeframe").(int),
 		RenotifyInterval: d.Get("renotify_interval").(int),
+		Thresholds:       thresholds,
 	}
 
 	m := datadog.Monitor{
 		Type:    "metric alert",
 		Query:   query,
 		Name:    name,
-		Message: fmt.Sprintf("%s %s", message, d.Get("notify")),
+		Message: message,
 		Options: o,
 	}
 

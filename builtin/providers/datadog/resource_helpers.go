@@ -1,12 +1,57 @@
 package datadog
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/zorkian/go-datadog-api"
 	"strconv"
 	"strings"
 )
+
+func thresholdSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeMap,
+		Required: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"ok": &schema.Schema{
+					Type:     schema.TypeFloat,
+					Optional: true,
+				},
+				"warning": &schema.Schema{
+					Type:     schema.TypeFloat,
+					Optional: true,
+				},
+				"critical": &schema.Schema{
+					Type:     schema.TypeFloat,
+					Required: true,
+				},
+			},
+		},
+	}
+}
+
+func getThresholds(d *schema.ResourceData) (string, datadog.ThresholdCount) {
+	t := datadog.ThresholdCount{}
+
+	var threshold string
+
+	if r, ok := d.GetOk("thresholds.ok"); ok {
+		t.Ok = json.Number(r.(string))
+	}
+
+	if r, ok := d.GetOk("thresholds.warning"); ok {
+		t.Warning = json.Number(r.(string))
+	}
+
+	if r, ok := d.GetOk("thresholds.critical"); ok {
+		threshold = r.(string)
+		t.Critical = json.Number(r.(string))
+	}
+
+	return threshold, t
+}
 
 func resourceDatadogGenericDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*datadog.Client)
@@ -27,6 +72,14 @@ func resourceDatadogGenericExists(d *schema.ResourceData, meta interface{}) (b b
 	// Exists - This is called to verify a resource still exists. It is called prior to Read,
 	// and lowers the burden of Read to be able to assume the resource exists.
 	client := meta.(*datadog.Client)
+
+	// Workaround to handle upgrades from < 0.0.4
+	if strings.Contains(d.Id(), "__") {
+		return false, fmt.Errorf("Monitor ID contains __, which is pre v0.0.4 old behaviour.\n    You have the following options:\n" +
+			"    * Run https://github.com/ojongerius/terraform-provider-datadog/blob/master/scripts/migration_helper.py to generate a new statefile and clean up monitors\n" +
+			"    * Mannualy fix this by deleting all your metric_check resources and recreate them, " +
+			"or manually remove half of the resources and hack the state file.\n")
+	}
 
 	i, err := strconv.Atoi(d.Id())
 	if err != nil {

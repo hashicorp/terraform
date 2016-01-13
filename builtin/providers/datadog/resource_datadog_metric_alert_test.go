@@ -21,7 +21,10 @@ func TestAccDatadogMetricAlert_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_metric_alert.foo", "name", "name for metric_alert foo"),
 					resource.TestCheckResourceAttr(
-						"datadog_metric_alert.foo", "message", "description for metric_alert foo"),
+						"datadog_metric_alert.foo", "message", "{{#is_alert}}Metric alert foo is critical"+
+							"{{/is_alert}}\n{{#is_warning}}Metric alert foo is at warning "+
+							"level{{/is_warning}}\n{{#is_recovery}}Metric alert foo has "+
+							"recovered{{/is_recovery}}\nNotify: @hipchat-channel\n"),
 					resource.TestCheckResourceAttr(
 						"datadog_metric_alert.foo", "metric", "aws.ec2.cpu"),
 					resource.TestCheckResourceAttr(
@@ -41,15 +44,17 @@ func TestAccDatadogMetricAlert_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_metric_alert.foo", "space_aggr", "avg"),
 					resource.TestCheckResourceAttr(
-						"datadog_metric_alert.foo", "operator", "<"),
+						"datadog_metric_alert.foo", "operator", ">"),
 					resource.TestCheckResourceAttr(
 						"datadog_metric_alert.foo", "notify_no_data", "false"),
 					resource.TestCheckResourceAttr(
 						"datadog_metric_alert.foo", "renotify_interval", "60"),
 					resource.TestCheckResourceAttr(
-						"datadog_metric_alert.foo", "notify", "@hipchat-<name>"),
+						"datadog_metric_alert.foo", "thresholds.ok", "0"),
 					resource.TestCheckResourceAttr(
-						"datadog_metric_alert.foo", "threshold", "1"),
+						"datadog_metric_alert.foo", "thresholds.warning", "1"),
+					resource.TestCheckResourceAttr(
+						"datadog_metric_alert.foo", "thresholds.critical", "2"),
 				),
 			},
 		},
@@ -78,7 +83,12 @@ func testAccCheckDatadogMetricAlertExists(n string) resource.TestCheckFunc {
 const testAccCheckDatadogMetricAlertConfigBasic = `
 resource "datadog_metric_alert" "foo" {
   name = "name for metric_alert foo"
-  message = "description for metric_alert foo"
+  message           = <<EOF
+{{#is_alert}}Metric alert foo is critical{{/is_alert}}
+{{#is_warning}}Metric alert foo is at warning level{{/is_warning}}
+{{#is_recovery}}Metric alert foo has recovered{{/is_recovery}}
+Notify: @hipchat-channel
+EOF
 
   metric = "aws.ec2.cpu"
   tags = ["environment:foo", "host:foo"]
@@ -87,10 +97,13 @@ resource "datadog_metric_alert" "foo" {
   time_aggr = "avg" // avg, sum, max, min, change, or pct_change
   time_window = "last_1h" // last_#m (5, 10, 15, 30), last_#h (1, 2, 4), or last_1d
   space_aggr = "avg" // avg, sum, min, or max
-  operator = "<" // <, <=, >, >=, ==, or !=
+  operator = ">" // <, <=, >, >=, ==, or !=
 
-  threshold = 1
-  notify = "@hipchat-<name>"
+  thresholds {
+	ok = 0
+	warning = 1
+	critical = 2
+  }
 
   notify_no_data = false
   renotify_interval = 60

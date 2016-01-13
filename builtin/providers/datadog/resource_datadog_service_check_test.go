@@ -21,7 +21,10 @@ func TestAccDatadogServiceCheck_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_service_check.bar", "name", "name for service check bar"),
 					resource.TestCheckResourceAttr(
-						"datadog_service_check.bar", "message", "description for service check bar"),
+						"datadog_service_check.bar", "message", "{{#is_alert}}Service check bar is critical"+
+							"{{/is_alert}}\n{{#is_warning}}Service check bar is at warning "+
+							"level{{/is_warning}}\n{{#is_recovery}}Service check bar has "+
+							"recovered{{/is_recovery}}\nNotify: @hipchat-channel\n"),
 					resource.TestCheckResourceAttr(
 						"datadog_service_check.bar", "check", "datadog.agent.up"),
 					resource.TestCheckResourceAttr(
@@ -38,6 +41,12 @@ func TestAccDatadogServiceCheck_Basic(t *testing.T) {
 						"datadog_service_check.bar", "keys.1", "bar"),
 					resource.TestCheckResourceAttr(
 						"datadog_service_check.bar", "keys.#", "2"),
+					resource.TestCheckResourceAttr(
+						"datadog_service_check.bar", "thresholds.ok", "0"),
+					resource.TestCheckResourceAttr(
+						"datadog_service_check.bar", "thresholds.warning", "1"),
+					resource.TestCheckResourceAttr(
+						"datadog_service_check.bar", "thresholds.critical", "2"),
 				),
 			},
 		},
@@ -66,11 +75,21 @@ func testAccCheckDatadogServiceCheckExists(n string) resource.TestCheckFunc {
 const testAccCheckDatadogServiceCheckConfigBasic = `
 resource "datadog_service_check" "bar" {
   name = "name for service check bar"
-  message = "description for service check bar"
+  message           = <<EOF
+{{#is_alert}}Service check bar is critical{{/is_alert}}
+{{#is_warning}}Service check bar is at warning level{{/is_warning}}
+{{#is_recovery}}Service check bar has recovered{{/is_recovery}}
+Notify: @hipchat-channel
+EOF
   tags = ["environment:foo", "host:bar"]
   keys = ["foo", "bar"]
   check = "datadog.agent.up"
-  check_count = 3
+
+  thresholds {
+	ok = 0
+	warning = 1
+	critical = 2
+  }
 
   notify_no_data = false
 }
