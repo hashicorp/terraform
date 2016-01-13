@@ -31,11 +31,16 @@ func TestAccAWSELB_basic(t *testing.T) {
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
 					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "3"),
+					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.2050015877", "us-west-2c"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "subnets.#", "3"),
+					// NOTE: Subnet IDs are different across AWS accounts and cannot be checked.
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.206423021.instance_port", "8000"),
 					resource.TestCheckResourceAttr(
@@ -130,6 +135,45 @@ func TestAccAWSELB_generatedName(t *testing.T) {
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestMatchResourceAttr(
 						"aws_elb.foo", "name", generatedNameRegexp),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_availabilityZones(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "3"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2050015877", "us-west-2c"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfig_AvailabilityZonesUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
 				),
 			},
 		},
@@ -773,6 +817,19 @@ resource "aws_elb" "foo" {
 const testAccAWSELBGeneratedName = `
 resource "aws_elb" "foo" {
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+
+const testAccAWSELBConfig_AvailabilityZonesUpdate = `
+resource "aws_elb" "bar" {
+  availability_zones = ["us-west-2a", "us-west-2b"]
 
   listener {
     instance_port = 8000
