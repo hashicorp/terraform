@@ -320,9 +320,6 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 	if defaultAvailabilityZone, ok := d.GetOk("default_availability_zone"); ok {
 		req.DefaultAvailabilityZone = aws.String(defaultAvailabilityZone.(string))
 	}
-	if color, ok := d.GetOk("color"); ok {
-		req.Attributes["Color"] = aws.String(color.(string))
-	}
 
 	log.Printf("[DEBUG] Creating OpsWorks stack: %s", req)
 
