@@ -25,6 +25,7 @@ BUG FIXES:
   * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
   * provider/google: Clarify SQL Database Instance recent name restriction [GH-4577]
   * provider/aws: Error with empty list item on security group [GH-4140]
+  * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
 
 ## 0.6.9 (January 8, 2016)
 
