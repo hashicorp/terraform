@@ -22,6 +22,7 @@ IMPROVEMENTS:
     and Directory Connectors [GH-4388]
   * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3139]
   * provider/openstack: Add "personality" support to instance resource [GH-4623]
+  * provider/google: Add content field to bucket object [GH-3893]
 
 BUG FIXES:
 
