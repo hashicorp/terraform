@@ -16,11 +16,12 @@ IMPROVEMENTS:
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
   * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
   * provider/aws: Add AWS Classiclink for AWS VPC resource [GH-3994]
-  * provider/awS: Store instance state [GH-3261]
-  * provider/openstack: Add "personality" support to instance resource [GH-4623]
+  * provider/aws: Store instance state [GH-3261]
+  * provider/aws: Add support for updating ELB availability zones and subnets [GH-4597]
   * provider/aws: Add support for creating Managed Microsoft Active Directory 
     and Directory Connectors [GH-4388]
   * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3139]
+  * provider/openstack: Add "personality" support to instance resource [GH-4623]
 
 BUG FIXES:
 
