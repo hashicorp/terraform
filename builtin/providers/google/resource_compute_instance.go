@@ -137,8 +137,12 @@ func resourceComputeInstance() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"nat_ip": &schema.Schema{
 										Type:     schema.TypeString,
-										Computed: true,
 										Optional: true,
+									},
+
+									"assigned_nat_ip": &schema.Schema{
+										Type:     schema.TypeString,
+										Computed: true,
 									},
 								},
 							},
@@ -637,9 +641,10 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			var natIP string
 			accessConfigs := make(
 				[]map[string]interface{}, 0, len(iface.AccessConfigs))
-			for _, config := range iface.AccessConfigs {
+			for j, config := range iface.AccessConfigs {
 				accessConfigs = append(accessConfigs, map[string]interface{}{
-					"nat_ip": config.NatIP,
+					"nat_ip":          d.Get(fmt.Sprintf("network_interface.%d.access_config.%d.nat_ip", i, j)),
+					"assigned_nat_ip": config.NatIP,
 				})
 
 				if natIP == "" {
