@@ -7,6 +7,7 @@ FEATURES:
   * **New resource: `azurerm_network_interface`** [GH-4598]
   * **New resource: `azurerm_route_table`** [GH-4602]
   * **New resource: `azurerm_route`** [GH-4604]
+  * **New resource: `aws_lambda_alias`** [GH-4664]
 
 IMPROVEMENTS:
 
