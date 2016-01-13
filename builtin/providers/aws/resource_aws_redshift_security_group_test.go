@@ -123,7 +123,7 @@ func testAccCheckAWSRedshiftSecurityGroupDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if newerr.Code() != "InvalidRedshiftSecurityGroup.NotFound" {
+		if newerr.Code() != "ClusterSecurityGroupNotFound" {
 			return err
 		}
 	}

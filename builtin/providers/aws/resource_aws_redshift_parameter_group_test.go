@@ -137,7 +137,7 @@ func testAccCheckAWSRedshiftParameterGroupDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if newerr.Code() != "InvalidRedshiftParameterGroup.NotFound" {
+		if newerr.Code() != "ClusterParameterGroupNotFound" {
 			return err
 		}
 	}
