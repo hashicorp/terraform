@@ -18,6 +18,8 @@ IMPROVEMENTS:
   * provider/aws: Add AWS Classiclink for AWS VPC resource [GH-3994]
   * provider/awS: Store instance state [GH-3261]
   * provider/openstack: Add "personality" support to instance resource [GH-4623]
+  * provider/aws: Add support for creating Managed Microsoft Active Directory 
+    and Directory Connectors [GH-4388]
 
 BUG FIXES:
 
