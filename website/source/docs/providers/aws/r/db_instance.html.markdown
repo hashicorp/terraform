@@ -48,8 +48,8 @@ the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/Com
 
 The following arguments are supported:
 
-* `allocated_storage` - (Required) The allocated storage in gigabytes.
-* `engine` - (Required) The database engine to use.
+* `allocated_storage` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) The allocated storage in gigabytes.
+* `engine` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) The database engine to use.
 * `engine_version` - (Optional) The engine version to use.
 * `identifier` - (Required) The name of the RDS instance
 * `instance_class` - (Required) The instance type of the RDS instance.
@@ -65,9 +65,9 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
 `false`
 * `name` - (Optional) The DB name to create. If omitted, no database is created
     initially.
-* `password` - (Required) Password for the master DB user. Note that this may
+* `password` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) Password for the master DB user. Note that this may
     show up in logs, and it will be stored in the state file.
-* `username` - (Required) Username for the master DB user.
+* `username` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) Username for the master DB user.
 * `availability_zone` - (Optional) The AZ for the RDS instance.
 * `backup_retention_period` - (Optional) The days to retain backups for. Must be
 `1` or greater to be a source for a [Read Replica][1].
