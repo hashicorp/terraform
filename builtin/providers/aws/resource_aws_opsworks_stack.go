@@ -304,9 +304,10 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 
 	req := &opsworks.CreateStackInput{
 		DefaultInstanceProfileArn: aws.String(d.Get("default_instance_profile_arn").(string)),
-		Name:           aws.String(d.Get("name").(string)),
-		Region:         aws.String(d.Get("region").(string)),
-		ServiceRoleArn: aws.String(d.Get("service_role_arn").(string)),
+		Name:                      aws.String(d.Get("name").(string)),
+		Region:                    aws.String(d.Get("region").(string)),
+		ServiceRoleArn:            aws.String(d.Get("service_role_arn").(string)),
+		UseOpsworksSecurityGroups: aws.Bool(d.Get("use_opsworks_security_groups").(bool)),
 	}
 	inVpc := false
 	if vpcId, ok := d.GetOk("vpc_id"); ok {
@@ -356,7 +357,7 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 	d.SetId(stackId)
 	d.Set("id", stackId)
 
-	if inVpc {
+	if inVpc && *req.UseOpsworksSecurityGroups {
 		// For VPC-based stacks, OpsWorks asynchronously creates some default
 		// security groups which must exist before layers can be created.
 		// Unfortunately it doesn't tell us what the ids of these are, so
@@ -447,7 +448,10 @@ func resourceAwsOpsworksStackDelete(d *schema.ResourceData, meta interface{}) er
 	// wait for the security groups to be deleted.
 	// There is no robust way to check for this, so we'll just wait a
 	// nominal amount of time.
-	if _, ok := d.GetOk("vpc_id"); ok {
+	_, inVpc := d.GetOk("vpc_id")
+	_, useOpsworksDefaultSg := d.GetOk("use_opsworks_security_group")
+
+	if inVpc && useOpsworksDefaultSg {
 		log.Print("[INFO] Waiting for Opsworks built-in security groups to be deleted")
 		time.Sleep(30 * time.Second)
 	}
