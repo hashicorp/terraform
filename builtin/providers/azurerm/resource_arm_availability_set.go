@@ -52,7 +52,7 @@ func resourceArmAvailabilitySet() *schema.Resource {
 					value := v.(int)
 					if value > 3 {
 						errors = append(errors, fmt.Errorf(
-							"Maximum value for `platform_fault_domain_count` is 3", k))
+							"Maximum value for (%s) is 3", k))
 					}
 					return
 				},
