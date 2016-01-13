@@ -87,7 +87,12 @@ The following backends are supported:
   variables. Generic HTTP repositories are supported, and state from different
   configurations may be kept at different subpaths within the repository. The URL
   must include the path to the Artifactory installation - it will likely end in
-  `/artifactory`.
+  `/artifactory`. Alternately the following environment variables can be used in
+  place of hard-coded values:
+  * `ARTIFACTORY_USERNAME`
+  * `ARTIFACTORY_PASSWORD`
+  * `ARTIFACTORY_URL` (note that this is the base url to artifactory not the full repo and subpath)
+
 
 * HTTP - Stores the state using a simple REST client. State will be fetched
   via GET, updated via POST, and purged with DELETE. Requires the `address` variable.
