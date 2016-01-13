@@ -8,6 +8,10 @@ FEATURES:
   * **New resource: `azurerm_route_table`** [GH-4602]
   * **New resource: `azurerm_route`** [GH-4604]
   * **New resource: `aws_lambda_alias`** [GH-4664]
+  * **New resource: `aws_redshift_cluster`** [GH-3862]
+  * **New resource: `aws_redshift_security_group`** [GH-3862]
+  * **New resource: `aws_redshift_parameter_group`** [GH-3862]
+  * **New resource: `aws_redshift_subnet_group`** [GH-3862]
 
 IMPROVEMENTS:
 
