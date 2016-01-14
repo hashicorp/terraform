@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccCloudFront(t *testing.T) {
+func TestAccAWSCloudFront_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -21,7 +21,7 @@ func TestAccCloudFront(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSCloudFrontConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudfrontInitial(
+					testAccCheckCloudfrontExistance(
 						"aws_cloudfront_web_distribution.main",
 					),
 				),
@@ -29,7 +29,13 @@ func TestAccCloudFront(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSCloudFrontUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudfrontSecondary(
+					testAccCheckCloudfrontExistance(
+						"aws_cloudfront_web_distribution.main",
+					),
+					testAccCheckCloudfrontCheckDistributionDisabled(
+						"aws_cloudfront_web_distribution.main",
+					),
+					testAccCheckCloudfrontCheckDistributionAlias(
 						"aws_cloudfront_web_distribution.main",
 					),
 				),
@@ -46,60 +52,60 @@ func testAccCheckCloudFrontDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckCloudfrontInitial(cloudFrontResource string) resource.TestCheckFunc {
+func testAccCheckCloudfrontExistance(cloudFrontResource string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cloudFront, ok := s.RootModule().Resources[cloudFrontResource]
-		if !ok {
-			return fmt.Errorf("Not found: %s", cloudFrontResource)
-		}
+		_, err := testAccAuxCloudfrontGetDistributionConfig(s, cloudFrontResource)
 
-		if cloudFront.Primary.ID == "" {
-			return fmt.Errorf("No Id is set")
-		}
+		return err
+	}
+}
 
-		cloudfrontconn := testAccProvider.Meta().(*AWSClient).cloudfrontconn
+func testAccCheckCloudfrontCheckDistributionDisabled(cloudFrontResource string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		dist, _ := testAccAuxCloudfrontGetDistributionConfig(s, cloudFrontResource)
 
-		req := &cloudfront.GetDistributionInput{
-			Id: aws.String(cloudFront.Primary.ID),
-		}
-
-		_, err := cloudfrontconn.GetDistribution(req)
-		if err != nil {
-			return fmt.Errorf("Error retrieving CloudFront distribution: %s", err)
+		if *dist.DistributionConfig.Enabled != false {
+			return fmt.Errorf("CloudFront distribution should be disabled")
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckCloudfrontSecondary(cloudFrontResource string) resource.TestCheckFunc {
+func testAccCheckCloudfrontCheckDistributionAlias(cloudFrontResource string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		cloudFront, ok := s.RootModule().Resources[cloudFrontResource]
-		if !ok {
-			return fmt.Errorf("Not found: %s", cloudFrontResource)
-		}
+		dist, _ := testAccAuxCloudfrontGetDistributionConfig(s, cloudFrontResource)
 
-		cloudfrontconn := testAccProvider.Meta().(*AWSClient).cloudfrontconn
-
-		req := &cloudfront.GetDistributionInput{
-			Id: aws.String(cloudFront.Primary.ID),
-		}
-
-		res, err := cloudfrontconn.GetDistribution(req)
-		if err != nil {
-			return fmt.Errorf("Error retrieving CloudFront distribution: %s", err)
-		}
-
-		if len(res.Distribution.DistributionConfig.Aliases.Items) != 1 {
+		if len(dist.DistributionConfig.Aliases.Items) != 1 {
 			return fmt.Errorf("CloudFront failed updating aliases")
-		}
-
-		if *res.Distribution.DistributionConfig.Enabled != false {
-			return fmt.Errorf("CloudFront failed updating enabled status")
 		}
 
 		return nil
 	}
+}
+
+func testAccAuxCloudfrontGetDistributionConfig(s *terraform.State, cloudFrontResource string) (*cloudfront.Distribution, error) {
+	cf, ok := s.RootModule().Resources[cloudFrontResource]
+	if !ok {
+		return nil, fmt.Errorf("Not found: %s", cloudFrontResource)
+	}
+
+	if cf.Primary.ID == "" {
+		return nil, fmt.Errorf("No Id is set")
+	}
+
+	cloudfrontconn := testAccProvider.Meta().(*AWSClient).cloudfrontconn
+
+	req := &cloudfront.GetDistributionInput{
+		Id: aws.String(cf.Primary.ID),
+	}
+
+	res, err := cloudfrontconn.GetDistribution(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving CloudFront distribution: %s", err)
+	}
+
+	return res.Distribution, nil
 }
 
 const testAccAWSCloudFrontConfig = `
