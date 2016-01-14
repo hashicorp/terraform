@@ -55,4 +55,4 @@ The following arguments are supported:
 * `roles` - The list of roles assigned to the instance profile.
 * `unique_id` - The [unique ID][1] assigned by AWS.
 
-  [1]: http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html#GUIDs
+  [1]: https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html#GUIDs
