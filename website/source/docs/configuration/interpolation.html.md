@@ -124,7 +124,7 @@ The supported built-in functions are:
 
   * `format(format, args...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
-      Good documentation for the syntax can be [found here](http://golang.org/pkg/fmt/).
+      Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 

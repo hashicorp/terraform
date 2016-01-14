@@ -77,9 +77,9 @@ The following backends are supported:
   Other supported parameters include:
   * `bucket` - the name of the S3 bucket
   * `key` - path where to place/look for state file inside the bucket
-  * `encrypt` - whether to enable [server side encryption](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
+  * `encrypt` - whether to enable [server side encryption](https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
     of the state file
-  * `acl` - [Canned ACL](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl)
+  * `acl` - [Canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl)
     to be applied to the state file.
 
 * Artifactory - Stores the state as an artifact in a given repository in

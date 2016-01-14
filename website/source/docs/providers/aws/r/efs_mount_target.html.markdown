@@ -8,7 +8,7 @@ description: |-
 
 # aws\_efs\_mount\_target
 
-Provides an EFS mount target. Per [documentation](http://docs.aws.amazon.com/efs/latest/ug/limits.html)
+Provides an EFS mount target. Per [documentation](https://docs.aws.amazon.com/efs/latest/ug/limits.html)
 the limit is 1 mount target per AZ for a single EFS file system.
 
 ## Example Usage

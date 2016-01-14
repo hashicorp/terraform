@@ -8,11 +8,11 @@ description: |-
 
 # aws\_key\_pair
 
-Provides an [EC2 key pair](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html) resource. A key pair is used to control login access to EC2 instances. 
+Provides an [EC2 key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html) resource. A key pair is used to control login access to EC2 instances. 
 
 Currently this resource only supports importing an existing key pair, not creating a new key pair.
 
-When importing an existing key pair the public key material may be in any format supported by AWS. Supported formats (per the [AWS documentation](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#how-to-generate-your-own-key-and-import-it-to-aws)) are:
+When importing an existing key pair the public key material may be in any format supported by AWS. Supported formats (per the [AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#how-to-generate-your-own-key-and-import-it-to-aws)) are:
 
 * OpenSSH public key format (the format in ~/.ssh/authorized_keys)
 * Base64 encoded DER format
