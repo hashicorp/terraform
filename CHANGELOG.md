@@ -40,6 +40,7 @@ BUG FIXES:
   * provider/google: Split Instance network interface into two fields [GH-4265]
   * provider/aws: Error with empty list item on security group [GH-4140]
   * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
+  * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
 
 ## 0.6.9 (January 8, 2016)
 
