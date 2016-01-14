@@ -12,6 +12,7 @@ FEATURES:
   * **New resource: `aws_redshift_security_group`** [GH-3862]
   * **New resource: `aws_redshift_parameter_group`** [GH-3862]
   * **New resource: `aws_redshift_subnet_group`** [GH-3862]
+  * **New resource: `docker_network`** [GH-4483]
   * **New resource: `google_sql_user`** [GH-4669]
 
 IMPROVEMENTS:
