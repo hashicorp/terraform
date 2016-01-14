@@ -40,11 +40,8 @@ func testAccCheckPacketSSHKeyDestroy(s *terraform.State) error {
 		if rs.Type != "packet_ssh_key" {
 			continue
 		}
-
-		_, _, err := client.SSHKeys.Get(rs.Primary.ID)
-
-		if err == nil {
-			fmt.Errorf("SSH key still exists")
+		if _, _, err := client.SSHKeys.Get(rs.Primary.ID); err == nil {
+			return fmt.Errorf("SSH key still exists")
 		}
 	}
 
@@ -53,11 +50,9 @@ func testAccCheckPacketSSHKeyDestroy(s *terraform.State) error {
 
 func testAccCheckPacketSSHKeyAttributes(key *packngo.SSHKey) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
 		if key.Label != "foobar" {
 			return fmt.Errorf("Bad name: %s", key.Label)
 		}
-
 		return nil
 	}
 }
@@ -65,11 +60,9 @@ func testAccCheckPacketSSHKeyAttributes(key *packngo.SSHKey) resource.TestCheckF
 func testAccCheckPacketSSHKeyExists(n string, key *packngo.SSHKey) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
-
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
-
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Record ID is set")
 		}
@@ -77,11 +70,9 @@ func testAccCheckPacketSSHKeyExists(n string, key *packngo.SSHKey) resource.Test
 		client := testAccProvider.Meta().(*packngo.Client)
 
 		foundKey, _, err := client.SSHKeys.Get(rs.Primary.ID)
-
 		if err != nil {
 			return err
 		}
-
 		if foundKey.ID != rs.Primary.ID {
 			return fmt.Errorf("SSh Key not found: %v - %v", rs.Primary.ID, foundKey)
 		}

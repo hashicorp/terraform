@@ -13,7 +13,7 @@ type Config struct {
 	AuthToken string
 }
 
-// Client() returns a new client for accessing packet.
+// Client() returns a new client for accessing Packet's API.
 func (c *Config) Client() *packngo.Client {
 	return packngo.NewClient(consumerToken, c.AuthToken, cleanhttp.DefaultClient())
 }
