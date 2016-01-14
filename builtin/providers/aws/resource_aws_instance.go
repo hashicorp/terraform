@@ -145,6 +145,7 @@ func resourceAwsInstance() *schema.Resource {
 			"ebs_optimized": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"disable_api_termination": &schema.Schema{
