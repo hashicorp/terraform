@@ -48,6 +48,16 @@ func (g *Graph) Edges() []Edge {
 	return result
 }
 
+// HasVertex checks if the given Vertex is present in the graph.
+func (g *Graph) HasVertex(v Vertex) bool {
+	return g.vertices.Include(v)
+}
+
+// HasEdge checks if the given Edge is present in the graph.
+func (g *Graph) HasEdge(e Edge) bool {
+	return g.edges.Include(e)
+}
+
 // Add adds a vertex to the graph. This is safe to call multiple time with
 // the same Vertex.
 func (g *Graph) Add(v Vertex) Vertex {
