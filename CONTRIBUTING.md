@@ -261,6 +261,206 @@ acceptance tests and run them for you on our side. This might mean that your PR
 takes a bit longer to merge, but it most definitely is not a blocker for
 contributions.
 
+#### Running an Acceptance Test
+
+Acceptance tests can be run using the `testacc` target in the Terraform
+`Makefile`. The individual tests to run can be controlled using a regular
+expression. Prior to running the tests provider configuration details such as
+access keys must be made available as environment variables.
+
+For example, to run an acceptance test against the Azure Resource Manager
+provider, the following environment variables must be set:
+
+```sh
+export ARM_SUBSCRIPTION_ID=...
+export ARM_CLIENT_ID=...
+export ARM_CLIENT_SECRET=...
+export ARM_TENANT_ID=...
+```
+
+Tests can then be run by specifying the target provider and a regular
+expression defining the tests to run:
+
+```sh
+$ make testacc TEST=./builtin/providers/azurerm TESTARGS='-run=TestAccAzureRMPublicIpStatic_update'
+==> Checking that code complies with gofmt requirements...
+go generate ./...
+TF_ACC=1 go test ./builtin/providers/azurerm -v -run=TestAccAzureRMPublicIpStatic_update -timeout 120m
+=== RUN   TestAccAzureRMPublicIpStatic_update
+--- PASS: TestAccAzureRMPublicIpStatic_update (177.48s)
+PASS
+ok      github.com/hashicorp/terraform/builtin/providers/azurerm    177.504s
+```
+
+Entire resource test suites can be targeted by using the naming convention to
+write the regular expression. For example, to run all tests of the
+`azurerm_public_ip` resource rather than just the update test, you can start
+testing like this:
+
+```sh
+$ make testacc TEST=./builtin/providers/azurerm TESTARGS='-run=TestAccAzureRMPublicIpStatic'
+==> Checking that code complies with gofmt requirements...
+go generate ./...
+TF_ACC=1 go test ./builtin/providers/azurerm -v -run=TestAccAzureRMPublicIpStatic -timeout 120m
+=== RUN   TestAccAzureRMPublicIpStatic_basic
+--- PASS: TestAccAzureRMPublicIpStatic_basic (137.74s)
+=== RUN   TestAccAzureRMPublicIpStatic_update
+--- PASS: TestAccAzureRMPublicIpStatic_update (180.63s)
+PASS
+ok      github.com/hashicorp/terraform/builtin/providers/azurerm    318.392s
+```
+
+#### Writing an Acceptance Test
+
+Terraform has a framework for writing acceptance tests which minimises the
+amount of boilerplate code necessary to use common testing patterns. The entry
+point to the framework is the `resource.Test()` function.
+
+Tests are divided into `TestStep`s. Each `TestStep` proceeds by applying some
+Terraform configuration using the provider under test, and then verifying that
+results are as expected by making assertions using the provider API. It is
+common for a single test function to excercise both the creation of and updates
+to a single resource. Most tests follow a similar structure.
+
+1. Pre-flight checks are made to ensure that sufficient provider configuration
+   is available to be able to proceed - for example in an acceptance test
+   targetting AWS, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_KEY` must be set prior
+   to running acceptance tests. This is common to all tests exercising a single
+   provider.
+
+Each `TestStep` is defined in the call to `resource.Test()`. Most assertion
+functions are defined out of band with the tests. This keeps the tests
+readable, and allows reuse of assertion functions across different tests of the
+same type of resource. The definition of a complete test looks like this:
+
+```go
+func TestAccAzureRMPublicIpStatic_update(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMVPublicIpStatic_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+				),
+			},
+        },
+    })
+}
+```
+
+When executing the test, the the following steps are taken for each `TestStep`:
+
+1. The Terraform configuration required for the test is applied. This is
+   responsible for configuring the resource under test, and any dependencies it
+   may have. For example, to test the `azurerm_public_ip` resource, an
+   `azurerm_resource_group` is required. This results in configuration which
+   looks like this:
+
+    ```hcl
+    resource "azurerm_resource_group" "test" {
+        name = "acceptanceTestResourceGroup1"
+        location = "West US"
+    }
+
+    resource "azurerm_public_ip" "test" {
+        name = "acceptanceTestPublicIp1"
+        location = "West US"
+        resource_group_name = "${azurerm_resource_group.test.name}"
+        public_ip_address_allocation = "static"
+    }
+    ```
+
+1. Assertions are run using the provider API. These use the provider API
+   directly rather than asserting against the resource state. For example, to
+   verify that the `azurerm_public_ip` described above was created
+   successfully, a test function like this is used:
+
+    ```go
+    func testCheckAzureRMPublicIpExists(name string) resource.TestCheckFunc {
+        return func(s *terraform.State) error {
+            // Ensure we have enough information in state to look up in API
+            rs, ok := s.RootModule().Resources[name]
+            if !ok {
+                return fmt.Errorf("Not found: %s", name)
+            }
+
+            publicIPName := rs.Primary.Attributes["name"]
+            resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+            if !hasResourceGroup {
+                return fmt.Errorf("Bad: no resource group found in state for public ip: %s", availSetName)
+            }
+
+            conn := testAccProvider.Meta().(*ArmClient).publicIPClient
+
+            resp, err := conn.Get(resourceGroup, publicIPName, "")
+            if err != nil {
+                return fmt.Errorf("Bad: Get on publicIPClient: %s", err)
+            }
+
+            if resp.StatusCode == http.StatusNotFound {
+                return fmt.Errorf("Bad: Public IP %q (resource group: %q) does not exist", name, resourceGroup)
+            }
+
+            return nil
+        }
+    }
+    ```
+
+   Notice that the only information used from the Terraform state is the ID of
+   the resource - though in this case it is necessary to split the ID into
+   constituent parts in order to use the provider API. For computed properties,
+   we instead assert that the value saved in the Terraform state was the
+   expected value if possible. The testing framework providers helper functions
+   for several common types of check - for example:
+
+    ```go
+    resource.TestCheckResourceAttr("azurerm_public_ip.test", "domain_name_label", "mylabel01"),
+    ```
+
+1. The resources created by the test are destroyed. This step happens
+   automatically, and is the equivalent of calling `terraform destroy`.
+
+1. Assertions are made against the provider API to verify that the resources
+   have indeed been removed. If these checks fail, the test fails and reports
+   "dangling resources". The code to ensure that the `azurerm_public_ip` shown
+   above looks like this:
+
+    ```go
+    func testCheckAzureRMPublicIpDestroy(s *terraform.State) error {
+        conn := testAccProvider.Meta().(*ArmClient).publicIPClient
+
+        for _, rs := range s.RootModule().Resources {
+            if rs.Type != "azurerm_public_ip" {
+                continue
+            }
+
+            name := rs.Primary.Attributes["name"]
+            resourceGroup := rs.Primary.Attributes["resource_group_name"]
+
+            resp, err := conn.Get(resourceGroup, name, "")
+
+            if err != nil {
+                return nil
+            }
+
+            if resp.StatusCode != http.StatusNotFound {
+                return fmt.Errorf("Public IP still exists:\n%#v", resp.Properties)
+            }
+        }
+
+        return nil
+    }
+    ```
+
+   These functions usually test only for the resource directly under test: we
+   skip the check that the `azurerm_resource_group` has been destroyed when
+   testing `azurerm_resource_group`, under the assumption that
+   `azurerm_resource_group` is tested independently in its own acceptance
+   tests.
+
 [website]: https://github.com/hashicorp/terraform/tree/master/website
 [acctests]: https://github.com/hashicorp/terraform#acceptance-tests
 [ml]: https://groups.google.com/group/terraform-tool
