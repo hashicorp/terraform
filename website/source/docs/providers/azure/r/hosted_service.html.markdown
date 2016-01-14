@@ -29,7 +29,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the hosted service. Must be unique on Azure.
 
 * `location` - (Required) The location where the hosted service should be created.
-    For a list of all Azure locations, please consult [this link](http://azure.microsoft.com/en-us/regions/).
+    For a list of all Azure locations, please consult [this link](https://azure.microsoft.com/en-us/regions/).
 
 * `ephemeral_contents` - (Required) A boolean value (true|false), specifying
     whether all the resources present in the hosted hosted service should be

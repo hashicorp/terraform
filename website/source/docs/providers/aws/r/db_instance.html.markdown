@@ -8,19 +8,19 @@ description: |-
 
 # aws\_db\_instance
 
-Provides an RDS instance resource.  A DB instance is an isolated database 
-environment in the cloud.  A DB instance can contain multiple user-created 
-databases. 
+Provides an RDS instance resource.  A DB instance is an isolated database
+environment in the cloud.  A DB instance can contain multiple user-created
+databases.
 
 Changes to a DB instance can occur when you manually change a
 parameter, such as `allocated_storage`, and are reflected in the next maintenance
 window. Because of this, Terraform may report a difference in it's planning
 phase because a modification has not yet taken place. You can use the
-`apply_immediately` flag to instruct the service to apply the change immediately 
-(see documentation below). 
+`apply_immediately` flag to instruct the service to apply the change immediately
+(see documentation below).
 
-~> **Note:** using `apply_immediately` can result in a 
-brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2] 
+~> **Note:** using `apply_immediately` can result in a
+brief downtime as the server reboots. See the AWS Docs on [RDS Maintenance][2]
 for more information.
 
 
@@ -44,7 +44,7 @@ resource "aws_db_instance" "default" {
 ## Argument Reference
 
 For more detailed documentation about each argument, refer to
-the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
+the [AWS official documentation](https://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
 
 The following arguments are supported:
 
@@ -76,24 +76,24 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
     storage_type of "io1".
 * `maintenance_window` - (Optional) The window to perform maintenance in.
   Syntax: "ddd:hh24:mi-ddd:hh24:mi". Eg: "Mon:00:00-Mon:03:00".
-  See [RDS Maintenance Window docs](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.
+  See [RDS Maintenance Window docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
 * `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `security_group_names` - (Optional/Deprecated) List of DB Security Groups to associate.
-    Only used for [DB Instances on the _EC2-Classic_ Platform](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html#USER_VPC.FindDefaultVPC).
+    Only used for [DB Instances on the _EC2-Classic_ Platform](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html#USER_VPC.FindDefaultVPC).
 * `db_subnet_group_name` - (Optional) Name of DB subnet group. DB instance will be created in the VPC associated with the DB subnet group. If unspecified, will be created in the `default` VPC, or in EC2 Classic, if available.
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
 * `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
-     `false`. See [Amazon RDS Documentation for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
+     `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `replicate_source_db` - (Optional) Specifies that this resource is a Replicate
 database, and to use this value as the source database. This correlates to the
 `identifier` of another Amazon RDS Database to replicate. See
 [DB Instance Replication][1] and
-[Working with PostgreSQL and MySQL Read Replicas](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html) for
+[Working with PostgreSQL and MySQL Read Replicas](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html) for
  more information on using Replication.
 * `snapshot_identifier` - (Optional) Specifies whether or not to create this database from a snapshot. This correlates to the snapshot ID you'd find in the RDS console, e.g: rds:production-2015-06-26-06-05.
 * `license_model` - (Optional, but required for some DB engines, i.e. Oracle SE1) License model information for this DB instance.
@@ -127,5 +127,5 @@ The following attributes are exported:
 * `username` - The master username for the database
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
 
-[1]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
-[2]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+[1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
+[2]: https://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
