@@ -69,6 +69,7 @@ The following arguments are supported:
 * `log_opts` - (Optional) Key/value pairs to use as options for the logging
   driver.
 * `network_mode` - (Optional) Network mode of the container.
+* `networks` - (Optional, set of strings) Id of the networks in which the container is.
 
 <a id="ports"></a>
 ## Ports
