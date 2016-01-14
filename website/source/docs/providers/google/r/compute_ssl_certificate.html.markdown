@@ -35,7 +35,7 @@ The following arguments are supported:
     Changing this forces a new resource to be created.
 * `private_key` - (Required) Write only private key in PEM format.
     Changing this forces a new resource to be created.
-* `description` - (Required) A local certificate file in PEM format. The chain
+* `certificate` - (Required) A local certificate file in PEM format. The chain
     may be at most 5 certs long, and must include at least one intermediate cert.
     Changing this forces a new resource to be created.
 

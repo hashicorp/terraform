@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,12 +17,17 @@ import (
 
 func TestAccAWSKinesisFirehoseDeliveryStream_basic(t *testing.T) {
 	var stream firehose.DeliveryStreamDescription
-
 	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_basic, ri, ri)
+	config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_basic,
+		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("AWS_ACCOUNT_ID") == "" {
+				t.Fatal("AWS_ACCOUNT_ID must be set")
+			}
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
 		Steps: []resource.TestStep{
@@ -40,11 +46,18 @@ func TestAccAWSKinesisFirehoseDeliveryStream_s3ConfigUpdates(t *testing.T) {
 	var stream firehose.DeliveryStreamDescription
 
 	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3, ri, ri)
-	postConfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3Updates, ri, ri)
+	preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3,
+		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
+	postConfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3Updates,
+		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("AWS_ACCOUNT_ID") == "" {
+				t.Fatal("AWS_ACCOUNT_ID must be set")
+			}
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
 		Steps: []resource.TestStep{
@@ -147,41 +160,200 @@ func testAccCheckKinesisFirehoseDeliveryStreamDestroy(s *terraform.State) error 
 }
 
 var testAccKinesisFirehoseDeliveryStreamConfig_basic = `
+resource "aws_iam_role" "firehose" {
+	name = "terraform_acctest_firehose_delivery_role"
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "firehose.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "%s"
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "private"
 }
 
+resource "aws_iam_role_policy" "firehose" {
+	name = "terraform_acctest_firehose_delivery_policy"
+	role = "${aws_iam_role.firehose.id}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${aws_s3_bucket.bucket.id}",
+        "arn:aws:s3:::${aws_s3_bucket.bucket.id}/*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
+	depends_on = ["aws_iam_role_policy.firehose"]
 	name = "terraform-kinesis-firehose-basictest-%d"
 	destination = "s3"
-	role_arn = "arn:aws:iam::946579370547:role/firehose_delivery_role"
+	role_arn = "${aws_iam_role.firehose.arn}"
 	s3_bucket_arn = "${aws_s3_bucket.bucket.arn}"
 }`
 
 var testAccKinesisFirehoseDeliveryStreamConfig_s3 = `
+resource "aws_iam_role" "firehose" {
+	name = "terraform_acctest_firehose_delivery_role_s3"
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "firehose.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "%s"
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "private"
 }
 
+resource "aws_iam_role_policy" "firehose" {
+	name = "terraform_acctest_firehose_delivery_policy_s3"
+	role = "${aws_iam_role.firehose.id}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${aws_s3_bucket.bucket.id}",
+        "arn:aws:s3:::${aws_s3_bucket.bucket.id}/*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
+	depends_on = ["aws_iam_role_policy.firehose"]
 	name = "terraform-kinesis-firehose-s3test-%d"
 	destination = "s3"
-	role_arn = "arn:aws:iam::946579370547:role/firehose_delivery_role"
+	role_arn = "${aws_iam_role.firehose.arn}"
 	s3_bucket_arn = "${aws_s3_bucket.bucket.arn}"
 }`
 
 var testAccKinesisFirehoseDeliveryStreamConfig_s3Updates = `
+resource "aws_iam_role" "firehose" {
+	name = "terraform_acctest_firehose_delivery_role_s3"
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "firehose.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "%s"
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_s3_bucket" "bucket" {
-	bucket = "tf-test-bucket-01-%d"
+	bucket = "tf-test-bucket-%d"
 	acl = "private"
 }
 
+resource "aws_iam_role_policy" "firehose" {
+	name = "terraform_acctest_firehose_delivery_policy_s3"
+	role = "${aws_iam_role.firehose.id}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": [
+        "s3:AbortMultipartUpload",
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:ListBucketMultipartUploads",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${aws_s3_bucket.bucket.id}",
+        "arn:aws:s3:::${aws_s3_bucket.bucket.id}/*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
+	depends_on = ["aws_iam_role_policy.firehose"]
 	name = "terraform-kinesis-firehose-s3test-%d"
 	destination = "s3"
-	role_arn = "arn:aws:iam::946579370547:role/firehose_delivery_role"
+	role_arn = "${aws_iam_role.firehose.arn}"
 	s3_bucket_arn = "${aws_s3_bucket.bucket.arn}"
 	s3_buffer_size = 10
 	s3_buffer_interval = 400

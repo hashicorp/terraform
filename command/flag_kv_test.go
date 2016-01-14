@@ -36,6 +36,12 @@ func TestFlagKV(t *testing.T) {
 		},
 
 		{
+			"map.key=foo",
+			map[string]string{"map.key": "foo"},
+			false,
+		},
+
+		{
 			"key",
 			nil,
 			true,
@@ -84,6 +90,12 @@ foo = "bar"
 			map[string]string{"foo": "bar"},
 			false,
 		},
+
+		{
+			`map.key = "foo"`,
+			map[string]string{"map.key": "foo"},
+			false,
+		},
 	}
 
 	path := testTempFile(t)
@@ -96,7 +108,7 @@ foo = "bar"
 		f := new(FlagKVFile)
 		err := f.Set(path)
 		if err != nil != tc.Error {
-			t.Fatalf("bad error. Input: %#v", tc.Input)
+			t.Fatalf("bad error. Input: %#v, err: %s", tc.Input, err)
 		}
 
 		actual := map[string]string(*f)

@@ -28,6 +28,13 @@ for instructions on setting the PATH on Linux and Mac.
 [This page](http://stackoverflow.com/questions/1618280/where-can-i-set-path-to-make-exe-on-windows)
 contains instructions for setting the PATH on Windows.
 
+Example for Linux/Mac - Type the following into your terminal:
+>`PATH=/usr/local/terraform/bin:/home/your-user-name/terraform:$PATH`
+
+Example for Windows - Type the following into Powershell:
+>`set PATH=%PATH%;C:\terraform`
+
+
 ## Verifying the Installation
 
 After installing Terraform, verify the installation worked by opening a new

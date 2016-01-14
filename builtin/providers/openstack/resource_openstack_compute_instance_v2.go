@@ -176,12 +176,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: true,
 			},
 			"block_device": &schema.Schema{
-				// TODO: This is a set because we don't support singleton
-				//       sub-resources today. We'll enforce that the set only ever has
-				//       length zero or one below. When TF gains support for
-				//       sub-resources this can be converted.
-				//       As referenced in resource_aws_instance.go
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -212,10 +207,6 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Default:  false,
 						},
 					},
-				},
-				Set: func(v interface{}) int {
-					// there can only be one bootable block device; no need to hash anything
-					return 0
 				},
 			},
 			"volume": &schema.Schema{
@@ -284,6 +275,24 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 				Set: resourceComputeSchedulerHintsHash,
 			},
+			"personality": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"file": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"content": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceComputeInstancePersonalityHash,
+			},
 		},
 	}
 }
@@ -343,6 +352,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		ConfigDrive:      d.Get("config_drive").(bool),
 		AdminPass:        d.Get("admin_pass").(string),
 		UserData:         []byte(d.Get("user_data").(string)),
+		Personality:      resourceInstancePersonalityV2(d),
 	}
 
 	if keyName, ok := d.Get("key_pair").(string); ok && keyName != "" {
@@ -352,9 +362,8 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	if v, ok := d.GetOk("block_device"); ok {
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
+	if vL, ok := d.GetOk("block_device"); ok {
+		for _, v := range vL.([]interface{}) {
 			blockDeviceRaw := v.(map[string]interface{})
 			blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
 			createOpts = &bootfromvolume.CreateOptsExt{
@@ -404,7 +413,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		Pending:    []string{"BUILD"},
 		Target:     "ACTIVE",
 		Refresh:    ServerV2StateRefreshFunc(computeClient, server.ID),
-		Timeout:    10 * time.Minute,
+		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -791,7 +800,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		Pending:    []string{"ACTIVE"},
 		Target:     "DELETED",
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -1239,12 +1248,42 @@ func checkVolumeConfig(d *schema.ResourceData) error {
 		}
 	}
 
-	if v, ok := d.GetOk("block_device"); ok {
-		vL := v.(*schema.Set).List()
-		if len(vL) > 1 {
+	if vL, ok := d.GetOk("block_device"); ok {
+		if len(vL.([]interface{})) > 1 {
 			return fmt.Errorf("Can only specify one block device to boot from.")
 		}
 	}
 
 	return nil
+}
+
+func resourceComputeInstancePersonalityHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["file"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceInstancePersonalityV2(d *schema.ResourceData) servers.Personality {
+	var personalities servers.Personality
+
+	if v := d.Get("personality"); v != nil {
+		personalityList := v.(*schema.Set).List()
+		if len(personalityList) > 0 {
+			for _, p := range personalityList {
+				rawPersonality := p.(map[string]interface{})
+				file := servers.File{
+					Path:     rawPersonality["file"].(string),
+					Contents: []byte(rawPersonality["content"].(string)),
+				}
+
+				log.Printf("[DEBUG] OpenStack Compute Instance Personality: %+v", file)
+
+				personalities = append(personalities, &file)
+			}
+		}
+	}
+
+	return personalities
 }

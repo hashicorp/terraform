@@ -51,8 +51,9 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			},
 
 			"min_elb_capacity": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:       schema.TypeInt,
+				Optional:   true,
+				Deprecated: "Please use 'wait_for_elb_capacity' instead.",
 			},
 
 			"min_size": &schema.Schema{
@@ -96,6 +97,11 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"placement_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"load_balancers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -134,6 +140,11 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 					}
 					return
 				},
+			},
+
+			"wait_for_elb_capacity": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
 			},
 
 			"tag": autoscalingTagsSchema(),
@@ -185,6 +196,10 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.HealthCheckGracePeriod = aws.Int64(int64(v.(int)))
 	}
 
+	if v, ok := d.GetOk("placement_group"); ok {
+		autoScalingGroupOpts.PlacementGroup = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
 		autoScalingGroupOpts.LoadBalancerNames = expandStringList(
 			v.(*schema.Set).List())
@@ -232,6 +247,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("load_balancers", g.LoadBalancerNames)
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
+	d.Set("placement_group", g.PlacementGroup)
 	d.Set("name", g.AutoScalingGroupName)
 	d.Set("tag", g.Tags)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
@@ -242,6 +258,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).autoscalingconn
+	shouldWaitForCapacity := false
 
 	opts := autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(d.Id()),
@@ -253,6 +270,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("desired_capacity") {
 		opts.DesiredCapacity = aws.Int64(int64(d.Get("desired_capacity").(int)))
+		shouldWaitForCapacity = true
 	}
 
 	if d.HasChange("launch_configuration") {
@@ -261,6 +279,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("min_size") {
 		opts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
+		shouldWaitForCapacity = true
 	}
 
 	if d.HasChange("max_size") {
@@ -284,6 +303,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
 			opts.AvailabilityZones = expandStringList(d.Get("availability_zones").(*schema.Set).List())
 		}
+	}
+
+	if d.HasChange("placement_group") {
+		opts.PlacementGroup = aws.String(d.Get("placement_group").(string))
 	}
 
 	if d.HasChange("termination_policies") {
@@ -351,6 +374,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
 			}
 		}
+	}
+
+	if shouldWaitForCapacity {
+		waitForASGCapacity(d, meta)
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
@@ -490,7 +517,7 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 // ASG before continuing. Waits up to `waitForASGCapacityTimeout` for
 // "desired_capacity", or "min_size" if desired capacity is not specified.
 //
-// If "min_elb_capacity" is specified, will also wait for that number of
+// If "wait_for_elb_capacity" is specified, will also wait for that number of
 // instances to show up InService in all attached ELBs. See "Waiting for
 // Capacity" in docs for more discussion of the feature.
 func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
@@ -498,7 +525,10 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	if v := d.Get("desired_capacity").(int); v > 0 {
 		wantASG = v
 	}
-	wantELB := d.Get("min_elb_capacity").(int)
+	wantELB := d.Get("wait_for_elb_capacity").(int)
+
+	// Covers deprecated field support
+	wantELB += d.Get("min_elb_capacity").(int)
 
 	wait, err := time.ParseDuration(d.Get("wait_for_capacity_timeout").(string))
 	if err != nil {
@@ -561,11 +591,13 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] %q Capacity: %d/%d ASG, %d/%d ELB",
 			d.Id(), haveASG, wantASG, haveELB, wantELB)
 
-		if haveASG >= wantASG && haveELB >= wantELB {
+		if haveASG == wantASG && haveELB == wantELB {
 			return nil
 		}
 
-		return fmt.Errorf("Still need to wait for more healthy instances. This could mean instances failed to launch. See Scaling History for more information.")
+		return fmt.Errorf(
+			"Still waiting for %q instances. Current/Desired: %d/%d ASG, %d/%d ELB",
+			d.Id(), haveASG, wantASG, haveELB, wantELB)
 	})
 }
 

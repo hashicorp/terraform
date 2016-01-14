@@ -190,7 +190,17 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 
 	stacks := resp.Stacks
 	if len(stacks) < 1 {
+		log.Printf("[DEBUG] Removing CloudFormation stack %s as it's already gone", d.Id())
+		d.SetId("")
 		return nil
+	}
+	for _, s := range stacks {
+		if *s.StackId == d.Id() && *s.StackStatus == "DELETE_COMPLETE" {
+			log.Printf("[DEBUG] Removing CloudFormation stack %s"+
+				" as it has been already deleted", d.Id())
+			d.SetId("")
+			return nil
+		}
 	}
 
 	tInput := cloudformation.GetTemplateInput{
@@ -258,12 +268,14 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		StackName: aws.String(d.Get("name").(string)),
 	}
 
-	if d.HasChange("template_body") {
-		input.TemplateBody = aws.String(normalizeJson(d.Get("template_body").(string)))
+	// Either TemplateBody or TemplateURL are required for each change
+	if v, ok := d.GetOk("template_url"); ok {
+		input.TemplateURL = aws.String(v.(string))
 	}
-	if d.HasChange("template_url") {
-		input.TemplateURL = aws.String(d.Get("template_url").(string))
+	if v, ok := d.GetOk("template_body"); ok && input.TemplateURL == nil {
+		input.TemplateBody = aws.String(normalizeJson(v.(string)))
 	}
+
 	if d.HasChange("capabilities") {
 		input.Capabilities = expandStringList(d.Get("capabilities").(*schema.Set).List())
 	}

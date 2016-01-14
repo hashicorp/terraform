@@ -10,6 +10,17 @@ description: |-
 
 Provides an ElastiCache Cluster resource.
 
+Changes to a Cache Cluster can occur when you manually change a
+parameter, such as `node_type`, and are reflected in the next maintenance
+window. Because of this, Terraform may report a difference in it's planning
+phase because a modification has not yet taken place. You can use the
+`apply_immediately` flag to instruct the service to apply the change immediately 
+(see documentation below). 
+
+~> **Note:** using `apply_immediately` can result in a 
+brief downtime as the server reboots. See the AWS Docs on 
+[Modifying an ElastiCache Cache Cluster][2] for more information.
+
 ## Example Usage
 
 ```
@@ -47,7 +58,8 @@ supported node types
 
 * `num_cache_nodes` – (Required) The initial number of cache nodes that the
 cache cluster will have. For Redis, this value must be 1. For Memcache, this
-value must be between 1 and 20
+value must be between 1 and 20. If this number is reduced on subsequent runs,
+the highest numbered nodes will be removed.
 
 * `parameter_group_name` – (Required) Name of the parameter group to associate
 with this cache cluster
@@ -76,7 +88,7 @@ Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 * `snapshot_window` - (Optional) The daily time range (in UTC) during which ElastiCache will 
 begin taking a daily snapshot of your cache cluster. Can only be used for the Redis engine. Example: 05:00-09:00
 
-* `snapshow_retention_limit` - (Optional) The number of days for which ElastiCache will 
+* `snapshot_retention_limit` - (Optional) The number of days for which ElastiCache will 
 retain automatic cache cluster snapshots before deleting them. For example, if you set 
 SnapshotRetentionLimit to 5, then a snapshot that was taken today will be retained for 5 days 
 before being deleted. If the value of SnapshotRetentionLimit is set to zero (0), backups are turned off. 
@@ -86,6 +98,12 @@ Can only be used for the Redis engine.
 SNS topic to send ElastiCache notifications to. Example: 
 `arn:aws:sns:us-east-1:012345678999:my_sns_topic`
 
+* `az_mode` - (Optional, Memcached only) Specifies whether the nodes in this Memcached node group are created in a single Availability Zone or created across multiple Availability Zones in the cluster's region. Valid values for this parameter are `single-az` or `cross-az`, default is `single-az`. If you want to choose `cross-az`, `num_cache_nodes` must be greater than `1`.
+
+* `availability_zone` - (Optional) The AZ for the cache cluster. If you want to create cache nodes in multi-az, use `availability_zones`.
+
+* `availability_zones` - (Optional, Memcached only) List of AZ in which the cache nodes will be created. If you want to create cache nodes in single-az, use `availability_zone`.
+
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ~> **NOTE:** Snapshotting functionality is not compatible with t2 instance types.
@@ -94,9 +112,10 @@ SNS topic to send ElastiCache notifications to. Example:
 
 The following attributes are exported:
 
-* `cache_nodes` - List of node objects including `id`, `address` and `port`.
+* `cache_nodes` - List of node objects including `id`, `address`, `port` and `availability_zone`.
    Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
    
 * `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery
 
 [1]: http://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html
+[2]: http://docs.aws.amazon.com/fr_fr/AmazonElastiCache/latest/UserGuide/Clusters.Modify.html

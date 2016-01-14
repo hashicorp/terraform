@@ -51,17 +51,51 @@ func TestAccAWSDBSubnetGroup_withUndocumentedCharacters(t *testing.T) {
 		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDBSubnetGroupConfig_withUnderscoresAndPeriods,
+				Config: testAccDBSubnetGroupConfig_withUnderscoresAndPeriodsAndSpaces,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
 						"aws_db_subnet_group.underscores", &v),
 					testAccCheckDBSubnetGroupExists(
 						"aws_db_subnet_group.periods", &v),
+					testAccCheckDBSubnetGroupExists(
+						"aws_db_subnet_group.spaces", &v),
 					testCheck,
 				),
 			},
 		},
 	})
+}
+
+func TestResourceAWSDBSubnetGroupNameValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "tEsting",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing?",
+			ErrCount: 1,
+		},
+		{
+			Value:    "default",
+			ErrCount: 1,
+		},
+		{
+			Value:    randomString(300),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateSubnetGroupName(tc.Value, "aws_db_subnet_group")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DB Subnet Group name to trigger a validation error")
+		}
+	}
 }
 
 func testAccCheckDBSubnetGroupDestroy(s *terraform.State) error {
@@ -147,7 +181,7 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_db_subnet_group" "foo" {
-	name = "FOO"
+	name = "foo"
 	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
@@ -156,7 +190,7 @@ resource "aws_db_subnet_group" "foo" {
 }
 `
 
-const testAccDBSubnetGroupConfig_withUnderscoresAndPeriods = `
+const testAccDBSubnetGroupConfig_withUnderscoresAndPeriodsAndSpaces = `
 resource "aws_vpc" "main" {
     cidr_block = "192.168.0.0/16"
 }
@@ -181,6 +215,12 @@ resource "aws_db_subnet_group" "underscores" {
 
 resource "aws_db_subnet_group" "periods" {
     name = "with.periods"
+    description = "Our main group of subnets"
+    subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
+}
+
+resource "aws_db_subnet_group" "spaces" {
+    name = "with spaces"
     description = "Our main group of subnets"
     subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
 }

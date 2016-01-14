@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-const testFakeAccountFilePath = "./test-fixtures/fake_account.json"
+const testFakeCredentialsPath = "./test-fixtures/fake_account.json"
 
 func TestConfigLoadAndValidate_accountFilePath(t *testing.T) {
 	config := Config{
-		AccountFile: testFakeAccountFilePath,
+		Credentials: testFakeCredentialsPath,
 		Project:     "my-gce-project",
 		Region:      "us-central1",
 	}
@@ -21,12 +21,12 @@ func TestConfigLoadAndValidate_accountFilePath(t *testing.T) {
 }
 
 func TestConfigLoadAndValidate_accountFileJSON(t *testing.T) {
-	contents, err := ioutil.ReadFile(testFakeAccountFilePath)
+	contents, err := ioutil.ReadFile(testFakeCredentialsPath)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
 	config := Config{
-		AccountFile: string(contents),
+		Credentials: string(contents),
 		Project:     "my-gce-project",
 		Region:      "us-central1",
 	}
@@ -39,7 +39,7 @@ func TestConfigLoadAndValidate_accountFileJSON(t *testing.T) {
 
 func TestConfigLoadAndValidate_accountFileJSONInvalid(t *testing.T) {
 	config := Config{
-		AccountFile: "{this is not json}",
+		Credentials: "{this is not json}",
 		Project:     "my-gce-project",
 		Region:      "us-central1",
 	}

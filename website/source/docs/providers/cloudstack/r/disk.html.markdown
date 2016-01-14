@@ -19,7 +19,7 @@ resource "cloudstack_disk" "default" {
   attach = "true"
   disk_offering = "custom"
   size = 50
-  virtual-machine = "server-1"
+  virtual_machine = "server-1"
   zone = "zone-1"
 }
 ```

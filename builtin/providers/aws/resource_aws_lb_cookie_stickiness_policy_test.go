@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAwsLBCookieStickinessPolicy_basic(t *testing.T) {
+func TestAccAWSLBCookieStickinessPolicy_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -40,8 +41,29 @@ func TestAccAwsLBCookieStickinessPolicy_basic(t *testing.T) {
 }
 
 func testAccCheckLBCookieStickinessPolicyDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	conn := testAccProvider.Meta().(*AWSClient).elbconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_lb_cookie_stickiness_policy" {
+			continue
+		}
+
+		lbName, _, policyName := resourceAwsLBCookieStickinessPolicyParseId(rs.Primary.ID)
+		out, err := conn.DescribeLoadBalancerPolicies(
+			&elb.DescribeLoadBalancerPoliciesInput{
+				LoadBalancerName: aws.String(lbName),
+				PolicyNames:      []*string{aws.String(policyName)},
+			})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && (ec2err.Code() == "PolicyNotFound" || ec2err.Code() == "LoadBalancerNotFound") {
+				continue
+			}
+			return err
+		}
+
+		if len(out.PolicyDescriptions) > 0 {
+			return fmt.Errorf("Policy still exists")
+		}
 	}
 
 	return nil
@@ -94,7 +116,6 @@ resource "aws_lb_cookie_stickiness_policy" "foo" {
 	name = "foo-policy"
 	load_balancer = "${aws_elb.lb.id}"
 	lb_port = 80
-	cookie_expiration_period = 600
 }
 `
 

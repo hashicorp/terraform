@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -65,6 +66,37 @@ func TestAccAWSS3Bucket_Policy(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketPolicy(
 						"aws_s3_bucket.bucket", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSS3Bucket_UpdateAcl(t *testing.T) {
+
+	ri := genRandInt()
+	preConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAcl, ri)
+	postConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAclUpdate, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "acl", "public-read"),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "acl", "private"),
 				),
 			},
 		},
@@ -156,6 +188,7 @@ func TestAccAWSS3Bucket_shouldFailNotFound(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3DestroyBucket("aws_s3_bucket.bucket"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -223,6 +256,24 @@ func TestAccAWSS3Bucket_Cors(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_Logging(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithLogging,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketLogging(
+						"aws_s3_bucket.bucket", "aws_s3_bucket.log_bucket", "log/"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).s3conn
 
@@ -234,6 +285,9 @@ func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
 			Bucket: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoSuchBucket" {
+				return nil
+			}
 			return err
 		}
 	}
@@ -426,6 +480,45 @@ func testAccCheckAWSS3BucketCors(n string, corsRules []*s3.CORSRule) resource.Te
 	}
 }
 
+func testAccCheckAWSS3BucketLogging(n, b, p string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketLogging(&s3.GetBucketLoggingInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			return fmt.Errorf("GetBucketLogging error: %v", err)
+		}
+
+		tb, _ := s.RootModule().Resources[b]
+
+		if v := out.LoggingEnabled.TargetBucket; v == nil {
+			if tb.Primary.ID != "" {
+				return fmt.Errorf("bad target bucket, found nil, expected: %s", tb.Primary.ID)
+			}
+		} else {
+			if *v != tb.Primary.ID {
+				return fmt.Errorf("bad target bucket, expected: %s, got %s", tb.Primary.ID, *v)
+			}
+		}
+
+		if v := out.LoggingEnabled.TargetPrefix; v == nil {
+			if p != "" {
+				return fmt.Errorf("bad target prefix, found nil, expected: %s", p)
+			}
+		} else {
+			if *v != p {
+				return fmt.Errorf("bad target prefix, expected: %s, got %s", p, *v)
+			}
+		}
+
+		return nil
+	}
+}
+
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
 var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
@@ -521,3 +614,32 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+
+var testAccAWSS3BucketConfigWithAcl = `
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+}
+`
+
+var testAccAWSS3BucketConfigWithAclUpdate = `
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "private"
+}
+`
+
+var testAccAWSS3BucketConfigWithLogging = fmt.Sprintf(`
+resource "aws_s3_bucket" "log_bucket" {
+	bucket = "tf-test-log-bucket-%d"
+	acl = "log-delivery-write"
+}
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "private"
+	logging {
+		target_bucket = "${aws_s3_bucket.log_bucket.id}"
+		target_prefix = "log/"
+	}
+}
+`, randInt, randInt)

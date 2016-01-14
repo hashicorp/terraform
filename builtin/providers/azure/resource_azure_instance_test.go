@@ -58,7 +58,7 @@ func TestAccAzureInstance_separateHostedService(t *testing.T) {
 						"azure_instance.foo", testAccHostedServiceName, &dpmt),
 					testAccCheckAzureInstanceBasicAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "name", "terraform-test"),
+						"azure_instance.foo", "name", instanceName),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "hosted_service_name", "terraform-testing-service"),
 					resource.TestCheckResourceAttr(
@@ -94,7 +94,7 @@ func TestAccAzureInstance_advanced(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "subnet", "subnet1"),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "virtual_network", "terraform-vnet"),
+						"azure_instance.foo", "virtual_network", "terraform-vnet-advanced-test"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "security_group", "terraform-security-group1"),
 					resource.TestCheckResourceAttr(
@@ -128,7 +128,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "subnet", "subnet1"),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "virtual_network", "terraform-vnet"),
+						"azure_instance.foo", "virtual_network", "terraform-vnet-advanced-test"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "security_group", "terraform-security-group1"),
 					resource.TestCheckResourceAttr(
@@ -145,7 +145,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "size", "Basic_A2"),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "security_group", "terraform-security-group2"),
+						"azure_instance.foo", "security_group", "terraform-security-update-group2"),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "endpoint.1814039778.public_port", "3389"),
 					resource.TestCheckResourceAttr(
@@ -224,7 +224,64 @@ func testAccCheckAzureInstanceAdvancedAttributes(
 			return fmt.Errorf("Bad name: %s", dpmt.Name)
 		}
 
-		if dpmt.VirtualNetworkName != "terraform-vnet" {
+		if dpmt.VirtualNetworkName != "terraform-vnet-advanced-test" {
+			return fmt.Errorf("Bad virtual network: %s", dpmt.VirtualNetworkName)
+		}
+
+		if len(dpmt.RoleList) != 1 {
+			return fmt.Errorf(
+				"Instance %s has an unexpected number of roles: %d", dpmt.Name, len(dpmt.RoleList))
+		}
+
+		if dpmt.RoleList[0].RoleSize != "Basic_A1" {
+			return fmt.Errorf("Bad size: %s", dpmt.RoleList[0].RoleSize)
+		}
+
+		for _, c := range dpmt.RoleList[0].ConfigurationSets {
+			if c.ConfigurationSetType == virtualmachine.ConfigurationSetTypeNetwork {
+				if len(c.InputEndpoints) != 1 {
+					return fmt.Errorf(
+						"Instance %s has an unexpected number of endpoints %d",
+						dpmt.Name, len(c.InputEndpoints))
+				}
+
+				if c.InputEndpoints[0].Name != "RDP" {
+					return fmt.Errorf("Bad endpoint name: %s", c.InputEndpoints[0].Name)
+				}
+
+				if c.InputEndpoints[0].Port != 3389 {
+					return fmt.Errorf("Bad endpoint port: %d", c.InputEndpoints[0].Port)
+				}
+
+				if len(c.SubnetNames) != 1 {
+					return fmt.Errorf(
+						"Instance %s has an unexpected number of associated subnets %d",
+						dpmt.Name, len(c.SubnetNames))
+				}
+
+				if c.SubnetNames[0] != "subnet1" {
+					return fmt.Errorf("Bad subnet: %s", c.SubnetNames[0])
+				}
+
+				if c.NetworkSecurityGroup != "terraform-security-group1" {
+					return fmt.Errorf("Bad security group: %s", c.NetworkSecurityGroup)
+				}
+			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAzureInstanceAdvancedUpdatedAttributes(
+	dpmt *virtualmachine.DeploymentResponse) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if dpmt.Name != "terraform-test1" {
+			return fmt.Errorf("Bad name: %s", dpmt.Name)
+		}
+
+		if dpmt.VirtualNetworkName != "terraform-vnet-update-test" {
 			return fmt.Errorf("Bad virtual network: %s", dpmt.VirtualNetworkName)
 		}
 
@@ -281,7 +338,7 @@ func testAccCheckAzureInstanceUpdatedAttributes(
 			return fmt.Errorf("Bad name: %s", dpmt.Name)
 		}
 
-		if dpmt.VirtualNetworkName != "terraform-vnet" {
+		if dpmt.VirtualNetworkName != "terraform-vnet-update-test" {
 			return fmt.Errorf("Bad virtual network: %s", dpmt.VirtualNetworkName)
 		}
 
@@ -320,7 +377,7 @@ func testAccCheckAzureInstanceUpdatedAttributes(
 					return fmt.Errorf("Bad subnet: %s", c.SubnetNames[0])
 				}
 
-				if c.NetworkSecurityGroup != "terraform-security-group2" {
+				if c.NetworkSecurityGroup != "terraform-security-update-group2" {
 					return fmt.Errorf("Bad security group: %s", c.NetworkSecurityGroup)
 				}
 			}
@@ -392,8 +449,8 @@ resource "azure_hosted_service" "foo" {
 }
 
 resource "azure_instance" "foo" {
-    name = "terraform-test"
-	hosted_service_name = "${azure_hosted_service.foo.name}"
+    name = "%s"
+    hosted_service_name = "${azure_hosted_service.foo.name}"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
     storage_service_name = "%s"
@@ -407,11 +464,11 @@ resource "azure_instance" "foo" {
         public_port = 22
         private_port = 22
     }
-}`, testAccHostedServiceName, testAccStorageServiceName)
+}`, testAccHostedServiceName, instanceName, testAccStorageServiceName)
 
 var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
-    name = "terraform-vnet"
+    name = "terraform-vnet-advanced-test"
     address_space = ["10.1.2.0/24"]
 		location = "West US"
 
@@ -467,7 +524,7 @@ resource "azure_instance" "foo" {
 
 var testAccAzureInstance_update = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
-    name = "terraform-vnet"
+    name = "terraform-vnet-update-test"
     address_space = ["10.1.2.0/24"]
 		location = "West US"
 
@@ -501,7 +558,7 @@ resource "azure_security_group_rule" "foo" {
 }
 
 resource "azure_security_group" "bar" {
-    name = "terraform-security-group2"
+    name = "terraform-security-update-group2"
     location = "West US"
 }
 

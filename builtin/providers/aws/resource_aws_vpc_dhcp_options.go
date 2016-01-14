@@ -223,8 +223,6 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 			// Any other error, we want to quit the retry loop immediately
 			return resource.RetryError{Err: err}
 		}
-
-		return nil
 	})
 }
 

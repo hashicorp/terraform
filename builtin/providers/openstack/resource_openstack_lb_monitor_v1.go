@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
 )
 
@@ -108,6 +112,22 @@ func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] LB Monitor ID: %s", m.ID)
 
+	log.Printf("[DEBUG] Waiting for OpenStack LB Monitor (%s) to become available.", m.ID)
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"PENDING"},
+		Target:     "ACTIVE",
+		Refresh:    waitForLBMonitorActive(networkingClient, m.ID),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
+
 	d.SetId(m.ID)
 
 	return resourceLBMonitorV1Read(d, meta)
@@ -184,11 +204,76 @@ func resourceLBMonitorV1Delete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	err = monitors.Delete(networkingClient, d.Id()).ExtractErr()
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE", "PENDING"},
+		Target:     "DELETED",
+		Refresh:    waitForLBMonitorDelete(networkingClient, d.Id()),
+		Timeout:    2 * time.Minute,
+		Delay:      5 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB Monitor: %s", err)
 	}
 
 	d.SetId("")
 	return nil
+}
+
+func waitForLBMonitorActive(networkingClient *gophercloud.ServiceClient, monitorId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		m, err := monitors.Get(networkingClient, monitorId).Extract()
+		if err != nil {
+			return nil, "", err
+		}
+
+		// The monitor resource has no Status attribute, so a successful Get is the best we can do
+		log.Printf("[DEBUG] OpenStack LB Monitor: %+v", m)
+		return m, "ACTIVE", nil
+	}
+}
+
+func waitForLBMonitorDelete(networkingClient *gophercloud.ServiceClient, monitorId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to delete OpenStack LB Monitor %s", monitorId)
+
+		m, err := monitors.Get(networkingClient, monitorId).Extract()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return m, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LB Monitor %s", monitorId)
+				return m, "DELETED", nil
+			}
+			if errCode.Actual == 409 {
+				log.Printf("[DEBUG] OpenStack LB Monitor (%s) is waiting for Pool to delete.", monitorId)
+				return m, "PENDING", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack LB Monitor: %+v", m)
+		err = monitors.Delete(networkingClient, monitorId).ExtractErr()
+		if err != nil {
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return m, "ACTIVE", err
+			}
+			if errCode.Actual == 404 {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LB Monitor %s", monitorId)
+				return m, "DELETED", nil
+			}
+			if errCode.Actual == 409 {
+				log.Printf("[DEBUG] OpenStack LB Monitor (%s) is waiting for Pool to delete.", monitorId)
+				return m, "PENDING", nil
+			}
+		}
+
+		log.Printf("[DEBUG] OpenStack LB Monitor %s still active.", monitorId)
+		return m, "ACTIVE", nil
+	}
+
 }

@@ -834,6 +834,18 @@ func TestInterpolateFuncUpper(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSha1(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${sha1("test")}`,
+				"a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+				false,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable

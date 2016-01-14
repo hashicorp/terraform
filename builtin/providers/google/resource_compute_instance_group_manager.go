@@ -53,6 +53,12 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Required: true,
 			},
 
+			"update_strategy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "RESTART",
+			},
+
 			"target_pools": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -112,6 +118,11 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 		manager.TargetPools = s
 	}
 
+	updateStrategy := d.Get("update_strategy").(string)
+	if !(updateStrategy == "NONE" || updateStrategy == "RESTART") {
+		return fmt.Errorf("Update strategy must be \"NONE\" or \"RESTART\"")
+	}
+
 	log.Printf("[DEBUG] InstanceGroupManager insert request: %#v", manager)
 	op, err := config.clientCompute.InstanceGroupManagers.Insert(
 		config.Project, d.Get("zone").(string), manager).Do()
@@ -138,6 +149,7 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 		config.Project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Instance Group Manager %q because it's gone", d.Get("name").(string))
 			// The resource doesn't exist anymore
 			d.SetId("")
 
@@ -207,6 +219,35 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
 		if err != nil {
 			return err
+		}
+
+		if d.Get("update_strategy").(string) == "RESTART" {
+			managedInstances, err := config.clientCompute.InstanceGroupManagers.ListManagedInstances(
+				config.Project, d.Get("zone").(string), d.Id()).Do()
+
+			managedInstanceCount := len(managedInstances.ManagedInstances)
+			instances := make([]string, managedInstanceCount)
+			for i, v := range managedInstances.ManagedInstances {
+				instances[i] = v.Instance
+			}
+
+			recreateInstances := &compute.InstanceGroupManagersRecreateInstancesRequest{
+				Instances: instances,
+			}
+
+			op, err = config.clientCompute.InstanceGroupManagers.RecreateInstances(
+				config.Project, d.Get("zone").(string), d.Id(), recreateInstances).Do()
+
+			if err != nil {
+				return fmt.Errorf("Error restarting instance group managers instances: %s", err)
+			}
+
+			// Wait for the operation to complete
+			err = computeOperationWaitZoneTime(config, op, d.Get("zone").(string),
+				managedInstanceCount*4, "Restarting InstanceGroupManagers instances")
+			if err != nil {
+				return err
+			}
 		}
 
 		d.SetPartial("instance_template")

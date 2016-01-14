@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -11,6 +12,8 @@ import (
 
 func TestAccComputeFirewall_basic(t *testing.T) {
 	var firewall compute.Firewall
+	networkName := fmt.Sprintf("firewall-test-%s", acctest.RandString(10))
+	firewallName := fmt.Sprintf("firewall-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -18,7 +21,7 @@ func TestAccComputeFirewall_basic(t *testing.T) {
 		CheckDestroy: testAccCheckComputeFirewallDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeFirewall_basic,
+				Config: testAccComputeFirewall_basic(networkName, firewallName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeFirewallExists(
 						"google_compute_firewall.foobar", &firewall),
@@ -30,6 +33,8 @@ func TestAccComputeFirewall_basic(t *testing.T) {
 
 func TestAccComputeFirewall_update(t *testing.T) {
 	var firewall compute.Firewall
+	networkName := fmt.Sprintf("firewall-test-%s", acctest.RandString(10))
+	firewallName := fmt.Sprintf("firewall-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -37,14 +42,14 @@ func TestAccComputeFirewall_update(t *testing.T) {
 		CheckDestroy: testAccCheckComputeFirewallDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeFirewall_basic,
+				Config: testAccComputeFirewall_basic(networkName, firewallName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeFirewallExists(
 						"google_compute_firewall.foobar", &firewall),
 				),
 			},
 			resource.TestStep{
-				Config: testAccComputeFirewall_update,
+				Config: testAccComputeFirewall_update(networkName, firewallName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeFirewallExists(
 						"google_compute_firewall.foobar", &firewall),
@@ -118,37 +123,41 @@ func testAccCheckComputeFirewallPorts(
 	}
 }
 
-const testAccComputeFirewall_basic = `
-resource "google_compute_network" "foobar" {
-	name = "terraform-test"
-	ipv4_range = "10.0.0.0/16"
+func testAccComputeFirewall_basic(network, firewall string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "foobar" {
+		name = "firewall-test-%s"
+		ipv4_range = "10.0.0.0/16"
+	}
+
+	resource "google_compute_firewall" "foobar" {
+		name = "firewall-test-%s"
+		description = "Resource created for Terraform acceptance testing"
+		network = "${google_compute_network.foobar.name}"
+		source_tags = ["foo"]
+
+		allow {
+			protocol = "icmp"
+		}
+	}`, network, firewall)
 }
 
-resource "google_compute_firewall" "foobar" {
-	name = "terraform-test"
-	description = "Resource created for Terraform acceptance testing"
-	network = "${google_compute_network.foobar.name}"
-	source_tags = ["foo"]
-
-	allow {
-		protocol = "icmp"
+func testAccComputeFirewall_update(network, firewall string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "foobar" {
+		name = "firewall-test-%s"
+		ipv4_range = "10.0.0.0/16"
 	}
-}`
 
-const testAccComputeFirewall_update = `
-resource "google_compute_network" "foobar" {
-	name = "terraform-test"
-	ipv4_range = "10.0.0.0/16"
+	resource "google_compute_firewall" "foobar" {
+		name = "firewall-test-%s"
+		description = "Resource created for Terraform acceptance testing"
+		network = "${google_compute_network.foobar.name}"
+		source_tags = ["foo"]
+
+		allow {
+			protocol = "tcp"
+			ports = ["80-255"]
+		}
+	}`, network, firewall)
 }
-
-resource "google_compute_firewall" "foobar" {
-	name = "terraform-test"
-	description = "Resource created for Terraform acceptance testing"
-	network = "${google_compute_network.foobar.name}"
-	source_tags = ["foo"]
-
-	allow {
-		protocol = "tcp"
-		ports = ["80-255"]
-	}
-}`

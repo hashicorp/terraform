@@ -132,6 +132,11 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"instance_state": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"private_dns": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -140,6 +145,7 @@ func resourceAwsInstance() *schema.Resource {
 			"ebs_optimized": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"disable_api_termination": &schema.Schema{
@@ -364,11 +370,21 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 				time.Sleep(2 * time.Second)
 				continue
 			}
+
+			// Warn if the AWS Error involves group ids, to help identify situation
+			// where a user uses group ids in security_groups for the Default VPC.
+			//   See https://github.com/hashicorp/terraform/issues/3798
+			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "groupId is invalid") {
+				return fmt.Errorf("Error launching instance, possible mismatch of Security Group IDs and Names. See AWS Instance docs here: %s.\n\n\tAWS Error: %s", "https://terraform.io/docs/providers/aws/r/instance.html", awsErr.Message())
+			}
 		}
 		break
 	}
 	if err != nil {
 		return fmt.Errorf("Error launching source instance: %s", err)
+	}
+	if runResp == nil || len(runResp.Instances) == 0 {
+		return fmt.Errorf("Error launching source instance: no instances returned in response")
 	}
 
 	instance := runResp.Instances[0]
@@ -444,10 +460,14 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	instance := resp.Reservations[0].Instances[0]
 
-	// If the instance is terminated, then it is gone
-	if *instance.State.Name == "terminated" {
-		d.SetId("")
-		return nil
+	if instance.State != nil {
+		// If the instance is terminated, then it is gone
+		if *instance.State.Name == "terminated" {
+			d.SetId("")
+			return nil
+		}
+
+		d.Set("instance_state", instance.State.Name)
 	}
 
 	if instance.Placement != nil {
@@ -1082,5 +1102,6 @@ func iamInstanceProfileArnToName(ip *ec2.IamInstanceProfile) string {
 	if ip == nil || ip.Arn == nil {
 		return ""
 	}
-	return strings.Split(*ip.Arn, "/")[1]
+	parts := strings.Split(*ip.Arn, "/")
+	return parts[len(parts)-1]
 }

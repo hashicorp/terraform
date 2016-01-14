@@ -46,7 +46,7 @@ $ terraform get
 
 This command will download the modules if they haven't been already.
 By default, the command will not check for updates, so it is safe (and fast)
-to run multiple times. You can use the `-u` flag to check and download
+to run multiple times. You can use the `-update` flag to check and download
 updates.
 
 ## Configuration
@@ -87,9 +87,9 @@ For example:
 
 ```
 resource "aws_instance" "client" {
-	ami = "ami-123456"
-	instance_type = "m1.small"
-	availability_zone = "${module.consul.server_availability_zone}"
+  ami = "ami-408c7f28"
+  instance_type = "t1.micro"  
+  availability_zone = "${module.consul.server_availability_zone}"
 }
 ```
 

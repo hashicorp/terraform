@@ -21,6 +21,12 @@ var Init = {
 		if (this.Pages[id]) {
 			this.Pages[id]();
 		}
+		//always init sidebar
+		Init.initializeSidebar();
+	},
+
+	initializeSidebar: function(){
+		new Sidebar();
 	},
 
 	generateAnimatedLogo: function(){

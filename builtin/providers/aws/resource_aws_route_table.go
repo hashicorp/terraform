@@ -60,6 +60,11 @@ func resourceAwsRouteTable() *schema.Resource {
 							Optional: true,
 						},
 
+						"nat_gateway_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
 						"vpc_peering_connection_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -162,6 +167,9 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		if r.GatewayId != nil {
 			m["gateway_id"] = *r.GatewayId
+		}
+		if r.NatGatewayId != nil {
+			m["nat_gateway_id"] = *r.NatGatewayId
 		}
 		if r.InstanceId != nil {
 			m["instance_id"] = *r.InstanceId
@@ -287,6 +295,10 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				NetworkInterfaceId:     aws.String(m["network_interface_id"].(string)),
 			}
 
+			if m["nat_gateway_id"].(string) != "" {
+				opts.NatGatewayId = aws.String(m["nat_gateway_id"].(string))
+			}
+
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
 			if _, err := conn.CreateRoute(&opts); err != nil {
 				return err
@@ -385,6 +397,12 @@ func resourceAwsRouteTableHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
+	natGatewaySet := false
+	if v, ok := m["nat_gateway_id"]; ok {
+		natGatewaySet = v.(string) != ""
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
 	instanceSet := false
 	if v, ok := m["instance_id"]; ok {
 		instanceSet = v.(string) != ""
@@ -395,7 +413,7 @@ func resourceAwsRouteTableHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	if v, ok := m["network_interface_id"]; ok && !instanceSet {
+	if v, ok := m["network_interface_id"]; ok && !(instanceSet || natGatewaySet) {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 

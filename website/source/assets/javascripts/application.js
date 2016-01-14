@@ -21,4 +21,5 @@
 //= require app/Engine.Shape
 //= require app/Engine.Shape.Puller
 //= require app/Engine.Typewriter
+//= require app/Sidebar
 //= require app/Init

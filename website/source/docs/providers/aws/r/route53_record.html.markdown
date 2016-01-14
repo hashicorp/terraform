@@ -99,6 +99,12 @@ record from one another. Required for each weighted record.
 * `alias` - (Optional) An alias block. Conflicts with `ttl` & `records`.
   Alias record documented below.
 
+~> **Note:** The `weight` attribute uses a special sentinel value of `-1` for a
+default in Terraform. This allows Terraform to distinquish between a `0` value
+and an empty value in the configuration (none specified). As a result, a 
+`weight` of `-1` will be present in the statefile if `weight` is omitted in the 
+configuration.
+
 Exactly one of `records` or `alias` must be specified: this determines whether it's an alias record.
 
 Alias records support the following:

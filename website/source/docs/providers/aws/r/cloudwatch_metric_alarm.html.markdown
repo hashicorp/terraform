@@ -64,7 +64,7 @@ The following arguments are supported:
 * `evaluation_periods` - (Required) The number of periods over which data is compared to the specified threshold.
 * `metric_name` - (Required) The name for the alarm's associated metric.
   See docs for [supported metrics](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
-* `namespace` - (Required) The namespace for the alarm's associated metric.
+* `namespace` - (Required) The namespace for the alarm's associated metric. See docs for the [list of namespaces](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/aws-namespaces.html).
 * `period` - (Required) The period in seconds over which the specified `statistic` is applied.
 * `statistic` - (Required) The statistic to apply to the alarm's associated metric.
    Either of the following is supported: `SampleCount`, `Average`, `Sum`, `Minimum`, `Maximum`

@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDynamoDbTable(t *testing.T) {
+func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -33,6 +34,66 @@ func TestAccAWSDynamoDbTable(t *testing.T) {
 	})
 }
 
+func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDynamoDbConfigStreamSpecification,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
+					resource.TestCheckResourceAttr(
+						"aws_dynamodb_table.basic-dynamodb-table", "stream_enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_dynamodb_table.basic-dynamodb-table", "stream_view_type", "KEYS_ONLY"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceAWSDynamoDbTableStreamViewType_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "KEYS-ONLY",
+			ErrCount: 1,
+		},
+		{
+			Value:    "RANDOM-STRING",
+			ErrCount: 1,
+		},
+		{
+			Value:    "KEYS_ONLY",
+			ErrCount: 0,
+		},
+		{
+			Value:    "NEW_AND_OLD_IMAGES",
+			ErrCount: 0,
+		},
+		{
+			Value:    "NEW_IMAGE",
+			ErrCount: 0,
+		},
+		{
+			Value:    "OLD_IMAGE",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateStreamViewType(tc.Value, "aws_dynamodb_table_stream_view_type")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the DynamoDB stream_view_type to trigger a validation error")
+		}
+	}
+}
+
 func testAccCheckAWSDynamoDbTableDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).dynamodbconn
 
@@ -41,21 +102,23 @@ func testAccCheckAWSDynamoDbTableDestroy(s *terraform.State) error {
 			continue
 		}
 
-		fmt.Printf("[DEBUG] Checking if DynamoDB table %s exists", rs.Primary.ID)
+		log.Printf("[DEBUG] Checking if DynamoDB table %s exists", rs.Primary.ID)
 		// Check if queue exists by checking for its attributes
 		params := &dynamodb.DescribeTableInput{
 			TableName: aws.String(rs.Primary.ID),
 		}
+
 		_, err := conn.DescribeTable(params)
 		if err == nil {
 			return fmt.Errorf("DynamoDB table %s still exists. Failing!", rs.Primary.ID)
 		}
 
 		// Verify the error is what we want
-		_, ok := err.(awserr.Error)
-		if !ok {
-			return err
+		if dbErr, ok := err.(awserr.Error); ok && dbErr.Code() == "ResourceNotFoundException" {
+			return nil
 		}
+
+		return err
 	}
 
 	return nil
@@ -293,5 +356,46 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 			projection_type = "INCLUDE"
 			non_key_attributes = ["TestNonKeyAttribute"]
 		}
+}
+`
+
+const testAccAWSDynamoDbConfigStreamSpecification = `
+resource "aws_dynamodb_table" "basic-dynamodb-table" {
+    name = "TerraformTestStreamTable"
+	read_capacity = 10
+	write_capacity = 20
+	hash_key = "TestTableHashKey"
+	range_key = "TestTableRangeKey"
+	attribute {
+		name = "TestTableHashKey"
+		type = "S"
+	}
+	attribute {
+		name = "TestTableRangeKey"
+		type = "S"
+	}
+	attribute {
+		name = "TestLSIRangeKey"
+		type = "N"
+	}
+	attribute {
+		name = "TestGSIRangeKey"
+		type = "S"
+	}
+	local_secondary_index {
+		name = "TestTableLSI"
+		range_key = "TestLSIRangeKey"
+		projection_type = "ALL"
+	}
+	global_secondary_index {
+		name = "InitialTestTableGSI"
+		hash_key = "TestTableHashKey"
+		range_key = "TestGSIRangeKey"
+		write_capacity = 10
+		read_capacity = 10
+		projection_type = "KEYS_ONLY"
+	}
+	stream_enabled = true
+	stream_view_type = "KEYS_ONLY"
 }
 `

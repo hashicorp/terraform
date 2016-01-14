@@ -23,13 +23,13 @@ func TestAccCloudStackPortForward_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"cloudstack_port_forward.foo", "ipaddress", CLOUDSTACK_PUBLIC_IPADDRESS),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.protocol", "tcp"),
+						"cloudstack_port_forward.foo", "forward.952396423.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.private_port", "443"),
+						"cloudstack_port_forward.foo", "forward.952396423.private_port", "443"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.public_port", "8443"),
+						"cloudstack_port_forward.foo", "forward.952396423.public_port", "8443"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.virtual_machine", "terraform-test"),
+						"cloudstack_port_forward.foo", "forward.952396423.virtual_machine", "terraform-test"),
 				),
 			},
 		},
@@ -51,13 +51,13 @@ func TestAccCloudStackPortForward_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"cloudstack_port_forward.foo", "forward.#", "1"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.protocol", "tcp"),
+						"cloudstack_port_forward.foo", "forward.952396423.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.private_port", "443"),
+						"cloudstack_port_forward.foo", "forward.952396423.private_port", "443"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.public_port", "8443"),
+						"cloudstack_port_forward.foo", "forward.952396423.public_port", "8443"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.virtual_machine", "terraform-test"),
+						"cloudstack_port_forward.foo", "forward.952396423.virtual_machine", "terraform-test"),
 				),
 			},
 
@@ -70,21 +70,21 @@ func TestAccCloudStackPortForward_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"cloudstack_port_forward.foo", "forward.#", "2"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.8416686.protocol", "tcp"),
+						"cloudstack_port_forward.foo", "forward.260687715.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.8416686.private_port", "80"),
+						"cloudstack_port_forward.foo", "forward.260687715.private_port", "80"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.8416686.public_port", "8080"),
+						"cloudstack_port_forward.foo", "forward.260687715.public_port", "8080"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.8416686.virtual_machine", "terraform-test"),
+						"cloudstack_port_forward.foo", "forward.260687715.virtual_machine", "terraform-test"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.protocol", "tcp"),
+						"cloudstack_port_forward.foo", "forward.952396423.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.private_port", "443"),
+						"cloudstack_port_forward.foo", "forward.952396423.private_port", "443"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.public_port", "8443"),
+						"cloudstack_port_forward.foo", "forward.952396423.public_port", "8443"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "forward.1537694805.virtual_machine", "terraform-test"),
+						"cloudstack_port_forward.foo", "forward.952396423.virtual_machine", "terraform-test"),
 				),
 			},
 		},

@@ -2,10 +2,12 @@ package google
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeVpnTunnel() *schema.Resource {
@@ -118,6 +120,14 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 
 	vpnTunnel, err := vpnTunnelsService.Get(project, region, name).Do()
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing VPN Tunnel %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error Reading VPN Tunnel %s: %s", name, err)
 	}
 

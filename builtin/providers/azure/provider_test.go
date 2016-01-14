@@ -51,12 +51,22 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("AZURE_SETTINGS_FILE"); v == "" {
+	sf := os.Getenv("PUBLISH_SETTINGS_FILE")
+	if sf != "" {
+		publishSettings, err := ioutil.ReadFile(sf)
+		if err != nil {
+			t.Fatalf("Error reading AZURE_SETTINGS_FILE path: %s", err)
+		}
+
+		os.Setenv("AZURE_PUBLISH_SETTINGS", string(publishSettings))
+	}
+
+	if v := os.Getenv("AZURE_PUBLISH_SETTINGS"); v == "" {
 		subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
 		certificate := os.Getenv("AZURE_CERTIFICATE")
 
 		if subscriptionID == "" || certificate == "" {
-			t.Fatal("either AZURE_SETTINGS_FILE, or AZURE_SUBSCRIPTION_ID " +
+			t.Fatal("either AZURE_PUBLISH_SETTINGS, PUBLISH_SETTINGS_FILE, or AZURE_SUBSCRIPTION_ID " +
 				"and AZURE_CERTIFICATE must be set for acceptance tests")
 		}
 	}
@@ -78,6 +88,11 @@ func TestAzure_validateSettingsFile(t *testing.T) {
 		t.Fatalf("Error creating temporary file with XML in TestAzure_validateSettingsFile: %s", err)
 	}
 	defer os.Remove(fx.Name())
+	_, err = io.WriteString(fx, "<PublishData></PublishData>")
+	if err != nil {
+		t.Fatalf("Error writing XML File: %s", err)
+	}
+	fx.Close()
 
 	home, err := homedir.Dir()
 	if err != nil {
@@ -88,12 +103,11 @@ func TestAzure_validateSettingsFile(t *testing.T) {
 		t.Fatalf("Error creating homedir-based temporary file: %s", err)
 	}
 	defer os.Remove(fh.Name())
-
-	_, err = io.WriteString(fx, "<PublishData></PublishData>")
+	_, err = io.WriteString(fh, "<PublishData></PublishData>")
 	if err != nil {
 		t.Fatalf("Error writing XML File: %s", err)
 	}
-	fx.Close()
+	fh.Close()
 
 	r := strings.NewReplacer(home, "~")
 	homePath := r.Replace(fh.Name())
@@ -103,8 +117,8 @@ func TestAzure_validateSettingsFile(t *testing.T) {
 		W     int    // expected count of warnings
 		E     int    // expected count of errors
 	}{
-		{"test", 1, 1},
-		{f.Name(), 1, 0},
+		{"test", 0, 1},
+		{f.Name(), 1, 1},
 		{fx.Name(), 1, 0},
 		{homePath, 1, 0},
 		{"<PublishData></PublishData>", 0, 0},
@@ -114,84 +128,29 @@ func TestAzure_validateSettingsFile(t *testing.T) {
 		w, e := validateSettingsFile(tc.Input, "")
 
 		if len(w) != tc.W {
-			t.Errorf("Error in TestAzureValidateSettingsFile: input: %s , warnings: %#v, errors: %#v", tc.Input, w, e)
+			t.Errorf("Error in TestAzureValidateSettingsFile: input: %s , warnings: %v, errors: %v", tc.Input, w, e)
 		}
 		if len(e) != tc.E {
-			t.Errorf("Error in TestAzureValidateSettingsFile: input: %s , warnings: %#v, errors: %#v", tc.Input, w, e)
+			t.Errorf("Error in TestAzureValidateSettingsFile: input: %s , warnings: %v, errors: %v", tc.Input, w, e)
 		}
 	}
 }
 
 func TestAzure_providerConfigure(t *testing.T) {
-	home, err := homedir.Dir()
-	if err != nil {
-		t.Fatalf("Error fetching homedir: %s", err)
+	rp := Provider()
+	raw := map[string]interface{}{
+		"publish_settings": testAzurePublishSettingsStr,
 	}
-	fh, err := ioutil.TempFile(home, "tf-test-home")
-	if err != nil {
-		t.Fatalf("Error creating homedir-based temporary file: %s", err)
-	}
-	defer os.Remove(fh.Name())
 
-	_, err = io.WriteString(fh, testAzurePublishSettingsStr)
+	rawConfig, err := config.NewRawConfig(raw)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	fh.Close()
 
-	r := strings.NewReplacer(home, "~")
-	homePath := r.Replace(fh.Name())
-
-	cases := []struct {
-		SettingsFile string // String of XML or a path to an XML file
-		NilMeta      bool   // whether meta is expected to be nil
-	}{
-		{testAzurePublishSettingsStr, false},
-		{homePath, false},
-	}
-
-	for _, tc := range cases {
-		rp := Provider()
-		raw := map[string]interface{}{
-			"settings_file": tc.SettingsFile,
-		}
-
-		rawConfig, err := config.NewRawConfig(raw)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		err = rp.Configure(terraform.NewResourceConfig(rawConfig))
-		meta := rp.(*schema.Provider).Meta()
-		if (meta == nil) != tc.NilMeta {
-			t.Fatalf("expected NilMeta: %t, got meta: %#v", tc.NilMeta, meta)
-		}
-	}
-}
-
-func TestAzure_isFile(t *testing.T) {
-	f, err := ioutil.TempFile("", "tf-test-file")
-	if err != nil {
-		t.Fatalf("Error creating temporary file with XML in TestAzure_isFile: %s", err)
-	}
-	cases := []struct {
-		Input string // String path to file
-		B     bool   // expected true/false
-		E     bool   // expect error
-	}{
-		{"test", false, true},
-		{f.Name(), true, false},
-	}
-
-	for _, tc := range cases {
-		x, y := isFile(tc.Input)
-		if tc.B != x {
-			t.Errorf("Error in TestAzure_isFile: input: %s , returned: %#v, expected: %#v", tc.Input, x, tc.B)
-		}
-
-		if tc.E != (y != nil) {
-			t.Errorf("Error in TestAzure_isFile: input: %s , returned: %#v, expected: %#v", tc.Input, y, tc.E)
-		}
+	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
+	meta := rp.(*schema.Provider).Meta()
+	if meta == nil {
+		t.Fatalf("Expected metadata, got nil: err: %s", err)
 	}
 }
 

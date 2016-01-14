@@ -1,6 +1,7 @@
 package google
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -29,8 +30,16 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("GOOGLE_ACCOUNT_FILE"); v == "" {
-		t.Fatal("GOOGLE_ACCOUNT_FILE must be set for acceptance tests")
+	if v := os.Getenv("GOOGLE_CREDENTIALS_FILE"); v != "" {
+		creds, err := ioutil.ReadFile(v)
+		if err != nil {
+			t.Fatalf("Error reading GOOGLE_CREDENTIALS_FILE path: %s", err)
+		}
+		os.Setenv("GOOGLE_CREDENTIALS", string(creds))
+	}
+
+	if v := os.Getenv("GOOGLE_CREDENTIALS"); v == "" {
+		t.Fatal("GOOGLE_CREDENTIALS must be set for acceptance tests")
 	}
 
 	if v := os.Getenv("GOOGLE_PROJECT"); v == "" {

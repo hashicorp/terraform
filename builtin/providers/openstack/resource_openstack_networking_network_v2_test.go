@@ -148,8 +148,8 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 			name = "port_1"
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			admin_state_up = "true"
-			security_groups = ["${openstack_compute_secgroup_v2.foo.id}"]
-			fixed_ips {
+			security_group_ids = ["${openstack_compute_secgroup_v2.foo.id}"]
+			fixed_ip {
 				"subnet_id" =  "${openstack_networking_subnet_v2.foo.id}"
 				"ip_address" =  "192.168.199.23"
 			}

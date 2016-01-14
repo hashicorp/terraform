@@ -23,7 +23,14 @@ func TestAccAWSIAMGroup_basic(t *testing.T) {
 				Config: testAccAWSGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupExists("aws_iam_group.group", &conf),
-					testAccCheckAWSGroupAttributes(&conf),
+					testAccCheckAWSGroupAttributes(&conf, "test-group", "/"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSGroupConfig2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSGroupExists("aws_iam_group.group", &conf),
+					testAccCheckAWSGroupAttributes(&conf, "test-group2", "/funnypath/"),
 				),
 			},
 		},
@@ -85,14 +92,14 @@ func testAccCheckAWSGroupExists(n string, res *iam.GetGroupOutput) resource.Test
 	}
 }
 
-func testAccCheckAWSGroupAttributes(group *iam.GetGroupOutput) resource.TestCheckFunc {
+func testAccCheckAWSGroupAttributes(group *iam.GetGroupOutput, name string, path string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *group.Group.GroupName != "test-group" {
-			return fmt.Errorf("Bad name: %s", *group.Group.GroupName)
+		if *group.Group.GroupName != name {
+			return fmt.Errorf("Bad name: %s when %s was expected", *group.Group.GroupName, name)
 		}
 
-		if *group.Group.Path != "/" {
-			return fmt.Errorf("Bad path: %s", *group.Group.Path)
+		if *group.Group.Path != path {
+			return fmt.Errorf("Bad path: %s when %s was expected", *group.Group.Path, path)
 		}
 
 		return nil
@@ -103,5 +110,11 @@ const testAccAWSGroupConfig = `
 resource "aws_iam_group" "group" {
 	name = "test-group"
 	path = "/"
+}
+`
+const testAccAWSGroupConfig2 = `
+resource "aws_iam_group" "group" {
+	name = "test-group2"
+	path = "/funnypath/"
 }
 `

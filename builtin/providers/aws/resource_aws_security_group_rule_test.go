@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"testing"
@@ -339,7 +340,24 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 			},
 		},
 	})
+}
 
+func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleRace,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.race", &group),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckAWSSecurityGroupRuleDestroy(s *terraform.State) error {
@@ -718,3 +736,41 @@ resource "aws_security_group_rule" "other_ingress" {
    security_group_id = "${aws_security_group.web.id}"
 }
 `
+
+var testAccAWSSecurityGroupRuleRace = func() string {
+	var b bytes.Buffer
+	iterations := 50
+	b.WriteString(fmt.Sprintf(`
+		resource "aws_vpc" "default" {
+			cidr_block = "10.0.0.0/16"
+			tags { Name = "tf-sg-rule-race" }
+		}
+
+		resource "aws_security_group" "race" {
+			name   = "tf-sg-rule-race-group-%d"
+			vpc_id = "${aws_vpc.default.id}"
+		}
+	`, genRandInt()))
+	for i := 1; i < iterations; i++ {
+		b.WriteString(fmt.Sprintf(`
+			resource "aws_security_group_rule" "ingress%d" {
+				security_group_id = "${aws_security_group.race.id}"
+				type              = "ingress"
+				from_port         = %d
+				to_port           = %d
+				protocol          = "tcp"
+				cidr_blocks       = ["10.0.0.%d/32"]
+			}
+
+			resource "aws_security_group_rule" "egress%d" {
+				security_group_id = "${aws_security_group.race.id}"
+				type              = "egress"
+				from_port         = %d
+				to_port           = %d
+				protocol          = "tcp"
+				cidr_blocks       = ["10.0.0.%d/32"]
+			}
+		`, i, i, i, i, i, i, i, i))
+	}
+	return b.String()
+}()

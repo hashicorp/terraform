@@ -38,8 +38,9 @@ func resourceComputeSecGroupV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"rule": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": &schema.Schema{
@@ -79,6 +80,7 @@ func resourceComputeSecGroupV2() *schema.Resource {
 						},
 					},
 				},
+				Set: secgroupRuleV2Hash,
 			},
 		},
 	}
@@ -91,6 +93,12 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
+	// Before creating the security group, make sure all rules are valid.
+	if err := checkSecGroupV2RulesForErrors(d); err != nil {
+		return err
+	}
+
+	// If all rules are valid, proceed with creating the security gruop.
 	createOpts := secgroups.CreateOpts{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
@@ -104,6 +112,7 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(sg.ID)
 
+	// Now that the security group has been created, iterate through each rule and create it
 	createRuleOptsList := resourceSecGroupRulesV2(d)
 	for _, createRuleOpts := range createRuleOptsList {
 		_, err := secgroups.CreateRule(computeClient, createRuleOpts).Extract()
@@ -129,13 +138,10 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
-	rtm := rulesToMap(sg.Rules)
-	for _, v := range rtm {
-		if v["group"] == d.Get("name") {
-			v["self"] = "1"
-		} else {
-			v["self"] = "0"
-		}
+
+	rtm, err := rulesToMap(computeClient, d, sg.Rules)
+	if err != nil {
+		return err
 	}
 	log.Printf("[DEBUG] rulesToMap(sg.Rules): %+v", rtm)
 	d.Set("rule", rtm)
@@ -164,14 +170,11 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("rule") {
 		oldSGRaw, newSGRaw := d.GetChange("rule")
-		oldSGRSlice, newSGRSlice := oldSGRaw.([]interface{}), newSGRaw.([]interface{})
-		oldSGRSet := schema.NewSet(secgroupRuleV2Hash, oldSGRSlice)
-		newSGRSet := schema.NewSet(secgroupRuleV2Hash, newSGRSlice)
+		oldSGRSet, newSGRSet := oldSGRaw.(*schema.Set), newSGRaw.(*schema.Set)
 		secgrouprulesToAdd := newSGRSet.Difference(oldSGRSet)
 		secgrouprulesToRemove := oldSGRSet.Difference(newSGRSet)
 
 		log.Printf("[DEBUG] Security group rules to add: %v", secgrouprulesToAdd)
-
 		log.Printf("[DEBUG] Security groups rules to remove: %v", secgrouprulesToRemove)
 
 		for _, rawRule := range secgrouprulesToAdd.List() {
@@ -231,67 +234,119 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts {
-	rawRules := d.Get("rule").([]interface{})
+	rawRules := d.Get("rule").(*schema.Set).List()
 	createRuleOptsList := make([]secgroups.CreateRuleOpts, len(rawRules))
-	for i, raw := range rawRules {
-		rawMap := raw.(map[string]interface{})
-		groupId := rawMap["from_group_id"].(string)
-		if rawMap["self"].(bool) {
-			groupId = d.Id()
-		}
-		createRuleOptsList[i] = secgroups.CreateRuleOpts{
-			ParentGroupID: d.Id(),
-			FromPort:      rawMap["from_port"].(int),
-			ToPort:        rawMap["to_port"].(int),
-			IPProtocol:    rawMap["ip_protocol"].(string),
-			CIDR:          rawMap["cidr"].(string),
-			FromGroupID:   groupId,
-		}
+	for i, rawRule := range rawRules {
+		createRuleOptsList[i] = resourceSecGroupRuleCreateOptsV2(d, rawRule)
 	}
 	return createRuleOptsList
 }
 
-func resourceSecGroupRuleCreateOptsV2(d *schema.ResourceData, raw interface{}) secgroups.CreateRuleOpts {
-	rawMap := raw.(map[string]interface{})
-	groupId := rawMap["from_group_id"].(string)
-	if rawMap["self"].(bool) {
+func resourceSecGroupRuleCreateOptsV2(d *schema.ResourceData, rawRule interface{}) secgroups.CreateRuleOpts {
+	rawRuleMap := rawRule.(map[string]interface{})
+	groupId := rawRuleMap["from_group_id"].(string)
+	if rawRuleMap["self"].(bool) {
 		groupId = d.Id()
 	}
 	return secgroups.CreateRuleOpts{
 		ParentGroupID: d.Id(),
-		FromPort:      rawMap["from_port"].(int),
-		ToPort:        rawMap["to_port"].(int),
-		IPProtocol:    rawMap["ip_protocol"].(string),
-		CIDR:          rawMap["cidr"].(string),
+		FromPort:      rawRuleMap["from_port"].(int),
+		ToPort:        rawRuleMap["to_port"].(int),
+		IPProtocol:    rawRuleMap["ip_protocol"].(string),
+		CIDR:          rawRuleMap["cidr"].(string),
 		FromGroupID:   groupId,
 	}
 }
 
-func resourceSecGroupRuleV2(d *schema.ResourceData, raw interface{}) secgroups.Rule {
-	rawMap := raw.(map[string]interface{})
+func checkSecGroupV2RulesForErrors(d *schema.ResourceData) error {
+	rawRules := d.Get("rule").(*schema.Set).List()
+	for _, rawRule := range rawRules {
+		rawRuleMap := rawRule.(map[string]interface{})
+
+		// only one of cidr, from_group_id, or self can be set
+		cidr := rawRuleMap["cidr"].(string)
+		groupId := rawRuleMap["from_group_id"].(string)
+		self := rawRuleMap["self"].(bool)
+		errorMessage := fmt.Errorf("Only one of cidr, from_group_id, or self can be set.")
+
+		// if cidr is set, from_group_id and self cannot be set
+		if cidr != "" {
+			if groupId != "" || self {
+				return errorMessage
+			}
+		}
+
+		// if from_group_id is set, cidr and self cannot be set
+		if groupId != "" {
+			if cidr != "" || self {
+				return errorMessage
+			}
+		}
+
+		// if self is set, cidr and from_group_id cannot be set
+		if self {
+			if cidr != "" || groupId != "" {
+				return errorMessage
+			}
+		}
+	}
+
+	return nil
+}
+
+func resourceSecGroupRuleV2(d *schema.ResourceData, rawRule interface{}) secgroups.Rule {
+	rawRuleMap := rawRule.(map[string]interface{})
 	return secgroups.Rule{
-		ID:            rawMap["id"].(string),
+		ID:            rawRuleMap["id"].(string),
 		ParentGroupID: d.Id(),
-		FromPort:      rawMap["from_port"].(int),
-		ToPort:        rawMap["to_port"].(int),
-		IPProtocol:    rawMap["ip_protocol"].(string),
-		IPRange:       secgroups.IPRange{CIDR: rawMap["cidr"].(string)},
+		FromPort:      rawRuleMap["from_port"].(int),
+		ToPort:        rawRuleMap["to_port"].(int),
+		IPProtocol:    rawRuleMap["ip_protocol"].(string),
+		IPRange:       secgroups.IPRange{CIDR: rawRuleMap["cidr"].(string)},
 	}
 }
 
-func rulesToMap(sgrs []secgroups.Rule) []map[string]interface{} {
+func rulesToMap(computeClient *gophercloud.ServiceClient, d *schema.ResourceData, sgrs []secgroups.Rule) ([]map[string]interface{}, error) {
 	sgrMap := make([]map[string]interface{}, len(sgrs))
 	for i, sgr := range sgrs {
+		groupId := ""
+		self := false
+		if sgr.Group.Name != "" {
+			if sgr.Group.Name == d.Get("name").(string) {
+				self = true
+			} else {
+				// Since Nova only returns the secgroup Name (and not the ID) for the group attribute,
+				// we need to look up all security groups and match the name.
+				// Nevermind that Nova wants the ID when setting the Group *and* that multiple groups
+				// with the same name can exist...
+				allPages, err := secgroups.List(computeClient).AllPages()
+				if err != nil {
+					return nil, err
+				}
+				securityGroups, err := secgroups.ExtractSecurityGroups(allPages)
+				if err != nil {
+					return nil, err
+				}
+
+				for _, sg := range securityGroups {
+					if sg.Name == sgr.Group.Name {
+						groupId = sg.ID
+					}
+				}
+			}
+		}
+
 		sgrMap[i] = map[string]interface{}{
-			"id":          sgr.ID,
-			"from_port":   sgr.FromPort,
-			"to_port":     sgr.ToPort,
-			"ip_protocol": sgr.IPProtocol,
-			"cidr":        sgr.IPRange.CIDR,
-			"group":       sgr.Group.Name,
+			"id":            sgr.ID,
+			"from_port":     sgr.FromPort,
+			"to_port":       sgr.ToPort,
+			"ip_protocol":   sgr.IPProtocol,
+			"cidr":          sgr.IPRange.CIDR,
+			"self":          self,
+			"from_group_id": groupId,
 		}
 	}
-	return sgrMap
+	return sgrMap, nil
 }
 
 func secgroupRuleV2Hash(v interface{}) int {
@@ -301,6 +356,8 @@ func secgroupRuleV2Hash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["ip_protocol"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["from_group_id"].(string)))
+	buf.WriteString(fmt.Sprintf("%t-", m["self"].(bool)))
 
 	return hashcode.String(buf.String())
 }

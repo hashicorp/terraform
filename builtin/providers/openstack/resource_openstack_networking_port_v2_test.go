@@ -40,7 +40,7 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 			name = "port_1"
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			admin_state_up = "true"
-			fixed_ips {
+			fixed_ip {
 				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
 				ip_address = "192.168.199.23"
 			}

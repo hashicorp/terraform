@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -36,12 +37,14 @@ func testAccCheckAWSElasticacheSecurityGroupDestroy(s *terraform.State) error {
 		res, err := conn.DescribeCacheSecurityGroups(&elasticache.DescribeCacheSecurityGroupsInput{
 			CacheSecurityGroupName: aws.String(rs.Primary.ID),
 		})
-		if err != nil {
-			return err
+		if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "CacheSecurityGroupNotFound" {
+			continue
 		}
+
 		if len(res.CacheSecurityGroups) > 0 {
-			return fmt.Errorf("still exist.")
+			return fmt.Errorf("cache security group still exists")
 		}
+		return err
 	}
 	return nil
 }
@@ -69,6 +72,9 @@ func testAccCheckAWSElasticacheSecurityGroupExists(n string) resource.TestCheckF
 }
 
 var testAccAWSElasticacheSecurityGroupConfig = fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
 resource "aws_security_group" "bar" {
     name = "tf-test-security-group-%03d"
     description = "tf-test-security-group-descr"

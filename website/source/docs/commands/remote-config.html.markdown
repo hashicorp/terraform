@@ -57,6 +57,10 @@ The following backends are supported:
   * `scheme` - Specifies what protocol to use when talking to the given
     `address`, either `http` or `https`. SSL support can also be triggered
     by setting then environment variable `CONSUL_HTTP_SSL` to `true`.
+  * `http_auth` - HTTP Basic Authentication credentials to be used when
+    communicating with Consul, in the format of either `user` or `user:pass`.
+    This may also be specified using the `CONSUL_HTTP_AUTH` environment
+    variable.
 
 * Etcd - Stores the state in etcd at a given path.
   Requires the `path` and `endpoints` variables. The `username` and `password`
@@ -65,11 +69,11 @@ The following backends are supported:
 
 * S3 - Stores the state as a given key in a given bucket on Amazon S3.
   Requires the `bucket` and `key` variables. Supports and honors the standard
-  AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-  and `AWS_DEFAULT_REGION`. These can optionally be provided as parameters
-  in the `access_key`, `secret_key` and `region` variables
-  respectively, but passing credentials this way is not recommended since they
-  will be included in cleartext inside the persisted state.
+  AWS environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+  `AWS_S3_ENDPOINT` and `AWS_DEFAULT_REGION`. These can optionally be provided
+  as parameters in the `access_key`, `secret_key`, `endpoint` and `region`
+  variables respectively, but passing credentials this way is not recommended
+  since they will be included in cleartext inside the persisted state.
   Other supported parameters include:
   * `bucket` - the name of the S3 bucket
   * `key` - path where to place/look for state file inside the bucket
@@ -77,6 +81,18 @@ The following backends are supported:
     of the state file
   * `acl` - [Canned ACL](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl)
     to be applied to the state file.
+
+* Artifactory - Stores the state as an artifact in a given repository in
+  Artifactory. Requires the `url`, `username`, `password`, `repo` and `subpath`
+  variables. Generic HTTP repositories are supported, and state from different
+  configurations may be kept at different subpaths within the repository. The URL
+  must include the path to the Artifactory installation - it will likely end in
+  `/artifactory`. Alternately the following environment variables can be used in
+  place of hard-coded values:
+  * `ARTIFACTORY_USERNAME`
+  * `ARTIFACTORY_PASSWORD`
+  * `ARTIFACTORY_URL` (note that this is the base url to artifactory not the full repo and subpath)
+
 
 * HTTP - Stores the state using a simple REST client. State will be fetched
   via GET, updated via POST, and purged with DELETE. Requires the `address` variable.

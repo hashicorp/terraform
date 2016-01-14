@@ -15,8 +15,8 @@ Provides a resource to create a new launch configuration, used for autoscaling g
 ```
 resource "aws_launch_configuration" "as_conf" {
     name = "web_config"
-    image_id = "ami-1234"
-    instance_type = "m1.small"
+    ami = "ami-408c7f28"
+    instance_type = "t1.micro"
 }
 ```
 
@@ -33,8 +33,8 @@ with `name_prefix`.  Example:
 ```
 resource "aws_launch_configuration" "as_conf" {
     name_prefix = "terraform-lc-example-"
-    image_id = "ami-1234"
-    instance_type = "m1.small"
+    ami = "ami-408c7f28"
+    instance_type = "t1.micro"
 
     lifecycle {
       create_before_destroy = true
@@ -66,8 +66,8 @@ for more information or how to launch [Spot Instances][3] with Terraform.
 
 ```
 resource "aws_launch_configuration" "as_conf" {
-    image_id = "ami-1234"
-    instance_type = "m1.small"
+    ami = "ami-408c7f28"
+    instance_type = "t1.micro"
     spot_price = "0.001"
     lifecycle {
       create_before_destroy = true
@@ -77,10 +77,6 @@ resource "aws_launch_configuration" "as_conf" {
 resource "aws_autoscaling_group" "bar" {
     name = "terraform-asg-example"
     launch_configuration = "${aws_launch_configuration.as_conf.name}"
-
-    lifecycle {
-      create_before_destroy = true
-    }
 }
 ```
 
