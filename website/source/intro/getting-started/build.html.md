@@ -12,7 +12,7 @@ With Terraform installed, let's dive right into it and start creating
 some infrastructure.
 
 We'll build infrastructure on
-[AWS](http://aws.amazon.com) for the getting started guide
+[AWS](https://aws.amazon.com) for the getting started guide
 since it is popular and generally understood, but Terraform
 can [manage many providers](/docs/providers/index.html),
 including multiple providers in a single configuration.
@@ -20,17 +20,17 @@ Some examples of this are in the
 [use cases section](/intro/use-cases.html).
 
 If you don't have an AWS account,
-[create one now](http://aws.amazon.com/free/).
+[create one now](https://aws.amazon.com/free/).
 For the getting started guide, we'll only be using resources
 which qualify under the AWS
-[free-tier](http://aws.amazon.com/free/),
+[free-tier](https://aws.amazon.com/free/),
 meaning it will be free.
 If you already have an AWS account, you may be charged some
 amount of money, but it shouldn't be more than a few dollars
 at most.
 
 ~> **Warning!** If you're not using an account that qualifies under the AWS
-[free-tier](http://aws.amazon.com/free/), you may be charged to run these
+[free-tier](https://aws.amazon.com/free/), you may be charged to run these
 examples. The most you should be charged should only be a few dollars, but
 we're not responsible for any charges that may incur.
 
