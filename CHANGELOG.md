@@ -22,6 +22,7 @@ IMPROVEMENTS:
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
   * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
   * provider/aws: Add AWS Classiclink for AWS VPC resource [GH-3994]
+  * provider/aws: Supporting New AWS Route53 HealthCheck additions [GH-4564]
   * provider/aws: Store instance state [GH-3261]
   * provider/aws: Add support for updating ELB availability zones and subnets [GH-4597]
   * provider/aws: Add support for creating Managed Microsoft Active Directory 
