@@ -17,7 +17,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-  * provider/aws: Add new parameters `az_mode` and `availabiliy_zone(s)` in ElastiCache [GH-4631]
+  * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
   * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
   * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
