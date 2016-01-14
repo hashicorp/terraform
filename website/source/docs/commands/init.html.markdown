@@ -34,7 +34,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-backend=atlas` - Specifies the type of remote backend. Must be one
   of Atlas, Consul, S3, or HTTP. Defaults to Atlas.
 
-* `-backend-config="k=v"` - Specify a configuration variable for a backend. This is how you set the required variables for the selected backend (as detailed in the [remote command documentation](/docs/command/remote.html).
+* `-backend-config="k=v"` - Specify a configuration variable for a backend. This is how you set the required variables for the selected backend (as detailed in the [remote command documentation](/docs/commands/remote.html).
 
 
 ## Example: Consul
