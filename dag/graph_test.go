@@ -98,6 +98,32 @@ func TestGraph_hashcode(t *testing.T) {
 	}
 }
 
+func TestGraphHasVertex(t *testing.T) {
+	var g Graph
+	g.Add(1)
+
+	if !g.HasVertex(1) {
+		t.Fatal("should have 1")
+	}
+	if g.HasVertex(2) {
+		t.Fatal("should not have 2")
+	}
+}
+
+func TestGraphHasEdge(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
+
+	if !g.HasEdge(BasicEdge(1, 2)) {
+		t.Fatal("should have 1,2")
+	}
+	if g.HasVertex(BasicEdge(2, 3)) {
+		t.Fatal("should not have 2,3")
+	}
+}
+
 type hashVertex struct {
 	code interface{}
 }
