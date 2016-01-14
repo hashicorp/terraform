@@ -3,6 +3,7 @@ package aws
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,7 +17,7 @@ func TestAWSConfig_shouldError(t *testing.T) {
 	defer resetEnv()
 	cfg := Config{}
 
-	c := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token)
+	c := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
 	_, err := c.Get()
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() != "NoCredentialProviders" {
@@ -49,7 +50,7 @@ func TestAWSConfig_shouldBeStatic(t *testing.T) {
 			Token:     c.Token,
 		}
 
-		creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token)
+		creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
 		if creds == nil {
 			t.Fatalf("Expected a static creds provider to be returned")
 		}
@@ -84,7 +85,7 @@ func TestAWSConfig_shouldIAM(t *testing.T) {
 	// An empty config, no key supplied
 	cfg := Config{}
 
-	creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token)
+	creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
 	if creds == nil {
 		t.Fatalf("Expected a static creds provider to be returned")
 	}
@@ -133,7 +134,7 @@ func TestAWSConfig_shouldIgnoreIAM(t *testing.T) {
 			Token:     c.Token,
 		}
 
-		creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token)
+		creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
 		if creds == nil {
 			t.Fatalf("Expected a static creds provider to be returned")
 		}
@@ -153,15 +154,65 @@ func TestAWSConfig_shouldIgnoreIAM(t *testing.T) {
 	}
 }
 
+var credentialsFileContents = `[myprofile]
+aws_access_key_id = accesskey
+aws_secret_access_key = secretkey
+`
+
+func TestAWSConfig_shouldBeShared(t *testing.T) {
+	file, err := ioutil.TempFile(os.TempDir(), "terraform_aws_cred")
+	if err != nil {
+		t.Fatalf("Error writing temporary credentials file: %s", err)
+	}
+	_, err = file.WriteString(credentialsFileContents)
+	if err != nil {
+		t.Fatalf("Error writing temporary credentials to file: %s", err)
+	}
+	err = file.Close()
+	if err != nil {
+		t.Fatalf("Error closing temporary credentials file: %s", err)
+	}
+
+	defer os.Remove(file.Name())
+
+	resetEnv := unsetEnv(t)
+	defer resetEnv()
+
+	if err := os.Setenv("AWS_PROFILE", "myprofile"); err != nil {
+		t.Fatalf("Error resetting env var AWS_PROFILE: %s", err)
+	}
+	if err := os.Setenv("AWS_SHARED_CREDENTIALS_FILE", file.Name()); err != nil {
+		t.Fatalf("Error resetting env var AWS_SHARED_CREDENTIALS_FILE: %s", err)
+	}
+
+	creds := getCreds("", "", "", "myprofile", file.Name())
+	if creds == nil {
+		t.Fatalf("Expected a provider chain to be returned")
+	}
+	v, err := creds.Get()
+	if err != nil {
+		t.Fatalf("Error gettings creds: %s", err)
+	}
+
+	if v.AccessKeyID != "accesskey" {
+		t.Fatalf("AccessKeyID mismatch, expected (%s), got (%s)", "accesskey", v.AccessKeyID)
+	}
+
+	if v.SecretAccessKey != "secretkey" {
+		t.Fatalf("SecretAccessKey mismatch, expected (%s), got (%s)", "accesskey", v.AccessKeyID)
+	}
+}
+
 func TestAWSConfig_shouldBeENV(t *testing.T) {
 	// need to set the environment variables to a dummy string, as we don't know
 	// what they may be at runtime without hardcoding here
 	s := "some_env"
 	resetEnv := setEnv(s, t)
+
 	defer resetEnv()
 
 	cfg := Config{}
-	creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token)
+	creds := getCreds(cfg.AccessKey, cfg.SecretKey, cfg.Token, cfg.Profile, cfg.CredsFilename)
 	if creds == nil {
 		t.Fatalf("Expected a static creds provider to be returned")
 	}
@@ -195,6 +246,12 @@ func unsetEnv(t *testing.T) func() {
 	if err := os.Unsetenv("AWS_SESSION_TOKEN"); err != nil {
 		t.Fatalf("Error unsetting env var AWS_SESSION_TOKEN: %s", err)
 	}
+	if err := os.Unsetenv("AWS_PROFILE"); err != nil {
+		t.Fatalf("Error unsetting env var AWS_TOKEN: %s", err)
+	}
+	if err := os.Unsetenv("AWS_SHARED_CREDENTIALS_FILE"); err != nil {
+		t.Fatalf("Error unsetting env var AWS_SHARED_CREDENTIALS_FILE: %s", err)
+	}
 
 	return func() {
 		// re-set all the envs we unset above
@@ -206,6 +263,12 @@ func unsetEnv(t *testing.T) func() {
 		}
 		if err := os.Setenv("AWS_SESSION_TOKEN", e.Token); err != nil {
 			t.Fatalf("Error resetting env var AWS_SESSION_TOKEN: %s", err)
+		}
+		if err := os.Setenv("AWS_PROFILE", e.Profile); err != nil {
+			t.Fatalf("Error resetting env var AWS_PROFILE: %s", err)
+		}
+		if err := os.Setenv("AWS_SHARED_CREDENTIALS_FILE", e.CredsFilename); err != nil {
+			t.Fatalf("Error resetting env var AWS_SHARED_CREDENTIALS_FILE: %s", err)
 		}
 	}
 }
@@ -222,6 +285,12 @@ func setEnv(s string, t *testing.T) func() {
 	if err := os.Setenv("AWS_SESSION_TOKEN", s); err != nil {
 		t.Fatalf("Error setting env var AWS_SESSION_TOKEN: %s", err)
 	}
+	if err := os.Setenv("AWS_PROFILE", s); err != nil {
+		t.Fatalf("Error setting env var AWS_PROFILE: %s", err)
+	}
+	if err := os.Setenv("AWS_SHARED_CREDENTIALS_FILE", s); err != nil {
+		t.Fatalf("Error setting env var AWS_SHARED_CREDENTIALS_FLE: %s", err)
+	}
 
 	return func() {
 		// re-set all the envs we unset above
@@ -233,6 +302,12 @@ func setEnv(s string, t *testing.T) func() {
 		}
 		if err := os.Setenv("AWS_SESSION_TOKEN", e.Token); err != nil {
 			t.Fatalf("Error resetting env var AWS_SESSION_TOKEN: %s", err)
+		}
+		if err := os.Setenv("AWS_PROFILE", e.Profile); err != nil {
+			t.Fatalf("Error setting env var AWS_PROFILE: %s", err)
+		}
+		if err := os.Setenv("AWS_SHARED_CREDENTIALS_FILE", s); err != nil {
+			t.Fatalf("Error setting env var AWS_SHARED_CREDENTIALS_FLE: %s", err)
 		}
 	}
 }
@@ -264,15 +339,17 @@ func getEnv() *currentEnv {
 	// Grab any existing AWS keys and preserve. In some tests we'll unset these, so
 	// we need to have them and restore them after
 	return &currentEnv{
-		Key:    os.Getenv("AWS_ACCESS_KEY_ID"),
-		Secret: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		Token:  os.Getenv("AWS_SESSION_TOKEN"),
+		Key:           os.Getenv("AWS_ACCESS_KEY_ID"),
+		Secret:        os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		Token:         os.Getenv("AWS_SESSION_TOKEN"),
+		Profile:       os.Getenv("AWS_TOKEN"),
+		CredsFilename: os.Getenv("AWS_SHARED_CREDENTIALS_FILE"),
 	}
 }
 
 // struct to preserve the current environment
 type currentEnv struct {
-	Key, Secret, Token string
+	Key, Secret, Token, Profile, CredsFilename string
 }
 
 type routes struct {
