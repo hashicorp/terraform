@@ -68,7 +68,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	extraHosts := []string{}
-	if v, ok := d.GetOk("extra_hosts"); ok {
+	if v, ok := d.GetOk("host"); ok {
 		extraHosts = extraHostsSetToDockerExtraHosts(v.(*schema.Set))
 	}
 
