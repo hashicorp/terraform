@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -698,5 +699,26 @@ func TestFlattenResourceRecords(t *testing.T) {
 
 	if len(result) != 2 {
 		t.Fatal("expected result to have value, but got nil")
+	}
+}
+
+func TestFlattenAsgEnabledMetrics(t *testing.T) {
+	expanded := []*autoscaling.EnabledMetric{
+		&autoscaling.EnabledMetric{Granularity: aws.String("1Minute"), Metric: aws.String("GroupTotalInstances")},
+		&autoscaling.EnabledMetric{Granularity: aws.String("1Minute"), Metric: aws.String("GroupMaxSize")},
+	}
+
+	result := flattenAsgEnabledMetrics(expanded)
+
+	if len(result) != 2 {
+		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
+	}
+
+	if result[0] != "GroupTotalInstances" {
+		t.Fatalf("expected id to be GroupTotalInstances, but was %s", result[0])
+	}
+
+	if result[1] != "GroupMaxSize" {
+		t.Fatalf("expected id to be GroupMaxSize, but was %s", result[1])
 	}
 }
