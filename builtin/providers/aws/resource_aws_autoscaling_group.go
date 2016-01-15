@@ -147,6 +147,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Optional: true,
 			},
 
+			"enabled_metrics": &schema.Schema{
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"tag": autoscalingTagsSchema(),
 		},
 	}
@@ -264,6 +271,12 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 		d.Set("termination_policies", []interface{}{})
 	} else {
 		d.Set("termination_policies", flattenStringList(g.TerminationPolicies))
+	}
+
+	if g.EnabledMetrics != nil {
+		if err := d.Set("enabled_metrics", flattenAsgEnabledMetrics(g.EnabledMetrics)); err != nil {
+			log.Printf("[WARN] Error setting metrics for (%s): %s", d.Id(), err)
+		}
 	}
 
 	return nil
