@@ -57,6 +57,7 @@ The following arguments are supported:
   kept running. If false, then as long as the container exists, Terraform
   assumes it is successful.
 * `ports` - (Optional) See [Ports](#ports) below for details.
+* `host_entry` - (Optional) See [Extra Hosts](#extra_hosts) below for details.
 * `privileged` - (Optional, bool) Run container in privileged mode.
 * `publish_all_ports` - (Optional, bool) Publish all ports of the container.
 * `volumes` - (Optional) See [Volumes](#volumes) below for details.
@@ -83,6 +84,19 @@ the following:
 * `ip` - (Optional, string) IP address/mask that can access this port.
 * `protocol` - (Optional, string) Protocol that can be used over this port,
   defaults to TCP.
+
+<a id="extra_hosts"></a>
+## Extra Hosts
+
+`host_entry` is a block within the configuration that can be repeated to specify
+the extra host mappings for the container. Each `host_entry` block supports
+the following:
+
+* `host` - (Required, int) Hostname to add.
+* `ip` - (Required, int) IP address this hostname should resolve to..
+
+This is equivalent to using the `--add-host` option when using the `run`
+command of the Docker CLI.
 
 <a id="volumes"></a>
 ## Volumes
