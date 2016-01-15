@@ -117,25 +117,10 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	if !ok {
 		displaytext = name
 	}
-
 	// Create a new parameter struct
 	p := cs.Network.NewCreateNetworkParams(displaytext.(string), name, networkofferingid, zoneid)
 
-	// Get the network details from the CIDR
-	m := make(map[string]string, 4)
-	cidr := d.Get("cidr").(string)
-	m["cidr"] = cidr
-	if startip, ok := d.GetOk("startip"); ok {
-		m["startip"] = startip.(string)
-	}
-	if endip, ok := d.GetOk("endip"); ok {
-		m["endip"] = endip.(string)
-	}
-	if gateway, ok := d.GetOk("gateway"); ok {
-		m["gateway"] = gateway.(string)
-	}
-
-	m, err := parseCIDR(m)
+	m, err := parseCIDR(d)
 	if err != nil {
 		return err
 	}
@@ -211,6 +196,8 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("name", n.Name)
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
+	d.Set("gateway", n.Gateway)
+	d.Set("vlan", n.Vlan)
 
 	setValueOrID(d, "network_offering", n.Networkofferingname, n.Networkofferingid)
 	setValueOrID(d, "project", n.Project, n.Projectid)
@@ -285,32 +272,34 @@ func resourceCloudStackNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func parseCIDR(m_in map[string]string) (map[string]string, error) {
+func parseCIDR(d *schema.ResourceData) (map[string]string, error) {
 	m := make(map[string]string, 4)
 
-	ip, ipnet, err := net.ParseCIDR(m_in["cidr"])
+	cidr := d.Get("cidr").(string)
+	ip, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse cidr %s: %s", m_in["cidr"], err)
+		return nil, fmt.Errorf("Unable to parse cidr %s: %s", cidr, err)
 	}
 
 	msk := ipnet.Mask
 	sub := ip.Mask(msk)
 
 	m["netmask"] = fmt.Sprintf("%d.%d.%d.%d", msk[0], msk[1], msk[2], msk[3])
-	if gateway, ok := m_in["gateway"]; ok {
-		m["gateway"] = gateway
+
+	if gateway, ok := d.GetOk("gateway"); ok {
+		m["gateway"] = gateway.(string)
 	} else {
 		m["gateway"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+1)
 	}
 
-	if startip, ok := m_in["startip"]; ok {
-		m["startip"] = startip
+	if startip, ok := d.GetOk("startip"); ok {
+		m["startip"] = startip.(string)
 	} else {
 		m["startip"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+2)
 	}
 
-	if endip, ok := m_in["endip"]; ok {
-		m["endip"] = endip
+	if endip, ok := d.GetOk("endip"); ok {
+		m["endip"] = endip.(string)
 	} else {
 		m["endip"] = fmt.Sprintf("%d.%d.%d.%d",
 			sub[0]+(0xff-msk[0]), sub[1]+(0xff-msk[1]), sub[2]+(0xff-msk[2]), sub[3]+(0xff-msk[3]-1))
