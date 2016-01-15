@@ -43,11 +43,11 @@ The following arguments are supported:
 * `fqdn` - (Optional) The fully qualified domain name of the endpoint to be checked.
 * `ip_address` - (Optional) The IP address of the endpoint to be checked.
 * `port` - (Optional) The port of the endpoint to be checked.
-* `type` - (Required) The protocol to use when performing health checks. Valid values include `"HTTP"`, `"HTTPS"`, and `"TCP"`.
+* `type` - (Required) The protocol to use when performing health checks. Valid values are `HTTP`, `HTTPS`, `HTTP_STR_MATCH`, `HTTPS_STR_MATCH`, `TCP` and `CALCULATED`.
 * `failure_threshold` - (Required) The number of consecutive health checks that an endpoint must pass or fail.
 * `request_interval` - (Required) The number of seconds between the time that Amazon Route 53 gets a response from your endpoint and the time that it sends the next health-check request.
 * `resource_path` - (Optional) The path that you want Amazon Route 53 to request when performing health checks.
-* `search_string` - (Optional) String searched in response body for check to be considered healthy.
+* `search_string` - (Optional) String searched in the first 5120 bytes of the response body for check to be considered healthy.
 * `measure_latency` - (Optional) A Boolean value that indicates whether you want Route 53 to measure the latency between health checkers in multiple AWS regions and your endpoint and to display CloudWatch latency graphs in the Route 53 console.
 * `invert_healthcheck` - (Optional) A boolean value that indicates whether the status of health check should be inverted. For example, if a health check is healthy but Inverted is True , then Route 53 considers the health check to be unhealthy.
 * `child_healthchecks` - (Optional) For a specified parent health check, a list of HealthCheckId values for the associated child health checks.
