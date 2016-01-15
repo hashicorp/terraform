@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -35,9 +36,36 @@ func resourceCloudStackNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"gateway": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"startip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"endip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"network_offering": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"vlan": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"vpc": &schema.Schema{
@@ -94,16 +122,33 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	p := cs.Network.NewCreateNetworkParams(displaytext.(string), name, networkofferingid, zoneid)
 
 	// Get the network details from the CIDR
-	m, err := parseCIDR(d.Get("cidr").(string))
+	m := make(map[string]string, 4)
+	cidr := d.Get("cidr").(string)
+	m["cidr"] = cidr
+	if startip, ok := d.GetOk("startip"); ok {
+		m["startip"] = startip.(string)
+	}
+	if endip, ok := d.GetOk("endip"); ok {
+		m["endip"] = endip.(string)
+	}
+	if gateway, ok := d.GetOk("gateway"); ok {
+		m["gateway"] = gateway.(string)
+	}
+
+	m, err := parseCIDR(m)
 	if err != nil {
 		return err
 	}
 
 	// Set the needed IP config
-	p.SetStartip(m["start"])
+	p.SetStartip(m["startip"])
 	p.SetGateway(m["gateway"])
-	p.SetEndip(m["end"])
+	p.SetEndip(m["endip"])
 	p.SetNetmask(m["netmask"])
+
+	if vlan, ok := d.GetOk("vlan"); ok {
+		p.SetVlan(strconv.Itoa(vlan.(int)))
+	}
 
 	// Check is this network needs to be created in a VPC
 	vpc := d.Get("vpc").(string)
@@ -240,22 +285,36 @@ func resourceCloudStackNetworkDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func parseCIDR(cidr string) (map[string]string, error) {
+func parseCIDR(m_in map[string]string) (map[string]string, error) {
 	m := make(map[string]string, 4)
 
-	ip, ipnet, err := net.ParseCIDR(cidr)
+	ip, ipnet, err := net.ParseCIDR(m_in["cidr"])
 	if err != nil {
-		return nil, fmt.Errorf("Unable to parse cidr %s: %s", cidr, err)
+		return nil, fmt.Errorf("Unable to parse cidr %s: %s", m_in["cidr"], err)
 	}
 
 	msk := ipnet.Mask
 	sub := ip.Mask(msk)
 
 	m["netmask"] = fmt.Sprintf("%d.%d.%d.%d", msk[0], msk[1], msk[2], msk[3])
-	m["gateway"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+1)
-	m["start"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+2)
-	m["end"] = fmt.Sprintf("%d.%d.%d.%d",
-		sub[0]+(0xff-msk[0]), sub[1]+(0xff-msk[1]), sub[2]+(0xff-msk[2]), sub[3]+(0xff-msk[3]-1))
+	if gateway, ok := m_in["gateway"]; ok {
+		m["gateway"] = gateway
+	} else {
+		m["gateway"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+1)
+	}
+
+	if startip, ok := m_in["startip"]; ok {
+		m["startip"] = startip
+	} else {
+		m["startip"] = fmt.Sprintf("%d.%d.%d.%d", sub[0], sub[1], sub[2], sub[3]+2)
+	}
+
+	if endip, ok := m_in["endip"]; ok {
+		m["endip"] = endip
+	} else {
+		m["endip"] = fmt.Sprintf("%d.%d.%d.%d",
+			sub[0]+(0xff-msk[0]), sub[1]+(0xff-msk[1]), sub[2]+(0xff-msk[2]), sub[3]+(0xff-msk[3]-1))
+	}
 
 	return m, nil
 }
