@@ -30,6 +30,7 @@ IMPROVEMENTS:
     and Directory Connectors [GH-4388]
   * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3139]
   * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
+  * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
   * provider/google: Add content field to bucket object [GH-3893]
   * provider/openstack: Add "personality" support to instance resource [GH-4623]
   * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
