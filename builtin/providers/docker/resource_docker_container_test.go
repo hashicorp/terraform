@@ -25,6 +25,48 @@ func TestAccDockerContainer_basic(t *testing.T) {
 	})
 }
 
+func TestAccDockerContainer_volume(t *testing.T) {
+	var c dc.Container
+
+	testCheck := func(*terraform.State) error {
+		if len(c.Mounts) != 2 {
+			return fmt.Errorf("Incorrect number of mounts: expected 2, got %d", len(c.Mounts))
+		}
+
+		for _, v := range c.Mounts {
+			if v.Name != "testAccDockerContainerVolume_volume" {
+				continue
+			}
+
+			if v.Destination != "/tmp/volume" {
+				return fmt.Errorf("Bad destination on mount: expected /tmp/volume, got %q", v.Destination)
+			}
+
+			if v.Mode != "rw" {
+				return fmt.Errorf("Bad mode on mount: expected rw, got %q", v.Mode)
+			}
+
+			return nil
+		}
+
+		return fmt.Errorf("Mount for testAccDockerContainerVolume_volume not found")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerContainerVolumeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning("docker_container.foo", &c),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
 func TestAccDockerContainer_customized(t *testing.T) {
 	var c dc.Container
 
@@ -142,6 +184,27 @@ resource "docker_image" "foo" {
 resource "docker_container" "foo" {
 	name = "tf-test"
 	image = "${docker_image.foo.latest}"
+}
+`
+
+const testAccDockerContainerVolumeConfig = `
+resource "docker_image" "foo" {
+	name = "nginx:latest"
+}
+
+resource "docker_volume" "foo" {
+    name = "testAccDockerContainerVolume_volume"
+}
+
+resource "docker_container" "foo" {
+	name = "tf-test"
+	image = "${docker_image.foo.latest}"
+
+    volumes {
+        volume_name = "${docker_volume.foo.name}"
+        container_path = "/tmp/volume"
+        read_only = false
+    }
 }
 `
 
