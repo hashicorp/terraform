@@ -353,7 +353,10 @@ func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []strin
 		volume := volumeInt.(map[string]interface{})
 		fromContainer := volume["from_container"].(string)
 		containerPath := volume["container_path"].(string)
-		hostPath := volume["host_path"].(string)
+		volumeName := volume["volume_name"].(string)
+		if len(volumeName) == 0 {
+			volumeName = volume["host_path"].(string)
+		}
 		readOnly := volume["read_only"].(bool)
 
 		switch {
@@ -363,13 +366,13 @@ func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []strin
 			return retVolumeMap, retHostConfigBinds, retVolumeFromContainers, errors.New("Both a container and a path specified in a volume entry")
 		case len(fromContainer) != 0:
 			retVolumeFromContainers = append(retVolumeFromContainers, fromContainer)
-		case len(hostPath) != 0:
+		case len(volumeName) != 0:
 			readWrite := "rw"
 			if readOnly {
 				readWrite = "ro"
 			}
 			retVolumeMap[containerPath] = struct{}{}
-			retHostConfigBinds = append(retHostConfigBinds, hostPath+":"+containerPath+":"+readWrite)
+			retHostConfigBinds = append(retHostConfigBinds, volumeName+":"+containerPath+":"+readWrite)
 		default:
 			retVolumeMap[containerPath] = struct{}{}
 		}
