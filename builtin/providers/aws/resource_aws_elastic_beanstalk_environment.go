@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 )
 
@@ -331,6 +332,8 @@ func resourceAwsElasticBeanstalkEnvironmentSettingsRead(d *schema.ResourceData, 
 		return err
 	}
 
+	dropGeneratedSecurityGroup(allSettings, meta)
+
 	settings := d.Get("setting").(*schema.Set)
 
 	log.Printf("[DEBUG] Elastic Beanstalk allSettings: %s", allSettings.GoString())
@@ -471,4 +474,40 @@ func extractOptionSettings(s *schema.Set) []*elasticbeanstalk.ConfigurationOptio
 	}
 
 	return settings
+}
+
+func dropGeneratedSecurityGroup(settings *schema.Set, meta interface{}) {
+	conn := meta.(*AWSClient).ec2conn
+
+	for _, s := range settings.List() {
+		setting := s.(map[string]interface{})
+
+		if setting["name"].(string) != "SecurityGroups" {
+			continue
+		}
+
+		groups := strings.Split(setting["value"].(string), ",")
+
+		resp, err := conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+			GroupIds: aws.StringSlice(groups),
+		})
+
+		if err != nil {
+			log.Printf("[DEBUG] Elastic Beanstalk error describing SecurityGroups: %v", err)
+			continue
+		}
+
+		var legitGroups []string
+		for _, group := range resp.SecurityGroups {
+			log.Printf("[DEBUG] Elastic Beanstalk SecurityGroup: %v", *group.GroupName)
+			if !strings.HasPrefix(*group.GroupName, "awseb") {
+				legitGroups = append(legitGroups, *group.GroupId)
+			}
+		}
+
+		settings.Remove(s)
+
+		setting["value"] = strings.Join(legitGroups, ",")
+		settings.Add(setting)
+	}
 }
