@@ -107,12 +107,16 @@ the following:
 
 * `from_container` - (Optional, string) The container where the volume is
   coming from.
-* `container_path` - (Optional, string) The path in the container where the
-  volume will be mounted.
 * `host_path` - (Optional, string) The path on the host where the volume
   is coming from.
+* `volume_name` - (Optional, string) The name of the docker volume which
+  should be mounted.
+* `container_path` - (Optional, string) The path in the container where the
+  volume will be mounted.
 * `read_only` - (Optional, bool) If true, this volume will be readonly.
   Defaults to false.
+  
+One of `from_container`, `host_path` or `volume_name` must be set.
 
 ## Attributes Reference
 

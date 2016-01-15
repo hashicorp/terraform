@@ -137,6 +137,20 @@ func resourceDockerContainer() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								value := v.(string)
+								if !regexp.MustCompile(`^/`).MatchString(value) {
+									es = append(es, fmt.Errorf(
+										"%q must be an absolute path", k))
+								}
+								return
+							},
+						},
+
+						"volume_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
 						},
 
 						"read_only": &schema.Schema{
@@ -380,6 +394,10 @@ func resourceDockerVolumesHash(v interface{}) int {
 	}
 
 	if v, ok := m["host_path"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	if v, ok := m["volume_name"]; ok {
 		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
 	}
 
