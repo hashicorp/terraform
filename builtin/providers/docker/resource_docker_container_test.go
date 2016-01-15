@@ -72,6 +72,18 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container does not have the correct max-file log option: %v", c.HostConfig.LogConfig.Config["max-file"])
 		}
 
+		if len(c.HostConfig.ExtraHosts) != 2 {
+			return fmt.Errorf("Container does not have correct number of extra host entries, got %d", len(c.HostConfig.ExtraHosts))
+		}
+
+		if c.HostConfig.ExtraHosts[0] != "testhost2:10.0.2.0" {
+			return fmt.Errorf("Container has incorrect extra host string: %q", c.HostConfig.ExtraHosts[0])
+		}
+
+		if c.HostConfig.ExtraHosts[1] != "testhost:10.0.1.0" {
+			return fmt.Errorf("Container has incorrect extra host string: %q", c.HostConfig.ExtraHosts[1])
+		}
+
 		return nil
 	}
 
@@ -132,6 +144,7 @@ resource "docker_container" "foo" {
 	image = "${docker_image.foo.latest}"
 }
 `
+
 const testAccDockerContainerCustomizedConfig = `
 resource "docker_image" "foo" {
 	name = "nginx:latest"
@@ -140,21 +153,31 @@ resource "docker_image" "foo" {
 resource "docker_container" "foo" {
 	name = "tf-test"
 	image = "${docker_image.foo.latest}"
-  entrypoint = ["/bin/bash", "-c", "ping localhost"]
-  restart = "on-failure"
-  max_retry_count = 5
-  memory = 512
-  memory_swap = 2048
-  cpu_shares = 32
-  labels {
-    env = "prod"
-    role = "test"
-  }
-  log_driver = "json-file"
-  log_opts = {
-    max-size = "10m"
-    max-file = 20
+	entrypoint = ["/bin/bash", "-c", "ping localhost"]
+	restart = "on-failure"
+	max_retry_count = 5
+	memory = 512
+	memory_swap = 2048
+	cpu_shares = 32
+	labels {
+		env = "prod"
+		role = "test"
+	}
+	log_driver = "json-file"
+	log_opts = {
+		max-size = "10m"
+		max-file = 20
 	}
 	network_mode = "bridge"
+
+	host {
+		host = "testhost"
+		ip = "10.0.1.0"
+	}
+
+	host {
+		host = "testhost2"
+		ip = "10.0.2.0"
+	}
 }
 `
