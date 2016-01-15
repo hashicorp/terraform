@@ -35,15 +35,13 @@ The following arguments are supported:
     resource to be created.
 
 * `startip` - (Optional) Start of the IP block that will be available on the 
-    network. It will be autocalculated to the second available IP in the range
-    if it's left out.
+    network. Defaults to the second available IP in the range.
 
 * `endip` - (Optional) End of the IP block that will be available on the 
-    network. It will be autocalculated to the last available IP in the range
-    if it's left out.
+    network. Defaults to the last available IP in the range.
 
 * `gateway` - (Optional) Gateway that will be provided to the instances in this
-    network. It defaults to the first usable IP if it's left empty.
+    network. Defaults to the first usable IP in the range.
 
 * `network_offering` - (Required) The name or ID of the network offering to use
     for this network.
