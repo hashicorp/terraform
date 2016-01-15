@@ -34,8 +34,22 @@ The following arguments are supported:
 * `cidr` - (Required) The CIDR block for the network. Changing this forces a new
     resource to be created.
 
+* `startip` - (Optional) Start of the IP block that will be available on the 
+    network. It will be autocalculated to the second available IP in the range
+    if it's left out.
+
+* `endip` - (Optional) End of the IP block that will be available on the 
+    network. It will be autocalculated to the last available IP in the range
+    if it's left out.
+
+* `gateway` - (Optional) Gateway that will be provided to the instances in this
+    network. It defaults to the first usable IP if it's left empty.
+
 * `network_offering` - (Required) The name or ID of the network offering to use
     for this network.
+
+* `vlan` - (Optional) The VLAN number (1-4095) the network will use. This might be
+    required by the Network Offering if specifyVlan=true is set.
 
 * `vpc` - (Optional) The name or ID of the VPC to create this network for. Changing
     this forces a new resource to be created.
