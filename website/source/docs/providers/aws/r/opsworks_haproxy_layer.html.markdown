@@ -35,6 +35,7 @@ The following arguments are supported:
 * `healthcheck_url` - (Optional) URL path to use for instance healthchecks. Defaults to "/".
 * `install_updates_on_boot` - (Optional) Whether to install OS and package updates on each instance when it boots.
 * `instance_shutdown_timeout` - (Optional) The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+* `elastic_load_balancer` - (Optional) Name of an Elastic Load Balancer to attach to this layer
 * `drain_elb_on_shutdown` - (Optional) Whether to enable Elastic Load Balancing connection draining.
 * `stats_enabled` - (Optional) Whether to enable HAProxy stats.
 * `stats_url` - (Optional) The HAProxy stats URL. Defaults to "/haproxy?stats".
