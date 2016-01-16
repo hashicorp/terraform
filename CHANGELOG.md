@@ -44,6 +44,7 @@ BUG FIXES:
   * provider/aws: Error with empty list item on security group [GH-4140]
   * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
   * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
+  * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
 
 ## 0.6.9 (January 8, 2016)
 
