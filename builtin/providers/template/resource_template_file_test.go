@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	r "github.com/hashicorp/terraform/helper/resource"
@@ -74,6 +75,29 @@ func TestTemplateVariableChange(t *testing.T) {
 		Providers: testProviders,
 		Steps:     testSteps,
 	})
+}
+
+// This test covers a panic due to config.Func formerly being a
+// shared map, causing multiple template_file resources to try and
+// accessing it parallel during their lang.Eval() runs.
+//
+// Before fix, test fails under `go test -race`
+func TestTemplateSharedMemoryRace(t *testing.T) {
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		go func(wg sync.WaitGroup, t *testing.T, i int) {
+			wg.Add(1)
+			out, err := execute("don't panic!", map[string]interface{}{})
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			if out != "don't panic!" {
+				t.Fatalf("bad output: %s", out)
+			}
+			wg.Done()
+		}(wg, t, i)
+	}
+	wg.Wait()
 }
 
 func testTemplateConfig(template, vars string) string {

@@ -20,10 +20,8 @@ import (
 )
 
 // Funcs is the mapping of built-in functions for configuration.
-var Funcs map[string]ast.Function
-
-func init() {
-	Funcs = map[string]ast.Function{
+func Funcs() map[string]ast.Function {
+	return map[string]ast.Function{
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
