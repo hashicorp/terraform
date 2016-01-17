@@ -9,6 +9,8 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"golang.org/x/crypto/ssh"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -80,6 +82,16 @@ func resourcePrivateKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"public_key_pem": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"public_key_openssh": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -100,25 +112,47 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 	var keyPemBlock *pem.Block
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
-		keyPemBlock = &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
+		keyPemBlock = &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(k),
+		}
 	case *ecdsa.PrivateKey:
-		b, err := x509.MarshalECPrivateKey(k)
+		keyBytes, err := x509.MarshalECPrivateKey(k)
 		if err != nil {
 			return fmt.Errorf("error encoding key to PEM: %s", err)
 		}
-		keyPemBlock = &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}
+		keyPemBlock = &pem.Block{
+			Type:  "EC PRIVATE KEY",
+			Bytes: keyBytes,
+		}
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
 	keyPem := string(pem.EncodeToMemory(keyPemBlock))
 
-	pubKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey(key))
+	pubKey := publicKey(key)
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
 		return fmt.Errorf("failed to marshal public key: %s", err)
+	}
+	pubKeyPemBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubKeyBytes,
 	}
 
 	d.SetId(hashForState(string((pubKeyBytes))))
 	d.Set("private_key_pem", keyPem)
+	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
+
+	sshPubKey, err := ssh.NewPublicKey(pubKey)
+	if err == nil {
+		// Not all EC types can be SSH keys, so we'll produce this only
+		// if an appropriate type was selected.
+		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
+		d.Set("public_key_openssh", string(sshPubKeyBytes))
+	} else {
+		d.Set("public_key_openssh", "")
+	}
 
 	return nil
 }
