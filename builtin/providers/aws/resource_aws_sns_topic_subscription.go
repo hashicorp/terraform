@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"time"
 )
 
 const awsSNSPendingConfirmationMessage = "pending confirmation"
@@ -27,7 +28,7 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 				ForceNew: false,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					forbidden := []string{"email", "sms", "http"}
+					forbidden := []string{"email", "sms"}
 					for _, f := range forbidden {
 						if strings.Contains(value, f) {
 							errors = append(
@@ -43,6 +44,24 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
+			},
+			"endpoint_auto_confirms": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Default:  false,
+			},
+			"max_fetch_retries": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: false,
+				Default:  3,
+			},
+			"fetch_retry_delay": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: false,
+				Default:  1,
 			},
 			"topic_arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -178,6 +197,13 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 	protocol := d.Get("protocol").(string)
 	endpoint := d.Get("endpoint").(string)
 	topic_arn := d.Get("topic_arn").(string)
+	endpoint_auto_confirms := d.Get("endpoint_auto_confirms").(bool)
+	max_fetch_retries := d.Get("max_fetch_retries").(int)
+	fetch_retry_delay := time.Duration(d.Get("fetch_retry_delay").(int))
+
+	if strings.Contains(protocol, "http") && !endpoint_auto_confirms {
+		return nil, fmt.Errorf("Protocol http/https is only supported for endpoints which auto confirms!")
+	}
 
 	log.Printf("[DEBUG] SNS create topic subscription: %s (%s) @ '%s'", endpoint, protocol, topic_arn)
 
@@ -192,6 +218,64 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 		return nil, fmt.Errorf("Error creating SNS topic: %s", err)
 	}
 
+	if strings.Contains(protocol, "http") && (output.SubscriptionArn == nil || *output.SubscriptionArn == awsSNSPendingConfirmationMessage) {
+
+		log.Printf("[DEBUG] SNS create topic subscritpion is pending so fetching the subscription list for topic : %s (%s) @ '%s'", endpoint, protocol, topic_arn)
+
+		for i := 0; i < max_fetch_retries && output.SubscriptionArn != nil && *output.SubscriptionArn == awsSNSPendingConfirmationMessage; i++ {
+
+			subscription, err := findSubscriptionByNonID(d, snsconn)
+
+			if err != nil {
+				return nil, fmt.Errorf("Error fetching subscriptions for SNS topic %s: %s", topic_arn, err)
+			}
+
+			if subscription != nil {
+				output.SubscriptionArn = subscription.SubscriptionArn
+				break
+			}
+
+			time.Sleep(time.Second * fetch_retry_delay)
+		}
+
+		if output.SubscriptionArn == nil || *output.SubscriptionArn == awsSNSPendingConfirmationMessage {
+			return nil, fmt.Errorf("Endpoint (%s) did not autoconfirm the subscription for topic %s", endpoint, topic_arn)
+		}
+	}
+
 	log.Printf("[DEBUG] Created new subscription!")
 	return output, nil
+}
+
+// finds a subscription using protocol, endpoint and topic_arn (which is a key in sns subscription)
+func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Subscription, error) {
+	protocol := d.Get("protocol").(string)
+	endpoint := d.Get("endpoint").(string)
+	topic_arn := d.Get("topic_arn").(string)
+
+	req := &sns.ListSubscriptionsByTopicInput{
+		TopicArn: aws.String(topic_arn),
+	}
+
+	for {
+
+		res, err := snsconn.ListSubscriptionsByTopic(req)
+
+		if err != nil {
+			return nil, fmt.Errorf("Error fetching subscripitions for topic %s : %s", topic_arn, err)
+		}
+
+		for _, subscription := range res.Subscriptions {
+			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn {
+				return subscription, nil
+			}
+		}
+
+		// if there are more than 100 subscriptions then go to the next 100 otherwise return nil
+		if res.NextToken != nil {
+			req.NextToken = res.NextToken
+		} else {
+			return nil, nil
+		}
+	}
 }
