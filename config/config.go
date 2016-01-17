@@ -783,6 +783,21 @@ func (c *ProviderConfig) mergerMerge(m merger) merger {
 	return &result
 }
 
+func (r *DataSource) mergerName() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+func (r *DataSource) mergerMerge(m merger) merger {
+	r2 := m.(*DataSource)
+
+	result := *r
+	result.Name = r2.Name
+	result.Type = r2.Type
+	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
+
+	return &result
+}
+
 func (r *Resource) mergerName() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
 }
