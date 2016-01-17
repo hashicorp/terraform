@@ -65,6 +65,17 @@ func TestLoadFile_resourceArityMistake(t *testing.T) {
 	}
 }
 
+func TestLoadFile_dataSourceArityMistake(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "data-source-arity-mistake.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+	expected := "Error loading test-fixtures/data-source-arity-mistake.tf: position 2:6: 'data' must be followed by exactly two strings: a type and a name"
+	if err.Error() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
+	}
+}
+
 func TestLoadFileWindowsLineEndings(t *testing.T) {
 	testFile := filepath.Join(fixtureDir, "windows-line-endings.tf")
 
@@ -823,6 +834,11 @@ aws_instance.web (x1)
     resource: aws_security_group.firewall.foo
     user: var.foo
 aws_security_group.firewall (x5)
+data.do.depends (x1)
+  dependsOn
+    data.do.simple
+data.do.simple (x1)
+  foo
 `
 
 const basicVariablesStr = `
@@ -866,6 +882,11 @@ aws_instance.web (x1)
     resource: aws_security_group.firewall.foo
     user: var.foo
 aws_security_group.firewall (x5)
+data.do.depends (x1)
+  dependsOn
+    data.do.simple
+data.do.simple (x1)
+  foo
 `
 
 const dirBasicVariablesStr = `
@@ -903,6 +924,12 @@ aws_instance.web (x1)
     resource: aws_security_group.firewall.foo
     user: var.foo
 aws_security_group.firewall (x5)
+data.do.depends (x1)
+  hello
+  dependsOn
+    data.do.simple
+data.do.simple (x1)
+  foo
 `
 
 const dirOverrideVariablesStr = `
