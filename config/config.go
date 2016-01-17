@@ -31,6 +31,7 @@ type Config struct {
 	Atlas           *AtlasConfig
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
+	DataSources     []*DataSource
 	Resources       []*Resource
 	Variables       []*Variable
 	Outputs         []*Output
@@ -65,6 +66,18 @@ type ProviderConfig struct {
 	Name      string
 	Alias     string
 	RawConfig *RawConfig
+}
+
+// DataSource is the configuration for a data source.
+// A data source represents retrieving some data from an external source for
+// use elsewhere in a Terraform configuration, or computing some data
+// internally within a logical provider.
+type DataSource struct {
+	Name      string
+	Type      string
+	RawConfig *RawConfig
+	Provider  string
+	DependsOn []string
 }
 
 // A resource represents a single Terraform resource in the configuration.
