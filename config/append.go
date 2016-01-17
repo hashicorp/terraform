@@ -57,6 +57,14 @@ func Append(c1, c2 *Config) (*Config, error) {
 		c.ProviderConfigs = append(c.ProviderConfigs, c2.ProviderConfigs...)
 	}
 
+	if len(c1.DataSources) > 0 || len(c2.DataSources) > 0 {
+		c.DataSources = make(
+			[]*DataSource,
+			0, len(c1.DataSources)+len(c2.DataSources))
+		c.DataSources = append(c.DataSources, c1.DataSources...)
+		c.DataSources = append(c.DataSources, c2.DataSources...)
+	}
+
 	if len(c1.Resources) > 0 || len(c2.Resources) > 0 {
 		c.Resources = make(
 			[]*Resource,

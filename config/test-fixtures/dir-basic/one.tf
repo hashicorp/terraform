@@ -8,6 +8,10 @@ provider "aws" {
   secret_key = "bar"
 }
 
+data "do" "simple" {
+  foo = "baz"
+}
+
 resource "aws_instance" "db" {
     security_groups = "${aws_security_group.firewall.*.id}"
 }

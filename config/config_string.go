@@ -170,6 +170,76 @@ func providerConfigsStr(pcs []*ProviderConfig) string {
 	return strings.TrimSpace(result)
 }
 
+// This helper turns a data sources field into a deterministic
+// string value for comparison in tests.
+func dataSourcesStr(rs []*DataSource) string {
+	result := ""
+	order := make([]int, 0, len(rs))
+	ks := make([]string, 0, len(rs))
+	mapping := make(map[string]int)
+	for i, r := range rs {
+		k := fmt.Sprintf("%s[%s]", r.Type, r.Name)
+		ks = append(ks, k)
+		mapping[k] = i
+	}
+	sort.Strings(ks)
+	for _, k := range ks {
+		order = append(order, mapping[k])
+	}
+
+	for _, i := range order {
+		r := rs[i]
+		result += fmt.Sprintf(
+			"%s[%s]\n",
+			r.Type,
+			r.Name)
+
+		ks := make([]string, 0, len(r.RawConfig.Raw))
+		for k, _ := range r.RawConfig.Raw {
+			ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		for _, k := range ks {
+			result += fmt.Sprintf("  %s\n", k)
+		}
+
+		if len(r.DependsOn) > 0 {
+			result += fmt.Sprintf("  dependsOn\n")
+			for _, d := range r.DependsOn {
+				result += fmt.Sprintf("    %s\n", d)
+			}
+		}
+
+		if len(r.RawConfig.Variables) > 0 {
+			result += fmt.Sprintf("  vars\n")
+
+			ks := make([]string, 0, len(r.RawConfig.Variables))
+			for k, _ := range r.RawConfig.Variables {
+				ks = append(ks, k)
+			}
+			sort.Strings(ks)
+
+			for _, k := range ks {
+				rawV := r.RawConfig.Variables[k]
+				kind := "unknown"
+				str := rawV.FullKey()
+
+				switch rawV.(type) {
+				case *ResourceVariable:
+					kind = "resource"
+				case *UserVariable:
+					kind = "user"
+				}
+
+				result += fmt.Sprintf("    %s: %s\n", kind, str)
+			}
+		}
+	}
+
+	return strings.TrimSpace(result)
+}
+
 // This helper turns a resources field into a deterministic
 // string value for comparison in tests.
 func resourcesStr(rs []*Resource) string {

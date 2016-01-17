@@ -56,6 +56,17 @@ func TestLoadFile_resourceArityMistake(t *testing.T) {
 	}
 }
 
+func TestLoadFile_dataSourceArityMistake(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "data-source-arity-mistake.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+	expected := "Error loading test-fixtures/data-source-arity-mistake.tf: position 2:6: 'data' must be followed by exactly two strings: a type and a name"
+	if err.Error() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
+	}
+}
+
 func TestLoadFileWindowsLineEndings(t *testing.T) {
 	testFile := filepath.Join(fixtureDir, "windows-line-endings.tf")
 
@@ -160,6 +171,11 @@ func TestLoadFileBasic(t *testing.T) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
+	actual = dataSourcesStr(c.DataSources)
+	if actual != strings.TrimSpace(basicDataSourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
 	actual = resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(basicResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -240,6 +256,11 @@ func TestLoadFileBasic_json(t *testing.T) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
+	actual = dataSourcesStr(c.DataSources)
+	if actual != strings.TrimSpace(basicDataSourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
 	actual = resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(basicResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -305,6 +326,11 @@ func TestLoadJSONBasic(t *testing.T) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
+	actual = dataSourcesStr(c.DataSources)
+	if actual != strings.TrimSpace(basicDataSourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
 	actual = resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(basicResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -361,6 +387,11 @@ func TestLoadDir_basic(t *testing.T) {
 
 	actual = providerConfigsStr(c.ProviderConfigs)
 	if actual != strings.TrimSpace(dirBasicProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = dataSourcesStr(c.DataSources)
+	if actual != strings.TrimSpace(dirBasicDataSourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
@@ -421,6 +452,11 @@ func TestLoadDir_override(t *testing.T) {
 
 	actual = providerConfigsStr(c.ProviderConfigs)
 	if actual != strings.TrimSpace(dirOverrideProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = dataSourcesStr(c.DataSources)
+	if actual != strings.TrimSpace(dirOverrideDataSourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
@@ -766,6 +802,14 @@ do
     user: var.foo
 `
 
+const basicDataSourcesStr = `
+do[depends]
+  dependsOn
+    data.do.simple
+do[simple]
+  foo
+`
+
 const basicResourcesStr = `
 aws_instance[db] (x1)
   VPC
@@ -814,6 +858,14 @@ do
     user: var.foo
 `
 
+const dirBasicDataSourcesStr = `
+do[depends]
+  dependsOn
+    data.do.simple
+do[simple]
+  foo
+`
+
 const dirBasicResourcesStr = `
 aws_instance[db] (x1)
   security_groups
@@ -849,6 +901,15 @@ do
   api_key
   vars
     user: var.foo
+`
+
+const dirOverrideDataSourcesStr = `
+do[depends]
+  hello
+  dependsOn
+    data.do.simple
+do[simple]
+  foo
 `
 
 const dirOverrideResourcesStr = `
