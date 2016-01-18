@@ -56,7 +56,11 @@ func withRequestLogging() autorest.SendDecorator {
 		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
 			log.Printf("[DEBUG] Sending Azure RM Request %s to %s\n", r.Method, r.URL)
 			resp, err := s.Do(r)
-			log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+			if resp != nil {
+				log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+			} else {
+				log.Printf("[DEBUG] Request to %s completed with no response", r.URL)
+			}
 			return resp, err
 		})
 	}
