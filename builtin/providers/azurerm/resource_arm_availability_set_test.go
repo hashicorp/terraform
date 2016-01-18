@@ -32,6 +32,40 @@ func TestAccAzureRMAvailabilitySet_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMAvailabilitySet_withTags(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMVAvailabilitySet_withTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAzureRMVAvailabilitySet_withUpdatedTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMAvailabilitySet_withDomainCounts(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -118,6 +152,39 @@ resource "azurerm_availability_set" "test" {
     name = "acceptanceTestAvailabilitySet1"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
+}
+`
+
+var testAccAzureRMVAvailabilitySet_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+resource "azurerm_availability_set" "test" {
+    name = "acceptanceTestAvailabilitySet1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    tags {
+	environment = "Production"
+	cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMVAvailabilitySet_withUpdatedTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+resource "azurerm_availability_set" "test" {
+    name = "acceptanceTestAvailabilitySet1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    tags {
+	environment = "staging"
+    }
 }
 `
 
