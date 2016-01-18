@@ -96,7 +96,7 @@ func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	if output.SubscriptionArn != nil && *output.SubscriptionArn == awsSNSPendingConfirmationMessage {
+	if subscriptionHasPendingConfirmation(output.SubscriptionArn) {
 		log.Printf("[WARN] Invalid SNS Subscription, received a \"%s\" ARN", awsSNSPendingConfirmationMessage)
 		return nil
 	}
@@ -218,11 +218,13 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 		return nil, fmt.Errorf("Error creating SNS topic: %s", err)
 	}
 
-	if strings.Contains(protocol, "http") && (output.SubscriptionArn == nil || *output.SubscriptionArn == awsSNSPendingConfirmationMessage) {
+	log.Printf("[DEBUG] Finished subscribing to topic %s with subscription arn %s", topic_arn, *output.SubscriptionArn)
+
+	if strings.Contains(protocol, "http") && subscriptionHasPendingConfirmation(output.SubscriptionArn) {
 
 		log.Printf("[DEBUG] SNS create topic subscritpion is pending so fetching the subscription list for topic : %s (%s) @ '%s'", endpoint, protocol, topic_arn)
 
-		for i := 0; i < max_fetch_retries && output.SubscriptionArn != nil && *output.SubscriptionArn == awsSNSPendingConfirmationMessage; i++ {
+		for i := 0; i < max_fetch_retries && subscriptionHasPendingConfirmation(output.SubscriptionArn); i++ {
 
 			subscription, err := findSubscriptionByNonID(d, snsconn)
 
@@ -238,12 +240,12 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 			time.Sleep(time.Second * fetch_retry_delay)
 		}
 
-		if output.SubscriptionArn == nil || *output.SubscriptionArn == awsSNSPendingConfirmationMessage {
+		if subscriptionHasPendingConfirmation(output.SubscriptionArn) {
 			return nil, fmt.Errorf("Endpoint (%s) did not autoconfirm the subscription for topic %s", endpoint, topic_arn)
 		}
 	}
 
-	log.Printf("[DEBUG] Created new subscription!")
+	log.Printf("[DEBUG] Created new subscription! %s", *output.SubscriptionArn)
 	return output, nil
 }
 
@@ -266,7 +268,8 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 		}
 
 		for _, subscription := range res.Subscriptions {
-			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && *subscription.SubscriptionArn != awsSNSPendingConfirmationMessage {
+			log.Printf("[DEBUG] check subscription with EndPoint %s, Protocol %s,  topicARN %s and SubscriptionARN %s", *subscription.Endpoint, *subscription.Protocol, *subscription.TopicArn, *subscription.SubscriptionArn)
+			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && !subscriptionHasPendingConfirmation(subscription.SubscriptionArn) {
 				return subscription, nil
 			}
 		}
@@ -278,4 +281,13 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 			return nil, nil
 		}
 	}
+}
+
+// returns true if arn is nil or has both pending and confirmation words in the arn
+func subscriptionHasPendingConfirmation(arn *string) bool {
+	if arn != nil && !strings.Contains(strings.ToLower(*arn), "pending") && !strings.Contains(strings.ToLower(*arn), "confirmation") {
+		return false
+	}
+
+	return true
 }
