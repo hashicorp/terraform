@@ -34,6 +34,10 @@ resource "azurerm_virtual_network" "test" {
     name           = "subnet3"
     address_prefix = "10.0.3.0/24"
   }
+  
+  tags {
+    environment = "Production"
+  }
 }
 ```
 
@@ -59,6 +63,8 @@ The following arguments are supported:
 
 * `subnet` - (Optional) Can be specified multiple times to define multiple
     subnets. Each `subnet` block supports fields documented below.
+
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 The `subnet` block supports:
 
