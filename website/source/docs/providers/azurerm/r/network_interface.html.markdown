@@ -34,6 +34,10 @@ resource "azurerm_virtual_network" "test" {
     name           = "subnet3"
     address_prefix = "10.0.3.0/24"
   }
+  
+  tags {
+    environment = "Production"
+  }
 }
 ```
 
@@ -58,6 +62,8 @@ The following arguments are supported:
 * `dns_servers` - (Optional) List of DNS servers IP addresses to use for this NIC, overrides the VNet-level server list
 
 * `ip_configuration` - (Optional) Collection of ipConfigurations associated with this NIC. Each `ip_configuration` block supports fields documented below.
+
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 The `ip_configuration` block supports:
 

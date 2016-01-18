@@ -96,6 +96,40 @@ func TestAccAzureRMPublicIpStatic_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMVPublicIpStatic_withTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAzureRMVPublicIpStatic_withTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMPublicIpStatic_update(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -240,5 +274,40 @@ resource "azurerm_public_ip" "test" {
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "dynamic"
+}
+`
+
+var testAccAzureRMVPublicIpStatic_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+resource "azurerm_public_ip" "test" {
+    name = "acceptanceTestPublicIp1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+
+    tags {
+	environment = "Production"
+	cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMVPublicIpStatic_withTagsUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+resource "azurerm_public_ip" "test" {
+    name = "acceptanceTestPublicIp1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+
+    tags {
+	environment = "staging"
+    }
 }
 `
