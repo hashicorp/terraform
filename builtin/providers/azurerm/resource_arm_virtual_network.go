@@ -75,6 +75,8 @@ func resourceArmVirtualNetwork() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -88,11 +90,13 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	tags := d.Get("tags").(map[string]interface{})
 
 	vnet := network.VirtualNetwork{
 		Name:       &name,
 		Location:   &location,
 		Properties: getVirtualNetworkProperties(d),
+		Tags:       expandTags(tags),
 	}
 
 	resp, err := vnetClient.CreateOrUpdate(resGroup, name, vnet)
@@ -161,6 +165,8 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 		dnses = append(dnses, dns)
 	}
 	d.Set("dns_servers", dnses)
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }
