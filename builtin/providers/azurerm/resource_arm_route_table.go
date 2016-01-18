@@ -80,6 +80,8 @@ func resourceArmRouteTable() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -93,10 +95,12 @@ func resourceArmRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	tags := d.Get("tags").(map[string]interface{})
 
 	routeSet := network.RouteTable{
 		Name:     &name,
 		Location: &location,
+		Tags:     expandTags(tags),
 	}
 
 	if _, ok := d.GetOk("route"); ok {
@@ -164,6 +168,8 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 	}
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }

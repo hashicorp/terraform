@@ -74,6 +74,40 @@ func TestAccAzureRMRouteTable_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMRouteTable_withTags(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMRouteTableDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMRouteTable_withTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_route_table.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_route_table.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_route_table.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAzureRMRouteTable_withTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_route_table.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_route_table.test", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMRouteTable_multipleRoutes(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -196,6 +230,53 @@ resource "azurerm_route_table" "test" {
     	name = "route2"
     	address_prefix = "*"
     	next_hop_type = "virtualappliance"
+    }
+}
+`
+
+var testAccAzureRMRouteTable_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
+resource "azurerm_route_table" "test" {
+    name = "acceptanceTestSecurityGroup1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    route {
+    	name = "route1"
+    	address_prefix = "*"
+    	next_hop_type = "internet"
+    }
+
+    tags {
+	environment = "Production"
+	cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMRouteTable_withTagsUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
+resource "azurerm_route_table" "test" {
+    name = "acceptanceTestSecurityGroup1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    route {
+    	name = "route1"
+    	address_prefix = "*"
+    	next_hop_type = "internet"
+    }
+
+    tags {
+	environment = "staging"
     }
 }
 `
