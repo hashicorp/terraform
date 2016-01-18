@@ -17,6 +17,7 @@ func resourceArmResourceGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmResourceGroupCreate,
 		Read:   resourceArmResourceGroupRead,
+		Update: resourceArmResourceGroupUpdate,
 		Exists: resourceArmResourceGroupExists,
 		Delete: resourceArmResourceGroupDelete,
 
@@ -33,6 +34,8 @@ func resourceArmResourceGroup() *schema.Resource {
 				ForceNew:  true,
 				StateFunc: azureRMNormalizeLocation,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -55,16 +58,39 @@ func validateArmResourceGroupName(v interface{}, k string) (ws []string, es []er
 	return
 }
 
+func resourceArmResourceGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*ArmClient)
+	resGroupClient := client.resourceGroupClient
+
+	if !d.HasChange("tags") {
+		return nil
+	}
+
+	name := d.Get("name").(string)
+
+	newTags := d.Get("tags").(map[string]interface{})
+	_, err := resGroupClient.Patch(name, resources.ResourceGroup{
+		Tags: expandTags(newTags),
+	})
+	if err != nil {
+		return fmt.Errorf("Error issuing Azure ARM create request to update resource group %q: %s", name, err)
+	}
+
+	return resourceArmResourceGroupRead(d, meta)
+}
+
 func resourceArmResourceGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	resGroupClient := client.resourceGroupClient
 
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
+	tags := d.Get("tags").(map[string]interface{})
 
 	rg := resources.ResourceGroup{
 		Name:     &name,
 		Location: &location,
+		Tags:     expandTags(tags),
 	}
 
 	resp, err := resGroupClient.CreateOrUpdate(name, rg)
@@ -108,6 +134,8 @@ func resourceArmResourceGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", res.Name)
 	d.Set("location", res.Location)
+
+	flattenAndSetTags(d, res.Tags)
 
 	return nil
 }
