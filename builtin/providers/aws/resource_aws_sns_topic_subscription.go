@@ -266,7 +266,7 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 		}
 
 		for _, subscription := range res.Subscriptions {
-			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn {
+			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && *subscription.SubscriptionArn != awsSNSPendingConfirmationMessage {
 				return subscription, nil
 			}
 		}
