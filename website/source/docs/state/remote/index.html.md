@@ -1,7 +1,7 @@
 ---
-layout: "docs"
+layout: "remotestate"
 page_title: "Remote State"
-sidebar_current: "docs-state-remote"
+sidebar_current: "docs-state-remote_index"
 description: |-
   Terraform can store the state remotely, making it easier to version and work with in a team.
 ---
