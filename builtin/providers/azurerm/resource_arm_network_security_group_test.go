@@ -26,6 +26,40 @@ func TestAccAzureRMNetworkSecurityGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMNetworkSecurityGroup_withTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_security_group.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_security_group.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_security_group.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAzureRMNetworkSecurityGroup_withTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_security_group.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_security_group.test", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMNetworkSecurityGroup_addingExtraRules(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -166,6 +200,66 @@ resource "azurerm_network_security_group" "test" {
     	destination_port_range = "*"
     	source_address_prefix = "*"
     	destination_address_prefix = "*"
+    }
+}
+`
+
+var testAccAzureRMNetworkSecurityGroup_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
+resource "azurerm_network_security_group" "test" {
+    name = "acceptanceTestSecurityGroup1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    security_rule {
+    	name = "test123"
+    	priority = 100
+    	direction = "Inbound"
+    	access = "Allow"
+    	protocol = "Tcp"
+    	source_port_range = "*"
+    	destination_port_range = "*"
+    	source_address_prefix = "*"
+    	destination_address_prefix = "*"
+    }
+
+
+    tags {
+	environment = "Production"
+	cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMNetworkSecurityGroup_withTagsUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
+resource "azurerm_network_security_group" "test" {
+    name = "acceptanceTestSecurityGroup1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    security_rule {
+    	name = "test123"
+    	priority = 100
+    	direction = "Inbound"
+    	access = "Allow"
+    	protocol = "Tcp"
+    	source_port_range = "*"
+    	destination_port_range = "*"
+    	source_address_prefix = "*"
+    	destination_address_prefix = "*"
+    }
+
+    tags {
+	environment = "staging"
     }
 }
 `

@@ -34,7 +34,12 @@ resource "azurerm_network_security_group" "test" {
     	source_address_prefix = "*"
     	destination_address_prefix = "*"
     }
+    
+    tags {
+        environment = "Production"
+    }
 }
+
 ```
 
 ## Argument Reference
@@ -51,6 +56,8 @@ The following arguments are supported:
 
 * `security_rule` - (Optional) Can be specified multiple times to define multiple
                                    security rules. Each `security_rule` block supports fields documented below.
+
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 
 The `security_rule` block supports:

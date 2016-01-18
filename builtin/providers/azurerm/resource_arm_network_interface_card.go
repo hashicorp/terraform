@@ -139,6 +139,8 @@ func resourceArmNetworkInterface() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -152,6 +154,7 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	tags := d.Get("tags").(map[string]interface{})
 
 	properties := network.InterfacePropertiesFormat{}
 
@@ -198,6 +201,7 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		Name:       &name,
 		Location:   &location,
 		Properties: &properties,
+		Tags:       expandTags(tags),
 	}
 
 	resp, err := ifaceClient.CreateOrUpdate(resGroup, name, iface)
@@ -270,6 +274,8 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 			d.Set("internal_fqdn", iface.DNSSettings.InternalFqdn)
 		}
 	}
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }
