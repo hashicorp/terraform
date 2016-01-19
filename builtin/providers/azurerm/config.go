@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
@@ -39,6 +40,8 @@ type ArmClient struct {
 	vnetClient                   network.VirtualNetworksClient
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
+
+	cdnProfilesClient cdn.ProfilesClient
 
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
@@ -245,6 +248,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	suc.Authorizer = spt
 	suc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageUsageClient = suc
+
+	cpc := cdn.NewProfilesClient(c.SubscriptionID)
+	setUserAgent(&cpc.Client)
+	cpc.Authorizer = spt
+	cpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.cdnProfilesClient = cpc
 
 	return &client, nil
 }
