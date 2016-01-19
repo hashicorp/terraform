@@ -89,6 +89,52 @@ func TestAccAWSLaunchConfiguration_withSpotPrice(t *testing.T) {
 	})
 }
 
+func testAccCheckAWSLaunchConfigurationWithEncryption(conf *autoscaling.LaunchConfiguration) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Map out the block devices by name, which should be unique.
+		blockDevices := make(map[string]*autoscaling.BlockDeviceMapping)
+		for _, blockDevice := range conf.BlockDeviceMappings {
+			blockDevices[*blockDevice.DeviceName] = blockDevice
+		}
+
+		// Check if the root block device exists.
+		if _, ok := blockDevices["/dev/sda1"]; !ok {
+			return fmt.Errorf("block device doesn't exist: /dev/sda1")
+		} else if blockDevices["/dev/sda1"].Ebs.Encrypted != nil {
+			return fmt.Errorf("root device should not include value for Encrypted")
+		}
+
+		// Check if the secondary block device exists.
+		if _, ok := blockDevices["/dev/sdb"]; !ok {
+			return fmt.Errorf("block device doesn't exist: /dev/sdb")
+		} else if !*blockDevices["/dev/sdb"].Ebs.Encrypted {
+			return fmt.Errorf("block device isn't encrypted as expected: /dev/sdb")
+		}
+
+		return nil
+	}
+}
+
+func TestAccAWSLaunchConfiguration_withEncryption(t *testing.T) {
+	var conf autoscaling.LaunchConfiguration
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSLaunchConfigurationWithEncryption,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.baz", &conf),
+
+					testAccCheckAWSLaunchConfigurationWithEncryption(&conf),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSLaunchConfigurationGeneratedNamePrefix(
 	resource, prefix string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -271,5 +317,23 @@ resource "aws_launch_configuration" "baz" {
    instance_type = "t1.micro"
    user_data = "foobar-user-data-change"
    associate_public_ip_address = false
+}
+`
+
+const testAccAWSLaunchConfigurationWithEncryption = `
+resource "aws_launch_configuration" "baz" {
+   image_id = "ami-5189a661"
+   instance_type = "t2.micro"
+   associate_public_ip_address = false
+
+   	root_block_device {
+   		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+		encrypted = true
+	}
 }
 `
