@@ -2,6 +2,7 @@
 
 FEATURES:
 
+  * **New resource: `azurerm_cdn_profile`** [GH-4740]
   * **New resource: `azurerm_network_security_rule`** [GH-4586]
   * **New resource: `azurerm_subnet`** [GH-4595]
   * **New resource: `azurerm_network_interface`** [GH-4598]
