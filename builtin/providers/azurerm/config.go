@@ -41,7 +41,8 @@ type ArmClient struct {
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
 
-	cdnProfilesClient cdn.ProfilesClient
+	cdnProfilesClient  cdn.ProfilesClient
+	cdnEndpointsClient cdn.EndpointsClient
 
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
@@ -254,6 +255,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	cpc.Authorizer = spt
 	cpc.Sender = autorest.CreateSender(withRequestLogging())
 	client.cdnProfilesClient = cpc
+
+	cec := cdn.NewEndpointsClient(c.SubscriptionID)
+	setUserAgent(&cec.Client)
+	cec.Authorizer = spt
+	cec.Sender = autorest.CreateSender(withRequestLogging())
+	client.cdnEndpointsClient = cec
 
 	return &client, nil
 }
