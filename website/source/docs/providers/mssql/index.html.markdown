@@ -61,3 +61,11 @@ The following arguments are supported:
 * `port` - (Optional) The port for the MS SQL server connection. (Default 1433)
 * `username` - (Required) Username for the server connection.
 * `password` - (Required) Password for the server connection.
+* `encrypt` - (Optional) Set to true if data sent between client and server should be encrypted.
+  Available values are 'true', 'false', 'disable'. (Default 'false')
+* `trust_server_certificate` - (Optional) Set to false if server certificate should be checked.
+  If trust server certificate is true, driver accepts any certificate presented by the server and
+  any host name in that certificate. In this mode, TLS is susceptible to man-in-the-middle attacks.
+  This should be used only for testing. (Default true)
+* `certificate` - (Optional) Full path to the file that contains the public key certificate of
+  the CA that signed the SQL Server certificate.

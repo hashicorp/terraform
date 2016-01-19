@@ -3,16 +3,21 @@ package mssql
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/denisenkom/go-mssqldb" //MS SQL db
+	"github.com/hashicorp/go-multierror"
 )
 
 // Config - provider config
 type Config struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
+	Host                   string
+	Port                   int
+	Encrypt                string
+	TrustServerCertificate bool
+	Certificate            string
+	Username               string
+	Password               string
 }
 
 // Client struct holding connection string
@@ -23,11 +28,42 @@ type Client struct {
 
 //NewClient returns new client config
 func (c *Config) NewClient() (*Client, error) {
-	connStr := fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d", c.Host, c.Username, c.Password, c.Port)
+	// Connection String
+	var connStr string
+	// We need to validate some parameters
+	var errs []error
+
+	err := c.ValidateEncrypt()
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	connStr = fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d", c.Host, c.Username, c.Password, c.Port)
+
+	switch c.Encrypt {
+	case "true":
+		connStr += fmt.Sprintf(";encrypt=%s;TrustServerCertificate=%t", c.Encrypt, c.TrustServerCertificate)
+		// If we have to check certificate we need certificate file
+		if !c.TrustServerCertificate {
+			if c.Certificate == "" {
+				return nil, fmt.Errorf("Please provide full path to file that contains public key certificate of the CA that signed the SQL. You specified certificate = '%s'", c.Certificate)
+			}
+			if _, err = os.Stat(c.Certificate); os.IsNotExist(err) {
+				return nil, fmt.Errorf("%s MS SQL certificate file cannot be found", c.Certificate)
+			}
+			connStr += fmt.Sprintf(";certificate=%s", c.Certificate)
+		}
+	case "disable":
+		connStr += fmt.Sprintf(";encrypt=%s", c.Encrypt)
+	}
 
 	client := Client{
 		connStr:  connStr,
 		username: c.Username,
+	}
+
+	if len(errs) > 0 {
+		return nil, &multierror.Error{Errors: errs}
 	}
 
 	return &client, nil
@@ -41,4 +77,17 @@ func (c *Client) Connect() (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+// ValidateEncrypt returns error if the configured value for encrypt parameter is not a valid one
+func (c *Config) ValidateEncrypt() error {
+	var encryptValues = [3]string{"disable", "false", "true"}
+
+	for _, valid := range encryptValues {
+		if c.Encrypt == valid {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Allowed values for 'Encrypt' parameter are: disable, true, false. You specified %s", c.Encrypt)
 }

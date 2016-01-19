@@ -35,6 +35,24 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("MSSQL_PASSWORD", nil),
 				Description: "Password for MS SQL Server connection",
 			},
+			"encrypt": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "false",
+				Description: "Encrypt data send between client and MS SQL Server",
+			},
+			"trust_server_certificate": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     "false",
+				Description: "Trust(true) or check(false) the MS SQL Server SSL certificate",
+			},
+			"certificate": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "The file that contains the public key certificate of the CA that signed the SQL Server certificate",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -47,10 +65,13 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		Host:     d.Get("host").(string),
-		Port:     d.Get("port").(int),
-		Username: d.Get("username").(string),
-		Password: d.Get("password").(string),
+		Host:                   d.Get("host").(string),
+		Port:                   d.Get("port").(int),
+		Username:               d.Get("username").(string),
+		Password:               d.Get("password").(string),
+		Encrypt:                d.Get("encrypt").(string),
+		TrustServerCertificate: d.Get("trust_server_certificate").(bool),
+		Certificate:            d.Get("certificate").(string),
 	}
 
 	client, err := config.NewClient()
