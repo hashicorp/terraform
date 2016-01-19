@@ -76,31 +76,33 @@ func resourceDigitalOceanFloatingIpCreate(d *schema.ResourceData, meta interface
 func resourceDigitalOceanFloatingIpUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*godo.Client)
 
-	if v, ok := d.GetOk("droplet_id"); ok {
-		log.Printf("[INFO] Assigning the Floating IP %s to the Droplet %d", d.Id(), v.(int))
-		action, _, err := client.FloatingIPActions.Assign(d.Id(), v.(int))
-		if err != nil {
-			return fmt.Errorf(
-				"Error Assigning FloatingIP (%s) to the droplet: %s", d.Id(), err)
-		}
+  if d.HasChange("droplet_id") {
+		if v, ok := d.GetOk("droplet_id"); ok {
+			log.Printf("[INFO] Assigning the Floating IP %s to the Droplet %d", d.Id(), v.(int))
+			action, _, err := client.FloatingIPActions.Assign(d.Id(), v.(int))
+			if err != nil {
+				return fmt.Errorf(
+					"Error Assigning FloatingIP (%s) to the droplet: %s", d.Id(), err)
+			}
 
-		_, unassignedErr := waitForFloatingIPReady(d, "completed", []string{"new", "in-progress"}, "status", meta, action.ID)
-		if unassignedErr != nil {
-			return fmt.Errorf(
-				"Error waiting for FloatingIP (%s) to be Assigned: %s", d.Id(), unassignedErr)
-		}
-	} else {
-		log.Printf("[INFO] Unassigning the Floating IP %s", d.Id())
-		action, _, err := client.FloatingIPActions.Unassign(d.Id())
-		if err != nil {
-			return fmt.Errorf(
-				"Error Unassigning FloatingIP (%s): %s", d.Id(), err)
-		}
+			_, unassignedErr := waitForFloatingIPReady(d, "completed", []string{"new", "in-progress"}, "status", meta, action.ID)
+			if unassignedErr != nil {
+				return fmt.Errorf(
+					"Error waiting for FloatingIP (%s) to be Assigned: %s", d.Id(), unassignedErr)
+			}
+		} else {
+			log.Printf("[INFO] Unassigning the Floating IP %s", d.Id())
+			action, _, err := client.FloatingIPActions.Unassign(d.Id())
+			if err != nil {
+				return fmt.Errorf(
+					"Error Unassigning FloatingIP (%s): %s", d.Id(), err)
+			}
 
-		_, unassignedErr := waitForFloatingIPReady(d, "completed", []string{"new", "in-progress"}, "status", meta, action.ID)
-		if unassignedErr != nil {
-			return fmt.Errorf(
-				"Error waiting for FloatingIP (%s) to be Unassigned: %s", d.Id(), unassignedErr)
+			_, unassignedErr := waitForFloatingIPReady(d, "completed", []string{"new", "in-progress"}, "status", meta, action.ID)
+			if unassignedErr != nil {
+				return fmt.Errorf(
+					"Error waiting for FloatingIP (%s) to be Unassigned: %s", d.Id(), unassignedErr)
+			}
 		}
 	}
 
