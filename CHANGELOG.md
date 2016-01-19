@@ -2,14 +2,54 @@
 
 FEATURES:
 
+  * **New resource: `azurerm_cdn_profile`** [GH-4740]
   * **New resource: `azurerm_network_security_rule`** [GH-4586]
   * **New resource: `azurerm_subnet`** [GH-4595]
+  * **New resource: `azurerm_network_interface`** [GH-4598]
+  * **New resource: `azurerm_route_table`** [GH-4602]
+  * **New resource: `azurerm_route`** [GH-4604]
+  * **New resource: `aws_lambda_alias`** [GH-4664]
+  * **New resource: `aws_redshift_cluster`** [GH-3862]
+  * **New resource: `aws_redshift_security_group`** [GH-3862]
+  * **New resource: `aws_redshift_parameter_group`** [GH-3862]
+  * **New resource: `aws_redshift_subnet_group`** [GH-3862]
+  * **New resource: `docker_network`** [GH-4483]
+  * **New resource: `docker_volume`** [GH-4483]
+  * **New resource: `google_sql_user`** [GH-4669]
 
 IMPROVEMENTS:
 
+  * core: Add `sha256()` interpolation function [GH-4704]
+  * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
+  * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
+  * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
   * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
+  * provider/aws: Add AWS Classiclink for AWS VPC resource [GH-3994]
+  * provider/aws: Supporting New AWS Route53 HealthCheck additions [GH-4564]
+  * provider/aws: Store instance state [GH-3261]
+  * provider/aws: Add support for updating ELB availability zones and subnets [GH-4597]
+  * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations [GH-4481]
+  * provider/aws: Add support for creating Managed Microsoft Active Directory 
+    and Directory Connectors [GH-4388]
+  * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3139]
+  * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
+  * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
+  * provider/google: Add content field to bucket object [GH-3893]
+  * provider/openstack: Add "personality" support to instance resource [GH-4623]
+  * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
 
 BUG FIXES:
+
+  * config: detect a specific JSON edge case and show a helpful workaround [GH-4746]
+  * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
+  * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
+  * provider/google: Clarify SQL Database Instance recent name restriction [GH-4577]
+  * provider/google: Split Instance network interface into two fields [GH-4265]
+  * provider/aws: Error with empty list item on security group [GH-4140]
+  * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
+  * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
+  * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
+  * provider/template: fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
 
 ## 0.6.9 (January 8, 2016)
 

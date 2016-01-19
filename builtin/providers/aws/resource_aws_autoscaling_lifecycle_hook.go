@@ -33,6 +33,7 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 			"default_result": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"heartbeat_timeout": &schema.Schema{
 				Type:     schema.TypeInt,

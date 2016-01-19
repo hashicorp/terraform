@@ -22,7 +22,7 @@ Writing modules is covered in more detail in the
 [modules documentation](/docs/modules/index.html).
 
 ~> **Warning!** The examples on this page are _**not** eligible_ for the AWS
-[free-tier](http://aws.amazon.com/free/). Do not execute the examples on this
+[free-tier](https://aws.amazon.com/free/). Do not execute the examples on this
 page unless you're willing to spend a small amount of money.
 
 ## Using Modules

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
@@ -37,6 +38,10 @@ type ArmClient struct {
 	vnetGatewayConnectionsClient network.VirtualNetworkGatewayConnectionsClient
 	vnetGatewayClient            network.VirtualNetworkGatewaysClient
 	vnetClient                   network.VirtualNetworksClient
+	routeTablesClient            network.RouteTablesClient
+	routesClient                 network.RoutesClient
+
+	cdnProfilesClient cdn.ProfilesClient
 
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
@@ -54,7 +59,11 @@ func withRequestLogging() autorest.SendDecorator {
 		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
 			log.Printf("[DEBUG] Sending Azure RM Request %s to %s\n", r.Method, r.URL)
 			resp, err := s.Do(r)
-			log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+			if resp != nil {
+				log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+			} else {
+				log.Printf("[DEBUG] Request to %s completed with no response", r.URL)
+			}
 			return resp, err
 		})
 	}
@@ -186,6 +195,18 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetClient = vnc
 
+	rtc := network.NewRouteTablesClient(c.SubscriptionID)
+	setUserAgent(&rtc.Client)
+	rtc.Authorizer = spt
+	rtc.Sender = autorest.CreateSender(withRequestLogging())
+	client.routeTablesClient = rtc
+
+	rc := network.NewRoutesClient(c.SubscriptionID)
+	setUserAgent(&rc.Client)
+	rc.Authorizer = spt
+	rc.Sender = autorest.CreateSender(withRequestLogging())
+	client.routesClient = rc
+
 	rgc := resources.NewGroupsClient(c.SubscriptionID)
 	setUserAgent(&rgc.Client)
 	rgc.Authorizer = spt
@@ -227,6 +248,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	suc.Authorizer = spt
 	suc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageUsageClient = suc
+
+	cpc := cdn.NewProfilesClient(c.SubscriptionID)
+	setUserAgent(&cpc.Client)
+	cpc.Authorizer = spt
+	cpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.cdnProfilesClient = cpc
 
 	return &client, nil
 }

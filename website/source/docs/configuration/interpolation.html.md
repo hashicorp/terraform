@@ -80,9 +80,13 @@ The supported built-in functions are:
   * `base64encode(string)` - Returns a base64-encoded representation of the
     given string.
 
-  * `sha1(string)` - Returns a sha1 hash representation of the
+  * `sha1(string)` - Returns a SHA-1 hash representation of the
     given string.
     Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+
+  * `sha256(string)` - Returns a SHA-256 hash representation of the
+    given string.
+    Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
@@ -124,7 +128,7 @@ The supported built-in functions are:
 
   * `format(format, args...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
-      Good documentation for the syntax can be [found here](http://golang.org/pkg/fmt/).
+      Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 
@@ -154,7 +158,7 @@ The supported built-in functions are:
       variable. The `map` parameter should be another variable, such
       as `var.amis`.
 
-  * `lower(string)` - returns a copy of the string with all Unicode letters mapped to their lower case.
+  * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
@@ -172,7 +176,7 @@ The supported built-in functions are:
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
 
-  * `upper(string)` - returns a copy of the string with all Unicode letters mapped to their upper case.
+  * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
 
 ## Templates
 

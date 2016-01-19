@@ -326,7 +326,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 				return resp, "FAILED", err
 			}
 
-			log.Printf("[DEBUG] ECS service %s is currently %q", *resp.Services[0].Status)
+			log.Printf("[DEBUG] ECS service (%s) is currently %q", d.Id(), *resp.Services[0].Status)
 			return resp, *resp.Services[0].Status, nil
 		},
 	}

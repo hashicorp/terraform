@@ -300,7 +300,7 @@ type gobRawConfig struct {
 // langEvalConfig returns the evaluation configuration we use to execute.
 func langEvalConfig(vs map[string]ast.Variable) *lang.EvalConfig {
 	funcMap := make(map[string]ast.Function)
-	for k, v := range Funcs {
+	for k, v := range Funcs() {
 		funcMap[k] = v
 	}
 	funcMap["lookup"] = interpolationFuncLookup(vs)

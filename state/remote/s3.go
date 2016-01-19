@@ -29,6 +29,11 @@ func s3Factory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("missing 'key' configuration")
 	}
 
+	endpoint, ok := conf["endpoint"]
+	if !ok {
+		endpoint = os.Getenv("AWS_S3_ENDPOINT")
+	}
+
 	regionName, ok := conf["region"]
 	if !ok {
 		regionName = os.Getenv("AWS_DEFAULT_REGION")
@@ -77,6 +82,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 
 	awsConfig := &aws.Config{
 		Credentials: credentialsProvider,
+		Endpoint:    aws.String(endpoint),
 		Region:      aws.String(regionName),
 		HTTPClient:  cleanhttp.DefaultClient(),
 	}

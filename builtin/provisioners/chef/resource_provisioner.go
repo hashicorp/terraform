@@ -60,7 +60,11 @@ ENV['https_proxy'] = "{{ .HTTPSProxy }}"
 ENV['HTTPS_PROXY'] = "{{ .HTTPSProxy }}"
 {{ end }}
 
-{{ if .NOProxy }}no_proxy "{{ join .NOProxy "," }}"{{ end }}
+{{ if .NOProxy }}
+no_proxy          "{{ join .NOProxy "," }}"
+ENV['no_proxy'] = "{{ join .NOProxy "," }}"
+{{ end }}
+
 {{ if .SSLVerifyMode }}ssl_verify_mode {{ .SSLVerifyMode }}{{ end }}
 
 {{ if .DisableReporting }}enable_reporting false{{ end }}

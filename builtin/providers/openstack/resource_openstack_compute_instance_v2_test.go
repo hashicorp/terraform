@@ -325,6 +325,38 @@ func TestAccComputeV2Instance_bootFromVolumeVolume(t *testing.T) {
 	})
 }
 
+// TODO: verify the personality really exists on the instance.
+func TestAccComputeV2Instance_personality(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_personality = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+			personality {
+				file = "/tmp/foobar.txt"
+				content = "happy"
+			}
+			personality {
+				file = "/tmp/barfoo.txt"
+				content = "angry"
+			}
+		}`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_personality,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeV2InstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)

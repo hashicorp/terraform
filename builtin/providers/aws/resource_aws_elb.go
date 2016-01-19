@@ -48,7 +48,6 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Set:      schema.HashString,
 			},
@@ -84,7 +83,6 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Set:      schema.HashString,
 			},
@@ -338,10 +336,10 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("dns_name", *lb.DNSName)
 	d.Set("zone_id", *lb.CanonicalHostedZoneNameID)
 	d.Set("internal", *lb.Scheme == "internal")
-	d.Set("availability_zones", lb.AvailabilityZones)
+	d.Set("availability_zones", flattenStringList(lb.AvailabilityZones))
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
-	d.Set("security_groups", lb.SecurityGroups)
+	d.Set("security_groups", flattenStringList(lb.SecurityGroups))
 	if lb.SourceSecurityGroup != nil {
 		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
 
@@ -357,7 +355,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 	}
-	d.Set("subnets", lb.Subnets)
+	d.Set("subnets", flattenStringList(lb.Subnets))
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
@@ -597,6 +595,80 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("security_groups")
+	}
+
+	if d.HasChange("availability_zones") {
+		o, n := d.GetChange("availability_zones")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		removed := expandStringList(os.Difference(ns).List())
+		added := expandStringList(ns.Difference(os).List())
+
+		if len(added) > 0 {
+			enableOpts := &elb.EnableAvailabilityZonesForLoadBalancerInput{
+				LoadBalancerName:  aws.String(d.Id()),
+				AvailabilityZones: added,
+			}
+
+			log.Printf("[DEBUG] ELB enable availability zones opts: %s", enableOpts)
+			_, err := elbconn.EnableAvailabilityZonesForLoadBalancer(enableOpts)
+			if err != nil {
+				return fmt.Errorf("Failure enabling ELB availability zones: %s", err)
+			}
+		}
+
+		if len(removed) > 0 {
+			disableOpts := &elb.DisableAvailabilityZonesForLoadBalancerInput{
+				LoadBalancerName:  aws.String(d.Id()),
+				AvailabilityZones: removed,
+			}
+
+			log.Printf("[DEBUG] ELB disable availability zones opts: %s", disableOpts)
+			_, err := elbconn.DisableAvailabilityZonesForLoadBalancer(disableOpts)
+			if err != nil {
+				return fmt.Errorf("Failure disabling ELB availability zones: %s", err)
+			}
+		}
+
+		d.SetPartial("availability_zones")
+	}
+
+	if d.HasChange("subnets") {
+		o, n := d.GetChange("subnets")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		removed := expandStringList(os.Difference(ns).List())
+		added := expandStringList(ns.Difference(os).List())
+
+		if len(added) > 0 {
+			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          added,
+			}
+
+			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
+			_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
+			if err != nil {
+				return fmt.Errorf("Failure adding ELB subnets: %s", err)
+			}
+		}
+
+		if len(removed) > 0 {
+			detachOpts := &elb.DetachLoadBalancerFromSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          removed,
+			}
+
+			log.Printf("[DEBUG] ELB detach subnets opts: %s", detachOpts)
+			_, err := elbconn.DetachLoadBalancerFromSubnets(detachOpts)
+			if err != nil {
+				return fmt.Errorf("Failure removing ELB subnets: %s", err)
+			}
+		}
+
+		d.SetPartial("subnets")
 	}
 
 	if err := setTagsELB(elbconn, d); err != nil {

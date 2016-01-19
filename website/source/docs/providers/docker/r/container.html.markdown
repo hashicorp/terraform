@@ -57,6 +57,7 @@ The following arguments are supported:
   kept running. If false, then as long as the container exists, Terraform
   assumes it is successful.
 * `ports` - (Optional) See [Ports](#ports) below for details.
+* `host_entry` - (Optional) See [Extra Hosts](#extra_hosts) below for details.
 * `privileged` - (Optional, bool) Run container in privileged mode.
 * `publish_all_ports` - (Optional, bool) Publish all ports of the container.
 * `volumes` - (Optional) See [Volumes](#volumes) below for details.
@@ -69,6 +70,7 @@ The following arguments are supported:
 * `log_opts` - (Optional) Key/value pairs to use as options for the logging
   driver.
 * `network_mode` - (Optional) Network mode of the container.
+* `networks` - (Optional, set of strings) Id of the networks in which the container is.
 
 <a id="ports"></a>
 ## Ports
@@ -83,6 +85,19 @@ the following:
 * `protocol` - (Optional, string) Protocol that can be used over this port,
   defaults to TCP.
 
+<a id="extra_hosts"></a>
+## Extra Hosts
+
+`host_entry` is a block within the configuration that can be repeated to specify
+the extra host mappings for the container. Each `host_entry` block supports
+the following:
+
+* `host` - (Required, int) Hostname to add.
+* `ip` - (Required, int) IP address this hostname should resolve to..
+
+This is equivalent to using the `--add-host` option when using the `run`
+command of the Docker CLI.
+
 <a id="volumes"></a>
 ## Volumes
 
@@ -92,12 +107,16 @@ the following:
 
 * `from_container` - (Optional, string) The container where the volume is
   coming from.
-* `container_path` - (Optional, string) The path in the container where the
-  volume will be mounted.
 * `host_path` - (Optional, string) The path on the host where the volume
   is coming from.
+* `volume_name` - (Optional, string) The name of the docker volume which
+  should be mounted.
+* `container_path` - (Optional, string) The path in the container where the
+  volume will be mounted.
 * `read_only` - (Optional, bool) If true, this volume will be readonly.
   Defaults to false.
+  
+One of `from_container`, `host_path` or `volume_name` must be set.
 
 ## Attributes Reference
 

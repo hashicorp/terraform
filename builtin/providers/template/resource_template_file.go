@@ -155,7 +155,7 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 	cfg := lang.EvalConfig{
 		GlobalScope: &ast.BasicScope{
 			VarMap:  varmap,
-			FuncMap: config.Funcs,
+			FuncMap: config.Funcs(),
 		},
 	}
 

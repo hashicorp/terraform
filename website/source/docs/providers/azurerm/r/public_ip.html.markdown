@@ -1,7 +1,7 @@
 ---
 layout: "azurerm"
 page_title: "Azure Resource Manager: azurerm_public_ip"
-sidebar_current: "docs-azurerm-resource-public-ip"
+sidebar_current: "docs-azurerm-resource-network-public-ip"
 description: |-
   Create a Public IP Address.
 ---
@@ -23,6 +23,10 @@ resource "azurerm_public_ip" "test" {
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
+    
+    tags {
+        environment = "Production"
+    }
 }
 ```
 
@@ -45,6 +49,8 @@ The following arguments are supported:
 * `domain_name_label` - (Optional) Label for the Domain Name. Will be used to make up the FQDN.  If a domain name label is specified, an A DNS record is created for the public IP in the Microsoft Azure DNS system.
 
 * `reverse_fqdn` - (Optional) A fully qualified domain name that resolves to this public IP address. If the reverseFqdn is specified, then a PTR DNS record is created pointing from the IP address in the in-addr.arpa domain to the reverse FQDN.
+
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 ## Attributes Reference
 

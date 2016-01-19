@@ -405,6 +405,15 @@ func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
 	for _, item := range list.Items {
+		// GH-4385: We detect a pure provisioner resource and give the user
+		// an error about how to do it cleanly.
+		if len(item.Keys) == 4 && item.Keys[2].Token.Value().(string) == "provisioner" {
+			return nil, fmt.Errorf(
+				"position %s: provisioners in a resource should be wrapped in a list\n\n"+
+					"Example: \"provisioner\": [ { \"local-exec\": ... } ]",
+				item.Pos())
+		}
+
 		if len(item.Keys) != 2 {
 			return nil, fmt.Errorf(
 				"position %s: resource must be followed by exactly two strings, a type and a name",
