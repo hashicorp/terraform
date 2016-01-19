@@ -2,6 +2,7 @@ package azure
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -146,6 +147,10 @@ func testAccCheckAzureSqlDatabaseServiceDeleted(s *terraform.State) error {
 		sqlClient := testAccProvider.Meta().(*Client).sqlClient
 		dbs, err := sqlClient.ListDatabases(*testAccAzureSqlServerName)
 		if err != nil {
+			// ¯\_(ツ)_/¯
+			if strings.Contains(err.Error(), "Cannot open server") {
+				return nil
+			}
 			return fmt.Errorf("Error issuing Azure SQL Service list request: %s", err)
 		}
 

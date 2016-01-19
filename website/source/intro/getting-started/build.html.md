@@ -12,7 +12,7 @@ With Terraform installed, let's dive right into it and start creating
 some infrastructure.
 
 We'll build infrastructure on
-[AWS](http://aws.amazon.com) for the getting started guide
+[AWS](https://aws.amazon.com) for the getting started guide
 since it is popular and generally understood, but Terraform
 can [manage many providers](/docs/providers/index.html),
 including multiple providers in a single configuration.
@@ -20,17 +20,17 @@ Some examples of this are in the
 [use cases section](/intro/use-cases.html).
 
 If you don't have an AWS account,
-[create one now](http://aws.amazon.com/free/).
+[create one now](https://aws.amazon.com/free/).
 For the getting started guide, we'll only be using resources
 which qualify under the AWS
-[free-tier](http://aws.amazon.com/free/),
+[free-tier](https://aws.amazon.com/free/),
 meaning it will be free.
 If you already have an AWS account, you may be charged some
 amount of money, but it shouldn't be more than a few dollars
 at most.
 
 ~> **Warning!** If you're not using an account that qualifies under the AWS
-[free-tier](http://aws.amazon.com/free/), you may be charged to run these
+[free-tier](https://aws.amazon.com/free/), you may be charged to run these
 examples. The most you should be charged should only be a few dollars, but
 we're not responsible for any charges that may incur.
 
@@ -60,7 +60,7 @@ provider "aws" {
 
 resource "aws_instance" "example" {
 	ami = "ami-408c7f28"
-	instance_type = "t2.micro"
+	instance_type = "t1.micro"
 }
 ```
 
@@ -95,7 +95,7 @@ Within the resource block itself is configuration for that
 resource. This is dependent on each resource provider and
 is fully documented within our
 [providers reference](/docs/providers/index.html). For our EC2 instance, we specify
-an AMI for Ubuntu, and request a "t2.micro" instance so we
+an AMI for Ubuntu, and request a "t1.micro" instance so we
 qualify under the free tier.
 
 ## Execution Plan
@@ -113,7 +113,7 @@ $ terraform plan
 + aws_instance.example
     ami:               "" => "ami-408c7f28"
     availability_zone: "" => "<computed>"
-    instance_type:     "" => "t2.micro"
+    instance_type:     "" => "t1.micro"
     key_name:          "" => "<computed>"
     private_dns:       "" => "<computed>"
     private_ip:        "" => "<computed>"
@@ -149,7 +149,7 @@ since Terraform waits for the EC2 instance to become available.
 $ terraform apply
 aws_instance.example: Creating...
   ami:           "" => "ami-408c7f28"
-  instance_type: "" => "t2.micro"
+  instance_type: "" => "t1.micro"
 
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
@@ -174,7 +174,7 @@ aws_instance.example:
   id = i-e60900cd
   ami = ami-408c7f28
   availability_zone = us-east-1c
-  instance_type = t2.micro
+  instance_type = t1.micro
   key_name =
   private_dns = domU-12-31-39-12-38-AB.compute-1.internal
   private_ip = 10.200.59.89

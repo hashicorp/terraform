@@ -29,14 +29,18 @@ resource "aws_s3_bucket" "foo" {
         {
             "Sid": "AWSCloudTrailAclCheck",
             "Effect": "Allow",
-            "Principal": "*",
+            "Principal": {
+              "Service": "cloudtrail.amazonaws.com"
+            },
             "Action": "s3:GetBucketAcl",
             "Resource": "arn:aws:s3:::tf-test-trail"
         },
         {
             "Sid": "AWSCloudTrailWrite",
             "Effect": "Allow",
-            "Principal": "*",
+            "Principal": {
+              "Service": "cloudtrail.amazonaws.com"
+            },
             "Action": "s3:PutObject",
             "Resource": "arn:aws:s3:::tf-test-trail/*",
             "Condition": {

@@ -25,6 +25,39 @@ func TestAccAzureRMResourceGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMResourceGroup_withTags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMResourceGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMResourceGroup_withTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAzureRMResourceGroup_withTagsUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMResourceGroupExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -78,5 +111,28 @@ var testAccAzureRMResourceGroup_basic = `
 resource "azurerm_resource_group" "test" {
     name = "acceptanceTestResourceGroup1_basic"
     location = "West US"
+}
+`
+
+var testAccAzureRMResourceGroup_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1_basic"
+    location = "West US"
+
+    tags {
+	environment = "Production"
+	cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMResourceGroup_withTagsUpdated = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1_basic"
+    location = "West US"
+
+    tags {
+	environment = "staging"
+    }
 }
 `

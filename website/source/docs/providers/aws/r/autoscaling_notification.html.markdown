@@ -64,5 +64,5 @@ The following attributes are exported:
 * `topic_arn` 
 
 
-[1]: http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_NotificationConfiguration.html
-[2]: http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_DescribeNotificationConfigurations.html 
+[1]: https://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_NotificationConfiguration.html
+[2]: https://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_DescribeNotificationConfigurations.html 

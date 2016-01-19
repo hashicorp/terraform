@@ -19,11 +19,11 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Chef provider
 provider "chef" {
-     "server_url" = "https://api.opscode.com/organizations/example/"
+     server_url = "https://api.opscode.com/organizations/example/"
 
      // You can set up a "Client" within the Chef Server management console.
-     "client_name" = "terraform"
-     "private_key_pem" = "${file(\"chef-terraform.pem\")}"
+     client_name = "terraform"
+     private_key_pem = "${file(\"chef-terraform.pem\")}"
 }
 
 # Create a Chef Environment

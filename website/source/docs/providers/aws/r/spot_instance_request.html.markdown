@@ -68,7 +68,7 @@ These attributes are exported, but they are expected to change over time and so
 should only be used for informational purposes, not for resource dependencies:
 
 * `spot_bid_status` - The current [bid
-  status](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html)
+  status](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html)
   of the Spot Instance Request.
 * `spot_request_state` The current [request
   state](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-requests.html#creating-spot-request-status)

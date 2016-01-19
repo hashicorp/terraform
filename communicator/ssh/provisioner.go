@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
+	"github.com/xanzy/ssh-agent"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -245,22 +246,17 @@ func connectToAgent(connInfo *connectionInfo) (*sshAgent, error) {
 		return nil, nil
 	}
 
-	sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
-
-	if sshAuthSock == "" {
-		return nil, fmt.Errorf("SSH Requested but SSH_AUTH_SOCK not-specified")
-	}
-
-	conn, err := net.Dial("unix", sshAuthSock)
+	agent, conn, err := sshagent.New()
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to SSH_AUTH_SOCK: %v", err)
+		return nil, err
 	}
 
 	// connection close is handled over in Communicator
 	return &sshAgent{
-		agent: agent.NewClient(conn),
+		agent: agent,
 		conn:  conn,
 	}, nil
+
 }
 
 // A tiny wrapper around an agent.Agent to expose the ability to close its
@@ -271,6 +267,10 @@ type sshAgent struct {
 }
 
 func (a *sshAgent) Close() error {
+	if a.conn == nil {
+		return nil
+	}
+
 	return a.conn.Close()
 }
 

@@ -1,6 +1,58 @@
-## 0.6.9 (Unreleased)
+## 0.6.10 (Unreleased)
 
 FEATURES:
+
+  * **New resource: `azurerm_network_security_rule`** [GH-4586]
+  * **New resource: `azurerm_subnet`** [GH-4595]
+  * **New resource: `azurerm_network_interface`** [GH-4598]
+  * **New resource: `azurerm_route_table`** [GH-4602]
+  * **New resource: `azurerm_route`** [GH-4604]
+  * **New resource: `aws_lambda_alias`** [GH-4664]
+  * **New resource: `aws_redshift_cluster`** [GH-3862]
+  * **New resource: `aws_redshift_security_group`** [GH-3862]
+  * **New resource: `aws_redshift_parameter_group`** [GH-3862]
+  * **New resource: `aws_redshift_subnet_group`** [GH-3862]
+  * **New resource: `docker_network`** [GH-4483]
+  * **New resource: `docker_volume`** [GH-4483]
+  * **New resource: `google_sql_user`** [GH-4669]
+
+IMPROVEMENTS:
+
+  * core: Add `sha256()` interpolation function [GH-4704]
+  * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
+  * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
+  * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
+  * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
+  * provider/aws: Add AWS Classiclink for AWS VPC resource [GH-3994]
+  * provider/aws: Supporting New AWS Route53 HealthCheck additions [GH-4564]
+  * provider/aws: Store instance state [GH-3261]
+  * provider/aws: Add support for updating ELB availability zones and subnets [GH-4597]
+  * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations [GH-4481]
+  * provider/aws: Add support for creating Managed Microsoft Active Directory 
+    and Directory Connectors [GH-4388]
+  * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3139]
+  * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
+  * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
+  * provider/google: Add content field to bucket object [GH-3893]
+  * provider/openstack: Add "personality" support to instance resource [GH-4623]
+  * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
+
+BUG FIXES:
+
+  * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
+  * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
+  * provider/google: Clarify SQL Database Instance recent name restriction [GH-4577]
+  * provider/google: Split Instance network interface into two fields [GH-4265]
+  * provider/aws: Error with empty list item on security group [GH-4140]
+  * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
+  * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
+  * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
+  * provider/template: fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
+
+## 0.6.9 (January 8, 2016)
+
+FEATURES:
+
   * **New provider: `vcd` - VMware vCloud Director** [GH-3785]
   * **New provider: `postgresql` - Create PostgreSQL databases and roles** [GH-3653]
   * **New provider: `chef` - Create chef environments, roles, etc** [GH-3084]
@@ -22,6 +74,8 @@ IMPROVEMENTS:
   * core: Support HTTP basic auth in consul remote state [GH-4166]
   * core: Improve error message on resource arity mismatch [GH-4244]
   * core: Add support for unary operators + and - to the interpolation syntax [GH-3621]
+  * core: Add SSH agent support for Windows [GH-4323]
+  * core: Add `sha1()` interpolation function [GH-4450]
   * provider/aws: Add `placement_group` as an option for `aws_autoscaling_group` [GH-3704]
   * provider/aws: Add support for DynamoDB Table StreamSpecifications [GH-4208]
   * provider/aws: Add `name_prefix` to Security Groups [GH-4167]
@@ -30,17 +84,23 @@ IMPROVEMENTS:
   * provider/aws: Adding support for Tags to DB SecurityGroup [GH-4260]
   * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
   * provider/aws: Fix issue with updated route ids for VPC Endpoints [GH-4264]
+  * provider/aws: Added measure_latency option to Route 53 Health Check resource [GH-3688]
   * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
   * provider/aws: DB Subnet group arn output [GH-4261]
+  * provider/aws: Get full Kinesis streams view with pagination [GH-4368]
   * provider/aws: Allow changing private IPs for ENIs [GH-4307]
   * provider/aws: Retry MalformedPolicy errors due to newly created principals in S3 Buckets [GH-4315]
   * provider/aws: Validate `name` on `db_subnet_group` against AWS requirements [GH-4340]
+  * provider/aws: wait for ASG capacity on update [GH-3947]
+  * provider/aws: Add validation for ECR repository name [GH-4431]
   * provider/cloudstack: performance improvements [GH-4150]
   * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting memory, swap and CPU shares on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting labels on `docker_container` resources [GH-3761]
   * provider/docker: Add support for setting log driver and options on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for settings network mode on `docker_container` resources [GH-4475]
+  * provider/heroku: Improve handling of Applications within an Organization [GH-4495]
   * provider/vsphere: Add support for custom vm params on `vsphere_virtual_machine` [GH-3867]
   * provider/vsphere: Rename vcenter_server config parameter to something clearer [GH-3718]
   * provider/vsphere: Make allow_unverified_ssl a configuable on the provider [GH-3933]
@@ -61,6 +121,7 @@ BUG FIXES:
   * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
   * provider/aws: Update DB Replica to honor storage type [GH-4155]
   * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
+  * provider/aws: Fix issue with Route53 and zero weighted records [GH-4427]
   * provider/aws: Fix issue with iam_profile in aws_instance when a path is specified [GH-3663]
   * provider/aws: Refactor AWS Authentication chain to fix issue with authentication and IAM [GH-4254]
   * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
@@ -71,12 +132,16 @@ BUG FIXES:
   * provider/aws: Fix issue with nil parameter group value causing panic in `aws_db_parameter_group` [GH-4318]
   * provider/aws: Fix issue with Elastic IPs not recognizing when they have been unassigned manually [GH-4387]
   * provider/aws: Use body or URL for all CloudFormation stack updates [GH-4370]
+  * provider/aws: Fix template_url/template_body conflict [GH-4540]
+  * provider/aws: Fix bug w/ changing ECS svc/ELB association [GH-4366]
   * provider/azure: Update for [breaking change to upstream client library](https://github.com/Azure/azure-sdk-for-go/commit/68d50cb53a73edfeb7f17f5e86cdc8eb359a9528). [GH-4300]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
+  * provider/google: Fix project metadata sshKeys from showing up and causing unnecessary diffs [GH-4512]
   * provider/openstack: Handle volumes in "deleting" state [GH-4204]
   * provider/rundeck: Tolerate Rundeck server not returning project name when reading a job [GH-4301]
   * provider/vsphere: Create and attach additional disks before bootup [GH-4196]
   * provider/openstack: Convert block_device from a Set to a List [GH-4288]
+  * provider/google: Terraform identifies deleted resources and handles them appropriately on Read [GH-3913]
 
 ## 0.6.8 (December 2, 2015)
 

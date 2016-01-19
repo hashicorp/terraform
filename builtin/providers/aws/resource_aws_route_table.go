@@ -290,10 +290,13 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				RouteTableId:           aws.String(d.Id()),
 				DestinationCidrBlock:   aws.String(m["cidr_block"].(string)),
 				GatewayId:              aws.String(m["gateway_id"].(string)),
-				NatGatewayId:           aws.String(m["nat_gateway_id"].(string)),
 				InstanceId:             aws.String(m["instance_id"].(string)),
 				VpcPeeringConnectionId: aws.String(m["vpc_peering_connection_id"].(string)),
 				NetworkInterfaceId:     aws.String(m["network_interface_id"].(string)),
+			}
+
+			if m["nat_gateway_id"].(string) != "" {
+				opts.NatGatewayId = aws.String(m["nat_gateway_id"].(string))
 			}
 
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)

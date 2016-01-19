@@ -10,8 +10,8 @@ description: |-
 
 Creates a target HTTP proxy resource in GCE. For more information see
 [the official
-documentation](http://cloud.google.com/compute/docs/load-balancing/http/target-proxies) and
-[API](http://cloud.google.com/compute/docs/reference/latest/targetHttpProxies).
+documentation](https://cloud.google.com/compute/docs/load-balancing/http/target-proxies) and
+[API](https://cloud.google.com/compute/docs/reference/latest/targetHttpProxies).
 
 
 ## Example Usage

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceContainerCluster() *schema.Resource {
@@ -312,6 +313,14 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	cluster, err := config.clientContainer.Projects.Zones.Clusters.Get(
 		config.Project, zoneName, d.Get("name").(string)).Do()
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Container Cluster %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return err
 	}
 

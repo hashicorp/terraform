@@ -1,5 +1,5 @@
 ---
-layout: "Template"
+layout: "template"
 page_title: "Template: cloudinit_multipart"
 sidebar_current: "docs-template-resource-cloudinit-config"
 description: |-

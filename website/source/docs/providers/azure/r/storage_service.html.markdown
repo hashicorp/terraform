@@ -29,7 +29,7 @@ The following arguments are supported:
     lowercase-only characters or digits. Must be unique on Azure.
 
 * `location` - (Required) The location where the storage service should be created.
-    For a list of all Azure locations, please consult [this link](http://azure.microsoft.com/en-us/regions/).
+    For a list of all Azure locations, please consult [this link](https://azure.microsoft.com/en-us/regions/).
 
 * `account_type` - (Required) The type of storage account to be created.
     Available options include `Standard_LRS`, `Standard_ZRS`, `Standard_GRS`,
