@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,7 +66,7 @@ func TestResourceAzureRMPublicIpDomainNameLabel_validation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
-			Value:    randomString(80),
+			Value:    strings.Repeat("a", 80),
 			ErrCount: 1,
 		},
 	}
