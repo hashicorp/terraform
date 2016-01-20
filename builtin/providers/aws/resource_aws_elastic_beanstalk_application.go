@@ -3,12 +3,14 @@ package aws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func resourceAwsElasticBeanstalkApplication() *schema.Resource {
@@ -84,9 +86,43 @@ func resourceAwsElasticBeanstalkApplicationDescriptionUpdate(beanstalkConn *elas
 }
 
 func resourceAwsElasticBeanstalkApplicationRead(d *schema.ResourceData, meta interface{}) error {
+	a, err := getBeanstalkApplication(d, meta)
+	if err != nil {
+		return err
+	}
+	if a == nil {
+		return err
+	}
+
+	d.Set("description", a.Description)
+	return nil
+}
+
+func resourceAwsElasticBeanstalkApplicationDelete(d *schema.ResourceData, meta interface{}) error {
 	beanstalkConn := meta.(*AWSClient).elasticbeanstalkconn
 
-	resp, err := beanstalkConn.DescribeApplications(&elasticbeanstalk.DescribeApplicationsInput{
+	a, err := getBeanstalkApplication(d, meta)
+	if err != nil {
+		return err
+	}
+	_, err = beanstalkConn.DeleteApplication(&elasticbeanstalk.DeleteApplicationInput{
+		ApplicationName: aws.String(d.Id()),
+	})
+
+	return resource.Retry(10*time.Second, func() error {
+		if a, _ = getBeanstalkApplication(d, meta); a != nil {
+			return fmt.Errorf("Beanstalk Application still exists")
+		}
+		return nil
+	})
+}
+
+func getBeanstalkApplication(
+	d *schema.ResourceData,
+	meta interface{}) (*elasticbeanstalk.ApplicationDescription, error) {
+	conn := meta.(*AWSClient).elasticbeanstalkconn
+
+	resp, err := conn.DescribeApplications(&elasticbeanstalk.DescribeApplicationsInput{
 		ApplicationNames: []*string{aws.String(d.Id())},
 	})
 
@@ -94,36 +130,17 @@ func resourceAwsElasticBeanstalkApplicationRead(d *schema.ResourceData, meta int
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() != "InvalidBeanstalkAppID.NotFound" {
 			log.Printf("[Err] Error reading Elastic Beanstalk Application (%s): Application not found", d.Id())
 			d.SetId("")
-			return nil
+			return nil, nil
 		}
-		return err
+		return nil, err
 	}
 
-	if len(resp.Applications) == 0 {
-		log.Printf("[DEBUG] Elastic Beanstalk application read: application not found")
-
+	if len(resp.Applications) > 1 {
+		return nil, fmt.Errorf("Error %d Applications matched, expected 1", len(resp.Applications))
+	} else if len(resp.Applications) == 0 {
 		d.SetId("")
-
-		return nil
-	} else if len(resp.Applications) != 1 {
-		return fmt.Errorf("Error reading application properties: found %d applications, expected 1", len(resp.Applications))
+		return nil, nil
 	}
 
-	if err := d.Set("description", resp.Applications[0].Description); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func resourceAwsElasticBeanstalkApplicationDelete(d *schema.ResourceData, meta interface{}) error {
-	beanstalkConn := meta.(*AWSClient).elasticbeanstalkconn
-
-	_, err := beanstalkConn.DeleteApplication(&elasticbeanstalk.DeleteApplicationInput{
-		ApplicationName: aws.String(d.Id()),
-	})
-
-	d.SetId("")
-
-	return err
+	return resp.Applications[0], nil
 }
