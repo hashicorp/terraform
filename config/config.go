@@ -500,16 +500,23 @@ func (c *Config) Validate() error {
 
 	// Check that all outputs are valid
 	for _, o := range c.Outputs {
-		invalid := false
-		for k, _ := range o.RawConfig.Raw {
-			if k != "value" {
-				invalid = true
-				break
+		var invalidKeys []string
+		valueKeyFound := false
+		for k := range o.RawConfig.Raw {
+			if k == "value" {
+				valueKeyFound = true
+			} else {
+				invalidKeys = append(invalidKeys, k)
 			}
 		}
-		if invalid {
+		if len(invalidKeys) > 0 {
 			errs = append(errs, fmt.Errorf(
-				"%s: output should only have 'value' field", o.Name))
+				"%s: output has invalid keys: %s",
+				o.Name, strings.Join(invalidKeys, ", ")))
+		}
+		if !valueKeyFound {
+			errs = append(errs, fmt.Errorf(
+				"%s: output is missing required 'value' key", o.Name))
 		}
 
 		for _, v := range o.RawConfig.Variables {
