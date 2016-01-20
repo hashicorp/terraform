@@ -20,6 +20,7 @@ FEATURES:
 IMPROVEMENTS:
 
   * core: Add `sha256()` interpolation function [GH-4704]
+  * core: Validate lifecycle keys to show helpful error messages whe they are mistypes [GH-4745]
   * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
   * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
