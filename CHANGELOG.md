@@ -40,7 +40,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * config: detect a specific JSON edge case and show a helpful workaround [GH-4746]
+  * core: Fix handling of literals with escaped interpolations ($$) [GH-4747]
+  * config: Detect a specific JSON edge case and show a helpful workaround [GH-4746]
   * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
   * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
   * provider/google: Clarify SQL Database Instance recent name restriction [GH-4577]
