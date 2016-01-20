@@ -57,7 +57,7 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 						"google_compute_instance_group_manager.igm-update", &manager),
 					testAccCheckInstanceGroupManagerNamedPorts(
 						"google_compute_instance_group_manager.igm-update",
-						map[string]int64{"customHTTP": 8080},
+						map[string]int64{"customhttp": 8080},
 						&manager),
 				),
 			},
@@ -71,7 +71,7 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 						"google_compute_target_pool.igm-update", template2),
 					testAccCheckInstanceGroupManagerNamedPorts(
 						"google_compute_instance_group_manager.igm-update",
-						map[string]int64{"customHTTP": 8080, "customHTTPs": 8443},
+						map[string]int64{"customhttp": 8080, "customhttps": 8443},
 						&manager),
 				),
 			},
@@ -297,7 +297,7 @@ func testAccInstanceGroupManager_update(template, target, igm string) string {
 		zone = "us-central1-c"
 		target_size = 2
 		named_port {
-			name = "customHTTP"
+			name = "customhttp"
 			port = 8080
 		}
 	}`, template, target, igm)
@@ -371,11 +371,11 @@ func testAccInstanceGroupManager_update2(template1, target, template2, igm strin
 		zone = "us-central1-c"
 		target_size = 3
 		named_port {
-			name = "customHTTP"
+			name = "customhttp"
 			port = 8080
 		}
 		named_port {
-			name = "customHTTPs"
+			name = "customhttps"
 			port = 8443
 		}
 	}`, template1, target, template2, igm)
