@@ -5,6 +5,8 @@ BACKWARDS INCOMPATIBILITIES:
  * The `-module-depth` flag available on `plan`, `apply`, `show`, and `graph` now defaults to `-1`, causing
    resources within modules to be expanded in command output. This is only a cosmetic change; it does not affect
    any behavior.
+ * This release includes a bugfix for `$${}` interpolation escaping. These strings are now properly converted to `${}`
+   during interpolation. This may cause diffs on existing configurations in certain cases.
 
 FEATURES:
 
