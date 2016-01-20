@@ -49,7 +49,7 @@ __get() {
 
 __graph() {
     _arguments \
-        '-module-depth=[(n) The maximum depth to expand modules. By default this is zero, which will not expand modules at all.]'
+        '-module-depth=[(n) The maximum depth to expand modules. By default this is -1, which will expand all modules.]'
 }
 
 __init() {
@@ -71,7 +71,7 @@ __plan() {
         '-backup=[(path) Path to backup the existing state file before modifying. Defaults to the "-state-out" path with" .backup" extension. Set to "-" to disable backup.]' \
         '-destroy[If set, a plan will be generated to destroy all resources managed by the given configuration and state.]' \
         '-input=[(true) Ask for input for variables if not directly set.]' \
-        '-module-depth=[(n) Specifies the depth of modules to show in the output. This does not affect the plan itself, only the output shown. By default, this is zero. -1 will expand all.]' \
+        '-module-depth=[(n) Specifies the depth of modules to show in the output. This does not affect the plan itself, only the output shown. By default, this is -1, which will expand all.]' \
         '-no-color[If specified, output will not contain any color.]' \
         '-out=[(path) Write a plan file to the given path. This can be used as input to the "apply" command.]' \
         '-refresh=[(true) Update state prior to checking for differences.]' \
@@ -121,7 +121,7 @@ __remote() {
 
 __show() {
     _arguments \
-        '-module-depth=[(n) The maximum depth to expand modules. By default this is zero, which will not expand modules at all.]' \
+        '-module-depth=[(n) The maximum depth to expand modules. By default this is -1, which will expand all modules.]' \
         '-no-color[If specified, output will not contain any color.]'
 }
 
