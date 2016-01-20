@@ -44,11 +44,17 @@ func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 		}
 		resp, err := conn.DescribeEnvironments(describeBeanstalkEnvOpts)
 		if err == nil {
-			if len(resp.Environments) > 0 {
+			switch {
+			case len(resp.Environments) > 1:
+				return fmt.Errorf("Error %d environments match, expected 1", len(resp.Environments))
+			case len(resp.Environments) == 1:
+				if *resp.Environments[0].Status == "Terminated" {
+					return nil
+				}
 				return fmt.Errorf("Elastic Beanstalk ENV still exists.")
+			default:
+				return nil
 			}
-
-			return nil
 		}
 
 		// Verify the error is what we want
