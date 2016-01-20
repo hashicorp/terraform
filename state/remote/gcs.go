@@ -24,13 +24,6 @@ func gcsFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("missing 'key' configuration")
 	}
 
-	/*
-		projectID, ok := conf["project_id"]
-		if !ok {
-			return nil, fmt.Errorf("missing 'project_id' configuration")
-		}
-	*/
-
 	projectKey, ok := conf["project_key"]
 	if !ok {
 		return nil, fmt.Errorf("missing 'project_key' configuration")
@@ -44,9 +37,6 @@ func gcsFactory(conf map[string]string) (Client, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Initiate an http.Client. The following GET request will be
-	// authorized and authenticated on the behalf of
-	// your service account.
 	client := gconf.Client(oauth2.NoContext)
 
 	nativeClient, err := storage.New(client)
@@ -56,6 +46,7 @@ func gcsFactory(conf map[string]string) (Client, error) {
 
 	return &GCSClient{
 		nativeClient: nativeClient,
+		httpClient:   client,
 		bucketName:   bucketName,
 		keyName:      keyName,
 	}, nil
@@ -63,6 +54,7 @@ func gcsFactory(conf map[string]string) (Client, error) {
 
 type GCSClient struct {
 	nativeClient *storage.Service
+	httpClient   *http.Client
 	bucketName   string
 	keyName      string
 }
@@ -71,9 +63,8 @@ func (c *GCSClient) Get() (*Payload, error) {
 	res, err := c.nativeClient.Objects.Get(c.bucketName, c.keyName).Do()
 	if err != nil {
 		return nil, nil
-		//		return nil, fmt.Errorf("Failed to get %s/%s: %s.", c.bucketName, c.keyName, err)
 	}
-	resp, err := http.Get(res.MediaLink)
+	resp, err := c.httpClient.Get(res.MediaLink)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load %s: %s", res.MediaLink, err)
 	}
