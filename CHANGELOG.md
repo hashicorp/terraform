@@ -55,7 +55,8 @@ BUG FIXES:
   * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
   * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
   * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
-  * provider/template: fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
+  * provider/template: Fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
+  * provider/template: Add support for updating `template_cloudinit_config` resources [GH-4757]
 
 ## 0.6.9 (January 8, 2016)
 
