@@ -10,8 +10,81 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
+	raw := []*ec2.IpPermission{
+		&ec2.IpPermission{
+			IpProtocol: aws.String("tcp"),
+			FromPort:   aws.Int64(int64(1)),
+			ToPort:     aws.Int64(int64(-1)),
+			IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")}},
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("sg-22222"),
+				},
+			},
+		},
+		&ec2.IpPermission{
+			IpProtocol: aws.String("tcp"),
+			FromPort:   aws.Int64(int64(80)),
+			ToPort:     aws.Int64(int64(80)),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("foo"),
+				},
+			},
+		},
+	}
+
+	local := []map[string]interface{}{
+		map[string]interface{}{
+			"protocol":    "tcp",
+			"from_port":   int64(1),
+			"to_port":     int64(-1),
+			"cidr_blocks": []string{"0.0.0.0/0"},
+			"self":        true,
+		},
+		map[string]interface{}{
+			"protocol":  "tcp",
+			"from_port": int64(80),
+			"to_port":   int64(80),
+			"security_groups": schema.NewSet(schema.HashString, []interface{}{
+				"foo",
+			}),
+		},
+	}
+
+	out := resourceAwsSecurityGroupIPPermGather("sg-22222", raw)
+	for _, i := range out {
+		// loop and match rules, because the ordering is not guarneteed
+		for _, l := range local {
+			if i["from_port"] == l["from_port"] {
+
+				if i["to_port"] != l["to_port"] {
+					t.Fatalf("to_port does not match")
+				}
+
+				if _, ok := i["cidr_blocks"]; ok {
+					if !reflect.DeepEqual(i["cidr_blocks"], l["cidr_blocks"]) {
+						t.Fatalf("error matching cidr_blocks")
+					}
+				}
+
+				if _, ok := i["security_groups"]; ok {
+					outSet := i["security_groups"].(*schema.Set)
+					localSet := l["security_groups"].(*schema.Set)
+
+					if !outSet.Equal(localSet) {
+						t.Fatalf("Security Group sets are not equal")
+					}
+				}
+			}
+		}
+	}
+}
 
 func TestAccAWSSecurityGroup_basic(t *testing.T) {
 	var group ec2.SecurityGroup
