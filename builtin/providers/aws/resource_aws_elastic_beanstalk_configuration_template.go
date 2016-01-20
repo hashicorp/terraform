@@ -215,8 +215,11 @@ func resourceAwsElasticBeanstalkConfigurationTemplateOptionSettingsUpdate(conn *
 func resourceAwsElasticBeanstalkConfigurationTemplateDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
-	_, err := conn.DeleteApplication(&elasticbeanstalk.DeleteApplicationInput{
-		ApplicationName: aws.String(d.Id()),
+	application := d.Get("application").(string)
+
+	_, err := conn.DeleteConfigurationTemplate(&elasticbeanstalk.DeleteConfigurationTemplateInput{
+		ApplicationName: aws.String(application),
+		TemplateName:    aws.String(d.Id()),
 	})
 
 	return err
