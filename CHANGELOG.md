@@ -38,6 +38,7 @@ IMPROVEMENTS:
   * provider/google: Add content field to bucket object [GH-3893]
   * provider/openstack: Add "personality" support to instance resource [GH-4623]
   * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
+  * state/remote: Allow KMS Key Encryption to be used with S3 backend [GH-2903]
 
 BUG FIXES:
 
