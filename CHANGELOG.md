@@ -1,5 +1,11 @@
 ## 0.6.10 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+ * The `-module-depth` flag available on `plan`, `apply`, `show`, and `graph` now defaults to `-1`, causing
+   resources within modules to be expanded in command output. This is only a cosmetic change; it does not affect
+   any behavior.
+
 FEATURES:
 
   * **New resource: `azurerm_cdn_endpoint`** [GH-4759]
@@ -22,6 +28,7 @@ IMPROVEMENTS:
 
   * core: Add `sha256()` interpolation function [GH-4704]
   * core: Validate lifecycle keys to show helpful error messages whe they are mistypes [GH-4745]
+  * core: Default `module-depth` parameter to `-1`, which expands resources within modules [GH-4763]
   * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
   * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
