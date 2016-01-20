@@ -19,6 +19,7 @@ func resourceAwsSnsPlatformApplicationAPNS() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Required: true,
 			},
 			"type": &schema.Schema{
@@ -55,6 +56,7 @@ func resourceAwsSnsPlatformApplicationAPNSCreate(d *schema.ResourceData, meta in
 
 	resp, err := snsconn.CreatePlatformApplication(&sns.CreatePlatformApplicationInput{
 		Platform: aws.String("APNS"),
+		Name:     aws.String(d.Get("name").(string)),
 		Attributes: aws.StringMap(map[string]string{
 			"PlatformCredential": d.Get("platform_credential").(string),
 			"PlatformPrincipal":  d.Get("platform_principal").(string),
