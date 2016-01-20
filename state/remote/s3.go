@@ -58,6 +58,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 	if raw, ok := conf["acl"]; ok {
 		acl = raw
 	}
+	kmsKeyID := conf["kms_key_id"]
 
 	accessKeyId := conf["access_key"]
 	secretAccessKey := conf["secret_key"]
@@ -95,6 +96,7 @@ func s3Factory(conf map[string]string) (Client, error) {
 		keyName:              keyName,
 		serverSideEncryption: serverSideEncryption,
 		acl:                  acl,
+		kmsKeyID:             kmsKeyID,
 	}, nil
 }
 
@@ -104,6 +106,7 @@ type S3Client struct {
 	keyName              string
 	serverSideEncryption bool
 	acl                  string
+	kmsKeyID             string
 }
 
 func (c *S3Client) Get() (*Payload, error) {
@@ -156,7 +159,12 @@ func (c *S3Client) Put(data []byte) error {
 	}
 
 	if c.serverSideEncryption {
-		i.ServerSideEncryption = aws.String("AES256")
+		if c.kmsKeyID != "" {
+			i.SSEKMSKeyId = &c.kmsKeyID
+			i.ServerSideEncryption = aws.String("aws:kms")
+		} else {
+			i.ServerSideEncryption = aws.String("AES256")
+		}
 	}
 
 	if c.acl != "" {
