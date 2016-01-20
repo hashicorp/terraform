@@ -135,12 +135,13 @@ func getBeanstalkApplication(
 		return nil, err
 	}
 
-	if len(resp.Applications) > 1 {
+	switch {
+	case len(resp.Applications) > 1:
 		return nil, fmt.Errorf("Error %d Applications matched, expected 1", len(resp.Applications))
-	} else if len(resp.Applications) == 0 {
+	case len(resp.Applications) == 0:
 		d.SetId("")
 		return nil, nil
+	default:
+		return resp.Applications[0], nil
 	}
-
-	return resp.Applications[0], nil
 }
