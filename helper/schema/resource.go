@@ -78,6 +78,19 @@ type Resource struct {
 	Update UpdateFunc
 	Delete DeleteFunc
 	Exists ExistsFunc
+
+	// ValidateFunc is an optional function that can be implemented by resources
+	// that would like to perform validations that consider multiple attribute
+	// simultaneously. Per-field validations should be performed via a
+	// SchemaValidateFunc on that field.
+	//
+	// It receives a ResourceConfigGetter, which can be queried for information
+	// from the configuration. Note that Computed values must be considered, see
+	// the ResourceConfigGetter docs for details.
+	//
+	// ValidateFunc is only called if all per-field validations pass, so
+	// implementers can assume valid attributes from within this function.
+	ValidateFunc ResourceValidateFunc
 }
 
 // See Resource documentation.
@@ -98,6 +111,27 @@ type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 // See Resource documentation.
 type StateMigrateFunc func(
 	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
+
+// ResourceValidateFunc - See Resource.ValidateFunc for documentation.
+type ResourceValidateFunc func(ResourceConfigGetter) ([]string, []error)
+
+// ComposeResourceValidateFunc allows the chaining together of several smaller
+// ResourceValidateFunc implmementations, which helps keep resource level
+// validations focused
+func ComposeResourceValidateFunc(fs ...ResourceValidateFunc) ResourceValidateFunc {
+	return func(r ResourceConfigGetter) (warnings []string, errors []error) {
+		for _, f := range fs {
+			ws, es := f(r)
+			for _, w := range ws {
+				warnings = append(warnings, w)
+			}
+			for _, e := range es {
+				errors = append(errors, e)
+			}
+		}
+		return
+	}
+}
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -164,7 +198,22 @@ func (r *Resource) Diff(
 
 // Validate validates the resource configuration against the schema.
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return schemaMap(r.Schema).Validate(c)
+	// Collect field-based validation warnings/errors.
+	warnings, errors := schemaMap(r.Schema).Validate(c)
+
+	// Only run resource-level validation if it is present and fields contain no
+	// errors. Allows implementers to assume valid fields.
+	if r.ValidateFunc != nil && len(errors) == 0 {
+		configData := NewResourceConfigData(c, r.Schema)
+		resourceWarnings, resourceErrors := r.ValidateFunc(configData)
+		for _, w := range resourceWarnings {
+			warnings = append(warnings, w)
+		}
+		for _, e := range resourceErrors {
+			errors = append(errors, e)
+		}
+	}
+	return warnings, errors
 }
 
 // Refresh refreshes the state of the resource.

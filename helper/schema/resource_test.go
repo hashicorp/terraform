@@ -1,11 +1,14 @@
 package schema
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -763,5 +766,204 @@ func TestResourceRefresh_migrateStateErr(t *testing.T) {
 	_, err := r.Refresh(s, nil)
 	if err == nil {
 		t.Fatal("expected error, but got none!")
+	}
+}
+
+func TestResourceValidate(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+			"bar": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+		ValidateFunc: func(g ResourceConfigGetter) (ws []string, es []error) {
+			foo, fooKnown := g.GetIfKnown("foo")
+			bar, barKnown := g.GetIfKnown("bar")
+
+			// Cannot perform validation unless both foo and bar are known
+			if !fooKnown || !barKnown {
+				return
+			}
+
+			if foo.(int) > bar.(int) {
+				es = append(es, fmt.Errorf("Foo cannot be greater than bar!"))
+			}
+
+			if foo.(int) == bar.(int) {
+				ws = append(ws, fmt.Sprintf("Foo is almost greater than bar!"))
+			}
+
+			return
+		},
+	}
+
+	cases := map[string]struct {
+		Config           map[string]interface{}
+		ExpectedErrors   []error
+		ExpectedWarnings []string
+		Vars             map[string]ast.Variable
+	}{
+		"populates errors": {
+			Config: map[string]interface{}{
+				"foo": 5,
+				"bar": 3,
+			},
+			ExpectedErrors: []error{errors.New("Foo cannot be greater than bar!")},
+		},
+		"populates warnings": {
+			Config: map[string]interface{}{
+				"foo": 3,
+				"bar": 3,
+			},
+			ExpectedWarnings: []string{"Foo is almost greater than bar!"},
+		},
+		"can pass": {
+			Config: map[string]interface{}{
+				"foo": 3,
+				"bar": 4,
+			},
+		},
+		"validatefuncs can check for known/unknown": {
+			Config: map[string]interface{}{
+				"foo": "${var.notset}",
+				"bar": 4,
+			},
+			Vars: map[string]ast.Variable{
+				"var.notset": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		rawConfig, err := config.NewRawConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if err := rawConfig.Interpolate(tc.Vars); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		config := terraform.NewResourceConfig(rawConfig)
+
+		warns, errs := r.Validate(config)
+		if !reflect.DeepEqual(tc.ExpectedErrors, errs) {
+			t.Fatalf("expected errors: %v, got: %v", tc.ExpectedErrors, errs)
+		}
+		if !reflect.DeepEqual(tc.ExpectedWarnings, warns) {
+			t.Fatalf("expected warnings: %v, got: %v", tc.ExpectedWarnings, warns)
+		}
+	}
+}
+
+func TestResourceValidate_ComposeTestFunc(t *testing.T) {
+	errorFooGreaterBar := func(g ResourceConfigGetter) (ws []string, es []error) {
+		foo, fooKnown := g.GetIfKnown("foo")
+		bar, barKnown := g.GetIfKnown("bar")
+
+		// Cannot perform validation unless both foo and bar are known
+		if !fooKnown || !barKnown {
+			return
+		}
+
+		if foo.(int) > bar.(int) {
+			es = append(es, fmt.Errorf("Foo cannot be greater than bar!"))
+		}
+		return
+	}
+	warnFooEqualBar := func(g ResourceConfigGetter) (ws []string, es []error) {
+		foo, fooKnown := g.GetIfKnown("foo")
+		bar, barKnown := g.GetIfKnown("bar")
+
+		// Cannot perform validation unless both foo and bar are known
+		if !fooKnown || !barKnown {
+			return
+		}
+
+		if foo.(int) == bar.(int) {
+			ws = append(ws, fmt.Sprintf("Foo is almost greater than bar!"))
+		}
+		return
+	}
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+			"bar": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+		ValidateFunc: ComposeResourceValidateFunc(
+			errorFooGreaterBar,
+			warnFooEqualBar,
+		),
+	}
+
+	cases := map[string]struct {
+		Config           map[string]interface{}
+		ExpectedErrors   []error
+		ExpectedWarnings []string
+		Vars             map[string]ast.Variable
+	}{
+		"populates errors": {
+			Config: map[string]interface{}{
+				"foo": 5,
+				"bar": 3,
+			},
+			ExpectedErrors: []error{errors.New("Foo cannot be greater than bar!")},
+		},
+		"populates warnings": {
+			Config: map[string]interface{}{
+				"foo": 3,
+				"bar": 3,
+			},
+			ExpectedWarnings: []string{"Foo is almost greater than bar!"},
+		},
+		"can pass": {
+			Config: map[string]interface{}{
+				"foo": 3,
+				"bar": 4,
+			},
+		},
+		"validatefuncs can check for known/unknown": {
+			Config: map[string]interface{}{
+				"foo": "${var.notset}",
+				"bar": 4,
+			},
+			Vars: map[string]ast.Variable{
+				"var.notset": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		rawConfig, err := config.NewRawConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if err := rawConfig.Interpolate(tc.Vars); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		config := terraform.NewResourceConfig(rawConfig)
+
+		warns, errs := r.Validate(config)
+		if !reflect.DeepEqual(tc.ExpectedErrors, errs) {
+			t.Fatalf("expected errors: %v, got: %v", tc.ExpectedErrors, errs)
+		}
+		if !reflect.DeepEqual(tc.ExpectedWarnings, warns) {
+			t.Fatalf("expected warnings: %v, got: %v", tc.ExpectedWarnings, warns)
+		}
 	}
 }

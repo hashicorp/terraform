@@ -82,6 +82,9 @@ func (s *Set) Contains(item interface{}) bool {
 
 // Len returns the amount of items in the set.
 func (s *Set) Len() int {
+	if s == nil {
+		return 0
+	}
 	return len(s.m)
 }
 
