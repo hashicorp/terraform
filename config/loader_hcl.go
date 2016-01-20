@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
 	"github.com/mitchellh/mapstructure"
@@ -533,6 +534,13 @@ func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		// destroying the existing instance
 		var lifecycle ResourceLifecycle
 		if o := listVal.Filter("lifecycle"); len(o.Items) > 0 {
+			// Check for invalid keys
+			valid := []string{"create_before_destroy", "ignore_changes", "prevent_destroy"}
+			if err := checkHCLKeys(o.Items[0].Val, valid); err != nil {
+				return nil, multierror.Prefix(err, fmt.Sprintf(
+					"%s[%s]:", t, k))
+			}
+
 			var raw map[string]interface{}
 			if err = hcl.DecodeObject(&raw, o.Items[0].Val); err != nil {
 				return nil, fmt.Errorf(
@@ -654,3 +662,31 @@ func hclObjectMap(os *hclobj.Object) map[string]ast.ListNode {
 	return objects
 }
 */
+
+func checkHCLKeys(node ast.Node, valid []string) error {
+	var list *ast.ObjectList
+	switch n := node.(type) {
+	case *ast.ObjectList:
+		list = n
+	case *ast.ObjectType:
+		list = n.List
+	default:
+		return fmt.Errorf("cannot check HCL keys of type %T", n)
+	}
+
+	validMap := make(map[string]struct{}, len(valid))
+	for _, v := range valid {
+		validMap[v] = struct{}{}
+	}
+
+	var result error
+	for _, item := range list.Items {
+		key := item.Keys[0].Token.Value().(string)
+		if _, ok := validMap[key]; !ok {
+			result = multierror.Append(result, fmt.Errorf(
+				"invalid key: %s", key))
+		}
+	}
+
+	return result
+}
