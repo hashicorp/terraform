@@ -262,8 +262,8 @@ resource "aws_instance" "web" {
 
 The supported operations are:
 
-- *Add*, *Subtract*, *Multiply*, and *Divide* for **float** types
-- *Add*, *Subtract*, *Multiply*, *Divide*, and *Modulo* for **integer** types
+- *Add* (`+`), *Subtract* (`-`), *Multiply* (`*`), and *Divide* (`/`) for **float** types
+- *Add* (`+`), *Subtract* (`-`), *Multiply* (`*`), *Divide* (`/`), and *Modulo* (`%`) for **integer** types
 
 -> **Note:** Since Terraform allows hyphens in resource and variable names,
 it's best to use spaces between math operators to prevent confusion or unexpected
