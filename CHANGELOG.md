@@ -57,6 +57,7 @@ BUG FIXES:
   * core: Fix diff mismatch when RequiresNew field and list both change [GH-4749]
   * core: Respect module target path argument on `terraform init` [GH-4753]
   * core: Write planfile even on empty plans [GH-4766]
+  * core: Add validation error when output is missing value field [GH-4762]
   * config: Detect a specific JSON edge case and show a helpful workaround [GH-4746]
   * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
   * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
