@@ -36,6 +36,7 @@ IMPROVEMENTS:
   * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
   * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
   * provider/google: Add content field to bucket object [GH-3893]
+  * provider/google: Add support for  `named_port` blocks on `google_compute_instance_group_manager` resources [GH-4605]
   * provider/openstack: Add "personality" support to instance resource [GH-4623]
   * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
   * state/remote: Allow KMS Key Encryption to be used with S3 backend [GH-2903]
