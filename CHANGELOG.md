@@ -45,6 +45,7 @@ BUG FIXES:
 
   * core: Fix handling of literals with escaped interpolations `$${var}` [GH-4747]
   * core: Fix diff mismatch when RequiresNew field and list both change [GH-4749]
+  * core: Respect module target path argument on `terraform init` [GH-4753]
   * config: Detect a specific JSON edge case and show a helpful workaround [GH-4746]
   * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
   * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
