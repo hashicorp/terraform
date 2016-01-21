@@ -56,7 +56,14 @@ func testAccCheckBeanstalkConfigurationTemplateDestroy(s *terraform.State) error
 		if !ok {
 			return err
 		}
-		if ec2err.Code() != "InvalidBeanstalkConfigurationTemplateID.NotFound" {
+
+		switch {
+		case ec2err.Code() == "InvalidBeanstalkConfigurationTemplateID.NotFound":
+			return nil
+		// This error can be returned when the beanstalk application no longer exists.
+		case ec2err.Code() == "InvalidParameterValue":
+			return nil
+		default:
 			return err
 		}
 	}
