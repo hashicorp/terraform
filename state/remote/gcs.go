@@ -87,5 +87,5 @@ func (c *GCSClient) Put(data []byte) error {
 }
 
 func (c *GCSClient) Delete() error {
-	return nil
+	return c.nativeClient.Objects.Delete(c.bucketName, c.keyName).Do()
 }
