@@ -493,7 +493,13 @@ func dropGeneratedSecurityGroup(settings *schema.Set, meta interface{}) {
 			continue
 		}
 
-		groups := strings.Split(setting["value"].(string), ",")
+		log.Printf("[DEBUG] Elastic Beanstalk setting: %v", setting)
+		settingValue, isString := setting["value"].(string)
+		if !isString {
+			continue
+		}
+
+		groups := strings.Split(settingValue, ",")
 
 		resp, err := conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 			GroupIds: aws.StringSlice(groups),
