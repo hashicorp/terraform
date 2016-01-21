@@ -216,8 +216,8 @@ resource "aws_autoscaling_schedule" "foobar" {
     max_size = 0
     min_size = 0
     desired_capacity = 0
-    start_time = "2016-01-16T07:00:00Z"
-    end_time = "2016-01-16T13:00:00Z"
+    start_time = "2018-01-16T07:00:00Z"
+    end_time = "2018-01-16T13:00:00Z"
     autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
 }
 `)
