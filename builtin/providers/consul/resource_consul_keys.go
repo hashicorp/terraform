@@ -68,8 +68,9 @@ func resourceConsulKeys() *schema.Resource {
 			},
 
 			"var": &schema.Schema{
-				Type:     schema.TypeMap,
-				Computed: true,
+				Type:         schema.TypeMap,
+				Computed:     true,
+				ComputedWhen: []string{"key"},
 			},
 		},
 	}

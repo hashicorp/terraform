@@ -207,6 +207,18 @@ func (s *Schema) DefaultValue() (interface{}, error) {
 	return nil, nil
 }
 
+// MatchesKey returns whether or not the state key
+// matches the schema key this schema type
+func (s *Schema) KeysMatch(schemaKey, stateKey string) bool {
+	if s == nil {
+		return false
+	}
+	if s.Type.IsPrimitive() {
+		return schemaKey == stateKey
+	}
+	return strings.HasPrefix(stateKey, schemaKey)
+}
+
 // Returns a zero value for the schema.
 func (s *Schema) ZeroValue() interface{} {
 	// If it's a set then we'll do a bit of extra work to provide the
@@ -366,9 +378,62 @@ func (m schemaMap) Diff(
 		}
 	}
 
-	// Go through and detect all of the ComputedWhens now that we've
+	// Go through and detect/handle all of the ComputedWhens now that we've
 	// finished the diff.
-	// TODO
+	for k, schema := range m {
+		for _, targetKey := range schema.ComputedWhen {
+			targetSchema := m[targetKey]
+			targetChanged := false
+			for diffKey := range result.Attributes {
+				if targetSchema.KeysMatch(targetKey, diffKey) {
+					targetChanged = true
+					break
+				}
+			}
+
+			if targetChanged {
+				// Then the ComputedWhen field should be computed
+				if schema.Type.IsPrimitive() {
+					// For primitives, we just tick on the NewComputed bit
+					d := &terraform.ResourceAttrDiff{}
+					if v, ok := result.Attributes[k]; ok {
+						d = v
+					}
+					d.NewComputed = true
+					result.Attributes[k] = d
+				} else {
+					// For list-like types, we mark the whole list as computed,
+					countAttrDiff := &terraform.ResourceAttrDiff{}
+					if v, ok := result.Attributes[k+".#"]; ok {
+						countAttrDiff = v
+					}
+					countAttrDiff.NewComputed = true
+
+					// then clear out any existing field-level diffs,
+					for diffKey := range result.Attributes {
+						if strings.HasPrefix(diffKey, k) {
+							delete(result.Attributes, diffKey)
+						}
+					}
+
+					result.Attributes[k+".#"] = countAttrDiff
+
+					// add back in current -> <computed> diffs for any of this
+					// attribute's fields currently in the state
+					if s != nil {
+						for stateKey, stateVal := range s.Attributes {
+							if strings.HasPrefix(stateKey, k) {
+								result.Attributes[stateKey] = &terraform.ResourceAttrDiff{
+									Old:         stateVal,
+									NewComputed: true,
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 	if result.Empty() {
 		// If we don't have any diff elements, just return nil
@@ -1291,5 +1356,16 @@ func (t ValueType) Zero() interface{} {
 		return map[string]interface{}{}
 	default:
 		panic(fmt.Sprintf("unknown type %s", t))
+	}
+}
+
+// IsPrimitive returns true if the ValueType can be considered "primitive".
+// i.e. It does not require dot-notation or multiple fields to store it.
+func (t ValueType) IsPrimitive() bool {
+	switch t {
+	case TypeBool, TypeInt, TypeFloat, TypeString:
+		return true
+	default:
+		return false
 	}
 }
