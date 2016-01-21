@@ -197,7 +197,6 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
 	d.Set("gateway", n.Gateway)
-	d.Set("vlan", n.Vlan)
 
 	setValueOrID(d, "network_offering", n.Networkofferingname, n.Networkofferingid)
 	setValueOrID(d, "project", n.Project, n.Projectid)

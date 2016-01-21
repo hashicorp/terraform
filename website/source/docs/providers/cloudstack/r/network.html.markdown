@@ -47,7 +47,8 @@ The following arguments are supported:
     for this network.
 
 * `vlan` - (Optional) The VLAN number (1-4095) the network will use. This might be
-    required by the Network Offering if specifyVlan=true is set.
+    required by the Network Offering if specifyVlan=true is set. Only the ROOT 
+    admin can set this value.
 
 * `vpc` - (Optional) The name or ID of the VPC to create this network for. Changing
     this forces a new resource to be created.
