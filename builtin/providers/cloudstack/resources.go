@@ -14,6 +14,9 @@ import (
 // UnlimitedResourceID is a "special" ID to define an unlimited resource
 const UnlimitedResourceID = "-1"
 
+// Define a regexp for parsing the port
+var splitPorts = regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
+
 type retrieveError struct {
 	name  string
 	value string
