@@ -131,7 +131,7 @@ func waitForFloatingIPReady(
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
-		Target:     target,
+		Target:     []string{target},
 		Refresh:    newFloatingIPStateRefreshFunc(d, attribute, meta, actionId),
 		Timeout:    60 * time.Minute,
 		Delay:      10 * time.Second,

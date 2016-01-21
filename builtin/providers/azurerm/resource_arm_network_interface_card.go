@@ -214,7 +214,7 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	log.Printf("[DEBUG] Waiting for Network Interface (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: networkInterfaceStateRefreshFunc(client, resGroup, name),
 		Timeout: 10 * time.Minute,
 	}

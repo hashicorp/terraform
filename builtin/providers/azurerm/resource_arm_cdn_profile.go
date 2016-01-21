@@ -85,7 +85,7 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Waiting for CDN Profile (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating", "Creating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: cdnProfileStateRefreshFunc(client, resGroup, name),
 		Timeout: 10 * time.Minute,
 	}

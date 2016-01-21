@@ -217,7 +217,7 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    SecGroupV2StateRefreshFunc(computeClient, d),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,

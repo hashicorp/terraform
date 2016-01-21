@@ -117,7 +117,7 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    volumeStateRefreshFunc(conn, *result.VolumeId),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
