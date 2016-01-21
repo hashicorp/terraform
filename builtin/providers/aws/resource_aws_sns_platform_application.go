@@ -75,16 +75,13 @@ func resourceAwsSnsPlatformApplicationAPNSCreate(d *schema.ResourceData, meta in
 func resourceAwsSnsPlatformApplicationAPNSRead(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	resp, err := snsconn.GetPlatformApplicationAttributes(&sns.GetPlatformApplicationAttributesInput{
+	_, err := snsconn.GetPlatformApplicationAttributes(&sns.GetPlatformApplicationAttributesInput{
 		PlatformApplicationArn: aws.String(d.Id()),
 	})
 
 	if err != nil {
 		return fmt.Errorf("Error reading plaform application %s", err)
 	}
-
-	d.Set("platform_credential", resp.Attributes["PlatformCredential"])
-	d.Set("platform_principal", resp.Attributes["PlatformPrincipal"])
 
 	return nil
 }
@@ -165,17 +162,13 @@ func resourceAwsSnsPlatformApplicationGCMCreate(d *schema.ResourceData, meta int
 func resourceAwsSnsPlatformApplicationGCMRead(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	resp, err := snsconn.GetPlatformApplicationAttributes(&sns.GetPlatformApplicationAttributesInput{
+	_, err := snsconn.GetPlatformApplicationAttributes(&sns.GetPlatformApplicationAttributesInput{
 		PlatformApplicationArn: aws.String(d.Id()),
 	})
 
 	if err != nil {
 		return fmt.Errorf("Error reading platform application %s", err)
 	}
-
-	log.Printf("[DEBUG] Received GCM platform application: %s", resp)
-
-	d.Set("platform_credential", resp.Attributes["PlatformCredential"])
 
 	return nil
 }
