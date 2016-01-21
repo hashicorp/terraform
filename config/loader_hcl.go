@@ -28,9 +28,10 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	type hclVariable struct {
-		Default     interface{}
-		Description string
-		Fields      []string `hcl:",decodedFields"`
+		Default      interface{}
+		Description  string
+		DeclaredType string   `hcl:"type"`
+		Fields       []string `hcl:",decodedFields"`
 	}
 
 	var rawConfig struct {
@@ -70,9 +71,14 @@ func (t *hclConfigurable) Config() (*Config, error) {
 			}
 
 			newVar := &Variable{
-				Name:        k,
-				Default:     v.Default,
-				Description: v.Description,
+				Name:         k,
+				DeclaredType: v.DeclaredType,
+				Default:      v.Default,
+				Description:  v.Description,
+			}
+
+			if err := newVar.ValidateTypeAndDefault(); err != nil {
+				return nil, err
 			}
 
 			config.Variables = append(config.Variables, newVar)
