@@ -3,7 +3,9 @@ package mailgun
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/pearkes/mailgun"
 )
@@ -143,7 +145,16 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error deleting domain: %s", err)
 	}
 
-	return nil
+	// Give the destroy a chance to take effect
+	return resource.Retry(1*time.Minute, func() error {
+		_, err = client.RetrieveDomain(d.Id())
+		if err == nil {
+			log.Printf("[INFO] Retrying until domain disappears...")
+			return fmt.Errorf("Domain seems to still exist; will check again.")
+		}
+		log.Printf("[INFO] Got error looking for domain, seems gone: %s", err)
+		return nil
+	})
 }
 
 func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
