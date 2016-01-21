@@ -55,7 +55,7 @@ func resourceAwsSnsPlatformApplicationAPNSCreate(d *schema.ResourceData, meta in
 	}
 
 	resp, err := snsconn.CreatePlatformApplication(&sns.CreatePlatformApplicationInput{
-		Platform: aws.String("APNS"),
+		Platform: aws.String(platform),
 		Name:     aws.String(d.Get("name").(string)),
 		Attributes: aws.StringMap(map[string]string{
 			"PlatformCredential": d.Get("platform_credential").(string),
@@ -64,7 +64,7 @@ func resourceAwsSnsPlatformApplicationAPNSCreate(d *schema.ResourceData, meta in
 	})
 
 	if err != nil {
-		return fmt.Errorf("Error reading platform application %s", err)
+		return fmt.Errorf("Error creating platform application %s", err)
 	}
 
 	d.SetId(*resp.PlatformApplicationArn)
