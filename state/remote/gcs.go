@@ -10,8 +10,16 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/storage/v1"
 )
+
+type GCSClient struct {
+	nativeClient *storage.Service
+	httpClient   *http.Client
+	bucketName   string
+	keyName      string
+}
 
 func gcsFactory(conf map[string]string) (Client, error) {
 	bucketName, ok := conf["bucket"]
@@ -52,17 +60,18 @@ func gcsFactory(conf map[string]string) (Client, error) {
 	}, nil
 }
 
-type GCSClient struct {
-	nativeClient *storage.Service
-	httpClient   *http.Client
-	bucketName   string
-	keyName      string
-}
-
 func (c *GCSClient) Get() (*Payload, error) {
 	res, err := c.nativeClient.Objects.Get(c.bucketName, c.keyName).Do()
 	if err != nil {
-		return nil, nil
+		switch t := err.(type) {
+		case *googleapi.Error:
+			if t.Code == http.StatusNotFound {
+				return nil, nil
+			}
+			return nil, err
+		default:
+			return nil, err
+		}
 	}
 	resp, err := c.httpClient.Get(res.MediaLink)
 	if err != nil {
@@ -81,7 +90,7 @@ func (c *GCSClient) Put(data []byte) error {
 	file := bytes.NewReader(data)
 	_, err := c.nativeClient.Objects.Insert(c.bucketName, &storage.Object{Name: c.keyName}).Media(file).Do()
 	if err != nil {
-		return fmt.Errorf("Objects.Insert failed: %v", err)
+		return fmt.Errorf("Failed to insert object: %v", err)
 	}
 	return nil
 }
