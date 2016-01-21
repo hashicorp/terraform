@@ -2,7 +2,6 @@ package cloudstack
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -224,9 +223,6 @@ func createNetworkACLRule(
 			// Create an empty schema.Set to hold all processed ports
 			ports := &schema.Set{F: schema.HashString}
 
-			// Define a regexp for parsing the port
-			re := regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
-
 			for _, port := range ps.List() {
 				if _, ok := uuids[port.(string)]; ok {
 					ports.Add(port)
@@ -234,7 +230,7 @@ func createNetworkACLRule(
 					continue
 				}
 
-				m := re.FindStringSubmatch(port.(string))
+				m := splitPorts.FindStringSubmatch(port.(string))
 
 				startPort, err := strconv.Atoi(m[1])
 				if err != nil {
@@ -607,7 +603,15 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 	case "all":
 		// No additional test are needed, so just leave this empty...
 	case "tcp", "udp":
-		if _, ok := rule["ports"]; !ok {
+		if ports, ok := rule["ports"].(*schema.Set); ok {
+			for _, port := range ports.List() {
+				m := splitPorts.FindStringSubmatch(port.(string))
+				if m == nil {
+					return fmt.Errorf(
+						"%q is not a valid port value. Valid options are '80' or '80-90'", port.(string))
+				}
+			}
+		} else {
 			return fmt.Errorf(
 				"Parameter ports is a required parameter when *not* using protocol 'icmp'")
 		}
@@ -615,7 +619,7 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 		_, err := strconv.ParseInt(protocol, 0, 0)
 		if err != nil {
 			return fmt.Errorf(
-				"%s is not a valid protocol. Valid options are 'tcp', 'udp', "+
+				"%q is not a valid protocol. Valid options are 'tcp', 'udp', "+
 					"'icmp', 'all' or a valid protocol number", protocol)
 		}
 	}
