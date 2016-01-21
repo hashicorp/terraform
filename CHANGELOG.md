@@ -17,6 +17,7 @@ FEATURES:
   * **New resource: `azurerm_network_interface`** [GH-4598]
   * **New resource: `azurerm_route_table`** [GH-4602]
   * **New resource: `azurerm_route`** [GH-4604]
+  * **New resource: `azurerm_storage_account`** [GH-4698]
   * **New resource: `aws_lambda_alias`** [GH-4664]
   * **New resource: `aws_redshift_cluster`** [GH-3862]
   * **New resource: `aws_redshift_security_group`** [GH-3862]
