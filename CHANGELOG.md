@@ -43,6 +43,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for creating Managed Microsoft Active Directory 
     and Directory Connectors [GH-4388]
   * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3138]
+  * provider/digitalocean: Add support for reassigning `digitalocean_floating_ip` resources [GH-4476]
   * provider/dme: Add support for Global Traffic Director locations on `dme_record` resources [GH-4305]
   * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
   * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
