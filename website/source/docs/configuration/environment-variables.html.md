@@ -62,3 +62,15 @@ export TF_VAR_ami=ami-049d8641
 ```
 
 For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/docs/configuration/variables.html).
+
+## TF_SKIP_REMOTE_TESTS
+
+This can be set prior to running the unit tests to opt-out of any tests
+requiring remote network connectivity. The unit tests make an attempt to
+automatically detect when connectivity is unavailable and skip the relevant
+tests, but by setting this variable you can force these tests to be skipped.
+
+```
+export TF_SKIP_REMOTE_TESTS=1
+make test
+```
