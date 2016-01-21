@@ -93,6 +93,12 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 					},
 				},
 			},
+
+			"parallelism": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  2,
+			},
 		},
 	}
 }
@@ -134,7 +140,7 @@ func createNetworkACLRules(
 	var wg sync.WaitGroup
 	wg.Add(nrs.Len())
 
-	sem := make(chan struct{}, 10)
+	sem := make(chan struct{}, d.Get("parallelism").(int))
 	for _, rule := range nrs.List() {
 		// Put in a tiny sleep here to avoid DoS'ing the API
 		time.Sleep(500 * time.Millisecond)
@@ -491,7 +497,7 @@ func deleteNetworkACLRules(
 	var wg sync.WaitGroup
 	wg.Add(ors.Len())
 
-	sem := make(chan struct{}, 10)
+	sem := make(chan struct{}, d.Get("parallelism").(int))
 	for _, rule := range ors.List() {
 		// Put a sleep here to avoid DoS'ing the API
 		time.Sleep(500 * time.Millisecond)
