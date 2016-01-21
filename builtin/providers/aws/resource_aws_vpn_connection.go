@@ -171,7 +171,7 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 	// more frequently than every ten seconds.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    vpnConnectionRefreshFunc(conn, *vpnConnection.VpnConnectionId),
 		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
@@ -303,7 +303,7 @@ func resourceAwsVpnConnectionDelete(d *schema.ResourceData, meta interface{}) er
 	// VPC stack can safely run.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"deleting"},
-		Target:     "deleted",
+		Target:     []string{"deleted"},
 		Refresh:    vpnConnectionRefreshFunc(conn, d.Id()),
 		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,

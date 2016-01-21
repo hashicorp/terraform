@@ -189,7 +189,7 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
-		Target:     "destroyed",
+		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsDbSubnetGroupDeleteRefreshFunc(d, meta),
 		Timeout:    3 * time.Minute,
 		MinTimeout: 1 * time.Second,

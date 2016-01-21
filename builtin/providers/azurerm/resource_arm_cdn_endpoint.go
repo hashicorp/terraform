@@ -201,7 +201,7 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	log.Printf("[DEBUG] Waiting for CDN Endpoint (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating", "Creating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: cdnEndpointStateRefreshFunc(client, resGroup, profileName, name),
 		Timeout: 10 * time.Minute,
 	}

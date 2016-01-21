@@ -107,7 +107,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  "ready",
+		Target:  []string{"ready"},
 		Refresh: resourceAwsRouteTableStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
@@ -372,7 +372,7 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"ready"},
-		Target:  "",
+		Target:  []string{},
 		Refresh: resourceAwsRouteTableStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}

@@ -411,7 +411,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    ServerV2StateRefreshFunc(computeClient, server.ID),
 		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
@@ -744,7 +744,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"RESIZE"},
-			Target:     "VERIFY_RESIZE",
+			Target:     []string{"VERIFY_RESIZE"},
 			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 			Timeout:    3 * time.Minute,
 			Delay:      10 * time.Second,
@@ -765,7 +765,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		stateConf = &resource.StateChangeConf{
 			Pending:    []string{"VERIFY_RESIZE"},
-			Target:     "ACTIVE",
+			Target:     []string{"ACTIVE"},
 			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 			Timeout:    3 * time.Minute,
 			Delay:      10 * time.Second,
@@ -798,7 +798,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
@@ -1158,7 +1158,7 @@ func attachVolumesToInstance(computeClient *gophercloud.ServiceClient, blockClie
 
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"attaching", "available"},
-			Target:     "in-use",
+			Target:     []string{"in-use"},
 			Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
 			Timeout:    30 * time.Minute,
 			Delay:      5 * time.Second,
@@ -1185,7 +1185,7 @@ func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockCl
 
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"detaching", "in-use"},
-			Target:     "available",
+			Target:     []string{"available"},
 			Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
 			Timeout:    30 * time.Minute,
 			Delay:      5 * time.Second,

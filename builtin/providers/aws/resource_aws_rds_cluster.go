@@ -212,7 +212,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 	d.SetId(*resp.DBCluster.DBClusterIdentifier)
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "backing-up", "modifying"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    5 * time.Minute,
 		MinTimeout: 3 * time.Second,
@@ -352,7 +352,7 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"deleting", "backing-up", "modifying"},
-		Target:     "destroyed",
+		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    5 * time.Minute,
 		MinTimeout: 3 * time.Second,

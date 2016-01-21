@@ -12,7 +12,7 @@ type RetryFunc func() error
 func Retry(timeout time.Duration, f RetryFunc) error {
 	c := &StateChangeConf{
 		Pending:    []string{"error"},
-		Target:     "success",
+		Target:     []string{"success"},
 		Timeout:    timeout,
 		MinTimeout: 500 * time.Millisecond,
 		Refresh: func() (interface{}, string, error) {
