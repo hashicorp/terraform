@@ -2,11 +2,10 @@ package azurerm
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"testing"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -65,7 +64,7 @@ func TestResourceAzureRMPublicIpDomainNameLabel_validation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
-			Value:    randomString(80),
+			Value:    acctest.RandString(80),
 			ErrCount: 1,
 		},
 	}
@@ -225,16 +224,6 @@ func testCheckAzureRMPublicIpDestroy(s *terraform.State) error {
 	}
 
 	return nil
-}
-
-func randomString(strlen int) string {
-	rand.Seed(time.Now().UTC().UnixNano())
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789-"
-	result := make([]byte, strlen)
-	for i := 0; i < strlen; i++ {
-		result[i] = chars[rand.Intn(len(chars))]
-	}
-	return string(result)
 }
 
 var testAccAzureRMVPublicIpStatic_basic = `
