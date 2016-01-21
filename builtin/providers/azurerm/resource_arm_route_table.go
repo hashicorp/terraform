@@ -125,7 +125,7 @@ func resourceArmRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] Waiting for Route Table (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: routeTableStateRefreshFunc(client, resGroup, name),
 		Timeout: 10 * time.Minute,
 	}

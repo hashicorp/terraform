@@ -401,7 +401,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
-		Target:     "running",
+		Target:     []string{"running"},
 		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceId),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -1082,7 +1082,7 @@ func awsTerminateInstance(conn *ec2.EC2, id string) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
-		Target:     "terminated",
+		Target:     []string{"terminated"},
 		Refresh:    InstanceStateRefreshFunc(conn, id),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,

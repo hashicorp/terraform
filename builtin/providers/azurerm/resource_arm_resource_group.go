@@ -103,7 +103,7 @@ func resourceArmResourceGroupCreate(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Waiting for Resource Group (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: resourceGroupStateRefreshFunc(client, name),
 		Timeout: 10 * time.Minute,
 	}

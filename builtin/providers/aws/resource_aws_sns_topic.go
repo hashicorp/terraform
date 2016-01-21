@@ -119,7 +119,7 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 					log.Printf("[DEBUG] Updating SNS Topic (%s) attributes request: %s", d.Id(), req)
 					stateConf := &resource.StateChangeConf{
 						Pending:    []string{"retrying"},
-						Target:     "success",
+						Target:     []string{"success"},
 						Refresh:    resourceAwsSNSUpdateRefreshFunc(meta, req),
 						Timeout:    1 * time.Minute,
 						MinTimeout: 3 * time.Second,
