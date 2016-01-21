@@ -72,7 +72,7 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"attaching"},
-		Target:     "attached",
+		Target:     []string{"attached"},
 		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
@@ -163,7 +163,7 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	_, err := conn.DetachVolume(opts)
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
-		Target:     "detached",
+		Target:     []string{"detached"},
 		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,

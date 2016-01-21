@@ -109,7 +109,7 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for Virtual Network (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: virtualNetworkStateRefreshFunc(client, resGroup, name),
 		Timeout: 10 * time.Minute,
 	}

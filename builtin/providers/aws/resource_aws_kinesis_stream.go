@@ -60,7 +60,7 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"CREATING"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    streamStateRefreshFunc(conn, sn),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
@@ -142,7 +142,7 @@ func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"DELETING"},
-		Target:     "DESTROYED",
+		Target:     []string{"DESTROYED"},
 		Refresh:    streamStateRefreshFunc(conn, sn),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,

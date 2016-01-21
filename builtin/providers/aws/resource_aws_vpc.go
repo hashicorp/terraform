@@ -118,7 +118,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  "available",
+		Target:  []string{"available"},
 		Refresh: VPCStateRefreshFunc(conn, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
