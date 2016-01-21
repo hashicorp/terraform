@@ -42,7 +42,8 @@ IMPROVEMENTS:
   * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations [GH-4481]
   * provider/aws: Add support for creating Managed Microsoft Active Directory 
     and Directory Connectors [GH-4388]
-  * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3139]
+  * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3138]
+  * provider/dme: Add support for Global Traffic Director locations on `dme_record` resources [GH-4305]
   * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
   * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
   * provider/google: Add content field to bucket object [GH-3893]
