@@ -19,18 +19,17 @@ func tagsSchema() *schema.Schema {
 // setTags is a helper to set the tags for a resource. It expects the
 // tags field to be named "tags"
 func setTags(cs *cloudstack.CloudStackClient, d *schema.ResourceData, resourcetype string) error {
-
 	if d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})
-		create, remove := diffTags(tagsFromMap(o), tagsFromMap(n))
-		log.Printf("[DEBUG] tags to remove: %s", remove)
-		log.Printf("[DEBUG] tags to create: %s", create)
+		create, remove := diffTags(tagsFromSchema(o), tagsFromSchema(n))
+		log.Printf("[DEBUG] tags to remove: %v", remove)
+		log.Printf("[DEBUG] tags to create: %v", create)
 
 		// Set tags
 		if len(remove) > 0 {
-			log.Printf("[DEBUG] Removing tags: %s from %s", remove, d.Id())
+			log.Printf("[DEBUG] Removing tags: %v from %s", remove, d.Id())
 			p := cs.Resourcetags.NewDeleteTagsParams([]string{d.Id()}, resourcetype)
 			p.SetTags(remove)
 			_, err := cs.Resourcetags.DeleteTags(p)
@@ -39,7 +38,7 @@ func setTags(cs *cloudstack.CloudStackClient, d *schema.ResourceData, resourcety
 			}
 		}
 		if len(create) > 0 {
-			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
+			log.Printf("[DEBUG] Creating tags: %v for %s", create, d.Id())
 			p := cs.Resourcetags.NewCreateTagsParams([]string{d.Id()}, resourcetype, create)
 			_, err := cs.Resourcetags.CreateTags(p)
 			if err != nil {
@@ -71,8 +70,10 @@ func diffTags(oldTags, newTags map[string]string) (map[string]string, map[string
 	return newTags, remove
 }
 
-// tagsFromMap returns the tags for the given tags schema.
-func tagsFromMap(m map[string]interface{}) map[string]string {
+// tagsFromSchema returns the tags for the given tags schema.
+// It's needed to properly unpack all string:interface types
+// to a proper string:string map
+func tagsFromSchema(m map[string]interface{}) map[string]string {
 	result := make(map[string]string, len(m))
 	for k, v := range m {
 		result[k] = v.(string)
