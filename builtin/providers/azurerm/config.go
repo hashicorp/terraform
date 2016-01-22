@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
@@ -40,6 +42,9 @@ type ArmClient struct {
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
 
+	cdnProfilesClient  cdn.ProfilesClient
+	cdnEndpointsClient cdn.EndpointsClient
+
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
 	tagsClient          resources.TagsClient
@@ -54,12 +59,28 @@ type ArmClient struct {
 func withRequestLogging() autorest.SendDecorator {
 	return func(s autorest.Sender) autorest.Sender {
 		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
-			log.Printf("[DEBUG] Sending Azure RM Request %s to %s\n", r.Method, r.URL)
+			log.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
 			resp, err := s.Do(r)
 			if resp != nil {
 				log.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
 			} else {
 				log.Printf("[DEBUG] Request to %s completed with no response", r.URL)
+			}
+			return resp, err
+		})
+	}
+}
+
+func withPollWatcher() autorest.SendDecorator {
+	return func(s autorest.Sender) autorest.Sender {
+		return autorest.SenderFunc(func(r *http.Request) (*http.Response, error) {
+			fmt.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
+			resp, err := s.Do(r)
+			fmt.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
+			if autorest.ResponseRequiresPolling(resp) {
+				fmt.Printf("[DEBUG] Azure RM request will poll %s after %d seconds\n",
+					autorest.GetPollingLocation(resp),
+					int(autorest.GetPollingDelay(resp, time.Duration(0))/time.Second))
 			}
 			return resp, err
 		})
@@ -237,7 +258,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ssc := storage.NewAccountsClient(c.SubscriptionID)
 	setUserAgent(&ssc.Client)
 	ssc.Authorizer = spt
-	ssc.Sender = autorest.CreateSender(withRequestLogging())
+	ssc.Sender = autorest.CreateSender(withRequestLogging(), withPollWatcher())
 	client.storageServiceClient = ssc
 
 	suc := storage.NewUsageOperationsClient(c.SubscriptionID)
@@ -245,6 +266,18 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	suc.Authorizer = spt
 	suc.Sender = autorest.CreateSender(withRequestLogging())
 	client.storageUsageClient = suc
+
+	cpc := cdn.NewProfilesClient(c.SubscriptionID)
+	setUserAgent(&cpc.Client)
+	cpc.Authorizer = spt
+	cpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.cdnProfilesClient = cpc
+
+	cec := cdn.NewEndpointsClient(c.SubscriptionID)
+	setUserAgent(&cec.Client)
+	cec.Authorizer = spt
+	cec.Sender = autorest.CreateSender(withRequestLogging())
+	client.cdnEndpointsClient = cec
 
 	return &client, nil
 }

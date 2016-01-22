@@ -21,6 +21,10 @@ quickdev: generate
 core-dev: fmtcheck generate
 	go install github.com/hashicorp/terraform
 
+# Shorthand for quickly testing the core of Terraform (i.e. "not providers")
+core-test: generate
+	@echo "Testing core packages..." && go test $(shell go list ./... | grep -v builtin)
+
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
 plugin-dev: fmtcheck generate

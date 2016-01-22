@@ -104,27 +104,25 @@ resource to the module, so the module will be built first.
 
 With modules, commands such as the [plan command](/docs/commands/plan.html)
 and
-[graph command](/docs/commands/graph.html) will show the module as a single
-unit by default. You can use the `-module-depth` parameter to expand this
-graph further.
+[graph command](/docs/commands/graph.html) will expand modules by default. You
+can use the `-module-depth` parameter to limit the graph.
 
 For example, with a configuration similar to what we've built above, here
 is what the graph output looks like by default:
 
 <div class="center">
-![Terraform Module Graph](docs/module_graph.png)
+![Terraform Expanded Module Graph](docs/module_graph_expand.png)
 </div>
 
-But if we set `-module-depth=-1`, the graph will look like this:
+But if we set `-module-depth=0`, the graph will look like this:
 
 <div class="center">
-![Terraform Expanded Module Graph](docs/module_graph_expand.png)
+![Terraform Module Graph](docs/module_graph.png)
 </div>
 
 Other commands work similarly with modules. Note that the `-module-depth`
 flag is purely a formatting flag; it doesn't affect what modules are created
 or not.
-
 
 ## Tainting resources within a module
 

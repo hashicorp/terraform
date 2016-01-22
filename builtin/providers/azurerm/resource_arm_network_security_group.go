@@ -157,7 +157,7 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 	log.Printf("[DEBUG] Waiting for Network Security Group (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: securityGroupStateRefreshFunc(client, resGroup, name),
 		Timeout: 10 * time.Minute,
 	}

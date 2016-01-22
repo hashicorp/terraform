@@ -104,6 +104,29 @@ func TestContext2Plan_emptyDiff(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_escapedVar(t *testing.T) {
+	m := testModule(t, "plan-escaped-var")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanEscapedVarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_minimal(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
@@ -1647,6 +1670,12 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 								ID: "i-789xyz",
 							},
 						},
+						"aws_instance.nottargeted": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+							},
+						},
 					},
 				},
 			},
@@ -1667,8 +1696,150 @@ DESTROY: aws_instance.orphan
 
 STATE:
 
+aws_instance.nottargeted:
+  ID = i-abc123
 aws_instance.orphan:
-  ID = i-789xyz`)
+  ID = i-789xyz
+`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+// https://github.com/hashicorp/terraform/issues/2538
+func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
+	m := testModule(t, "plan-targeted-module-orphan")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root", "child"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.orphan": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-789xyz",
+							},
+						},
+						"aws_instance.nottargeted": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+							},
+						},
+					},
+				},
+			},
+		},
+		Destroy: true,
+		Targets: []string{"module.child.aws_instance.orphan"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`DIFF:
+
+module.child:
+  DESTROY: aws_instance.orphan
+
+STATE:
+
+module.child:
+  aws_instance.nottargeted:
+    ID = i-abc123
+  aws_instance.orphan:
+    ID = i-789xyz
+`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+// https://github.com/hashicorp/terraform/issues/4515
+func TestContext2Plan_targetedOverTen(t *testing.T) {
+	m := testModule(t, "plan-targeted-over-ten")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	resources := make(map[string]*ResourceState)
+	var expectedState []string
+	for i := 0; i < 13; i++ {
+		key := fmt.Sprintf("aws_instance.foo.%d", i)
+		id := fmt.Sprintf("i-abc%d", i)
+		resources[key] = &ResourceState{
+			Type:    "aws_instance",
+			Primary: &InstanceState{ID: id},
+		}
+		expectedState = append(expectedState,
+			fmt.Sprintf("%s:\n  ID = %s\n", key, id))
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path:      rootModulePath,
+					Resources: resources,
+				},
+			},
+		},
+		Targets: []string{"aws_instance.foo[1]"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	sort.Strings(expectedState)
+	expected := strings.TrimSpace(`
+DIFF:
+
+
+
+STATE:
+
+aws_instance.foo.0:
+  ID = i-abc0
+aws_instance.foo.1:
+  ID = i-abc1
+aws_instance.foo.10:
+  ID = i-abc10
+aws_instance.foo.11:
+  ID = i-abc11
+aws_instance.foo.12:
+  ID = i-abc12
+aws_instance.foo.2:
+  ID = i-abc2
+aws_instance.foo.3:
+  ID = i-abc3
+aws_instance.foo.4:
+  ID = i-abc4
+aws_instance.foo.5:
+  ID = i-abc5
+aws_instance.foo.6:
+  ID = i-abc6
+aws_instance.foo.7:
+  ID = i-abc7
+aws_instance.foo.8:
+  ID = i-abc8
+aws_instance.foo.9:
+  ID = i-abc9
+	`)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}

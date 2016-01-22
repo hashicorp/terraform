@@ -28,7 +28,7 @@ func SuccessfulStateRefreshFunc() StateRefreshFunc {
 func TestWaitForState_timeout(t *testing.T) {
 	conf := &StateChangeConf{
 		Pending: []string{"pending", "incomplete"},
-		Target:  "running",
+		Target:  []string{"running"},
 		Refresh: TimeoutStateRefreshFunc(),
 		Timeout: 1 * time.Millisecond,
 	}
@@ -48,7 +48,7 @@ func TestWaitForState_timeout(t *testing.T) {
 func TestWaitForState_success(t *testing.T) {
 	conf := &StateChangeConf{
 		Pending: []string{"pending", "incomplete"},
-		Target:  "running",
+		Target:  []string{"running"},
 		Refresh: SuccessfulStateRefreshFunc(),
 		Timeout: 200 * time.Second,
 	}
@@ -65,7 +65,7 @@ func TestWaitForState_success(t *testing.T) {
 func TestWaitForState_successEmpty(t *testing.T) {
 	conf := &StateChangeConf{
 		Pending: []string{"pending", "incomplete"},
-		Target:  "",
+		Target:  []string{},
 		Refresh: func() (interface{}, string, error) {
 			return nil, "", nil
 		},
@@ -84,7 +84,7 @@ func TestWaitForState_successEmpty(t *testing.T) {
 func TestWaitForState_failure(t *testing.T) {
 	conf := &StateChangeConf{
 		Pending: []string{"pending", "incomplete"},
-		Target:  "running",
+		Target:  []string{"running"},
 		Refresh: FailedStateRefreshFunc(),
 		Timeout: 200 * time.Second,
 	}

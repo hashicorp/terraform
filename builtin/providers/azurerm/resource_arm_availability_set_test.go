@@ -119,7 +119,7 @@ func testCheckAzureRMAvailabilitySetExists(name string) resource.TestCheckFunc {
 }
 
 func testCheckAzureRMAvailabilitySetDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*ArmClient).vnetClient
+	conn := testAccProvider.Meta().(*ArmClient).availSetClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azurerm_availability_set" {
@@ -129,7 +129,7 @@ func testCheckAzureRMAvailabilitySetDestroy(s *terraform.State) error {
 		name := rs.Primary.Attributes["name"]
 		resourceGroup := rs.Primary.Attributes["resource_group_name"]
 
-		resp, err := conn.Get(resourceGroup, name, "")
+		resp, err := conn.Get(resourceGroup, name)
 
 		if err != nil {
 			return nil

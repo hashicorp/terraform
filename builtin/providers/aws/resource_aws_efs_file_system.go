@@ -51,7 +51,7 @@ func resourceAwsEfsFileSystemCreate(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"creating"},
-		Target:  "available",
+		Target:  []string{"available"},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeFileSystems(&efs.DescribeFileSystemsInput{
 				FileSystemId: aws.String(d.Id()),
@@ -127,7 +127,7 @@ func resourceAwsEfsFileSystemDelete(d *schema.ResourceData, meta interface{}) er
 	})
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"available", "deleting"},
-		Target:  "",
+		Target:  []string{},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeFileSystems(&efs.DescribeFileSystemsInput{
 				FileSystemId: aws.String(d.Id()),

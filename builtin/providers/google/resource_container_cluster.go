@@ -281,7 +281,7 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	// Wait until it's created
 	wait := resource.StateChangeConf{
 		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     "DONE",
+		Target:     []string{"DONE"},
 		Timeout:    30 * time.Minute,
 		MinTimeout: 3 * time.Second,
 		Refresh: func() (interface{}, string, error) {
@@ -373,7 +373,7 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 	// Wait until it's updated
 	wait := resource.StateChangeConf{
 		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     "DONE",
+		Target:     []string{"DONE"},
 		Timeout:    10 * time.Minute,
 		MinTimeout: 2 * time.Second,
 		Refresh: func() (interface{}, string, error) {
@@ -413,7 +413,7 @@ func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) er
 	// Wait until it's deleted
 	wait := resource.StateChangeConf{
 		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     "DONE",
+		Target:     []string{"DONE"},
 		Timeout:    10 * time.Minute,
 		MinTimeout: 3 * time.Second,
 		Refresh: func() (interface{}, string, error) {

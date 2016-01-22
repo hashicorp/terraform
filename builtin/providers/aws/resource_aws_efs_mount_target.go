@@ -81,7 +81,7 @@ func resourceAwsEfsMountTargetCreate(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"creating"},
-		Target:  "available",
+		Target:  []string{"available"},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeMountTargets(&efs.DescribeMountTargetsInput{
 				MountTargetId: aws.String(d.Id()),
@@ -179,7 +179,7 @@ func resourceAwsEfsMountTargetDelete(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"available", "deleting", "deleted"},
-		Target:  "",
+		Target:  []string{},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.DescribeMountTargets(&efs.DescribeMountTargetsInput{
 				MountTargetId: aws.String(d.Id()),

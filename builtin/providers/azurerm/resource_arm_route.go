@@ -95,7 +95,7 @@ func resourceArmRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Waiting for Route (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: routeStateRefreshFunc(client, resGroup, rtName, name),
 		Timeout: 10 * time.Minute,
 	}

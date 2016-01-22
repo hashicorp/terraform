@@ -983,6 +983,18 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanEscapedVarStr = `
+DIFF:
+
+CREATE: aws_instance.foo
+  foo:  "" => "bar-${baz}"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModulesStr = `
 DIFF:
 

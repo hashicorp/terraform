@@ -116,7 +116,7 @@ func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLBMonitorActive(networkingClient, m.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -206,7 +206,7 @@ func resourceLBMonitorV1Delete(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE", "PENDING"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForLBMonitorDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
