@@ -91,6 +91,8 @@ func resourceCloudStackNetwork() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -174,6 +176,11 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(r.Id)
 
+	err = setTags(cs, d, "network")
+	if err != nil {
+		return fmt.Errorf("Error setting tags")
+	}
+
 	return resourceCloudStackNetworkRead(d, meta)
 }
 
@@ -197,6 +204,13 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
 	d.Set("gateway", n.Gateway)
+
+	// Read the tags and store them in a map
+	tags := make(map[string]string)
+	for item := range n.Tags {
+		tags[n.Tags[item].Key] = n.Tags[item].Value
+	}
+	d.Set("tags", tags)
 
 	setValueOrID(d, "network_offering", n.Networkofferingname, n.Networkofferingid)
 	setValueOrID(d, "project", n.Project, n.Projectid)
@@ -245,6 +259,12 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return fmt.Errorf(
 			"Error updating network %s: %s", name, err)
+	}
+
+	// Update tags if they have changed
+	err = setTags(cs, d, "network")
+	if err != nil {
+		return fmt.Errorf("Error updating tags")
 	}
 
 	return resourceCloudStackNetworkRead(d, meta)
