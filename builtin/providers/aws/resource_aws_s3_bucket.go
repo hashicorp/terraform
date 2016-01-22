@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -340,7 +341,14 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if v := ws.RedirectAllRequestsTo; v != nil {
-			w["redirect_all_requests_to"] = *v.HostName
+			if v.Protocol == nil {
+				w["redirect_all_requests_to"] = *v.HostName
+			} else {
+				w["redirect_all_requests_to"] = (&url.URL{
+					Host:   *v.HostName,
+					Scheme: *v.Protocol,
+				}).String()
+			}
 		}
 
 		websites = append(websites, w)
@@ -652,7 +660,12 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 	}
 
 	if redirectAllRequestsTo != "" {
-		websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
+		redirect, err := url.Parse(redirectAllRequestsTo)
+		if err == nil && redirect.Scheme != "" {
+			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirect.Host), Protocol: aws.String(redirect.Scheme)}
+		} else {
+			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
+		}
 	}
 
 	putInput := &s3.PutBucketWebsiteInput{

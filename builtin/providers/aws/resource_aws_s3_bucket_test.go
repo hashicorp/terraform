@@ -114,7 +114,7 @@ func TestAccAWSS3Bucket_Website_Simple(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
-						"aws_s3_bucket.bucket", "index.html", "", ""),
+						"aws_s3_bucket.bucket", "index.html", "", "", ""),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
 				),
@@ -124,7 +124,7 @@ func TestAccAWSS3Bucket_Website_Simple(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
-						"aws_s3_bucket.bucket", "index.html", "error.html", ""),
+						"aws_s3_bucket.bucket", "index.html", "error.html", "", ""),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
 				),
@@ -134,7 +134,7 @@ func TestAccAWSS3Bucket_Website_Simple(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
-						"aws_s3_bucket.bucket", "", "", ""),
+						"aws_s3_bucket.bucket", "", "", "", ""),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", ""),
 				),
@@ -154,7 +154,17 @@ func TestAccAWSS3Bucket_WebsiteRedirect(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
-						"aws_s3_bucket.bucket", "", "", "hashicorp.com"),
+						"aws_s3_bucket.bucket", "", "", "", "hashicorp.com"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketWebsiteConfigWithHttpsRedirect,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "", "", "https", "hashicorp.com"),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
 				),
@@ -164,7 +174,7 @@ func TestAccAWSS3Bucket_WebsiteRedirect(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
-						"aws_s3_bucket.bucket", "", "", ""),
+						"aws_s3_bucket.bucket", "", "", "", ""),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", ""),
 				),
@@ -380,7 +390,7 @@ func testAccCheckAWSS3BucketPolicy(n string, policy string) resource.TestCheckFu
 		return nil
 	}
 }
-func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, redirectTo string) resource.TestCheckFunc {
+func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, redirectProtocol string, redirectTo string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, _ := s.RootModule().Resources[n]
 		conn := testAccProvider.Meta().(*AWSClient).s3conn
@@ -426,6 +436,9 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, 
 		} else {
 			if *v.HostName != redirectTo {
 				return fmt.Errorf("bad redirect to, expected: %s, got %#v", redirectTo, out.RedirectAllRequestsTo)
+			}
+			if redirectProtocol != "" && *v.Protocol != redirectProtocol {
+				return fmt.Errorf("bad redirect protocol to, expected: %s, got %#v", redirectProtocol, out.RedirectAllRequestsTo)
 			}
 		}
 
@@ -562,6 +575,17 @@ resource "aws_s3_bucket" "bucket" {
 
 	website {
 		redirect_all_requests_to = "hashicorp.com"
+	}
+}
+`, randInt)
+
+var testAccAWSS3BucketWebsiteConfigWithHttpsRedirect = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+
+	website {
+		redirect_all_requests_to = "https://hashicorp.com"
 	}
 }
 `, randInt)
