@@ -163,13 +163,13 @@ func testAccCheckCloudStackNetworkDestroy(s *terraform.State) error {
 
 var testAccCloudStackNetwork_basic = fmt.Sprintf(`
 resource "cloudstack_network" "foo" {
-  name = "terraform-network"
-  cidr = "%s"
-  network_offering = "%s"
-  zone = "%s"
-  tags = {
-	terraform-tag = "true"
-  }
+	name = "terraform-network"
+	cidr = "%s"
+	network_offering = "%s"
+	zone = "%s"
+	tags = {
+		terraform-tag = "true"
+	}
 }`,
 	CLOUDSTACK_NETWORK_2_CIDR,
 	CLOUDSTACK_NETWORK_2_OFFERING,
@@ -184,11 +184,11 @@ resource "cloudstack_vpc" "foobar" {
 }
 
 resource "cloudstack_network" "foo" {
-  name = "terraform-network"
-  cidr = "%s"
-  network_offering = "%s"
-  vpc = "${cloudstack_vpc.foobar.name}"
-  zone = "${cloudstack_vpc.foobar.zone}"
+	name = "terraform-network"
+	cidr = "%s"
+	network_offering = "%s"
+	vpc = "${cloudstack_vpc.foobar.name}"
+	zone = "${cloudstack_vpc.foobar.zone}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
