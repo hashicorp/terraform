@@ -19,6 +19,7 @@ func resourceCloudinitConfig() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceCloudinitConfigCreate,
 		Delete: resourceCloudinitConfigDelete,
+		Update: resourceCloudinitConfigCreate,
 		Exists: resourceCloudinitConfigExists,
 		Read:   resourceCloudinitConfigRead,
 
@@ -26,7 +27,6 @@ func resourceCloudinitConfig() *schema.Resource {
 			"part": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
-				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"content_type": &schema.Schema{

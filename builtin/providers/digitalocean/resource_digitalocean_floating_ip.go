@@ -13,6 +13,7 @@ import (
 func resourceDigitalOceanFloatingIp() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDigitalOceanFloatingIpCreate,
+		Update: resourceDigitalOceanFloatingIpUpdate,
 		Read:   resourceDigitalOceanFloatingIpRead,
 		Delete: resourceDigitalOceanFloatingIpDelete,
 
@@ -32,7 +33,6 @@ func resourceDigitalOceanFloatingIp() *schema.Resource {
 			"droplet_id": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}
@@ -67,6 +67,42 @@ func resourceDigitalOceanFloatingIpCreate(d *schema.ResourceData, meta interface
 		if unassignedErr != nil {
 			return fmt.Errorf(
 				"Error waiting for FloatingIP (%s) to be Assigned: %s", d.Id(), unassignedErr)
+		}
+	}
+
+	return resourceDigitalOceanFloatingIpRead(d, meta)
+}
+
+func resourceDigitalOceanFloatingIpUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*godo.Client)
+
+	if d.HasChange("droplet_id") {
+		if v, ok := d.GetOk("droplet_id"); ok {
+			log.Printf("[INFO] Assigning the Floating IP %s to the Droplet %d", d.Id(), v.(int))
+			action, _, err := client.FloatingIPActions.Assign(d.Id(), v.(int))
+			if err != nil {
+				return fmt.Errorf(
+					"Error Assigning FloatingIP (%s) to the droplet: %s", d.Id(), err)
+			}
+
+			_, unassignedErr := waitForFloatingIPReady(d, "completed", []string{"new", "in-progress"}, "status", meta, action.ID)
+			if unassignedErr != nil {
+				return fmt.Errorf(
+					"Error waiting for FloatingIP (%s) to be Assigned: %s", d.Id(), unassignedErr)
+			}
+		} else {
+			log.Printf("[INFO] Unassigning the Floating IP %s", d.Id())
+			action, _, err := client.FloatingIPActions.Unassign(d.Id())
+			if err != nil {
+				return fmt.Errorf(
+					"Error Unassigning FloatingIP (%s): %s", d.Id(), err)
+			}
+
+			_, unassignedErr := waitForFloatingIPReady(d, "completed", []string{"new", "in-progress"}, "status", meta, action.ID)
+			if unassignedErr != nil {
+				return fmt.Errorf(
+					"Error waiting for FloatingIP (%s) to be Unassigned: %s", d.Id(), unassignedErr)
+			}
 		}
 	}
 
@@ -131,7 +167,7 @@ func waitForFloatingIPReady(
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
-		Target:     target,
+		Target:     []string{target},
 		Refresh:    newFloatingIPStateRefreshFunc(d, attribute, meta, actionId),
 		Timeout:    60 * time.Minute,
 		Delay:      10 * time.Second,

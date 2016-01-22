@@ -1,12 +1,23 @@
 ## 0.6.10 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+ * The `-module-depth` flag available on `plan`, `apply`, `show`, and `graph` now defaults to `-1`, causing
+   resources within modules to be expanded in command output. This is only a cosmetic change; it does not affect
+   any behavior.
+ * This release includes a bugfix for `$${}` interpolation escaping. These strings are now properly converted to `${}`
+   during interpolation. This may cause diffs on existing configurations in certain cases.
+
 FEATURES:
 
+  * **New resource: `azurerm_cdn_endpoint`** [GH-4759]
+  * **New resource: `azurerm_cdn_profile`** [GH-4740]
   * **New resource: `azurerm_network_security_rule`** [GH-4586]
   * **New resource: `azurerm_subnet`** [GH-4595]
   * **New resource: `azurerm_network_interface`** [GH-4598]
   * **New resource: `azurerm_route_table`** [GH-4602]
   * **New resource: `azurerm_route`** [GH-4604]
+  * **New resource: `azurerm_storage_account`** [GH-4698]
   * **New resource: `aws_lambda_alias`** [GH-4664]
   * **New resource: `aws_redshift_cluster`** [GH-3862]
   * **New resource: `aws_redshift_security_group`** [GH-3862]
@@ -19,6 +30,8 @@ FEATURES:
 IMPROVEMENTS:
 
   * core: Add `sha256()` interpolation function [GH-4704]
+  * core: Validate lifecycle keys to show helpful error messages whe they are mistypes [GH-4745]
+  * core: Default `module-depth` parameter to `-1`, which expands resources within modules in command output [GH-4763]
   * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
   * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
@@ -30,15 +43,27 @@ IMPROVEMENTS:
   * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations [GH-4481]
   * provider/aws: Add support for creating Managed Microsoft Active Directory 
     and Directory Connectors [GH-4388]
-  * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3139]
+  * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3138]
+  * provider/digitalocean: Add support for reassigning `digitalocean_floating_ip` resources [GH-4476]
+  * provider/dme: Add support for Global Traffic Director locations on `dme_record` resources [GH-4305]
   * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
   * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
   * provider/google: Add content field to bucket object [GH-3893]
+  * provider/google: Add support for  `named_port` blocks on `google_compute_instance_group_manager` resources [GH-4605]
   * provider/openstack: Add "personality" support to instance resource [GH-4623]
   * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
+  * provider/tls: `tls_private_key` now exports attributes with public key in both PEM and OpenSSH format [GH-4606]
+  * state/remote: Allow KMS Key Encryption to be used with S3 backend [GH-2903]
 
 BUG FIXES:
 
+  * core: Fix handling of literals with escaped interpolations `$${var}` [GH-4747]
+  * core: Fix diff mismatch when RequiresNew field and list both change [GH-4749]
+  * core: Respect module target path argument on `terraform init` [GH-4753]
+  * core: Write planfile even on empty plans [GH-4766]
+  * core: Add validation error when output is missing value field [GH-4762]
+  * core: Fix improper handling of orphan resources when targeting [GH-4574]
+  * config: Detect a specific JSON edge case and show a helpful workaround [GH-4746]
   * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
   * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
   * provider/google: Clarify SQL Database Instance recent name restriction [GH-4577]
@@ -47,7 +72,9 @@ BUG FIXES:
   * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
   * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
   * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
-  * provider/template: fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
+  * provider/mailgun: Handle the fact that the domain destroy API is eventually consistent [GH-4777]
+  * provider/template: Fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
+  * provider/template: Add support for updating `template_cloudinit_config` resources [GH-4757]
 
 ## 0.6.9 (January 8, 2016)
 

@@ -25,6 +25,12 @@ resource "google_compute_instance_group_manager" "foobar" {
 	base_instance_name = "foobar"
 	zone = "us-central1-a"
 	target_size = 2
+
+	named_port {
+		name = "customHTTP"
+		port = 8888
+	}
+
 }
 ```
 
@@ -62,6 +68,12 @@ instances in the group are added. Updating the target pools attribute does not
 affect existing instances.
 
 * `zone` - (Required) The zone that instances in this group should be created in.
+
+The `named_port` block supports: (Include a named_port block for each named-port required).
+
+* `name` - (Required) The name of the port.
+
+* `port` - (Required) The port number.
 
 ## Attributes Reference
 

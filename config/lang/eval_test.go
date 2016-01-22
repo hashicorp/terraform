@@ -25,6 +25,14 @@ func TestEval(t *testing.T) {
 		},
 
 		{
+			"foo $${bar}",
+			nil,
+			false,
+			"foo ${bar}",
+			ast.TypeString,
+		},
+
+		{
 			"foo ${bar}",
 			&ast.BasicScope{
 				VarMap: map[string]ast.Variable{

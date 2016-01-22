@@ -68,7 +68,7 @@ func resourceNetworkingRouterInterfaceV2Create(d *schema.ResourceData, meta inte
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD", "PENDING_CREATE", "PENDING_UPDATE"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForRouterInterfaceActive(networkingClient, n.PortID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -117,7 +117,7 @@ func resourceNetworkingRouterInterfaceV2Delete(d *schema.ResourceData, meta inte
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForRouterInterfaceDelete(networkingClient, d),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,

@@ -132,7 +132,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		spotStateConf := &resource.StateChangeConf{
 			// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html
 			Pending:    []string{"start", "pending-evaluation", "pending-fulfillment"},
-			Target:     "fulfilled",
+			Target:     []string{"fulfilled"},
 			Refresh:    SpotInstanceStateRefreshFunc(conn, sir),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,

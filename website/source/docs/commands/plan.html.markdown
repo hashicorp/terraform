@@ -39,7 +39,7 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-module-depth=n` - Specifies the depth of modules to show in the output.
   This does not affect the plan itself, only the output shown. By default,
-  this is zero. -1 will expand all.
+  this is -1, which will expand all.
 
 * `-no-color` - Disables output with coloring.
 

@@ -406,7 +406,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		if v, ok := d.GetOk("boot_delay"); ok {
 			stateConf := &resource.StateChangeConf{
 				Pending:    []string{"pending"},
-				Target:     "active",
+				Target:     []string{"active"},
 				Refresh:    waitForNetworkingActive(client, vm.datacenter, vm.Path()),
 				Timeout:    600 * time.Second,
 				Delay:      time.Duration(v.(int)) * time.Second,
