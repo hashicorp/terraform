@@ -3,6 +3,14 @@ variable "foo" {
     description = "bar"
 }
 
+variable "security_groups" {
+    default = [
+        "foo",
+        "${aws_security_group.firewall.foo}"
+    ]         
+    description = "some security groups"
+}
+
 provider "aws" {
   access_key = "foo"
   secret_key = "bar"
@@ -18,10 +26,7 @@ resource "aws_security_group" "firewall" {
 
 resource aws_instance "web" {
     ami = "${var.foo}"
-    security_groups = [
-        "foo",
-        "${aws_security_group.firewall.foo}"
-    ]
+    security_groups = "${var.security_groups}"
 
     network_interface {
         device_index = 0

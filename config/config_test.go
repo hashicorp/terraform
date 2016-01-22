@@ -329,10 +329,10 @@ func TestConfigValidate_varDefault(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_varDefaultBadType(t *testing.T) {
-	c := testConfig(t, "validate-var-default-bad-type")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
+func TestConfigValidate_varDefaultStringSliceType(t *testing.T) {
+	c := testConfig(t, "validate-var-default-string-slice-type")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
 	}
 }
 
@@ -445,6 +445,14 @@ func TestVariableDefaultsMap(t *testing.T) {
 				"var.foo.bar": "baz",
 			},
 		},
+
+        {
+            []string{
+                "quux",
+                "quuux",
+            },
+            map[string]string{"var.foo": "B780FFEC-B661-4EB8-9236-A01737AD98B6quuxB780FFEC-B661-4EB8-9236-A01737AD98B6quuuxB780FFEC-B661-4EB8-9236-A01737AD98B6"},
+        },
 	}
 
 	for i, tc := range cases {

@@ -160,8 +160,9 @@ func TestLoadFileBasic(t *testing.T) {
 	}
 
 	actual := variablesStr(c.Variables)
-	if actual != strings.TrimSpace(basicVariablesStr) {
-		t.Fatalf("bad:\n%s", actual)
+	expected := strings.TrimSpace(basicVariablesStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\nexpected:\n%s", actual, expected)
 	}
 
 	actual = providerConfigsStr(c.ProviderConfigs)
@@ -170,8 +171,9 @@ func TestLoadFileBasic(t *testing.T) {
 	}
 
 	actual = resourcesStr(c.Resources)
-	if actual != strings.TrimSpace(basicResourcesStr) {
-		t.Fatalf("bad:\n%s", actual)
+	expected = strings.TrimSpace(basicResourcesStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\nexpected:\n%s", actual, expected)
 	}
 
 	actual = outputsStr(c.Outputs)
@@ -796,8 +798,8 @@ aws_instance[web] (x1)
       destination
       source
   vars
-    resource: aws_security_group.firewall.foo
     user: var.foo
+    user: var.security_groups
 aws_security_group[firewall] (x5)
 `
 
@@ -805,6 +807,9 @@ const basicVariablesStr = `
 foo
   bar
   bar
+security_groups
+  [foo ${aws_security_group.firewall.foo}]
+  some security groups
 `
 
 const dirBasicOutputsStr = `

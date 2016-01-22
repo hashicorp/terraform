@@ -18,7 +18,7 @@ import (
 const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
 // RawConfig is a structure that holds a piece of configuration
-// where te overall structure is unknown since it will be used
+// where the overall structure is unknown since it will be used
 // to configure a plugin or some other similar external component.
 //
 // RawConfigs can be interpolated with variables that come from

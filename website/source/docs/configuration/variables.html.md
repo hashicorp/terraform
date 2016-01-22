@@ -49,7 +49,8 @@ These are the parameters that can be set:
   * `default` (optional) - If set, this sets a default value
     for the variable. If this isn't set, the variable is required
     and Terraform will error if not set. The default value can be
-    a string or a mapping. This is covered in more detail below.
+    a string, a mapping, or an array of strings. This is covered in 
+    more detail below.
 
   * `description` (optional) - A human-friendly description for
     the variable. This is primarily for documentation for users
@@ -59,9 +60,9 @@ These are the parameters that can be set:
 
 ------
 
-**Default values** can be either strings or maps. If a default
-value is omitted and the variable is required, the value assigned
-via the CLI must be a string.
+**Default values** can be either strings, maps, or an array of strings.  If a
+default value is omitted and the variable is required, the value assigned via
+the CLI must be a string.
 
 String values are simple and represent a basic key to value
 mapping where the key is the variable name. An example is:
