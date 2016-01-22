@@ -45,27 +45,21 @@ func TestDiffTags(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c, r := diffTags(tagsFromSchema(tc.Old), tagsFromSchema(tc.New))
-		if !reflect.DeepEqual(c, tc.Create) {
-			t.Fatalf("%d: bad create: %#v", i, c)
-		}
+		r, c := diffTags(tagsFromSchema(tc.Old), tagsFromSchema(tc.New))
 		if !reflect.DeepEqual(r, tc.Remove) {
 			t.Fatalf("%d: bad remove: %#v", i, r)
+		}
+		if !reflect.DeepEqual(c, tc.Create) {
+			t.Fatalf("%d: bad create: %#v", i, c)
 		}
 	}
 }
 
 // testAccCheckTags can be used to check the tags on a resource.
-func testAccCheckTags(
-	tags map[string]string, key string, value string) error {
+func testAccCheckTags(tags map[string]string, key string, value string) error {
 	v, ok := tags[key]
-	if value != "" && !ok {
+	if !ok {
 		return fmt.Errorf("Missing tag: %s", key)
-	} else if value == "" && ok {
-		return fmt.Errorf("Extra tag: %s", key)
-	}
-	if value == "" {
-		return nil
 	}
 
 	if v != value {
