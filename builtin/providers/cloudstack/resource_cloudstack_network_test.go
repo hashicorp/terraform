@@ -23,6 +23,7 @@ func TestAccCloudStackNetwork_basic(t *testing.T) {
 					testAccCheckCloudStackNetworkExists(
 						"cloudstack_network.foo", &network),
 					testAccCheckCloudStackNetworkBasicAttributes(&network),
+					testAccCheckNetworkTags(&network, "terraform-tag", "true"),
 				),
 			},
 		},
@@ -93,14 +94,25 @@ func testAccCheckCloudStackNetworkBasicAttributes(
 		}
 
 		if network.Cidr != CLOUDSTACK_NETWORK_2_CIDR {
-			return fmt.Errorf("Bad service offering: %s", network.Cidr)
+			return fmt.Errorf("Bad CIDR: %s", network.Cidr)
 		}
 
 		if network.Networkofferingname != CLOUDSTACK_NETWORK_2_OFFERING {
-			return fmt.Errorf("Bad template: %s", network.Networkofferingname)
+			return fmt.Errorf("Bad network offering: %s", network.Networkofferingname)
 		}
 
 		return nil
+	}
+}
+
+func testAccCheckNetworkTags(
+	n *cloudstack.Network, key string, value string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		tags := make(map[string]string)
+		for item := range n.Tags {
+			tags[n.Tags[item].Key] = n.Tags[item].Value
+		}
+		return testAccCheckTags(tags, key, value)
 	}
 }
 
@@ -155,6 +167,9 @@ resource "cloudstack_network" "foo" {
   cidr = "%s"
   network_offering = "%s"
   zone = "%s"
+  tags = {
+	terraform-tag = "true"
+  }
 }`,
 	CLOUDSTACK_NETWORK_2_CIDR,
 	CLOUDSTACK_NETWORK_2_OFFERING,
