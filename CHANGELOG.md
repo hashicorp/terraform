@@ -71,6 +71,7 @@ BUG FIXES:
   * provider/aws: Error with empty list item on security group [GH-4140]
   * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
   * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
+  * provider/aws: Wait for NACL rule to be visible [GH-4734]
   * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
   * provider/mailgun: Handle the fact that the domain destroy API is eventually consistent [GH-4777]
   * provider/template: Fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
