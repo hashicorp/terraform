@@ -40,6 +40,7 @@ IMPROVEMENTS:
   * provider/aws: Supporting New AWS Route53 HealthCheck additions [GH-4564]
   * provider/aws: Store instance state [GH-3261]
   * provider/aws: Add support for updating ELB availability zones and subnets [GH-4597]
+  * provider/aws: Enable specifying aws s3 redirect protocol [GH-4098]
   * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations [GH-4481]
   * provider/aws: Add support for creating Managed Microsoft Active Directory 
     and Directory Connectors [GH-4388]
