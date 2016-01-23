@@ -27,10 +27,10 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // RawConfig supports a query-like interface to request
 // information from deep within the structure.
 type RawConfig struct {
-	Key            string
-	Raw            map[string]interface{}
-	Interpolations []ast.Node
-	Variables      map[string]InterpolatedVariable
+	Key            string                          `json:"key"`
+	Raw            map[string]interface{}          `json:"raw"`
+	Interpolations []ast.Node                      `json:"interpolations,omitempty"`
+	Variables      map[string]InterpolatedVariable `json:"variables,omitempty"`
 
 	lock        sync.Mutex
 	config      map[string]interface{}

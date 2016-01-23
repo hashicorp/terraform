@@ -1,9 +1,9 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/gob"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -11,22 +11,16 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-func init() {
-	gob.Register(make([]interface{}, 0))
-	gob.Register(make([]map[string]interface{}, 0))
-	gob.Register(make(map[string]interface{}))
-	gob.Register(make(map[string]string))
-}
-
 // Plan represents a single Terraform execution plan, which contains
 // all the information necessary to make an infrastructure change.
 type Plan struct {
-	Diff   *Diff
-	Module *module.Tree
-	State  *State
-	Vars   map[string]string
+	Diff    *Diff             `json:"diff"`
+	Module  *module.Tree      `json:"module"`
+	State   *State            `json:"state"`
+	Vars    map[string]string `json:"variables"`
+	Version string            `json:"version"`
 
-	once sync.Once
+	once sync.Once `json:"-"`
 }
 
 // Context returns a Context with the data encapsulated in this plan.
@@ -68,72 +62,85 @@ func (p *Plan) init() {
 	})
 }
 
-// The format byte is prefixed into the plan file format so that we have
-// the ability in the future to change the file format if we want for any
-// reason.
-const planFormatMagic = "tfplan"
-const planFormatVersion byte = 1
+// Our old binary format used a magic prefix to identify plan files.
+// We use this to recognize and reject old plan files with a helpful
+// error message.
+const planOldFormatMagic = "tfplan"
+
+func planFileVersion() string {
+	// Since plan files are short-lived and easy to recreate, we'll reject
+	// any plan file that was created by a different version of Terraform.
+	if VersionPrerelease == "" {
+		return Version
+	} else {
+		return fmt.Sprintf("%s-%s", Version, VersionPrerelease)
+	}
+}
 
 // ReadPlan reads a plan structure out of a reader in the format that
 // was written by WritePlan.
 func ReadPlan(src io.Reader) (*Plan, error) {
-	var result *Plan
-	var err error
-	n := 0
+	buf := bufio.NewReader(src)
 
-	// Verify the magic bytes
-	magic := make([]byte, len(planFormatMagic))
-	for n < len(magic) {
-		n, err = src.Read(magic[n:])
-		if err != nil {
-			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
+	// Check if this is the legacy binary format
+	start, err := buf.Peek(len(planOldFormatMagic))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
+	}
+	if string(start) == stateFormatMagic {
+		return nil, fmt.Errorf(
+			"Plan was created with an earlier Terraform version; please create a new plan",
+		)
+	}
+
+	// Otherwise, assumed to be our JSON format
+	dec := json.NewDecoder(buf)
+	plan := &Plan{}
+	if err := dec.Decode(plan); err != nil {
+		return nil, fmt.Errorf("Decoding plan file failed: %v", err)
+	}
+
+	// Check the version, this to ensure we don't read a future
+	// version that we don't understand
+	if plan.Version > planFileVersion() {
+		return nil, fmt.Errorf(
+			"Plan was created with a different Terraform version; please create a new plan.",
+		)
+	}
+
+	if plan.State != nil {
+		if err := plan.State.prepareAfterRead(); err != nil {
+			return nil, fmt.Errorf("Error in state from plan: %s", err)
 		}
 	}
-	if string(magic) != planFormatMagic {
-		return nil, fmt.Errorf("not a valid plan file")
-	}
 
-	// Verify the version is something we can read
-	var formatByte [1]byte
-	n, err = src.Read(formatByte[:])
-	if err != nil {
-		return nil, err
-	}
-	if n != len(formatByte) {
-		return nil, errors.New("failed to read plan version byte")
-	}
-
-	if formatByte[0] != planFormatVersion {
-		return nil, fmt.Errorf("unknown plan file version: %d", formatByte[0])
-	}
-
-	dec := gob.NewDecoder(src)
-	if err := dec.Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return plan, nil
 }
 
 // WritePlan writes a plan somewhere in a binary format.
 func WritePlan(d *Plan, dst io.Writer) error {
-	// Write the magic bytes so we can determine the file format later
-	n, err := dst.Write([]byte(planFormatMagic))
-	if err != nil {
-		return err
-	}
-	if n != len(planFormatMagic) {
-		return errors.New("failed to write plan format magic bytes")
+
+	// Note the version so we can reject incompatible versions
+	d.Version = planFileVersion()
+
+	// Normalize and prepare the state portion of the plan, in
+	// a manner compatible with the state file format.
+	if d.State != nil {
+		d.State.prepareForWrite()
 	}
 
-	// Write a version byte so we can iterate on version at some point
-	n, err = dst.Write([]byte{planFormatVersion})
+	data, err := json.MarshalIndent(d, "", "    ")
 	if err != nil {
-		return err
-	}
-	if n != 1 {
-		return errors.New("failed to write plan version byte")
+		return fmt.Errorf("Failed to encode plan: %s", err)
 	}
 
-	return gob.NewEncoder(dst).Encode(d)
+	// We append a newline to the data because MarshalIndent doesn't
+	data = append(data, '\n')
+
+	// Write the data out to the dst
+	if _, err := io.Copy(dst, bytes.NewReader(data)); err != nil {
+		return fmt.Errorf("Failed to write plan: %v", err)
+	}
+
+	return nil
 }

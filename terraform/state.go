@@ -1141,6 +1141,28 @@ func (e *EphemeralState) deepcopy() *EphemeralState {
 	return n
 }
 
+func (s *State) prepareForWrite() {
+	// Make sure it is sorted
+	s.sort()
+
+	// Ensure the version is set
+	s.Version = StateVersion
+}
+
+func (s *State) prepareAfterRead() error {
+	// Check the version, this to ensure we don't read a future
+	// version that we don't understand
+	if s.Version > StateVersion {
+		return fmt.Errorf("State version %d not supported, please update.",
+			s.Version)
+	}
+
+	// Sort it
+	s.sort()
+
+	return nil
+}
+
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
@@ -1167,26 +1189,16 @@ func ReadState(src io.Reader) (*State, error) {
 		return nil, fmt.Errorf("Decoding state file failed: %v", err)
 	}
 
-	// Check the version, this to ensure we don't read a future
-	// version that we don't understand
-	if state.Version > StateVersion {
-		return nil, fmt.Errorf("State version %d not supported, please update.",
-			state.Version)
+	if err := state.prepareAfterRead(); err != nil {
+		return nil, err
 	}
-
-	// Sort it
-	state.sort()
 
 	return state, nil
 }
 
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
-	// Make sure it is sorted
-	d.sort()
-
-	// Ensure the version is set
-	d.Version = StateVersion
+	d.prepareForWrite()
 
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")
