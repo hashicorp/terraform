@@ -237,7 +237,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	d.Set("availability_zones", g.AvailabilityZones)
+	d.Set("availability_zones", flattenStringList(g.AvailabilityZones))
 	d.Set("default_cooldown", g.DefaultCooldown)
 	d.Set("desired_capacity", g.DesiredCapacity)
 	d.Set("health_check_grace_period", g.HealthCheckGracePeriod)
