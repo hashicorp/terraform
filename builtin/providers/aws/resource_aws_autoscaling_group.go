@@ -251,7 +251,16 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", g.AutoScalingGroupName)
 	d.Set("tag", g.Tags)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
-	d.Set("termination_policies", g.TerminationPolicies)
+
+	// If no termination polices are explicitly configured and the upstream state
+	// is only using the "Default" policy, clear the state to make it consistent
+	// with the default AWS create API behavior.
+	_, ok := d.GetOk("termination_policies")
+	if !ok && len(g.TerminationPolicies) == 1 && *g.TerminationPolicies[0] == "Default" {
+		d.Set("termination_policies", []interface{}{})
+	} else {
+		d.Set("termination_policies", flattenStringList(g.TerminationPolicies))
+	}
 
 	return nil
 }
