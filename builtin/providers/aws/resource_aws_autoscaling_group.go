@@ -300,7 +300,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("availability_zones") {
 		if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
-			opts.AvailabilityZones = expandStringList(d.Get("availability_zones").(*schema.Set).List())
+			opts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
 		}
 	}
 
