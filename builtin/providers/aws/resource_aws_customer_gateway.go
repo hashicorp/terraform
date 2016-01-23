@@ -68,7 +68,7 @@ func resourceAwsCustomerGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	// Wait for the CustomerGateway to be available.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    customerGatewayRefreshFunc(conn, *customerGateway.CustomerGatewayId),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,

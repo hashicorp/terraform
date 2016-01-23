@@ -22,7 +22,7 @@ Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#ecr_region)
 
 ```
 resource "aws_ecr_repository" "foo" {
-  repository = "bar"
+  name = "bar"
 }
 
 resource "aws_ecr_repository_policy" "foopolicy" {

@@ -2,11 +2,10 @@ package azurerm
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"testing"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -65,7 +64,7 @@ func TestResourceAzureRMPublicIpDomainNameLabel_validation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
-			Value:    randomString(80),
+			Value:    acctest.RandString(80),
 			ErrCount: 1,
 		},
 	}
@@ -90,6 +89,40 @@ func TestAccAzureRMPublicIpStatic_basic(t *testing.T) {
 				Config: testAccAzureRMVPublicIpStatic_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMVPublicIpStatic_withTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAzureRMVPublicIpStatic_withTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_public_ip.test", "tags.environment", "staging"),
 				),
 			},
 		},
@@ -193,16 +226,6 @@ func testCheckAzureRMPublicIpDestroy(s *terraform.State) error {
 	return nil
 }
 
-func randomString(strlen int) string {
-	rand.Seed(time.Now().UTC().UnixNano())
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789-"
-	result := make([]byte, strlen)
-	for i := 0; i < strlen; i++ {
-		result[i] = chars[rand.Intn(len(chars))]
-	}
-	return string(result)
-}
-
 var testAccAzureRMVPublicIpStatic_basic = `
 resource "azurerm_resource_group" "test" {
     name = "acceptanceTestResourceGroup1"
@@ -240,5 +263,40 @@ resource "azurerm_public_ip" "test" {
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "dynamic"
+}
+`
+
+var testAccAzureRMVPublicIpStatic_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+resource "azurerm_public_ip" "test" {
+    name = "acceptanceTestPublicIp1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+
+    tags {
+	environment = "Production"
+	cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMVPublicIpStatic_withTagsUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+resource "azurerm_public_ip" "test" {
+    name = "acceptanceTestPublicIp1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+
+    tags {
+	environment = "staging"
+    }
 }
 `

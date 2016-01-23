@@ -80,9 +80,13 @@ The supported built-in functions are:
   * `base64encode(string)` - Returns a base64-encoded representation of the
     given string.
 
-  * `sha1(string)` - Returns a sha1 hash representation of the
+  * `sha1(string)` - Returns a SHA-1 hash representation of the
     given string.
     Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+
+  * `sha256(string)` - Returns a SHA-256 hash representation of the
+    given string.
+    Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
@@ -124,7 +128,7 @@ The supported built-in functions are:
 
   * `format(format, args...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
-      Good documentation for the syntax can be [found here](http://golang.org/pkg/fmt/).
+      Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 
@@ -258,8 +262,8 @@ resource "aws_instance" "web" {
 
 The supported operations are:
 
-- *Add*, *Subtract*, *Multiply*, and *Divide* for **float** types
-- *Add*, *Subtract*, *Multiply*, *Divide*, and *Modulo* for **integer** types
+- *Add* (`+`), *Subtract* (`-`), *Multiply* (`*`), and *Divide* (`/`) for **float** types
+- *Add* (`+`), *Subtract* (`-`), *Multiply* (`*`), *Divide* (`/`), and *Modulo* (`%`) for **integer** types
 
 -> **Note:** Since Terraform allows hyphens in resource and variable names,
 it's best to use spaces between math operators to prevent confusion or unexpected

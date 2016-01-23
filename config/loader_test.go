@@ -45,6 +45,15 @@ func TestLoadFile_badType(t *testing.T) {
 	}
 }
 
+func TestLoadFile_lifecycleKeyCheck(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "lifecycle_cbd_typo.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	t.Logf("err: %s", err)
+}
+
 func TestLoadFile_resourceArityMistake(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "resource-arity-mistake.tf"))
 	if err == nil {

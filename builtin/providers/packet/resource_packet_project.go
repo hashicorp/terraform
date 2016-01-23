@@ -1,10 +1,6 @@
 package packet
 
 import (
-	"fmt"
-	"log"
-	"strings"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/packethost/packngo"
 )
@@ -53,14 +49,12 @@ func resourcePacketProjectCreate(d *schema.ResourceData, meta interface{}) error
 		PaymentMethod: d.Get("payment_method").(string),
 	}
 
-	log.Printf("[DEBUG] Project create configuration: %#v", createRequest)
 	project, _, err := client.Projects.Create(createRequest)
 	if err != nil {
-		return fmt.Errorf("Error creating Project: %s", err)
+		return friendlyError(err)
 	}
 
 	d.SetId(project.ID)
-	log.Printf("[INFO] Project created: %s", project.ID)
 
 	return resourcePacketProjectRead(d, meta)
 }
@@ -70,14 +64,16 @@ func resourcePacketProjectRead(d *schema.ResourceData, meta interface{}) error {
 
 	key, _, err := client.Projects.Get(d.Id())
 	if err != nil {
-		// If the project somehow already destroyed, mark as
-		// succesfully gone
-		if strings.Contains(err.Error(), "404") {
+		err = friendlyError(err)
+
+		// If the project somehow already destroyed, mark as succesfully gone.
+		if isNotFound(err) {
 			d.SetId("")
+
 			return nil
 		}
 
-		return fmt.Errorf("Error retrieving Project: %s", err)
+		return err
 	}
 
 	d.Set("id", key.ID)
@@ -100,10 +96,9 @@ func resourcePacketProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		updateRequest.PaymentMethod = attr.(string)
 	}
 
-	log.Printf("[DEBUG] Project update: %#v", d.Get("id"))
 	_, _, err := client.Projects.Update(updateRequest)
 	if err != nil {
-		return fmt.Errorf("Failed to update Project: %s", err)
+		return friendlyError(err)
 	}
 
 	return resourcePacketProjectRead(d, meta)
@@ -112,10 +107,9 @@ func resourcePacketProjectUpdate(d *schema.ResourceData, meta interface{}) error
 func resourcePacketProjectDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*packngo.Client)
 
-	log.Printf("[INFO] Deleting Project: %s", d.Id())
 	_, err := client.Projects.Delete(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error deleting SSH key: %s", err)
+		return friendlyError(err)
 	}
 
 	d.SetId("")

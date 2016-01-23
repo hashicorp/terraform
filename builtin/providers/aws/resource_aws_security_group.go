@@ -218,7 +218,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{""},
-		Target:  "exists",
+		Target:  []string{"exists"},
 		Refresh: SGStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}

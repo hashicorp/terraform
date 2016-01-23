@@ -513,6 +513,41 @@ func TestAccAWSInstance_rootBlockDeviceMismatch(t *testing.T) {
 	})
 }
 
+// This test reproduces the bug here:
+//   https://github.com/hashicorp/terraform/issues/1752
+//
+// I wish there were a way to exercise resources built with helper.Schema in a
+// unit context, in which case this test could be moved there, but for now this
+// will cover the bugfix.
+//
+// The following triggers "diffs didn't match during apply" without the fix in to
+// set NewRemoved on the .# field when it changes to 0.
+func TestAccAWSInstance_forceNewAndTagsDrift(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigForceNewAndTagsDrift,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					driftTags(&v),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			resource.TestStep{
+				Config: testAccInstanceConfigForceNewAndTagsDrift_Update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceDestroy(s *terraform.State) error {
 	return testAccCheckInstanceDestroyWithProvider(s, testAccProvider)
 }
@@ -619,6 +654,22 @@ func TestInstanceTenancySchema(t *testing.T) {
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			actualSchema,
 			expectedSchema)
+	}
+}
+
+func driftTags(instance *ec2.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		_, err := conn.CreateTags(&ec2.CreateTagsInput{
+			Resources: []*string{instance.InstanceId},
+			Tags: []*ec2.Tag{
+				&ec2.Tag{
+					Key:   aws.String("Drift"),
+					Value: aws.String("Happens"),
+				},
+			},
+		})
+		return err
 	}
 }
 
@@ -986,5 +1037,39 @@ resource "aws_instance" "foo" {
 	root_block_device {
 		volume_size = 13
 	}
+}
+`
+
+const testAccInstanceConfigForceNewAndTagsDrift = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.nano"
+	subnet_id = "${aws_subnet.foo.id}"
+}
+`
+
+const testAccInstanceConfigForceNewAndTagsDrift_Update = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
 }
 `

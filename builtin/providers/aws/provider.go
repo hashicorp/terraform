@@ -29,6 +29,20 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["secret_key"],
 			},
 
+			"profile": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["profile"],
+			},
+
+			"shared_credentials_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["shared_credentials_file"],
+			},
+
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -150,6 +164,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_kinesis_stream":                   resourceAwsKinesisStream(),
 			"aws_lambda_function":                  resourceAwsLambdaFunction(),
 			"aws_lambda_event_source_mapping":      resourceAwsLambdaEventSourceMapping(),
+			"aws_lambda_alias":                     resourceAwsLambdaAlias(),
 			"aws_launch_configuration":             resourceAwsLaunchConfiguration(),
 			"aws_lb_cookie_stickiness_policy":      resourceAwsLBCookieStickinessPolicy(),
 			"aws_main_route_table_association":     resourceAwsMainRouteTableAssociation(),
@@ -172,6 +187,10 @@ func Provider() terraform.ResourceProvider {
 			"aws_proxy_protocol_policy":            resourceAwsProxyProtocolPolicy(),
 			"aws_rds_cluster":                      resourceAwsRDSCluster(),
 			"aws_rds_cluster_instance":             resourceAwsRDSClusterInstance(),
+			"aws_redshift_cluster":                 resourceAwsRedshiftCluster(),
+			"aws_redshift_security_group":          resourceAwsRedshiftSecurityGroup(),
+			"aws_redshift_parameter_group":         resourceAwsRedshiftParameterGroup(),
+			"aws_redshift_subnet_group":            resourceAwsRedshiftSubnetGroup(),
 			"aws_route53_delegation_set":           resourceAwsRoute53DelegationSet(),
 			"aws_route53_record":                   resourceAwsRoute53Record(),
 			"aws_route53_zone_association":         resourceAwsRoute53ZoneAssociation(),
@@ -217,6 +236,12 @@ func init() {
 		"secret_key": "The secret key for API operations. You can retrieve this\n" +
 			"from the 'Security & Credentials' section of the AWS console.",
 
+		"profile": "The profile for API operations. If not set, the default profile\n" +
+			"created with `aws configure` will be used.",
+
+		"shared_credentials_file": "The path to the shared credentials file. If not set\n" +
+			"this defaults to ~/.aws/credentials.",
+
 		"token": "session token. A session token is only required if you are\n" +
 			"using temporary security credentials.",
 
@@ -236,6 +261,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccessKey:        d.Get("access_key").(string),
 		SecretKey:        d.Get("secret_key").(string),
+		Profile:          d.Get("profile").(string),
+		CredsFilename:    d.Get("shared_credentials_file").(string),
 		Token:            d.Get("token").(string),
 		Region:           d.Get("region").(string),
 		MaxRetries:       d.Get("max_retries").(int),

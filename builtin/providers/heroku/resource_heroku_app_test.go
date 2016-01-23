@@ -6,12 +6,14 @@ import (
 	"testing"
 
 	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccHerokuApp_Basic(t *testing.T) {
 	var app heroku.App
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,12 +21,12 @@ func TestAccHerokuApp_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckHerokuAppConfig_basic,
+				Config: testAccCheckHerokuAppConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributes(&app),
+					testAccCheckHerokuAppAttributes(&app, appName),
 					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "name", "terraform-test-app"),
+						"heroku_app.foobar", "name", appName),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "config_vars.0.FOO", "bar"),
 				),
@@ -35,6 +37,8 @@ func TestAccHerokuApp_Basic(t *testing.T) {
 
 func TestAccHerokuApp_NameChange(t *testing.T) {
 	var app heroku.App
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
+	appName2 := fmt.Sprintf("%s-v2", appName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -42,23 +46,23 @@ func TestAccHerokuApp_NameChange(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckHerokuAppConfig_basic,
+				Config: testAccCheckHerokuAppConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributes(&app),
+					testAccCheckHerokuAppAttributes(&app, appName),
 					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "name", "terraform-test-app"),
+						"heroku_app.foobar", "name", appName),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "config_vars.0.FOO", "bar"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccCheckHerokuAppConfig_updated,
+				Config: testAccCheckHerokuAppConfig_updated(appName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributesUpdated(&app),
+					testAccCheckHerokuAppAttributesUpdated(&app, appName2),
 					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "name", "terraform-test-renamed"),
+						"heroku_app.foobar", "name", appName2),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "config_vars.0.FOO", "bing"),
 					resource.TestCheckResourceAttr(
@@ -71,6 +75,7 @@ func TestAccHerokuApp_NameChange(t *testing.T) {
 
 func TestAccHerokuApp_NukeVars(t *testing.T) {
 	var app heroku.App
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -78,23 +83,23 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckHerokuAppConfig_basic,
+				Config: testAccCheckHerokuAppConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributes(&app),
+					testAccCheckHerokuAppAttributes(&app, appName),
 					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "name", "terraform-test-app"),
+						"heroku_app.foobar", "name", appName),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "config_vars.0.FOO", "bar"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccCheckHerokuAppConfig_no_vars,
+				Config: testAccCheckHerokuAppConfig_no_vars(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributesNoVars(&app),
+					testAccCheckHerokuAppAttributesNoVars(&app, appName),
 					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "name", "terraform-test-app"),
+						"heroku_app.foobar", "name", appName),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "config_vars.0.FOO", ""),
 				),
@@ -105,6 +110,7 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 
 func TestAccHerokuApp_Organization(t *testing.T) {
 	var app heroku.OrganizationApp
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 	org := os.Getenv("HEROKU_ORGANIZATION")
 
 	resource.Test(t, resource.TestCase{
@@ -118,10 +124,10 @@ func TestAccHerokuApp_Organization(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckHerokuAppConfig_organization, org),
+				Config: testAccCheckHerokuAppConfig_organization(appName, org),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributesOrg(&app, org),
+					testAccCheckHerokuAppAttributesOrg(&app, appName, org),
 				),
 			},
 		},
@@ -146,7 +152,7 @@ func testAccCheckHerokuAppDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
+func testAccCheckHerokuAppAttributes(app *heroku.App, appName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*heroku.Service)
 
@@ -158,7 +164,7 @@ func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
 			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
 		}
 
-		if app.Name != "terraform-test-app" {
+		if app.Name != appName {
 			return fmt.Errorf("Bad name: %s", app.Name)
 		}
 
@@ -175,11 +181,11 @@ func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckHerokuAppAttributesUpdated(app *heroku.App) resource.TestCheckFunc {
+func testAccCheckHerokuAppAttributesUpdated(app *heroku.App, appName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		if app.Name != "terraform-test-renamed" {
+		if app.Name != appName {
 			return fmt.Errorf("Bad name: %s", app.Name)
 		}
 
@@ -202,11 +208,11 @@ func testAccCheckHerokuAppAttributesUpdated(app *heroku.App) resource.TestCheckF
 	}
 }
 
-func testAccCheckHerokuAppAttributesNoVars(app *heroku.App) resource.TestCheckFunc {
+func testAccCheckHerokuAppAttributesNoVars(app *heroku.App, appName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		if app.Name != "terraform-test-app" {
+		if app.Name != appName {
 			return fmt.Errorf("Bad name: %s", app.Name)
 		}
 
@@ -223,7 +229,7 @@ func testAccCheckHerokuAppAttributesNoVars(app *heroku.App) resource.TestCheckFu
 	}
 }
 
-func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, org string) resource.TestCheckFunc {
+func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, appName string, org string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		client := testAccProvider.Meta().(*heroku.Service)
 
@@ -235,7 +241,7 @@ func testAccCheckHerokuAppAttributesOrg(app *heroku.OrganizationApp, org string)
 			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
 		}
 
-		if app.Name != "terraform-test-app" {
+		if app.Name != appName {
 			return fmt.Errorf("Bad name: %s", app.Name)
 		}
 
@@ -316,36 +322,43 @@ func testAccCheckHerokuAppExistsOrg(n string, app *heroku.OrganizationApp) resou
 	}
 }
 
-const testAccCheckHerokuAppConfig_basic = `
+func testAccCheckHerokuAppConfig_basic(appName string) string {
+	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
-  name   = "terraform-test-app"
+  name   = "%s"
   region = "us"
 
   config_vars {
     FOO = "bar"
   }
-}`
+}`, appName)
+}
 
-const testAccCheckHerokuAppConfig_updated = `
+func testAccCheckHerokuAppConfig_updated(appName string) string {
+	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
-  name   = "terraform-test-renamed"
+  name   = "%s"
   region = "us"
 
   config_vars {
     FOO = "bing"
     BAZ = "bar"
   }
-}`
+}`, appName)
+}
 
-const testAccCheckHerokuAppConfig_no_vars = `
+func testAccCheckHerokuAppConfig_no_vars(appName string) string {
+	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
-  name   = "terraform-test-app"
+  name   = "%s"
   region = "us"
-}`
+}`, appName)
+}
 
-const testAccCheckHerokuAppConfig_organization = `
+func testAccCheckHerokuAppConfig_organization(appName, org string) string {
+	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
-  name   = "terraform-test-app"
+  name   = "%s"
   region = "us"
 
   organization {
@@ -355,4 +368,5 @@ resource "heroku_app" "foobar" {
   config_vars {
     FOO = "bar"
   }
-}`
+}`, appName, org)
+}

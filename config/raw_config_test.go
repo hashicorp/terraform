@@ -114,6 +114,38 @@ func TestRawConfig_double(t *testing.T) {
 	}
 }
 
+func TestRawConfigInterpolate_escaped(t *testing.T) {
+	raw := map[string]interface{}{
+		"foo": "bar-$${baz}",
+	}
+
+	rc, err := NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Before interpolate, Config() should be the raw
+	if !reflect.DeepEqual(rc.Config(), raw) {
+		t.Fatalf("bad: %#v", rc.Config())
+	}
+
+	if err := rc.Interpolate(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := rc.Config()
+	expected := map[string]interface{}{
+		"foo": "bar-${baz}",
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+	if len(rc.UnknownKeys()) != 0 {
+		t.Fatalf("bad: %#v", rc.UnknownKeys())
+	}
+}
+
 func TestRawConfig_merge(t *testing.T) {
 	raw1 := map[string]interface{}{
 		"foo": "${var.foo}",

@@ -28,6 +28,10 @@ resource "azurerm_route_table" "test" {
     	address_prefix = "*"
     	next_hop_type = "internet"
     }
+    
+    tags {
+        environment = "Production"
+    }
 }
 ```
 
@@ -45,6 +49,8 @@ The following arguments are supported:
 
 * `route` - (Optional) Can be specified multiple times to define multiple
                                    routes. Each `route` block supports fields documented below.
+
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 The `route` block supports:
 

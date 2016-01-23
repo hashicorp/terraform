@@ -9,6 +9,7 @@ modules-dev/
 pkg/
 vendor/
 website/.vagrant
+website/.bundle
 website/build
 website/node_modules
 .vagrant/

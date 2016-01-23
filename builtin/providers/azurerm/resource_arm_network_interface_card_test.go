@@ -26,6 +26,40 @@ func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAzureRMNetworkInterface_withTags,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_interface.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_interface.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_interface.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAzureRMNetworkInterface_withTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_interface.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_network_interface.test", "tags.environment", "staging"),
+				),
+			},
+		},
+	})
+}
+
 ///TODO: Re-enable this test when https://github.com/Azure/azure-sdk-for-go/issues/259 is fixed
 //func TestAccAzureRMNetworkInterface_addingIpConfigurations(t *testing.T) {
 //
@@ -138,6 +172,81 @@ resource "azurerm_network_interface" "test" {
     	name = "testconfiguration1"
     	subnet_id = "${azurerm_subnet.test.id}"
     	private_ip_address_allocation = "dynamic"
+    }
+}
+`
+
+var testAccAzureRMNetworkInterface_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acceptanceTestVirtualNetwork1"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "testsubnet"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acceptanceTestNetworkInterface1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+
+    tags {
+	environment = "Production"
+	cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMNetworkInterface_withTagsUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acceptanceTestVirtualNetwork1"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "testsubnet"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acceptanceTestNetworkInterface1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+
+    tags {
+	environment = "staging"
     }
 }
 `

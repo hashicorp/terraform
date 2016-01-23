@@ -142,7 +142,7 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 
 	wait := resource.StateChangeConf{
 		Pending:    []string{"CREATE_IN_PROGRESS", "ROLLBACK_IN_PROGRESS", "ROLLBACK_COMPLETE"},
-		Target:     "CREATE_COMPLETE",
+		Target:     []string{"CREATE_COMPLETE"},
 		Timeout:    30 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (interface{}, string, error) {
@@ -311,7 +311,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 			"UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
 			"UPDATE_ROLLBACK_COMPLETE",
 		},
-		Target:     "UPDATE_COMPLETE",
+		Target:     []string{"UPDATE_COMPLETE"},
 		Timeout:    15 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (interface{}, string, error) {
@@ -370,7 +370,7 @@ func resourceAwsCloudFormationStackDelete(d *schema.ResourceData, meta interface
 
 	wait := resource.StateChangeConf{
 		Pending:    []string{"DELETE_IN_PROGRESS", "ROLLBACK_IN_PROGRESS"},
-		Target:     "DELETE_COMPLETE",
+		Target:     []string{"DELETE_COMPLETE"},
 		Timeout:    30 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (interface{}, string, error) {

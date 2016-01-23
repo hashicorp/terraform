@@ -61,10 +61,9 @@ resource "aws_lambda_function" "test_lambda" {
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
 * `last_modified` - The date this resource was last modified.
 
-
-[1]: http://docs.aws.amazon.com/lambda/latest/dg/welcome.html
-[2]: http://docs.aws.amazon.com/lambda/latest/dg/walkthrough-s3-events-adminuser-create-test-function-create-function.html
-[3]: http://docs.aws.amazon.com/lambda/latest/dg/walkthrough-custom-events-create-test-function.html
-[4]: http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html
-[5]: http://docs.aws.amazon.com/lambda/latest/dg/limits.html
+[1]: https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
+[2]: https://docs.aws.amazon.com/lambda/latest/dg/walkthrough-s3-events-adminuser-create-test-function-create-function.html
+[3]: https://docs.aws.amazon.com/lambda/latest/dg/walkthrough-custom-events-create-test-function.html
+[4]: https://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html
+[5]: https://docs.aws.amazon.com/lambda/latest/dg/limits.html
 [6]: https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html#API_CreateFunction_RequestBody

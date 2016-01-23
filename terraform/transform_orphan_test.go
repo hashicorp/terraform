@@ -333,17 +333,18 @@ func TestGraphNodeOrphanResource_impl(t *testing.T) {
 	var _ dag.Vertex = new(graphNodeOrphanResource)
 	var _ dag.NamedVertex = new(graphNodeOrphanResource)
 	var _ GraphNodeProviderConsumer = new(graphNodeOrphanResource)
+	var _ GraphNodeAddressable = new(graphNodeOrphanResource)
 }
 
 func TestGraphNodeOrphanResource_ProvidedBy(t *testing.T) {
-	n := &graphNodeOrphanResource{ResourceName: "aws_instance.foo"}
+	n := &graphNodeOrphanResource{ResourceKey: &ResourceStateKey{Type: "aws_instance"}}
 	if v := n.ProvidedBy(); v[0] != "aws" {
 		t.Fatalf("bad: %#v", v)
 	}
 }
 
 func TestGraphNodeOrphanResource_ProvidedBy_alias(t *testing.T) {
-	n := &graphNodeOrphanResource{ResourceName: "aws_instance.foo", Provider: "aws.bar"}
+	n := &graphNodeOrphanResource{ResourceKey: &ResourceStateKey{Type: "aws_instance"}, Provider: "aws.bar"}
 	if v := n.ProvidedBy(); v[0] != "aws.bar" {
 		t.Fatalf("bad: %#v", v)
 	}

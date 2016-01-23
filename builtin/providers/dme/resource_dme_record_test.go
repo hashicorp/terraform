@@ -36,6 +36,8 @@ func TestAccDMERecord_basic(t *testing.T) {
 						"dme_record.test", "value", "1.1.1.1"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -65,6 +67,8 @@ func TestAccDMERecordCName(t *testing.T) {
 						"dme_record.test", "value", "foo"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -131,6 +135,8 @@ func TestAccDMERecordMX(t *testing.T) {
 						"dme_record.test", "mxLevel", "10"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -172,6 +178,8 @@ func TestAccDMERecordHTTPRED(t *testing.T) {
 
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -201,6 +209,8 @@ func TestAccDMERecordTXT(t *testing.T) {
 						"dme_record.test", "value", "\"foo\""),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -230,6 +240,8 @@ func TestAccDMERecordSPF(t *testing.T) {
 						"dme_record.test", "value", "\"foo\""),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -259,6 +271,8 @@ func TestAccDMERecordPTR(t *testing.T) {
 						"dme_record.test", "value", "foo"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -288,6 +302,8 @@ func TestAccDMERecordNS(t *testing.T) {
 						"dme_record.test", "value", "foo"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -317,6 +333,8 @@ func TestAccDMERecordAAAA(t *testing.T) {
 						"dme_record.test", "value", "fe80::0202:b3ff:fe1e:8329"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -352,6 +370,8 @@ func TestAccDMERecordSRV(t *testing.T) {
 						"dme_record.test", "port", "30"),
 					resource.TestCheckResourceAttr(
 						"dme_record.test", "ttl", "2000"),
+					resource.TestCheckResourceAttr(
+						"dme_record.test", "gtdLocation", "DEFAULT"),
 				),
 			},
 		},
@@ -413,6 +433,7 @@ resource "dme_record" "test" {
   type = "A"
   value = "1.1.1.1"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigCName = `
@@ -422,6 +443,7 @@ resource "dme_record" "test" {
   type = "CNAME"
   value = "foo"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigAName = `
@@ -431,6 +453,7 @@ resource "dme_record" "test" {
   type = "ANAME"
   value = "foo"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigMX = `
@@ -441,6 +464,7 @@ resource "dme_record" "test" {
   value = "foo"
   mxLevel = 10
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigHTTPRED = `
@@ -455,6 +479,7 @@ resource "dme_record" "test" {
   keywords = "terraform example"
   description = "This is a description"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigTXT = `
@@ -464,6 +489,7 @@ resource "dme_record" "test" {
   type = "TXT"
   value = "foo"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigSPF = `
@@ -473,6 +499,7 @@ resource "dme_record" "test" {
   type = "SPF"
   value = "foo"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigPTR = `
@@ -482,6 +509,7 @@ resource "dme_record" "test" {
   type = "PTR"
   value = "foo"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigNS = `
@@ -491,6 +519,7 @@ resource "dme_record" "test" {
   type = "NS"
   value = "foo"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigAAAA = `
@@ -500,6 +529,7 @@ resource "dme_record" "test" {
   type = "AAAA"
   value = "FE80::0202:B3FF:FE1E:8329"
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`
 
 const testDMERecordConfigSRV = `
@@ -512,4 +542,5 @@ resource "dme_record" "test" {
   weight = 20
   port = 30
   ttl = 2000
+  gtdLocation = "DEFAULT"
 }`

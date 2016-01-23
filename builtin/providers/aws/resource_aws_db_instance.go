@@ -38,18 +38,20 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"username": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
 			"password": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 				StateFunc: func(v interface{}) string {
 					value := v.(string)
@@ -71,7 +73,8 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"allocated_storage": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 
 			"storage_type": &schema.Schema{
@@ -385,7 +388,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			stateConf := &resource.StateChangeConf{
 				Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
 					"maintenance", "renaming", "rebooting", "upgrading"},
-				Target:     "available",
+				Target:     []string{"available"},
 				Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 				Timeout:    40 * time.Minute,
 				MinTimeout: 10 * time.Second,
@@ -405,6 +408,18 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		}
 	} else {
+		if _, ok := d.GetOk("allocated_storage"); !ok {
+			return fmt.Errorf(`provider.aws: aws_db_instance: %s: "allocated_storage": required field is not set`, d.Get("name").(string))
+		}
+		if _, ok := d.GetOk("engine"); !ok {
+			return fmt.Errorf(`provider.aws: aws_db_instance: %s: "engine": required field is not set`, d.Get("name").(string))
+		}
+		if _, ok := d.GetOk("password"); !ok {
+			return fmt.Errorf(`provider.aws: aws_db_instance: %s: "password": required field is not set`, d.Get("name").(string))
+		}
+		if _, ok := d.GetOk("username"); !ok {
+			return fmt.Errorf(`provider.aws: aws_db_instance: %s: "username": required field is not set`, d.Get("name").(string))
+		}
 		opts := rds.CreateDBInstanceInput{
 			AllocatedStorage:        aws.Int64(int64(d.Get("allocated_storage").(int))),
 			DBName:                  aws.String(d.Get("name").(string)),
@@ -497,7 +512,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
 			"maintenance", "renaming", "rebooting", "upgrading"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
@@ -648,7 +663,7 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"creating", "backing-up",
 			"modifying", "deleting", "available"},
-		Target:     "",
+		Target:     []string{},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
