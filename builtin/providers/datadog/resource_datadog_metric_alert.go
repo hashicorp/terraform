@@ -24,8 +24,9 @@ func resourceDatadogMetricAlert() *schema.Resource {
 				Required: true,
 			},
 			"metric": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"query"},
 			},
 			"tags": &schema.Schema{
 				Type:     schema.TypeList,
@@ -33,21 +34,25 @@ func resourceDatadogMetricAlert() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"keys": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:          schema.TypeList,
+				Optional:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"query"},
 			},
 			"time_aggr": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"query"},
 			},
 			"time_window": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"query"},
 			},
 			"space_aggr": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"query"},
 			},
 			"operator": &schema.Schema{
 				Type:     schema.TypeString,
@@ -56,6 +61,14 @@ func resourceDatadogMetricAlert() *schema.Resource {
 			"message": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			// Optional Query for custom monitors
+
+			"query": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"time_aggr", "time_window", "space_aggr", "metric", "keys"},
 			},
 
 			"thresholds": thresholdSchema(),
@@ -89,6 +102,7 @@ func buildMetricAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 	timeWindow := d.Get("time_window").(string)
 	spaceAggr := d.Get("space_aggr").(string)
 	metric := d.Get("metric").(string)
+	query := d.Get("query").(string)
 
 	// Tags are are no separate resource/gettable, so some trickery is needed
 	var buffer bytes.Buffer
@@ -127,16 +141,23 @@ func buildMetricAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 	threshold, thresholds := getThresholds(d)
 
 	operator := d.Get("operator").(string)
-	query := fmt.Sprintf("%s(%s):%s:%s{%s} %s %s %s", timeAggr,
-		timeWindow,
-		spaceAggr,
-		metric,
-		tagsParsed,
-		keys,
-		operator,
-		threshold)
 
-	log.Print(fmt.Sprintf("[DEBUG] submitting query: %s", query))
+	var q string
+
+	if query == "" {
+		q = fmt.Sprintf("%s(%s):%s:%s{%s} %s %s %s", timeAggr,
+			timeWindow,
+			spaceAggr,
+			metric,
+			tagsParsed,
+			keys,
+			operator,
+			threshold)
+	} else {
+		q = fmt.Sprintf("%s %s %s", query, operator, threshold)
+	}
+
+	log.Print(fmt.Sprintf("[DEBUG] submitting query: %s", q))
 
 	o := datadog.Options{
 		NotifyNoData:     d.Get("notify_no_data").(bool),
@@ -147,7 +168,7 @@ func buildMetricAlertStruct(d *schema.ResourceData) *datadog.Monitor {
 
 	m := datadog.Monitor{
 		Type:    "metric alert",
-		Query:   query,
+		Query:   q,
 		Name:    name,
 		Message: message,
 		Options: o,
