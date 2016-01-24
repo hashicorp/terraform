@@ -2,6 +2,8 @@ package aws
 
 import (
 	"fmt"
+	"log"
+
 	"math/rand"
 	"testing"
 	"time"
@@ -67,6 +69,42 @@ func TestAccAWSDBInstanceReplica(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstanceSnapshot(t *testing.T) {
+	var snap rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceSnapshot,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.snapshot", &snap),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
+	var nosnap rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNoSnapshotInstanceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.no_snapshot", &nosnap),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -81,6 +119,10 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 			&rds.DescribeDBInstancesInput{
 				DBInstanceIdentifier: aws.String(rs.Primary.ID),
 			})
+
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "DBInstanceNotFound" {
+			continue
+		}
 
 		if err == nil {
 			if len(resp.DBInstances) != 0 &&
@@ -130,6 +172,104 @@ func testAccCheckAWSDBInstanceReplicaAttributes(source, replica *rds.DBInstance)
 
 		return nil
 	}
+}
+
+func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*AWSClient).rdsconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_db_instance" {
+			continue
+		}
+
+		var err error
+		resp, err := conn.DescribeDBInstances(
+			&rds.DescribeDBInstancesInput{
+				DBInstanceIdentifier: aws.String(rs.Primary.ID),
+			})
+
+		if err != nil {
+			newerr, _ := err.(awserr.Error)
+			if newerr.Code() != "DBInstanceNotFound" {
+				return err
+			}
+
+		} else {
+			if len(resp.DBInstances) != 0 &&
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				return fmt.Errorf("DB Instance still exists")
+			}
+		}
+
+		log.Printf("[INFO] Trying to locate the DBInstance Final Snapshot")
+		snapshot_identifier := "foobarbaz-test-terraform-final-snapshot-1"
+		_, snapErr := conn.DescribeDBSnapshots(
+			&rds.DescribeDBSnapshotsInput{
+				DBSnapshotIdentifier: aws.String(snapshot_identifier),
+			})
+
+		if snapErr != nil {
+			newerr, _ := snapErr.(awserr.Error)
+			if newerr.Code() == "DBSnapshotNotFound" {
+				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
+			}
+		} else {
+			log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
+			_, snapDeleteErr := conn.DeleteDBSnapshot(
+				&rds.DeleteDBSnapshotInput{
+					DBSnapshotIdentifier: aws.String(snapshot_identifier),
+				})
+			if snapDeleteErr != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func testAccCheckAWSDBInstanceNoSnapshot(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*AWSClient).rdsconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_db_instance" {
+			continue
+		}
+
+		var err error
+		resp, err := conn.DescribeDBInstances(
+			&rds.DescribeDBInstancesInput{
+				DBInstanceIdentifier: aws.String(rs.Primary.ID),
+			})
+
+		if err != nil {
+			newerr, _ := err.(awserr.Error)
+			if newerr.Code() != "DBInstanceNotFound" {
+				return err
+			}
+
+		} else {
+			if len(resp.DBInstances) != 0 &&
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				return fmt.Errorf("DB Instance still exists")
+			}
+		}
+
+		snapshot_identifier := "foobarbaz-test-terraform-final-snapshot-2"
+		_, snapErr := conn.DescribeDBSnapshots(
+			&rds.DescribeDBSnapshotsInput{
+				DBSnapshotIdentifier: aws.String(snapshot_identifier),
+			})
+
+		if snapErr != nil {
+			newerr, _ := snapErr.(awserr.Error)
+			if newerr.Code() != "DBSnapshotNotFound" {
+				return fmt.Errorf("Snapshot %s found and it shouldn't have been", snapshot_identifier)
+			}
+		}
+	}
+
+	return nil
 }
 
 func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestCheckFunc {
@@ -226,3 +366,51 @@ func testAccReplicaInstanceConfig(val int) string {
 	}
 	`, val, val)
 }
+
+var testAccSnapshotInstanceConfig = `
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_db_instance" "snapshot" {
+	identifier = "foobarbaz-test-terraform-snapshot-1"
+
+	allocated_storage = 5
+	engine = "mysql"
+	engine_version = "5.6.21"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	security_group_names = ["default"]
+	backup_retention_period = 1
+
+	parameter_group_name = "default.mysql5.6"
+
+	skip_final_snapshot = false
+	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-1"
+}
+`
+
+var testAccNoSnapshotInstanceConfig = `
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_db_instance" "no_snapshot" {
+	identifier = "foobarbaz-test-terraform-snapshot-2"
+
+	allocated_storage = 5
+	engine = "mysql"
+	engine_version = "5.6.21"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+    security_group_names = ["default"]
+	backup_retention_period = 1
+
+	parameter_group_name = "default.mysql5.6"
+
+	skip_final_snapshot = true
+	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
+}
+`

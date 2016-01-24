@@ -28,7 +28,10 @@ resource "google_sql_database_instance" "master" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the instance.
+* `name` - (Optional, Computed) The name of the instance. If the name is left
+  blank, Terraform will randomly generate one when the instance is first
+  created. This is done because after a name is used, it cannot be reused 
+  for up to [two months](https://cloud.google.com/sql/docs/delete-instance).
 
 * `region` - (Required) The region the instance will sit in. Note, this does
   not line up with the Google Compute Engine (GCE) regions - your options are
@@ -40,12 +43,6 @@ The following arguments are supported:
 
 * `database_version` - (Optional, Default: `MYSQL_5_5`) The MySQL version to
   use. Can be either `MYSQL_5_5` or `MYSQL_5_6`.
-
-* `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
-  `PER_USE` or `PACKAGE`.
-
-* `replication_type` - (Optional) Replication type for this instance, can be one of
-  `ASYNCHRONOUS` or `SYNCHRONOUS`.
 
 The required `settings` block supports:
 
@@ -61,6 +58,12 @@ The required `settings` block supports:
 
 * `crash_safe_replication` - (Optional) Specific to read instances, indicates
   when crash-safe replication flags are enabled.
+
+* `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
+  `PER_USE` or `PACKAGE`.
+
+* `replication_type` - (Optional) Replication type for this instance, can be one of
+  `ASYNCHRONOUS` or `SYNCHRONOUS`.
 
 The optional `settings.database_flags` sublist supports:
 

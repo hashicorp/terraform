@@ -17,7 +17,7 @@ resource "cloudstack_egress_firewall" "default" {
   network = "test-network"
 
   rule {
-    source_cidr = "10.0.0.0/8"
+    cidr_list = ["10.0.0.0/8"]
     protocol = "tcp"
     ports = ["80", "1000-2000"]
   }
@@ -38,9 +38,15 @@ The following arguments are supported:
 * `rule` - (Optional) Can be specified multiple times. Each rule block supports
     fields documented below. If `managed = false` at least one rule is required!
 
+* `parallelism` (Optional) Specifies how much rules will be created or deleted
+    concurrently. (defaults 2)
+    
 The `rule` block supports:
 
-* `source_cidr` - (Required) The source CIDR to allow access to the given ports.
+* `cidr_list` - (Required) A CIDR list to allow access to the given ports.
+
+* `source_cidr` - (Optional, Deprecated) The source CIDR to allow access to the
+    given ports. This attribute is deprecated, please use `cidr_list` instead.
 
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp` and `icmp`.

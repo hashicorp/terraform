@@ -185,6 +185,7 @@ func resourceComputeRouteRead(d *schema.ResourceData, meta interface{}) error {
 		config.Project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Route %q because it's gone", d.Get("name").(string))
 			// The resource doesn't exist anymore
 			d.SetId("")
 

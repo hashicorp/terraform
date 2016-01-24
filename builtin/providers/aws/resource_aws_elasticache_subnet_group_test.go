@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -71,6 +72,10 @@ func testAccCheckAWSElasticacheSubnetGroupDestroy(s *terraform.State) error {
 			CacheSubnetGroupName: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
+			// Verify the error is what we want
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "CacheSubnetGroupNotFoundFault" {
+				continue
+			}
 			return err
 		}
 		if len(res.CacheSubnetGroups) > 0 {

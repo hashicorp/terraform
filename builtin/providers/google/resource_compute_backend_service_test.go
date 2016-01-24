@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
 )
 
 func TestAccComputeBackendService_basic(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	extraCheckName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	var svc compute.BackendService
 
 	resource.Test(t, resource.TestCase{
@@ -18,14 +22,15 @@ func TestAccComputeBackendService_basic(t *testing.T) {
 		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeBackendService_basic,
+				Config: testAccComputeBackendService_basic(serviceName, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeBackendServiceExists(
 						"google_compute_backend_service.foobar", &svc),
 				),
 			},
 			resource.TestStep{
-				Config: testAccComputeBackendService_basicModified,
+				Config: testAccComputeBackendService_basicModified(
+					serviceName, checkName, extraCheckName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeBackendServiceExists(
 						"google_compute_backend_service.foobar", &svc),
@@ -36,6 +41,10 @@ func TestAccComputeBackendService_basic(t *testing.T) {
 }
 
 func TestAccComputeBackendService_withBackend(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	igName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	itName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	var svc compute.BackendService
 
 	resource.Test(t, resource.TestCase{
@@ -44,7 +53,8 @@ func TestAccComputeBackendService_withBackend(t *testing.T) {
 		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeBackendService_withBackend,
+				Config: testAccComputeBackendService_withBackend(
+					serviceName, igName, itName, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeBackendServiceExists(
 						"google_compute_backend_service.lipsum", &svc),
@@ -111,83 +121,90 @@ func testAccCheckComputeBackendServiceExists(n string, svc *compute.BackendServi
 	}
 }
 
-const testAccComputeBackendService_basic = `
+func testAccComputeBackendService_basic(serviceName, checkName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
-    name = "blablah"
-    health_checks = ["${google_compute_http_health_check.zero.self_link}"]
+  name          = "%s"
+  health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-    name = "tf-test-zero"
-    request_path = "/"
-    check_interval_sec = 1
-    timeout_sec = 1
+  name               = "%s"
+  request_path       = "/"
+  check_interval_sec = 1
+  timeout_sec        = 1
 }
-`
+`, serviceName, checkName)
+}
 
-const testAccComputeBackendService_basicModified = `
+func testAccComputeBackendService_basicModified(serviceName, checkOne, checkTwo string) string {
+	return fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
-    name = "blablah"
+    name = "%s"
     health_checks = ["${google_compute_http_health_check.one.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-    name = "tf-test-zero"
+    name = "%s"
     request_path = "/"
     check_interval_sec = 1
     timeout_sec = 1
 }
 
 resource "google_compute_http_health_check" "one" {
-    name = "tf-test-one"
+    name = "%s"
     request_path = "/one"
     check_interval_sec = 30
     timeout_sec = 30
 }
-`
+`, serviceName, checkOne, checkTwo)
+}
 
-const testAccComputeBackendService_withBackend = `
+func testAccComputeBackendService_withBackend(
+	serviceName, igName, itName, checkName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_backend_service" "lipsum" {
-    name = "hello-world-bs"
-    description = "Hello World 1234"
-    port_name = "http"
-    protocol = "HTTP"
-    timeout_sec = 10
+  name        = "%s"
+  description = "Hello World 1234"
+  port_name   = "http"
+  protocol    = "HTTP"
+  timeout_sec = 10
 
-    backend {
-        group = "${google_compute_instance_group_manager.foobar.instance_group}"
-    }
+  backend {
+    group = "${google_compute_instance_group_manager.foobar.instance_group}"
+  }
 
-    health_checks = ["${google_compute_http_health_check.default.self_link}"]
+  health_checks = ["${google_compute_http_health_check.default.self_link}"]
 }
 
 resource "google_compute_instance_group_manager" "foobar" {
-    name = "terraform-test"
-    instance_template = "${google_compute_instance_template.foobar.self_link}"
-    base_instance_name = "foobar"
-    zone = "us-central1-f"
-    target_size = 1
+  name               = "%s"
+  instance_template  = "${google_compute_instance_template.foobar.self_link}"
+  base_instance_name = "foobar"
+  zone               = "us-central1-f"
+  target_size        = 1
 }
 
 resource "google_compute_instance_template" "foobar" {
-    name = "terraform-test"
-    machine_type = "n1-standard-1"
+  name         = "%s"
+  machine_type = "n1-standard-1"
 
-    network_interface {
-        network = "default"
-    }
+  network_interface {
+    network = "default"
+  }
 
-    disk {
-        source_image = "debian-7-wheezy-v20140814"
-        auto_delete = true
-        boot = true
-    }
+  disk {
+    source_image = "debian-7-wheezy-v20140814"
+    auto_delete  = true
+    boot         = true
+  }
 }
 
 resource "google_compute_http_health_check" "default" {
-    name = "test2"
-    request_path = "/"
-    check_interval_sec = 1
-    timeout_sec = 1
+  name               = "%s"
+  request_path       = "/"
+  check_interval_sec = 1
+  timeout_sec        = 1
 }
-`
+`, serviceName, igName, itName, checkName)
+}

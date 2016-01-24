@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 )
 
@@ -90,10 +91,10 @@ resource "aws_iam_instance_profile" "opsworks_instance" {
 var testAccAwsOpsworksStackConfigNoVpcCreate = testAccAwsOpsworksStackIamConfig + `
 resource "aws_opsworks_stack" "tf-acc" {
   name = "tf-opsworks-acc"
-  region = "us-west-2"
+  region = "us-east-1"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_availability_zone = "us-west-2a"
+  default_availability_zone = "us-east-1c"
   default_os = "Amazon Linux 2014.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
@@ -104,10 +105,10 @@ resource "aws_opsworks_stack" "tf-acc" {
 var testAccAWSOpsworksStackConfigNoVpcUpdate = testAccAwsOpsworksStackIamConfig + `
 resource "aws_opsworks_stack" "tf-acc" {
   name = "tf-opsworks-acc"
-  region = "us-west-2"
+  region = "us-east-1"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_availability_zone = "us-west-2a"
+  default_availability_zone = "us-east-1c"
   default_os = "Amazon Linux 2014.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
@@ -123,7 +124,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 `
 
-func TestAccAwsOpsworksStackNoVpc(t *testing.T) {
+func TestAccAWSOpsworksStackNoVpc(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -131,11 +132,11 @@ func TestAccAwsOpsworksStackNoVpc(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAwsOpsworksStackConfigNoVpcCreate,
-				Check:  testAccAwsOpsworksStackCheckResourceAttrsCreate,
+				Check:  testAccAwsOpsworksStackCheckResourceAttrsCreate("us-east-1c"),
 			},
 			resource.TestStep{
 				Config: testAccAWSOpsworksStackConfigNoVpcUpdate,
-				Check:  testAccAwsOpsworksStackCheckResourceAttrsUpdate,
+				Check:  testAccAwsOpsworksStackCheckResourceAttrsUpdate("us-east-1c"),
 			},
 		},
 	})
@@ -200,7 +201,7 @@ resource "aws_opsworks_stack" "tf-acc" {
 }
 `
 
-func TestAccAwsOpsworksStackVpc(t *testing.T) {
+func TestAccAWSOpsworksStackVpc(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -208,12 +209,12 @@ func TestAccAwsOpsworksStackVpc(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAwsOpsworksStackConfigVpcCreate,
-				Check:  testAccAwsOpsworksStackCheckResourceAttrsCreate,
+				Check:  testAccAwsOpsworksStackCheckResourceAttrsCreate("us-west-2a"),
 			},
 			resource.TestStep{
 				Config: testAccAWSOpsworksStackConfigVpcUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccAwsOpsworksStackCheckResourceAttrsUpdate,
+					testAccAwsOpsworksStackCheckResourceAttrsUpdate("us-west-2a"),
 					testAccAwsOpsworksCheckVpc,
 				),
 			},
@@ -225,106 +226,110 @@ func TestAccAwsOpsworksStackVpc(t *testing.T) {
 //// Checkers and Utilities
 ////////////////////////////
 
-var testAccAwsOpsworksStackCheckResourceAttrsCreate = resource.ComposeTestCheckFunc(
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"name",
-		"tf-opsworks-acc",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"default_availability_zone",
-		"us-west-2a",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"default_os",
-		"Amazon Linux 2014.09",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"default_root_device_type",
-		"ebs",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"custom_json",
-		`{"key": "value"}`,
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"configuration_manager_version",
-		"11.10",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"use_opsworks_security_groups",
-		"false",
-	),
-)
+func testAccAwsOpsworksStackCheckResourceAttrsCreate(zone string) resource.TestCheckFunc {
+	return resource.ComposeTestCheckFunc(
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"name",
+			"tf-opsworks-acc",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_availability_zone",
+			zone,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_os",
+			"Amazon Linux 2014.09",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_root_device_type",
+			"ebs",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_json",
+			`{"key": "value"}`,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"configuration_manager_version",
+			"11.10",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"use_opsworks_security_groups",
+			"false",
+		),
+	)
+}
 
-var testAccAwsOpsworksStackCheckResourceAttrsUpdate = resource.ComposeTestCheckFunc(
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"name",
-		"tf-opsworks-acc",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"default_availability_zone",
-		"us-west-2a",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"default_os",
-		"Amazon Linux 2014.09",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"default_root_device_type",
-		"ebs",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"custom_json",
-		`{"key": "value"}`,
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"configuration_manager_version",
-		"11.10",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"use_opsworks_security_groups",
-		"false",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"use_custom_cookbooks",
-		"true",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"manage_berkshelf",
-		"true",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"custom_cookbooks_source.0.type",
-		"git",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"custom_cookbooks_source.0.revision",
-		"master",
-	),
-	resource.TestCheckResourceAttr(
-		"aws_opsworks_stack.tf-acc",
-		"custom_cookbooks_source.0.url",
-		"https://github.com/aws/opsworks-example-cookbooks.git",
-	),
-)
+func testAccAwsOpsworksStackCheckResourceAttrsUpdate(zone string) resource.TestCheckFunc {
+	return resource.ComposeTestCheckFunc(
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"name",
+			"tf-opsworks-acc",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_availability_zone",
+			zone,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_os",
+			"Amazon Linux 2014.09",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"default_root_device_type",
+			"ebs",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_json",
+			`{"key": "value"}`,
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"configuration_manager_version",
+			"11.10",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"use_opsworks_security_groups",
+			"false",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"use_custom_cookbooks",
+			"true",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"manage_berkshelf",
+			"true",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_cookbooks_source.0.type",
+			"git",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_cookbooks_source.0.revision",
+			"master",
+		),
+		resource.TestCheckResourceAttr(
+			"aws_opsworks_stack.tf-acc",
+			"custom_cookbooks_source.0.url",
+			"https://github.com/aws/opsworks-example-cookbooks.git",
+		),
+	)
+}
 
 func testAccAwsOpsworksCheckVpc(s *terraform.State) error {
 	rs, ok := s.RootModule().Resources["aws_opsworks_stack.tf-acc"]
@@ -358,9 +363,28 @@ func testAccAwsOpsworksCheckVpc(s *terraform.State) error {
 }
 
 func testAccCheckAwsOpsworksStackDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
-	}
+	opsworksconn := testAccProvider.Meta().(*AWSClient).opsworksconn
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_opsworks_stack" {
+			continue
+		}
 
-	return nil
+		req := &opsworks.DescribeStacksInput{
+			StackIds: []*string{
+				aws.String(rs.Primary.ID),
+			},
+		}
+
+		_, err := opsworksconn.DescribeStacks(req)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "ResourceNotFoundException" {
+					// not found, all good
+					return nil
+				}
+			}
+			return err
+		}
+	}
+	return fmt.Errorf("Fall through error for OpsWorks stack test")
 }

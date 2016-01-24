@@ -60,13 +60,23 @@ ENV['https_proxy'] = "{{ .HTTPSProxy }}"
 ENV['HTTPS_PROXY'] = "{{ .HTTPSProxy }}"
 {{ end }}
 
-{{ if .NOProxy }}no_proxy "{{ join .NOProxy "," }}"{{ end }}
+{{ if .NOProxy }}
+no_proxy          "{{ join .NOProxy "," }}"
+ENV['no_proxy'] = "{{ join .NOProxy "," }}"
+{{ end }}
+
 {{ if .SSLVerifyMode }}ssl_verify_mode {{ .SSLVerifyMode }}{{ end }}
+
+{{ if .DisableReporting }}enable_reporting false{{ end }}
+
+{{ if .ClientOptions }}{{ join .ClientOptions "\n" }}{{ end }}
 `
 
 // Provisioner represents a specificly configured chef provisioner
 type Provisioner struct {
 	Attributes           interface{} `mapstructure:"attributes"`
+	ClientOptions        []string    `mapstructure:"client_options"`
+	DisableReporting     bool        `mapstructure:"disable_reporting"`
 	Environment          string      `mapstructure:"environment"`
 	LogToFile            bool        `mapstructure:"log_to_file"`
 	UsePolicyfile        bool        `mapstructure:"use_policyfile"`

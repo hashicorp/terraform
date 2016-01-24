@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -55,23 +56,18 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 
 		group := rs.Primary.Attributes["group"]
 
-		resp, err := conn.GetGroup(&iam.GetGroupInput{
+		_, err := conn.GetGroup(&iam.GetGroupInput{
 			GroupName: aws.String(group),
 		})
 		if err != nil {
-			// might error here
+			// Verify the error is what we want
+			if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchEntity" {
+				continue
+			}
 			return err
 		}
 
-		users := []string{"test-user", "test-user-two", "test-user-three"}
-		for _, u := range resp.Users {
-			for _, i := range users {
-				if i == *u.UserName {
-					return fmt.Errorf("Error: User (%s) still a member of Group (%s)", i, *resp.Group.GroupName)
-				}
-			}
-		}
-
+		return fmt.Errorf("still exists")
 	}
 
 	return nil

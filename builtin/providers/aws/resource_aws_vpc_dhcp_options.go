@@ -121,7 +121,7 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for DHCP Options (%s) to become available", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  "",
+		Target:  []string{},
 		Refresh: DHCPOptionsStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
@@ -223,8 +223,6 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 			// Any other error, we want to quit the retry loop immediately
 			return resource.RetryError{Err: err}
 		}
-
-		return nil
 	})
 }
 

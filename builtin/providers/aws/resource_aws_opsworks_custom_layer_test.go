@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -11,7 +14,7 @@ import (
 // These tests assume the existence of predefined Opsworks IAM roles named `aws-opsworks-ec2-role`
 // and `aws-opsworks-service-role`.
 
-func TestAccAwsOpsworksCustomLayer(t *testing.T) {
+func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -131,11 +134,30 @@ func TestAccAwsOpsworksCustomLayer(t *testing.T) {
 }
 
 func testAccCheckAwsOpsworksCustomLayerDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	opsworksconn := testAccProvider.Meta().(*AWSClient).opsworksconn
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_opsworks_custom_layer" {
+			continue
+		}
+		req := &opsworks.DescribeLayersInput{
+			LayerIds: []*string{
+				aws.String(rs.Primary.ID),
+			},
+		}
+
+		_, err := opsworksconn.DescribeLayers(req)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "ResourceNotFoundException" {
+					// not found, good to go
+					return nil
+				}
+			}
+			return err
+		}
 	}
 
-	return nil
+	return fmt.Errorf("Fall through error on OpsWorks custom layer test")
 }
 
 var testAccAwsOpsworksCustomLayerSecurityGroups = `
@@ -160,6 +182,10 @@ resource "aws_security_group" "tf-ops-acc-layer2" {
 `
 
 var testAccAwsOpsworksCustomLayerConfigCreate = testAccAwsOpsworksStackConfigNoVpcCreate + testAccAwsOpsworksCustomLayerSecurityGroups + `
+provider "aws" {
+	region = "us-east-1"
+}
+
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
   name = "tf-ops-acc-custom-layer"

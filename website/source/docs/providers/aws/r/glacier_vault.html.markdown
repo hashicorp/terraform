@@ -8,7 +8,7 @@ description: |-
 
 # aws\_glacier\_vault
 
-Provides a Glacier Vault Resource. You can refer to the [Glacier Developer Guide](http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-vaults.html) for a full explanation of the Glacier Vault functionality
+Provides a Glacier Vault Resource. You can refer to the [Glacier Developer Guide](https://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-vaults.html) for a full explanation of the Glacier Vault functionality
 
 ~> **NOTE:** When removing a Glacier Vault, the Vault must be empty.
 

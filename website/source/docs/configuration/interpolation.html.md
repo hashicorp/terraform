@@ -80,6 +80,14 @@ The supported built-in functions are:
   * `base64encode(string)` - Returns a base64-encoded representation of the
     given string.
 
+  * `sha1(string)` - Returns a SHA-1 hash representation of the
+    given string.
+    Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+
+  * `sha256(string)` - Returns a SHA-256 hash representation of the
+    given string.
+    Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
     ``cidrhost("10.0.0.0/8", 2)`` returns ``10.0.0.2``.
@@ -95,7 +103,7 @@ The supported built-in functions are:
     CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
     additional subnet number. For example,
     ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``.
-    
+
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
 
@@ -120,7 +128,7 @@ The supported built-in functions are:
 
   * `format(format, args...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
-      Good documentation for the syntax can be [found here](http://golang.org/pkg/fmt/).
+      Good documentation for the syntax can be [found here](https://golang.org/pkg/fmt/).
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index + 1)`.
 
@@ -150,7 +158,7 @@ The supported built-in functions are:
       variable. The `map` parameter should be another variable, such
       as `var.amis`.
 
-  * `lower(string)` - returns a copy of the string with all Unicode letters mapped to their lower case.
+  * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
@@ -168,7 +176,7 @@ The supported built-in functions are:
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
 
-  * `upper(string)` - returns a copy of the string with all Unicode letters mapped to their upper case.
+  * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
 
 ## Templates
 
@@ -254,8 +262,8 @@ resource "aws_instance" "web" {
 
 The supported operations are:
 
-- *Add*, *Subtract*, *Multiply*, and *Divide* for **float** types
-- *Add*, *Subtract*, *Multiply*, *Divide*, and *Modulo* for **integer** types
+- *Add* (`+`), *Subtract* (`-`), *Multiply* (`*`), and *Divide* (`/`) for **float** types
+- *Add* (`+`), *Subtract* (`-`), *Multiply* (`*`), *Divide* (`/`), and *Modulo* (`%`) for **integer** types
 
 -> **Note:** Since Terraform allows hyphens in resource and variable names,
 it's best to use spaces between math operators to prevent confusion or unexpected

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
@@ -24,6 +24,10 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 		Update: resourceAwsDbParameterGroupUpdate,
 		Delete: resourceAwsDbParameterGroupDelete,
 		Schema: map[string]*schema.Schema{
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": &schema.Schema{
 				Type:         schema.TypeString,
 				ForceNew:     true,
@@ -71,17 +75,21 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				},
 				Set: resourceAwsDbParameterHash,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
+	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
 	createOpts := rds.CreateDBParameterGroupInput{
 		DBParameterGroupName:   aws.String(d.Get("name").(string)),
 		DBParameterGroupFamily: aws.String(d.Get("family").(string)),
 		Description:            aws.String(d.Get("description").(string)),
+		Tags:                   tags,
 	}
 
 	log.Printf("[DEBUG] Create DB Parameter Group: %#v", createOpts)
@@ -136,6 +144,31 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
+	paramGroup := describeResp.DBParameterGroups[0]
+	arn, err := buildRDSPGARN(d, meta)
+	if err != nil {
+		name := "<empty>"
+		if paramGroup.DBParameterGroupName != nil && *paramGroup.DBParameterGroupName != "" {
+			name = *paramGroup.DBParameterGroupName
+		}
+		log.Printf("[DEBUG] Error building ARN for DB Parameter Group, not setting Tags for Param Group %s", name)
+	} else {
+		d.Set("arn", arn)
+		resp, err := rdsconn.ListTagsForResource(&rds.ListTagsForResourceInput{
+			ResourceName: aws.String(arn),
+		})
+
+		if err != nil {
+			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
+		}
+
+		var dt []*rds.Tag
+		if len(resp.TagList) > 0 {
+			dt = resp.TagList
+		}
+		d.Set("tags", tagsToMapRDS(dt))
+	}
+
 	return nil
 }
 
@@ -177,6 +210,14 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		d.SetPartial("parameter")
 	}
 
+	if arn, err := buildRDSPGARN(d, meta); err == nil {
+		if err := setTagsRDS(rdsconn, d, arn); err != nil {
+			return err
+		} else {
+			d.SetPartial("tags")
+		}
+	}
+
 	d.Partial(false)
 
 	return resourceAwsDbParameterGroupRead(d, meta)
@@ -185,7 +226,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
-		Target:     "destroyed",
+		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsDbParameterGroupDeleteRefreshFunc(d, meta),
 		Timeout:    3 * time.Minute,
 		MinTimeout: 1 * time.Second,
@@ -230,28 +271,16 @@ func resourceAwsDbParameterHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func validateDbParamGroupName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+func buildRDSPGARN(d *schema.ResourceData, meta interface{}) (string, error) {
+	iamconn := meta.(*AWSClient).iamconn
+	region := meta.(*AWSClient).region
+	// An zero value GetUserInput{} defers to the currently logged in user
+	resp, err := iamconn.GetUser(&iam.GetUserInput{})
+	if err != nil {
+		return "", err
 	}
-	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
-	}
-	if regexp.MustCompile(`--`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
-	}
-	if regexp.MustCompile(`-$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
-	}
-	if len(value) > 255 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be greater than 255 characters", k))
-	}
-	return
-
+	userARN := *resp.User.Arn
+	accountID := strings.Split(userARN, ":")[4]
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:pg:%s", region, accountID, d.Id())
+	return arn, nil
 }

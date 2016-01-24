@@ -23,26 +23,16 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 		Delete: resourceAwsDbSubnetGroupDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"arn": &schema.Schema{
 				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if !regexp.MustCompile(`^[ .0-9A-Za-z-_]+$`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"only alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
-					}
-					if len(value) > 255 {
-						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 255 characters", k))
-					}
-					if regexp.MustCompile(`(?i)^default$`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q is not allowed as %q", "Default", k))
-					}
-					return
-				},
+				Computed: true,
+			},
+
+			"name": &schema.Schema{
+				Type:         schema.TypeString,
+				ForceNew:     true,
+				Required:     true,
+				ValidateFunc: validateSubnetGroupName,
 			},
 
 			"description": &schema.Schema{
@@ -126,8 +116,8 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Unable to find DB Subnet Group: %#v", describeResp.DBSubnetGroups)
 	}
 
-	d.Set("name", d.Id())
-	d.Set("description", *subnetGroup.DBSubnetGroupDescription)
+	d.Set("name", subnetGroup.DBSubnetGroupName)
+	d.Set("description", subnetGroup.DBSubnetGroupDescription)
 
 	subnets := make([]string, 0, len(subnetGroup.Subnets))
 	for _, s := range subnetGroup.Subnets {
@@ -142,6 +132,7 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		log.Printf("[DEBUG] Error building ARN for DB Subnet Group, not setting Tags for group %s", *subnetGroup.DBSubnetGroupName)
 	} else {
+		d.Set("arn", arn)
 		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
 			ResourceName: aws.String(arn),
 		})
@@ -198,7 +189,7 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
-		Target:     "destroyed",
+		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsDbSubnetGroupDeleteRefreshFunc(d, meta),
 		Timeout:    3 * time.Minute,
 		MinTimeout: 1 * time.Second,
@@ -245,4 +236,21 @@ func buildRDSsubgrpARN(d *schema.ResourceData, meta interface{}) (string, error)
 	accountID := strings.Split(userARN, ":")[4]
 	arn := fmt.Sprintf("arn:aws:rds:%s:%s:subgrp:%s", region, accountID, d.Id())
 	return arn, nil
+}
+
+func validateSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+	}
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters", k))
+	}
+	if regexp.MustCompile(`(?i)^default$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q is not allowed as %q", "Default", k))
+	}
+	return
 }

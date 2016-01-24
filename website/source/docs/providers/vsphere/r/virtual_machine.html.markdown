@@ -24,8 +24,7 @@ resource "vsphere_virtual_machine" "web" {
   }
 
   disk {
-    size = 1
-    iops = 500
+    template = "centos-7"
   }
 }
 ```
@@ -48,22 +47,39 @@ The following arguments are supported:
 * `network_interface` - (Required) Configures virtual network interfaces; see [Network Interfaces](#network-interfaces) below for details.
 * `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for details
 * `boot_delay` - (Optional) Time in seconds to wait for machine network to be ready.
+* `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 
-<a id="network-interfaces"></a>
-## Network Interfaces
-
-Network interfaces support the following attributes:
+The `network_interface` block supports:
 
 * `label` - (Required) Label to assign to this network interface
-* `ip_address` - (Optional) Static IP to assign to this network interface. Interface will use DHCP if this is left blank. Currently only IPv4 IP addresses are supported.
-* `subnet_mask` - (Optional) Subnet mask to use when statically assigning an IP.
+* `ipv4_address` - (Optional) Static IP to assign to this network interface. Interface will use DHCP if this is left blank. Currently only IPv4 IP addresses are supported.
+* `ipv4_prefix_length` - (Optional) prefix length to use when statically assigning an IP.
 
-<a id="disks"></a>
-## Disks
+The following arguments are maintained for backwards compatibility and may be
+removed in a future version:
 
-Disks support the following attributes:
+* `ip_address` - __Deprecated, please use `ipv4_address` instead_.
+* `subnet_mask` - __Deprecated, please use `ipv4_prefix_length` instead_.
+
+
+The `disk` block supports:
 
 * `template` - (Required if size not provided) Template for this disk.
 * `datastore` - (Optional) Datastore for this disk
 * `size` - (Required if template not provided) Size of this disk (in GB).
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `id` - The instance ID.
+* `name` - See Argument Reference above.
+* `vcpu` - See Argument Reference above.
+* `memory` - See Argument Reference above.
+* `datacenter` - See Argument Reference above.
+* `network_interface/label` - See Argument Reference above.
+* `network_interface/ipv4_address` - See Argument Reference above.
+* `network_interface/ipv4_prefix_length` - See Argument Reference above.
+* `network_interface/ipv6_address` - Assigned static IPv6 address.
+* `network_interface/ipv6_prefix_length` - Prefix length of assigned static IPv6 address.

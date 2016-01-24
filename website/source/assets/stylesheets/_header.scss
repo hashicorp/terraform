@@ -28,7 +28,7 @@ body.page-sub{
     .by-hashicorp{
       &:hover{
         svg{
-          line{
+          .svg-bg-line{
             opacity: .4;
           }
         }
@@ -41,12 +41,6 @@ body.page-sub{
 
     ul.navbar-nav{
       li {
-        // &:hover{
-        //     svg path{
-        //         fill: $purple;
-        //     }
-        // }
-
         svg path{
           fill: $white;
         }

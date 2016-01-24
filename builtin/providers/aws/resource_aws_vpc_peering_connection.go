@@ -75,7 +75,7 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  "pending-acceptance",
+		Target:  []string{"pending-acceptance"},
 		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}

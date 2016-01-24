@@ -2,22 +2,23 @@ package aws
 
 import (
 	"fmt"
-	"os"
+	"math/rand"
 	"reflect"
 	"regexp"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSELB_basic(t *testing.T) {
 	var conf elb.LoadBalancerDescription
-	ssl_certificate_id := os.Getenv("AWS_SSL_CERTIFICATE_ID")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -30,7 +31,7 @@ func TestAccAWSELB_basic(t *testing.T) {
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "name", "foobar-terraform-test"),
+						"aws_elb.bar", "availability_zones.#", "3"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
@@ -38,11 +39,12 @@ func TestAccAWSELB_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.2050015877", "us-west-2c"),
 					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "subnets.#", "3"),
+					// NOTE: Subnet IDs are different across AWS accounts and cannot be checked.
+					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.206423021.instance_port", "8000"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.206423021.instance_protocol", "http"),
-					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "listener.206423021.ssl_certificate_id", ssl_certificate_id),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.206423021.lb_port", "80"),
 					resource.TestCheckResourceAttr(
@@ -58,17 +60,20 @@ func TestAccAWSELB_basic(t *testing.T) {
 func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 
+	lbName := fmt.Sprintf("Tf-%d",
+		rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSELBFullRangeOfCharacters,
+				Config: fmt.Sprintf(testAccAWSELBFullRangeOfCharacters, lbName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "name", "FoobarTerraform-test123"),
+						"aws_elb.foo", "name", lbName),
 				),
 			},
 		},
@@ -87,8 +92,6 @@ func TestAccAWSELB_AccessLogs(t *testing.T) {
 				Config: testAccAWSELBAccessLogs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
-					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "name", "FoobarTerraform-test123"),
 				),
 			},
 
@@ -96,8 +99,6 @@ func TestAccAWSELB_AccessLogs(t *testing.T) {
 				Config: testAccAWSELBAccessLogsOn,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
-					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "name", "FoobarTerraform-test123"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -111,8 +112,6 @@ func TestAccAWSELB_AccessLogs(t *testing.T) {
 				Config: testAccAWSELBAccessLogs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
-					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "name", "FoobarTerraform-test123"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "0"),
 				),
@@ -142,6 +141,45 @@ func TestAccAWSELB_generatedName(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_availabilityZones(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "3"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2050015877", "us-west-2c"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfig_AvailabilityZonesUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_tags(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 	var td elb.TagDescription
@@ -156,8 +194,6 @@ func TestAccAWSELB_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
-					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "name", "foobar-terraform-test"),
 					testAccLoadTags(&conf, &td),
 					testAccCheckELBTags(&td.Tags, "bar", "baz"),
 				),
@@ -168,8 +204,6 @@ func TestAccAWSELB_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
-					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "name", "foobar-terraform-test"),
 					testAccLoadTags(&conf, &td),
 					testAccCheckELBTags(&td.Tags, "foo", "bar"),
 					testAccCheckELBTags(&td.Tags, "new", "type"),
@@ -196,7 +230,8 @@ func TestAccAWSELB_iam_server_cert(t *testing.T) {
 		CheckDestroy: testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccELBIAMServerCertConfig,
+				Config: testAccELBIAMServerCertConfig(
+					fmt.Sprintf("tf-acctest-%s", acctest.RandString(10))),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testCheck,
@@ -571,7 +606,7 @@ func testAccCheckAWSELBDestroy(s *terraform.State) error {
 			return err
 		}
 
-		if providerErr.Code() != "InvalidLoadBalancerName.NotFound" {
+		if providerErr.Code() != "LoadBalancerNotFound" {
 			return fmt.Errorf("Unexpected error: %s", err)
 		}
 	}
@@ -589,10 +624,6 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancerDescription) resource.Te
 		sort.StringSlice(azs).Sort()
 		if !reflect.DeepEqual(azs, zones) {
 			return fmt.Errorf("bad availability_zones")
-		}
-
-		if *conf.LoadBalancerName != "foobar-terraform-test" {
-			return fmt.Errorf("bad name")
 		}
 
 		l := elb.Listener{
@@ -627,10 +658,6 @@ func testAccCheckAWSELBAttributesHealthCheck(conf *elb.LoadBalancerDescription) 
 		sort.StringSlice(azs).Sort()
 		if !reflect.DeepEqual(azs, zones) {
 			return fmt.Errorf("bad availability_zones")
-		}
-
-		if *conf.LoadBalancerName != "foobar-terraform-test" {
-			return fmt.Errorf("bad name")
 		}
 
 		check := &elb.HealthCheck{
@@ -699,7 +726,6 @@ func testAccCheckAWSELBExists(n string, res *elb.LoadBalancerDescription) resour
 
 const testAccAWSELBConfig = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -720,7 +746,7 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBFullRangeOfCharacters = `
 resource "aws_elb" "foo" {
-  name = "FoobarTerraform-test123"
+  name = "%s"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -734,7 +760,6 @@ resource "aws_elb" "foo" {
 
 const testAccAWSELBAccessLogs = `
 resource "aws_elb" "foo" {
-  name = "FoobarTerraform-test123"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -773,7 +798,6 @@ EOF
 }
 
 resource "aws_elb" "foo" {
-  name = "FoobarTerraform-test123"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -803,9 +827,21 @@ resource "aws_elb" "foo" {
 }
 `
 
+const testAccAWSELBConfig_AvailabilityZonesUpdate = `
+resource "aws_elb" "bar" {
+  availability_zones = ["us-west-2a", "us-west-2b"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+
 const testAccAWSELBConfig_TagUpdate = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -826,7 +862,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigNewInstance = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -848,7 +883,6 @@ resource "aws_instance" "foo" {
 
 const testAccAWSELBConfigListenerSSLCertificateId = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a"]
 
   listener {
@@ -863,7 +897,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigHealthCheck = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -885,7 +918,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigHealthCheck_update = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a"]
 
   listener {
@@ -907,7 +939,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigListener_update = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -921,7 +952,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigIdleTimeout = `
 resource "aws_elb" "bar" {
-	name = "foobar-terraform-test"
 	availability_zones = ["us-west-2a"]
 
 	listener {
@@ -937,7 +967,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigIdleTimeout_update = `
 resource "aws_elb" "bar" {
-	name = "foobar-terraform-test"
 	availability_zones = ["us-west-2a"]
 
 	listener {
@@ -953,7 +982,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigConnectionDraining = `
 resource "aws_elb" "bar" {
-	name = "foobar-terraform-test"
 	availability_zones = ["us-west-2a"]
 
 	listener {
@@ -970,7 +998,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigConnectionDraining_update_timeout = `
 resource "aws_elb" "bar" {
-	name = "foobar-terraform-test"
 	availability_zones = ["us-west-2a"]
 
 	listener {
@@ -987,7 +1014,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigConnectionDraining_update_disable = `
 resource "aws_elb" "bar" {
-	name = "foobar-terraform-test"
 	availability_zones = ["us-west-2a"]
 
 	listener {
@@ -1003,7 +1029,6 @@ resource "aws_elb" "bar" {
 
 const testAccAWSELBConfigSecurityGroups = `
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -1017,9 +1042,6 @@ resource "aws_elb" "bar" {
 }
 
 resource "aws_security_group" "bar" {
-  name = "terraform-elb-acceptance-test"
-  description = "Used in the terraform acceptance tests for the elb resource"
-
   ingress {
     protocol = "tcp"
     from_port = 80
@@ -1031,9 +1053,10 @@ resource "aws_security_group" "bar" {
 
 // This IAM Server config is lifted from
 // builtin/providers/aws/resource_aws_iam_server_certificate_test.go
-var testAccELBIAMServerCertConfig = `
+func testAccELBIAMServerCertConfig(certName string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_server_certificate" "test_cert" {
-  name = "terraform-test-cert"
+  name = "%s"
   certificate_body = <<EOF
 -----BEGIN CERTIFICATE-----
 MIIDCDCCAfACAQEwDQYJKoZIhvcNAQELBQAwgY4xCzAJBgNVBAYTAlVTMREwDwYD
@@ -1103,7 +1126,6 @@ EOF
 }
 
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
@@ -1121,4 +1143,5 @@ resource "aws_elb" "bar" {
 
   cross_zone_load_balancing = true
 }
-`
+`, certName)
+}

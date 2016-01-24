@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -85,8 +86,12 @@ func testAccCheckESDomainDestroy(s *terraform.State) error {
 		}
 
 		_, err := conn.DescribeElasticsearchDomain(opts)
+		// Verify the error is what we want
 		if err != nil {
-			return fmt.Errorf("Error describing ES domains: %q", err.Error())
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+				continue
+			}
+			return err
 		}
 	}
 	return nil

@@ -11,7 +11,7 @@ func TestSetAdd(t *testing.T) {
 	s.Add(5)
 	s.Add(25)
 
-	expected := []interface{}{1, 5, 25}
+	expected := []interface{}{1, 25, 5}
 	actual := s.List()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
@@ -101,7 +101,7 @@ func TestSetUnion(t *testing.T) {
 	union := s1.Union(s2)
 	union.Add(2)
 
-	expected := []interface{}{1, 2, 5, 25}
+	expected := []interface{}{1, 2, 25, 5}
 	actual := union.List()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)

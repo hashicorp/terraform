@@ -3,14 +3,19 @@ package aws
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -22,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
@@ -34,6 +40,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -41,11 +48,13 @@ import (
 )
 
 type Config struct {
-	AccessKey  string
-	SecretKey  string
-	Token      string
-	Region     string
-	MaxRetries int
+	AccessKey     string
+	SecretKey     string
+	CredsFilename string
+	Profile       string
+	Token         string
+	Region        string
+	MaxRetries    int
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
@@ -62,6 +71,7 @@ type AWSClient struct {
 	dsconn             *directoryservice.DirectoryService
 	dynamodbconn       *dynamodb.DynamoDB
 	ec2conn            *ec2.EC2
+	ecrconn            *ecr.ECR
 	ecsconn            *ecs.ECS
 	efsconn            *efs.EFS
 	elbconn            *elb.ELB
@@ -70,6 +80,7 @@ type AWSClient struct {
 	s3conn             *s3.S3
 	sqsconn            *sqs.SQS
 	snsconn            *sns.SNS
+	redshiftconn       *redshift.Redshift
 	r53conn            *route53.Route53
 	region             string
 	rdsconn            *rds.RDS
@@ -104,9 +115,14 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		// We fetched all credential sources in Provider. If they are
-		// available, they'll already be in c. See Provider definition.
-		creds := credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.Token)
+		creds := getCreds(c.AccessKey, c.SecretKey, c.Token, c.Profile, c.CredsFilename)
+		// Call Get to check for credential provider. If nothing found, we'll get an
+		// error, and we can present it nicely to the user
+		_, err = creds.Get()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("Error loading credentials for AWS Provider: %s", err))
+			return nil, &multierror.Error{Errors: errs}
+		}
 		awsConfig := &aws.Config{
 			Credentials: creds,
 			Region:      aws.String(c.Region),
@@ -118,7 +134,7 @@ func (c *Config) Client() (interface{}, error) {
 		sess := session.New(awsConfig)
 		client.iamconn = iam.New(sess)
 
-		err := c.ValidateCredentials(client.iamconn)
+		err = c.ValidateCredentials(client.iamconn)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -179,6 +195,9 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(sess)
 
+		log.Println("[INFO] Initializing ECR Connection")
+		client.ecrconn = ecr.New(sess)
+
 		log.Println("[INFO] Initializing ECS Connection")
 		client.ecsconn = ecs.New(sess)
 
@@ -223,6 +242,10 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CodeCommit SDK connection")
 		client.codecommitconn = codecommit.New(usEast1Sess)
+
+		log.Println("[INFO] Initializing Redshift SDK connection")
+		client.redshiftconn = redshift.New(sess)
+
 	}
 
 	if len(errs) > 0 {
@@ -235,9 +258,9 @@ func (c *Config) Client() (interface{}, error) {
 // ValidateRegion returns an error if the configured region is not a
 // valid aws region and nil otherwise.
 func (c *Config) ValidateRegion() error {
-	var regions = [11]string{"us-east-1", "us-west-2", "us-west-1", "eu-west-1",
+	var regions = [12]string{"us-east-1", "us-west-2", "us-west-1", "eu-west-1",
 		"eu-central-1", "ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
-		"sa-east-1", "cn-north-1", "us-gov-west-1"}
+		"ap-northeast-2", "sa-east-1", "cn-north-1", "us-gov-west-1"}
 
 	for _, valid := range regions {
 		if c.Region == valid {
@@ -315,4 +338,57 @@ func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 	}
 
 	return nil
+}
+
+// This function is responsible for reading credentials from the
+// environment in the case that they're not explicitly specified
+// in the Terraform configuration.
+func getCreds(key, secret, token, profile, credsfile string) *awsCredentials.Credentials {
+	// build a chain provider, lazy-evaulated by aws-sdk
+	providers := []awsCredentials.Provider{
+		&awsCredentials.StaticProvider{Value: awsCredentials.Value{
+			AccessKeyID:     key,
+			SecretAccessKey: secret,
+			SessionToken:    token,
+		}},
+		&awsCredentials.EnvProvider{},
+		&awsCredentials.SharedCredentialsProvider{
+			Filename: credsfile,
+			Profile:  profile,
+		},
+	}
+
+	// We only look in the EC2 metadata API if we can connect
+	// to the metadata service within a reasonable amount of time
+	metadataURL := os.Getenv("AWS_METADATA_URL")
+	if metadataURL == "" {
+		metadataURL = "http://169.254.169.254:80/latest"
+	}
+	c := http.Client{
+		Timeout: 100 * time.Millisecond,
+	}
+
+	r, err := c.Get(metadataURL)
+	// Flag to determine if we should add the EC2Meta data provider. Default false
+	var useIAM bool
+	if err == nil {
+		// AWS will add a "Server: EC2ws" header value for the metadata request. We
+		// check the headers for this value to ensure something else didn't just
+		// happent to be listening on that IP:Port
+		if r.Header["Server"] != nil && strings.Contains(r.Header["Server"][0], "EC2") {
+			useIAM = true
+		}
+	}
+
+	if useIAM {
+		log.Printf("[DEBUG] EC2 Metadata service found, adding EC2 Role Credential Provider")
+		providers = append(providers, &ec2rolecreds.EC2RoleProvider{
+			Client: ec2metadata.New(session.New(&aws.Config{
+				Endpoint: aws.String(metadataURL),
+			})),
+		})
+	} else {
+		log.Printf("[DEBUG] EC2 Metadata service not found, not adding EC2 Role Credential Provider")
+	}
+	return awsCredentials.NewChainCredentials(providers)
 }

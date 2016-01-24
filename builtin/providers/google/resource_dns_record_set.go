@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/dns/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceDnsRecordSet() *schema.Resource {
@@ -114,6 +115,14 @@ func resourceDnsRecordSetRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := config.clientDns.ResourceRecordSets.List(
 		config.Project, zone).Name(name).Type(dnsType).Do()
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing DNS Record Set %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error reading DNS RecordSet: %#v", err)
 	}
 	if len(resp.Rrsets) == 0 {

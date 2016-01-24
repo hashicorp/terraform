@@ -38,13 +38,15 @@ func testAccCheckAWSEcsClusterDestroy(s *terraform.State) error {
 			Clusters: []*string{aws.String(rs.Primary.ID)},
 		})
 
-		if err == nil {
-			if len(out.Clusters) != 0 {
-				return fmt.Errorf("ECS cluster still exists:\n%#v", out.Clusters)
-			}
+		if err != nil {
+			return err
 		}
 
-		return err
+		for _, c := range out.Clusters {
+			if *c.ClusterArn == rs.Primary.ID && *c.Status != "INACTIVE" {
+				return fmt.Errorf("ECS cluster still exists:\n%s", c)
+			}
+		}
 	}
 
 	return nil

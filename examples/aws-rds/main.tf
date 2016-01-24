@@ -1,5 +1,5 @@
 resource "aws_db_instance" "default" {
-  depends_on = "aws_security_group.default"
+  depends_on = ["aws_security_group.default"]
   identifier = "${var.identifier}"
   allocated_storage = "${var.storage}"
   engine = "${var.engine}"

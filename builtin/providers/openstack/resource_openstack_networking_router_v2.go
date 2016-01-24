@@ -87,7 +87,7 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Waiting for OpenStack Neutron Router (%s) to become available", n.ID)
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD", "PENDING_CREATE", "PENDING_UPDATE"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForRouterActive(networkingClient, n.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -167,7 +167,7 @@ func resourceNetworkingRouterV2Delete(d *schema.ResourceData, meta interface{}) 
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForRouterDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,

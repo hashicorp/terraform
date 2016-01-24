@@ -37,3 +37,15 @@ EOT
     ]
   }
 }
+
+resource "aws_instance" "heredocwithnumbers" {
+  ami = "foo"
+
+  provisioner "local-exec" {
+    command = <<FOO123
+echo several
+      lines
+    of output
+FOO123
+  }
+}

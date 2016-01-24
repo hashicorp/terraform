@@ -3,6 +3,7 @@ package google
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -150,6 +151,7 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
+			log.Printf("[WARN] Removing Firewall %q because it's gone", d.Get("name").(string))
 			d.SetId("")
 
 			return nil

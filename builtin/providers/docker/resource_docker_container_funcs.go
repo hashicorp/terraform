@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	dc "github.com/fsouza/go-dockerclient"
@@ -54,6 +53,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Cmd = stringListToStringSlice(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("entrypoint"); ok {
+		createOpts.Config.Entrypoint = stringListToStringSlice(v.([]interface{}))
+	}
+
 	exposedPorts := map[dc.Port]struct{}{}
 	portBindings := map[dc.Port][]dc.PortBinding{}
 
@@ -62,6 +65,11 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 	if len(exposedPorts) != 0 {
 		createOpts.Config.ExposedPorts = exposedPorts
+	}
+
+	extraHosts := []string{}
+	if v, ok := d.GetOk("host"); ok {
+		extraHosts = extraHostsSetToDockerExtraHosts(v.(*schema.Set))
 	}
 
 	volumes := map[string]struct{}{}
@@ -78,25 +86,28 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Volumes = volumes
 	}
 
-	var retContainer *dc.Container
-	if retContainer, err = client.CreateContainer(createOpts); err != nil {
-		return fmt.Errorf("Unable to create container: %s", err)
+	if v, ok := d.GetOk("labels"); ok {
+		createOpts.Config.Labels = mapTypeMapValsToString(v.(map[string]interface{}))
 	}
-	if retContainer == nil {
-		return fmt.Errorf("Returned container is nil")
-	}
-
-	d.SetId(retContainer.ID)
 
 	hostConfig := &dc.HostConfig{
 		Privileged:      d.Get("privileged").(bool),
 		PublishAllPorts: d.Get("publish_all_ports").(bool),
+		RestartPolicy: dc.RestartPolicy{
+			Name:              d.Get("restart").(string),
+			MaximumRetryCount: d.Get("max_retry_count").(int),
+		},
+		LogConfig: dc.LogConfig{
+			Type: d.Get("log_driver").(string),
+		},
 	}
 
 	if len(portBindings) != 0 {
 		hostConfig.PortBindings = portBindings
 	}
-
+	if len(extraHosts) != 0 {
+		hostConfig.ExtraHosts = extraHosts
+	}
 	if len(binds) != 0 {
 		hostConfig.Binds = binds
 	}
@@ -112,6 +123,50 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
 	}
 
+	if v, ok := d.GetOk("memory"); ok {
+		hostConfig.Memory = int64(v.(int)) * 1024 * 1024
+	}
+
+	if v, ok := d.GetOk("memory_swap"); ok {
+		swap := int64(v.(int))
+		if swap > 0 {
+			swap = swap * 1024 * 1024
+		}
+		hostConfig.MemorySwap = swap
+	}
+
+	if v, ok := d.GetOk("cpu_shares"); ok {
+		hostConfig.CPUShares = int64(v.(int))
+	}
+
+	if v, ok := d.GetOk("log_opts"); ok {
+		hostConfig.LogConfig.Config = mapTypeMapValsToString(v.(map[string]interface{}))
+	}
+
+	if v, ok := d.GetOk("network_mode"); ok {
+		hostConfig.NetworkMode = v.(string)
+	}
+
+	createOpts.HostConfig = hostConfig
+
+	var retContainer *dc.Container
+	if retContainer, err = client.CreateContainer(createOpts); err != nil {
+		return fmt.Errorf("Unable to create container: %s", err)
+	}
+	if retContainer == nil {
+		return fmt.Errorf("Returned container is nil")
+	}
+
+	d.SetId(retContainer.ID)
+
+	if v, ok := d.GetOk("networks"); ok {
+		connectionOpts := dc.NetworkConnectionOptions{Container: retContainer.ID}
+
+		for _, network := range v.(*schema.Set).List() {
+			client.ConnectNetwork(network.(string), connectionOpts)
+		}
+	}
+
 	creationTime = time.Now()
 	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
 		return fmt.Errorf("Unable to start container: %s", err)
@@ -123,7 +178,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dc.Client)
 
-	apiContainer, err := fetchDockerContainer(d.Get("name").(string), client)
+	apiContainer, err := fetchDockerContainer(d.Id(), client)
 	if err != nil {
 		return err
 	}
@@ -223,7 +278,15 @@ func stringSetToStringSlice(stringSet *schema.Set) []string {
 	return ret
 }
 
-func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, error) {
+func mapTypeMapValsToString(typeMap map[string]interface{}) map[string]string {
+	mapped := make(map[string]string, len(typeMap))
+	for k, v := range typeMap {
+		mapped[k] = v.(string)
+	}
+	return mapped
+}
+
+func fetchDockerContainer(ID string, client *dc.Client) (*dc.APIContainers, error) {
 	apiContainers, err := client.ListContainers(dc.ListContainersOptions{All: true})
 
 	if err != nil {
@@ -231,20 +294,8 @@ func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, er
 	}
 
 	for _, apiContainer := range apiContainers {
-		// Sometimes the Docker API prefixes container names with /
-		// like it does in these commands. But if there's no
-		// set name, it just uses the ID without a /...ugh.
-		switch len(apiContainer.Names) {
-		case 0:
-			if apiContainer.ID == name {
-				return &apiContainer, nil
-			}
-		default:
-			for _, containerName := range apiContainer.Names {
-				if strings.TrimLeft(containerName, "/") == name {
-					return &apiContainer, nil
-				}
-			}
+		if apiContainer.ID == ID {
+			return &apiContainer, nil
 		}
 	}
 
@@ -280,6 +331,19 @@ func portSetToDockerPorts(ports *schema.Set) (map[dc.Port]struct{}, map[dc.Port]
 	return retExposedPorts, retPortBindings
 }
 
+func extraHostsSetToDockerExtraHosts(extraHosts *schema.Set) []string {
+	retExtraHosts := []string{}
+
+	for _, hostInt := range extraHosts.List() {
+		host := hostInt.(map[string]interface{})
+		ip := host["ip"].(string)
+		hostname := host["host"].(string)
+		retExtraHosts = append(retExtraHosts, hostname+":"+ip)
+	}
+
+	return retExtraHosts
+}
+
 func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []string, []string, error) {
 	retVolumeMap := map[string]struct{}{}
 	retHostConfigBinds := []string{}
@@ -289,7 +353,10 @@ func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []strin
 		volume := volumeInt.(map[string]interface{})
 		fromContainer := volume["from_container"].(string)
 		containerPath := volume["container_path"].(string)
-		hostPath := volume["host_path"].(string)
+		volumeName := volume["volume_name"].(string)
+		if len(volumeName) == 0 {
+			volumeName = volume["host_path"].(string)
+		}
 		readOnly := volume["read_only"].(bool)
 
 		switch {
@@ -299,13 +366,13 @@ func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []strin
 			return retVolumeMap, retHostConfigBinds, retVolumeFromContainers, errors.New("Both a container and a path specified in a volume entry")
 		case len(fromContainer) != 0:
 			retVolumeFromContainers = append(retVolumeFromContainers, fromContainer)
-		case len(hostPath) != 0:
+		case len(volumeName) != 0:
 			readWrite := "rw"
 			if readOnly {
 				readWrite = "ro"
 			}
 			retVolumeMap[containerPath] = struct{}{}
-			retHostConfigBinds = append(retHostConfigBinds, hostPath+":"+containerPath+":"+readWrite)
+			retHostConfigBinds = append(retHostConfigBinds, volumeName+":"+containerPath+":"+readWrite)
 		default:
 			retVolumeMap[containerPath] = struct{}{}
 		}

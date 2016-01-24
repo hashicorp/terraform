@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/route53"
 )
 
@@ -277,6 +278,12 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 
 		resp, err := conn.ListResourceRecordSets(lopts)
 		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				// if NoSuchHostedZone, then all the things are destroyed
+				if awsErr.Code() == "NoSuchHostedZone" {
+					return nil
+				}
+			}
 			return err
 		}
 		if len(resp.ResourceRecordSets) == 0 {

@@ -56,4 +56,4 @@ The following attributes are exported:
 * `unique_id` - The [unique ID][1] assigned by AWS.
 * `arn` - The ARN assigned by AWS for this user.
 
-  [1]: http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html#GUIDs
+  [1]: https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html#GUIDs

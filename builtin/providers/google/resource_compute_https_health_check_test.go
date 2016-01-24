@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -137,35 +138,35 @@ func testAccCheckComputeHttpsHealthCheckThresholds(healthy, unhealthy int64, hea
 	}
 }
 
-const testAccComputeHttpsHealthCheck_basic = `
+var testAccComputeHttpsHealthCheck_basic = fmt.Sprintf(`
 resource "google_compute_https_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
 	healthy_threshold = 3
 	host = "foobar"
-	name = "terraform-test"
+	name = "httpshealth-test-%s"
 	port = "80"
 	request_path = "/health_check"
 	timeout_sec = 2
 	unhealthy_threshold = 3
 }
-`
+`, acctest.RandString(10))
 
-const testAccComputeHttpsHealthCheck_update1 = `
+var testAccComputeHttpsHealthCheck_update1 = fmt.Sprintf(`
 resource "google_compute_https_health_check" "foobar" {
-	name = "terraform-test"
+	name = "httpshealth-test-%s"
 	description = "Resource created for Terraform acceptance testing"
 	request_path = "/not_default"
 }
-`
+`, acctest.RandString(10))
 
 /* Change description, restore request_path to default, and change
 * thresholds from defaults */
-const testAccComputeHttpsHealthCheck_update2 = `
+var testAccComputeHttpsHealthCheck_update2 = fmt.Sprintf(`
 resource "google_compute_https_health_check" "foobar" {
-	name = "terraform-test"
+	name = "httpshealth-test-%s"
 	description = "Resource updated for Terraform acceptance testing"
 	healthy_threshold = 10
 	unhealthy_threshold = 10
 }
-`
+`, acctest.RandString(10))

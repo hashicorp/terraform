@@ -93,6 +93,12 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
+	// Before creating the security group, make sure all rules are valid.
+	if err := checkSecGroupV2RulesForErrors(d); err != nil {
+		return err
+	}
+
+	// If all rules are valid, proceed with creating the security gruop.
 	createOpts := secgroups.CreateOpts{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
@@ -106,6 +112,7 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(sg.ID)
 
+	// Now that the security group has been created, iterate through each rule and create it
 	createRuleOptsList := resourceSecGroupRulesV2(d)
 	for _, createRuleOpts := range createRuleOptsList {
 		_, err := secgroups.CreateRule(computeClient, createRuleOpts).Extract()
@@ -210,7 +217,7 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    SecGroupV2StateRefreshFunc(computeClient, d),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -249,6 +256,42 @@ func resourceSecGroupRuleCreateOptsV2(d *schema.ResourceData, rawRule interface{
 		CIDR:          rawRuleMap["cidr"].(string),
 		FromGroupID:   groupId,
 	}
+}
+
+func checkSecGroupV2RulesForErrors(d *schema.ResourceData) error {
+	rawRules := d.Get("rule").(*schema.Set).List()
+	for _, rawRule := range rawRules {
+		rawRuleMap := rawRule.(map[string]interface{})
+
+		// only one of cidr, from_group_id, or self can be set
+		cidr := rawRuleMap["cidr"].(string)
+		groupId := rawRuleMap["from_group_id"].(string)
+		self := rawRuleMap["self"].(bool)
+		errorMessage := fmt.Errorf("Only one of cidr, from_group_id, or self can be set.")
+
+		// if cidr is set, from_group_id and self cannot be set
+		if cidr != "" {
+			if groupId != "" || self {
+				return errorMessage
+			}
+		}
+
+		// if from_group_id is set, cidr and self cannot be set
+		if groupId != "" {
+			if cidr != "" || self {
+				return errorMessage
+			}
+		}
+
+		// if self is set, cidr and from_group_id cannot be set
+		if self {
+			if cidr != "" || groupId != "" {
+				return errorMessage
+			}
+		}
+	}
+
+	return nil
 }
 
 func resourceSecGroupRuleV2(d *schema.ResourceData, rawRule interface{}) secgroups.Rule {

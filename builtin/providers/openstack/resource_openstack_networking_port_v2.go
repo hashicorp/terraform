@@ -127,7 +127,7 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Waiting for OpenStack Neutron Port (%s) to become available.", p.ID)
 
 	stateConf := &resource.StateChangeConf{
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForNetworkPortActive(networkingClient, p.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -220,7 +220,7 @@ func resourceNetworkingPortV2Delete(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForNetworkPortDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -245,8 +245,13 @@ func resourcePortSecurityGroupsV2(d *schema.ResourceData) []string {
 	return groups
 }
 
-func resourcePortFixedIpsV2(d *schema.ResourceData) []ports.IP {
+func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
 	rawIP := d.Get("fixed_ip").([]interface{})
+
+	if len(rawIP) == 0 {
+		return nil
+	}
+
 	ip := make([]ports.IP, len(rawIP))
 	for i, raw := range rawIP {
 		rawMap := raw.(map[string]interface{})
@@ -255,8 +260,8 @@ func resourcePortFixedIpsV2(d *schema.ResourceData) []ports.IP {
 			IPAddress: rawMap["ip_address"].(string),
 		}
 	}
-
 	return ip
+
 }
 
 func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {

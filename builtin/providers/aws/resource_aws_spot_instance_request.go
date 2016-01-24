@@ -132,7 +132,7 @@ func resourceAwsSpotInstanceRequestCreate(d *schema.ResourceData, meta interface
 		spotStateConf := &resource.StateChangeConf{
 			// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html
 			Pending:    []string{"start", "pending-evaluation", "pending-fulfillment"},
-			Target:     "fulfilled",
+			Target:     []string{"fulfilled"},
 			Refresh:    SpotInstanceStateRefreshFunc(conn, sir),
 			Timeout:    10 * time.Minute,
 			Delay:      10 * time.Second,
@@ -194,8 +194,9 @@ func resourceAwsSpotInstanceRequestRead(d *schema.ResourceData, meta interface{}
 			return fmt.Errorf("[ERR] Error reading Spot Instance Data: %s", err)
 		}
 	}
-	d.Set("spot_request_state", *request.State)
-	d.Set("block_duration_minutes", *request.BlockDurationMinutes)
+
+	d.Set("spot_request_state", request.State)
+	d.Set("block_duration_minutes", request.BlockDurationMinutes)
 	d.Set("tags", tagsToMap(request.Tags))
 
 	return nil
