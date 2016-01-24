@@ -64,7 +64,7 @@ The following arguments are supported:
     service catalog. It can be set using the OS_ENDPOINT_TYPE environment
     variable. If not set, public endpoints is used.
 
-## Testing
+## Testing and Development
 
 In order to run the Acceptance Tests for development, the following environment
 variables must also be set:
@@ -79,3 +79,15 @@ variables must also be set:
 * `OS_POOL_NAME` - The name of a Floating IP pool.
 
 * `OS_NETWORK_ID` - The UUID of a network in your test environment.
+
+To make development easier, the `builtin/providers/openstack/devstack/deploy.sh`
+script will assist in installing and configuring a standardized
+[DevStack](http://docs.openstack.org/developer/devstack/) environment along with
+Golang, Terraform, and all development dependencies. It will also set the required
+environment variables in the `devstack/openrc` file.
+
+Do not run the `deploy.sh` script on your workstation or any type of production
+server. Instead, run the script within a disposable virtual machine.
+[Here's](https://github.com/berendt/terraform-configurations) an example of a
+Terraform configuration that will create an OpenStack instance and then install and
+configure DevStack inside.

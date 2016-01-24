@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -149,6 +152,30 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"logging": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"target_bucket": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"target_prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["target_bucket"]))
+					buf.WriteString(fmt.Sprintf("%s-", m["target_prefix"]))
+					return hashcode.String(buf.String())
+				},
+			},
+
 			"tags": tagsSchema(),
 
 			"force_destroy": &schema.Schema{
@@ -225,6 +252,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if d.HasChange("acl") {
 		if err := resourceAwsS3BucketAclUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("logging") {
+		if err := resourceAwsS3BucketLoggingUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -308,7 +341,14 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if v := ws.RedirectAllRequestsTo; v != nil {
-			w["redirect_all_requests_to"] = *v.HostName
+			if v.Protocol == nil {
+				w["redirect_all_requests_to"] = *v.HostName
+			} else {
+				w["redirect_all_requests_to"] = (&url.URL{
+					Host:   *v.HostName,
+					Scheme: *v.Protocol,
+				}).String()
+			}
 		}
 
 		websites = append(websites, w)
@@ -335,6 +375,29 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		vcl = append(vcl, vc)
 		if err := d.Set("versioning", vcl); err != nil {
+			return err
+		}
+	}
+
+	// Read the logging configuration
+	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, logging: %v", d.Id(), logging)
+	if v := logging.LoggingEnabled; v != nil {
+		lcl := make([]map[string]interface{}, 0, 1)
+		lc := make(map[string]interface{})
+		if *v.TargetBucket != "" {
+			lc["target_bucket"] = *v.TargetBucket
+		}
+		if *v.TargetPrefix != "" {
+			lc["target_prefix"] = *v.TargetPrefix
+		}
+		lcl = append(lcl, lc)
+		if err := d.Set("logging", lcl); err != nil {
 			return err
 		}
 	}
@@ -406,30 +469,46 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 				log.Printf("[DEBUG] S3 Bucket attempting to forceDestroy %+v", err)
 
 				bucket := d.Get("bucket").(string)
-				resp, err := s3conn.ListObjects(
-					&s3.ListObjectsInput{
+				resp, err := s3conn.ListObjectVersions(
+					&s3.ListObjectVersionsInput{
 						Bucket: aws.String(bucket),
 					},
 				)
 
 				if err != nil {
-					return fmt.Errorf("Error S3 Bucket list Objects err: %s", err)
+					return fmt.Errorf("Error S3 Bucket list Object Versions err: %s", err)
 				}
 
-				objectsToDelete := make([]*s3.ObjectIdentifier, len(resp.Contents))
-				for i, v := range resp.Contents {
-					objectsToDelete[i] = &s3.ObjectIdentifier{
-						Key: v.Key,
+				objectsToDelete := make([]*s3.ObjectIdentifier, 0)
+
+				if len(resp.DeleteMarkers) != 0 {
+
+					for _, v := range resp.DeleteMarkers {
+						objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+							Key:       v.Key,
+							VersionId: v.VersionId,
+						})
 					}
 				}
-				_, err = s3conn.DeleteObjects(
-					&s3.DeleteObjectsInput{
-						Bucket: aws.String(bucket),
-						Delete: &s3.Delete{
-							Objects: objectsToDelete,
-						},
+
+				if len(resp.Versions) != 0 {
+					for _, v := range resp.Versions {
+						objectsToDelete = append(objectsToDelete, &s3.ObjectIdentifier{
+							Key:       v.Key,
+							VersionId: v.VersionId,
+						})
+					}
+				}
+
+				params := &s3.DeleteObjectsInput{
+					Bucket: aws.String(bucket),
+					Delete: &s3.Delete{
+						Objects: objectsToDelete,
 					},
-				)
+				}
+
+				_, err = s3conn.DeleteObjects(params)
+
 				if err != nil {
 					return fmt.Errorf("Error S3 Bucket force_destroy error deleting: %s", err)
 				}
@@ -450,9 +529,24 @@ func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) erro
 	if policy != "" {
 		log.Printf("[DEBUG] S3 bucket: %s, put policy: %s", bucket, policy)
 
-		_, err := s3conn.PutBucketPolicy(&s3.PutBucketPolicyInput{
+		params := &s3.PutBucketPolicyInput{
 			Bucket: aws.String(bucket),
 			Policy: aws.String(policy),
+		}
+
+		err := resource.Retry(1*time.Minute, func() error {
+			if _, err := s3conn.PutBucketPolicy(params); err != nil {
+				if awserr, ok := err.(awserr.Error); ok {
+					if awserr.Code() == "MalformedPolicy" {
+						// Retryable
+						return awserr
+					}
+				}
+				// Not retryable
+				return resource.RetryError{Err: err}
+			}
+			// No error
+			return nil
 		})
 
 		if err != nil {
@@ -566,7 +660,12 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 	}
 
 	if redirectAllRequestsTo != "" {
-		websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
+		redirect, err := url.Parse(redirectAllRequestsTo)
+		if err == nil && redirect.Scheme != "" {
+			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirect.Host), Protocol: aws.String(redirect.Scheme)}
+		} else {
+			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
+		}
 	}
 
 	putInput := &s3.PutBucketWebsiteInput{
@@ -688,6 +787,39 @@ func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) 
 	_, err := s3conn.PutBucketVersioning(i)
 	if err != nil {
 		return fmt.Errorf("Error putting S3 versioning: %s", err)
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketLoggingUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	logging := d.Get("logging").(*schema.Set).List()
+	bucket := d.Get("bucket").(string)
+	loggingStatus := &s3.BucketLoggingStatus{}
+
+	if len(logging) > 0 {
+		c := logging[0].(map[string]interface{})
+
+		loggingEnabled := &s3.LoggingEnabled{}
+		if val, ok := c["target_bucket"]; ok {
+			loggingEnabled.TargetBucket = aws.String(val.(string))
+		}
+		if val, ok := c["target_prefix"]; ok {
+			loggingEnabled.TargetPrefix = aws.String(val.(string))
+		}
+
+		loggingStatus.LoggingEnabled = loggingEnabled
+	}
+
+	i := &s3.PutBucketLoggingInput{
+		Bucket:              aws.String(bucket),
+		BucketLoggingStatus: loggingStatus,
+	}
+	log.Printf("[DEBUG] S3 put bucket logging: %#v", i)
+
+	_, err := s3conn.PutBucketLogging(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 logging: %s", err)
 	}
 
 	return nil

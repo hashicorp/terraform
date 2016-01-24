@@ -1,0 +1,103 @@
+
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+          <ul class="nav docs-sidenav">
+            <li<%= sidebar_current("docs-home") %>>
+              <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+            </li>
+
+            <li<%= sidebar_current("docs-azurerm-index") %>>
+              <a href="/docs/providers/azurerm/index.html">Azure Resource Manager Provider</a>
+            </li>
+
+            <li<%= sidebar_current("docs-azurerm-resource-resource-group") %>>
+              <a href="/docs/providers/azurerm/r/resource_group.html">azurerm_resource_group</a>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-cdn/) %>>
+              <a href="#">CDN Resources</a>
+              <ul class="nav nav-visible">
+
+                <li<%= sidebar_current("docs-azurerm-resource-cdn-profile") %>>
+                  <a href="/docs/providers/azurerm/r/cdn_profile.html">azurerm_cdn_profile</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-cdn-endpoint") %>>
+                  <a href="/docs/providers/azurerm/r/cdn_endpoint.html">azurerm_cdn_endpoint</a>
+                </li>
+
+              </ul>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-network/) %>>
+              <a href="#">Network Resources</a>
+              <ul class="nav nav-visible">
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-virtual-network") %>>
+                  <a href="/docs/providers/azurerm/r/virtual_network.html">azurerm_virtual_network</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-security-group") %>>
+                  <a href="/docs/providers/azurerm/r/network_security_group.html">azurerm_network_security_group</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-security-rule") %>>
+                  <a href="/docs/providers/azurerm/r/network_security_rule.html">azurerm_network_security_rule</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-public-ip") %>>
+                  <a href="/docs/providers/azurerm/r/public_ip.html">azurerm_public_ip</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-subnet") %>>
+                  <a href="/docs/providers/azurerm/r/subnet.html">azurerm_subnet</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-local-network-gateway") %>>
+                  <a href="/docs/providers/azurerm/r/local_network_gateway.html">azurerm_local_network_gateway</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-interface") %>>
+                  <a href="/docs/providers/azurerm/r/network_interface.html">azurerm_network_interface</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-route-table") %>>
+                  <a href="/docs/providers/azurerm/r/route_table.html">azurerm_route_table</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-route") %>>
+                  <a href="/docs/providers/azurerm/r/route.html">azurerm_route</a>
+                </li>
+
+              </ul>
+            </li>
+            
+            <li<%= sidebar_current(/^docs-azurerm-resource-storage/) %>>
+              <a href="#">Storage Resources</a>
+              <ul class="nav nav-visible">
+
+                <li<%= sidebar_current("docs-azurerm-resource-storage-account") %>>
+                  <a href="/docs/providers/azurerm/r/storage_account.html">azurerm_storage_account</a>
+                </li>
+
+              </ul>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-virtualmachine/) %>>
+              <a href="#">Virtual Machine Resources</a>
+              <ul class="nav nav-visible">
+
+                <li<%= sidebar_current("docs-azurerm-resource-virtualmachine-availability-set") %>>
+                  <a href="/docs/providers/azurerm/r/availability_set.html">azurerm_availability_set</a>
+                </li>
+
+              </ul>
+            </li>
+
+          </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

@@ -68,7 +68,7 @@ new member.
 * `port` - (Required) An integer representing the port on which the member is
 hosted. Changing this creates a new member.
 
-* `admin_state_up` - (Optional) The administrative state of the member.
+* `admin_state_up` - (Required) The administrative state of the member.
 Acceptable values are 'true' and 'false'. Changing this value updates the
 state of the existing member.
 

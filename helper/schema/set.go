@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"sync"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -43,7 +44,7 @@ func HashSchema(schema *Schema) SchemaSetFunc {
 type Set struct {
 	F SchemaSetFunc
 
-	m    map[int]interface{}
+	m    map[string]interface{}
 	once sync.Once
 }
 
@@ -65,7 +66,7 @@ func CopySet(otherSet *Set) *Set {
 
 // Add adds an item to the set if it isn't already in the set.
 func (s *Set) Add(item interface{}) {
-	s.add(item)
+	s.add(item, false)
 }
 
 // Remove removes an item if it's already in the set. Idempotent.
@@ -157,13 +158,17 @@ func (s *Set) GoString() string {
 }
 
 func (s *Set) init() {
-	s.m = make(map[int]interface{})
+	s.m = make(map[string]interface{})
 }
 
-func (s *Set) add(item interface{}) int {
+func (s *Set) add(item interface{}, computed bool) string {
 	s.once.Do(s.init)
 
 	code := s.hash(item)
+	if computed {
+		code = "~" + code
+	}
+
 	if _, ok := s.m[code]; !ok {
 		s.m[code] = item
 	}
@@ -171,34 +176,34 @@ func (s *Set) add(item interface{}) int {
 	return code
 }
 
-func (s *Set) hash(item interface{}) int {
+func (s *Set) hash(item interface{}) string {
 	code := s.F(item)
 	// Always return a nonnegative hashcode.
 	if code < 0 {
-		return -code
+		code = -code
 	}
-	return code
+	return strconv.Itoa(code)
 }
 
-func (s *Set) remove(item interface{}) int {
+func (s *Set) remove(item interface{}) string {
 	s.once.Do(s.init)
 
-	code := s.F(item)
+	code := s.hash(item)
 	delete(s.m, code)
 
 	return code
 }
 
 func (s *Set) index(item interface{}) int {
-	return sort.SearchInts(s.listCode(), s.hash(item))
+	return sort.SearchStrings(s.listCode(), s.hash(item))
 }
 
-func (s *Set) listCode() []int {
+func (s *Set) listCode() []string {
 	// Sort the hash codes so the order of the list is deterministic
-	keys := make([]int, 0, len(s.m))
-	for k, _ := range s.m {
+	keys := make([]string, 0, len(s.m))
+	for k := range s.m {
 		keys = append(keys, k)
 	}
-	sort.Sort(sort.IntSlice(keys))
+	sort.Sort(sort.StringSlice(keys))
 	return keys
 }

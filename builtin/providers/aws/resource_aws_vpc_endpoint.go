@@ -103,7 +103,9 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("vpc_id", vpce.VpcId)
 	d.Set("policy", normalizeJson(*vpce.PolicyDocument))
 	d.Set("service_name", vpce.ServiceName)
-	d.Set("route_table_ids", vpce.RouteTableIds)
+	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -119,12 +121,12 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		add := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
 		if len(add) > 0 {
 			input.AddRouteTableIds = add
 		}
 
-		remove := expandStringList(ns.Difference(os).List())
+		remove := expandStringList(os.Difference(ns).List())
 		if len(remove) > 0 {
 			input.RemoveRouteTableIds = remove
 		}
@@ -142,7 +144,7 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	log.Printf("[DEBUG] VPC Endpoint %q updated", input.VpcEndpointId)
 
-	return nil
+	return resourceAwsVPCEndpointRead(d, meta)
 }
 
 func resourceAwsVPCEndpointDelete(d *schema.ResourceData, meta interface{}) error {

@@ -14,14 +14,23 @@ description: |-
 
 ```
 resource "google_container_cluster" "primary" {
-	name = "marcellus-wallace"
-	zone = "us-central1-a"
-	initial_node_count = 3
+    name = "marcellus-wallace"
+    zone = "us-central1-a"
+    initial_node_count = 3
 
-	master_auth {
-		username = "mr.yoda"
-		password = "adoy.rm"
-	}
+    master_auth {
+        username = "mr.yoda"
+        password = "adoy.rm"
+    }
+
+    node_config {
+        oauth_scopes = [
+            "https://www.googleapis.com/auth/compute",
+            "https://www.googleapis.com/auth/devstorage.read_only",
+            "https://www.googleapis.com/auth/logging.write",
+            "https://www.googleapis.com/auth/monitoring"
+        ]
+    }
 }
 ```
 
@@ -41,7 +50,7 @@ resource "google_container_cluster" "primary" {
 * `monitoring_service` - (Optional) The monitoring service that the cluster should write metrics to.
   Available options include `monitoring.googleapis.com` and `none`. Defaults to `monitoring.googleapis.com`
 * `network` - (Optional) The name of the Google Compute Engine network to which the cluster is connected
-* `node_config` -  (Optional)The machine type and image to use for all nodes in this cluster
+* `node_config` -  (Optional) The machine type and image to use for all nodes in this cluster
 
 **Master Auth** supports the following arguments:
 

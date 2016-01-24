@@ -34,14 +34,26 @@ resource "aws_instance" "web" {
 
 The following arguments are supported in the `provider` block:
 
-* `access_key` - (Required) This is the AWS access key. It must be provided, but
-  it can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable.
+* `access_key` - (Optional) This is the AWS access key. It must be provided, but
+  it can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable, or via
+  a shared credentials file if `profile` is specified.
 
-* `secret_key` - (Required) This is the AWS secret key. It must be provided, but
-  it can also be sourced from the `AWS_SECRET_ACCESS_KEY` environment variable.
+* `secret_key` - (Optional) This is the AWS secret key. It must be provided, but
+  it can also be sourced from the `AWS_SECRET_ACCESS_KEY` environment variable, or
+  via a shared credentials file if `profile` is specified.
 
 * `region` - (Required) This is the AWS region. It must be provided, but
-  it can also be sourced from the `AWS_DEFAULT_REGION` environment variables.
+  it can also be sourced from the `AWS_DEFAULT_REGION` environment variables, or
+  via a shared credentials file if `profile` is specified.
+
+* `profile` - (Optional) This is the AWS profile name as set in the shared credentials
+  file.
+
+* `shared_credentials_file` = (Optional) This is the path to the shared credentials file.
+  If this is not set and a profile is specified, ~/.aws/credentials will be used.
+
+* `token` - (Optional) Use this to set an MFA token. It can also be sourced
+  from the `AWS_SECURITY_TOKEN` environment variable.
 
 * `max_retries` - (Optional) This is the maximum number of times an API call is
   being retried in case requests are being throttled or experience transient failures.
@@ -55,8 +67,10 @@ The following arguments are supported in the `provider` block:
   to prevent you mistakenly using a wrong one (and end up destroying live environment).
   Conflicts with `allowed_account_ids`.
 
-* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to dynamodb-local.
+* `dynamodb_endpoint` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  dynamodb-local.
 
-* `kinesis_endpoint` - (Optional) Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to kinesalite.
+* `kinesis_endpoint` - (Optional) Use this to override the default endpoint URL
+  constructed from the `region`. It's typically used to connect to kinesalite.
 
-* `token` - (Optional) Use this to set an MFA token. It can also be sourced from the `AWS_SECURITY_TOKEN` environment variable.

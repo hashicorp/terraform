@@ -17,8 +17,6 @@ func resourceAwsKeyPairMigrateState(
 	default:
 		return is, fmt.Errorf("Unexpected schema version: %d", v)
 	}
-
-	return is, nil
 }
 
 func migrateKeyPairStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceState, error) {

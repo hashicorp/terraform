@@ -81,7 +81,7 @@ func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error 
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, firewall.ID),
 		Timeout:    30 * time.Second,
 		Delay:      0,
@@ -150,7 +150,7 @@ func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error 
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, d.Id()),
 		Timeout:    30 * time.Second,
 		Delay:      0,
@@ -178,7 +178,7 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForFirewallActive(networkingClient, d.Id()),
 		Timeout:    30 * time.Second,
 		Delay:      0,
@@ -195,7 +195,7 @@ func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error 
 
 	stateConf = &resource.StateChangeConf{
 		Pending:    []string{"DELETING"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForFirewallDeletion(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      0,

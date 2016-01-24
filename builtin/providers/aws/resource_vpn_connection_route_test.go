@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAwsVpnConnectionRoute_basic(t *testing.T) {
+func TestAccAWSVpnConnectionRoute_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -44,11 +45,57 @@ func TestAccAwsVpnConnectionRoute_basic(t *testing.T) {
 }
 
 func testAccAwsVpnConnectionRouteDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
-	}
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_vpn_connection_route" {
+			continue
+		}
 
-	return nil
+		cidrBlock, vpnConnectionId := resourceAwsVpnConnectionRouteParseId(rs.Primary.ID)
+
+		routeFilters := []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("route.destination-cidr-block"),
+				Values: []*string{aws.String(cidrBlock)},
+			},
+			&ec2.Filter{
+				Name:   aws.String("vpn-connection-id"),
+				Values: []*string{aws.String(vpnConnectionId)},
+			},
+		}
+
+		resp, err := conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
+			Filters: routeFilters,
+		})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
+				// not found, all good
+				return nil
+			}
+			return err
+		}
+
+		var vpnc *ec2.VpnConnection
+		if resp != nil {
+			// range over the connections and isolate the one we created
+			for _, v := range resp.VpnConnections {
+				if *v.VpnConnectionId == vpnConnectionId {
+					vpnc = v
+				}
+			}
+
+			if vpnc == nil {
+				// vpn connection not found, so that's good...
+				return nil
+			}
+
+			if vpnc.State != nil && *vpnc.State == "deleted" {
+				return nil
+			}
+		}
+
+	}
+	return fmt.Errorf("Fall through error, Check Destroy criteria not met")
 }
 
 func testAccAwsVpnConnectionRoute(

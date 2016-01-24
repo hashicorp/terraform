@@ -105,7 +105,7 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 	// reuse db_instance refresh func
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "backing-up", "modifying"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
@@ -205,7 +205,7 @@ func resourceAwsRDSClusterInstanceDelete(d *schema.ResourceData, meta interface{
 	log.Println("[INFO] Waiting for RDS Cluster Instance to be destroyed")
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"modifying", "deleting"},
-		Target:     "",
+		Target:     []string{},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,

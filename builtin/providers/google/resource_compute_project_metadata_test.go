@@ -193,7 +193,7 @@ resource "google_compute_project_metadata" "fizzbuzz" {
 const testAccComputeProject_basic1_metadata = `
 resource "google_compute_project_metadata" "fizzbuzz" {
 	metadata {
-		kiwi = "papaya"	
+		kiwi = "papaya"
 		finches = "darwinism"
 	}
 }`
@@ -201,7 +201,7 @@ resource "google_compute_project_metadata" "fizzbuzz" {
 const testAccComputeProject_modify0_metadata = `
 resource "google_compute_project_metadata" "fizzbuzz" {
 	metadata {
-		paper = "pen"	
+		paper = "pen"
 		genghis_khan = "french bread"
 		happy = "smiling"
 	}
@@ -210,7 +210,7 @@ resource "google_compute_project_metadata" "fizzbuzz" {
 const testAccComputeProject_modify1_metadata = `
 resource "google_compute_project_metadata" "fizzbuzz" {
 	metadata {
-		paper = "pen"	
+		paper = "pen"
 		paris = "french bread"
 		happy = "laughing"
 	}

@@ -1,0 +1,29 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+        <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+        <li<%= sidebar_current("docs-postgresql-index") %>>
+        <a href="/docs/providers/postgresql/index.html">PostgreSQL Provider</a>
+                </li>
+
+        <li<%= sidebar_current(/^docs-postgresql-resource/) %>>
+        <a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-postgresql-resource-postgresql_database") %>>
+                        <a href="/docs/providers/postgresql/r/postgresql_database.html">postgresql_database</a>
+                    </li>
+                    <li<%= sidebar_current("docs-postgresql-resource-postgresql_role") %>>
+                        <a href="/docs/providers/postgresql/r/postgresql_role.html">postgresql_role</a>
+                    </li>
+                </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

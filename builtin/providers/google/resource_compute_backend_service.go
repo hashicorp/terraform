@@ -186,6 +186,7 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
+			log.Printf("[WARN] Removing Backend Service %q because it's gone", d.Get("name").(string))
 			d.SetId("")
 
 			return nil

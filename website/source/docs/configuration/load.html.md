@@ -31,6 +31,6 @@ which do merge.
 
 The order of variables, resources, etc. defined within the
 configuration doesn't matter. Terraform configurations are
-[declarative](http://en.wikipedia.org/wiki/Declarative_programming),
+[declarative](https://en.wikipedia.org/wiki/Declarative_programming),
 so references to other resources and variables do not depend
 on the order they're defined.

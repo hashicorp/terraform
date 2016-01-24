@@ -86,26 +86,38 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &ec2.DescribeAddressesInput{
-			PublicIps: []*string{aws.String(rs.Primary.ID)},
-		}
-		describe, err := conn.DescribeAddresses(req)
-
-		if err == nil {
-			if len(describe.Addresses) != 0 &&
-				*describe.Addresses[0].PublicIp == rs.Primary.ID {
-				return fmt.Errorf("EIP still exists")
+		if strings.Contains(rs.Primary.ID, "eipalloc") {
+			req := &ec2.DescribeAddressesInput{
+				AllocationIds: []*string{aws.String(rs.Primary.ID)},
 			}
-		}
+			describe, err := conn.DescribeAddresses(req)
+			if err != nil {
+				// Verify the error is what we want
+				if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidAllocationID.NotFound" {
+					continue
+				}
+				return err
+			}
 
-		// Verify the error
-		providerErr, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
+			if len(describe.Addresses) > 0 {
+				return fmt.Errorf("still exists")
+			}
+		} else {
+			req := &ec2.DescribeAddressesInput{
+				PublicIps: []*string{aws.String(rs.Primary.ID)},
+			}
+			describe, err := conn.DescribeAddresses(req)
+			if err != nil {
+				// Verify the error is what we want
+				if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidAllocationID.NotFound" {
+					continue
+				}
+				return err
+			}
 
-		if providerErr.Code() != "InvalidAllocationID.NotFound" {
-			return fmt.Errorf("Unexpected error: %s", err)
+			if len(describe.Addresses) > 0 {
+				return fmt.Errorf("still exists")
+			}
 		}
 	}
 

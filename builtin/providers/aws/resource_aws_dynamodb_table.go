@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -158,6 +160,21 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 					return hashcode.String(buf.String())
 				},
 			},
+			"stream_enabled": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"stream_view_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				StateFunc: func(v interface{}) string {
+					value := v.(string)
+					return strings.ToUpper(value)
+				},
+				ValidateFunc: validateStreamViewType,
+			},
 		},
 	}
 }
@@ -263,6 +280,16 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 		req.GlobalSecondaryIndexes = globalSecondaryIndexes
 	}
 
+	if _, ok := d.GetOk("stream_enabled"); ok {
+
+		req.StreamSpecification = &dynamodb.StreamSpecification{
+			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
+		}
+
+		fmt.Printf("[DEBUG] Adding StreamSpecifications to the table")
+	}
+
 	attemptCount := 1
 	for attemptCount <= DYNAMODB_MAX_THROTTLE_RETRIES {
 		output, err := dynamodbconn.CreateTable(req)
@@ -330,6 +357,25 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 			WriteCapacityUnits: aws.Int64(int64(d.Get("write_capacity").(int))),
 		}
 		req.ProvisionedThroughput = throughput
+
+		_, err := dynamodbconn.UpdateTable(req)
+
+		if err != nil {
+			return err
+		}
+
+		waitForTableToBeActive(d.Id(), meta)
+	}
+
+	if d.HasChange("stream_enabled") || d.HasChange("stream_view_type") {
+		req := &dynamodb.UpdateTableInput{
+			TableName: aws.String(d.Id()),
+		}
+
+		req.StreamSpecification = &dynamodb.StreamSpecification{
+			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
+		}
 
 		_, err := dynamodbconn.UpdateTable(req)
 
@@ -587,6 +633,11 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 		log.Printf("[DEBUG] Added GSI: %s - Read: %d / Write: %d", gsi["name"], gsi["read_capacity"], gsi["write_capacity"])
 	}
 
+	if table.StreamSpecification != nil {
+		d.Set("stream_view_type", table.StreamSpecification.StreamViewType)
+		d.Set("stream_enabled", table.StreamSpecification.StreamEnabled)
+	}
+
 	err = d.Set("global_secondary_index", gsiList)
 	if err != nil {
 		return err
@@ -610,6 +661,37 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
+
+	params := &dynamodb.DescribeTableInput{
+		TableName: aws.String(d.Id()),
+	}
+
+	err = resource.Retry(10*time.Minute, func() error {
+		t, err := dynamodbconn.DescribeTable(params)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
+				return nil
+			}
+			// Didn't recognize the error, so shouldn't retry.
+			return resource.RetryError{Err: err}
+		}
+
+		if t != nil {
+			if t.Table.TableStatus != nil && strings.ToLower(*t.Table.TableStatus) == "deleting" {
+				log.Printf("[DEBUG] AWS Dynamo DB table (%s) is still deleting", d.Id())
+				return fmt.Errorf("still deleting")
+			}
+		}
+
+		// we should be not found or deleting, so error here
+		return resource.RetryError{Err: fmt.Errorf("[ERR] Error deleting Dynamo DB table, unexpected state: %s", t)}
+	})
+
+	// check error from retry
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

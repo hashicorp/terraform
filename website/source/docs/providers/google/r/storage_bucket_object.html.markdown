@@ -29,8 +29,15 @@ resource "google_storage_bucket_object" "picture" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the object.
+
 * `bucket` - (Required) The name of the containing bucket.
-* `source` - (Required) A path to the data you want to upload.
+
+* `source` - (Optional) A path to the data you want to upload. Must be defined
+if `content` is not.
+
+* `content` - (Optional) Data as `string` to be uploaded. Must be defined if
+`source` is not.
+
 * `predefined_acl` - (Optional, Deprecated) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) apply. Please switch 
 to `google_storage_object_acl.predefined_acl`.
 
@@ -39,4 +46,5 @@ to `google_storage_object_acl.predefined_acl`.
 The following attributes are exported:
 
 * `md5hash` - (Computed) Base 64 MD5 hash of the uploaded data.
+
 * `crc32c` - (Computed) Base 64 CRC32 hash of the uploaded data.

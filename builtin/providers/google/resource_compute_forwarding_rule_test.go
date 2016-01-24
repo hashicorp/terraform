@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccComputeForwardingRule_basic(t *testing.T) {
+	poolName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+	ruleName := fmt.Sprintf("tf-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -16,7 +19,7 @@ func TestAccComputeForwardingRule_basic(t *testing.T) {
 		CheckDestroy: testAccCheckComputeForwardingRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeForwardingRule_basic,
+				Config: testAccComputeForwardingRule_basic(poolName, ruleName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeForwardingRuleExists(
 						"google_compute_forwarding_rule.foobar"),
@@ -27,6 +30,9 @@ func TestAccComputeForwardingRule_basic(t *testing.T) {
 }
 
 func TestAccComputeForwardingRule_ip(t *testing.T) {
+	addrName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+	poolName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+	ruleName := fmt.Sprintf("tf-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -34,7 +40,7 @@ func TestAccComputeForwardingRule_ip(t *testing.T) {
 		CheckDestroy: testAccCheckComputeForwardingRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeForwardingRule_ip,
+				Config: testAccComputeForwardingRule_ip(addrName, poolName, ruleName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeForwardingRuleExists(
 						"google_compute_forwarding_rule.foobar"),
@@ -89,36 +95,40 @@ func testAccCheckComputeForwardingRuleExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccComputeForwardingRule_basic = `
+func testAccComputeForwardingRule_basic(poolName, ruleName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_target_pool" "foobar-tp" {
-	description = "Resource created for Terraform acceptance testing"
-	instances = ["us-central1-a/foo", "us-central1-b/bar"]
-	name = "terraform-test"
+  description = "Resource created for Terraform acceptance testing"
+  instances   = ["us-central1-a/foo", "us-central1-b/bar"]
+  name        = "%s"
 }
 resource "google_compute_forwarding_rule" "foobar" {
-	description = "Resource created for Terraform acceptance testing"
-	ip_protocol = "UDP"
-    name = "terraform-test"
-    port_range = "80-81"
-    target = "${google_compute_target_pool.foobar-tp.self_link}"
+  description = "Resource created for Terraform acceptance testing"
+  ip_protocol = "UDP"
+  name        = "%s"
+  port_range  = "80-81"
+  target      = "${google_compute_target_pool.foobar-tp.self_link}"
 }
-`
+`, poolName, ruleName)
+}
 
-const testAccComputeForwardingRule_ip = `
+func testAccComputeForwardingRule_ip(addrName, poolName, ruleName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_address" "foo" {
-    name = "foo"
+  name = "%s"
 }
 resource "google_compute_target_pool" "foobar-tp" {
-	description = "Resource created for Terraform acceptance testing"
-	instances = ["us-central1-a/foo", "us-central1-b/bar"]
-	name = "terraform-test"
+  description = "Resource created for Terraform acceptance testing"
+  instances   = ["us-central1-a/foo", "us-central1-b/bar"]
+  name        = "%s"
 }
 resource "google_compute_forwarding_rule" "foobar" {
-	description = "Resource created for Terraform acceptance testing"
-	ip_address = "${google_compute_address.foo.address}"
-	ip_protocol = "TCP"
-    name = "terraform-test"
-    port_range = "80-81"
-    target = "${google_compute_target_pool.foobar-tp.self_link}"
+  description = "Resource created for Terraform acceptance testing"
+  ip_address  = "${google_compute_address.foo.address}"
+  ip_protocol = "TCP"
+  name        = "%s"
+  port_range  = "80-81"
+  target      = "${google_compute_target_pool.foobar-tp.self_link}"
 }
-`
+`, addrName, poolName, ruleName)
+}

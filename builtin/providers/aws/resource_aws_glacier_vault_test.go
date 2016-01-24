@@ -182,11 +182,26 @@ func testAccCheckVaultNotificationsMissing(name string) resource.TestCheckFunc {
 }
 
 func testAccCheckGlacierVaultDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v",
-			s.RootModule().Resources)
-	}
+	conn := testAccProvider.Meta().(*AWSClient).glacierconn
 
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_glacier_vault" {
+			continue
+		}
+
+		input := &glacier.DescribeVaultInput{
+			VaultName: aws.String(rs.Primary.ID),
+		}
+		if _, err := conn.DescribeVault(input); err != nil {
+			// Verify the error is what we want
+			if ae, ok := err.(awserr.Error); ok && ae.Code() == "ResourceNotFoundException" {
+				continue
+			}
+
+			return err
+		}
+		return fmt.Errorf("still exists")
+	}
 	return nil
 }
 

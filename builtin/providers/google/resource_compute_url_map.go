@@ -2,10 +2,12 @@ package google
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeUrlMap() *schema.Resource {
@@ -292,6 +294,14 @@ func resourceComputeUrlMapRead(d *schema.ResourceData, meta interface{}) error {
 	urlMap, err := config.clientCompute.UrlMaps.Get(config.Project, name).Do()
 
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing URL Map %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error, failed to get Url Map %s: %s", name, err)
 	}
 

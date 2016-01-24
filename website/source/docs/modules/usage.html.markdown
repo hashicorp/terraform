@@ -46,7 +46,7 @@ $ terraform get
 
 This command will download the modules if they haven't been already.
 By default, the command will not check for updates, so it is safe (and fast)
-to run multiple times. You can use the `-u` flag to check and download
+to run multiple times. You can use the `-update` flag to check and download
 updates.
 
 ## Configuration
@@ -87,9 +87,9 @@ For example:
 
 ```
 resource "aws_instance" "client" {
-	ami = "ami-123456"
-	instance_type = "m1.small"
-	availability_zone = "${module.consul.server_availability_zone}"
+  ami = "ami-408c7f28"
+  instance_type = "t1.micro"  
+  availability_zone = "${module.consul.server_availability_zone}"
 }
 ```
 
@@ -104,27 +104,25 @@ resource to the module, so the module will be built first.
 
 With modules, commands such as the [plan command](/docs/commands/plan.html)
 and
-[graph command](/docs/commands/graph.html) will show the module as a single
-unit by default. You can use the `-module-depth` parameter to expand this
-graph further.
+[graph command](/docs/commands/graph.html) will expand modules by default. You
+can use the `-module-depth` parameter to limit the graph.
 
 For example, with a configuration similar to what we've built above, here
 is what the graph output looks like by default:
 
 <div class="center">
-![Terraform Module Graph](docs/module_graph.png)
+![Terraform Expanded Module Graph](docs/module_graph_expand.png)
 </div>
 
-But if we set `-module-depth=-1`, the graph will look like this:
+But if we set `-module-depth=0`, the graph will look like this:
 
 <div class="center">
-![Terraform Expanded Module Graph](docs/module_graph_expand.png)
+![Terraform Module Graph](docs/module_graph.png)
 </div>
 
 Other commands work similarly with modules. Note that the `-module-depth`
 flag is purely a formatting flag; it doesn't affect what modules are created
 or not.
-
 
 ## Tainting resources within a module
 

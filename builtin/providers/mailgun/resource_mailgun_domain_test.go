@@ -48,10 +48,10 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.RetrieveDomain(rs.Primary.ID)
+		resp, err := client.RetrieveDomain(rs.Primary.ID)
 
 		if err == nil {
-			return fmt.Errorf("Domain still exists")
+			return fmt.Errorf("Domain still exists: %#v", resp)
 		}
 	}
 

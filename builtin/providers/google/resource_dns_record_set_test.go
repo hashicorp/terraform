@@ -4,21 +4,23 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccDnsRecordSet_basic(t *testing.T) {
+	zoneName := fmt.Sprintf("dnszone-test-%s", acctest.RandString(10))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDnsRecordSetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDnsRecordSet_basic,
+				Config: testAccDnsRecordSet_basic(zoneName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(
-						"google_dns_record_set.foobar"),
+						"google_dns_record_set.foobar", zoneName),
 				),
 			},
 		},
@@ -42,11 +44,11 @@ func testAccCheckDnsRecordSetDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDnsRecordSetExists(name string) resource.TestCheckFunc {
+func testAccCheckDnsRecordSetExists(resourceType, resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
+		rs, ok := s.RootModule().Resources[resourceType]
 		if !ok {
-			return fmt.Errorf("Not found: %s", name)
+			return fmt.Errorf("Not found: %s", resourceName)
 		}
 
 		dnsName := rs.Primary.Attributes["name"]
@@ -59,7 +61,7 @@ func testAccCheckDnsRecordSetExists(name string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*Config)
 
 		resp, err := config.clientDns.ResourceRecordSets.List(
-			config.Project, "terraform-test-zone").Name(dnsName).Type(dnsType).Do()
+			config.Project, resourceName).Name(dnsName).Type(dnsType).Do()
 		if err != nil {
 			return fmt.Errorf("Error confirming DNS RecordSet existence: %#v", err)
 		}
@@ -76,17 +78,19 @@ func testAccCheckDnsRecordSetExists(name string) resource.TestCheckFunc {
 	}
 }
 
-const testAccDnsRecordSet_basic = `
-resource "google_dns_managed_zone" "parent-zone" {
-	name = "terraform-test-zone"
-	dns_name = "terraform.test."
-	description = "Test Description"
+func testAccDnsRecordSet_basic(zoneName string) string {
+	return fmt.Sprintf(`
+	resource "google_dns_managed_zone" "parent-zone" {
+		name = "%s"
+		dns_name = "terraform.test."
+		description = "Test Description"
+	}
+	resource "google_dns_record_set" "foobar" {
+		managed_zone = "${google_dns_managed_zone.parent-zone.name}"
+		name = "test-record.terraform.test."
+		type = "A"
+		rrdatas = ["127.0.0.1", "127.0.0.10"]
+		ttl = 600
+	}
+	`, zoneName)
 }
-resource "google_dns_record_set" "foobar" {
-	managed_zone = "${google_dns_managed_zone.parent-zone.name}"
-	name = "test-record.terraform.test."
-	type = "A"
-	rrdatas = ["127.0.0.1", "127.0.0.10"]
-	ttl = 600
-}
-`
