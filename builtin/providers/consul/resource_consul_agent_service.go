@@ -24,9 +24,7 @@ func resourceConsulAgentService() *schema.Resource {
 
 			"id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"name": &schema.Schema{
@@ -61,10 +59,6 @@ func resourceConsulAgentServiceCreate(d *schema.ResourceData, meta interface{}) 
 		registration.Address = address.(string)
 	}
 
-	if id, ok := d.GetOk("id"); ok {
-		registration.ID = id.(string)
-	}
-
 	if port, ok := d.GetOk("port"); ok {
 		registration.Port = port.(int)
 	}
@@ -89,10 +83,15 @@ func resourceConsulAgentServiceCreate(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Failed to read service '%s' from Consul agent: %v", name, err)
 	} else {
 		d.Set("address", service.Address)
+		d.Set("id", service.ID)
+		d.SetId(service.ID)
 		d.Set("name", service.Service)
 		d.Set("port", service.Port)
-		d.Set("tags", service.Tags)
-		d.SetId(service.ID)
+		tags := make([]string, 0, len(service.Tags))
+		for _, tag := range service.Tags {
+			tags = append(tags, tag)
+		}
+		d.Set("tags", tags)
 	}
 
 	return nil
@@ -110,10 +109,15 @@ func resourceConsulAgentServiceRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Failed to get service '%s' from Consul agent", name)
 	} else {
 		d.Set("address", service.Address)
+		d.Set("id", service.ID)
+		d.SetId(service.ID)
 		d.Set("name", service.Service)
 		d.Set("port", service.Port)
-		d.Set("tags", service.Tags)
-		d.SetId(service.ID)
+		tags := make([]string, 0, len(service.Tags))
+		for _, tag := range service.Tags {
+			tags = append(tags, tag)
+		}
+		d.Set("tags", tags)
 	}
 
 	return nil
@@ -123,10 +127,10 @@ func resourceConsulAgentServiceDelete(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*consulapi.Client)
 	catalog := client.Agent()
 
-	name := d.Get("name").(string)
+	id := d.Get("id").(string)
 
-	if err := catalog.ServiceDeregister(name); err != nil {
-		return fmt.Errorf("Failed to deregister service '%s' from Consul agent: %v", name, err)
+	if err := catalog.ServiceDeregister(id); err != nil {
+		return fmt.Errorf("Failed to deregister service '%s' from Consul agent: %v", id, err)
 	}
 
 	// Clear the ID

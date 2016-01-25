@@ -70,10 +70,11 @@ func resourceConsulCatalogEntry() *schema.Resource {
 						},
 
 						"tags": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      resourceConsulCatalogEntryServiceTagsHash,
 						},
 					},
 				},
@@ -88,6 +89,10 @@ func resourceConsulCatalogEntry() *schema.Resource {
 	}
 }
 
+func resourceConsulCatalogEntryServiceTagsHash(v interface{}) int {
+	return hashcode.String(v.(string))
+}
+
 func resourceConsulCatalogEntryServicesHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -96,7 +101,7 @@ func resourceConsulCatalogEntryServicesHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["address"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["port"].(int)))
 	if v, ok := m["tags"]; ok {
-		vs := v.([]interface{})
+		vs := v.(*schema.Set).List()
 		s := make([]string, len(vs))
 		for i, raw := range vs {
 			s[i] = raw.(string)
@@ -146,7 +151,7 @@ func resourceConsulCatalogEntryCreate(d *schema.ResourceData, meta interface{}) 
 			serviceIDs[i] = serviceID
 
 			var tags []string
-			if v := serviceData["tags"].([]interface{}); len(v) > 0 {
+			if v := serviceData["tags"].(*schema.Set).List(); len(v) > 0 {
 				tags = make([]string, len(v))
 				for i, raw := range v {
 					tags[i] = raw.(string)
