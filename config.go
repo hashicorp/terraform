@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/terraform/plugin"
+	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/kardianos/osext"
 )
@@ -213,7 +214,12 @@ func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory 
 			return nil, err
 		}
 
-		return rpcClient.ResourceProvider()
+		raw, err := rpcClient.Dispense(tfplugin.ProviderPluginName)
+		if err != nil {
+			return nil, err
+		}
+
+		return raw.(terraform.ResourceProvider), nil
 	}
 }
 
@@ -242,7 +248,12 @@ func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFa
 			return nil, err
 		}
 
-		return rpcClient.ResourceProvisioner()
+		raw, err := rpcClient.Dispense(tfplugin.ProvisionerPluginName)
+		if err != nil {
+			return nil, err
+		}
+
+		return raw.(terraform.ResourceProvisioner), nil
 	}
 }
 
