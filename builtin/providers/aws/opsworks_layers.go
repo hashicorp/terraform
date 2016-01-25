@@ -300,9 +300,6 @@ func (lt *opsworksLayerType) Read(d *schema.ResourceData, client *opsworks.OpsWo
                 },
         }
         loadBalancers, err := client.DescribeElasticLoadBalancers(ebsRequest)
-
-        fmt.Println(loadBalancers)
-
         if err != nil {
                 return err
         }
@@ -359,13 +356,16 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
         loadBalancer := aws.String(d.Get("elastic_load_balancer").(string))
         if loadBalancer != nil && *loadBalancer != "" {
                 log.Printf("[DEBUG] Attaching load balancer: %s", *loadBalancer)
-                client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
+                _, err := client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
                         ElasticLoadBalancerName: loadBalancer,
                         LayerId:                 &layerId,
                 })
+                if err != nil {
+                        return err
+                }
         }
 
-	return lt.Read(d, client)
+        return lt.Read(d, client)
 }
 
 func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.OpsWorks) error {
