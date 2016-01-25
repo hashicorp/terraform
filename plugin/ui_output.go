@@ -1,4 +1,4 @@
-package rpc
+package plugin
 
 import (
 	"net/rpc"
@@ -10,11 +10,10 @@ import (
 // over RPC.
 type UIOutput struct {
 	Client *rpc.Client
-	Name   string
 }
 
 func (o *UIOutput) Output(v string) {
-	o.Client.Call(o.Name+".Output", v, new(interface{}))
+	o.Client.Call("Plugin.Output", v, new(interface{}))
 }
 
 // UIOutputServer is the RPC server for serving UIOutput.
