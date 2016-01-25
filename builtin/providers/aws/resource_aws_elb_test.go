@@ -495,14 +495,16 @@ func TestAccAWSELB_SecurityGroups(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSELBConfig,
 				Check: resource.ComposeTestCheckFunc(
+					// ELBs get a default security group
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "security_groups.#", "0",
+						"aws_elb.bar", "security_groups.#", "1",
 					),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSELBConfigSecurityGroups,
 				Check: resource.ComposeTestCheckFunc(
+					// Count should still be one as we swap in a custom security group
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "security_groups.#", "1",
 					),
