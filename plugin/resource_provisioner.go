@@ -1,17 +1,31 @@
-package rpc
+package plugin
 
 import (
 	"net/rpc"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// ResourceProvisionerPlugin is the plugin.Plugin implementation.
+type ResourceProvisionerPlugin struct {
+	F func() terraform.ResourceProvisioner
+}
+
+func (p *ResourceProvisionerPlugin) Server(b *plugin.MuxBroker) (interface{}, error) {
+	return &ResourceProvisionerServer{Broker: b, Provisioner: p.F()}, nil
+}
+
+func (p *ResourceProvisionerPlugin) Client(
+	b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
+	return &ResourceProvisioner{Broker: b, Client: c}, nil
+}
 
 // ResourceProvisioner is an implementation of terraform.ResourceProvisioner
 // that communicates over RPC.
 type ResourceProvisioner struct {
-	Broker *muxBroker
+	Broker *plugin.MuxBroker
 	Client *rpc.Client
-	Name   string
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -20,7 +34,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, [
 		Config: c,
 	}
 
-	err := p.Client.Call(p.Name+".Validate", &args, &resp)
+	err := p.Client.Call("Plugin.Validate", &args, &resp)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -41,7 +55,7 @@ func (p *ResourceProvisioner) Apply(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
 	id := p.Broker.NextId()
-	go acceptAndServe(p.Broker, id, "UIOutput", &UIOutputServer{
+	go p.Broker.AcceptAndServe(id, &UIOutputServer{
 		UIOutput: output,
 	})
 
@@ -52,7 +66,7 @@ func (p *ResourceProvisioner) Apply(
 		Config:   c,
 	}
 
-	err := p.Client.Call(p.Name+".Apply", args, &resp)
+	err := p.Client.Call("Plugin.Apply", args, &resp)
 	if err != nil {
 		return err
 	}
@@ -73,7 +87,7 @@ type ResourceProvisionerValidateArgs struct {
 
 type ResourceProvisionerValidateResponse struct {
 	Warnings []string
-	Errors   []*BasicError
+	Errors   []*plugin.BasicError
 }
 
 type ResourceProvisionerApplyArgs struct {
@@ -83,13 +97,13 @@ type ResourceProvisionerApplyArgs struct {
 }
 
 type ResourceProvisionerApplyResponse struct {
-	Error *BasicError
+	Error *plugin.BasicError
 }
 
 // ResourceProvisionerServer is a net/rpc compatible structure for serving
 // a ResourceProvisioner. This should not be used directly.
 type ResourceProvisionerServer struct {
-	Broker      *muxBroker
+	Broker      *plugin.MuxBroker
 	Provisioner terraform.ResourceProvisioner
 }
 
@@ -99,21 +113,18 @@ func (s *ResourceProvisionerServer) Apply(
 	conn, err := s.Broker.Dial(args.OutputId)
 	if err != nil {
 		*result = ResourceProvisionerApplyResponse{
-			Error: NewBasicError(err),
+			Error: plugin.NewBasicError(err),
 		}
 		return nil
 	}
 	client := rpc.NewClient(conn)
 	defer client.Close()
 
-	output := &UIOutput{
-		Client: client,
-		Name:   "UIOutput",
-	}
+	output := &UIOutput{Client: client}
 
 	err = s.Provisioner.Apply(output, args.State, args.Config)
 	*result = ResourceProvisionerApplyResponse{
-		Error: NewBasicError(err),
+		Error: plugin.NewBasicError(err),
 	}
 	return nil
 }
@@ -122,9 +133,9 @@ func (s *ResourceProvisionerServer) Validate(
 	args *ResourceProvisionerValidateArgs,
 	reply *ResourceProvisionerValidateResponse) error {
 	warns, errs := s.Provisioner.Validate(args.Config)
-	berrs := make([]*BasicError, len(errs))
+	berrs := make([]*plugin.BasicError, len(errs))
 	for i, err := range errs {
-		berrs[i] = NewBasicError(err)
+		berrs[i] = plugin.NewBasicError(err)
 	}
 	*reply = ResourceProvisionerValidateResponse{
 		Warnings: warns,
