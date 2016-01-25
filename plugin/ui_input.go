@@ -3,6 +3,7 @@ package rpc
 import (
 	"net/rpc"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -29,7 +30,7 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 
 type UIInputInputResponse struct {
 	Value string
-	Error *BasicError
+	Error *plugin.BasicError
 }
 
 // UIInputServer is a net/rpc compatible structure for serving
@@ -44,7 +45,7 @@ func (s *UIInputServer) Input(
 	value, err := s.UIInput.Input(opts)
 	*reply = UIInputInputResponse{
 		Value: value,
-		Error: NewBasicError(err),
+		Error: plugin.NewBasicError(err),
 	}
 
 	return nil

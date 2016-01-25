@@ -1,5 +1,6 @@
 package rpc
 
+/*
 import (
 	"reflect"
 	"testing"
@@ -46,3 +47,4 @@ func TestUIInput_input(t *testing.T) {
 		t.Fatalf("bad: %#v", v)
 	}
 }
+*/

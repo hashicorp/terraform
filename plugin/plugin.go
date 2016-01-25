@@ -1,10 +1,28 @@
-// The plugin package exposes functions and helpers for communicating to
-// Terraform plugins which are implemented as standalone binary applications.
-//
-// plugin.Client fully manages the lifecycle of executing the application,
-// connecting to it, and returning the RPC client and service names for
-// connecting to it using the terraform/rpc package.
-//
-// plugin.Serve fully manages listeners to expose an RPC server from a binary
-// that plugin.Client can connect to.
-package plugin
+package rpc
+
+import (
+	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/terraform"
+)
+
+type ProviderFunc func() terraform.ResourceProvider
+type ProvisionerFunc func() terraform.ResourceProvisioner
+
+type Config struct {
+	Provider    ProviderFunc
+	Provisioner ProvisionerFunc
+}
+
+const (
+	ProviderPluginName    = "provider"
+	ProvisionerPluginName = "provisioner"
+)
+
+// Map returns the map[string]plugin.Plugin to use for configuring a plugin
+// server or client.
+func Map(c *Config) map[string]plugin.Plugin {
+	return map[string]plugin.Plugin{
+		"provider":    &ResourceProviderPlugin{F: c.Provider},
+		"provisioner": &ResourceProvisionerPlugin{F: c.Provisioner},
+	}
+}
