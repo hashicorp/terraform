@@ -22,6 +22,10 @@ func TestAccConsulAgentService_basic(t *testing.T) {
 					testAccCheckConsulAgentServiceValue("consul_agent_service.app", "address", "www.google.com"),
 					testAccCheckConsulAgentServiceValue("consul_agent_service.app", "id", "google"),
 					testAccCheckConsulAgentServiceValue("consul_agent_service.app", "name", "google"),
+					testAccCheckConsulAgentServiceValue("consul_agent_service.app", "port", "80"),
+					testAccCheckConsulAgentServiceValue("consul_agent_service.app", "tags.#", "2"),
+					testAccCheckConsulAgentServiceValue("consul_agent_service.app", "tags.0", "tag0"),
+					testAccCheckConsulAgentServiceValue("consul_agent_service.app", "tags.1", "tag1"),
 				),
 			},
 		},
@@ -78,8 +82,9 @@ func testAccCheckConsulAgentServiceValue(n, attr, val string) resource.TestCheck
 
 const testAccConsulAgentServiceConfig = `
 resource "consul_agent_service" "app" {
-	name = "google"
 	address = "www.google.com"
+	name = "google"
 	port = 80
+	tags = ["tag0", "tag1"]
 }
 `
