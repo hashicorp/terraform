@@ -1,30 +1,31 @@
 package powerdns
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"github.com/hashicorp/go-cleanhttp"
-	"fmt"
-	"encoding/json"
-	"bytes"
-	"io"
 	"strings"
+
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 type Client struct {
 	// Location of PowerDNS server to use
 	ServerUrl string
 	//	REST API Static authentication key
-	ApiKey    string
-	Http      *http.Client
+	ApiKey string
+	Http   *http.Client
 }
 
 // NewClient returns a new PowerDNS client
 func NewClient(serverUrl string, apiKey string) (*Client, error) {
 	client := Client{
-		ServerUrl:serverUrl,
-		ApiKey:apiKey,
-		Http: cleanhttp.DefaultClient(),
+		ServerUrl: serverUrl,
+		ApiKey:    apiKey,
+		Http:      cleanhttp.DefaultClient(),
 	}
 	return &client, nil
 }
@@ -58,27 +59,27 @@ func (c *Client) newRequest(method string, endpoint string, body []byte) (*http.
 }
 
 type ZoneInfo struct {
-	Id      string    `json:"id"`
-	Name    string    `json:"name"`
-	URL     string    `json:"url"`
-	Kind    string    `json:"kind"`
-	DnsSec  bool        `json:"dnsssec"`
-	Serial  int64      `json:"serial"`
-	Records []Record  `json:"records,omitempty"`
+	Id      string   `json:"id"`
+	Name    string   `json:"name"`
+	URL     string   `json:"url"`
+	Kind    string   `json:"kind"`
+	DnsSec  bool     `json:"dnsssec"`
+	Serial  int64    `json:"serial"`
+	Records []Record `json:"records,omitempty"`
 }
 
 type Record struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Content  string `json:"content"`
-	TTL      int `json:"ttl"`
-	Disabled bool `json:"disabled"`
+	TTL      int    `json:"ttl"`
+	Disabled bool   `json:"disabled"`
 }
 
 type ResourceRecordSet struct {
-	Name       string `json:"name"`
-	Type       string `json:"type"`
-	ChangeType string `json:"changetype"`
+	Name       string   `json:"name"`
+	Type       string   `json:"type"`
+	ChangeType string   `json:"changetype"`
 	Records    []Record `json:"records,omitempty"`
 }
 
@@ -101,7 +102,7 @@ func (rrSet *ResourceRecordSet) Id() string {
 // Returns name and type of record or record set based on it's ID
 func parseId(recId string) (string, string, error) {
 	s := strings.Split(recId, "-")
-	if (len(s) == 2) {
+	if len(s) == 2 {
 		return s[0], s[1], nil
 	} else {
 		return "", "", fmt.Errorf("Unknown record ID format")
@@ -209,11 +210,11 @@ func (client *Client) RecordExistsByID(zone string, recId string) (bool, error) 
 func (client *Client) CreateRecord(zone string, record Record) (string, error) {
 	reqBody, _ := json.Marshal(zonePatchRequest{
 		RecordSets: []ResourceRecordSet{
-			ResourceRecordSet{
-				Name: record.Name,
-				Type: record.Type,
+			{
+				Name:       record.Name,
+				Type:       record.Type,
 				ChangeType: "REPLACE",
-				Records: []Record{record},
+				Records:    []Record{record},
 			},
 		},
 	})
@@ -246,7 +247,7 @@ func (client *Client) ReplaceRecordSet(zone string, rrSet ResourceRecordSet) (st
 	rrSet.ChangeType = "REPLACE"
 
 	reqBody, _ := json.Marshal(zonePatchRequest{
-		RecordSets: []ResourceRecordSet{rrSet },
+		RecordSets: []ResourceRecordSet{rrSet},
 	})
 
 	req, err := client.newRequest("PATCH", fmt.Sprintf("/servers/localhost/zones/%s", zone), reqBody)
@@ -276,9 +277,9 @@ func (client *Client) ReplaceRecordSet(zone string, rrSet ResourceRecordSet) (st
 func (client *Client) DeleteRecordSet(zone string, name string, tpe string) error {
 	reqBody, _ := json.Marshal(zonePatchRequest{
 		RecordSets: []ResourceRecordSet{
-			ResourceRecordSet{
-				Name: name,
-				Type: tpe,
+			{
+				Name:       name,
+				Type:       tpe,
 				ChangeType: "DELETE",
 			},
 		},

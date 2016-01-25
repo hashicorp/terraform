@@ -3,8 +3,9 @@ package powerdns
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"fmt"
+
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourcePDNSRecord() *schema.Resource {
@@ -15,42 +16,40 @@ func resourcePDNSRecord() *schema.Resource {
 		Exists: resourcePDNSRecordExists,
 
 		Schema: map[string]*schema.Schema{
-			"zone": &schema.Schema{
+			"zone": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"records": &schema.Schema{
+			"records": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
 				ForceNew: true,
 				Set:      schema.HashString,
 			},
-
 		},
 	}
 }
-
 
 func resourcePDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
@@ -64,10 +63,10 @@ func resourcePDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	ttl := d.Get("ttl").(int)
 	recs := d.Get("records").(*schema.Set).List()
 
-	if (len(recs) > 0) {
+	if len(recs) > 0 {
 		records := make([]Record, 0, len(recs))
 		for _, recContent := range recs {
-			records = append(records, Record{Name: rrSet.Name, Type:rrSet.Type, TTL: ttl, Content: recContent.(string)})
+			records = append(records, Record{Name: rrSet.Name, Type: rrSet.Type, TTL: ttl, Content: recContent.(string)})
 		}
 		rrSet.Records = records
 
@@ -109,7 +108,7 @@ func resourcePDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("records", recs)
 
-	if (len(records) > 0) {
+	if len(records) > 0 {
 		d.Set("ttl", records[0].TTL)
 	}
 

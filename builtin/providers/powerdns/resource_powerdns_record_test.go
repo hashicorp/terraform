@@ -14,7 +14,7 @@ func TestAccPDNSRecord_A(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigA,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-a"),
@@ -30,7 +30,7 @@ func TestAccPDNSRecord_AAAA(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigAAAA,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-aaaa"),
@@ -46,7 +46,7 @@ func TestAccPDNSRecord_CNAME(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigCNAME,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-cname"),
@@ -62,7 +62,7 @@ func TestAccPDNSRecord_HINFO(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigHINFO,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-hinfo"),
@@ -78,7 +78,7 @@ func TestAccPDNSRecord_LOC(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigLOC,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-loc"),
@@ -94,13 +94,13 @@ func TestAccPDNSRecord_MX(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigMX,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-mx"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigMXMulti,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-mx-multi"),
@@ -116,7 +116,7 @@ func TestAccPDNSRecord_NAPTR(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigNAPTR,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-naptr"),
@@ -132,7 +132,7 @@ func TestAccPDNSRecord_NS(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigNS,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-ns"),
@@ -148,7 +148,7 @@ func TestAccPDNSRecord_SPF(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigSPF,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-spf"),
@@ -164,7 +164,7 @@ func TestAccPDNSRecord_SSHFP(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigSSHFP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-sshfp"),
@@ -180,7 +180,7 @@ func TestAccPDNSRecord_SRV(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigSRV,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-srv"),
@@ -196,7 +196,7 @@ func TestAccPDNSRecord_TXT(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testPDNSRecordConfigTXT,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPDNSRecordExists("powerdns_record.test-txt"),

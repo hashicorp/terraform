@@ -1,8 +1,8 @@
 package powerdns
 
 import (
-	"log"
 	"fmt"
+	"log"
 )
 
 type Config struct {

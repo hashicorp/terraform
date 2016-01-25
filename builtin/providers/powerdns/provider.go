@@ -10,13 +10,13 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"api_key": &schema.Schema{
+			"api_key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: envDefaultFunc("PDNS_API_KEY"),
 				Description: "REST API authentication key",
 			},
-			"server_url": &schema.Schema{
+			"server_url": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: envDefaultFunc("PDNS_SERVER_URL"),
@@ -34,7 +34,7 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(data *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		ApiKey: data.Get("api_key").(string),
+		ApiKey:    data.Get("api_key").(string),
 		ServerUrl: data.Get("server_url").(string),
 	}
 
@@ -50,4 +50,3 @@ func envDefaultFunc(k string) schema.SchemaDefaultFunc {
 		return nil, nil
 	}
 }
-
