@@ -32,6 +32,7 @@ IMPROVEMENTS:
   * core: Add `sha256()` interpolation function [GH-4704]
   * core: Validate lifecycle keys to show helpful error messages whe they are mistypes [GH-4745]
   * core: Default `module-depth` parameter to `-1`, which expands resources within modules in command output [GH-4763]
+  * core: Variable types may now be specified explicitly using the `type` argument [GH-4795]
   * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
   * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
   * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
