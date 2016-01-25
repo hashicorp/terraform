@@ -6,7 +6,7 @@ description: |-
   Provides access to Catalog data in Consul. This can be used to define a node or a service. Currently, defining health checks is not supported.
 ---
 
-# consul\_catalog\_entry_
+# consul\_catalog\_entry
 
 Provides access to Catalog data in Consul. This can be used to define a node or a service. Currently, defining health checks is not supported.
 
