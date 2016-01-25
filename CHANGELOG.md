@@ -43,6 +43,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for updating ELB availability zones and subnets [GH-4597]
   * provider/aws: Enable specifying aws s3 redirect protocol [GH-4098]
   * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations [GH-4481]
+  * provider/aws: Retry Listener Creation for ELBs [GH-4825]
   * provider/aws: Add support for creating Managed Microsoft Active Directory 
     and Directory Connectors [GH-4388]
   * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3138]
