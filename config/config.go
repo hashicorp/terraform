@@ -98,9 +98,10 @@ type Provisioner struct {
 
 // Variable is a variable defined within the configuration.
 type Variable struct {
-	Name        string
-	Default     interface{}
-	Description string
+	Name         string
+	DeclaredType string `mapstructure:"type"`
+	Default      interface{}
+	Description  string
 }
 
 // Output is an output defined within the configuration. An output is
@@ -177,7 +178,7 @@ func (c *Config) Validate() error {
 	for _, v := range c.Variables {
 		if v.Type() == VariableTypeUnknown {
 			errs = append(errs, fmt.Errorf(
-				"Variable '%s': must be string or mapping",
+				"Variable '%s': must be a string or a map",
 				v.Name))
 			continue
 		}
@@ -780,8 +781,64 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	return &result
 }
 
-// Type returns the type of varialbe this is.
+var typeStringMap = map[string]VariableType{
+	"string": VariableTypeString,
+	"map":    VariableTypeMap,
+}
+
+// Type returns the type of variable this is.
 func (v *Variable) Type() VariableType {
+	if v.DeclaredType != "" {
+		declaredType, ok := typeStringMap[v.DeclaredType]
+		if !ok {
+			return VariableTypeUnknown
+		}
+
+		return declaredType
+	}
+
+	return v.inferTypeFromDefault()
+}
+
+// ValidateTypeAndDefault ensures that default variable value is compatible
+// with the declared type (if one exists), and that the type is one which is
+// known to Terraform
+func (v *Variable) ValidateTypeAndDefault() error {
+	// If an explicit type is declared, ensure it is valid
+	if v.DeclaredType != "" {
+		if _, ok := typeStringMap[v.DeclaredType]; !ok {
+			return fmt.Errorf("Variable '%s' must be of type string or map - '%s' is not a valid type", v.Name, v.DeclaredType)
+		}
+	}
+
+	if v.DeclaredType == "" || v.Default == nil {
+		return nil
+	}
+
+	if v.inferTypeFromDefault() != v.Type() {
+		return fmt.Errorf("'%s' has a default value which is not of type '%s'", v.Name, v.DeclaredType)
+	}
+
+	return nil
+}
+
+func (v *Variable) mergerName() string {
+	return v.Name
+}
+
+func (v *Variable) mergerMerge(m merger) merger {
+	return v.Merge(m.(*Variable))
+}
+
+// Required tests whether a variable is required or not.
+func (v *Variable) Required() bool {
+	return v.Default == nil
+}
+
+// inferTypeFromDefault contains the logic for the old method of inferring
+// variable types - we can also use this for validating that the declared
+// type matches the type of the default value
+func (v *Variable) inferTypeFromDefault() VariableType {
 	if v.Default == nil {
 		return VariableTypeString
 	}
@@ -799,17 +856,4 @@ func (v *Variable) Type() VariableType {
 	}
 
 	return VariableTypeUnknown
-}
-
-func (v *Variable) mergerName() string {
-	return v.Name
-}
-
-func (v *Variable) mergerMerge(m merger) merger {
-	return v.Merge(m.(*Variable))
-}
-
-// Required tests whether a variable is required or not.
-func (v *Variable) Required() bool {
-	return v.Default == nil
 }

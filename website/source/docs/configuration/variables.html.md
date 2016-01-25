@@ -23,9 +23,13 @@ already.
 A variable configuration looks like the following:
 
 ```
-variable "key" {}
+variable "key" {
+    type = "string"
+}
 
 variable "images" {
+    type = "map"
+
 	default = {
 		us-east-1 = "image-1234"
 		us-west-2 = "image-4567"
@@ -39,12 +43,21 @@ The `variable`  block configures a single input variable for
 a Terraform configuration. Multiple variables blocks can be used to
 add multiple variables.
 
-The `NAME` given to the variable block is the name used to
+The `name` given to the variable block is the name used to
 set the variable via the CLI as well as reference the variable
 throughout the Terraform configuration.
 
 Within the block (the `{ }`) is configuration for the variable.
 These are the parameters that can be set:
+
+  * `type` (optional) - If set this defines the type of the variable.
+    Valid values are `string` and `map`. In older versions of Terraform
+    this parameter did not exist, and the type was inferred from the
+    default value, defaulting to `string` if no default was set. If a
+    type is not specified, the previous behavior is maintained. It is
+    recommended to set variable types explicitly in preference to relying
+    on inferrence - this allows variables of type `map` to be set in the
+    `terraform.tfvars` file without requiring a default value to be set.
 
   * `default` (optional) - If set, this sets a default value
     for the variable. If this isn't set, the variable is required
@@ -59,15 +72,18 @@ These are the parameters that can be set:
 
 ------
 
-**Default values** can be either strings or maps. If a default
-value is omitted and the variable is required, the value assigned
-via the CLI must be a string.
+**Default values** can be either strings or maps, and if specified
+must match the declared type of the variable. If no value is supplied
+for a variable of type `map`, the values must be supplied in a
+`terraform.tfvars` file - they cannot be input via the console.
 
 String values are simple and represent a basic key to value
 mapping where the key is the variable name. An example is:
 
 ```
 variable "key" {
+    type = "string"
+
 	default = "value"
 }
 ```
@@ -79,6 +95,8 @@ An example:
 
 ```
 variable "images" {
+    type = "map"
+
 	default = {
 		us-east-1 = "image-1234"
 		us-west-2 = "image-4567"
@@ -115,6 +133,7 @@ The full syntax is:
 
 ```
 variable NAME {
+	[type = TYPE]
 	[default = DEFAULT]
 	[description = DESCRIPTION]
 }
