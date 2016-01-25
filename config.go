@@ -205,6 +205,7 @@ func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory 
 	config.Cmd = pluginCmd(path)
 	config.HandshakeConfig = tfplugin.Handshake
 	config.Managed = true
+	config.Plugins = tfplugin.PluginMap
 	client := plugin.NewClient(&config)
 
 	return func() (terraform.ResourceProvider, error) {
@@ -242,6 +243,7 @@ func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFa
 	config.HandshakeConfig = tfplugin.Handshake
 	config.Cmd = pluginCmd(path)
 	config.Managed = true
+	config.Plugins = tfplugin.PluginMap
 	client := plugin.NewClient(&config)
 
 	return func() (terraform.ResourceProvisioner, error) {
