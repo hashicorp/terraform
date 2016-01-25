@@ -1,24 +1,38 @@
-package rpc
+package plugin
 
 import (
 	"net/rpc"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// ResourceProviderPlugin is the plugin.Plugin implementation.
+type ResourceProviderPlugin struct {
+	F func() terraform.ResourceProvider
+}
+
+func (p *ResourceProviderPlugin) Server(b *plugin.MuxBroker) (interface{}, error) {
+	return &ResourceProviderServer{Broker: b, Provider: p.F()}, nil
+}
+
+func (p *ResourceProviderPlugin) Client(
+	b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
+	return &ResourceProvider{Broker: b, Client: c}, nil
+}
 
 // ResourceProvider is an implementation of terraform.ResourceProvider
 // that communicates over RPC.
 type ResourceProvider struct {
-	Broker *muxBroker
+	Broker *plugin.MuxBroker
 	Client *rpc.Client
-	Name   string
 }
 
 func (p *ResourceProvider) Input(
 	input terraform.UIInput,
 	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
 	id := p.Broker.NextId()
-	go acceptAndServe(p.Broker, id, "UIInput", &UIInputServer{
+	go p.Broker.AcceptAndServe(id, &UIInputServer{
 		UIInput: input,
 	})
 
@@ -28,7 +42,7 @@ func (p *ResourceProvider) Input(
 		Config:  c,
 	}
 
-	err := p.Client.Call(p.Name+".Input", &args, &resp)
+	err := p.Client.Call("Plugin.Input", &args, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +60,7 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 		Config: c,
 	}
 
-	err := p.Client.Call(p.Name+".Validate", &args, &resp)
+	err := p.Client.Call("Plugin.Validate", &args, &resp)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -70,7 +84,7 @@ func (p *ResourceProvider) ValidateResource(
 		Type:   t,
 	}
 
-	err := p.Client.Call(p.Name+".ValidateResource", &args, &resp)
+	err := p.Client.Call("Plugin.ValidateResource", &args, &resp)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -88,7 +102,7 @@ func (p *ResourceProvider) ValidateResource(
 
 func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	var resp ResourceProviderConfigureResponse
-	err := p.Client.Call(p.Name+".Configure", c, &resp)
+	err := p.Client.Call("Plugin.Configure", c, &resp)
 	if err != nil {
 		return err
 	}
@@ -110,7 +124,7 @@ func (p *ResourceProvider) Apply(
 		Diff:  d,
 	}
 
-	err := p.Client.Call(p.Name+".Apply", args, &resp)
+	err := p.Client.Call("Plugin.Apply", args, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +145,7 @@ func (p *ResourceProvider) Diff(
 		State:  s,
 		Config: c,
 	}
-	err := p.Client.Call(p.Name+".Diff", args, &resp)
+	err := p.Client.Call("Plugin.Diff", args, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +165,7 @@ func (p *ResourceProvider) Refresh(
 		State: s,
 	}
 
-	err := p.Client.Call(p.Name+".Refresh", args, &resp)
+	err := p.Client.Call("Plugin.Refresh", args, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +179,7 @@ func (p *ResourceProvider) Refresh(
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	var result []terraform.ResourceType
 
-	err := p.Client.Call(p.Name+".Resources", new(interface{}), &result)
+	err := p.Client.Call("Plugin.Resources", new(interface{}), &result)
 	if err != nil {
 		// TODO: panic, log, what?
 		return nil
@@ -181,12 +195,12 @@ func (p *ResourceProvider) Close() error {
 // ResourceProviderServer is a net/rpc compatible structure for serving
 // a ResourceProvider. This should not be used directly.
 type ResourceProviderServer struct {
-	Broker   *muxBroker
+	Broker   *plugin.MuxBroker
 	Provider terraform.ResourceProvider
 }
 
 type ResourceProviderConfigureResponse struct {
-	Error *BasicError
+	Error *plugin.BasicError
 }
 
 type ResourceProviderInputArgs struct {
@@ -196,7 +210,7 @@ type ResourceProviderInputArgs struct {
 
 type ResourceProviderInputResponse struct {
 	Config *terraform.ResourceConfig
-	Error  *BasicError
+	Error  *plugin.BasicError
 }
 
 type ResourceProviderApplyArgs struct {
@@ -207,7 +221,7 @@ type ResourceProviderApplyArgs struct {
 
 type ResourceProviderApplyResponse struct {
 	State *terraform.InstanceState
-	Error *BasicError
+	Error *plugin.BasicError
 }
 
 type ResourceProviderDiffArgs struct {
@@ -218,7 +232,7 @@ type ResourceProviderDiffArgs struct {
 
 type ResourceProviderDiffResponse struct {
 	Diff  *terraform.InstanceDiff
-	Error *BasicError
+	Error *plugin.BasicError
 }
 
 type ResourceProviderRefreshArgs struct {
@@ -228,7 +242,7 @@ type ResourceProviderRefreshArgs struct {
 
 type ResourceProviderRefreshResponse struct {
 	State *terraform.InstanceState
-	Error *BasicError
+	Error *plugin.BasicError
 }
 
 type ResourceProviderValidateArgs struct {
@@ -237,7 +251,7 @@ type ResourceProviderValidateArgs struct {
 
 type ResourceProviderValidateResponse struct {
 	Warnings []string
-	Errors   []*BasicError
+	Errors   []*plugin.BasicError
 }
 
 type ResourceProviderValidateResourceArgs struct {
@@ -247,7 +261,7 @@ type ResourceProviderValidateResourceArgs struct {
 
 type ResourceProviderValidateResourceResponse struct {
 	Warnings []string
-	Errors   []*BasicError
+	Errors   []*plugin.BasicError
 }
 
 func (s *ResourceProviderServer) Input(
@@ -256,22 +270,19 @@ func (s *ResourceProviderServer) Input(
 	conn, err := s.Broker.Dial(args.InputId)
 	if err != nil {
 		*reply = ResourceProviderInputResponse{
-			Error: NewBasicError(err),
+			Error: plugin.NewBasicError(err),
 		}
 		return nil
 	}
 	client := rpc.NewClient(conn)
 	defer client.Close()
 
-	input := &UIInput{
-		Client: client,
-		Name:   "UIInput",
-	}
+	input := &UIInput{Client: client}
 
 	config, err := s.Provider.Input(input, args.Config)
 	*reply = ResourceProviderInputResponse{
 		Config: config,
-		Error:  NewBasicError(err),
+		Error:  plugin.NewBasicError(err),
 	}
 
 	return nil
@@ -281,9 +292,9 @@ func (s *ResourceProviderServer) Validate(
 	args *ResourceProviderValidateArgs,
 	reply *ResourceProviderValidateResponse) error {
 	warns, errs := s.Provider.Validate(args.Config)
-	berrs := make([]*BasicError, len(errs))
+	berrs := make([]*plugin.BasicError, len(errs))
 	for i, err := range errs {
-		berrs[i] = NewBasicError(err)
+		berrs[i] = plugin.NewBasicError(err)
 	}
 	*reply = ResourceProviderValidateResponse{
 		Warnings: warns,
@@ -296,9 +307,9 @@ func (s *ResourceProviderServer) ValidateResource(
 	args *ResourceProviderValidateResourceArgs,
 	reply *ResourceProviderValidateResourceResponse) error {
 	warns, errs := s.Provider.ValidateResource(args.Type, args.Config)
-	berrs := make([]*BasicError, len(errs))
+	berrs := make([]*plugin.BasicError, len(errs))
 	for i, err := range errs {
-		berrs[i] = NewBasicError(err)
+		berrs[i] = plugin.NewBasicError(err)
 	}
 	*reply = ResourceProviderValidateResourceResponse{
 		Warnings: warns,
@@ -312,7 +323,7 @@ func (s *ResourceProviderServer) Configure(
 	reply *ResourceProviderConfigureResponse) error {
 	err := s.Provider.Configure(config)
 	*reply = ResourceProviderConfigureResponse{
-		Error: NewBasicError(err),
+		Error: plugin.NewBasicError(err),
 	}
 	return nil
 }
@@ -323,7 +334,7 @@ func (s *ResourceProviderServer) Apply(
 	state, err := s.Provider.Apply(args.Info, args.State, args.Diff)
 	*result = ResourceProviderApplyResponse{
 		State: state,
-		Error: NewBasicError(err),
+		Error: plugin.NewBasicError(err),
 	}
 	return nil
 }
@@ -334,7 +345,7 @@ func (s *ResourceProviderServer) Diff(
 	diff, err := s.Provider.Diff(args.Info, args.State, args.Config)
 	*result = ResourceProviderDiffResponse{
 		Diff:  diff,
-		Error: NewBasicError(err),
+		Error: plugin.NewBasicError(err),
 	}
 	return nil
 }
@@ -345,7 +356,7 @@ func (s *ResourceProviderServer) Refresh(
 	newState, err := s.Provider.Refresh(args.Info, args.State)
 	*result = ResourceProviderRefreshResponse{
 		State: newState,
-		Error: NewBasicError(err),
+		Error: plugin.NewBasicError(err),
 	}
 	return nil
 }
