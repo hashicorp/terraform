@@ -277,10 +277,7 @@ func (s *ResourceProviderServer) Input(
 	client := rpc.NewClient(conn)
 	defer client.Close()
 
-	input := &UIInput{
-		Client: client,
-		Name:   "UIInput",
-	}
+	input := &UIInput{Client: client}
 
 	config, err := s.Provider.Input(input, args.Config)
 	*reply = ResourceProviderInputResponse{

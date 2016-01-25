@@ -1,10 +1,10 @@
 package rpc
 
-/*
 import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -13,20 +13,20 @@ func TestUIInput_impl(t *testing.T) {
 }
 
 func TestUIInput_input(t *testing.T) {
-	client, server := testClientServer(t)
+	client, server := plugin.TestRPCConn(t)
 	defer client.Close()
 
 	i := new(terraform.MockUIInput)
 	i.InputReturnString = "foo"
 
-	err := server.RegisterName("UIInput", &UIInputServer{
+	err := server.RegisterName("Plugin", &UIInputServer{
 		UIInput: i,
 	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	input := &UIInput{Client: client, Name: "UIInput"}
+	input := &UIInput{Client: client}
 
 	opts := &terraform.InputOpts{
 		Id: "foo",
@@ -47,4 +47,3 @@ func TestUIInput_input(t *testing.T) {
 		t.Fatalf("bad: %#v", v)
 	}
 }
-*/

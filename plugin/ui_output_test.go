@@ -1,9 +1,9 @@
 package rpc
 
-/*
 import (
 	"testing"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -12,19 +12,19 @@ func TestUIOutput_impl(t *testing.T) {
 }
 
 func TestUIOutput_input(t *testing.T) {
-	client, server := testClientServer(t)
+	client, server := plugin.TestRPCConn(t)
 	defer client.Close()
 
 	o := new(terraform.MockUIOutput)
 
-	err := server.RegisterName("UIOutput", &UIOutputServer{
+	err := server.RegisterName("Plugin", &UIOutputServer{
 		UIOutput: o,
 	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	output := &UIOutput{Client: client, Name: "UIOutput"}
+	output := &UIOutput{Client: client}
 	output.Output("foo")
 	if !o.OutputCalled {
 		t.Fatal("output should be called")
@@ -33,4 +33,3 @@ func TestUIOutput_input(t *testing.T) {
 		t.Fatalf("bad: %#v", o.OutputMessage)
 	}
 }
-*/

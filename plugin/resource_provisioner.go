@@ -26,7 +26,6 @@ func (p *ResourceProvisionerPlugin) Client(
 type ResourceProvisioner struct {
 	Broker *plugin.MuxBroker
 	Client *rpc.Client
-	Name   string
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -121,10 +120,7 @@ func (s *ResourceProvisionerServer) Apply(
 	client := rpc.NewClient(conn)
 	defer client.Close()
 
-	output := &UIOutput{
-		Client: client,
-		Name:   "UIOutput",
-	}
+	output := &UIOutput{Client: client}
 
 	err = s.Provisioner.Apply(output, args.State, args.Config)
 	*result = ResourceProvisionerApplyResponse{

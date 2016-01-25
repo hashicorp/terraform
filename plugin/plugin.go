@@ -5,18 +5,22 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-type ProviderFunc func() terraform.ResourceProvider
-type ProvisionerFunc func() terraform.ResourceProvisioner
+// The constants below are the names of the plugins that can be dispensed
+// from the plugin server.
+const (
+	ProviderPluginName    = "provider"
+	ProvisionerPluginName = "provisioner"
+)
 
+// Config is used to configure Map to return the map necessary to configure
+// clients and servers.
 type Config struct {
 	Provider    ProviderFunc
 	Provisioner ProvisionerFunc
 }
 
-const (
-	ProviderPluginName    = "provider"
-	ProvisionerPluginName = "provisioner"
-)
+type ProviderFunc func() terraform.ResourceProvider
+type ProvisionerFunc func() terraform.ResourceProvisioner
 
 // Map returns the map[string]plugin.Plugin to use for configuring a plugin
 // server or client.

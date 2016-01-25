@@ -11,12 +11,11 @@ import (
 // over RPC.
 type UIInput struct {
 	Client *rpc.Client
-	Name   string
 }
 
 func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	var resp UIInputInputResponse
-	err := i.Client.Call(i.Name+".Input", opts, &resp)
+	err := i.Client.Call("Plugin.Input", opts, &resp)
 	if err != nil {
 		return "", err
 	}
