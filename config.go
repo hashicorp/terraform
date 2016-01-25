@@ -203,6 +203,7 @@ func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory 
 	// Build the plugin client configuration and init the plugin
 	var config plugin.ClientConfig
 	config.Cmd = pluginCmd(path)
+	config.HandshakeConfig = tfplugin.Handshake
 	config.Managed = true
 	client := plugin.NewClient(&config)
 
@@ -238,6 +239,7 @@ func (c *Config) ProvisionerFactories() map[string]terraform.ResourceProvisioner
 func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFactory {
 	// Build the plugin client configuration and init the plugin
 	var config plugin.ClientConfig
+	config.HandshakeConfig = tfplugin.Handshake
 	config.Cmd = pluginCmd(path)
 	config.Managed = true
 	client := plugin.NewClient(&config)

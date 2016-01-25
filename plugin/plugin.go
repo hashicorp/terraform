@@ -30,3 +30,10 @@ func Map(c *Config) map[string]plugin.Plugin {
 		"provisioner": &ResourceProvisionerPlugin{F: c.Provisioner},
 	}
 }
+
+// Handshake is the HandshakeConfig used to configure clients and servers.
+var Handshake = plugin.HandshakeConfig{
+	ProtocolVersion:  1,
+	MagicCookieKey:   "TF_PLUGIN_MAGIC_COOKIE",
+	MagicCookieValue: "d602bf8f470bc67ca7faa0386276bbdd4330efaf76d1a219cb4d6991ca9872b2",
+}
