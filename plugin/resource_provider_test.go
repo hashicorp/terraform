@@ -17,8 +17,8 @@ func TestResourceProvider_impl(t *testing.T) {
 func TestResourceProvider_input(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvider)
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -59,8 +59,8 @@ func TestResourceProvider_input(t *testing.T) {
 func TestResourceProvider_configure(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvider)
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -92,8 +92,8 @@ func TestResourceProvider_configure_errors(t *testing.T) {
 	p.ConfigureReturnError = errors.New("foo")
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -127,8 +127,8 @@ func TestResourceProvider_configure_warnings(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -159,8 +159,8 @@ func TestResourceProvider_apply(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -198,8 +198,8 @@ func TestResourceProvider_diff(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -244,8 +244,8 @@ func TestResourceProvider_diff_error(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -283,8 +283,8 @@ func TestResourceProvider_refresh(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -321,8 +321,8 @@ func TestResourceProvider_resources(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -354,8 +354,8 @@ func TestResourceProvider_validate(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -389,8 +389,8 @@ func TestResourceProvider_validate_errors(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -430,8 +430,8 @@ func TestResourceProvider_validate_warns(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -469,8 +469,8 @@ func TestResourceProvider_validateResource(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -507,8 +507,8 @@ func TestResourceProvider_validateResource_errors(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -551,8 +551,8 @@ func TestResourceProvider_validateResource_warns(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 
@@ -593,8 +593,8 @@ func TestResourceProvider_close(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
 	// Create a mock provider
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provider: testProviderFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
 	}))
 	defer client.Close()
 

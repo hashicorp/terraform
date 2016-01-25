@@ -17,8 +17,8 @@ func TestResourceProvisioner_impl(t *testing.T) {
 func TestResourceProvisioner_apply(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provisioner: testProvisionerFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProvisionerFunc: testProvisionerFixed(p),
 	}))
 	defer client.Close()
 
@@ -48,8 +48,8 @@ func TestResourceProvisioner_apply(t *testing.T) {
 func TestResourceProvisioner_validate(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provisioner: testProvisionerFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProvisionerFunc: testProvisionerFixed(p),
 	}))
 	defer client.Close()
 
@@ -82,8 +82,8 @@ func TestResourceProvisioner_validate(t *testing.T) {
 func TestResourceProvisioner_validate_errors(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provisioner: testProvisionerFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProvisionerFunc: testProvisionerFixed(p),
 	}))
 	defer client.Close()
 
@@ -122,8 +122,8 @@ func TestResourceProvisioner_validate_errors(t *testing.T) {
 func TestResourceProvisioner_validate_warns(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provisioner: testProvisionerFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProvisionerFunc: testProvisionerFixed(p),
 	}))
 	defer client.Close()
 
@@ -160,8 +160,8 @@ func TestResourceProvisioner_validate_warns(t *testing.T) {
 func TestResourceProvisioner_close(t *testing.T) {
 	// Create a mock provider
 	p := new(terraform.MockResourceProvisioner)
-	client, _ := plugin.TestPluginRPCConn(t, Map(&Config{
-		Provisioner: testProvisionerFixed(p),
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProvisionerFunc: testProvisionerFixed(p),
 	}))
 	defer client.Close()
 
