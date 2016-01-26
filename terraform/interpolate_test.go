@@ -348,6 +348,44 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 	})
 }
 
+func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
+	lock := new(sync.RWMutex)
+	// The state would never be written with an UnknownVariableValue in it, but
+	// it can/does exist that way in memory during the plan phase.
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type: "aws_route53_zone",
+						Primary: &InstanceState{
+							ID: "z-abc123",
+							Attributes: map[string]string{
+								"name_servers.#": config.UnknownVariableValue,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: lock,
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeString,
+	})
+}
+
 func getInterpolaterFixture(t *testing.T) *Interpolater {
 	lock := new(sync.RWMutex)
 	state := &State{
