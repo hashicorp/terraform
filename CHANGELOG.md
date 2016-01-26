@@ -80,6 +80,7 @@ BUG FIXES:
   * provider/mailgun: Handle the fact that the domain destroy API is eventually consistent [GH-4777]
   * provider/template: Fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
   * provider/template: Add support for updating `template_cloudinit_config` resources [GH-4757]
+  * provisioner/chef: Add ENV['no_proxy'] to chef provisioner if no_proxy is detected [GH-4661]
 
 ## 0.6.9 (January 8, 2016)
 
