@@ -137,7 +137,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"Launching", "Updating"},
-		Target:     "Ready",
+		Target:     []string{"Ready"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -390,7 +390,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"Terminating"},
-		Target:     "Terminated",
+		Target:     []string{"Terminated"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
