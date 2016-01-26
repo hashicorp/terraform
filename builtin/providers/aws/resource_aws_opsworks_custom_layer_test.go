@@ -212,6 +212,10 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
 `
 
 var testAccAwsOpsworksCustomLayerConfigUpdate = testAccAwsOpsworksStackConfigNoVpcCreate + testAccAwsOpsworksCustomLayerSecurityGroups + `
+provider "aws" {
+  region = "us-east-1"
+}
+
 resource "aws_security_group" "tf-ops-acc-layer3" {
   name = "tf-ops-acc-layer3"
   ingress {
