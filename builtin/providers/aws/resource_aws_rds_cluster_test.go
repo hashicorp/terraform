@@ -99,7 +99,7 @@ func testAccCheckAWSClusterDestroy(s *terraform.State) error {
 
 		// Return nil if the cluster is already destroyed
 		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "DBClusterNotFound" {
+			if awsErr.Code() == "DBClusterNotFoundFault" {
 				return nil
 			}
 		}
