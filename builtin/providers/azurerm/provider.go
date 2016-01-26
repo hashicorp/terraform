@@ -56,6 +56,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_cdn_profile":            resourceArmCdnProfile(),
 			"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
 			"azurerm_storage_account":        resourceArmStorageAccount(),
+			"azurerm_storage_container":      resourceArmStorageContainer(),
+			"azurerm_storage_blob":           resourceArmStorageBlob(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
