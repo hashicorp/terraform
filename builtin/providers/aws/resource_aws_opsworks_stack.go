@@ -338,11 +338,18 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 				// The full error we're looking for looks something like
 				// the following:
 				// Service Role Arn: [...] is not yet propagated, please try again in a couple of minutes
-				propErr := "not yet propagated"
-				trustErr := "not the necessary trust relationship"
-				if opserr.Code() == "ValidationException" && (strings.Contains(opserr.Message(), trustErr) || strings.Contains(opserr.Message(), propErr)) {
-					log.Printf("[INFO] Waiting for service IAM role to propagate")
-					return cerr
+				retryableErrs := []string{
+					"not yet propagated",
+					"not the necessary trust relationship",
+					"Failed to check with EC2",
+				}
+				if opserr.Code() == "ValidationException" {
+					for _, retryableErr := range retryableErrs {
+						if strings.Contains(opserr.Message(), retryableErr) {
+							log.Printf("[INFO] Got retryable error: %s; Waiting for service IAM role to propagate", cerr)
+							return cerr
+						}
+					}
 				}
 			}
 			return resource.RetryError{Err: cerr}
