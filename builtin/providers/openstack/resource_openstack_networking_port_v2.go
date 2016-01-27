@@ -89,7 +89,7 @@ func resourceNetworkingPortV2() *schema.Resource {
 						},
 						"ip_address": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
