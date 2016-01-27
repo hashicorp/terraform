@@ -1,4 +1,4 @@
-## 0.6.10 (Unreleased)
+## 0.6.10 (January 27, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
