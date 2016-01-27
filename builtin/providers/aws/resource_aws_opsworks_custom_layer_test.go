@@ -181,7 +181,7 @@ resource "aws_security_group" "tf-ops-acc-layer2" {
     protocol = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}`, name)
+}`, name, name)
 }
 
 func testAccAwsOpsworksCustomLayerConfigCreate(name string) string {
@@ -192,7 +192,7 @@ provider "aws" {
 
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-custom-layer"
+  name = "%s"
   short_name = "tf-ops-acc-custom-layer"
   auto_assign_public_ips = true
   custom_security_group_ids = [
@@ -238,7 +238,7 @@ resource "aws_security_group" "tf-ops-acc-layer3" {
 }
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-custom-layer"
+  name = "%s"
   short_name = "tf-ops-acc-custom-layer"
   auto_assign_public_ips = true
   custom_security_group_ids = [
