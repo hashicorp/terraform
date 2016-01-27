@@ -43,10 +43,11 @@ func resourceArmStorageBlob() *schema.Resource {
 				ValidateFunc: validateArmStorageBlobType,
 			},
 			"size": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-				Default:  0,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				ForceNew:     true,
+				Default:      0,
+				ValidateFunc: validateArmStorageBlobSize,
 			},
 			"url": &schema.Schema{
 				Type:     schema.TypeString,
@@ -54,6 +55,16 @@ func resourceArmStorageBlob() *schema.Resource {
 			},
 		},
 	}
+}
+
+func validateArmStorageBlobSize(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+
+	if value%512 != 0 {
+		errors = append(errors, fmt.Errorf("Blob Size %q is invalid, must be a multiple of 512", value))
+	}
+
+	return
 }
 
 func validateArmStorageBlobType(v interface{}, k string) (ws []string, errors []error) {
