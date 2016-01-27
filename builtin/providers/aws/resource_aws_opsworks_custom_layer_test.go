@@ -16,7 +16,7 @@ import (
 // and `aws-opsworks-service-role`.
 
 func TestAccAWSOpsworksCustomLayer(t *testing.T) {
-	stackName := fmt.Sprintf("tf-opsworks-acc-%d", acctest.RandInt())
+	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -26,7 +26,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 				Config: testAccAwsOpsworksCustomLayerConfigCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",
+						"aws_opsworks_custom_layer.tf-acc", "name", stackName,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "auto_assign_elastic_ips", "false",
@@ -73,7 +73,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 				Config: testAccAwsOpsworksCustomLayerConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",
+						"aws_opsworks_custom_layer.tf-acc", "name", stackName,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "drain_elb_on_shutdown", "false",
