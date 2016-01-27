@@ -99,7 +99,7 @@ database, and to use this value as the source database. This correlates to the
 * `license_model` - (Optional, but required for some DB engines, i.e. Oracle SE1) License model information for this DB instance.
 * `auto_minor_version_upgrade` - (Optional) Indicates that minor engine upgrades will be applied automatically to the DB instance during the maintenance window. Defaults to true.
 * `allow_major_version_upgrade` - (Optional) Indicates that major version upgrades are allowed. Changing this parameter does not result in an outage and the change is asynchronously applied as soon as possible.
-* `charater_set_name` - (Optional) The character set name to use for DB encoding in Oracle instances. This can't be changed.
+* `character_set_name` - (Optional) The character set name to use for DB encoding in Oracle instances. This can't be changed.
 [Oracle Character Sets Supported in Amazon RDS](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.OracleCharacterSets.html)
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
