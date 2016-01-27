@@ -1,12 +1,14 @@
 ## 0.6.10 (Unreleased)
 
-BACKWARDS INCOMPATIBILITIES:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * The `-module-depth` flag available on `plan`, `apply`, `show`, and `graph` now defaults to `-1`, causing
    resources within modules to be expanded in command output. This is only a cosmetic change; it does not affect
    any behavior.
  * This release includes a bugfix for `$${}` interpolation escaping. These strings are now properly converted to `${}`
    during interpolation. This may cause diffs on existing configurations in certain cases.
+ * Users of `consul_keys` should note that the `value` sub-attribute of `key` will no longer be updated with the remote value of the key. It should be only used to _set_ a key in Consul K/V. To reference key values, use the `var` attribute.
+ * The 0.6.9 release contained a regression in `aws_autoscaling_group` capacity waiting behavior for configs where `min_elb_capacity != desired_capacity` or `min_size != desired_capacity`. This release remedies that regression by un-deprecating `min_elb_capacity` and restoring the prior behavior.
 
 FEATURES:
 
@@ -70,6 +72,7 @@ BUG FIXES:
   * core: Write planfile even on empty plans [GH-4766]
   * core: Add validation error when output is missing value field [GH-4762]
   * core: Fix improper handling of orphan resources when targeting [GH-4574]
+  * core: Properly handle references to computed set attributes [GH-4840]
   * config: Detect a specific JSON edge case and show a helpful workaround [GH-4746]
   * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
   * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
@@ -81,6 +84,8 @@ BUG FIXES:
   * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
   * provider/aws: Wait for NACL rule to be visible [GH-4734]
   * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
+  * provider/aws: fix ASG capacity waiting regression by un-deprecating `min_elb_capacity` [GH-4864]
+  * provider/consul: fix several bugs surrounding update behavior [GH-4787]
   * provider/mailgun: Handle the fact that the domain destroy API is eventually consistent [GH-4777]
   * provider/template: Fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
   * provider/template: Add support for updating `template_cloudinit_config` resources [GH-4757]
@@ -172,7 +177,6 @@ BUG FIXES:
   * provider/aws: Fix template_url/template_body conflict [GH-4540]
   * provider/aws: Fix bug w/ changing ECS svc/ELB association [GH-4366]
   * provider/aws: Fix RDS unexpected state config [GH-4490]
-  * provider/azure: Update for [breaking change to upstream client library](https://github.com/Azure/azure-sdk-for-go/commit/68d50cb53a73edfeb7f17f5e86cdc8eb359a9528). [GH-4300]
   * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
   * provider/google: Fix project metadata sshKeys from showing up and causing unnecessary diffs [GH-4512]
   * provider/heroku: Retry drain create until log channel is assigned [GH-4823]
