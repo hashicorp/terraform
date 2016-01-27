@@ -310,3 +310,17 @@ func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupN
 	blobClient := storageClient.GetBlobService()
 	return &blobClient, nil
 }
+func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, error) {
+	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, err
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	queueClient := storageClient.GetQueueService()
+	return &queueClient, nil
+}
