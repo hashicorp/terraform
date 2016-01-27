@@ -30,6 +30,23 @@ resource "aws_instance" "web" {
 }
 ```
 
+## Authentication 
+
+The AWS provider offers flexible means of providing credentials for
+authentication. Included is support including hard coded credentials, 
+environment variables, and shared credential files, in that order of precedence. 
+
+Terraform will first attempt to use an `access_key` and `secret_key` provided in 
+the `provider` block (shown in the example above). If those are omitted, it will 
+attempt to discover those values by referencing the `AWS_ACCESS_KEY_ID` and 
+`AWS_SECRET_ACCESS_KEY` environment variables. Lastly, if those are not found 
+it will look for credentials in the default location for a credentials file, or 
+the file path specified in the `shared_credentials_file` attribute of the 
+`provider` block.
+
+See the argument reference below for information on which attributes to specify
+to use a corresponding credential provider.  
+
 ## Argument Reference
 
 The following arguments are supported in the `provider` block:
