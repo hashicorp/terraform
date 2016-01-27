@@ -59,6 +59,7 @@ IMPROVEMENTS:
   * provider/openstack: Add "personality" support to instance resource [GH-4623]
   * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
   * provider/tls: `tls_private_key` now exports attributes with public key in both PEM and OpenSSH format [GH-4606]
+  * provider/vdc: Add `allow_unverified_ssl` for connections to vCloud API [GH-4811]
   * state/remote: Allow KMS Key Encryption to be used with S3 backend [GH-2903]
 
 BUG FIXES:
