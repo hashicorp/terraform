@@ -65,6 +65,13 @@ func resourceAwsDbInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"character_set_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"storage_encrypted": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -440,6 +447,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.MultiAZ = aws.Bool(attr.(bool))
 		}
 
+		if attr, ok := d.GetOk("character_set_name"); ok {
+			opts.CharacterSetName = aws.String(attr.(string))
+		}
+
 		if attr, ok := d.GetOk("maintenance_window"); ok {
 			opts.PreferredMaintenanceWindow = aws.String(attr.(string))
 		}
@@ -556,6 +567,10 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("multi_az", v.MultiAZ)
 	if v.DBSubnetGroup != nil {
 		d.Set("db_subnet_group_name", v.DBSubnetGroup.DBSubnetGroupName)
+	}
+
+	if v.CharacterSetName != nil {
+		d.Set("character_set_name", v.CharacterSetName)
 	}
 
 	if len(v.DBParameterGroups) > 0 {
