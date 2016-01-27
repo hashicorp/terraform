@@ -543,6 +543,42 @@ func TestInterpolateFuncLength(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSignum(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${signum()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${signum("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${signum(0)}`,
+				"0",
+				false,
+			},
+
+			{
+				`${signum(15)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${signum(-29)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncSplit(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
