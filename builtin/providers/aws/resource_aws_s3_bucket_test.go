@@ -443,7 +443,7 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, 
 			if *v.HostName != redirectTo {
 				return fmt.Errorf("bad redirect to, expected: %s, got %#v", redirectTo, out.RedirectAllRequestsTo)
 			}
-			if redirectProtocol != "" && *v.Protocol != redirectProtocol {
+			if redirectProtocol != "" && v.Protocol != nil && *v.Protocol != redirectProtocol {
 				return fmt.Errorf("bad redirect protocol to, expected: %s, got %#v", redirectProtocol, out.RedirectAllRequestsTo)
 			}
 		}
