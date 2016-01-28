@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -59,13 +60,16 @@ func TestResourceAzureRMRouteTableNextHopType_validation(t *testing.T) {
 
 func TestAccAzureRMRouteTable_basic(t *testing.T) {
 
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMRouteTable_basic, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMRouteTable_basic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
 				),
@@ -76,13 +80,17 @@ func TestAccAzureRMRouteTable_basic(t *testing.T) {
 
 func TestAccAzureRMRouteTable_withTags(t *testing.T) {
 
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMRouteTable_withTags, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMRouteTable_withTagsUpdate, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMRouteTable_withTags,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
 					resource.TestCheckResourceAttr(
@@ -95,7 +103,7 @@ func TestAccAzureRMRouteTable_withTags(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMRouteTable_withTagsUpdate,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
 					resource.TestCheckResourceAttr(
@@ -110,13 +118,17 @@ func TestAccAzureRMRouteTable_withTags(t *testing.T) {
 
 func TestAccAzureRMRouteTable_multipleRoutes(t *testing.T) {
 
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMRouteTable_basic, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMRouteTable_multipleRoutes, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMRouteTable_basic,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
 					resource.TestCheckResourceAttr(
@@ -125,7 +137,7 @@ func TestAccAzureRMRouteTable_multipleRoutes(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMRouteTable_multipleRoutes,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRouteTableExists("azurerm_route_table.test"),
 					resource.TestCheckResourceAttr(
@@ -192,12 +204,12 @@ func testCheckAzureRMRouteTableDestroy(s *terraform.State) error {
 
 var testAccAzureRMRouteTable_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 
 resource "azurerm_route_table" "test" {
-    name = "acceptanceTestSecurityGroup1"
+    name = "acctestrt%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
@@ -211,12 +223,12 @@ resource "azurerm_route_table" "test" {
 
 var testAccAzureRMRouteTable_multipleRoutes = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 
 resource "azurerm_route_table" "test" {
-    name = "acceptanceTestSecurityGroup1"
+    name = "acctestrt%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
@@ -236,12 +248,12 @@ resource "azurerm_route_table" "test" {
 
 var testAccAzureRMRouteTable_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 
 resource "azurerm_route_table" "test" {
-    name = "acceptanceTestSecurityGroup1"
+    name = "acctestrt%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
@@ -260,12 +272,12 @@ resource "azurerm_route_table" "test" {
 
 var testAccAzureRMRouteTable_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 
 resource "azurerm_route_table" "test" {
-    name = "acceptanceTestSecurityGroup1"
+    name = "acctestrt%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
 

@@ -5,18 +5,22 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/core/http"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMResourceGroup_basic(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMResourceGroup_basic, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMResourceGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMResourceGroup_basic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
 				),
@@ -26,13 +30,17 @@ func TestAccAzureRMResourceGroup_basic(t *testing.T) {
 }
 
 func TestAccAzureRMResourceGroup_withTags(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMResourceGroup_withTags, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMResourceGroup_withTagsUpdated, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMResourceGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMResourceGroup_withTags,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
 					resource.TestCheckResourceAttr(
@@ -45,7 +53,7 @@ func TestAccAzureRMResourceGroup_withTags(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMResourceGroup_withTagsUpdated,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
 					resource.TestCheckResourceAttr(
@@ -109,14 +117,14 @@ func testCheckAzureRMResourceGroupDestroy(s *terraform.State) error {
 
 var testAccAzureRMResourceGroup_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1_basic"
+    name = "acctestrg-%d"
     location = "West US"
 }
 `
 
 var testAccAzureRMResourceGroup_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1_basic"
+    name = "acctestrg-%d"
     location = "West US"
 
     tags {
@@ -128,7 +136,7 @@ resource "azurerm_resource_group" "test" {
 
 var testAccAzureRMResourceGroup_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1_basic"
+    name = "acctestrg-%d"
     location = "West US"
 
     tags {
