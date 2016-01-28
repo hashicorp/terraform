@@ -97,15 +97,38 @@ type MissingProvisionerTransformer struct {
 }
 
 func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
+	// Create a set of our supported provisioners
+	supported := make(map[string]struct{}, len(t.Provisioners))
+	for _, v := range t.Provisioners {
+		supported[v] = struct{}{}
+	}
+
+	// Get the map of provisioners we already have in our graph
 	m := provisionerVertexMap(g)
-	for _, p := range t.Provisioners {
-		if _, ok := m[p]; ok {
-			// This provisioner already exists as a configured node
+
+	// Go through all the provisioner consumers and make sure we add
+	// that provisioner if it is missing.
+	for _, v := range g.Vertices() {
+		pv, ok := v.(GraphNodeProvisionerConsumer)
+		if !ok {
 			continue
 		}
 
-		// Add our own missing provisioner node to the graph
-		g.Add(&graphNodeMissingProvisioner{ProvisionerNameValue: p})
+		for _, p := range pv.ProvisionedBy() {
+			if _, ok := m[p]; ok {
+				// This provisioner already exists as a configure node
+				continue
+			}
+
+			if _, ok := supported[p]; !ok {
+				// If we don't support the provisioner type, skip it.
+				// Validation later will catch this as an error.
+				continue
+			}
+
+			// Add our own missing provisioner node to the graph
+			m[p] = g.Add(&graphNodeMissingProvisioner{ProvisionerNameValue: p})
+		}
 	}
 
 	return nil
