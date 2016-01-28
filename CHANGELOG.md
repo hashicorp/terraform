@@ -1,5 +1,11 @@
 ## 0.6.11 (Unreleased)
 
+IMPROVEMENTS:
+
+  * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
+  * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources [GH-4873]
+
+
 ## 0.6.10 (January 27, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
