@@ -2,31 +2,35 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * The `max_size`, `min_size` and `desired_capacity` attributes on `aws_autoscaling_schedule` resources now default to 0
+  * The `max_size`, `min_size` and `desired_capacity` attributes on `aws_autoscaling_schedule` resources now default to 0
 
+FEATURES:
+
+  * **New provider: `powerdns` - PowerDNS REST API** [GH-4885]
+  *
 IMPROVEMENTS:
 
- * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
- * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources [GH-4873]
+  * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
+  * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources [GH-4873]
  
 BUG FIXES:
 
- * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
- * provider/aws: Fix regression with VPCs and ClassicLink for regions that do not support it [GH-4879]
+  * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
+  * provider/aws: Fix regression with VPCs and ClassicLink for regions that do not support it [GH-4879]
 
 
 ## 0.6.10 (January 27, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * The `-module-depth` flag available on `plan`, `apply`, `show`, and `graph` now defaults to `-1`, causing
-   resources within modules to be expanded in command output. This is only a cosmetic change; it does not affect
-   any behavior.
- * This release includes a bugfix for `$${}` interpolation escaping. These strings are now properly converted to `${}`
-   during interpolation. This may cause diffs on existing configurations in certain cases.
- * Users of `consul_keys` should note that the `value` sub-attribute of `key` will no longer be updated with the remote value of the key. It should be only used to _set_ a key in Consul K/V. To reference key values, use the `var` attribute.
- * The 0.6.9 release contained a regression in `aws_autoscaling_group` capacity waiting behavior for configs where `min_elb_capacity != desired_capacity` or `min_size != desired_capacity`. This release remedies that regression by un-deprecating `min_elb_capacity` and restoring the prior behavior.
- * Users of `aws_security_group` may notice new diffs in initial plans with 0.6.10 due to a bugfix that fixes drift detection on nested security group rules. These new diffs should reflect the actual state of the resources, which Terraform previously was unable to see.
+  * The `-module-depth` flag available on `plan`, `apply`, `show`, and `graph` now defaults to `-1`, causing
+    resources within modules to be expanded in command output. This is only a cosmetic change; it does not affect
+    any behavior.
+  * This release includes a bugfix for `$${}` interpolation escaping. These strings are now properly converted to `${}`
+    during interpolation. This may cause diffs on existing configurations in certain cases.
+  * Users of `consul_keys` should note that the `value` sub-attribute of `key` will no longer be updated with the remote value of the key. It should be only used to _set_ a key in Consul K/V. To reference key values, use the `var` attribute.
+  * The 0.6.9 release contained a regression in `aws_autoscaling_group` capacity waiting behavior for configs where `min_elb_capacity != desired_capacity` or `min_size != desired_capacity`. This release remedies that regression by un-deprecating `min_elb_capacity` and restoring the prior behavior.
+  * Users of `aws_security_group` may notice new diffs in initial plans with 0.6.10 due to a bugfix that fixes drift detection on nested security group rules. These new diffs should reflect the actual state of the resources, which Terraform previously was unable to see.
 
 
 FEATURES:
