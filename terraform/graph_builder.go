@@ -136,9 +136,6 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 
 		// Make sure all the connections that are proxies are connected through
 		&ProxyTransformer{},
-
-		// Make sure we have a single root
-		&RootTransformer{},
 	}
 
 	// If we're on the root path, then we do a bunch of other stuff.
@@ -170,16 +167,14 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			&CloseProviderTransformer{},
 			&CloseProvisionerTransformer{},
 
-			// Make sure we have a single root after the above changes.
-			// This is the 2nd root transformer. In practice this shouldn't
-			// actually matter as the RootTransformer is idempotent.
-			&RootTransformer{},
-
 			// Perform the transitive reduction to make our graph a bit
 			// more sane if possible (it usually is possible).
 			&TransitiveReductionTransformer{},
 		)
 	}
+
+	// Make sure we have a single root
+	steps = append(steps, &RootTransformer{})
 
 	// Remove nils
 	for i, s := range steps {

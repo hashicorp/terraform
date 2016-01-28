@@ -101,7 +101,6 @@ func TestGraphNodeMissingProvisioner_ProvisionerName(t *testing.T) {
 
 const testTransformMissingProvisionerBasicStr = `
 aws_instance.web
-provisioner.foo
 provisioner.shell (close)
   aws_instance.web
 `
