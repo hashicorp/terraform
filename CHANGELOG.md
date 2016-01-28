@@ -1,9 +1,17 @@
 ## 0.6.11 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * The `max_size`, `min_size` and `desired_capacity` attributes on `aws_autoscaling_schedule` resources now default to 0
+
 IMPROVEMENTS:
 
-  * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
-  * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources [GH-4873]
+ * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
+ * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources [GH-4873]
+ 
+BUG FIXES:
+
+ * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
 
 
 ## 0.6.10 (January 27, 2016)
