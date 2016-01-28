@@ -204,7 +204,7 @@ func resourceUltradnsTcpoolRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// TODO: rigorously test this to see if we can remove the error handling
-	err = d.Set("rdata", flattenRData(r.RData, p.RDataInfo))
+	err = d.Set("rdata", zipRData(r.RData, p.RDataInfo))
 	if err != nil {
 		return fmt.Errorf("rdata set failed: %#v", err)
 	}
@@ -256,7 +256,7 @@ func newRRSetResourceFromTcpool(d *schema.ResourceData) (rRSetResource, error) {
 		Zone:      d.Get("zone").(string),
 		OwnerName: d.Get("name").(string),
 		TTL:       d.Get("ttl").(int),
-		RData:     expandRdataHosts(rDataRaw),
+		RData:     unzipRdataHosts(rDataRaw),
 	}
 
 	profile := udnssdk.TCPoolProfile{
@@ -265,7 +265,7 @@ func newRRSetResourceFromTcpool(d *schema.ResourceData) (rRSetResource, error) {
 		Description: d.Get("description").(string),
 		MaxToLB:     d.Get("max_to_lb").(int),
 		RunProbes:   d.Get("run_probes").(bool),
-		RDataInfo:   expandRdataInfos(rDataRaw),
+		RDataInfo:   unzipRdataInfos(rDataRaw),
 	}
 
 	// Only send BackupRecord if present
@@ -277,26 +277,13 @@ func newRRSetResourceFromTcpool(d *schema.ResourceData) (rRSetResource, error) {
 		}
 	}
 
-	rp, err := profile.RawProfile()
-	if err != nil {
-		return r, err
-	}
+	rp := profile.RawProfile()
 	r.Profile = rp
 
 	return r, nil
 }
 
-func expandRdataHosts(configured []interface{}) []string {
-	hs := make([]string, 0, len(configured))
-	for _, rRaw := range configured {
-		data := rRaw.(map[string]interface{})
-		h := data["host"].(string)
-		hs = append(hs, h)
-	}
-	return hs
-}
-
-func expandRdataInfos(configured []interface{}) []udnssdk.SBRDataInfo {
+func unzipRdataInfos(configured []interface{}) []udnssdk.SBRDataInfo {
 	rdataInfos := make([]udnssdk.SBRDataInfo, 0, len(configured))
 	for _, rRaw := range configured {
 		data := rRaw.(map[string]interface{})
@@ -313,8 +300,8 @@ func expandRdataInfos(configured []interface{}) []udnssdk.SBRDataInfo {
 	return rdataInfos
 }
 
-// collate and flatten RData and RDataInfo into []map[string]interface{}
-func flattenRData(rds []string, rdis []udnssdk.SBRDataInfo) []map[string]interface{} {
+// collate and zip RData and RDataInfo into []map[string]interface{}
+func zipRData(rds []string, rdis []udnssdk.SBRDataInfo) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(rds))
 	for i, rdi := range rdis {
 		r := map[string]interface{}{

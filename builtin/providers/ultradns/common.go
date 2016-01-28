@@ -45,3 +45,13 @@ func (r rRSetResource) RRSet() udnssdk.RRSet {
 func (r rRSetResource) ID() string {
 	return fmt.Sprintf("%s.%s", r.OwnerName, r.Zone)
 }
+
+func unzipRdataHosts(configured []interface{}) []string {
+	hs := make([]string, 0, len(configured))
+	for _, rRaw := range configured {
+		data := rRaw.(map[string]interface{})
+		h := data["host"].(string)
+		hs = append(hs, h)
+	}
+	return hs
+}
