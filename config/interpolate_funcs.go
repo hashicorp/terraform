@@ -41,6 +41,7 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
+		"rawsha256":    interpolationFuncRawSha256(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"upper":        interpolationFuncUpper(),
@@ -604,6 +605,7 @@ func interpolationFuncSha1() ast.Function {
 	}
 }
 
+// hexadecimal representation of sha256 sum
 func interpolationFuncSha256() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
@@ -614,6 +616,21 @@ func interpolationFuncSha256() ast.Function {
 			h.Write([]byte(s))
 			hash := hex.EncodeToString(h.Sum(nil))
 			return hash, nil
+		},
+	}
+}
+
+// sha256 sum represented in bytes
+func interpolationFuncRawSha256() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha256.New()
+			h.Write([]byte(s))
+			rawSum := h.Sum(nil)
+			return string(rawSum[:]), nil
 		},
 	}
 }
