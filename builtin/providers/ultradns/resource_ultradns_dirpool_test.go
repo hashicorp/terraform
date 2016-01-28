@@ -124,9 +124,9 @@ resource "ultradns_dirpool" "maximal" {
       name = "North America"
 
       codes = [
-        "US",
-        "CA",
-        "MX",
+        "US-OK",
+        # "US-DC",
+        # "US-MA",
       ]
     }
   }

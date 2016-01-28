@@ -1,6 +1,7 @@
 package ultradns
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/Ensighten/udnssdk"
 	"github.com/fatih/structs"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/mapstructure"
 )
@@ -94,8 +96,9 @@ func resourceUltradnsDirpool() *schema.Resource {
 										Default:  false,
 									},
 									"ips": &schema.Schema{
-										Type:     schema.TypeList,
+										Type:     schema.TypeSet,
 										Optional: true,
+										Set:      hashIPInfoIPs,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"start": &schema.Schema{
@@ -186,8 +189,9 @@ func resourceUltradnsDirpool() *schema.Resource {
 										Default:  false,
 									},
 									"ips": &schema.Schema{
-										Type:     schema.TypeList,
+										Type:     schema.TypeSet,
 										Optional: true,
+										Set:      hashIPInfoIPs,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
 												"start": &schema.Schema{
@@ -318,6 +322,8 @@ func resourceUltradnsDirpoolDelete(d *schema.ResourceData, meta interface{}) err
 
 // Resource Helpers
 
+// makeDirpoolRRSetResource converts ResourceData into an rRSetResource
+// ready for use in any CRUD operation
 func makeDirpoolRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
 	rDataRaw := d.Get("rdata").([]interface{})
 	res := rRSetResource{
@@ -334,7 +340,7 @@ func makeDirpoolRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
 		ConflictResolve: d.Get("conflict_resolve").(string),
 	}
 
-	ri, err := unzipDirpoolRdataInfos(rDataRaw)
+	ri, err := makeDirpoolRdataInfos(rDataRaw)
 	if err != nil {
 		return res, err
 	}
@@ -357,6 +363,7 @@ func makeDirpoolRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
 	return res, nil
 }
 
+// populateResourceFromDirpool takes an RRSet and populates the ResourceData
 func populateResourceFromDirpool(d *schema.ResourceData, r *udnssdk.RRSet) error {
 	// TODO: fix from tcpool to dirpool
 	zone := d.Get("zone")
@@ -386,7 +393,6 @@ func populateResourceFromDirpool(d *schema.ResourceData, r *udnssdk.RRSet) error
 	d.Set("description", p.Description)
 	d.Set("conflict_resolve", p.ConflictResolve)
 
-	// TODO: rigorously test this to see if we can remove the error handling
 	rd := zipDirpoolRData(r.RData, p.RDataInfo)
 	err = d.Set("rdata", rd)
 	if err != nil {
@@ -395,7 +401,9 @@ func populateResourceFromDirpool(d *schema.ResourceData, r *udnssdk.RRSet) error
 	return nil
 }
 
-func unzipDirpoolRdataInfos(configured []interface{}) ([]udnssdk.DPRDataInfo, error) {
+// makeDirpoolRdataInfos converts []map[string]interface{} from rdata
+// blocks into []DPRDataInfo
+func makeDirpoolRdataInfos(configured []interface{}) ([]udnssdk.DPRDataInfo, error) {
 	res := make([]udnssdk.DPRDataInfo, 0, len(configured))
 	for _, r := range configured {
 		ri, err := makeDirpoolRdataInfo(r)
@@ -407,6 +415,8 @@ func unzipDirpoolRdataInfos(configured []interface{}) ([]udnssdk.DPRDataInfo, er
 	return res, nil
 }
 
+// makeDirpoolRdataInfo converts a map[string]interface{} from
+// an rdata or no_response block into an DPRDataInfo
 func makeDirpoolRdataInfo(configured interface{}) (udnssdk.DPRDataInfo, error) {
 	data := configured.(map[string]interface{})
 	res := udnssdk.DPRDataInfo{
@@ -418,7 +428,11 @@ func makeDirpoolRdataInfo(configured interface{}) (udnssdk.DPRDataInfo, error) {
 		if len(ipInfo) > 1 {
 			return res, fmt.Errorf("ip_info: only 0 or 1 blocks alowed, got: %#v", len(ipInfo))
 		}
-		mapstructure.Decode(ipInfo[0], &res.IPInfo)
+		ii, err := makeIPInfo(ipInfo[0])
+		if err != nil {
+			return res, fmt.Errorf("%v ip_info: %#v", err, res.IPInfo)
+		}
+		res.IPInfo = &ii
 	}
 	// GeoInfo
 	geoInfo := data["geo_info"].([]interface{})
@@ -426,9 +440,35 @@ func makeDirpoolRdataInfo(configured interface{}) (udnssdk.DPRDataInfo, error) {
 		if len(geoInfo) > 1 {
 			return res, fmt.Errorf("geo_info: only 0 or 1 blocks alowed, got: %#v", len(geoInfo))
 		}
-		mapstructure.Decode(geoInfo[0], &res.GeoInfo)
+		err := mapDecode(geoInfo[0], &res.GeoInfo)
+		if err != nil {
+			return res, fmt.Errorf("%v geo_info: %#v", err, res.IPInfo)
+		}
 	}
 	return res, nil
+}
+
+// makeIPInfo converts a map[string]interface{} from an ip_info block
+// into an IPInfo
+func makeIPInfo(configured interface{}) (udnssdk.IPInfo, error) {
+	var res udnssdk.IPInfo
+	c := configured.(map[string]interface{})
+	err := mapDecode(c, &res)
+	if err != nil {
+		return res, err
+	}
+
+	rawIps := c["ips"].(*schema.Set).List()
+	res.Ips = make([]udnssdk.IPAddrDTO, 0, len(rawIps))
+	for _, rawIa := range rawIps {
+		var i udnssdk.IPAddrDTO
+		err := mapDecode(rawIa, &i)
+		if err != nil {
+			return res, err
+		}
+		res.Ips = append(res.Ips, i)
+	}
+	return res, err
 }
 
 // collate and zip RData and RDataInfo into []map[string]interface{}
@@ -438,41 +478,92 @@ func zipDirpoolRData(rds []string, rdis []udnssdk.DPRDataInfo) []map[string]inte
 		r := map[string]interface{}{
 			"host":               rds[i],
 			"all_non_configured": rdi.AllNonConfigured,
-			"ip_info":            flattenIPInfos(rdi.IPInfo),
-			"geo_info":           flattenGeoInfos(rdi.GeoInfo),
+			"ip_info":            mapFromIPInfos(rdi.IPInfo),
+			"geo_info":           mapFromGeoInfos(rdi.GeoInfo),
 		}
 		result = append(result, r)
 	}
 	return result
 }
 
-func flattenIPInfos(rdi *udnssdk.IPInfo) []map[string]interface{} {
+// mapFromIPInfos encodes 0 or 1 IPInfos into a []map[string]interface{}
+// in the appropriate structure for the schema
+func mapFromIPInfos(rdi *udnssdk.IPInfo) []map[string]interface{} {
 	res := make([]map[string]interface{}, 0, 1)
 	if rdi != nil {
-		res = append(res, map[string]interface{}{
+		m := map[string]interface{}{
 			"name":             rdi.Name,
 			"is_account_level": rdi.IsAccountLevel,
-			// "ips": flattenIPAddrDTOs(rdi.Ips),
-		})
+			"ips":              makeSetFromIPAddrDTOs(rdi.Ips),
+		}
+		res = append(res, m)
 	}
 	return res
 }
 
-func flattenGeoInfos(gi *udnssdk.GeoInfo) []map[string]interface{} {
+// makeSetFromIPAddrDTOs encodes an array of IPAddrDTO into a
+// *schema.Set in the appropriate structure for the schema
+func makeSetFromIPAddrDTOs(ias []udnssdk.IPAddrDTO) *schema.Set {
+	s := &schema.Set{F: hashIPInfoIPs}
+	for _, ia := range ias {
+		s.Add(mapEncode(ia))
+	}
+	return s
+}
+
+// mapFromGeoInfos encodes 0 or 1 GeoInfos into a []map[string]interface{}
+// in the appropriate structure for the schema
+func mapFromGeoInfos(gi *udnssdk.GeoInfo) []map[string]interface{} {
 	res := make([]map[string]interface{}, 0, 1)
 	if gi != nil {
-		res = append(res, map[string]interface{}{
-			"name":             gi.Name,
-			"is_account_level": gi.IsAccountLevel,
-			"codes":            gi.Codes,
-		})
+		res = append(res, mapEncode(gi))
 	}
 	return res
 }
 
-func mapstructureEncode(rawVal interface{}) map[string]interface{} {
+// hashIPInfoIPs generates a hashcode for an ip_info.ips block
+func hashIPInfoIPs(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["start"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["end"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["address"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+// Map <-> Struct transcoding
+// Ideally, we sould be able to handle almost all the type conversion
+// in this resource using the following helpers. Unfortunately, some
+// issues remain:
+// - schema.Set values cannot be naively assigned, and must be
+//   manually converted
+// - ip_info and geo_info come in as []map[string]interface{}, but are
+//   in DPRDataInfo as singluar.
+
+// mapDecode takes a map[string]interface{} and uses reflection to
+// convert it into the given Go native structure. val must be a pointer
+// to a struct. This is identical to mapstructure.Decode, but uses the
+// `terraform:` tag instead of `mapstructure:`
+func mapDecode(m interface{}, rawVal interface{}) error {
+	config := &mapstructure.DecoderConfig{
+		Metadata:         nil,
+		TagName:          "terraform",
+		Result:           rawVal,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(m)
+}
+
+func mapEncode(rawVal interface{}) map[string]interface{} {
 	s := structs.New(rawVal)
-	s.TagName = "mapstructure"
-	// s.TagName = "json"
+	s.TagName = "terraform"
 	return s.Map()
 }
