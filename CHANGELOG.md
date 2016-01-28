@@ -12,6 +12,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
+ * providers/aws: Fix regression with VPCs and ClassicLink for regions that do not support it [GH-4879]
 
 
 ## 0.6.10 (January 27, 2016)
