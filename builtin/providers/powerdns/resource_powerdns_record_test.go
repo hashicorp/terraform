@@ -213,10 +213,14 @@ func testAccCheckPDNSRecordDestroy(s *terraform.State) error {
 		}
 
 		client := testAccProvider.Meta().(*Client)
-		_, err := client.RecordExistsByID(rs.Primary.Attributes["zone"], rs.Primary.ID)
-		if err == nil {
+		exists, err := client.RecordExistsByID(rs.Primary.Attributes["zone"], rs.Primary.ID)
+		if err != nil {
+			return fmt.Errorf("Error checking if record still exists: %#v", rs.Primary.ID)
+		}
+		if exists {
 			return fmt.Errorf("Record still exists: %#v", rs.Primary.ID)
 		}
+
 	}
 	return nil
 }
