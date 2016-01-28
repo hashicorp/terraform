@@ -69,8 +69,9 @@ The `fixed_ip` block supports:
 * `subnet_id` - (Required) Subnet in which to allocate IP address for
 this port.
 
-* `ip_address` - (Required) IP address desired in the subnet for this
-port.
+* `ip_address` - (Optional) IP address desired in the subnet for this
+port. If you don't specify `ip_address`, OpenStack will be allocated an available
+IP address to this port.
 
 ## Attributes Reference
 
