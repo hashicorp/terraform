@@ -69,6 +69,8 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 						"ultradns_record.foobar", "zone", domain),
 					resource.TestCheckResourceAttr(
 						"ultradns_record.foobar", "rdata.0", "192.168.0.11"),
+					resource.TestCheckResourceAttr(
+						"ultradns_record.foobar", "string_profile", testProfile),
 				),
 			},
 		},
@@ -83,7 +85,7 @@ func testAccCheckUltraDNSRecordDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, _, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
+		_, err := client.RRSets.ListAllRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -128,7 +130,7 @@ func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.
 		}
 
 		client := testAccProvider.Meta().(*udnssdk.Client)
-		foundRecord, _, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
+		foundRecord, err := client.RRSets.ListAllRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
 
 		if err != nil {
 			return err
@@ -143,6 +145,8 @@ func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.
 		return nil
 	}
 }
+
+const testProfile = `{"@context":"http://schemas.ultradns.com/RDPool.jsonschema","order":"FIXED","description":"T. migratorius"}`
 
 const testAccCheckUltraDNSRecordConfig_basic = `
 resource "ultradns_record" "foobar" {
@@ -162,4 +166,9 @@ resource "ultradns_record" "foobar" {
 	rdata = [ "192.168.0.11" ]
 	type = "A"
 	ttl = 3600
+        rdpool_profile {
+           order = "FIXED"
+           description = "Terraform Test Profile"
+        }
+        #profile = "{\"@context\": \"http://schemas.ultradns.com/RDPool.jsonschema\",\"order\": \"ROUND_ROBIN\",\"description\":\"T. migratorius\"}"
 }`
