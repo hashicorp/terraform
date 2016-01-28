@@ -151,7 +151,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("[WARN] No Route53 Zone found for id (%s)", zone)
 	}
 
-	// Get the record
+	// Build the record
 	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
 	if err != nil {
 		return err
@@ -242,19 +242,44 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).r53conn
+	record, err := findRecord(d, meta)
+	if err != nil {
+		log.Printf("[DEBUG] No matching record found for: %s, removing from state file", d.Id())
+		d.SetId("")
+		return nil
+	}
 
+	err = d.Set("records", flattenResourceRecords(record.ResourceRecords))
+	if err != nil {
+		return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", d.Id(), err)
+	}
+
+	d.Set("ttl", record.TTL)
+	// Only set the weight if it's non-nil, otherwise we end up with a 0 weight
+	// which has actual contextual meaning with Route 53 records
+	//   See http://docs.aws.amazon.com/fr_fr/Route53/latest/APIReference/API_ChangeResourceRecordSets_Examples.html
+	if record.Weight != nil {
+		d.Set("weight", record.Weight)
+	}
+	d.Set("set_identifier", record.SetIdentifier)
+	d.Set("failover", record.Failover)
+	d.Set("health_check_id", record.HealthCheckId)
+
+	return nil
+}
+
+func findRecord(d *schema.ResourceData, meta interface{}) (*route53.ResourceRecordSet, error) {
+	conn := meta.(*AWSClient).r53conn
+	// Scan for a
 	zone := cleanZoneID(d.Get("zone_id").(string))
 
 	// get expanded name
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
 	if err != nil {
 		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
-			log.Printf("[DEBUG] No matching Route 53 Record found for: %s, removing from state file", d.Id())
-			d.SetId("")
-			return nil
+			return nil, fmt.Errorf("no such hosted zone")
 		}
-		return err
+		return nil, err
 	}
 	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
 	log.Printf("[DEBUG] Expanded record name: %s", en)
@@ -270,11 +295,9 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		zone, lopts)
 	resp, err := conn.ListResourceRecordSets(lopts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Scan for a matching record
-	found := false
 	for _, record := range resp.ResourceRecordSets {
 		name := cleanRecordName(*record.Name)
 		if FQDN(strings.ToLower(name)) != FQDN(strings.ToLower(*lopts.StartRecordName)) {
@@ -287,55 +310,18 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		if record.SetIdentifier != nil && *record.SetIdentifier != d.Get("set_identifier") {
 			continue
 		}
-
-		found = true
-
-		err := d.Set("records", flattenResourceRecords(record.ResourceRecords))
-		if err != nil {
-			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
-		}
-
-		d.Set("ttl", record.TTL)
-		// Only set the weight if it's non-nil, otherwise we end up with a 0 weight
-		// which has actual contextual meaning with Route 53 records
-		//   See http://docs.aws.amazon.com/fr_fr/Route53/latest/APIReference/API_ChangeResourceRecordSets_Examples.html
-		if record.Weight != nil {
-			d.Set("weight", record.Weight)
-		}
-		d.Set("set_identifier", record.SetIdentifier)
-		d.Set("failover", record.Failover)
-		d.Set("health_check_id", record.HealthCheckId)
-
-		break
+		return record, nil
 	}
-
-	if !found {
-		log.Printf("[DEBUG] No matching record found for: %s, removing from state file", en)
-		d.SetId("")
-	}
-
-	return nil
+	return nil, fmt.Errorf("nothing found")
 }
 
 func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
-
-	zone := cleanZoneID(d.Get("zone_id").(string))
-	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
-		zone, d.Get("name").(string))
-	var err error
-	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
-	if err != nil {
-		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
-			log.Printf("[DEBUG] No matching Route 53 Record found for: %s, removing from state file", d.Id())
-			d.SetId("")
-			return nil
-		}
-		return err
-	}
 	// Get the records
-	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
+	rec, err := findRecord(d, meta)
 	if err != nil {
+		log.Printf("[DEBUG] No matching record found for: %s, removing from state file", d.Id())
+		d.SetId("")
 		return err
 	}
 
@@ -349,6 +335,8 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 			},
 		},
 	}
+
+	zone := cleanZoneID(d.Get("zone_id").(string))
 
 	req := &route53.ChangeResourceRecordSetsInput{
 		HostedZoneId: aws.String(cleanZoneID(zone)),
