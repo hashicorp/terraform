@@ -264,6 +264,10 @@ resource "aws_vpc" "bar" {
 `
 
 const testAccVpcConfig_BothDnsOptions = `
+provider "aws" {
+	region = "eu-central-1"
+}
+
 resource "aws_vpc" "bar" {
 	cidr_block = "10.2.0.0/16"
 
