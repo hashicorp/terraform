@@ -7,7 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
   * **New provider: `powerdns` - PowerDNS REST API** [GH-4885]
-  *
+
 IMPROVEMENTS:
 
   * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
@@ -17,6 +17,7 @@ BUG FIXES:
 
   * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
   * provider/aws: Fix regression with VPCs and ClassicLink for regions that do not support it [GH-4879]
+  * provider/openstack: Changing the port resource to mark the ip_address as optional [GH-4850]
 
 
 ## 0.6.10 (January 27, 2016)
