@@ -16,19 +16,19 @@ func TestAccUltradnsDirpool(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckUltradnsDirpoolDestroy,
+		CheckDestroy: testAccDirpoolCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordDirpoolMinimal, domain),
+				Config: fmt.Sprintf(testCfgDirpoolMinimal, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_dirpool.minimal", &record),
+					testAccCheckUltradnsRecordExists("ultradns_dirpool.minimal", &record),
 					// Specified
 					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "name", "dirpool-minimal"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "zone", domain),
 					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "type", "A"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "ttl", "300"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "description", "Minimal directional pool"),
-					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "rdata.0.host", "192.168.0.10"),
+					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "rdata.0.host", "10.1.0.1"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "rdata.0.all_non_configured", "true"),
 					// Generated
 					resource.TestCheckResourceAttr("ultradns_dirpool.minimal", "id", "dirpool-minimal.ultradns.phinze.com"),
@@ -36,9 +36,9 @@ func TestAccUltradnsDirpool(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordDirpoolMaximal, domain),
+				Config: fmt.Sprintf(testCfgDirpoolMaximal, domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckUltraDNSRecordExists("ultradns_dirpool.maximal", &record),
+					testAccCheckUltradnsRecordExists("ultradns_dirpool.maximal", &record),
 					// Specified
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "name", "dirpool-maximal"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "zone", domain),
@@ -46,11 +46,11 @@ func TestAccUltradnsDirpool(t *testing.T) {
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "ttl", "300"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "description", "Description of pool"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "conflict_resolve", "GEO"),
-					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.0.host", "1.2.3.4"),
+					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.0.host", "10.1.1.1"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.0.all_non_configured", "true"),
-					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.1.host", "2.3.4.5"),
+					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.1.host", "10.1.1.2"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.1.geo_info.0.name", "North America"),
-					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.2.host", "9.8.7.6"),
+					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.2.host", "10.1.1.3"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "rdata.2.ip_info.0.name", "some Ips"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "no_response.0.geo_info.0.name", "nrGeo"),
 					resource.TestCheckResourceAttr("ultradns_dirpool.maximal", "no_response.0.ip_info.0.name", "nrIP"),
@@ -63,7 +63,7 @@ func TestAccUltradnsDirpool(t *testing.T) {
 	})
 }
 
-func testAccCheckUltradnsDirpoolDestroy(s *terraform.State) error {
+func testAccDirpoolCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*udnssdk.Client)
 
 	for _, rs := range s.RootModule().Resources {
@@ -87,7 +87,7 @@ func testAccCheckUltradnsDirpoolDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccCheckUltraDNSRecordDirpoolMinimal = `
+const testCfgDirpoolMinimal = `
 resource "ultradns_dirpool" "minimal" {
   zone        = "%s"
   name        = "dirpool-minimal"
@@ -96,13 +96,13 @@ resource "ultradns_dirpool" "minimal" {
   description = "Minimal directional pool"
 
   rdata {
-    host = "192.168.0.10"
+    host = "10.1.0.1"
     all_non_configured = true
   }
 }
 `
 
-const testAccCheckUltraDNSRecordDirpoolMaximal = `
+const testCfgDirpoolMaximal = `
 resource "ultradns_dirpool" "maximal" {
   zone        = "%s"
   name        = "dirpool-maximal"
@@ -113,12 +113,12 @@ resource "ultradns_dirpool" "maximal" {
   conflict_resolve = "GEO"
 
   rdata {
-    host               = "1.2.3.4"
+    host               = "10.1.1.1"
     all_non_configured = true
   }
 
   rdata {
-    host = "2.3.4.5"
+    host = "10.1.1.2"
 
     geo_info {
       name = "North America"
@@ -132,7 +132,7 @@ resource "ultradns_dirpool" "maximal" {
   }
 
   rdata {
-    host = "9.8.7.6"
+    host = "10.1.1.3"
 
     ip_info {
       name = "some Ips"
@@ -153,7 +153,7 @@ resource "ultradns_dirpool" "maximal" {
   }
 
 #   rdata {
-#     host = "30.40.50.60"
+#     host = "10.1.1.4"
 # 
 #     geo_info {
 #       name             = "accountGeoGroup"
