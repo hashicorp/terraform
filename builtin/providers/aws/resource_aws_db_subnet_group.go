@@ -242,7 +242,7 @@ func validateSubnetGroupName(v interface{}, k string) (ws []string, errors []err
 	value := v.(string)
 	if !regexp.MustCompile(`^[ .0-9a-z-_]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
+			"only lowercase alphanumeric characters, hyphens, underscores, periods, and spaces allowed in %q", k))
 	}
 	if len(value) > 255 {
 		errors = append(errors, fmt.Errorf(
