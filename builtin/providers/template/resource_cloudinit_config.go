@@ -32,15 +32,6 @@ func resourceCloudinitConfig() *schema.Resource {
 						"content_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-
-								if _, supported := supportedContentTypes[value]; !supported {
-									errors = append(errors, fmt.Errorf("Part has an unsupported content type: %s", v))
-								}
-
-								return
-							},
 						},
 						"content": &schema.Schema{
 							Type:     schema.TypeString,
@@ -166,7 +157,7 @@ func renderPartsToWriter(parts cloudInitParts, writer io.Writer) error {
 
 	// we need to set the boundary explictly, otherwise the boundary is random
 	// and this causes terraform to complain about the resource being different
-	if err := mimeWriter.SetBoundary("MIMEBOUNDRY"); err != nil {
+	if err := mimeWriter.SetBoundary("MIMEBOUNDARY"); err != nil {
 		return err
 	}
 
@@ -214,15 +205,3 @@ type cloudInitPart struct {
 }
 
 type cloudInitParts []cloudInitPart
-
-// Support content types as specified by http://cloudinit.readthedocs.org/en/latest/topics/format.html
-var supportedContentTypes = map[string]bool{
-	"text/x-include-once-url":   true,
-	"text/x-include-url":        true,
-	"text/cloud-config-archive": true,
-	"text/upstart-job":          true,
-	"text/cloud-config":         true,
-	"text/part-handler":         true,
-	"text/x-shellscript":        true,
-	"text/cloud-boothook":       true,
-}
