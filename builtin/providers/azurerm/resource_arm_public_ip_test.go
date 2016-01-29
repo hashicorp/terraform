@@ -80,13 +80,16 @@ func TestResourceAzureRMPublicIpDomainNameLabel_validation(t *testing.T) {
 
 func TestAccAzureRMPublicIpStatic_basic(t *testing.T) {
 
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVPublicIpStatic_basic, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMVPublicIpStatic_basic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 				),
@@ -97,13 +100,17 @@ func TestAccAzureRMPublicIpStatic_basic(t *testing.T) {
 
 func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
 
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVPublicIpStatic_withTags, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVPublicIpStatic_withTagsUpdate, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMVPublicIpStatic_withTags,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 					resource.TestCheckResourceAttr(
@@ -116,7 +123,7 @@ func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMVPublicIpStatic_withTagsUpdate,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 					resource.TestCheckResourceAttr(
@@ -131,20 +138,24 @@ func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
 
 func TestAccAzureRMPublicIpStatic_update(t *testing.T) {
 
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVPublicIpStatic_basic, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVPublicIpStatic_update, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMVPublicIpStatic_basic,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMVPublicIpStatic_update,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 					resource.TestCheckResourceAttr(
@@ -157,13 +168,16 @@ func TestAccAzureRMPublicIpStatic_update(t *testing.T) {
 
 func TestAccAzureRMPublicIpDynamic_basic(t *testing.T) {
 
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVPublicIpDynamic_basic, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMVPublicIpDynamic_basic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
 				),
@@ -228,11 +242,11 @@ func testCheckAzureRMPublicIpDestroy(s *terraform.State) error {
 
 var testAccAzureRMVPublicIpStatic_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_public_ip" "test" {
-    name = "acceptanceTestPublicIp1"
+    name = "acctestpublicip-%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
@@ -241,11 +255,11 @@ resource "azurerm_public_ip" "test" {
 
 var testAccAzureRMVPublicIpStatic_update = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_public_ip" "test" {
-    name = "acceptanceTestPublicIp1"
+    name = "acctestpublicip-%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
@@ -255,11 +269,11 @@ resource "azurerm_public_ip" "test" {
 
 var testAccAzureRMVPublicIpDynamic_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup2"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_public_ip" "test" {
-    name = "acceptanceTestPublicIp2"
+    name = "acctestpublicip-%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "dynamic"
@@ -268,11 +282,11 @@ resource "azurerm_public_ip" "test" {
 
 var testAccAzureRMVPublicIpStatic_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_public_ip" "test" {
-    name = "acceptanceTestPublicIp1"
+    name = "acctestpublicip-%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
@@ -286,11 +300,11 @@ resource "azurerm_public_ip" "test" {
 
 var testAccAzureRMVPublicIpStatic_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_public_ip" "test" {
-    name = "acceptanceTestPublicIp1"
+    name = "acctestpublicip-%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     public_ip_address_allocation = "static"
