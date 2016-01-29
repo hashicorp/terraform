@@ -1,0 +1,56 @@
+box: wercker/golang
+
+build:
+  steps:
+    - script:
+        name: Populate cache
+        code: |
+          if test -d "$WERCKER_CACHE_DIR/go-pkg-cache"; then rsync -avzv --exclude "$WERCKER_SOURCE_DIR" "$WERCKER_CACHE_DIR/go-pkg-cache/" "$GOPATH/" ; fi
+
+    # this forces the GOPATH to include the checked out source instead of some random workdir
+    - script:
+        name: FixDirs
+        code: |
+          if [ ! -d $GOPATH/src/github.com/go-chef ]; then mkdir -p $GOPATH/src/github.com/go-chef ; fi
+          ln -sf  $WERCKER_SOURCE_DIR $GOPATH/src/github.com/go-chef/chef
+          ls -l $GOPATH/src/github.com/go-chef
+
+    - script:
+        name: Get dependencies
+        code: | 
+          go get -u github.com/ctdk/goiardi/chefcrypto
+          go get -u github.com/ctdk/goiardi/authentication 
+          go get -u github.com/davecgh/go-spew/spew
+          go get -u github.com/smartystreets/goconvey/convey 
+          go get -u github.com/axw/gocov/gocov
+          go get -u github.com/matm/gocov-html
+          go get -u github.com/mattn/goveralls
+
+    # Using the gocov tool to test the exact package we want to test from GOPATH 
+    - script:
+        name: Test
+        code: |
+          gocov test github.com/go-chef/chef  > coverage.json
+
+    - script:
+        name: Coverage
+        code: |
+          gocov report coverage.json
+          gocov-html coverage.json > $WERCKER_REPORT_ARTIFACTS_DIR/coverage.html
+
+    - script:
+        name: Coveralls.io
+        code: |
+          goveralls -service='wercker.com' -repotoken=$COVERALLS_TOKEN -gocovdata=coverage.json
+
+    - script:
+        name: Store cache
+        code: |
+          rsync -avzv --exclude "$WERCKER_SOURCE_DIR" "$GOPATH/" "$WERCKER_CACHE_DIR/go-pkg-cache/"
+
+  after-steps:
+    - wouter/irc-notify:
+        server: irc.freenode.net
+        port: 6667
+        nickname: wercker
+        channel: go-chef

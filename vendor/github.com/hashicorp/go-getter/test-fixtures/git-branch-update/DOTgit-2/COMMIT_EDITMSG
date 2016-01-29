@@ -1,0 +1,10 @@
+Branch update
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+# On branch test-branch
+# Changes to be committed:
+#	new file:   main_branch_update.tf
+#
+# Untracked files:
+#	DOTgit-1/
+#

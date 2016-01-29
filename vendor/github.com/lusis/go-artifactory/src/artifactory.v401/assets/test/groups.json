@@ -1,0 +1,16 @@
+[ {
+  "name" : "administrators",
+  "uri" : "https://artifactory/artifactory/api/security/groups/administrators"
+}, {
+  "name" : "docker-readers",
+  "uri" : "https://artifactory/artifactory/api/security/groups/docker-readers"
+}, {
+  "name" : "remote-readers",
+  "uri" : "https://artifactory/artifactory/api/security/groups/remote-readers"
+}, {
+  "name" : "developers",
+  "uri" : "https://artifactory/artifactory/api/security/groups/developers"
+}, {
+  "name" : "java-committers",
+  "uri" : "https://artifactory/artifactory/api/security/groups/java-committers"
+} ]
