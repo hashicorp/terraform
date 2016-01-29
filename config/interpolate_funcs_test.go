@@ -858,6 +858,18 @@ func TestInterpolateFuncSha256(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncTrim(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${trim(" test ")}`,
+				"test",
+				false,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
