@@ -345,9 +345,14 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	// Get the records
 	rec, err := findRecord(d, meta)
 	if err != nil {
-		log.Printf("[DEBUG] No matching record found for: %s, removing from state file", d.Id())
-		d.SetId("")
-		return err
+		switch err {
+		case r53NoHostedZoneFound, r53NoRecordsFound:
+			log.Printf("[DEBUG] %s for: %s, removing from state file", err, d.Id())
+			d.SetId("")
+			return nil
+		default:
+			return err
+		}
 	}
 
 	// Create the new records
