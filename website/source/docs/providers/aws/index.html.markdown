@@ -33,19 +33,68 @@ resource "aws_instance" "web" {
 ## Authentication 
 
 The AWS provider offers flexible means of providing credentials for
-authentication. Included is support including hard coded credentials, 
-environment variables, and shared credential files, in that order of precedence. 
+authentication. The following methods are supported, in this order, and
+explained below:
 
-Terraform will first attempt to use an `access_key` and `secret_key` provided in 
-the `provider` block (shown in the example above). If those are omitted, it will 
-attempt to discover those values by referencing the `AWS_ACCESS_KEY_ID` and 
-`AWS_SECRET_ACCESS_KEY` environment variables. Lastly, if those are not found 
-it will look for credentials in the default location for a credentials file, or 
-the file path specified in the `shared_credentials_file` attribute of the 
-`provider` block.
+- Static credentials
+- Environment variables
+- Shared credentials file
 
-See the argument reference below for information on which attributes to specify
-to use a corresponding credential provider.  
+
+### Static credentials ###
+
+Static credentials can be provided by adding an `access_key` and `secret_key` in-line in the
+aws provider block:
+
+Usage: 
+
+```
+provider "aws" {
+  region     = "us-west-2"
+  access_key = "anaccesskey"
+  secret_key = "asecretkey"
+}
+```
+
+###Environment variables
+
+You can provide your credentials via `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, 
+environment variables, representing your AWS Access Key and AWS Secret Key, respectively.
+`AWS_DEFAULT_REGION` and `AWS_SECURITY_TOKEN` are also used, if applicable:
+
+```
+provider "aws" {}
+```
+
+Usage:
+
+```
+$ exoprt AWS_ACCESS_KEY_ID="anaccesskey" 
+$ export AWS_SECRET_ACCESS_KEY="asecretkey"
+$ export AWS_DEFAULT_REGION="us-west-2"
+$ terraform plan
+```
+
+###Shared Credentials file
+
+You can use an AWS credentials file to specify your credentials. The default
+location is `$HOME/.aws/credentials` on Linux and OSX, or `"%USERPROFILE%\.aws\credentials"` 
+for Windows users. If we fail to detect credentials inline, or in the
+environment, Terraform will check this location. You can optionally specify a
+different location in the configuration by providing `shared_credentials_file`,
+or in the environment with the `AWS_SHARED_CREDENTIALS_FILE` variable. This
+method also supports a `profile` configuration and matching `AWS_PROFILE`
+environment variable:
+
+Usage: 
+
+```
+provider "aws" {
+  region                   = "us-west-2"
+  shared_credentials_file  = "/Users/tf_user/.aws/creds"
+  profile                  = "customprofile"
+}
+```
 
 ## Argument Reference
 
@@ -90,4 +139,3 @@ The following arguments are supported in the `provider` block:
 
 * `kinesis_endpoint` - (Optional) Use this to override the default endpoint URL
   constructed from the `region`. It's typically used to connect to kinesalite.
-
