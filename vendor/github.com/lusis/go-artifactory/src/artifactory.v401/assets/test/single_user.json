@@ -1,0 +1,11 @@
+{
+  "name" : "admin",
+  "email" : "admin@admin.com",
+  "admin" : true,
+  "profileUpdatable" : true,
+  "internalPasswordDisabled" : false,
+  "groups" : [ "administrators" ],
+  "lastLoggedIn" : "2015-08-11T14:04:11.472Z",
+  "realm" : "internal",
+  "offlineMode" : false
+}

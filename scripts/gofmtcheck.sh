@@ -2,7 +2,7 @@
 
 # Check gofmt
 echo "==> Checking that code complies with gofmt requirements..."
-gofmt_files=$(gofmt -l .)
+gofmt_files=$(gofmt -l . | grep -v vendor)
 if [[ -n ${gofmt_files} ]]; then
     echo 'gofmt needs running on the following files:'
     echo "${gofmt_files}"

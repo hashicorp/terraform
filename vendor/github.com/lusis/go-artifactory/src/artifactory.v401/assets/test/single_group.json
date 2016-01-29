@@ -1,0 +1,6 @@
+{
+  "name" : "docker-readers",
+  "description" : "Can read from Docker repositories",
+  "autoJoin" : false,
+  "realm" : "artifactory"
+}

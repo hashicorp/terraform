@@ -1,0 +1,11 @@
+{
+  "name" : "release-commiter",
+  "includesPattern" : "**",
+  "excludesPattern" : "",
+  "repositories" : [ "docker-local-v2", "libs-release-local", "plugins-release-local" ],
+  "principals" : {
+    "groups" : {
+      "java-committers" : [ "r", "d", "w", "n" ]
+    }
+  }
+}
