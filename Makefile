@@ -1,4 +1,4 @@
-TEST?=./...
+TEST?=$$(GO15VENDOREXPERIMENT=1 go list ./... | grep -v /vendor/)
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 
 default: test
@@ -19,7 +19,7 @@ quickdev: generate
 # changes will require a rebuild of everything, in which case the dev
 # target should be used.
 core-dev: fmtcheck generate
-	go install github.com/hashicorp/terraform
+	GO15VENDOREXPERIMENT=1 go install github.com/hashicorp/terraform
 
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")
 core-test: generate
@@ -28,13 +28,12 @@ core-test: generate
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
 plugin-dev: fmtcheck generate
-	go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
+	GO15VENDOREXPERIMENT=1 go install github.com/hashicorp/terraform/builtin/bins/$(PLUGIN)
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
-# test runs the unit tests and vets the code
+# test runs the unit tests
 test: fmtcheck generate
-	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
-	@$(MAKE) vet
+	TF_ACC= GO15VENDOREXPERIMENT=1 go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
 
 # testacc runs acceptance tests
 testacc: fmtcheck generate
@@ -43,11 +42,11 @@ testacc: fmtcheck generate
 		echo "  make testacc TEST=./builtin/providers/aws"; \
 		exit 1; \
 	fi
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+	TF_ACC=1 GO15VENDOREXPERIMENT=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
 # testrace runs the race checker
 testrace: fmtcheck generate
-	TF_ACC= go test -race $(TEST) $(TESTARGS)
+	TF_ACC= GO15VENDOREXPERIMENT=1 go test -race $(TEST) $(TESTARGS)
 
 # updatedeps installs all the dependencies that Terraform needs to run
 # and build.
@@ -65,8 +64,8 @@ cover:
 	@go tool cover 2>/dev/null; if [ $$? -eq 3 ]; then \
 		go get -u golang.org/x/tools/cmd/cover; \
 	fi
-	go test $(TEST) -coverprofile=coverage.out
-	go tool cover -html=coverage.out
+	GO15VENDOREXPERIMENT=1 go test $(TEST) -coverprofile=coverage.out
+	GO15VENDOREXPERIMENT=1 go tool cover -html=coverage.out
 	rm coverage.out
 
 # vet runs the Go source code static analysis tool `vet` to find
@@ -76,7 +75,7 @@ vet:
 		go get golang.org/x/tools/cmd/vet; \
 	fi
 	@echo "go tool vet $(VETARGS) ."
-	@go tool vet $(VETARGS) . ; if [ $$? -eq 1 ]; then \
+	@GO15VENDOREXPERIMENT=1 go tool vet $(VETARGS) . ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -86,7 +85,10 @@ vet:
 # generate runs `go generate` to build the dynamically generated
 # source files.
 generate:
-	go generate ./...
+	@which stringer ; if [ $$? -ne 0 ]; then \
+	  go get -u golang.org/x/tools/cmd/stringer; \
+	fi
+	GO15VENDOREXPERIMENT=1 go generate $$(GO15VENDOREXPERIMENT=1 go list ./... | grep -v /vendor/)
 
 fmt:
 	gofmt -w .

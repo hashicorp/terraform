@@ -18,12 +18,8 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
 
-
-# Get dependencies unless running in quick mode
-if [ "${TF_QUICKDEV}x" == "x" ]; then
-    echo "==> Getting dependencies..."
-    go get -d ./...
-fi
+# Use vendored dependencies
+export GO15VENDOREXPERIMENT=1
 
 # Delete the old dir
 echo "==> Removing old directory..."
