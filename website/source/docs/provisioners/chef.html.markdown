@@ -25,14 +25,19 @@ available on the target machine.
 resource "aws_instance" "web" {
     ...
     provisioner "chef"  {
-        attributes {
-            "key" = "value"
-            "app" {
-                "cluster1" {
-                    "nodes" = ["webserver1", "webserver2"]
+        attributes = <<EOF
+        {
+            "key": "value",
+            "app": {
+                "cluster1": {
+                    "nodes": [
+                        "webserver1",
+                        "webserver2"
+                    ]
                 }
             }
         }
+        EOF
         environment = "_default"
         run_list = ["cookbook::recipe"]
         node_name = "webserver1"
@@ -49,8 +54,9 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `attributes (map)` - (Optional) A map with initial node attributes for the new node.
-  See example.
+* `attributes (string)` - (Optional) A raw JSON string with initial node attributes
+  for the new node. These can also be loaded from a file on disk using the [`file()`
+  interpolation function](/docs/configuration/interpolation.html#file_path_).
 
 * `client_options (array)` - (Optional) A list of optional Chef Client configuration
   options. See the Chef Client [documentation](https://docs.chef.io/config_rb_client.html) for all available options.

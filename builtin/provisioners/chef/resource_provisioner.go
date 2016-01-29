@@ -222,6 +222,12 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 		ws = append(ws, "secret_key_path is deprecated, please use "+
 			"secret_key instead and load the key contents via file()")
 	}
+	if attrs, ok := c.Config["attributes"]; ok {
+		if _, ok := attrs.(string); !ok {
+			ws = append(ws, "using map style attribute values is deprecated, "+
+				" please use a single raw JSON string instead")
+		}
+	}
 
 	return ws, es
 }
@@ -280,9 +286,18 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if attrs, ok := c.Config["attributes"]; ok {
-		p.Attributes, err = rawToJSON(attrs)
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing the attributes: %v", err)
+		switch attrs := attrs.(type) {
+		case string:
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(attrs), &m); err != nil {
+				return nil, fmt.Errorf("Error parsing the attributes: %v", err)
+			}
+			p.Attributes = m
+		default:
+			p.Attributes, err = rawToJSON(attrs)
+			if err != nil {
+				return nil, fmt.Errorf("Error parsing the attributes: %v", err)
+			}
 		}
 	}
 
@@ -306,7 +321,7 @@ func rawToJSON(raw interface{}) (interface{}, error) {
 
 		return s[0], nil
 	default:
-		return raw, nil
+		return s, nil
 	}
 }
 
