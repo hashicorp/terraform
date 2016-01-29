@@ -240,8 +240,11 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 				Set: func(v interface{}) int {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["ami"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["availability_zone"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["instance_type"].(string)))
+					buf.WriteString(fmt.Sprintf("%s-", m["spot_price"].(string)))
+					buf.WriteString(fmt.Sprintf("%s-", m["user_data"].(string)))
 					return hashcode.String(buf.String())
 				},
 			},
@@ -489,16 +492,17 @@ func readSpotFleetBlockDeviceMappingsFromConfig(
 
 func buildAwsSpotFleetLaunchSpecifications(
 	d *schema.ResourceData, meta interface{}) ([]*ec2.SpotFleetLaunchSpecification, error) {
-	specs := []*ec2.SpotFleetLaunchSpecification{}
+
 	user_specs := d.Get("launch_specification").(*schema.Set).List()
-	for _, user_spec := range user_specs {
+	specs := make([]*ec2.SpotFleetLaunchSpecification, len(user_specs))
+	for i, user_spec := range user_specs {
 		user_spec_map := user_spec.(map[string]interface{})
 		// panic: interface conversion: interface {} is map[string]interface {}, not *schema.ResourceData
 		opts, err := buildSpotFleetLaunchSpecification(user_spec_map, meta)
 		if err != nil {
 			return nil, err
 		}
-		specs = append(specs, opts)
+		specs[i] = opts
 	}
 
 	return specs, nil
@@ -551,7 +555,7 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 		DryRun:                 aws.Bool(false),
 	}
 
-	log.Printf("[DEBUG] Requesting spot fleet with these opts: %s", spotFleetOpts)
+	log.Printf("[DEBUG] Requesting spot fleet with these opts: %+v", spotFleetOpts)
 	resp, err := conn.RequestSpotFleet(spotFleetOpts)
 	if err != nil {
 		return fmt.Errorf("Error requesting spot fleet: %s", err)
@@ -612,7 +616,8 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
 	_, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
 		SpotFleetRequestIds: []*string{aws.String(d.Id())},
-		TerminateInstances:  aws.Bool(true),
+		// TODO: Make this optional
+		TerminateInstances: aws.Bool(true),
 	})
 
 	if err != nil {

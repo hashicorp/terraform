@@ -77,3 +77,4 @@ requests are placed or enabled to fulfill the request. Defaults to 24 hours.
 The following attributes are exported:
 
 * `id` - The Spot Instance Request ID.
+* `spot_request_state` - The Spot Instance Request ID.
