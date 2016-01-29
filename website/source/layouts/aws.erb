@@ -92,7 +92,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement|key-pair)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -159,7 +159,6 @@
                         <li<%= sidebar_current("docs-aws-resource-placement-group") %>>
                             <a href="/docs/providers/aws/r/placement_group.html">aws_placement_group</a>
                         </li>
-
                         <li<%= sidebar_current("docs-aws-resource-proxy-protocol-policy") %>>
                             <a href="/docs/providers/aws/r/proxy_protocol_policy.html">aws_proxy_protocol_policy</a>
                         </li>
@@ -172,7 +171,9 @@
                         <li<%= sidebar_current("docs-aws-resource-volume-attachment") %>>
                             <a href="/docs/providers/aws/r/volume_attachment.html">aws_volume_attachment</a>
                         </li>
-
+                        <li<%= sidebar_current("docs-aws-resource-key-pair") %>>
+                            <a href="/docs/providers/aws/r/key_pair.html">aws_key_pair</a>
+                        </li>
                     </ul>
                 </li>
 
@@ -540,7 +541,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(customer|flow|internet-gateway|key-pair|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(customer|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
                     <a href="#">VPC Resources</a>
                     <ul class="nav nav-visible">
 
@@ -554,10 +555,6 @@
 
                         <li<%= sidebar_current("docs-aws-resource-internet-gateway") %>>
                             <a href="/docs/providers/aws/r/internet_gateway.html">aws_internet_gateway</a>
-                        </li>
-
-                        <li<%= sidebar_current("docs-aws-resource-key-pair") %>>
-                            <a href="/docs/providers/aws/r/key_pair.html">aws_key_pair</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-main-route-table-assoc") %>>
