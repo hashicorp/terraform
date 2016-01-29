@@ -17,7 +17,9 @@ BUG FIXES:
 
   * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
   * provider/aws: Fix regression with VPCs and ClassicLink for regions that do not support it [GH-4879]
+  * provider/aws: Fix SNS Topic Refresh to ensure deleted topics are removed from state [GH-4891]
   * provider/openstack: Changing the port resource to mark the ip_address as optional [GH-4850]
+  
 
 
 ## 0.6.10 (January 27, 2016)
