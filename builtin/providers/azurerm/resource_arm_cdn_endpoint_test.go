@@ -5,11 +5,15 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMCdnEndpoint_basic(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMCdnEndpoint_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -17,7 +21,7 @@ func TestAccAzureRMCdnEndpoint_basic(t *testing.T) {
 		CheckDestroy: testCheckAzureRMCdnEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMCdnEndpoint_basic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnEndpointExists("azurerm_cdn_endpoint.test"),
 				),
@@ -28,13 +32,17 @@ func TestAccAzureRMCdnEndpoint_basic(t *testing.T) {
 
 func TestAccAzureRMCdnEndpoints_withTags(t *testing.T) {
 
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMCdnEndpoint_withTags, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMCdnEndpoint_withTagsUpdate, ri, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMCdnEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMCdnEndpoint_withTags,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnEndpointExists("azurerm_cdn_endpoint.test"),
 					resource.TestCheckResourceAttr(
@@ -47,7 +55,7 @@ func TestAccAzureRMCdnEndpoints_withTags(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMCdnEndpoint_withTagsUpdate,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMCdnEndpointExists("azurerm_cdn_endpoint.test"),
 					resource.TestCheckResourceAttr(
@@ -118,18 +126,18 @@ func testCheckAzureRMCdnEndpointDestroy(s *terraform.State) error {
 
 var testAccAzureRMCdnEndpoint_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
-    name = "acceptanceTestCdnProfile1"
+    name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     sku = "Standard"
 }
 
 resource "azurerm_cdn_endpoint" "test" {
-    name = "acceptanceTestCdnEndpoint1"
+    name = "acctestcdnend%d"
     profile_name = "${azurerm_cdn_profile.test.name}"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -143,18 +151,18 @@ resource "azurerm_cdn_endpoint" "test" {
 
 var testAccAzureRMCdnEndpoint_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup2"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
-    name = "acceptanceTestCdnProfile2"
+    name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     sku = "Standard"
 }
 
 resource "azurerm_cdn_endpoint" "test" {
-    name = "acceptanceTestCdnEndpoint2"
+    name = "acctestcdnend%d"
     profile_name = "${azurerm_cdn_profile.test.name}"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -173,18 +181,18 @@ resource "azurerm_cdn_endpoint" "test" {
 
 var testAccAzureRMCdnEndpoint_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup2"
+    name = "acctestrg-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
-    name = "acceptanceTestCdnProfile2"
+    name = "acctestcdnprof%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
     sku = "Standard"
 }
 
 resource "azurerm_cdn_endpoint" "test" {
-    name = "acceptanceTestCdnEndpoint2"
+    name = "acctestcdnend%d"
     profile_name = "${azurerm_cdn_profile.test.name}"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
