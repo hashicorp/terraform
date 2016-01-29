@@ -84,9 +84,14 @@ The supported built-in functions are:
     given string.
     Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
 
-  * `sha256(string)` - Returns a SHA-256 hash representation of the
-    given string.
+  * `sha256(string)` - Returns a (conventional) hexadecimal representation
+    of the SHA-256 hash of the given string.
     Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+
+  * `rawsha256(string)` - Returns a raw byte representation
+    of the SHA-256 hash of the given string.
+    This is typically used in conjuction with `base64encode()` as printing
+    raw bytes usually isn't very useful.
 
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
