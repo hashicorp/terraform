@@ -163,6 +163,12 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFound" {
+			log.Printf("[WARN] SNS Topic (%s) not found, error code (404)", d.Id())
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
