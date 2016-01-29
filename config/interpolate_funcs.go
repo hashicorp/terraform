@@ -23,6 +23,7 @@ import (
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
+		"base64sha256": interpolationFuncBase64Sha256(),
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
@@ -605,6 +606,7 @@ func interpolationFuncSha1() ast.Function {
 	}
 }
 
+// hexadecimal representation of sha256 sum
 func interpolationFuncSha256() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
@@ -626,6 +628,21 @@ func interpolationFuncTrimSpace() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			trimSpace := args[0].(string)
 			return strings.TrimSpace(trimSpace), nil
+		},
+	}
+}
+
+func interpolationFuncBase64Sha256() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha256.New()
+			h.Write([]byte(s))
+			shaSum := h.Sum(nil)
+			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
+			return encoded, nil
 		},
 	}
 }
