@@ -16,7 +16,6 @@ func TestResourceProvisioner_impl(t *testing.T) {
 
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"attributes":             []interface{}{"key1 { subkey1 = value1 }"},
 		"environment":            "_default",
 		"node_name":              "nodename1",
 		"run_list":               []interface{}{"cookbook::recipe"},
