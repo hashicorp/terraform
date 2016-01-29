@@ -41,7 +41,7 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
-		"strip":        interpolationFuncStrip(),
+		"trim":         interpolationFuncTrim(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"upper":        interpolationFuncUpper(),
