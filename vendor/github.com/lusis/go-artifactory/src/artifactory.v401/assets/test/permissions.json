@@ -1,0 +1,16 @@
+[ {
+  "name" : "snapshot-write",
+  "uri" : "https://artifactory/artifactory/api/security/permissions/snapshot-write"
+}, {
+  "name" : "Any Remote",
+  "uri" : "https://artifactory/artifactory/api/security/permissions/Any%20Remote"
+}, {
+  "name" : "Anything",
+  "uri" : "https://artifactory/artifactory/api/security/permissions/Anything"
+}, {
+  "name" : "release-commiter",
+  "uri" : "https://artifactory/artifactory/api/security/permissions/release-commiter"
+}, {
+  "name" : "read-docker",
+  "uri" : "https://artifactory/artifactory/api/security/permissions/read-docker"
+} ]

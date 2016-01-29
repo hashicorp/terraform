@@ -6,8 +6,7 @@ terraform.tfplan
 terraform.tfstate
 bin/
 modules-dev/
-pkg/
-vendor/
+/pkg/
 website/.vagrant
 website/.bundle
 website/build
