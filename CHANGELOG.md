@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
   * **New provider: `powerdns` - PowerDNS REST API** [GH-4885]
+  * **New builtin function:** `trimspace` for trimming whitespaces [GH-4910]
 
 IMPROVEMENTS:
 
