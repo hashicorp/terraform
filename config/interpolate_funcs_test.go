@@ -858,11 +858,11 @@ func TestInterpolateFuncSha256(t *testing.T) {
 	})
 }
 
-func TestInterpolateFuncTrim(t *testing.T) {
+func TestInterpolateFuncTrimSpace(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			{
-				`${trim(" test ")}`,
+				`${trimspace(" test ")}`,
 				"test",
 				false,
 			},
