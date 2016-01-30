@@ -164,7 +164,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 
 		for _, rawNetwork := range v.(*schema.Set).List() {
 			network := rawNetwork.(string)
-			if err := client.ConnectNetwork(network), connectionOpts); err != nil {
+			if err := client.ConnectNetwork(network, connectionOpts); err != nil {
 				return fmt.Errorf("Unable to connect to network '%s': %s", network, err)
 			}
 		}
