@@ -41,7 +41,7 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
-		"trim":         interpolationFuncTrim(),
+		"trimspace":    interpolationFuncTrimSpace(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"upper":        interpolationFuncUpper(),
@@ -619,13 +619,13 @@ func interpolationFuncSha256() ast.Function {
 	}
 }
 
-func interpolationFuncTrim() ast.Function {
+func interpolationFuncTrimSpace() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			trim := args[0].(string)
-			return strings.TrimSpace(trim), nil
+			trimSpace := args[0].(string)
+			return strings.TrimSpace(trimSpace), nil
 		},
 	}
 }
