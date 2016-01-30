@@ -849,7 +849,7 @@ func TestInterpolateFuncSha1(t *testing.T) {
 func TestInterpolateFuncSha256(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
-			{
+			{ // hexadecimal representation of sha256 sum
 				`${sha256("test")}`,
 				"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
 				false,
@@ -864,6 +864,23 @@ func TestInterpolateFuncTrimSpace(t *testing.T) {
 			{
 				`${trimspace(" test ")}`,
 				"test",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBase64Sha256(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${base64sha256("test")}`,
+				"n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg=",
+				false,
+			},
+			{ // This will differ because we're base64-encoding hex represantiation, not raw bytes
+				`${base64encode(sha256("test"))}`,
+				"OWY4NmQwODE4ODRjN2Q2NTlhMmZlYWEwYzU1YWQwMTVhM2JmNGYxYjJiMGI4MjJjZDE1ZDZjMTViMGYwMGEwOA==",
 				false,
 			},
 		},
