@@ -2,15 +2,16 @@ package docker
 
 import (
 	"bytes"
-	"fmt"
 	"crypto/sha1"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
 
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 )
 
 func resourceDockerContainer() *schema.Resource {
@@ -353,26 +354,28 @@ func resourceDockerContainer() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"local_path": &schema.Schema{
 							Type:     schema.TypeString,
+							Required: true,
 							ForceNew: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-								if _, err := os.Stat(k); err != nil {
+								path := v.(string)
+								if _, err := os.Stat(path); err != nil {
 									es = append(es, fmt.Errorf(
-										"%q must be valid path: %s", k, err))
+										"%q must be valid path: %s", path, err))
 								}
 								return
 							},
 							StateFunc: func(v interface{}) string {
 								switch v.(type) {
 								case string:
-									reader, err := archive.Tar(srcPath, archive.Uncompressed)
+									reader, err := archive.Tar(v.(string), archive.Uncompressed)
 									if err != nil {
 										return "invalid"
 									}
 
-								  hash := sha1.New()
-								  if _, err := io.Copy(hash, reader); err != nil {
+									hash := sha1.New()
+									if _, err := io.Copy(hash, reader); err != nil {
 										return "invalid"
-								  }
+									}
 
 									return hex.EncodeToString(hash.Sum(nil)[:])
 								default:
@@ -383,11 +386,12 @@ func resourceDockerContainer() *schema.Resource {
 
 						"remote_path": &schema.Schema{
 							Type:     schema.TypeString,
+							Required: true,
 							ForceNew: true,
 						},
 					},
 				},
-				Set: resourceDockerUploadHash,
+				Set: resourceDockerUploadsHash,
 			},
 		},
 	}
