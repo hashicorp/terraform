@@ -15,6 +15,7 @@ IMPROVEMENTS:
   * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
   * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources [GH-4873]
   * provider/aws: Provide a better message if no AWS creds are found [GH-4869]
+  * provider/openstack: Ability to specify per-network Floating IPs [GH-4812] 
  
 BUG FIXES:
 
