@@ -85,7 +85,7 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Waiting for OpenStack LB member (%s) to become available.", m.ID)
 
 	stateConf := &resource.StateChangeConf{
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLBMemberActive(networkingClient, m.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -159,7 +159,7 @@ func resourceLBMemberV1Delete(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForLBMemberDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
