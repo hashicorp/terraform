@@ -84,3 +84,4 @@ The following attributes are exported:
 * `device_owner` - See Argument Reference above.
 * `security_groups` - See Argument Reference above.
 * `device_id` - See Argument Reference above.
+* `fixed_ip/ip_address` - See Argument Reference above.
