@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -133,7 +133,7 @@ func renderFile(d *schema.ResourceData) (string, error) {
 
 // execute parses and executes a template using vars.
 func execute(s string, vars map[string]interface{}) (string, error) {
-	root, err := lang.Parse(s)
+	root, err := hil.Parse(s)
 	if err != nil {
 		return "", err
 	}
@@ -152,14 +152,14 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 		}
 	}
 
-	cfg := lang.EvalConfig{
+	cfg := hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
 			VarMap:  varmap,
 			FuncMap: config.Funcs(),
 		},
 	}
 
-	out, typ, err := lang.Eval(root, &cfg)
+	out, typ, err := hil.Eval(root, &cfg)
 	if err != nil {
 		return "", err
 	}
