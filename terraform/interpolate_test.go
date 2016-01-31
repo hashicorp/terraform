@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 func TestInterpolater_countIndex(t *testing.T) {
