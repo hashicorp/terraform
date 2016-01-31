@@ -9,6 +9,7 @@ FEATURES:
   * **New provider: `powerdns` - PowerDNS REST API** [GH-4885]
   * **New builtin function:** `trimspace` for trimming whitespaces [GH-4910]
   * **New builtin function:** `base64sha256` for base64 encoding raw sha256 sum of a given string [GH-4899]
+  * **New resource:** `openstack_lb_member_v1` [GH-4359]
 
 IMPROVEMENTS:
 
