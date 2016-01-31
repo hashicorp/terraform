@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 )
 
 func TestInterpolateFuncCompact(t *testing.T) {
@@ -900,12 +900,12 @@ type testFunctionCase struct {
 
 func testFunction(t *testing.T, config testFunctionConfig) {
 	for i, tc := range config.Cases {
-		ast, err := lang.Parse(tc.Input)
+		ast, err := hil.Parse(tc.Input)
 		if err != nil {
 			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
 		}
 
-		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
+		out, _, err := hil.Eval(ast, langEvalConfig(config.Vars))
 		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}
