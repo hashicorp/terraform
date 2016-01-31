@@ -24,6 +24,7 @@ BUG FIXES:
   * provider/aws: Refactor Route53 record to fix regression in deleting records created in previous versions of Terraform [GH-4892]
   * provider/azurerm: Fix panic if no creds supplied [GH-4902]
   * provider/openstack: Changing the port resource to mark the ip_address as optional [GH-4850]
+  * provider/docker: Catch potential custom network errors in docker [GH-4918]
   
 
 
