@@ -3,11 +3,14 @@ package docker
 import (
 	"bytes"
 	"fmt"
-
+	"crypto/sha1"
+	"io"
+	"os"
 	"regexp"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 )
 
 func resourceDockerContainer() *schema.Resource {
@@ -341,6 +344,51 @@ func resourceDockerContainer() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      stringSetHash,
 			},
+
+			"uploads": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"local_path": &schema.Schema{
+							Type:     schema.TypeString,
+							ForceNew: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								if _, err := os.Stat(k); err != nil {
+									es = append(es, fmt.Errorf(
+										"%q must be valid path: %s", k, err))
+								}
+								return
+							},
+							StateFunc: func(v interface{}) string {
+								switch v.(type) {
+								case string:
+									reader, err := archive.Tar(srcPath, archive.Uncompressed)
+									if err != nil {
+										return "invalid"
+									}
+
+								  hash := sha1.New()
+								  if _, err := io.Copy(hash, reader); err != nil {
+										return "invalid"
+								  }
+
+									return hex.EncodeToString(hash.Sum(nil)[:])
+								default:
+									return ""
+								}
+							},
+						},
+
+						"remote_path": &schema.Schema{
+							Type:     schema.TypeString,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceDockerUploadHash,
+			},
 		},
 	}
 }
@@ -403,6 +451,21 @@ func resourceDockerVolumesHash(v interface{}) int {
 
 	if v, ok := m["read_only"]; ok {
 		buf.WriteString(fmt.Sprintf("%v-", v.(bool)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceDockerUploadsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["local_path"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	if v, ok := m["remote_path"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
 	}
 
 	return hashcode.String(buf.String())

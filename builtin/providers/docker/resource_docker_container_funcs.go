@@ -8,6 +8,7 @@ import (
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 )
 
 var (
@@ -166,6 +167,19 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 			network := rawNetwork.(string)
 			if err := client.ConnectNetwork(network, connectionOpts); err != nil {
 				return fmt.Errorf("Unable to connect to network '%s': %s", network, err)
+			}
+		}
+	}
+
+	if v, ok := d.GetOk("uploads"); ok {
+		for _, upload := range v.(*schema.Set).List() {
+			uploadOpts, err := uploadFile(upload.(map[string]interface{}))
+			if err != nil {
+				return err
+			}
+
+			if err := client.UploadToContainer(retContainer.ID, uploadOpts); err != nil {
+				return fmt.Errorf("Unable to upload to container: %s", err)
 			}
 		}
 	}
@@ -382,4 +396,21 @@ func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []strin
 	}
 
 	return retVolumeMap, retHostConfigBinds, retVolumeFromContainers, nil
+}
+
+func uploadFile(upload map[string]interface{}) (dc.UploadToContainerOptions, error) {
+	local_path := upload["local_path"].(string)
+	remote_path := upload["remote_path"].(string)
+
+	stream, err := archive.Tar(srcPath, archive.Uncompressed)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to send %s to container: %s", local_path, err)
+	}
+
+	uploadOpts := dc.UploadToContainerOptions{
+		InputStream: stream,
+		Path: remote_path,
+		NoOverwriteDirNonDir: false,
+	}
+	return uploadOpts, nil
 }
