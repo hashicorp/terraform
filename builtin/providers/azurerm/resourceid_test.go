@@ -89,6 +89,18 @@ func TestParseAzureResourceID(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"/subscriptions/34ca515c-4629-458e-bf7c-738d77e0d0ea/resourcegroups/acceptanceTestResourceGroup1/providers/Microsoft.Cdn/profiles/acceptanceTestCdnProfile1",
+			&ResourceID{
+				SubscriptionID: "34ca515c-4629-458e-bf7c-738d77e0d0ea",
+				ResourceGroup:  "acceptanceTestResourceGroup1",
+				Provider:       "Microsoft.Cdn",
+				Path: map[string]string{
+					"profiles": "acceptanceTestCdnProfile1",
+				},
+			},
+			false,
+		},
 	}
 
 	for _, test := range testCases {

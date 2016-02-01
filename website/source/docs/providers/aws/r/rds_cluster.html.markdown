@@ -46,7 +46,7 @@ RDS Cluster Instances do not currently display in the AWS Console.
 ## Argument Reference
 
 For more detailed documentation about each argument, refer to
-the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
+the [AWS official documentation](https://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
 
 The following arguments are supported:
 
@@ -73,7 +73,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
   with the Cluster
 * `apply_immediately` - (Optional) Specifies whether any cluster modifications
      are applied immediately, or during the next maintenance window. Default is
-     `false`. See [Amazon RDS Documentation for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
+     `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance.
 
 ## Attributes Reference
@@ -100,8 +100,8 @@ The following attributes are exported:
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
 * `preferred_backup_window` - The daily time range during which the backups happen
 
-[1]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
+[1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
 
-[2]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
+[2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
 [4]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html

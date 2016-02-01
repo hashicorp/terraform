@@ -519,6 +519,16 @@ func (i *Interpolater) interpolateListAttribute(
 	log.Printf("[DEBUG] Interpolating computed list attribute %s (%s)",
 		resourceID, attr)
 
+	// In Terraform's internal dotted representation of list-like attributes, the
+	// ".#" count field is marked as unknown to indicate "this whole list is
+	// unknown". We must honor that meaning here so computed references can be
+	// treated properly during the plan phase.
+	if attr == config.UnknownVariableValue {
+		return attr, nil
+	}
+
+	// Otherwise we gather the values from the list-like attribute and return
+	// them.
 	var members []string
 	numberedListMember := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
 	for id, value := range attributes {

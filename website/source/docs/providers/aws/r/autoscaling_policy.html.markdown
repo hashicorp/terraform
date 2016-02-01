@@ -12,8 +12,8 @@ Provides an AutoScaling Scaling Policy resource.
 
 ~> **NOTE:** You may want to omit `desired_capacity` attribute from attached `aws_autoscaling_group`
 when using autoscaling policies. It's good practice to pick either
-[manual](http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-manual-scaling.html)
-or [dynamic](http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html)
+[manual](https://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-manual-scaling.html)
+or [dynamic](https://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html)
 (policy-based) scaling.
 
 ## Example Usage

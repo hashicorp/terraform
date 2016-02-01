@@ -107,7 +107,7 @@ func resourceAwsRedshiftSecurityGroupCreate(d *schema.ResourceData, meta interfa
 	log.Println("[INFO] Waiting for Redshift Security Group Ingress Authorizations to be authorized")
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"authorizing"},
-		Target:  "authorized",
+		Target:  []string{"authorized"},
 		Refresh: resourceAwsRedshiftSecurityGroupStateRefreshFunc(d, meta),
 		Timeout: 10 * time.Minute,
 	}

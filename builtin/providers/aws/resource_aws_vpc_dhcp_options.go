@@ -121,8 +121,8 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for DHCP Options (%s) to become available", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  "",
-		Refresh: DHCPOptionsStateRefreshFunc(conn, d.Id()),
+		Target:  []string{"created"},
+		Refresh: resourceDHCPOptionsStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -249,7 +249,7 @@ func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.Vpc, error) {
 	return resp.Vpcs, nil
 }
 
-func DHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func resourceDHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		DescribeDhcpOpts := &ec2.DescribeDhcpOptionsInput{
 			DhcpOptionsIds: []*string{
@@ -274,6 +274,6 @@ func DHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefresh
 		}
 
 		dos := resp.DhcpOptions[0]
-		return dos, "", nil
+		return dos, "created", nil
 	}
 }

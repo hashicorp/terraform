@@ -18,12 +18,8 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
 
-
-# Get dependencies unless running in quick mode
-if [ "${TF_QUICKDEV}x" == "x" ]; then
-    echo "==> Getting dependencies..."
-    go get -d ./...
-fi
+# Use vendored dependencies
+export GO15VENDOREXPERIMENT=1
 
 # Delete the old dir
 echo "==> Removing old directory..."
@@ -45,7 +41,7 @@ gox \
     -arch="${XC_ARCH}" \
     -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
     -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
-    ./...
+    $(go list ./... | grep -v /vendor/)
 
 # Make sure "terraform-terraform" is renamed properly
 for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do

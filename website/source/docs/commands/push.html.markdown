@@ -96,8 +96,8 @@ don't already exist on Atlas. If you want to force push a certain
 variable value to update it, use the `-overwrite` flag.
 
 All the variable values stored on Atlas are encrypted and secured
-using [Vault](https://vaultproject.io). We blogged about the
-[architecture of our secure storage system](https://hashicorp.com/blog/how-atlas-uses-vault-for-managing-secrets.html) if you want more detail.
+using [Vault](https://www.vaultproject.io). We blogged about the
+[architecture of our secure storage system](https://www.hashicorp.com/blog/how-atlas-uses-vault-for-managing-secrets.html) if you want more detail.
 
 The variable values can be updated using the `-overwrite` flag or via
 the [Atlas website](https://atlas.hashicorp.com). An example of updating

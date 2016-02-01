@@ -39,7 +39,7 @@ This should look familiar from the earlier example of adding
 an EC2 instance resource, except this time we're building
 an "aws\_eip" resource type. This resource type allocates
 and associates an
-[elastic IP](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
+[elastic IP](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
 to an EC2 instance.
 
 The only parameter for

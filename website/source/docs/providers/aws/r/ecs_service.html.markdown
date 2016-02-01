@@ -12,7 +12,7 @@ description: |-
 
 Provides an ECS service - effectively a task that is expected to run until an error occures or user terminates it (typically a webserver or a database). 
 
-See [ECS Services section in AWS developer guide](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html).
+See [ECS Services section in AWS developer guide](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html).
 
 ## Example Usage
 

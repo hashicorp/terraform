@@ -177,6 +177,55 @@ func TestPlan_outPath(t *testing.T) {
 	}
 }
 
+func TestPlan_outPathNoChange(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, originalState)
+
+	tf, err := ioutil.TempFile("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	outPath := tf.Name()
+	os.Remove(tf.Name())
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-out", outPath,
+		"-state", statePath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if !plan.Diff.Empty() {
+		t.Fatalf("Expected empty plan to be written to plan file, got: %s", plan)
+	}
+}
+
 func TestPlan_refresh(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)

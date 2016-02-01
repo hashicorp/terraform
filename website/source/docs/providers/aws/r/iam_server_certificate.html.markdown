@@ -100,5 +100,5 @@ The following arguments are supported:
 * `arn` - The Amazon Resource Name (ARN) specifying the server certificate.
 
 
-[1]: http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html
-[2]: http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingServerCerts.html
+[1]: https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html
+[2]: https://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingServerCerts.html

@@ -553,6 +553,43 @@ func TestInstanceDiffSame(t *testing.T) {
 			true,
 			"",
 		},
+
+		// Another thing that can occur in DESTROY/CREATE scenarios is that list
+		// values that are going to zero have diffs that show up at plan time but
+		// are gone at apply time. The NewRemoved handling catches the fields and
+		// treats them as OK, but it also needs to treat the .# field itself as
+		// okay to be present in the old diff but not in the new one.
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"reqnew": &ResourceAttrDiff{
+						Old:         "old",
+						New:         "new",
+						RequiresNew: true,
+					},
+					"somemap.#": &ResourceAttrDiff{
+						Old: "1",
+						New: "0",
+					},
+					"somemap.oldkey": &ResourceAttrDiff{
+						Old:        "long ago",
+						New:        "",
+						NewRemoved: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"reqnew": &ResourceAttrDiff{
+						Old:         "",
+						New:         "new",
+						RequiresNew: true,
+					},
+				},
+			},
+			true,
+			"",
+		},
 	}
 
 	for i, tc := range cases {

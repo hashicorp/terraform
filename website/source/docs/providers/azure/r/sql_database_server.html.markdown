@@ -31,7 +31,7 @@ The following arguments are supported:
     creation as it is randomly-generated per server.
 
 * `location` - (Required) The location where the database server should be created.
-    For a list of all Azure locations, please consult [this link](http://azure.microsoft.com/en-us/regions/).
+    For a list of all Azure locations, please consult [this link](https://azure.microsoft.com/en-us/regions/).
 
 * `username` - (Required) The username for the administrator of the database server.
 

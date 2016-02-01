@@ -58,7 +58,7 @@ func resourceAwsVpc() *schema.Resource {
 			"enable_classiclink": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Computed: true,
 			},
 
 			"main_route_table_id": &schema.Schema{
@@ -118,7 +118,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  "available",
+		Target:  []string{"available"},
 		Refresh: VPCStateRefreshFunc(conn, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
@@ -179,18 +179,27 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	DescribeClassiclinkOpts := &ec2.DescribeVpcClassicLinkInput{
 		VpcIds: []*string{&vpcid},
 	}
+
+	// Classic Link is only available in regions that support EC2 Classic
 	respClassiclink, err := conn.DescribeVpcClassicLink(DescribeClassiclinkOpts)
 	if err != nil {
-		return err
-	}
-	classiclink_enabled := false
-	for _, v := range respClassiclink.Vpcs {
-		if *v.VpcId == vpcid {
-			classiclink_enabled = *v.ClassicLinkEnabled
-			break
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "UnsupportedOperation" {
+			log.Printf("[WARN] VPC Classic Link is not supported in this region")
+		} else {
+			return err
 		}
+	} else {
+		classiclink_enabled := false
+		for _, v := range respClassiclink.Vpcs {
+			if *v.VpcId == vpcid {
+				if v.ClassicLinkEnabled != nil {
+					classiclink_enabled = *v.ClassicLinkEnabled
+				}
+				break
+			}
+		}
+		d.Set("enable_classiclink", classiclink_enabled)
 	}
-	d.Set("enable_classiclink", classiclink_enabled)
 
 	// Get the main routing table for this VPC
 	// Really Ugly need to make this better - rmenn

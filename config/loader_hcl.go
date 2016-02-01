@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
 	"github.com/mitchellh/mapstructure"
@@ -27,9 +28,10 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	type hclVariable struct {
-		Default     interface{}
-		Description string
-		Fields      []string `hcl:",decodedFields"`
+		Default      interface{}
+		Description  string
+		DeclaredType string   `hcl:"type"`
+		Fields       []string `hcl:",decodedFields"`
 	}
 
 	var rawConfig struct {
@@ -69,9 +71,14 @@ func (t *hclConfigurable) Config() (*Config, error) {
 			}
 
 			newVar := &Variable{
-				Name:        k,
-				Default:     v.Default,
-				Description: v.Description,
+				Name:         k,
+				DeclaredType: v.DeclaredType,
+				Default:      v.Default,
+				Description:  v.Description,
+			}
+
+			if err := newVar.ValidateTypeAndDefault(); err != nil {
+				return nil, err
 			}
 
 			config.Variables = append(config.Variables, newVar)
@@ -405,6 +412,15 @@ func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
 	for _, item := range list.Items {
+		// GH-4385: We detect a pure provisioner resource and give the user
+		// an error about how to do it cleanly.
+		if len(item.Keys) == 4 && item.Keys[2].Token.Value().(string) == "provisioner" {
+			return nil, fmt.Errorf(
+				"position %s: provisioners in a resource should be wrapped in a list\n\n"+
+					"Example: \"provisioner\": [ { \"local-exec\": ... } ]",
+				item.Pos())
+		}
+
 		if len(item.Keys) != 2 {
 			return nil, fmt.Errorf(
 				"position %s: resource must be followed by exactly two strings, a type and a name",
@@ -524,6 +540,13 @@ func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		// destroying the existing instance
 		var lifecycle ResourceLifecycle
 		if o := listVal.Filter("lifecycle"); len(o.Items) > 0 {
+			// Check for invalid keys
+			valid := []string{"create_before_destroy", "ignore_changes", "prevent_destroy"}
+			if err := checkHCLKeys(o.Items[0].Val, valid); err != nil {
+				return nil, multierror.Prefix(err, fmt.Sprintf(
+					"%s[%s]:", t, k))
+			}
+
 			var raw map[string]interface{}
 			if err = hcl.DecodeObject(&raw, o.Items[0].Val); err != nil {
 				return nil, fmt.Errorf(
@@ -645,3 +668,31 @@ func hclObjectMap(os *hclobj.Object) map[string]ast.ListNode {
 	return objects
 }
 */
+
+func checkHCLKeys(node ast.Node, valid []string) error {
+	var list *ast.ObjectList
+	switch n := node.(type) {
+	case *ast.ObjectList:
+		list = n
+	case *ast.ObjectType:
+		list = n.List
+	default:
+		return fmt.Errorf("cannot check HCL keys of type %T", n)
+	}
+
+	validMap := make(map[string]struct{}, len(valid))
+	for _, v := range valid {
+		validMap[v] = struct{}{}
+	}
+
+	var result error
+	for _, item := range list.Items {
+		key := item.Keys[0].Token.Value().(string)
+		if _, ok := validMap[key]; !ok {
+			result = multierror.Append(result, fmt.Errorf(
+				"invalid key: %s", key))
+		}
+	}
+
+	return result
+}

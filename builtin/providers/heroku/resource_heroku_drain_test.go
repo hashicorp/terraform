@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccHerokuDrain_Basic(t *testing.T) {
 	var drain heroku.LogDrain
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -18,14 +20,14 @@ func TestAccHerokuDrain_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuDrainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckHerokuDrainConfig_basic,
+				Config: testAccCheckHerokuDrainConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuDrainExists("heroku_drain.foobar", &drain),
 					testAccCheckHerokuDrainAttributes(&drain),
 					resource.TestCheckResourceAttr(
 						"heroku_drain.foobar", "url", "syslog://terraform.example.com:1234"),
 					resource.TestCheckResourceAttr(
-						"heroku_drain.foobar", "app", "terraform-test-app"),
+						"heroku_drain.foobar", "app", appName),
 				),
 			},
 		},
@@ -95,13 +97,15 @@ func testAccCheckHerokuDrainExists(n string, Drain *heroku.LogDrain) resource.Te
 	}
 }
 
-const testAccCheckHerokuDrainConfig_basic = `
+func testAccCheckHerokuDrainConfig_basic(appName string) string {
+	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
-    name = "terraform-test-app"
+    name = "%s"
     region = "us"
 }
 
 resource "heroku_drain" "foobar" {
     app = "${heroku_app.foobar.name}"
     url = "syslog://terraform.example.com:1234"
-}`
+}`, appName)
+}

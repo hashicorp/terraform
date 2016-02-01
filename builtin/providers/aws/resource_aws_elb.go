@@ -420,8 +420,22 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				Listeners:        add,
 			}
 
-			log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
-			_, err := elbconn.CreateLoadBalancerListeners(createListenersOpts)
+			// Occasionally AWS will error with a 'duplicate listener', without any
+			// other listeners on the ELB. Retry here to eliminate that.
+			err := resource.Retry(1*time.Minute, func() error {
+				log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
+				if _, err := elbconn.CreateLoadBalancerListeners(createListenersOpts); err != nil {
+					if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "DuplicateListener" {
+						log.Printf("[DEBUG] Duplicate listener found for ELB (%s), retrying", d.Id())
+						return awserr
+					}
+
+					// Didn't recognize the error, so shouldn't retry.
+					return resource.RetryError{Err: err}
+				}
+				// Successful creation
+				return nil
+			})
 			if err != nil {
 				return fmt.Errorf("Failure adding new or updated ELB listeners: %s", err)
 			}

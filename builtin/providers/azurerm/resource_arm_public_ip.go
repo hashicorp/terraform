@@ -79,6 +79,8 @@ func resourceArmPublicIp() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -92,6 +94,7 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	tags := d.Get("tags").(map[string]interface{})
 
 	properties := network.PublicIPAddressPropertiesFormat{
 		PublicIPAllocationMethod: network.IPAllocationMethod(d.Get("public_ip_address_allocation").(string)),
@@ -126,6 +129,7 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 		Name:       &name,
 		Location:   &location,
 		Properties: &properties,
+		Tags:       expandTags(tags),
 	}
 
 	resp, err := publicIPClient.CreateOrUpdate(resGroup, name, publicIp)
@@ -138,7 +142,7 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Waiting for Public IP (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: publicIPStateRefreshFunc(client, resGroup, name),
 		Timeout: 10 * time.Minute,
 	}
@@ -175,6 +179,8 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	if resp.Properties.IPAddress != nil && *resp.Properties.IPAddress != "" {
 		d.Set("ip_address", resp.Properties.IPAddress)
 	}
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }

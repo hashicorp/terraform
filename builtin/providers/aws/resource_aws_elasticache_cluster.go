@@ -290,7 +290,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	pending := []string{"creating"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "available", pending),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -466,7 +466,7 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 		pending := []string{"modifying", "rebooting cache cluster nodes", "snapshotting"}
 		stateConf := &resource.StateChangeConf{
 			Pending:    pending,
-			Target:     "available",
+			Target:     []string{"available"},
 			Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "available", pending),
 			Timeout:    5 * time.Minute,
 			Delay:      5 * time.Second,
@@ -537,7 +537,7 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 	log.Printf("[DEBUG] Waiting for deletion: %v", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed"},
-		Target:     "",
+		Target:     []string{},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "", []string{}),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,

@@ -60,4 +60,4 @@ The following attributes are exported:
 * `id` - The ID of the DHCP Options Set.
 
 You can find more technical documentation about DHCP Options Set in the
-official [AWS User Guide](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html).
+official [AWS User Guide](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html).
