@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -24,16 +23,13 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"datadog_service_check": resourceDatadogServiceCheck(),
-			"datadog_metric_alert":  resourceDatadogMetricAlert(),
-			"datadog_outlier_alert": resourceDatadogOutlierAlert(),
+			"datadog_monitor": resourceDatadogMonitor(),
 		},
 
 		ConfigureFunc: providerConfigure,
 	}
 }
 
-// ProviderConfigure returns a configured client.
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	config := Config{
