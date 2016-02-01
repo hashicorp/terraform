@@ -372,6 +372,11 @@
 			"Rev": "8041be5461786460d86b4358305fbdf32d37cfb2"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/elasticbeanstalk",
+			"Comment": "v1.1.0",
+			"Rev": "be2ec39e520e3c4088c0c6288055bdc8184a89ee"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/elasticsearchservice",
 			"Comment": "v1.1.2",
 			"Rev": "8041be5461786460d86b4358305fbdf32d37cfb2"
