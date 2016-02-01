@@ -115,7 +115,6 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		thresholds.Critical = json.Number(r.(string))
 	}
 
-
 	o := datadog.Options{
 		Thresholds: thresholds,
 	}
@@ -317,4 +316,3 @@ func resourceDatadogMonitorDelete(d *schema.ResourceData, meta interface{}) erro
 
 	return nil
 }
-
