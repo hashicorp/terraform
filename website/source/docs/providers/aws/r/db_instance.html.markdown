@@ -99,6 +99,10 @@ database, and to use this value as the source database. This correlates to the
 * `license_model` - (Optional, but required for some DB engines, i.e. Oracle SE1) License model information for this DB instance.
 * `auto_minor_version_upgrade` - (Optional) Indicates that minor engine upgrades will be applied automatically to the DB instance during the maintenance window. Defaults to true.
 * `allow_major_version_upgrade` - (Optional) Indicates that major version upgrades are allowed. Changing this parameter does not result in an outage and the change is asynchronously applied as soon as possible.
+* `monitoring_role_arn` - (Optional) The ARN for the IAM role that permits RDS to send 
+enhanced monitoring metrics to CloudWatch Logs. You can find more information on the [AWS Documentation](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.html) 
+what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
+* `monitoring_interval` - (Optional) The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is 0. Valid Values: 0, 1, 5, 10, 15, 30, 60.
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
 Replicate database managed by Terraform will promote the database to a fully

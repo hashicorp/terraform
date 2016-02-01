@@ -270,6 +270,18 @@ func resourceAwsDbInstance() *schema.Resource {
 				Optional: true,
 			},
 
+			"monitoring_role_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"monitoring_interval": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  0,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -309,6 +321,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
 			opts.DBSubnetGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("monitoring_role_arn"); ok {
+			opts.MonitoringRoleArn = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("monitoring_interval"); ok {
+			opts.MonitoringInterval = aws.Int64(int64(attr.(int)))
 		}
 
 		log.Printf("[DEBUG] DB Instance Replica create configuration: %#v", opts)
@@ -494,6 +514,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.PubliclyAccessible = aws.Bool(attr.(bool))
 		}
 
+		if attr, ok := d.GetOk("monitoring_role_arn"); ok {
+			opts.MonitoringRoleArn = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("monitoring_interval"); ok {
+			opts.MonitoringInterval = aws.Int64(int64(attr.(int)))
+		}
+
 		log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
 		var err error
 		_, err = conn.CreateDBInstance(&opts)
@@ -574,6 +602,14 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("status", v.DBInstanceStatus)
 	d.Set("storage_encrypted", v.StorageEncrypted)
+
+	if v.MonitoringInterval != nil {
+		d.Set("monitoring_interval", v.MonitoringInterval)
+	}
+
+	if v.MonitoringRoleArn != nil {
+		d.Set("monitoring_role_arn", v.MonitoringRoleArn)
+	}
 
 	// list tags for resource
 	// set tags
@@ -761,6 +797,18 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("auto_minor_version_upgrade") {
 		d.SetPartial("auto_minor_version_upgrade")
 		req.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
+		requestUpdate = true
+	}
+
+	if d.HasChange("monitoring_role_arn") {
+		d.SetPartial("monitoring_role_arn")
+		req.MonitoringRoleArn = aws.String(d.Get("monitoring_role_arn").(string))
+		requestUpdate = true
+	}
+
+	if d.HasChange("monitoring_interval") {
+		d.SetPartial("monitoring_interval")
+		req.MonitoringInterval = aws.Int64(int64(d.Get("monitoring_interval").(int)))
 		requestUpdate = true
 	}
 
