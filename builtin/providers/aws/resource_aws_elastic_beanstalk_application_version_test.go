@@ -7,11 +7,13 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 var s3File, s3Err = ioutil.TempFile("", "tf.zip")
@@ -104,7 +106,7 @@ func testAccCheckApplicationVersionExists(n string, app *elasticbeanstalk.Applic
 	}
 }
 
-var randomBeanstalkBucket = randInt
+var randomBeanstalkBucket = acctest.RandInt()
 var testAccApplicationVersionConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "default" {
   bucket = "tftest.applicationversion.bucket-%d"

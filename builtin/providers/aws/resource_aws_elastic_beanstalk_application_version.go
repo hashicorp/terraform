@@ -62,6 +62,7 @@ func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData,
 	}
 
 	createOpts := elasticbeanstalk.CreateApplicationVersionInput{
+
 		ApplicationName: aws.String(application),
 		Description:     aws.String(description),
 		SourceBundle:    &s3Location,
