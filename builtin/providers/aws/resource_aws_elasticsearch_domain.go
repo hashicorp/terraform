@@ -37,13 +37,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if !regexp.MustCompile(`^[0-9A-Za-z]+`).MatchString(value) {
+					if !regexp.MustCompile(`^[a-z][0-9a-z\-]{2,27}$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
-							"%q must start with a letter or number", k))
-					}
-					if !regexp.MustCompile(`^[0-9A-Za-z][0-9a-z-]+$`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q can only contain lowercase characters, numbers and hyphens", k))
+							"%q must start with a lowercase alphabet and be at least 3 and no more than 28 characters long. Valid characters are a-z (lowercase letters), 0-9, and - (hyphen).", k))
 					}
 					return
 				},
