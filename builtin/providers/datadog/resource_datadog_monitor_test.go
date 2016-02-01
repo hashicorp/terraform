@@ -3,6 +3,7 @@ package datadog
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
