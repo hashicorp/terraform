@@ -22,6 +22,7 @@ BUG FIXES:
 
   * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
   * provider/aws: Fix regression with VPCs and ClassicLink for regions that do not support it [GH-4879]
+  * provider/aws: Change VPC ClassicLink to be computed [GH-4933]
   * provider/aws: Fix SNS Topic Refresh to ensure deleted topics are removed from state [GH-4891]
   * provider/aws: Refactor Route53 record to fix regression in deleting records created in previous versions of Terraform [GH-4892]
   * provider/azurerm: Fix panic if no creds supplied [GH-4902]
