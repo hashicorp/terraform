@@ -8,7 +8,7 @@ description: |-
 
 # aws\_directory\_service\_directory
 
-Provides a directory in AWS Directory Service.
+Provides a Simple or Managed Microsoft directory in AWS Directory Service.
 
 ## Example Usage
 
@@ -45,16 +45,25 @@ resource "aws_subnet" "bar" {
 The following arguments are supported:
 
 * `name` - (Required) The fully qualified name for the directory, such as `corp.example.com`
-* `password` - (Required) The password for the directory administrator.
-* `size` - (Required) The size of the directory (`Small` or `Large` are accepted values).
-* `vpc_settings` - (Required) VPC related information about the directory. Fields documented below.
+* `password` - (Required) The password for the directory administrator or connector user.
+* `size` - (Required for `SimpleAD` and `ADConnector`) The size of the directory (`Small` or `Large` are accepted values).
+* `vpc_settings` - (Required for `SimpleAD` and `MicrosoftAD`) VPC related information about the directory. Fields documented below.
+* `connect_settings` - (Required for `ADConnector`) Connector related information about the directory. Fields documented below.
 * `alias` - (Optional) The alias for the directory (must be unique amongst all aliases in AWS). Required for `enable_sso`.
 * `description` - (Optional) A textual description for the directory.
 * `short_name` - (Optional) The short name of the directory, such as `CORP`.
 * `enable_sso` - (Optional) Whether to enable single-sign on for the directory. Requires `alias`. Defaults to `false`.
+* `type` (Optional) - The directory type (`SimpleAD` or `MicrosoftAD` are accepted values). Defaults to `SimpleAD`.
 
 **vpc\_settings** supports the following:
 
+* `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (min. 2 subnets in 2 different AZs).
+* `vpc_id` - (Required) The identifier of the VPC that the directory is in.
+
+**connect\_settings** supports the following:
+
+* `customer_username` - (Required) The username corresponding to the password provided.
+* `customer_dns_ips` - (Required) The DNS IP addresses of the domain to connect to.
 * `subnet_ids` - (Required) The identifiers of the subnets for the directory servers (min. 2 subnets in 2 different AZs).
 * `vpc_id` - (Required) The identifier of the VPC that the directory is in.
 
@@ -64,5 +73,4 @@ The following attributes are exported:
 
 * `id` - The directory identifier.
 * `access_url` - The access URL for the directory, such as `http://alias.awsapps.com`.
-* `dns_ip_addresses` - A list of IP addresses of the DNS servers for the directory.
-* `type` - The directory type.
+* `dns_ip_addresses` - A list of IP addresses of the DNS servers for the directory or connector.

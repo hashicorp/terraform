@@ -135,10 +135,24 @@ func testAccCheckAWSSpotInstanceRequestDestroy(s *terraform.State) error {
 		}
 
 		resp, err := conn.DescribeSpotInstanceRequests(req)
+		var s *ec2.SpotInstanceRequest
 		if err == nil {
-			if len(resp.SpotInstanceRequests) > 0 {
-				return fmt.Errorf("Spot instance request is still here.")
+			for _, sir := range resp.SpotInstanceRequests {
+				if sir.SpotInstanceRequestId != nil && *sir.SpotInstanceRequestId == rs.Primary.ID {
+					s = sir
+				}
+				continue
 			}
+		}
+
+		if s == nil {
+			// not found
+			return nil
+		}
+
+		if *s.State == "canceled" {
+			// Requests stick around for a while, so we make sure it's cancelled
+			return nil
 		}
 
 		// Verify the error is what we expect
@@ -364,9 +378,9 @@ resource "aws_spot_instance_request" "foo_VPC" {
 
 const testAccAWSSpotInstanceRequestConfig_SubnetAndSG = `
 resource "aws_spot_instance_request" "foo" {
-  ami                         = "ami-6f6d635f"
+  ami                         = "ami-4fccb37f"
+  instance_type               = "m1.small"
   spot_price                  = "0.05"
-  instance_type               = "t1.micro"
   wait_for_fulfillment        = true
   subnet_id                   = "${aws_subnet.tf_test_subnet.id}"
   vpc_security_group_ids      = ["${aws_security_group.tf_test_sg_ssh.id}"]

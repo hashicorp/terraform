@@ -93,21 +93,13 @@ func resourceAwsAutoscalingScheduleCreate(d *schema.ResourceData, meta interface
 		params.EndTime = aws.Time(t)
 	}
 
-	if attr, ok := d.GetOk("recurrance"); ok {
+	if attr, ok := d.GetOk("recurrence"); ok {
 		params.Recurrence = aws.String(attr.(string))
 	}
 
-	if attr, ok := d.GetOk("min_size"); ok {
-		params.MinSize = aws.Int64(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("max_size"); ok {
-		params.MaxSize = aws.Int64(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("desired_capacity"); ok {
-		params.DesiredCapacity = aws.Int64(int64(attr.(int)))
-	}
+	params.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
+	params.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
+	params.DesiredCapacity = aws.Int64(int64(d.Get("desired_capacity").(int)))
 
 	log.Printf("[INFO] Creating Autoscaling Scheduled Action: %s", d.Get("scheduled_action_name").(string))
 	_, err := autoscalingconn.PutScheduledUpdateGroupAction(params)
@@ -131,9 +123,15 @@ func resourceAwsAutoscalingScheduleRead(d *schema.ResourceData, meta interface{}
 	d.Set("desired_capacity", sa.DesiredCapacity)
 	d.Set("min_size", sa.MinSize)
 	d.Set("max_size", sa.MaxSize)
-	d.Set("recurrance", sa.Recurrence)
-	d.Set("start_time", sa.StartTime.Format(awsAutoscalingScheduleTimeLayout))
-	d.Set("end_time", sa.EndTime.Format(awsAutoscalingScheduleTimeLayout))
+	d.Set("recurrence", sa.Recurrence)
+
+	if sa.StartTime != nil {
+		d.Set("start_time", sa.StartTime.Format(awsAutoscalingScheduleTimeLayout))
+	}
+
+	if sa.EndTime != nil {
+		d.Set("end_time", sa.EndTime.Format(awsAutoscalingScheduleTimeLayout))
+	}
 
 	return nil
 }
@@ -175,15 +173,4 @@ func resourceAwsASGScheduledActionRetrieve(d *schema.ResourceData, meta interfac
 	}
 
 	return actions.ScheduledUpdateGroupActions[0], nil
-}
-
-func validateASGScheduleTimestamp(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	_, err := time.Parse(awsAutoscalingScheduleTimeLayout, value)
-	if err != nil {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be parsed as iso8601 Timestamp Format", value))
-	}
-
-	return
 }

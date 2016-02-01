@@ -406,7 +406,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		if v, ok := d.GetOk("boot_delay"); ok {
 			stateConf := &resource.StateChangeConf{
 				Pending:    []string{"pending"},
-				Target:     "active",
+				Target:     []string{"active"},
 				Refresh:    waitForNetworkingActive(client, vm.datacenter, vm.Path()),
 				Timeout:    600 * time.Second,
 				Delay:      time.Duration(v.(int)) * time.Second,
@@ -426,7 +426,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
-	
+
 	log.Printf("[DEBUG] reading virtual machine: %#v", d)
 	client := meta.(*govmomi.Client)
 	dc, err := getDatacenter(client, d.Get("datacenter").(string))
@@ -1021,7 +1021,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	if err != nil {
 		return err
 	}
-	
+
 	log.Printf("[DEBUG] folder: %#v", vm.folder)
 	folder := dcFolders.VmFolder
 	if len(vm.folder) > 0 {

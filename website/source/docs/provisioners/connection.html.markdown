@@ -73,7 +73,9 @@ provisioner "file" {
   function](/docs/configuration/interpolation.html#file_path_). This takes
   preference over the password if provided.
 
-* `agent` - Set to false to disable using ssh-agent to authenticate.
+* `agent` - Set to false to disable using ssh-agent to authenticate. On Windows the
+  only supported SSH authentication agent is
+  [Pageant](http://the.earth.li/~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant)
 
 **Additional arguments only supported by the "winrm" connection type:**
 

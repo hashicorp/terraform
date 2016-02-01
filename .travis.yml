@@ -5,7 +5,11 @@ language: go
 go:
   - 1.5
 
-install: make updatedeps
+# Need to ensure at least something remains in the install stanza to opt out of
+# Travis's built-in 'godep restore', which will fail Travis
+# See https://docs.travis-ci.com/user/languages/go#godep-support
+install:
+  - echo noop
 
 script:
   - make test

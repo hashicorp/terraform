@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -100,7 +101,7 @@ func testAccGoogleSqlDatabaseDestroy(s *terraform.State) error {
 
 var testGoogleSqlDatabase_basic = fmt.Sprintf(`
 resource "google_sql_database_instance" "instance" {
-	name = "tf-lw-%d"
+	name = "sqldatabasetest%s"
 	region = "us-central"
 	settings {
 		tier = "D0"
@@ -108,7 +109,7 @@ resource "google_sql_database_instance" "instance" {
 }
 
 resource "google_sql_database" "database" {
-	name = "database1"
+	name = "sqldatabasetest%s"
 	instance = "${google_sql_database_instance.instance.name}"
 }
-`, genRandInt())
+`, acctest.RandString(10), acctest.RandString(10))

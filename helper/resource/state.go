@@ -25,7 +25,7 @@ type StateChangeConf struct {
 	Delay          time.Duration    // Wait this time before starting checks
 	Pending        []string         // States that are "allowed" and will continue trying
 	Refresh        StateRefreshFunc // Refreshes the current state
-	Target         string           // Target state
+	Target         []string         // Target state
 	Timeout        time.Duration    // The amount of time to wait before timeout
 	MinTimeout     time.Duration    // Smallest time to wait before refreshes
 	NotFoundChecks int              // Number of times to allow not found
@@ -87,7 +87,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 			}
 
 			// If we're waiting for the absence of a thing, then return
-			if result == nil && conf.Target == "" {
+			if result == nil && len(conf.Target) == 0 {
 				return
 			}
 
@@ -103,8 +103,10 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				// Reset the counter for when a resource isn't found
 				notfoundTick = 0
 
-				if currentState == conf.Target {
-					return
+				for _, allowed := range conf.Target {
+					if currentState == allowed {
+						return
+					}
 				}
 
 				found := false

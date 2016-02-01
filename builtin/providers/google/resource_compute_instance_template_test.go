@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -201,9 +202,9 @@ func testAccCheckComputeInstanceTemplateTag(instanceTemplate *compute.InstanceTe
 	}
 }
 
-const testAccComputeInstanceTemplate_basic = `
+var testAccComputeInstanceTemplate_basic = fmt.Sprintf(`
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test"
+	name = "instancet-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -230,15 +231,15 @@ resource "google_compute_instance_template" "foobar" {
 	service_account {
 		scopes = ["userinfo-email", "compute-ro", "storage-ro"]
 	}
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstanceTemplate_ip = `
+var testAccComputeInstanceTemplate_ip = fmt.Sprintf(`
 resource "google_compute_address" "foo" {
-	name = "foo"
+	name = "instancet-test-%s"
 }
 
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test"
+	name = "instancet-test-%s"
 	machine_type = "n1-standard-1"
 	tags = ["foo", "bar"]
 
@@ -256,11 +257,11 @@ resource "google_compute_instance_template" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeInstanceTemplate_disks = `
+var testAccComputeInstanceTemplate_disks = fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
-	name = "terraform-test-foobar"
+	name = "instancet-test-%s"
 	image = "debian-7-wheezy-v20140814"
 	size = 10
 	type = "pd-ssd"
@@ -268,7 +269,7 @@ resource "google_compute_disk" "foobar" {
 }
 
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test"
+	name = "instancet-test-%s"
 	machine_type = "n1-standard-1"
 
 	disk {
@@ -291,4 +292,4 @@ resource "google_compute_instance_template" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))

@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"strings"
 )
 
 // Number of times to retry if a throttling-related exception occurs
@@ -160,12 +161,12 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				},
 			},
 			"stream_enabled": &schema.Schema{
-				Type: schema.TypeBool,
+				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 			"stream_view_type": &schema.Schema{
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				StateFunc: func(v interface{}) string {
@@ -280,9 +281,9 @@ func resourceAwsDynamoDbTableCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if _, ok := d.GetOk("stream_enabled"); ok {
-		
+
 		req.StreamSpecification = &dynamodb.StreamSpecification{
-			StreamEnabled: aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
 			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
 		}
 
@@ -372,7 +373,7 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		req.StreamSpecification = &dynamodb.StreamSpecification{
-			StreamEnabled: aws.Bool(d.Get("stream_enabled").(bool)),
+			StreamEnabled:  aws.Bool(d.Get("stream_enabled").(bool)),
 			StreamViewType: aws.String(d.Get("stream_view_type").(string)),
 		}
 
@@ -660,6 +661,37 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
+
+	params := &dynamodb.DescribeTableInput{
+		TableName: aws.String(d.Id()),
+	}
+
+	err = resource.Retry(10*time.Minute, func() error {
+		t, err := dynamodbconn.DescribeTable(params)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
+				return nil
+			}
+			// Didn't recognize the error, so shouldn't retry.
+			return resource.RetryError{Err: err}
+		}
+
+		if t != nil {
+			if t.Table.TableStatus != nil && strings.ToLower(*t.Table.TableStatus) == "deleting" {
+				log.Printf("[DEBUG] AWS Dynamo DB table (%s) is still deleting", d.Id())
+				return fmt.Errorf("still deleting")
+			}
+		}
+
+		// we should be not found or deleting, so error here
+		return resource.RetryError{Err: fmt.Errorf("[ERR] Error deleting Dynamo DB table, unexpected state: %s", t)}
+	})
+
+	// check error from retry
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -800,19 +832,4 @@ func waitForTableToBeActive(tableName string, meta interface{}) error {
 
 	return nil
 
-}
-
-func validateStreamViewType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	viewTypes := map[string]bool {
-		"KEYS_ONLY": true,
-		"NEW_IMAGE": true,
-		"OLD_IMAGE": true,
-		"NEW_AND_OLD_IMAGES": true,
-	}
-
-	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("%q be a valid DynamoDB StreamViewType", k))
-	}
-	return
 }

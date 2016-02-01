@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -102,7 +103,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 		DeliveryStreamName: aws.String(sn),
 	}
 
-	s3_config := &firehose.S3DestinationConfiguration{
+	s3Config := &firehose.S3DestinationConfiguration{
 		BucketARN: aws.String(d.Get("s3_bucket_arn").(string)),
 		RoleARN:   aws.String(d.Get("role_arn").(string)),
 		BufferingHints: &firehose.BufferingHints{
@@ -112,12 +113,25 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 		CompressionFormat: aws.String(d.Get("s3_data_compression").(string)),
 	}
 	if v, ok := d.GetOk("s3_prefix"); ok {
-		s3_config.Prefix = aws.String(v.(string))
+		s3Config.Prefix = aws.String(v.(string))
 	}
 
-	input.S3DestinationConfiguration = s3_config
+	input.S3DestinationConfiguration = s3Config
 
-	_, err := conn.CreateDeliveryStream(input)
+	var err error
+	for i := 0; i < 5; i++ {
+		_, err := conn.CreateDeliveryStream(input)
+		if awsErr, ok := err.(awserr.Error); ok {
+			// IAM roles can take ~10 seconds to propagate in AWS:
+			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+			if awsErr.Code() == "InvalidArgumentException" && strings.Contains(awsErr.Message(), "Firehose is unable to assume role") {
+				log.Printf("[DEBUG] Firehose could not assume role referenced, retrying...")
+				time.Sleep(2 * time.Second)
+				continue
+			}
+		}
+		break
+	}
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			return fmt.Errorf("[WARN] Error creating Kinesis Firehose Delivery Stream: \"%s\", code: \"%s\"", awsErr.Message(), awsErr.Code())
@@ -127,7 +141,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamCreate(d *schema.ResourceData, meta
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"CREATING"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    firehoseStreamStateRefreshFunc(conn, sn),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
@@ -242,7 +256,7 @@ func resourceAwsKinesisFirehoseDeliveryStreamDelete(d *schema.ResourceData, meta
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"DELETING"},
-		Target:     "DESTROYED",
+		Target:     []string{"DESTROYED"},
 		Refresh:    firehoseStreamStateRefreshFunc(conn, sn),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,

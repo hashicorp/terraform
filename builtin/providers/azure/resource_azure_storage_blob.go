@@ -78,7 +78,7 @@ func resourceAzureStorageBlobCreate(d *schema.ResourceData, meta interface{}) er
 		err = blobClient.CreateBlockBlob(cont, name)
 	case "PageBlob":
 		size := int64(d.Get("size").(int))
-		err = blobClient.PutPageBlob(cont, name, size)
+		err = blobClient.PutPageBlob(cont, name, size, map[string]string{})
 	default:
 		err = fmt.Errorf("Invalid blob type specified; see parameter desciptions for more info.")
 	}

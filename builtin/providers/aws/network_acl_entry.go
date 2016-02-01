@@ -69,6 +69,15 @@ func flattenNetworkAclEntries(list []*ec2.NetworkAclEntry) []map[string]interfac
 
 }
 
+func protocolStrings(protocolIntegers map[string]int) map[int]string {
+	protocolStrings := make(map[int]string, len(protocolIntegers))
+	for k, v := range protocolIntegers {
+		protocolStrings[v] = k
+	}
+
+	return protocolStrings
+}
+
 func protocolIntegers() map[string]int {
 	var protocolIntegers = make(map[string]int)
 	protocolIntegers = map[string]int{

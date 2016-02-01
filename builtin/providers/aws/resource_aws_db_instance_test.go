@@ -2,6 +2,8 @@ package aws
 
 import (
 	"fmt"
+	"log"
+
 	"math/rand"
 	"testing"
 	"time"
@@ -12,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
-	"log"
 )
 
 func TestAccAWSDBInstance_basic(t *testing.T) {
@@ -119,6 +120,10 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 				DBInstanceIdentifier: aws.String(rs.Primary.ID),
 			})
 
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "DBInstanceNotFound" {
+			continue
+		}
+
 		if err == nil {
 			if len(resp.DBInstances) != 0 &&
 				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
@@ -191,7 +196,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 
 		} else {
 			if len(resp.DBInstances) != 0 &&
-			*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
 				return fmt.Errorf("DB Instance still exists")
 			}
 		}
@@ -245,7 +250,7 @@ func testAccCheckAWSDBInstanceNoSnapshot(s *terraform.State) error {
 
 		} else {
 			if len(resp.DBInstances) != 0 &&
-			*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
 				return fmt.Errorf("DB Instance still exists")
 			}
 		}

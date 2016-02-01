@@ -1,3 +1,3 @@
 variable "memory" {}
 
-output "result" {}
+output "result" { value = "foo" }

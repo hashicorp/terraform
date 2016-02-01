@@ -44,5 +44,5 @@ when creating a Kinesis stream. See [Amazon Kinesis Streams][2] for more.
 * `arn` - The Amazon Resource Name (ARN) specifying the Stream
 
 
-[1]: http://aws.amazon.com/documentation/kinesis/
-[2]: http://docs.aws.amazon.com/kinesis/latest/dev/amazon-kinesis-streams.html
+[1]: https://aws.amazon.com/documentation/kinesis/
+[2]: https://docs.aws.amazon.com/kinesis/latest/dev/amazon-kinesis-streams.html

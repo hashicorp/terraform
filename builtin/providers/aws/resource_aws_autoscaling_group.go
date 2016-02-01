@@ -141,6 +141,11 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				},
 			},
 
+			"wait_for_elb_capacity": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
 			"tag": autoscalingTagsSchema(),
 		},
 	}
@@ -216,7 +221,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	d.SetId(d.Get("name").(string))
 	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
 
-	if err := waitForASGCapacity(d, meta); err != nil {
+	if err := waitForASGCapacity(d, meta, capacitySatifiedCreate); err != nil {
 		return err
 	}
 
@@ -252,6 +257,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).autoscalingconn
+	shouldWaitForCapacity := false
 
 	opts := autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(d.Id()),
@@ -263,6 +269,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("desired_capacity") {
 		opts.DesiredCapacity = aws.Int64(int64(d.Get("desired_capacity").(int)))
+		shouldWaitForCapacity = true
 	}
 
 	if d.HasChange("launch_configuration") {
@@ -271,6 +278,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("min_size") {
 		opts.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
+		shouldWaitForCapacity = true
 	}
 
 	if d.HasChange("max_size") {
@@ -365,6 +373,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 				return fmt.Errorf("[WARN] Error updating Load Balancers for AutoScaling Group (%s), error: %s", d.Id(), err)
 			}
 		}
+	}
+
+	if shouldWaitForCapacity {
+		waitForASGCapacity(d, meta, capacitySatifiedUpdate)
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
@@ -497,89 +509,6 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 		}
 
 		return fmt.Errorf("group still has %d instances", len(g.Instances))
-	})
-}
-
-// Waits for a minimum number of healthy instances to show up as healthy in the
-// ASG before continuing. Waits up to `waitForASGCapacityTimeout` for
-// "desired_capacity", or "min_size" if desired capacity is not specified.
-//
-// If "min_elb_capacity" is specified, will also wait for that number of
-// instances to show up InService in all attached ELBs. See "Waiting for
-// Capacity" in docs for more discussion of the feature.
-func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
-	wantASG := d.Get("min_size").(int)
-	if v := d.Get("desired_capacity").(int); v > 0 {
-		wantASG = v
-	}
-	wantELB := d.Get("min_elb_capacity").(int)
-
-	wait, err := time.ParseDuration(d.Get("wait_for_capacity_timeout").(string))
-	if err != nil {
-		return err
-	}
-
-	if wait == 0 {
-		log.Printf("[DEBUG] Capacity timeout set to 0, skipping capacity waiting.")
-		return nil
-	}
-
-	log.Printf("[DEBUG] Waiting %s for capacity: %d ASG, %d ELB",
-		wait, wantASG, wantELB)
-
-	return resource.Retry(wait, func() error {
-		g, err := getAwsAutoscalingGroup(d, meta)
-		if err != nil {
-			return resource.RetryError{Err: err}
-		}
-		if g == nil {
-			return nil
-		}
-		lbis, err := getLBInstanceStates(g, meta)
-		if err != nil {
-			return resource.RetryError{Err: err}
-		}
-
-		haveASG := 0
-		haveELB := 0
-
-		for _, i := range g.Instances {
-			if i.HealthStatus == nil || i.InstanceId == nil || i.LifecycleState == nil {
-				continue
-			}
-
-			if !strings.EqualFold(*i.HealthStatus, "Healthy") {
-				continue
-			}
-
-			if !strings.EqualFold(*i.LifecycleState, "InService") {
-				continue
-			}
-
-			haveASG++
-
-			if wantELB > 0 {
-				inAllLbs := true
-				for _, states := range lbis {
-					state, ok := states[*i.InstanceId]
-					if !ok || !strings.EqualFold(state, "InService") {
-						inAllLbs = false
-					}
-				}
-				if inAllLbs {
-					haveELB++
-				}
-			}
-		}
-
-		log.Printf("[DEBUG] %q Capacity: %d/%d ASG, %d/%d ELB",
-			d.Id(), haveASG, wantASG, haveELB, wantELB)
-
-		if haveASG >= wantASG && haveELB >= wantELB {
-			return nil
-		}
-
-		return fmt.Errorf("Still need to wait for more healthy instances. This could mean instances failed to launch. See Scaling History for more information.")
 	})
 }
 

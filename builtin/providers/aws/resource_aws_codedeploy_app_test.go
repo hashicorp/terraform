@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -40,17 +41,19 @@ func testAccCheckAWSCodeDeployAppDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := conn.GetApplication(&codedeploy.GetApplicationInput{
-			ApplicationName: aws.String(rs.Primary.ID),
+		_, err := conn.GetApplication(&codedeploy.GetApplicationInput{
+			ApplicationName: aws.String(rs.Primary.Attributes["name"]),
 		})
 
-		if err == nil {
-			if resp.Application != nil {
-				return fmt.Errorf("CodeDeploy app still exists:\n%#v", *resp.Application.ApplicationId)
+		if err != nil {
+			// Verify the error is what we want
+			if ae, ok := err.(awserr.Error); ok && ae.Code() == "ApplicationDoesNotExistException" {
+				continue
 			}
+			return err
 		}
 
-		return err
+		return fmt.Errorf("still exists")
 	}
 
 	return nil

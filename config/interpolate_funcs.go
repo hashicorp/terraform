@@ -2,7 +2,10 @@ package config
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -18,10 +21,9 @@ import (
 )
 
 // Funcs is the mapping of built-in functions for configuration.
-var Funcs map[string]ast.Function
-
-func init() {
-	Funcs = map[string]ast.Function{
+func Funcs() map[string]ast.Function {
+	return map[string]ast.Function{
+		"base64sha256": interpolationFuncBase64Sha256(),
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
@@ -38,6 +40,9 @@ func init() {
 		"lower":        interpolationFuncLower(),
 		"replace":      interpolationFuncReplace(),
 		"split":        interpolationFuncSplit(),
+		"sha1":         interpolationFuncSha1(),
+		"sha256":       interpolationFuncSha256(),
+		"trimspace":    interpolationFuncTrimSpace(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64decode": interpolationFuncBase64Decode(),
 		"upper":        interpolationFuncUpper(),
@@ -583,6 +588,61 @@ func interpolationFuncUpper() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			toUpper := args[0].(string)
 			return strings.ToUpper(toUpper), nil
+		},
+	}
+}
+
+func interpolationFuncSha1() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha1.New()
+			h.Write([]byte(s))
+			hash := hex.EncodeToString(h.Sum(nil))
+			return hash, nil
+		},
+	}
+}
+
+// hexadecimal representation of sha256 sum
+func interpolationFuncSha256() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha256.New()
+			h.Write([]byte(s))
+			hash := hex.EncodeToString(h.Sum(nil))
+			return hash, nil
+		},
+	}
+}
+
+func interpolationFuncTrimSpace() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			trimSpace := args[0].(string)
+			return strings.TrimSpace(trimSpace), nil
+		},
+	}
+}
+
+func interpolationFuncBase64Sha256() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := sha256.New()
+			h.Write([]byte(s))
+			shaSum := h.Sum(nil)
+			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
+			return encoded, nil
 		},
 	}
 }

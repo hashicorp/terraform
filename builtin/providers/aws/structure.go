@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -17,6 +16,7 @@ import (
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -233,6 +233,29 @@ func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 	return parameters, nil
 }
 
+func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, error) {
+	var parameters []*redshift.Parameter
+
+	// Loop over our configured parameters and create
+	// an array of aws-sdk-go compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		if data["name"].(string) == "" {
+			continue
+		}
+
+		p := &redshift.Parameter{
+			ParameterName:  aws.String(data["name"].(string)),
+			ParameterValue: aws.String(data["value"].(string)),
+		}
+
+		parameters = append(parameters, p)
+	}
+
+	return parameters, nil
+}
+
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
 func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
@@ -399,6 +422,24 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
+		if i.ParameterName != nil {
+			r := make(map[string]interface{})
+			r["name"] = strings.ToLower(*i.ParameterName)
+			// Default empty string, guard against nil parameter values
+			r["value"] = ""
+			if i.ParameterValue != nil {
+				r["value"] = strings.ToLower(*i.ParameterValue)
+			}
+			result = append(result, r)
+		}
+	}
+	return result
+}
+
+// Flattens an array of Redshift Parameters into a []map[string]interface{}
+func flattenRedshiftParameters(list []*redshift.Parameter) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
 		result = append(result, map[string]interface{}{
 			"name":  strings.ToLower(*i.ParameterName),
 			"value": strings.ToLower(*i.ParameterValue),
@@ -508,27 +549,6 @@ func expandResourceRecords(recs []interface{}, typeStr string) []*route53.Resour
 		}
 	}
 	return records
-}
-
-func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
-	}
-	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
-	}
-	if regexp.MustCompile(`--`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
-	}
-	if regexp.MustCompile(`-$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
-	}
-	return
 }
 
 func expandESClusterConfig(m map[string]interface{}) *elasticsearch.ElasticsearchClusterConfig {
@@ -645,6 +665,28 @@ func flattenDSVpcSettings(
 	s *directoryservice.DirectoryVpcSettingsDescription) []map[string]interface{} {
 	settings := make(map[string]interface{}, 0)
 
+	if s == nil {
+		return nil
+	}
+
+	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["vpc_id"] = *s.VpcId
+
+	return []map[string]interface{}{settings}
+}
+
+func flattenDSConnectSettings(
+	customerDnsIps []*string,
+	s *directoryservice.DirectoryConnectSettingsDescription) []map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+
+	settings := make(map[string]interface{}, 0)
+
+	settings["customer_dns_ips"] = schema.NewSet(schema.HashString, flattenStringList(customerDnsIps))
+	settings["connect_ips"] = schema.NewSet(schema.HashString, flattenStringList(s.ConnectIps))
+	settings["customer_username"] = *s.CustomerUserName
 	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
 	settings["vpc_id"] = *s.VpcId
 

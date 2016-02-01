@@ -133,6 +133,10 @@ The `access_config` block supports:
 * `nat_ip` - (Optional) The IP address that will be 1:1 mapped to the instance's network ip.  If not
   given, one will be generated.
 
+* `assigned_nat_ip` - (Optional) The IP address that is assigned to the
+  instance. If `nat_ip` is filled, it will appear here. If `nat_ip` is left
+  blank, the ephemeral assigned IP will appear here.
+
 (DEPRECATED) The `network` block supports:
 
 * `source` - (Required) The name of the network to attach this interface to.

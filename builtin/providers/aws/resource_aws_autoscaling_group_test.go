@@ -161,7 +161,7 @@ func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfigWithLoadBalancer,
+				Config: fmt.Sprintf(testAccAWSAutoScalingGroupConfigWithLoadBalancer),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(&group),
@@ -280,8 +280,8 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group) resourc
 
 func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *group.LoadBalancerNames[0] != "foobar-terraform-test" {
-			return fmt.Errorf("Bad load_balancers: %#v", group.LoadBalancerNames[0])
+		if len(group.LoadBalancerNames) != 1 {
+			return fmt.Errorf("Bad load_balancers: %v", group.LoadBalancerNames)
 		}
 
 		return nil
@@ -513,7 +513,6 @@ resource "aws_security_group" "foo" {
 }
 
 resource "aws_elb" "bar" {
-  name = "foobar-terraform-test"
   subnets = ["${aws_subnet.foo.id}"]
 	security_groups = ["${aws_security_group.foo.id}"]
 
@@ -551,7 +550,7 @@ resource "aws_autoscaling_group" "bar" {
   min_size = 2
   health_check_grace_period = 300
   health_check_type = "ELB"
-  min_elb_capacity = 2
+  wait_for_elb_capacity = 2
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
@@ -586,14 +585,12 @@ resource "aws_subnet" "alt" {
 }
 
 resource "aws_launch_configuration" "foobar" {
-  name = "vpc-asg-test"
   image_id = "ami-b5b3fc85"
   instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
-  name = "vpc-asg-test"
   max_size = 2
   min_size = 1
   health_check_grace_period = 300
@@ -632,7 +629,6 @@ resource "aws_subnet" "alt" {
 }
 
 resource "aws_launch_configuration" "foobar" {
-  name = "vpc-asg-test"
   image_id = "ami-b5b3fc85"
   instance_type = "t2.micro"
 }
@@ -642,7 +638,6 @@ resource "aws_autoscaling_group" "bar" {
     "${aws_subnet.main.id}",
     "${aws_subnet.alt.id}",
   ]
-  name = "vpc-asg-test"
   max_size = 2
   min_size = 1
   health_check_grace_period = 300

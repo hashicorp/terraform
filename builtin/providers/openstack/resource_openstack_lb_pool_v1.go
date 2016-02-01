@@ -130,7 +130,7 @@ func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Waiting for OpenStack LB pool (%s) to become available.", p.ID)
 
 	stateConf := &resource.StateChangeConf{
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLBPoolActive(networkingClient, p.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -294,7 +294,7 @@ func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForLBPoolDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,

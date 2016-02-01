@@ -50,6 +50,13 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("VCD_MAX_RETRY_TIMEOUT", 60),
 				Description: "Max num seconds to wait for successful response when operating on resources within vCloud (defaults to 60)",
 			},
+
+			"allow_unverified_ssl": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VCD_ALLOW_UNVERIFIED_SSL", false),
+				Description: "If set, VCDClient will permit unverifiable SSL certificates.",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -72,6 +79,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Href:            d.Get("url").(string),
 		VDC:             d.Get("vdc").(string),
 		MaxRetryTimeout: d.Get("maxRetryTimeout").(int),
+		InsecureFlag:    d.Get("allow_unverified_ssl").(bool),
 	}
 
 	return config.Client()

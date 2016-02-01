@@ -1,0 +1,94 @@
+[ {
+  "key" : "dev-docker-local",
+  "description" : "Development Docker Registry",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/dev-docker-local"
+}, {
+  "key" : "docker-local-v2",
+  "description" : "Production Docker Repository",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/docker-local-v2"
+}, {
+  "key" : "ext-release-local",
+  "description" : "Local repository for third party libraries",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/ext-release-local"
+}, {
+  "key" : "ext-snapshot-local",
+  "description" : "Local repository for third party snapshots",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/ext-snapshot-local"
+}, {
+  "key" : "libs-release-local",
+  "description" : "Local repository for in-house libraries",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/libs-release-local"
+}, {
+  "key" : "libs-snapshot-local",
+  "description" : "Local repository for in-house snapshots",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/libs-snapshot-local"
+}, {
+  "key" : "plugins-release-local",
+  "description" : "Local repository for plugins",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/plugins-release-local"
+}, {
+  "key" : "plugins-snapshot-local",
+  "description" : "Local repository for plugins snapshots",
+  "type" : "LOCAL",
+  "url" : "https://artifactory.domain/artifactory/plugins-snapshot-local"
+}, {
+  "key" : "bower-remote",
+  "type" : "REMOTE",
+  "url" : "https://github.com/"
+}, {
+  "key" : "docker-remote",
+  "type" : "REMOTE",
+  "url" : "https://registry-1.docker.io/"
+}, {
+  "key" : "jcenter",
+  "description" : "Bintray Central Java repository",
+  "type" : "REMOTE",
+  "url" : "http://jcenter.bintray.com"
+}, {
+  "key" : "npm-remote",
+  "type" : "REMOTE",
+  "url" : "https://registry.npmjs.org"
+}, {
+  "key" : "nuget-remote",
+  "type" : "REMOTE",
+  "url" : "https://www.nuget.org/"
+}, {
+  "key" : "pypi-remote",
+  "type" : "REMOTE",
+  "url" : "https://pypi.python.org"
+}, {
+  "key" : "rubygems-remote",
+  "type" : "REMOTE",
+  "url" : "https://rubygems.org/"
+}, {
+  "key" : "nexus-releases-remote",
+  "type" : "REMOTE",
+  "url" : "https://nexus.domain/content/repositories/releases/"
+}, {
+  "key" : "libs-release",
+  "type" : "VIRTUAL",
+  "url" : "https://artifactory.domain/artifactory/libs-release"
+}, {
+  "key" : "libs-snapshot",
+  "type" : "VIRTUAL",
+  "url" : "https://artifactory.domain/artifactory/libs-snapshot"
+}, {
+  "key" : "plugins-release",
+  "type" : "VIRTUAL",
+  "url" : "https://artifactory.domain/artifactory/plugins-release"
+}, {
+  "key" : "plugins-snapshot",
+  "type" : "VIRTUAL",
+  "url" : "https://artifactory.domain/artifactory/plugins-snapshot"
+}, {
+  "key" : "remote-repos",
+  "type" : "VIRTUAL",
+  "url" : "https://artifactory.domain/artifactory/remote-repos"
+} ]

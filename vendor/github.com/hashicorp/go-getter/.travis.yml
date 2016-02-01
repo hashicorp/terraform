@@ -1,0 +1,10 @@
+sudo: false
+
+language: go
+
+go:
+  - 1.5
+
+branches:
+  only:
+    - master

@@ -25,6 +25,14 @@ func TestEval(t *testing.T) {
 		},
 
 		{
+			"foo $${bar}",
+			nil,
+			false,
+			"foo ${bar}",
+			ast.TypeString,
+		},
+
+		{
 			"foo ${bar}",
 			&ast.BasicScope{
 				VarMap: map[string]ast.Variable{
@@ -249,6 +257,60 @@ func TestEval(t *testing.T) {
 			nil,
 			false,
 			"foo 43",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${-46}",
+			nil,
+			false,
+			"foo -46",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${-46 + 5}",
+			nil,
+			false,
+			"foo -41",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${46 + -5}",
+			nil,
+			false,
+			"foo 41",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${-bar}",
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Value: 41,
+						Type:  ast.TypeInt,
+					},
+				},
+			},
+			false,
+			"foo -41",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${5 + -bar}",
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Value: 41,
+						Type:  ast.TypeInt,
+					},
+				},
+			},
+			false,
+			"foo -36",
 			ast.TypeString,
 		},
 	}

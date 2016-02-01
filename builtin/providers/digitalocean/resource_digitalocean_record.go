@@ -183,7 +183,7 @@ func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Deleting record: %s, %d", domain, id)
 
-  resp, delErr := client.Domains.DeleteRecord(domain, id)
+	resp, delErr := client.Domains.DeleteRecord(domain, id)
 	if delErr != nil {
 		// If the record is somehow already destroyed, mark as
 		// successfully gone

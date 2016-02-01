@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// Provider returns a schema.Provider for Packet.
+// Provider returns a schema.Provider for managing Packet infrastructure.
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -31,6 +31,5 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AuthToken: d.Get("auth_token").(string),
 	}
-
 	return config.Client(), nil
 }

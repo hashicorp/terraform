@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -79,29 +80,29 @@ func testAccCheckComputeVpnTunnelExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccComputeVpnTunnel_basic = `
+var testAccComputeVpnTunnel_basic = fmt.Sprintf(`
 resource "google_compute_network" "foobar" {
-	name = "tf-test-network"
+	name = "tunnel-test-%s"
 	ipv4_range = "10.0.0.0/16"
 }
 resource "google_compute_address" "foobar" {
-	name = "tf-test-static-ip"
+	name = "tunnel-test-%s"
 	region = "us-central1"
 }
 resource "google_compute_vpn_gateway" "foobar" {
-	name = "tf-test-vpn-gateway"
+	name = "tunnel-test-%s"
 	network = "${google_compute_network.foobar.self_link}"
 	region = "${google_compute_address.foobar.region}"
 }
 resource "google_compute_forwarding_rule" "foobar_esp" {
-	name = "tf-test-fr-esp"
+	name = "tunnel-test-%s"
 	region = "${google_compute_vpn_gateway.foobar.region}"
 	ip_protocol = "ESP"
 	ip_address = "${google_compute_address.foobar.address}"
 	target = "${google_compute_vpn_gateway.foobar.self_link}"
 }
 resource "google_compute_forwarding_rule" "foobar_udp500" {
-	name = "tf-test-fr-udp500"
+	name = "tunnel-test-%s"
 	region = "${google_compute_forwarding_rule.foobar_esp.region}"
 	ip_protocol = "UDP"
 	port_range = "500"
@@ -109,7 +110,7 @@ resource "google_compute_forwarding_rule" "foobar_udp500" {
 	target = "${google_compute_vpn_gateway.foobar.self_link}"
 }
 resource "google_compute_forwarding_rule" "foobar_udp4500" {
-	name = "tf-test-fr-udp4500"
+	name = "tunnel-test-%s"
 	region = "${google_compute_forwarding_rule.foobar_udp500.region}"
 	ip_protocol = "UDP"
 	port_range = "4500"
@@ -117,9 +118,11 @@ resource "google_compute_forwarding_rule" "foobar_udp4500" {
 	target = "${google_compute_vpn_gateway.foobar.self_link}"
 }
 resource "google_compute_vpn_tunnel" "foobar" {
-	name = "tf-test-vpn-tunnel"
+	name = "tunnel-test-%s"
 	region = "${google_compute_forwarding_rule.foobar_udp4500.region}"
 	target_vpn_gateway = "${google_compute_vpn_gateway.foobar.self_link}"
 	shared_secret = "unguessable"
 	peer_ip = "0.0.0.0"
-}`
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
+	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
+	acctest.RandString(10))

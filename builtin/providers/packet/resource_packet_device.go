@@ -1,8 +1,8 @@
 package packet
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -146,22 +146,23 @@ func resourcePacketDeviceCreate(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	log.Printf("[DEBUG] Device create configuration: %#v", createRequest)
-
 	newDevice, _, err := client.Devices.Create(createRequest)
 	if err != nil {
-		return fmt.Errorf("Error creating device: %s", err)
+		return friendlyError(err)
 	}
 
-	// Assign the device id
 	d.SetId(newDevice.ID)
 
-	log.Printf("[INFO] Device ID: %s", d.Id())
-
-	_, err = WaitForDeviceAttribute(d, "active", []string{"queued", "provisioning"}, "state", meta)
+	// Wait for the device so we can get the networking attributes that show up after a while.
+	_, err = waitForDeviceAttribute(d, "active", []string{"queued", "provisioning"}, "state", meta)
 	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for device (%s) to become ready: %s", d.Id(), err)
+		if isForbidden(err) {
+			// If the device doesn't get to the active state, we can't recover it from here.
+			d.SetId("")
+
+			return errors.New("provisioning time limit exceeded; the Packet team will investigate")
+		}
+		return err
 	}
 
 	return resourcePacketDeviceRead(d, meta)
@@ -170,10 +171,17 @@ func resourcePacketDeviceCreate(d *schema.ResourceData, meta interface{}) error 
 func resourcePacketDeviceRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*packngo.Client)
 
-	// Retrieve the device properties for updating the state
 	device, _, err := client.Devices.Get(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error retrieving device: %s", err)
+		err = friendlyError(err)
+
+		// If the device somehow already destroyed, mark as succesfully gone.
+		if isNotFound(err) {
+			d.SetId("")
+			return nil
+		}
+
+		return err
 	}
 
 	d.Set("name", device.Hostname)
@@ -186,35 +194,36 @@ func resourcePacketDeviceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("created", device.Created)
 	d.Set("updated", device.Updated)
 
-	tags := make([]string, 0)
+	tags := make([]string, 0, len(device.Tags))
 	for _, tag := range device.Tags {
 		tags = append(tags, tag)
 	}
 	d.Set("tags", tags)
 
-	provisionerAddress := ""
-
-	networks := make([]map[string]interface{}, 0, 1)
+	var (
+		host     string
+		networks = make([]map[string]interface{}, 0, 1)
+	)
 	for _, ip := range device.Network {
-		network := make(map[string]interface{})
-		network["address"] = ip.Address
-		network["gateway"] = ip.Gateway
-		network["family"] = ip.Family
-		network["cidr"] = ip.Cidr
-		network["public"] = ip.Public
+		network := map[string]interface{}{
+			"address": ip.Address,
+			"gateway": ip.Gateway,
+			"family":  ip.Family,
+			"cidr":    ip.Cidr,
+			"public":  ip.Public,
+		}
 		networks = append(networks, network)
+
 		if ip.Family == 4 && ip.Public == true {
-			provisionerAddress = ip.Address
+			host = ip.Address
 		}
 	}
 	d.Set("network", networks)
 
-	log.Printf("[DEBUG] Provisioner Address set to %v", provisionerAddress)
-
-	if provisionerAddress != "" {
+	if host != "" {
 		d.SetConnInfo(map[string]string{
 			"type": "ssh",
-			"host": provisionerAddress,
+			"host": host,
 		})
 	}
 
@@ -224,19 +233,15 @@ func resourcePacketDeviceRead(d *schema.ResourceData, meta interface{}) error {
 func resourcePacketDeviceUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*packngo.Client)
 
-	if d.HasChange("locked") && d.Get("locked").(bool) {
-		_, err := client.Devices.Lock(d.Id())
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error locking device (%s): %s", d.Id(), err)
+	if d.HasChange("locked") {
+		var action func(string) (*packngo.Response, error)
+		if d.Get("locked").(bool) {
+			action = client.Devices.Lock
+		} else {
+			action = client.Devices.Unlock
 		}
-	} else if d.HasChange("locked") {
-		_, err := client.Devices.Unlock(d.Id())
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error unlocking device (%s): %s", d.Id(), err)
+		if _, err := action(d.Id()); err != nil {
+			return friendlyError(err)
 		}
 	}
 
@@ -246,51 +251,38 @@ func resourcePacketDeviceUpdate(d *schema.ResourceData, meta interface{}) error 
 func resourcePacketDeviceDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*packngo.Client)
 
-	log.Printf("[INFO] Deleting device: %s", d.Id())
 	if _, err := client.Devices.Delete(d.Id()); err != nil {
-		return fmt.Errorf("Error deleting device: %s", err)
+		return friendlyError(err)
 	}
 
 	return nil
 }
 
-func WaitForDeviceAttribute(
-	d *schema.ResourceData, target string, pending []string, attribute string, meta interface{}) (interface{}, error) {
-	// Wait for the device so we can get the networking attributes
-	// that show up after a while
-	log.Printf(
-		"[INFO] Waiting for device (%s) to have %s of %s",
-		d.Id(), attribute, target)
-
+func waitForDeviceAttribute(d *schema.ResourceData, target string, pending []string, attribute string, meta interface{}) (interface{}, error) {
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
-		Target:     target,
+		Target:     []string{target},
 		Refresh:    newDeviceStateRefreshFunc(d, attribute, meta),
 		Timeout:    60 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
-
 	return stateConf.WaitForState()
 }
 
-func newDeviceStateRefreshFunc(
-	d *schema.ResourceData, attribute string, meta interface{}) resource.StateRefreshFunc {
+func newDeviceStateRefreshFunc(d *schema.ResourceData, attribute string, meta interface{}) resource.StateRefreshFunc {
 	client := meta.(*packngo.Client)
+
 	return func() (interface{}, string, error) {
-		err := resourcePacketDeviceRead(d, meta)
-		if err != nil {
+		if err := resourcePacketDeviceRead(d, meta); err != nil {
 			return nil, "", err
 		}
 
-		// See if we can access our attribute
 		if attr, ok := d.GetOk(attribute); ok {
-			// Retrieve the device properties
 			device, _, err := client.Devices.Get(d.Id())
 			if err != nil {
-				return nil, "", fmt.Errorf("Error retrieving device: %s", err)
+				return nil, "", friendlyError(err)
 			}
-
 			return &device, attr.(string), nil
 		}
 
@@ -298,19 +290,14 @@ func newDeviceStateRefreshFunc(
 	}
 }
 
-// Powers on the device and waits for it to be active
+// powerOnAndWait Powers on the device and waits for it to be active.
 func powerOnAndWait(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*packngo.Client)
 	_, err := client.Devices.PowerOn(d.Id())
 	if err != nil {
-		return err
+		return friendlyError(err)
 	}
 
-	// Wait for power on
-	_, err = WaitForDeviceAttribute(d, "active", []string{"off"}, "state", client)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err = waitForDeviceAttribute(d, "active", []string{"off"}, "state", client)
+	return err
 }

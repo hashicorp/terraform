@@ -31,7 +31,7 @@ Options:
                       This helps when diagnosing cycle errors.
 
 * `-module-depth=n` - The maximum depth to expand modules. By default this is
-                      zero, which will not expand modules at all.
+                      -1, which will expand all modules.
 
 * `-verbose`        - Generate a verbose, "worst-case" graph, with all nodes
                       for potential operations in place.

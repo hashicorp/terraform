@@ -39,7 +39,7 @@ This should look familiar from the earlier example of adding
 an EC2 instance resource, except this time we're building
 an "aws\_eip" resource type. This resource type allocates
 and associates an
-[elastic IP](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
+[elastic IP](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
 to an EC2 instance.
 
 The only parameter for
@@ -67,9 +67,9 @@ $ terraform plan
     public_ip:  "" => "<computed>"
 
 + aws_instance.example
-    ami:               "" => "ami-8eb061e6"
+    ami:               "" => "ami-b8b061d0"
     availability_zone: "" => "<computed>"
-    instance_type:     "" => "t2.micro"
+    instance_type:     "" => "t1.micro"
     key_name:          "" => "<computed>"
     private_dns:       "" => "<computed>"
     private_ip:        "" => "<computed>"
@@ -90,8 +90,8 @@ following:
 
 ```
 aws_instance.example: Creating...
-  ami:           "" => "ami-8eb061e6"
-  instance_type: "" => "t2.micro"
+  ami:           "" => "ami-b8b061d0"
+  instance_type: "" => "t1.micro"
 aws_eip.ip: Creating...
   instance: "" => "i-0e737b25"
 
@@ -144,8 +144,8 @@ created in parallel to everything else.
 
 ```
 resource "aws_instance" "another" {
-	ami = "ami-8eb061e6"
-	instance_type = "t2.micro"
+	ami = "ami-b8b061d0"
+	instance_type = "t1.micro"
 }
 ```
 
