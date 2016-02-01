@@ -3,13 +3,12 @@ package aws
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"regexp"
 	"strconv"
 	"testing"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -19,7 +18,7 @@ import (
 )
 
 func TestAccAWSS3Bucket_basic(t *testing.T) {
-
+	rInt := acctest.RandInt()
 	arnRegexp := regexp.MustCompile(
 		"^arn:aws:s3:::")
 
@@ -29,7 +28,7 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfig,
+				Config: testAccAWSS3BucketConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					resource.TestCheckResourceAttr(
@@ -47,21 +46,23 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_Policy(t *testing.T) {
+	rInt := acctest.RandInt()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfigWithPolicy,
+				Config: testAccAWSS3BucketConfigWithPolicy(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketPolicy(
-						"aws_s3_bucket.bucket", testAccAWSS3BucketPolicy),
+						"aws_s3_bucket.bucket", testAccAWSS3BucketPolicy(rInt)),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfig,
+				Config: testAccAWSS3BucketConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketPolicy(
@@ -73,7 +74,6 @@ func TestAccAWSS3Bucket_Policy(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_UpdateAcl(t *testing.T) {
-
 	ri := genRandInt()
 	preConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAcl, ri)
 	postConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAclUpdate, ri)
@@ -104,33 +104,34 @@ func TestAccAWSS3Bucket_UpdateAcl(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_Website_Simple(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketWebsiteConfig,
+				Config: testAccAWSS3BucketWebsiteConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "index.html", "", "", ""),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint(rInt)),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSS3BucketWebsiteConfigWithError,
+				Config: testAccAWSS3BucketWebsiteConfigWithError(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "index.html", "error.html", "", ""),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint(rInt)),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfig,
+				Config: testAccAWSS3BucketConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
@@ -144,33 +145,34 @@ func TestAccAWSS3Bucket_Website_Simple(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_WebsiteRedirect(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketWebsiteConfigWithRedirect,
+				Config: testAccAWSS3BucketWebsiteConfigWithRedirect(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "", "", "", "hashicorp.com"),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint(rInt)),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSS3BucketWebsiteConfigWithHttpsRedirect,
+				Config: testAccAWSS3BucketWebsiteConfigWithHttpsRedirect(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "", "", "https", "hashicorp.com"),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint(rInt)),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfig,
+				Config: testAccAWSS3BucketConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
@@ -187,13 +189,14 @@ func TestAccAWSS3Bucket_WebsiteRedirect(t *testing.T) {
 // not empty" error in Terraform, to check against regresssions.
 // See https://github.com/hashicorp/terraform/pull/2925
 func TestAccAWSS3Bucket_shouldFailNotFound(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketDestroyedConfig,
+				Config: testAccAWSS3BucketDestroyedConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3DestroyBucket("aws_s3_bucket.bucket"),
@@ -205,13 +208,14 @@ func TestAccAWSS3Bucket_shouldFailNotFound(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_Versioning(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfig,
+				Config: testAccAWSS3BucketConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketVersioning(
@@ -219,7 +223,7 @@ func TestAccAWSS3Bucket_Versioning(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfigWithVersioning,
+				Config: testAccAWSS3BucketConfigWithVersioning(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketVersioning(
@@ -227,7 +231,7 @@ func TestAccAWSS3Bucket_Versioning(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfigWithDisableVersioning,
+				Config: testAccAWSS3BucketConfigWithDisableVersioning(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketVersioning(
@@ -239,13 +243,14 @@ func TestAccAWSS3Bucket_Versioning(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_Cors(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfigWithCORS,
+				Config: testAccAWSS3BucketConfigWithCORS(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketCors(
@@ -267,13 +272,14 @@ func TestAccAWSS3Bucket_Cors(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_Logging(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketConfigWithLogging,
+				Config: testAccAWSS3BucketConfigWithLogging(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketLogging(
@@ -437,7 +443,7 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, 
 			if *v.HostName != redirectTo {
 				return fmt.Errorf("bad redirect to, expected: %s, got %#v", redirectTo, out.RedirectAllRequestsTo)
 			}
-			if redirectProtocol != "" && *v.Protocol != redirectProtocol {
+			if redirectProtocol != "" && v.Protocol != nil && *v.Protocol != redirectProtocol {
 				return fmt.Errorf("bad redirect protocol to, expected: %s, got %#v", redirectProtocol, out.RedirectAllRequestsTo)
 			}
 		}
@@ -534,18 +540,25 @@ func testAccCheckAWSS3BucketLogging(n, b, p string) resource.TestCheckFunc {
 
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
-var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-var testAccWebsiteEndpoint = fmt.Sprintf("tf-test-bucket-%d.s3-website-us-west-2.amazonaws.com", randInt)
-var testAccAWSS3BucketPolicy = fmt.Sprintf(`{ "Version": "2012-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "AWS": "*" }, "Action": "s3:GetObject", "Resource": "arn:aws:s3:::tf-test-bucket-%d/*" } ] }`, randInt)
+func testAccWebsiteEndpoint(randInt int) string {
+	return fmt.Sprintf("tf-test-bucket-%d.s3-website-us-west-2.amazonaws.com", randInt)
+}
 
-var testAccAWSS3BucketConfig = fmt.Sprintf(`
+func testAccAWSS3BucketPolicy(randInt int) string {
+	return fmt.Sprintf(`{ "Version": "2012-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "AWS": "*" }, "Action": "s3:GetObject", "Resource": "arn:aws:s3:::tf-test-bucket-%d/*" } ] }`, randInt)
+}
+
+func testAccAWSS3BucketConfig(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 }
 `, randInt)
+}
 
-var testAccAWSS3BucketWebsiteConfig = fmt.Sprintf(`
+func testAccAWSS3BucketWebsiteConfig(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
@@ -555,8 +568,10 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+}
 
-var testAccAWSS3BucketWebsiteConfigWithError = fmt.Sprintf(`
+func testAccAWSS3BucketWebsiteConfigWithError(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
@@ -567,8 +582,10 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+}
 
-var testAccAWSS3BucketWebsiteConfigWithRedirect = fmt.Sprintf(`
+func testAccAWSS3BucketWebsiteConfigWithRedirect(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
@@ -578,8 +595,10 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+}
 
-var testAccAWSS3BucketWebsiteConfigWithHttpsRedirect = fmt.Sprintf(`
+func testAccAWSS3BucketWebsiteConfigWithHttpsRedirect(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
@@ -589,23 +608,29 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+}
 
-var testAccAWSS3BucketConfigWithPolicy = fmt.Sprintf(`
+func testAccAWSS3BucketConfigWithPolicy(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 	policy = %s
 }
-`, randInt, strconv.Quote(testAccAWSS3BucketPolicy))
+`, randInt, strconv.Quote(testAccAWSS3BucketPolicy(randInt)))
+}
 
-var destroyedName = fmt.Sprintf("tf-test-bucket-%d", randInt)
-var testAccAWSS3BucketDestroyedConfig = fmt.Sprintf(`
+func testAccAWSS3BucketDestroyedConfig(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
-	bucket = "%s"
+	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 }
-`, destroyedName)
-var testAccAWSS3BucketConfigWithVersioning = fmt.Sprintf(`
+`, randInt)
+}
+
+func testAccAWSS3BucketConfigWithVersioning(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
@@ -614,8 +639,10 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+}
 
-var testAccAWSS3BucketConfigWithDisableVersioning = fmt.Sprintf(`
+func testAccAWSS3BucketConfigWithDisableVersioning(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
@@ -624,8 +651,10 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+}
 
-var testAccAWSS3BucketConfigWithCORS = fmt.Sprintf(`
+func testAccAWSS3BucketConfigWithCORS(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
@@ -638,6 +667,7 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt)
+}
 
 var testAccAWSS3BucketConfigWithAcl = `
 resource "aws_s3_bucket" "bucket" {
@@ -653,7 +683,8 @@ resource "aws_s3_bucket" "bucket" {
 }
 `
 
-var testAccAWSS3BucketConfigWithLogging = fmt.Sprintf(`
+func testAccAWSS3BucketConfigWithLogging(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "log_bucket" {
 	bucket = "tf-test-log-bucket-%d"
 	acl = "log-delivery-write"
@@ -667,3 +698,4 @@ resource "aws_s3_bucket" "bucket" {
 	}
 }
 `, randInt, randInt)
+}

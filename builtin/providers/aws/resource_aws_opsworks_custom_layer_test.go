@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -15,16 +16,17 @@ import (
 // and `aws-opsworks-service-role`.
 
 func TestAccAWSOpsworksCustomLayer(t *testing.T) {
+	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksCustomLayerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsOpsworksCustomLayerConfigCreate,
+				Config: testAccAwsOpsworksCustomLayerConfigCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",
+						"aws_opsworks_custom_layer.tf-acc", "name", stackName,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "auto_assign_elastic_ips", "false",
@@ -68,10 +70,10 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAwsOpsworksCustomLayerConfigUpdate,
+				Config: testAccAwsOpsworksCustomLayerConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",
+						"aws_opsworks_custom_layer.tf-acc", "name", stackName,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "drain_elb_on_shutdown", "false",
@@ -160,9 +162,10 @@ func testAccCheckAwsOpsworksCustomLayerDestroy(s *terraform.State) error {
 	return fmt.Errorf("Fall through error on OpsWorks custom layer test")
 }
 
-var testAccAwsOpsworksCustomLayerSecurityGroups = `
+func testAccAwsOpsworksCustomLayerSecurityGroups(name string) string {
+	return fmt.Sprintf(`
 resource "aws_security_group" "tf-ops-acc-layer1" {
-  name = "tf-ops-acc-layer1"
+  name = "%s-layer1"
   ingress {
     from_port = 8
     to_port = -1
@@ -171,24 +174,25 @@ resource "aws_security_group" "tf-ops-acc-layer1" {
   }
 }
 resource "aws_security_group" "tf-ops-acc-layer2" {
-  name = "tf-ops-acc-layer2"
+  name = "%s-layer2"
   ingress {
     from_port = 8
     to_port = -1
     protocol = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}`, name, name)
 }
-`
 
-var testAccAwsOpsworksCustomLayerConfigCreate = testAccAwsOpsworksStackConfigNoVpcCreate + testAccAwsOpsworksCustomLayerSecurityGroups + `
+func testAccAwsOpsworksCustomLayerConfigCreate(name string) string {
+	return fmt.Sprintf(`
 provider "aws" {
 	region = "us-east-1"
 }
 
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-custom-layer"
+  name = "%s"
   short_name = "tf-ops-acc-custom-layer"
   auto_assign_public_ips = true
   custom_security_group_ids = [
@@ -209,9 +213,20 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
     raid_level = 0
   }
 }
-`
 
-var testAccAwsOpsworksCustomLayerConfigUpdate = testAccAwsOpsworksStackConfigNoVpcCreate + testAccAwsOpsworksCustomLayerSecurityGroups + `
+%s
+
+%s 
+
+`, name, testAccAwsOpsworksStackConfigNoVpcCreate(name), testAccAwsOpsworksCustomLayerSecurityGroups(name))
+}
+
+func testAccAwsOpsworksCustomLayerConfigUpdate(name string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+
 resource "aws_security_group" "tf-ops-acc-layer3" {
   name = "tf-ops-acc-layer3"
   ingress {
@@ -223,7 +238,7 @@ resource "aws_security_group" "tf-ops-acc-layer3" {
 }
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-custom-layer"
+  name = "%s"
   short_name = "tf-ops-acc-custom-layer"
   auto_assign_public_ips = true
   custom_security_group_ids = [
@@ -254,4 +269,10 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
     iops = 3000
   }
 }
-`
+
+%s
+
+%s 
+
+`, name, testAccAwsOpsworksStackConfigNoVpcCreate(name), testAccAwsOpsworksCustomLayerSecurityGroups(name))
+}

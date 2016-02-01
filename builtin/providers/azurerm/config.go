@@ -14,6 +14,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -280,4 +281,46 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	client.cdnEndpointsClient = cec
 
 	return &client, nil
+}
+
+func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, error) {
+	keys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
+	if err != nil {
+		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
+	}
+
+	if keys.Key1 == nil {
+		return "", fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
+	}
+
+	return *keys.Key1, nil
+}
+
+func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.BlobStorageClient, error) {
+	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, err
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	blobClient := storageClient.GetBlobService()
+	return &blobClient, nil
+}
+func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, error) {
+	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, err
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	queueClient := storageClient.GetQueueService()
+	return &queueClient, nil
 }

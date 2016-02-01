@@ -120,7 +120,13 @@ func (c *Config) Client() (interface{}, error) {
 		// error, and we can present it nicely to the user
 		_, err = creds.Get()
 		if err != nil {
-			errs = append(errs, fmt.Errorf("Error loading credentials for AWS Provider: %s", err))
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
+				errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS Provider. 
+  Please see https://terraform.io/docs/providers/aws/index.html for more information on 
+  providing credentials for the AWS Provider`))
+			} else {
+				errs = append(errs, fmt.Errorf("Error loading credentials for AWS Provider: %s", err))
+			}
 			return nil, &multierror.Error{Errors: errs}
 		}
 		awsConfig := &aws.Config{

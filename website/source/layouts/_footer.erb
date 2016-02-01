@@ -69,5 +69,20 @@ window.onload = function(){
 
 <%= javascript_include_tag "application" %>
 
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "Product",
+    "name": "Terraform",
+    "alternateName": "Terraform by HashiCorp",
+    "manufacturer": "HashiCorp",
+    "url": "https://www.terraform.io",
+    "logo": "<%= File.join(base_url, image_path("logo_large.png")) %>",
+    "sameAs": [
+      "https://github.com/hashicorp/terraform"
+    ]
+  }
+</script>
+
 </body>
 </html>

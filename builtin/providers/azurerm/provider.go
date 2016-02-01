@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -56,6 +57,9 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_cdn_profile":            resourceArmCdnProfile(),
 			"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
 			"azurerm_storage_account":        resourceArmStorageAccount(),
+			"azurerm_storage_container":      resourceArmStorageContainer(),
+			"azurerm_storage_blob":           resourceArmStorageBlob(),
+			"azurerm_storage_queue":          resourceArmStorageQueue(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -72,12 +76,35 @@ type Config struct {
 	TenantID       string
 }
 
+func (c Config) validate() error {
+	var err *multierror.Error
+
+	if c.SubscriptionID == "" {
+		err = multierror.Append(err, fmt.Errorf("Subscription ID must be configured for the AzureRM provider"))
+	}
+	if c.ClientID == "" {
+		err = multierror.Append(err, fmt.Errorf("Client ID must be configured for the AzureRM provider"))
+	}
+	if c.ClientSecret == "" {
+		err = multierror.Append(err, fmt.Errorf("Client Secret must be configured for the AzureRM provider"))
+	}
+	if c.TenantID == "" {
+		err = multierror.Append(err, fmt.Errorf("Tenant ID must be configured for the AzureRM provider"))
+	}
+
+	return err.ErrorOrNil()
+}
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		SubscriptionID: d.Get("subscription_id").(string),
 		ClientID:       d.Get("client_id").(string),
 		ClientSecret:   d.Get("client_secret").(string),
 		TenantID:       d.Get("tenant_id").(string),
+	}
+
+	if err := config.validate(); err != nil {
+		return nil, err
 	}
 
 	client, err := config.getArmClient()
