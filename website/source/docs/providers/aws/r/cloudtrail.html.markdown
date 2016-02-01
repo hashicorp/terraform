@@ -71,6 +71,8 @@ The following arguments are supported:
     Setting this to `false` will pause logging.
 * `include_global_service_events` - (Optional) Specifies whether the trail is publishing events
     from global services such as IAM to the log files. Defaults to `true`.
+* `is_multi_region_trail` - (Optional) Specifies whether the trail is created in the current
+    region or in all regions. Defaults to `false`.
 * `sns_topic_name` - (Optional) Specifies the name of the Amazon SNS topic
     defined for notification of log file delivery.
 
