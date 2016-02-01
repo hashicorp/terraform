@@ -105,6 +105,26 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
+	var dbInstance rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_enhancedMonitoring,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.enhanced_monitoring", &dbInstance),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.enhanced_monitoring", "monitoring_interval", "5"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -412,5 +432,61 @@ resource "aws_db_instance" "no_snapshot" {
 
 	skip_final_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
+}
+`
+
+var testAccSnapshotInstanceConfig_enhancedMonitoring = `
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_iam_role" "enhanced_policy_role" {
+    name = "enhanced-monitoring-role"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "monitoring.rds.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+}
+
+resource "aws_iam_policy_attachment" "test-attach" {
+    name = "enhanced-monitoring-attachment"
+    roles = [
+        "${aws_iam_role.enhanced_policy_role.name}",
+    ]
+
+    policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+resource "aws_db_instance" "enhanced_monitoring" {
+	identifier = "foobarbaz-test-terraform-enhanced-monitoring"
+	depends_on = ["aws_iam_policy_attachment.test-attach"]
+
+	allocated_storage = 5
+	engine = "mysql"
+	engine_version = "5.6.21"
+	instance_class = "db.t2.small"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	backup_retention_period = 1
+
+	parameter_group_name = "default.mysql5.6"
+
+	monitoring_role_arn = "${aws_iam_role.enhanced_policy_role.arn}"
+	monitoring_interval = "5"
+
+	skip_final_snapshot = true
 }
 `
