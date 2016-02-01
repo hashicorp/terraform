@@ -58,7 +58,7 @@ func resourceAwsVpc() *schema.Resource {
 			"enable_classiclink": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Computed: true,
 			},
 
 			"main_route_table_id": &schema.Schema{
