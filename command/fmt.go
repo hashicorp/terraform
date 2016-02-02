@@ -3,6 +3,8 @@ package command
 import (
 	"flag"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/hcl/hcl/fmtcmd"
@@ -10,6 +12,7 @@ import (
 )
 
 const (
+	stdinArg      = "-"
 	fileExtension = "tf"
 )
 
@@ -17,10 +20,15 @@ const (
 // files to a canonical format and style.
 type FmtCommand struct {
 	Meta
-	opts fmtcmd.Options
+	opts  fmtcmd.Options
+	input io.Reader // STDIN if nil
 }
 
 func (c *FmtCommand) Run(args []string) int {
+	if c.input == nil {
+		c.input = os.Stdin
+	}
+
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("fmt", flag.ContinueOnError)
@@ -40,15 +48,15 @@ func (c *FmtCommand) Run(args []string) int {
 		return 1
 	}
 
-	var dir string
+	var dirs []string
 	if len(args) == 0 {
-		dir = "."
-	} else {
-		dir = args[0]
+		dirs = []string{"."}
+	} else if args[0] != stdinArg {
+		dirs = []string{args[0]}
 	}
 
 	output := &cli.UiWriter{Ui: c.Ui}
-	err := fmtcmd.Run([]string{dir}, []string{fileExtension}, nil, output, c.opts)
+	err := fmtcmd.Run(dirs, []string{fileExtension}, c.input, output, c.opts)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running fmt: %s", err))
 		return 2
@@ -64,6 +72,7 @@ Usage: terraform fmt [options] [DIR]
 	Rewrites all Terraform configuration files to a canonical format.
 
 	If DIR is not specified then the current working directory will be used.
+	If DIR is "-" then content will be read from STDIN.
 
 Options:
 
