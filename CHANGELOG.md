@@ -3,6 +3,7 @@
 BUG FIXES:
 
   * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
+  * provider/openstack: Fix crash when `access_network` was not defined in instances [GH-4966]
 
 ## 0.6.11 (February 1, 2016)
 
