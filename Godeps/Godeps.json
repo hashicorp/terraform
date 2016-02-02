@@ -642,7 +642,15 @@
 			"Rev": "71c7409f1abba841e528a80556ed2c67671744c3"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/hcl/hcl/fmtcmd",
+			"Rev": "71c7409f1abba841e528a80556ed2c67671744c3"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/hcl/hcl/parser",
+			"Rev": "71c7409f1abba841e528a80556ed2c67671744c3"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/hcl/printer",
 			"Rev": "71c7409f1abba841e528a80556ed2c67671744c3"
 		},
 		{
