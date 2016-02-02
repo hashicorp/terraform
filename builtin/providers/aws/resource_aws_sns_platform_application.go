@@ -24,10 +24,11 @@ func resourceAwsSnsPlatformApplicationAPNS() *schema.Resource {
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if value != "SANDBOX" && value != "VOIP" {
+					if value != "SANDBOX" {
 						errors = append(errors, fmt.Errorf(
 							"%q has unsupported value %q", k, value))
 					}
