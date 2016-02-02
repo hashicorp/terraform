@@ -129,6 +129,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					},
 				},
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -224,6 +225,16 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	tags := tagsFromMapElasticsearchService(d.Get("tags").(map[string]interface{}))
+
+	if err := setTagsElasticsearchService(conn, d, *out.DomainStatus.ARN); err != nil {
+		return err
+	}
+
+	d.Set("tags", tagsToMapElasticsearchService(tags))
+	d.SetPartial("tags")
+	d.Partial(false)
+
 	log.Printf("[DEBUG] ElasticSearch domain %q created", d.Id())
 
 	return resourceAwsElasticSearchDomainRead(d, meta)
@@ -272,11 +283,31 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("arn", *ds.ARN)
 
+	listOut, err := conn.ListTags(&elasticsearch.ListTagsInput{
+		ARN: ds.ARN,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Received ElasticSearch tags: %s", out)
+
+	d.Set("tags", listOut)
+
 	return nil
 }
 
 func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).esconn
+
+	d.Partial(true)
+
+	if err := setTagsElasticsearchService(conn, d, d.Id()); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
 
 	input := elasticsearch.UpdateElasticsearchDomainConfigInput{
 		DomainName: aws.String(d.Get("domain_name").(string)),
@@ -350,6 +381,8 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return err
 	}
+
+	d.Partial(false)
 
 	return resourceAwsElasticSearchDomainRead(d, meta)
 }
