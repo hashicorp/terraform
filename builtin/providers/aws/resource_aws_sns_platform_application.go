@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -76,12 +77,17 @@ func resourceAwsSnsPlatformApplicationAPNSCreate(d *schema.ResourceData, meta in
 func resourceAwsSnsPlatformApplicationAPNSRead(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	_, err := snsconn.GetPlatformApplicationAttributes(&sns.GetPlatformApplicationAttributesInput{
+	resp, err := snsconn.GetPlatformApplicationAttributes(&sns.GetPlatformApplicationAttributesInput{
 		PlatformApplicationArn: aws.String(d.Id()),
 	})
 
 	if err != nil {
-		return fmt.Errorf("Error reading plaform application %s", err)
+		if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
+			log.Printf("[DEBUG] Error reading platform application - not found : %s", resp)
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("Error reading platform application %s", err)
 	}
 
 	return nil
@@ -115,7 +121,10 @@ func resourceAwsSnsPlatformApplicationDelete(d *schema.ResourceData, meta interf
 	})
 
 	if err != nil {
-		return fmt.Errorf("Error deleting plaform application %s", err)
+		if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
+			return nil
+		}
+		return fmt.Errorf("Error deleting platform application %s", err)
 	}
 
 	return nil
@@ -168,6 +177,11 @@ func resourceAwsSnsPlatformApplicationGCMRead(d *schema.ResourceData, meta inter
 	})
 
 	if err != nil {
+		if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
+			log.Printf("[DEBUG] Error reading platform application - not found : %s", resp)
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error reading platform application %s", err)
 	}
 

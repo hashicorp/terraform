@@ -31,7 +31,7 @@ The following arguments are supported:
 * `name` - (Required) The friendly name for the platform endpoint
 * `type` - (Optional) 'SANDBOX' for development
 * `platform_credential` - (Required) Your APNS private key
-* `platform_credential` - (Required) Your APNS cert
+* `platform_principal` - (Required) Your APNS cert
 
 ## Attributes Reference
 
