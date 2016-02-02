@@ -148,6 +148,37 @@ func TestFmt_stdinArg(t *testing.T) {
 	}
 }
 
+func TestFmt_nonDefaultOptions(t *testing.T) {
+	tempDir, err := fmtFixtureWriteDir()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-list=false",
+		"-write=false",
+		"-diff",
+		tempDir,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+
+	expected := fmt.Sprintf("-%s+%s", fmtFixture.input, fmtFixture.golden)
+	if actual := ui.OutputWriter.String(); !strings.Contains(actual, expected) {
+		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
+	}
+}
+
 var fmtFixture = struct {
 	filename      string
 	input, golden []byte
