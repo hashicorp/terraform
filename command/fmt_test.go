@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -119,6 +120,34 @@ func TestFmt_directoryArg(t *testing.T) {
 
 	expected := fmt.Sprintf("%s\n", filepath.Join(tempDir, fmtFixture.filename))
 	if actual := ui.OutputWriter.String(); actual != expected {
+		t.Fatalf("got: %q\nexpected: %q", actual, expected)
+	}
+}
+
+func TestFmt_stdinArg(t *testing.T) {
+	input := new(bytes.Buffer)
+	input.Write(fmtFixture.input)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+		input: input,
+	}
+
+	args := []string{
+		"-write=false",
+		"-list=false",
+		"-",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+
+	expected := fmtFixture.golden
+	if actual := ui.OutputWriter.Bytes(); !bytes.Equal(actual, expected) {
 		t.Fatalf("got: %q\nexpected: %q", actual, expected)
 	}
 }
