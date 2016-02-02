@@ -137,11 +137,7 @@ func TestFmt_stdinArg(t *testing.T) {
 		input: input,
 	}
 
-	args := []string{
-		"-write=false",
-		"-list=false",
-		"-",
-	}
+	args := []string{"-"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}

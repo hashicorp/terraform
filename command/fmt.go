@@ -51,7 +51,10 @@ func (c *FmtCommand) Run(args []string) int {
 	var dirs []string
 	if len(args) == 0 {
 		dirs = []string{"."}
-	} else if args[0] != stdinArg {
+	} else if args[0] == stdinArg {
+		c.opts.List = false
+		c.opts.Write = false
+	} else {
 		dirs = []string{args[0]}
 	}
 
@@ -76,9 +79,9 @@ Usage: terraform fmt [options] [DIR]
 
 Options:
 
-  -list            List files whose formatting differs
+  -list            List files whose formatting differs (disabled if using STDIN)
 
-  -write           Write result to source file instead of STDOUT
+  -write           Write result to source file instead of STDOUT (disabled if using STDIN)
 
   -diff            Display diffs instead of rewriting files
 
