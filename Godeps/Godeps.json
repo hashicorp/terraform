@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
-	"GoVersion": "go1.5.2",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"github.com/hashicorp/terraform",
 		"github.com/hashicorp/terraform/builtin/bins/provider-atlas",
@@ -445,6 +445,10 @@
 			"Rev": "afbd495e5aaea13597b5e14fe514ddeaa4d76fc3"
 		},
 		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "34a5f244f1c01cdfee8e60324258cfbb97a42aec"
+		},
+		{
 			"ImportPath": "github.com/google/go-querystring/query",
 			"Rev": "2a60fc2ba6c19de80291203597d752e9ba58e4c0"
 		},
@@ -690,16 +694,16 @@
 			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
-			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "c65f27ffe69a43ae814a5e64c2fabb6c6312a4af"
-		},
-		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "04b9de9b512f58addf28c9853d50ebef61c3953e"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2",
 			"Rev": "8a57ed94ffd43444c0879fe75701732a38afc985"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "c65f27ffe69a43ae814a5e64c2fabb6c6312a4af"
 		},
 		{
 			"ImportPath": "google.golang.org/api/compute/v1",
@@ -732,6 +736,10 @@
 		{
 			"ImportPath": "google.golang.org/api/storage/v1",
 			"Rev": "f6ba98773d96b877b246f3a9266493dfc11e276b"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine",
+			"Rev": "b667a5000b082e49c6c6d16867d376a12e9490cd"
 		},
 		{
 			"ImportPath": "google.golang.org/cloud/compute/metadata",
