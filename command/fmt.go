@@ -24,8 +24,8 @@ func (c *FmtCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("fmt", flag.ContinueOnError)
-	cmdFlags.BoolVar(&c.opts.List, "list", false, "list")
-	cmdFlags.BoolVar(&c.opts.Write, "write", false, "write")
+	cmdFlags.BoolVar(&c.opts.List, "list", true, "list")
+	cmdFlags.BoolVar(&c.opts.Write, "write", true, "write")
 	cmdFlags.BoolVar(&c.opts.Diff, "diff", false, "diff")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 

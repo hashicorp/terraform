@@ -1,7 +1,7 @@
 package command
 
 import (
-	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -88,8 +88,8 @@ func TestFmt_workingDirectory(t *testing.T) {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}
 
-	expected := fmtFixture.golden
-	if actual := ui.OutputWriter.Bytes(); !bytes.Equal(actual, expected) {
+	expected := fmt.Sprintf("%s\n", fmtFixture.filename)
+	if actual := ui.OutputWriter.String(); actual != expected {
 		t.Fatalf("got: %q\nexpected: %q", actual, expected)
 	}
 }
