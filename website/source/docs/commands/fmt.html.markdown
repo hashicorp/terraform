@@ -19,6 +19,6 @@ Usage: `terraform fmt [options] [DIR]`
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-list=false` - List files whose formatting differs
-* `-write=false` - Write result to source file instead of STDOUT
+* `-list=true` - List files whose formatting differs
+* `-write=true` - Write result to source file instead of STDOUT
 * `-diff=false` - Display diffs instead of rewriting files
