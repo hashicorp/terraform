@@ -34,13 +34,19 @@ func (c *FmtCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 0 {
-		c.Ui.Error("The fmt command expects no arguments.")
+	if len(args) > 1 {
+		c.Ui.Error("The fmt command expects at most one argument.")
 		cmdFlags.Usage()
 		return 1
 	}
 
-	dir := "."
+	var dir string
+	if len(args) == 0 {
+		dir = "."
+	} else {
+		dir = args[0]
+	}
+
 	output := &cli.UiWriter{Ui: c.Ui}
 	err := fmtcmd.Run([]string{dir}, []string{fileExtension}, nil, output, c.opts)
 	if err != nil {
@@ -53,10 +59,11 @@ func (c *FmtCommand) Run(args []string) int {
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform fmt [options]
+Usage: terraform fmt [options] [DIR]
 
-	Rewrites all Terraform configuration files in the current working
-	directory to a canonical format.
+	Rewrites all Terraform configuration files to a canonical format.
+
+	If DIR is not specified then the current working directory will be used.
 
 Options:
 

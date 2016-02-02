@@ -47,12 +47,15 @@ func TestFmt_tooManyArgs(t *testing.T) {
 		},
 	}
 
-	args := []string{"bad"}
+	args := []string{
+		"one",
+		"two",
+	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}
 
-	expected := "The fmt command expects no arguments."
+	expected := "The fmt command expects at most one argument."
 	if actual := ui.ErrorWriter.String(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
@@ -89,6 +92,32 @@ func TestFmt_workingDirectory(t *testing.T) {
 	}
 
 	expected := fmt.Sprintf("%s\n", fmtFixture.filename)
+	if actual := ui.OutputWriter.String(); actual != expected {
+		t.Fatalf("got: %q\nexpected: %q", actual, expected)
+	}
+}
+
+func TestFmt_directoryArg(t *testing.T) {
+	tempDir, err := fmtFixtureWriteDir()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{tempDir}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+
+	expected := fmt.Sprintf("%s\n", filepath.Join(tempDir, fmtFixture.filename))
 	if actual := ui.OutputWriter.String(); actual != expected {
 		t.Fatalf("got: %q\nexpected: %q", actual, expected)
 	}

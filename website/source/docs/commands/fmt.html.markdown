@@ -15,7 +15,9 @@ to a canonical format and style.
 
 Usage: `terraform fmt [options] [DIR]`
 
-`fmt` scans the current directory for configuration files.
+By default, `fmt` scans the current directory for configuration files. If
+the `dir` argument is provided then it will scan that given directory
+instead.
 
 The command-line flags are all optional. The list of available flags are:
 
