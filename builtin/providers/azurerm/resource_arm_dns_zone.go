@@ -57,7 +57,8 @@ func resourceArmDnsZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	createResponse, err := createRequest.Execute()
 	if err != nil {
 		return fmt.Errorf("Error creating DNS Zone: %s", err)
-	} else if !createResponse.IsSuccessful() {
+	}
+	if !createResponse.IsSuccessful() {
 		return fmt.Errorf("Error creating DNS Zone: %s", createResponse.Error)
 	}
 
@@ -70,7 +71,8 @@ func resourceArmDnsZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	readResponse, err := readRequest.Execute()
 	if err != nil {
 		return fmt.Errorf("Error reading DNS Zone: %s", err)
-	} else if !readResponse.IsSuccessful() {
+	}
+	if !readResponse.IsSuccessful() {
 		return fmt.Errorf("Error reading DNS Zone: %s", readResponse.Error)
 	}
 
@@ -90,7 +92,8 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 	readResponse, err := readRequest.Execute()
 	if err != nil {
 		return fmt.Errorf("Error reading DNS Zone: %s", err)
-	} else if !readResponse.IsSuccessful() {
+	}
+	if !readResponse.IsSuccessful() {
 		log.Printf("[INFO] Error reading DNS Zone %q - removing from state", d.Id())
 		d.SetId("")
 		return fmt.Errorf("Error reading DNS Zone: %s", readResponse.Error)
@@ -114,7 +117,8 @@ func resourceArmDnsZoneDelete(d *schema.ResourceData, meta interface{}) error {
 	deleteResponse, err := deleteRequest.Execute()
 	if err != nil {
 		return fmt.Errorf("Error deleting DNS Zone: %s", err)
-	} else if !deleteResponse.IsSuccessful() {
+	}
+	if !deleteResponse.IsSuccessful() {
 		return fmt.Errorf("Error deleting DNS Zone: %s", deleteResponse.Error)
 	}
 

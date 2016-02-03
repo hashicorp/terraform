@@ -45,7 +45,8 @@ func testCheckAzureRMDnsZoneExists(name string) resource.TestCheckFunc {
 		readResponse, err := readRequest.Execute()
 		if err != nil {
 			return fmt.Errorf("Bad: GetDNSZone: %s", err)
-		} else if !readResponse.IsSuccessful() {
+		}
+		if !readResponse.IsSuccessful() {
 			return fmt.Errorf("Bad: GetDNSZone: %s", readResponse.Error)
 		}
 
