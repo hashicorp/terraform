@@ -122,6 +122,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_cloudformation_stack":             resourceAwsCloudFormationStack(),
 			"aws_cloudtrail":                       resourceAwsCloudTrail(),
 			"aws_cloudwatch_event_rule":            resourceAwsCloudWatchEventRule(),
+			"aws_cloudwatch_event_target":          resourceAwsCloudWatchEventTarget(),
 			"aws_cloudwatch_log_group":             resourceAwsCloudWatchLogGroup(),
 			"aws_autoscaling_lifecycle_hook":       resourceAwsAutoscalingLifecycleHook(),
 			"aws_cloudwatch_metric_alarm":          resourceAwsCloudWatchMetricAlarm(),
