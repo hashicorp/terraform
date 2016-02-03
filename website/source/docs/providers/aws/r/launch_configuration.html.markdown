@@ -105,6 +105,9 @@ The following arguments are supported:
 * `ephemeral_block_device` - (Optional) Customize Ephemeral (also known as
   "Instance Store") volumes on the instance. See [Block Devices](#block-devices) below for details.
 * `spot_price` - (Optional) The price to use for reserving spot instances.
+* `placement_tenancy` - (Optional) The tenancy of the instance. Valid values are
+  `"default"` or `"dedicated"`, see [AWS's Create Launch Configuration](http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_CreateLaunchConfiguration.html)
+  for more details
 
 <a id="block-devices"></a>
 ## Block devices
