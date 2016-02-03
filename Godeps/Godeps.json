@@ -75,8 +75,6 @@
 		"github.com/hashicorp/terraform/communicator/ssh",
 		"github.com/hashicorp/terraform/communicator/winrm",
 		"github.com/hashicorp/terraform/config",
-		"github.com/hashicorp/terraform/config/lang",
-		"github.com/hashicorp/terraform/config/lang/ast",
 		"github.com/hashicorp/terraform/config/module",
 		"github.com/hashicorp/terraform/dag",
 		"github.com/hashicorp/terraform/digraph",
@@ -498,6 +496,10 @@
 		{
 			"ImportPath": "github.com/hashicorp/hcl",
 			"Rev": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hil",
+			"Rev": "075475a7408f16568f5cf79656dbcb053ac6196b"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/logutils",
