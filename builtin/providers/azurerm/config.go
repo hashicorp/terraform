@@ -16,11 +16,14 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/terraform"
+	riviera "github.com/jen20/riviera/azure"
 )
 
 // ArmClient contains the handles to all the specific Azure Resource Manager
 // resource classes' respective clients.
 type ArmClient struct {
+	rivieraClient *riviera.Client
+
 	availSetClient         compute.AvailabilitySetsClient
 	usageOpsClient         compute.UsageOperationsClient
 	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
@@ -109,6 +112,18 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 
 	// client declarations:
 	client := ArmClient{}
+
+	rivieraClient, err := riviera.NewClient(&riviera.AzureResourceManagerCredentials{
+		ClientID:       c.ClientID,
+		ClientSecret:   c.ClientSecret,
+		TenantID:       c.TenantID,
+		SubscriptionID: c.SubscriptionID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Error creating Riviera client: %s", err)
+	}
+
+	client.rivieraClient = rivieraClient
 
 	// NOTE: these declarations should be left separate for clarity should the
 	// clients be wished to be configured with custom Responders/PollingModess etc...
