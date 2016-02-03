@@ -54,7 +54,7 @@ func TestAccAzureInstance_separateHostedService(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAzureInstanceDestroyed(testAccHostedServiceName),
+		CheckDestroy: testAccCheckAzureInstanceDestroyed(hostedServiceName),
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
