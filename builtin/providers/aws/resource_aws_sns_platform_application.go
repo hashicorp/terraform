@@ -178,7 +178,7 @@ func resourceAwsSnsPlatformApplicationGCMRead(d *schema.ResourceData, meta inter
 
 	if err != nil {
 		if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
-			log.Printf("[DEBUG] Error reading platform application - not found : %s", resp)
+			log.Printf("[DEBUG] Error reading platform application - not found : %s", err)
 			d.SetId("")
 			return nil
 		}
