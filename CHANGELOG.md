@@ -1,5 +1,9 @@
 ## 0.6.12 (Unreleased)
 
+FEATURES:
+
+  * **New resource:** `azurerm_dns_zone` [GH-4979]
+
 BUG FIXES:
 
   * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
