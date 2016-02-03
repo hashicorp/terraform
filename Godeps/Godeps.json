@@ -525,6 +525,14 @@
 			"Rev": "b1859b199a7171589445bdea9fa8c19362613f80"
 		},
 		{
+			"ImportPath": "github.com/jen20/riviera/azure",
+			"Rev": "9f0b6c6d5e35780213c3a32976b353faca958699"
+		},
+		{
+			"ImportPath": "github.com/jen20/riviera/dns",
+			"Rev": "9f0b6c6d5e35780213c3a32976b353faca958699"
+		},
+		{
 			"ImportPath": "github.com/jmespath/go-jmespath",
 			"Comment": "0.2.2-2-gc01cf91",
 			"Rev": "c01cf91b011868172fdcd9f41838e80c9d716264"
