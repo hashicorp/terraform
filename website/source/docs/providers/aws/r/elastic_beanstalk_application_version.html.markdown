@@ -8,11 +8,11 @@ description: |-
 
 # aws\_elastic\_beanstalk\_application\_<wbr>version
 
-Provides an Elastic Beanstalk Application Version Resource. Elastic Beanstalk allows 
-you to deploy and manage applications in the AWS cloud without worrying about 
+Provides an Elastic Beanstalk Application Version Resource. Elastic Beanstalk allows
+you to deploy and manage applications in the AWS cloud without worrying about
 the infrastructure that runs those applications.
 
-This resource creates a Beanstalk Application Version that can be deployed to a Beanstalk 
+This resource creates a Beanstalk Application Version that can be deployed to a Beanstalk
 Environment.
 
 ## Example Usage
@@ -47,17 +47,13 @@ resource "aws_elastic_beanstalk_application_version" "default" {
 The following arguments are supported:
 
 * `name` - (Required) A unique name for the this Application Version.
-* `application` – (Required) Name of the application that contains the version 
-  to be deployed.
+* `application` - (Required) Name of the Beanstalk Application the version is associated with.
 * `description` - (Optional) Short description of the Application Version.
-* `bucket` - (Required) Name of S3 bucket where the Application Version is stored.
-* `key` - (Required) Name of S3 object that contains the Application Version.
+* `bucket` - (Required) S3 bucket that contains the Application Version source bundle.
+* `key` - (Required) S3 object that is the Application Version source bundle.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `name` - The Application Version name.
-
-
-
