@@ -129,7 +129,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)

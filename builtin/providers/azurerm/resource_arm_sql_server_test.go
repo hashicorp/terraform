@@ -29,6 +29,37 @@ func TestAccAzureRMSqlServer_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMSqlServer_withTags(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMSqlServer_withTags, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMSqlServer_withTagsUpdated, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMSqlServerDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMSqlServerExists("azurerm_sql_server.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_sql_server.test", "tags.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMSqlServerExists("azurerm_sql_server.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_sql_server.test", "tags.#", "1"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMSqlServerExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -90,5 +121,44 @@ resource "azurerm_sql_server" "test" {
     version = "12.0"
     administrator_login = "mradministrator"
     administrator_login_password = "thisIsDog11"
+}
+`
+
+var testAccAzureRMSqlServer_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acctest_rg_%d"
+    location = "West US"
+}
+resource "azurerm_sql_server" "test" {
+    name = "acctestsqlserver%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "West US"
+    version = "12.0"
+    administrator_login = "mradministrator"
+    administrator_login_password = "thisIsDog11"
+
+    tags {
+    	environment = "staging"
+    	database = "test"
+    }
+}
+`
+
+var testAccAzureRMSqlServer_withTagsUpdated = `
+resource "azurerm_resource_group" "test" {
+    name = "acctest_rg_%d"
+    location = "West US"
+}
+resource "azurerm_sql_server" "test" {
+    name = "acctestsqlserver%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "West US"
+    version = "12.0"
+    administrator_login = "mradministrator"
+    administrator_login_password = "thisIsDog11"
+
+    tags {
+    	environment = "production"
+    }
 }
 `

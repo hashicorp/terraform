@@ -66,6 +66,7 @@ func resourceArmSqlServerCreate(d *schema.ResourceData, meta interface{}) error 
 	rivieraClient := client.rivieraClient
 
 	tags := d.Get("tags").(map[string]interface{})
+	expandedTags := expandTags(tags)
 
 	createRequest := rivieraClient.NewRequest()
 	createRequest.Command = &sql.CreateOrUpdateServer{
@@ -75,7 +76,7 @@ func resourceArmSqlServerCreate(d *schema.ResourceData, meta interface{}) error 
 		AdministratorLogin:         azure.String(d.Get("administrator_login").(string)),
 		AdministratorLoginPassword: azure.String(d.Get("administrator_login_password").(string)),
 		Version:                    azure.String(d.Get("version").(string)),
-		Tags:                       expandTags(tags),
+		Tags:                       *expandedTags,
 	}
 
 	createResponse, err := createRequest.Execute()
