@@ -39,7 +39,7 @@ The following arguments are supported:
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine
 * `resource_pool` (Optional) The name of a Resource Pool in which to launch the virtual machine
-* `gateway` - (Optional) Gateway IP address to use for all network interfaces
+* `gateway` - __Deprecated, please use `network_interface.ipv4_gateway` instead_.
 * `domain` - (Optional) A FQDN for the virtual machine; defaults to "vsphere.local"
 * `time_zone` - (Optional) The [time zone](https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/timezone.html) to set on the virtual machine. Defaults to "Etc/UTC"
 * `dns_suffixes` - (Optional) List of name resolution suffixes for the virtual network adapter
@@ -52,8 +52,12 @@ The following arguments are supported:
 The `network_interface` block supports:
 
 * `label` - (Required) Label to assign to this network interface
-* `ipv4_address` - (Optional) Static IP to assign to this network interface. Interface will use DHCP if this is left blank. Currently only IPv4 IP addresses are supported.
-* `ipv4_prefix_length` - (Optional) prefix length to use when statically assigning an IP.
+* `ipv4_address` - (Optional) Static IPv4 to assign to this network interface. Interface will use DHCP if this is left blank.
+* `ipv4_prefix_length` - (Optional) prefix length to use when statically assigning an IPv4 address.
+* `ipv4_gateway` - (Optional) IPv4 gateway IP address to use.
+* `ipv6_address` - (Optional) Static IPv6 to assign to this network interface. Interface will use DHCPv6 if this is left blank.
+* `ipv6_prefix_length` - (Optional) prefix length to use when statically assigning an IPv6.
+* `ipv6_gateway` - (Optional) IPv6 gateway IP address to use.
 
 The following arguments are maintained for backwards compatibility and may be
 removed in a future version:
