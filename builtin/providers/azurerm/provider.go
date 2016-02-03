@@ -60,6 +60,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_container":      resourceArmStorageContainer(),
 			"azurerm_storage_blob":           resourceArmStorageBlob(),
 			"azurerm_storage_queue":          resourceArmStorageQueue(),
+			"azurerm_dns_zone":               resourceArmDnsZone(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
