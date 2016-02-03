@@ -322,10 +322,14 @@ func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 }
 
 // Flattens an array of UserSecurityGroups into a []string
-func flattenSecurityGroups(list []*ec2.UserIdGroupPair) []string {
+func flattenSecurityGroups(list []*ec2.UserIdGroupPair, useVpc bool) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
-		result = append(result, *g.GroupId)
+                if useVpc {
+                        result = append(result, *g.GroupId)
+                } else {
+                        result = append(result, *g.GroupName)
+                }
 	}
 	return result
 }
