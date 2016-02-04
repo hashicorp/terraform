@@ -49,6 +49,7 @@ BUG FIXES:
   * provider/google: Fix backend service max_utilization attribute [GH-5075]
   * provider/google: Fix reading of `google_compute_vpn_gateway` without an explicit [GH-5125]
   * provider/aws: Fix ElasticSearch `domain_name` validation [GH-4973]
+  * provider/google: Fix backend service max_utilization attribute [GH-4895]
 
 ## 0.6.11 (February 1, 2016)
 
