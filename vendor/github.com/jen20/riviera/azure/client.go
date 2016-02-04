@@ -10,7 +10,7 @@ import (
 type Client struct {
 	logger *log.Logger
 
-	BaseUrl        string
+	BaseURL        string
 	subscriptionID string
 
 	tokenRequester *tokenRequester
@@ -26,7 +26,7 @@ func NewClient(creds *AzureResourceManagerCredentials) (*Client, error) {
 	tr := newTokenRequester(httpClient, creds.ClientID, creds.ClientSecret, creds.TenantID)
 
 	return &Client{
-		BaseUrl:        "https://management.azure.com",
+		BaseURL:        "https://management.azure.com",
 		subscriptionID: creds.SubscriptionID,
 		httpClient:     httpClient,
 		tokenRequester: tr,

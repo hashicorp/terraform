@@ -13,9 +13,9 @@ type CreateResourceGroup struct {
 	Tags     map[string]*string `json:"-" riviera:"tags"`
 }
 
-func (command CreateResourceGroup) ApiInfo() ApiInfo {
-	return ApiInfo{
-		ApiVersion:  resourceGroupAPIVersion,
+func (command CreateResourceGroup) APIInfo() APIInfo {
+	return APIInfo{
+		APIVersion:  resourceGroupAPIVersion,
 		Method:      "PUT",
 		URLPathFunc: resourceGroupDefaultURLFunc(command.Name),
 		ResponseTypeFunc: func() interface{} {

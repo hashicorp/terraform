@@ -7,9 +7,9 @@ type DeleteServer struct {
 	ResourceGroupName string `json:"-"`
 }
 
-func (s DeleteServer) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s DeleteServer) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "DELETE",
 		URLPathFunc: sqlServerDefaultURLPath(s.ResourceGroupName, s.Name),
 		ResponseTypeFunc: func() interface{} {
