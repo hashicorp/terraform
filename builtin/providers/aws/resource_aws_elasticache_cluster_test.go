@@ -37,8 +37,8 @@ func TestAccAWSElasticacheCluster_snapshotsWithUpdates(t *testing.T) {
 	var ec elasticache.CacheCluster
 
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshots, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshotsUpdated, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshots, ri, ri, acctest.RandString(10))
+	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshotsUpdated, ri, ri, acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -76,8 +76,8 @@ func TestAccAWSElasticacheCluster_decreasingCacheNodes(t *testing.T) {
 	var ec elasticache.CacheCluster
 
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes_update, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes, ri, ri, acctest.RandString(10))
+	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes_update, ri, ri, acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -271,7 +271,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-%03d"
+    cluster_id = "tf-%s"
     engine = "redis"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
@@ -305,7 +305,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-%03d"
+    cluster_id = "tf-%s"
     engine = "redis"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
@@ -340,7 +340,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-%03d"
+    cluster_id = "tf-%s"
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 3
@@ -372,7 +372,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-%03d"
+    cluster_id = "tf-%s"
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
