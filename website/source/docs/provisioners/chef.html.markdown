@@ -59,13 +59,17 @@ The following arguments are supported:
   interpolation function](/docs/configuration/interpolation.html#file_path_).
 
 * `client_options (array)` - (Optional) A list of optional Chef Client configuration
-  options. See the Chef Client [documentation](https://docs.chef.io/config_rb_client.html) for all available options.
+  options. See the [Chef Client ](https://docs.chef.io/config_rb_client.html) documentation for all available options.
 
 * `disable_reporting (boolean)` - (Optional) If true the Chef Client will not try to send
   reporting data (used by Chef Reporting) to the Chef Server (defaults false)
 
 * `environment (string)` - (Optional) The Chef environment the new node will be joining
   (defaults `_default`).
+
+* `fetch_chef_certificates (boolean)` (Optional) If true the SSL certificates configured
+  on your Chef server will be fetched and trusted. See the knife [ssl_fetch](https://docs.chef.io/knife_ssl_fetch.html)
+  documentation for more details.
 
 * `log_to_file (boolean)` - (Optional) If true, the output of the initial Chef Client run
   will be logged to a local file instead of the console. The file will be created in a
