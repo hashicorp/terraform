@@ -33,6 +33,7 @@ BUG FIXES:
   * provider/cloudflare: `ttl` no longer shows a change on each plan on `cloudflare_record` resources [GH-5042]
   * provider/aws: Fix reading auto scaling group load balancers [GH-5045]
   * provider/aws: Fix reading auto scaling group availability zones [GH-5044]
+  * provider/google: Fix backend service max_utilization attribute [GH-4895]
 
 ## 0.6.11 (February 1, 2016)
 
