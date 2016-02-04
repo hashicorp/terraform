@@ -16,7 +16,7 @@ Provides a Spotinst AWS group resource.
 # Create an AWS group
 resource "spotinst_aws_group" "workers" {
   name = "workers-group"
-  description = "Spotinst AWS group created by Terraform"
+  description = "created by Terraform"
   product = "Linux/UNIX"
 
   capacity {
