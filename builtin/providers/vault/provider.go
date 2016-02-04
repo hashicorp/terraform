@@ -53,6 +53,7 @@ func Provider() terraform.ResourceProvider {
 			"vault_auth_backend":   resourceVaultAuthBackend(),
 			"vault_secret_backend": resourceVaultSecretBackend(),
 			"vault_policy":         resourceVaultPolicy(),
+			"vault_secret":         resourceVaultSecret(),
 			"vault_token":          resourceVaultToken(),
 		},
 
