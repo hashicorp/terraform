@@ -8,9 +8,9 @@ type DeleteElasticDatabasePool struct {
 	ResourceGroupName string `json:"-"`
 }
 
-func (s DeleteElasticDatabasePool) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s DeleteElasticDatabasePool) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "DELETE",
 		URLPathFunc: sqlElasticPoolDefaultURLPath(s.ResourceGroupName, s.ServerName, s.Name),
 		ResponseTypeFunc: func() interface{} {

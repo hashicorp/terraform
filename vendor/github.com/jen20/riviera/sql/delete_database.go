@@ -8,9 +8,9 @@ type DeleteDatabase struct {
 	ResourceGroupName string `json:"-"`
 }
 
-func (s DeleteDatabase) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s DeleteDatabase) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "DELETE",
 		URLPathFunc: sqlDatabaseDefaultURLPath(s.ResourceGroupName, s.ServerName, s.Name),
 		ResponseTypeFunc: func() interface{} {

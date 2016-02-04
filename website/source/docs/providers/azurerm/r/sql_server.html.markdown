@@ -53,5 +53,5 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The DNS Zone ID.
+* `id` - The SQL Server ID.
 * `fully_qualified_domain_name` - The fully qualified domain name of the Azure SQL Server (e.g. myServerName.database.windows.net)

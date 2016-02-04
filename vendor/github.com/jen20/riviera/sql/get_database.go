@@ -25,9 +25,9 @@ type GetDatabase struct {
 	ResourceGroupName string `json:"-"`
 }
 
-func (s GetDatabase) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s GetDatabase) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "GET",
 		URLPathFunc: sqlDatabaseDefaultURLPath(s.ResourceGroupName, s.ServerName, s.Name),
 		ResponseTypeFunc: func() interface{} {
