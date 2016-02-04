@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New resource:** `azurerm_dns_zone` [GH-4979]
+  * **New resource:** `azurerm_sql_server` [GH-4991]
 
 BUG FIXES:
 
