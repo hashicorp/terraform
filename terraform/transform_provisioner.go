@@ -39,16 +39,15 @@ func (t *ProvisionerTransformer) Transform(g *Graph) error {
 	m := provisionerVertexMap(g)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvisionerConsumer); ok {
-			for _, provisionerName := range pv.ProvisionedBy() {
-				target := m[provisionerName]
-				if target == nil {
+			for _, p := range pv.ProvisionedBy() {
+				if m[p] == nil {
 					err = multierror.Append(err, fmt.Errorf(
 						"%s: provisioner %s couldn't be found",
-						dag.VertexName(v), provisionerName))
+						dag.VertexName(v), p))
 					continue
 				}
 
-				g.Connect(dag.BasicEdge(v, target))
+				g.Connect(dag.BasicEdge(v, m[p]))
 			}
 		}
 	}
@@ -56,41 +55,8 @@ func (t *ProvisionerTransformer) Transform(g *Graph) error {
 	return err
 }
 
-// CloseProvisionerTransformer is a GraphTransformer that adds nodes to the
-// graph that will close open provisioner connections that aren't needed
-// anymore. A provisioner connection is not needed anymore once all depended
-// resources in the graph are evaluated.
-type CloseProvisionerTransformer struct{}
-
-func (t *CloseProvisionerTransformer) Transform(g *Graph) error {
-	m := closeProvisionerVertexMap(g)
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeProvisionerConsumer); ok {
-			for _, p := range pv.ProvisionedBy() {
-				source := m[p]
-
-				if source == nil {
-					// Create a new graphNodeCloseProvisioner and add it to the graph
-					source = &graphNodeCloseProvisioner{ProvisionerNameValue: p}
-					g.Add(source)
-
-					// Make sure we also add the new graphNodeCloseProvisioner to the map
-					// so we don't create and add any duplicate graphNodeCloseProvisioners.
-					m[p] = source
-				}
-
-				g.Connect(dag.BasicEdge(source, v))
-			}
-		}
-	}
-
-	return nil
-}
-
 // MissingProvisionerTransformer is a GraphTransformer that adds nodes
-// for missing provisioners into the graph. Specifically, it creates provisioner
-// configuration nodes for all the provisioners that we support. These are
-// pruned later during an optimization pass.
+// for missing provisioners into the graph.
 type MissingProvisionerTransformer struct {
 	// Provisioners is the list of provisioners we support.
 	Provisioners []string
@@ -126,29 +92,39 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			// Add our own missing provisioner node to the graph
-			m[p] = g.Add(&graphNodeMissingProvisioner{ProvisionerNameValue: p})
+			// Add the missing provisioner node to the graph
+			m[p] = g.Add(&graphNodeProvisioner{ProvisionerNameValue: p})
 		}
 	}
 
 	return nil
 }
 
-// PruneProvisionerTransformer is a GraphTransformer that prunes all the
-// provisioners that aren't needed from the graph. A provisioner is unneeded if
-// no resource or module is using that provisioner.
-type PruneProvisionerTransformer struct{}
+// CloseProvisionerTransformer is a GraphTransformer that adds nodes to the
+// graph that will close open provisioner connections that aren't needed
+// anymore. A provisioner connection is not needed anymore once all depended
+// resources in the graph are evaluated.
+type CloseProvisionerTransformer struct{}
 
-func (t *PruneProvisionerTransformer) Transform(g *Graph) error {
+func (t *CloseProvisionerTransformer) Transform(g *Graph) error {
+	m := closeProvisionerVertexMap(g)
 	for _, v := range g.Vertices() {
-		// We only care about the provisioners
-		if _, ok := v.(GraphNodeProvisioner); !ok {
-			continue
-		}
+		if pv, ok := v.(GraphNodeProvisionerConsumer); ok {
+			for _, p := range pv.ProvisionedBy() {
+				source := m[p]
 
-		// Does anything depend on this? If not, then prune it.
-		if s := g.UpEdges(v); s.Len() == 0 {
-			g.Remove(v)
+				if source == nil {
+					// Create a new graphNodeCloseProvisioner and add it to the graph
+					source = &graphNodeCloseProvisioner{ProvisionerNameValue: p}
+					g.Add(source)
+
+					// Make sure we also add the new graphNodeCloseProvisioner to the map
+					// so we don't create and add any duplicate graphNodeCloseProvisioners.
+					m[p] = source
+				}
+
+				g.Connect(dag.BasicEdge(source, v))
+			}
 		}
 	}
 
@@ -194,49 +170,49 @@ func (n *graphNodeCloseProvisioner) CloseProvisionerName() string {
 	return n.ProvisionerNameValue
 }
 
-type graphNodeMissingProvisioner struct {
+type graphNodeProvisioner struct {
 	ProvisionerNameValue string
 }
 
-func (n *graphNodeMissingProvisioner) Name() string {
+func (n *graphNodeProvisioner) Name() string {
 	return fmt.Sprintf("provisioner.%s", n.ProvisionerNameValue)
 }
 
 // GraphNodeEvalable impl.
-func (n *graphNodeMissingProvisioner) EvalTree() EvalNode {
+func (n *graphNodeProvisioner) EvalTree() EvalNode {
 	return &EvalInitProvisioner{Name: n.ProvisionerNameValue}
 }
 
-func (n *graphNodeMissingProvisioner) ProvisionerName() string {
+func (n *graphNodeProvisioner) ProvisionerName() string {
 	return n.ProvisionerNameValue
 }
 
 // GraphNodeFlattenable impl.
-func (n *graphNodeMissingProvisioner) Flatten(p []string) (dag.Vertex, error) {
-	return &graphNodeMissingProvisionerFlat{
-		graphNodeMissingProvisioner: n,
-		PathValue:                   p,
+func (n *graphNodeProvisioner) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeProvisionerFlat{
+		graphNodeProvisioner: n,
+		PathValue:            p,
 	}, nil
 }
 
 // Same as graphNodeMissingProvisioner, but for flattening
-type graphNodeMissingProvisionerFlat struct {
-	*graphNodeMissingProvisioner
+type graphNodeProvisionerFlat struct {
+	*graphNodeProvisioner
 
 	PathValue []string
 }
 
-func (n *graphNodeMissingProvisionerFlat) Name() string {
+func (n *graphNodeProvisionerFlat) Name() string {
 	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeMissingProvisioner.Name())
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeProvisioner.Name())
 }
 
-func (n *graphNodeMissingProvisionerFlat) Path() []string {
+func (n *graphNodeProvisionerFlat) Path() []string {
 	return n.PathValue
 }
 
-func (n *graphNodeMissingProvisionerFlat) ProvisionerName() string {
+func (n *graphNodeProvisionerFlat) ProvisionerName() string {
 	return fmt.Sprintf(
 		"%s.%s", modulePrefixStr(n.PathValue),
-		n.graphNodeMissingProvisioner.ProvisionerName())
+		n.graphNodeProvisioner.ProvisionerName())
 }

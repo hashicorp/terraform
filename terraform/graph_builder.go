@@ -146,11 +146,9 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			// their dependencies.
 			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
 
-			// Prune the providers and provisioners. This must happen
-			// only once because flattened modules might depend on empty
-			// providers.
+			// Prune the providers. This must happen only once because flattened
+			// modules might depend on empty providers.
 			&PruneProviderTransformer{},
-			&PruneProvisionerTransformer{},
 
 			// Create the destruction nodes
 			&DestroyTransformer{FullDestroy: b.Destroy},
