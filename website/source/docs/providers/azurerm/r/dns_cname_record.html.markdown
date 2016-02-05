@@ -1,14 +1,14 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_dns_aaaa_record"
-sidebar_current: "docs-azurerm-resource-dns-aaaa-record"
+page_title: "Azure Resource Manager: azurerm_dns_cname_record"
+sidebar_current: "docs-azurerm-resource-dns-cname-record"
 description: |-
-  Create a DNS AAAA Record.
+  Create a DNS CNAME Record.
 ---
 
-# azurerm\_dns\_aaaa\_record
+# azurerm\_dns\_cname\_record
 
-Enables you to manage DNS AAAA Records within Azure DNS.
+Enables you to manage DNS CNAME Records within Azure DNS.
 
 ## Example Usage
 
@@ -22,19 +22,19 @@ resource "azurerm_dns_zone" "test" {
    resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
-resource "azurerm_dns_aaaa_record" "test" {
+resource "azurerm_dns_cname_record" "test" {
    name = "test"
    zone_name = "${azurerm_dns_zone.test.name}"
    resource_group_name = "${azurerm_resource_group.test.name}"
    ttl = "300"
-   records = ["2607:f8b0:4009:1803::1005"]
+   records = ["contoso.com"]
 }
 ```
 ## Argument Reference
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the DNS AAAA Record.
+* `name` - (Required) The name of the DNS CNAME Record.
 
 * `resource_group_name` - (Required) Specifies the resource group where the resource exists. Changing this forces a new resource to be created.
 
@@ -42,7 +42,7 @@ The following arguments are supported:
 
 * `TTL` - (Required) The Time To Live (TTL) of the DNS record.
 
-* `records` - (Required) List of IPv6 Addresses.
+* `records` - (Required) The target of the CNAME. Must be a single value.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource. 
 
@@ -50,4 +50,4 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The DNS AAAA Record ID.
+* `id` - The DNS CName Record ID.
