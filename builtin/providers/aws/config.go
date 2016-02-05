@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/directconnect"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -94,6 +95,7 @@ type Config struct {
 }
 
 type AWSClient struct {
+<<<<<<< ef5ceb96819ba11f5e1cb4c189be405edff64b6a
 	cfconn                *cloudformation.CloudFormation
 	cloudfrontconn        *cloudfront.CloudFront
 	cloudtrailconn        *cloudtrail.CloudTrail
@@ -101,6 +103,7 @@ type AWSClient struct {
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
 	dsconn                *directoryservice.DirectoryService
+	dcconn             		*directconnect.DirectConnect
 	dynamodbconn          *dynamodb.DynamoDB
 	ec2conn               *ec2.EC2
 	ecrconn               *ecr.ECR
@@ -258,6 +261,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.codecommitconn = codecommit.New(usEast1Sess)
 	client.codedeployconn = codedeploy.New(sess)
 	client.dsconn = directoryservice.New(sess)
+	client.dcconn = directconnect.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
 	client.ec2conn = ec2.New(awsEc2Sess)
 	client.ecrconn = ecr.New(sess)
