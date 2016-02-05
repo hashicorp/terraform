@@ -31,6 +31,8 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	remoteBackend = strings.ToLower(remoteBackend)
+
 	var path string
 	args = cmdFlags.Args()
 	if len(args) > 2 {
