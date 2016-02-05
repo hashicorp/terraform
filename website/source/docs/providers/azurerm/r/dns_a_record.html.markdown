@@ -1,14 +1,14 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_dns_zone"
-sidebar_current: "docs-azurerm-resource-dns-zone"
+page_title: "Azure Resource Manager: azurerm_dns_a_record"
+sidebar_current: "docs-azurerm-resource-dns-a-record"
 description: |-
-  Create a DNS Zone.
+  Create a DNS A Record.
 ---
 
 # azurerm\_dns\_zone
 
-Enables you to manage DNS zones within Azure DNS. These zones are hosted on Azure's name servers to which you can delegate the zone from the parent domain.
+Enables you to manage DNS A Records within Azure DNS.
 
 ## Example Usage
 
@@ -21,6 +21,14 @@ resource "azurerm_dns_zone" "test" {
    name = "mydomain.com"
    resource_group_name = "${azurerm_resource_group.test.name}"
 }
+
+resource "azurerm_dns_a_record" "test" {
+   name = "test"
+   zone_name = "${azurerm_dns_zone.test.name}"
+   resource_group_name = "${azurerm_resource_group.test.name}"
+   ttl = "300"
+   records = ["10.0.180.17"]
+}
 ```
 ## Argument Reference
 
@@ -30,12 +38,16 @@ The following arguments are supported:
 
 * `resource_group_name` - (Required) Specifies the resource group where the resource exists. Changing this forces a new resource to be created.
 
+* `zone_name` - (Required) Specifies the DNS Zone where the resource exists. Changing this forces a new resource to be created.
+
+* `TTL` - (Required) The Time To Live (TTL) of the DNS record.
+
+* `records` - (Required) List of IPv4 Addresses.
+
 * `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The DNS Zone ID.
-* `max_number_of_record_sets` - (Optional) Maximum number of Records in the zone. Defaults to `1000`.
-* `number_of_record_sets` - (Optional) The number of records already in the zone.
+* `id` - The DNS A Record ID.
