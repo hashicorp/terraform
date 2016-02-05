@@ -34,7 +34,7 @@ resource "azurerm_dns_a_record" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the DNS Zone. Must be a valid domain name.
+* `name` - (Required) The name of the DNS A Record.
 
 * `resource_group_name` - (Required) Specifies the resource group where the resource exists. Changing this forces a new resource to be created.
 
