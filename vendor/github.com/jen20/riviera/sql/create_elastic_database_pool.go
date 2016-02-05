@@ -15,9 +15,9 @@ type CreateElasticDatabasePool struct {
 	DatabaseDTUMax    *string            `json:"databaseDtuMax,omitempty"`
 }
 
-func (s CreateElasticDatabasePool) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s CreateElasticDatabasePool) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "PUT",
 		URLPathFunc: sqlElasticPoolDefaultURLPath(s.ResourceGroupName, s.ServerName, s.Name),
 		ResponseTypeFunc: func() interface{} {

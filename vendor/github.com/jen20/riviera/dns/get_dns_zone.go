@@ -16,9 +16,9 @@ type GetDNSZone struct {
 	ResourceGroupName string `json:"-"`
 }
 
-func (s GetDNSZone) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s GetDNSZone) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "GET",
 		URLPathFunc: dnsZoneDefaultURLPathFunc(s.ResourceGroupName, s.Name),
 		ResponseTypeFunc: func() interface{} {

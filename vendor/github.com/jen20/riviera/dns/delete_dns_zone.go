@@ -7,12 +7,11 @@ type DeleteDNSZone struct {
 	ResourceGroupName string `json:"-"`
 }
 
-func (command DeleteDNSZone) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:         apiVersion,
-		Method:             "DELETE",
-		URLPathFunc:        dnsZoneDefaultURLPathFunc(command.ResourceGroupName, command.Name),
-		SkipArmBoilerplate: true,
+func (command DeleteDNSZone) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
+		Method:      "DELETE",
+		URLPathFunc: dnsZoneDefaultURLPathFunc(command.ResourceGroupName, command.Name),
 		ResponseTypeFunc: func() interface{} {
 			return nil
 		},
