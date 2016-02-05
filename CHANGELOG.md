@@ -12,6 +12,7 @@ FEATURES:
 BUG FIXES:
 
   * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
+  * core: Improve handling of Provisioners in the graph, fixing "Provisioner already initialized" errors [GH-4877]
   * provider/openstack: Fix crash when `access_network` was not defined in instances [GH-4966]
 
 ## 0.6.11 (February 1, 2016)
