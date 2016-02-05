@@ -1616,6 +1616,70 @@ func TestContext2Plan_multiple_taint(t *testing.T) {
 	}
 }
 
+// Fails about 50% of the time before the fix for GH-4982, covers the fix.
+func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
+	m := testModule(t, "plan-taint-interpolated-count")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{ID: "bar"},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type:    "aws_instance",
+						Primary: &InstanceState{ID: "bar"},
+					},
+					"aws_instance.foo.2": &ResourceState{
+						Type:    "aws_instance",
+						Primary: &InstanceState{ID: "bar"},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	for i := 0; i < 100; i++ {
+		plan, err := ctx.Plan()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := strings.TrimSpace(plan.String())
+		expected := strings.TrimSpace(`
+DIFF:
+
+DESTROY/CREATE: aws_instance.foo.0
+
+STATE:
+
+aws_instance.foo.0: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = bar
+aws_instance.foo.1:
+  ID = bar
+aws_instance.foo.2:
+  ID = bar
+		`)
+		if actual != expected {
+			t.Fatalf("bad:\n%s", actual)
+		}
+	}
+}
+
 func TestContext2Plan_targeted(t *testing.T) {
 	m := testModule(t, "plan-targeted")
 	p := testProvider("aws")
