@@ -151,8 +151,23 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 			continue
 		}
 
+		orphanPath := m.Path[:len(path)+1]
+
+		// Don't double-add if we've already added this orphan (which can happen if
+		// there are multiple nested sub-modules that get orphaned together).
+		alreadyAdded := false
+		for _, o := range orphans {
+			if reflect.DeepEqual(o, orphanPath) {
+				alreadyAdded = true
+				break
+			}
+		}
+		if alreadyAdded {
+			continue
+		}
+
 		// Add this orphan
-		orphans = append(orphans, m.Path[:len(path)+1])
+		orphans = append(orphans, orphanPath)
 	}
 
 	return orphans
