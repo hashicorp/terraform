@@ -28,7 +28,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the DNS Zone. Must be a valid domain name.
 
-* `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
+* `resource_group_name` - (Required) Specifies the resource group where the resource exists. Changing this forces a new resource to be created.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource. 
 
