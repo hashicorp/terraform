@@ -265,6 +265,7 @@ provider.aws (close)
 const testBuiltinGraphBuilderMultiLevelStr = `
 module.foo.module.bar.output.value
   module.foo.module.bar.var.bar
+  module.foo.var.foo
 module.foo.module.bar.plan-destroy
 module.foo.module.bar.var.bar
   module.foo.var.foo
@@ -273,7 +274,9 @@ module.foo.var.foo
 root
   module.foo.module.bar.output.value
   module.foo.module.bar.plan-destroy
+  module.foo.module.bar.var.bar
   module.foo.plan-destroy
+  module.foo.var.foo
 `
 
 const testBuiltinGraphBuilderOrphanDepsStr = `
