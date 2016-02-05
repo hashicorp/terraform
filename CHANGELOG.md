@@ -3,6 +3,9 @@
 FEATURES:
 
   * **New resource:** `azurerm_dns_zone` [GH-4979]
+  * **New resource:** `azurerm_dns_a_record` [GH-5013]
+  * **New resource:** `azurerm_dns_aaaa_record` [GH-5013]
+  * **New resource:** `azurerm_dns_cname_record` [GH-5013]
   * **New resource:** `azurerm_sql_database` [GH-5003]
   * **New resource:** `azurerm_sql_server` [GH-4991]
 
