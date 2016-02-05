@@ -9,6 +9,10 @@ FEATURES:
   * **New resource:** `azurerm_sql_database` [GH-5003]
   * **New resource:** `azurerm_sql_server` [GH-4991]
 
+IMPROVEMENTS:
+
+  * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
+
 BUG FIXES:
 
   * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
