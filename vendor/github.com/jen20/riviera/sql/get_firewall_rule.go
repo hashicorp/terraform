@@ -6,8 +6,8 @@ type GetFirewallRuleResponse struct {
 	ID             *string `mapstructure:"id"`
 	Name           *string `mapstructure:"name"`
 	Location       *string `mapstructure:"location"`
-	StartIpAddress *string `json:"startIpAddress,omitempty"`
-	EndIpAddress   *string `json:"endIpAddress,omitempty"`
+	StartIPAddress *string `json:"startIpAddress,omitempty"`
+	EndIPAddress   *string `json:"endIpAddress,omitempty"`
 }
 
 type GetFirewallRule struct {
@@ -16,9 +16,9 @@ type GetFirewallRule struct {
 	ServerName        string `json:"-"`
 }
 
-func (s GetFirewallRule) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s GetFirewallRule) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "GET",
 		URLPathFunc: sqlServerFirewallDefaultURLPath(s.ResourceGroupName, s.ServerName, s.Name),
 		ResponseTypeFunc: func() interface{} {

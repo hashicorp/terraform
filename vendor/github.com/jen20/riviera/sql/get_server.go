@@ -22,9 +22,9 @@ type GetServer struct {
 	ResourceGroupName string `json:"-"`
 }
 
-func (s GetServer) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s GetServer) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "GET",
 		URLPathFunc: sqlServerDefaultURLPath(s.ResourceGroupName, s.Name),
 		ResponseTypeFunc: func() interface{} {

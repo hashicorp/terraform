@@ -14,9 +14,9 @@ type RegisterResourceProvider struct {
 	Namespace string `json:"-"`
 }
 
-func (command RegisterResourceProvider) ApiInfo() ApiInfo {
-	return ApiInfo{
-		ApiVersion: resourceGroupAPIVersion,
+func (command RegisterResourceProvider) APIInfo() APIInfo {
+	return APIInfo{
+		APIVersion: resourceGroupAPIVersion,
 		Method:     "POST",
 		URLPathFunc: func() string {
 			return fmt.Sprintf("providers/%s/register", command.Namespace)

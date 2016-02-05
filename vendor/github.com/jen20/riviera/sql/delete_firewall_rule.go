@@ -8,9 +8,9 @@ type DeleteFirewallRule struct {
 	ServerName        string `json:"-"`
 }
 
-func (s DeleteFirewallRule) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s DeleteFirewallRule) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "DELETE",
 		URLPathFunc: sqlServerFirewallDefaultURLPath(s.ResourceGroupName, s.ServerName, s.Name),
 		ResponseTypeFunc: func() interface{} {

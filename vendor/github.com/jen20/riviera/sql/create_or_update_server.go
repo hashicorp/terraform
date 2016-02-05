@@ -27,9 +27,9 @@ type CreateOrUpdateServer struct {
 	Version                    *string            `json:"version,omitempty"`
 }
 
-func (s CreateOrUpdateServer) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:  apiVersion,
+func (s CreateOrUpdateServer) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
 		Method:      "PUT",
 		URLPathFunc: sqlServerDefaultURLPath(s.ResourceGroupName, s.Name),
 		ResponseTypeFunc: func() interface{} {

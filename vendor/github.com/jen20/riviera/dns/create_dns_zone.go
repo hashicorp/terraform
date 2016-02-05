@@ -9,12 +9,11 @@ type CreateDNSZone struct {
 	Tags              map[string]*string `json:"-" riviera:"tags"`
 }
 
-func (command CreateDNSZone) ApiInfo() azure.ApiInfo {
-	return azure.ApiInfo{
-		ApiVersion:         apiVersion,
-		Method:             "PUT",
-		URLPathFunc:        dnsZoneDefaultURLPathFunc(command.ResourceGroupName, command.Name),
-		SkipArmBoilerplate: true,
+func (command CreateDNSZone) APIInfo() azure.APIInfo {
+	return azure.APIInfo{
+		APIVersion:  apiVersion,
+		Method:      "PUT",
+		URLPathFunc: dnsZoneDefaultURLPathFunc(command.ResourceGroupName, command.Name),
 		ResponseTypeFunc: func() interface{} {
 			return nil
 		},
