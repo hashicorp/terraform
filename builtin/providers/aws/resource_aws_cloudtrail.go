@@ -48,6 +48,11 @@ func resourceAwsCloudTrail() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"is_multi_region_trail": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"sns_topic_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -72,6 +77,9 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 	}
 	if v, ok := d.GetOk("include_global_service_events"); ok {
 		input.IncludeGlobalServiceEvents = aws.Bool(v.(bool))
+	}
+	if v, ok := d.GetOk("is_multi_region_trail"); ok {
+		input.IsMultiRegionTrail = aws.Bool(v.(bool))
 	}
 	if v, ok := d.GetOk("s3_key_prefix"); ok {
 		input.S3KeyPrefix = aws.String(v.(string))
@@ -126,6 +134,7 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cloud_watch_logs_role_arn", trail.CloudWatchLogsRoleArn)
 	d.Set("cloud_watch_logs_group_arn", trail.CloudWatchLogsLogGroupArn)
 	d.Set("include_global_service_events", trail.IncludeGlobalServiceEvents)
+	d.Set("is_multi_region_trail", trail.IsMultiRegionTrail)
 	d.Set("sns_topic_name", trail.SnsTopicName)
 
 	logstatus, err := cloudTrailGetLoggingStatus(conn, trail.Name)
@@ -158,6 +167,9 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 	if d.HasChange("include_global_service_events") {
 		input.IncludeGlobalServiceEvents = aws.Bool(d.Get("include_global_service_events").(bool))
+	}
+	if d.HasChange("is_multi_region_trail") {
+		input.IsMultiRegionTrail = aws.Bool(d.Get("is_multi_region_trail").(bool))
 	}
 	if d.HasChange("sns_topic_name") {
 		input.SnsTopicName = aws.String(d.Get("sns_topic_name").(string))
