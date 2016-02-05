@@ -40,7 +40,7 @@ func resourceAwsDirectConnectVirtualInterface() *schema.Resource {
 
 			"virtual_gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 
