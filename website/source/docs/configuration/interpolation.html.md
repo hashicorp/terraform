@@ -165,6 +165,11 @@ The supported built-in functions are:
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
+  * `select(value, compare, equal_value, other_value)` - Performs an equality
+      comparison between `value` and `compare`. If equal, the function returns
+      `equal_value`, otherwise `other_value` is returned. Example:
+      `select("a", "b", "bar", "foo")` = "foo".
+
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated

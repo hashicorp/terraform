@@ -39,6 +39,7 @@ func Funcs() map[string]ast.Function {
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
 		"replace":      interpolationFuncReplace(),
+		"select":       interpolationFuncSelect(),
 		"split":        interpolationFuncSplit(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -382,6 +383,24 @@ func interpolationFuncReplace() ast.Function {
 			}
 
 			return strings.Replace(s, search, replace, -1), nil
+		},
+	}
+}
+
+// interpolationFuncSelect implements the "select" function that allows one to
+// choose between two values based on the equality of another two.
+func interpolationFuncSelect() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString, ast.TypeString, ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			value := args[0].(string)
+			compare_value := args[1].(string)
+			if value == compare_value {
+				return args[2].(string), nil
+			} else {
+				return args[3].(string), nil
+			}
 		},
 	}
 }
