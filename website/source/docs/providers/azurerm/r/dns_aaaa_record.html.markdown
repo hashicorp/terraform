@@ -1,14 +1,14 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azurerm_dns_a_record"
-sidebar_current: "docs-azurerm-resource-dns-a-record"
+page_title: "Azure Resource Manager: azurerm_dns_aaaa_record"
+sidebar_current: "docs-azurerm-resource-dns-aaaa-record"
 description: |-
-  Create a DNS A Record.
+  Create a DNS AAAA Record.
 ---
 
-# azurerm\_dns\_a\_record
+# azurerm\_dns\_aaaa\_record
 
-Enables you to manage DNS A Records within Azure DNS.
+Enables you to manage DNS AAAA Records within Azure DNS.
 
 ## Example Usage
 
@@ -22,12 +22,12 @@ resource "azurerm_dns_zone" "test" {
    resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
-resource "azurerm_dns_a_record" "test" {
+resource "azurerm_dns_aaaa_record" "test" {
    name = "test"
    zone_name = "${azurerm_dns_zone.test.name}"
    resource_group_name = "${azurerm_resource_group.test.name}"
    ttl = "300"
-   records = ["10.0.180.17"]
+   records = ["2607:f8b0:4009:1803::1005"]
 }
 ```
 ## Argument Reference
@@ -42,7 +42,7 @@ The following arguments are supported:
 
 * `TTL` - (Required) The Time To Live (TTL) of the DNS record.
 
-* `records` - (Required) List of IPv4 Addresses.
+* `records` - (Required) List of IPv6 Addresses.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource. 
 
@@ -50,4 +50,4 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The DNS A Record ID.
+* `id` - The DNS AAAA Record ID.

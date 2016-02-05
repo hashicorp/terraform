@@ -62,6 +62,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_queue":          resourceArmStorageQueue(),
 			"azurerm_dns_zone":               resourceArmDnsZone(),
 			"azurerm_dns_a_record":           resourceArmDnsARecord(),
+			"azurerm_dns_aaaa_record":        resourceArmDnsAAAARecord(),
 			"azurerm_sql_server":             resourceArmSqlServer(),
 			"azurerm_sql_database":           resourceArmSqlDatabase(),
 		},
