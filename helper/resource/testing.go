@@ -316,9 +316,9 @@ func testStep(
 // into smaller pieces more easily.
 func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 	return func(s *terraform.State) error {
-		for _, f := range fs {
+		for i, f := range fs {
 			if err := f(s); err != nil {
-				return err
+				return fmt.Errorf("Check %d/%d error: %s", i+1, len(fs), err)
 			}
 		}
 

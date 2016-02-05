@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/config/module"
 )
 

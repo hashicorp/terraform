@@ -74,7 +74,7 @@ func TestAccAWSS3Bucket_Policy(t *testing.T) {
 }
 
 func TestAccAWSS3Bucket_UpdateAcl(t *testing.T) {
-	ri := genRandInt()
+	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAcl, ri)
 	postConfig := fmt.Sprintf(testAccAWSS3BucketConfigWithAclUpdate, ri)
 

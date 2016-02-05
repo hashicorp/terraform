@@ -41,7 +41,7 @@ gox \
     -arch="${XC_ARCH}" \
     -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
     -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
-    ./...
+    $(go list ./... | grep -v /vendor/)
 
 # Make sure "terraform-terraform" is renamed properly
 for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do

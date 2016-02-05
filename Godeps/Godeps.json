@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
-	"GoVersion": "go1.5.2",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"github.com/hashicorp/terraform",
 		"github.com/hashicorp/terraform/builtin/bins/provider-atlas",
@@ -75,8 +75,6 @@
 		"github.com/hashicorp/terraform/communicator/ssh",
 		"github.com/hashicorp/terraform/communicator/winrm",
 		"github.com/hashicorp/terraform/config",
-		"github.com/hashicorp/terraform/config/lang",
-		"github.com/hashicorp/terraform/config/lang/ast",
 		"github.com/hashicorp/terraform/config/module",
 		"github.com/hashicorp/terraform/dag",
 		"github.com/hashicorp/terraform/digraph",
@@ -445,6 +443,10 @@
 			"Rev": "afbd495e5aaea13597b5e14fe514ddeaa4d76fc3"
 		},
 		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "34a5f244f1c01cdfee8e60324258cfbb97a42aec"
+		},
+		{
 			"ImportPath": "github.com/google/go-querystring/query",
 			"Rev": "2a60fc2ba6c19de80291203597d752e9ba58e4c0"
 		},
@@ -496,6 +498,10 @@
 			"Rev": "578dd9746824a54637686b51a41bad457a56bcef"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/hil",
+			"Rev": "075475a7408f16568f5cf79656dbcb053ac6196b"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/logutils",
 			"Rev": "0dc08b1671f34c4250ce212759ebd880f743d883"
 		},
@@ -517,6 +523,18 @@
 			"ImportPath": "github.com/imdario/mergo",
 			"Comment": "0.2.1-3-gb1859b1",
 			"Rev": "b1859b199a7171589445bdea9fa8c19362613f80"
+		},
+		{
+			"ImportPath": "github.com/jen20/riviera/azure",
+			"Rev": "ad1009032a2ff80c3d6ea094be49a2e98929a42b"
+		},
+		{
+			"ImportPath": "github.com/jen20/riviera/dns",
+			"Rev": "ad1009032a2ff80c3d6ea094be49a2e98929a42b"
+		},
+		{
+			"ImportPath": "github.com/jen20/riviera/sql",
+			"Rev": "ad1009032a2ff80c3d6ea094be49a2e98929a42b"
 		},
 		{
 			"ImportPath": "github.com/jmespath/go-jmespath",
@@ -698,6 +716,10 @@
 			"Rev": "8a57ed94ffd43444c0879fe75701732a38afc985"
 		},
 		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "c65f27ffe69a43ae814a5e64c2fabb6c6312a4af"
+		},
+		{
 			"ImportPath": "google.golang.org/api/compute/v1",
 			"Rev": "f6ba98773d96b877b246f3a9266493dfc11e276b"
 		},
@@ -728,6 +750,10 @@
 		{
 			"ImportPath": "google.golang.org/api/storage/v1",
 			"Rev": "f6ba98773d96b877b246f3a9266493dfc11e276b"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine",
+			"Rev": "b667a5000b082e49c6c6d16867d376a12e9490cd"
 		},
 		{
 			"ImportPath": "google.golang.org/cloud/compute/metadata",

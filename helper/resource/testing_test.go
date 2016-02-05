@@ -194,7 +194,7 @@ func TestComposeTestCheckFunc(t *testing.T) {
 				},
 				func(*terraform.State) error { return nil },
 			},
-			Result: "error",
+			Result: "Check 1/2 error: error",
 		},
 
 		{
@@ -204,7 +204,7 @@ func TestComposeTestCheckFunc(t *testing.T) {
 					return fmt.Errorf("error")
 				},
 			},
-			Result: "error",
+			Result: "Check 2/2 error: error",
 		},
 
 		{

@@ -998,7 +998,7 @@ func getInstanceAccessAddresses(d *schema.ResourceData, networks []map[string]in
 			hostv6 = n["fixed_ip_v6"].(string)
 		}
 
-		if n["access_network"].(bool) {
+		if an, ok := n["access_network"].(bool); ok && an {
 			break
 		}
 	}

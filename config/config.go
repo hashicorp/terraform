@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/mitchellh/mapstructure"
 	"github.com/mitchellh/reflectwalk"
@@ -398,8 +398,8 @@ func (c *Config) Validate() error {
 		r.RawCount.interpolate(func(root ast.Node) (string, error) {
 			// Execute the node but transform the AST so that it returns
 			// a fixed value of "5" for all interpolations.
-			out, _, err := lang.Eval(
-				lang.FixedValueTransform(
+			out, _, err := hil.Eval(
+				hil.FixedValueTransform(
 					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
 				nil)
 			if err != nil {
