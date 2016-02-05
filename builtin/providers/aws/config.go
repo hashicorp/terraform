@@ -121,8 +121,8 @@ func (c *Config) Client() (interface{}, error) {
 		_, err = creds.Get()
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
-				errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS Provider. 
-  Please see https://terraform.io/docs/providers/aws/index.html for more information on 
+				errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS Provider.
+  Please see https://terraform.io/docs/providers/aws/index.html for more information on
   providing credentials for the AWS Provider`))
 			} else {
 				errs = append(errs, fmt.Errorf("Error loading credentials for AWS Provider: %s", err))
@@ -374,19 +374,9 @@ func getCreds(key, secret, token, profile, credsfile string) *awsCredentials.Cre
 		Timeout: 100 * time.Millisecond,
 	}
 
-	r, err := c.Get(metadataURL)
-	// Flag to determine if we should add the EC2Meta data provider. Default false
-	var useIAM bool
-	if err == nil {
-		// AWS will add a "Server: EC2ws" header value for the metadata request. We
-		// check the headers for this value to ensure something else didn't just
-		// happent to be listening on that IP:Port
-		if r.Header["Server"] != nil && strings.Contains(r.Header["Server"][0], "EC2") {
-			useIAM = true
-		}
-	}
+	_, err := c.Get(metadataURL + "/meta-data/iam/security-credentials/")
 
-	if useIAM {
+	if err == nil {
 		log.Printf("[DEBUG] EC2 Metadata service found, adding EC2 Role Credential Provider")
 		providers = append(providers, &ec2rolecreds.EC2RoleProvider{
 			Client: ec2metadata.New(session.New(&aws.Config{
