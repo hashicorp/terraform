@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -106,6 +107,35 @@ func (request *Request) pollForAsynchronousResponse(acceptedResponse *http.Respo
 	}
 }
 
+func defaultARMRequestStruct(request *Request, properties interface{}) interface{} {
+	bodyStruct := struct {
+		Location   *string             `json:"location,omitempty"`
+		Tags       *map[string]*string `json:"tags,omitempty"`
+		Properties interface{}         `json:"properties"`
+	}{
+		Properties: properties,
+	}
+
+	if location, hasLocation := readLocation(request.Command); hasLocation {
+		bodyStruct.Location = &location
+	}
+	if tags, hasTags := readTags(request.Command); hasTags {
+		if len(tags) > 0 {
+			bodyStruct.Tags = &tags
+		}
+	}
+
+	return bodyStruct
+}
+
+func defaultARMRequestSerialize(body interface{}) (io.ReadSeeker, error) {
+	jsonEncodedRequest, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(jsonEncodedRequest), nil
+}
+
 func (request *Request) Execute() (*Response, error) {
 	apiInfo := request.Command.APIInfo()
 
@@ -124,30 +154,23 @@ func (request *Request) Execute() (*Response, error) {
 	}
 
 	// Encode the request body if necessary
-	body := bytes.NewReader([]byte{})
+	var body io.ReadSeeker
 	if apiInfo.HasBody() {
-		bodyStruct := struct {
-			Location   *string             `json:"location,omitempty"`
-			Tags       *map[string]*string `json:"tags,omitempty"`
-			Properties interface{}         `json:"properties"`
-		}{
-			Properties: request.Command,
+		var bodyStruct interface{}
+		if apiInfo.RequestPropertiesFunc != nil {
+			bodyStruct = defaultARMRequestStruct(request, apiInfo.RequestPropertiesFunc())
+		} else {
+			bodyStruct = defaultARMRequestStruct(request, request.Command)
 		}
-
-		if location, hasLocation := readLocation(request.Command); hasLocation {
-			bodyStruct.Location = &location
-		}
-		if tags, hasTags := readTags(request.Command); hasTags {
-			if len(tags) > 0 {
-				bodyStruct.Tags = &tags
-			}
-		}
-
-		jsonEncodedRequest, err := json.Marshal(bodyStruct)
+		serialized, err := defaultARMRequestSerialize(bodyStruct)
 		if err != nil {
 			return nil, err
 		}
-		body = bytes.NewReader(jsonEncodedRequest)
+
+		body = serialized
+	} else {
+
+		body = bytes.NewReader([]byte{})
 	}
 
 	// Create an HTTP request
