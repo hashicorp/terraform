@@ -155,6 +155,12 @@ func resourceAwsRDSCluster() *schema.Resource {
 					return
 				},
 			},
+
+			"db_cluster_parameter_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -199,6 +205,10 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	if v, ok := d.GetOk("preferred_maintenance_window"); ok {
 		createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
+		createOpts.DBClusterParameterGroupName = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] RDS Cluster create options: %s", createOpts)
@@ -271,6 +281,10 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("database_name", dbc.DatabaseName)
 	}
 
+	if dbc.DBClusterParameterGroup != nil {
+		d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
+	}
+
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("endpoint", dbc.Endpoint)
 	d.Set("engine", dbc.Engine)
@@ -329,6 +343,10 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("backup_retention_period") {
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
+	}
+
+	if d.HasChange("db_cluster_parameter_group_name") {
+		req.DBClusterParameterGroupName = aws.String(d.Get("db_cluster_parameter_group_name").(string))
 	}
 
 	_, err := conn.ModifyDBCluster(req)
