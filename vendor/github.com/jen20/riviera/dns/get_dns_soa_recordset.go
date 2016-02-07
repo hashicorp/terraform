@@ -3,12 +3,12 @@ package dns
 import "github.com/jen20/riviera/azure"
 
 type GetSOARecordSetResponse struct {
-	ID         string             `mapstructure:"id"`
-	Name       string             `mapstructure:"name"`
-	Location   string             `mapstructure:"location"`
-	Tags       map[string]*string `mapstructure:"tags"`
-	TTL        *int               `mapstructure:"TTL"`
-	SOARecords []SOARecord        `mapstructure:"SOARecords"`
+	ID        string             `mapstructure:"id"`
+	Name      string             `mapstructure:"name"`
+	Location  string             `mapstructure:"location"`
+	Tags      map[string]*string `mapstructure:"tags"`
+	TTL       *int               `mapstructure:"TTL"`
+	SOARecord SOARecord          `mapstructure:"SOARecord"`
 }
 
 type GetSOARecordSet struct {
