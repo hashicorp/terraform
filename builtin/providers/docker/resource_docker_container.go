@@ -85,7 +85,7 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 
 			"publish_all_ports": &schema.Schema{
@@ -225,7 +225,7 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 
 			"links": &schema.Schema{
@@ -233,7 +233,7 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 
 			"ip_address": &schema.Schema{
@@ -339,7 +339,7 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -406,8 +406,4 @@ func resourceDockerVolumesHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
-}
-
-func stringSetHash(v interface{}) int {
-	return hashcode.String(v.(string))
 }
