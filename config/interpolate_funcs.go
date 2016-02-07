@@ -39,6 +39,7 @@ func Funcs() map[string]ast.Function {
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
 		"replace":      interpolationFuncReplace(),
+		"signum":       interpolationFuncSignum(),
 		"split":        interpolationFuncSplit(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -401,6 +402,25 @@ func interpolationFuncLength() ast.Function {
 				length += StringList(arg.(string)).Length()
 			}
 			return length, nil
+		},
+	}
+}
+
+func interpolationFuncSignum() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeInt},
+		ReturnType: ast.TypeInt,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			num := args[0].(int)
+			switch {
+			case num < 0:
+				return -1, nil
+			case num > 0:
+				return +1, nil
+			default:
+				return 0, nil
+			}
 		},
 	}
 }
