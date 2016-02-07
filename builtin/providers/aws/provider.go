@@ -1,6 +1,10 @@
 package aws
 
 import (
+	"bytes"
+	"fmt"
+
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -96,31 +100,14 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["kinesis_endpoint"],
 			},
-                        "iam_endpoint": &schema.Schema{
-                                Type:        schema.TypeString,
-                                Optional:    true,
-                                Default:     "",
-                                Description: descriptions["iam_endpoint"],
-                        },
+			"endpoints": endpointsSchema(),
 
-                        "ec2_endpoint": &schema.Schema{
-                                Type:        schema.TypeString,
-                                Optional:    true,
-                                Default:     "",
-                                Description: descriptions["ec2_endpoint"],
-                        },
-                        "elb_endpoint": &schema.Schema{
-                                Type:        schema.TypeString,
-                                Optional:    true,
-                                Default:     "",
-                                Description: descriptions["elb_endpoint"],
-                        },
-                        "insecure": &schema.Schema{
-                                Type:        schema.TypeBool,
-                                Optional:    true,
-                                Default:     false,
-                                Description: descriptions["insecure"],
-                        },
+			"insecure": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["insecure"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -275,14 +262,15 @@ func init() {
 		"kinesis_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to kinesalite.",
 
-                "iam_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+		"iam_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
-                "ec2_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+		"ec2_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
-                "elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+		"elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
-                "insecure" : "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
-                        "default value is `false`",
+		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
+			"default value is `false`",
+		"default value is `false`",
 	}
 }
 
@@ -297,10 +285,16 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		MaxRetries:       d.Get("max_retries").(int),
 		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
 		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
-                IamEndpoint:	  d.Get("iam_endpoint").(string),
-                Ec2Endpoint:	  d.Get("ec2_endpoint").(string),
-                ElbEndpoint:	  d.Get("elb_endpoint").(string),
-                Insecure:		  d.Get("insecure").(bool),
+		Insecure:         d.Get("insecure").(bool),
+	}
+
+	endpointsSet := d.Get("endpoints").(*schema.Set)
+
+	for _, endpointsSetI := range endpointsSet.List() {
+		endpoints := endpointsSetI.(map[string]interface{})
+		config.IamEndpoint = endpoints["iam"].(string)
+		config.Ec2Endpoint = endpoints["ec2"].(string)
+		config.ElbEndpoint = endpoints["elb"].(string)
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
@@ -316,3 +310,45 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 // This is a global MutexKV for use within this plugin.
 var awsMutexKV = mutexkv.NewMutexKV()
+
+func endpointsSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"iam": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["iam_endpoint"],
+				},
+
+				"ec2": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["ec2_endpoint"],
+				},
+
+				"elb": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["elb_endpoint"],
+				},
+			},
+		},
+		Set: endpointsToHash,
+	}
+}
+
+func endpointsToHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["iam"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["elb"].(string)))
+
+	return hashcode.String(buf.String())
+}
