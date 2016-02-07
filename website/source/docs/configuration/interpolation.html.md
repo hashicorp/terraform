@@ -177,6 +177,7 @@ The supported built-in functions are:
       This function is useful when you need to set a value for the first resource and
       a different value for the rest of the resources.
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
+      where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
 
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
