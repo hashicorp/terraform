@@ -499,7 +499,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hil",
-			"Rev": "075475a7408f16568f5cf79656dbcb053ac6196b"
+			"Rev": "42518c6f01625b5e6948a6a0e6a0792df126c548"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/logutils",
