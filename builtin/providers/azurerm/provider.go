@@ -66,6 +66,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_dns_cname_record":       resourceArmDnsCNameRecord(),
 			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
 			"azurerm_dns_ns_record":          resourceArmDnsNsRecord(),
+			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
 			"azurerm_sql_server":             resourceArmSqlServer(),
 			"azurerm_sql_database":           resourceArmSqlDatabase(),
 		},
