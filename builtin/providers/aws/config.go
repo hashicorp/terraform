@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 
+	"crypto/tls"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
@@ -45,8 +46,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"net/http"
-	"crypto/tls"
 )
 
 type Config struct {
@@ -63,10 +62,10 @@ type Config struct {
 
 	DynamoDBEndpoint string
 	KinesisEndpoint  string
-	Ec2Endpoint string
-	IamEndpoint string
-	ElbEndpoint string
-	Insecure bool
+	Ec2Endpoint      string
+	IamEndpoint      string
+	ElbEndpoint      string
+	Insecure         bool
 }
 
 type AWSClient struct {
@@ -145,7 +144,7 @@ func (c *Config) Client() (interface{}, error) {
 		if c.Insecure {
 			transport := awsConfig.HTTPClient.Transport.(*http.Transport)
 			transport.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify:true,
+				InsecureSkipVerify: true,
 			}
 		}
 
