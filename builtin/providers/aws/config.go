@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 
+	"crypto/tls"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
@@ -45,8 +47,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
-        "net/http"
-        "crypto/tls"
 )
 
 type Config struct {
@@ -63,10 +63,10 @@ type Config struct {
 
 	DynamoDBEndpoint string
 	KinesisEndpoint  string
-        Ec2Endpoint string
-        IamEndpoint string
-        ElbEndpoint string
-        Insecure bool
+	Ec2Endpoint      string
+	IamEndpoint      string
+	ElbEndpoint      string
+	Insecure         bool
 }
 
 type AWSClient struct {
@@ -142,21 +142,21 @@ func (c *Config) Client() (interface{}, error) {
 			HTTPClient:  cleanhttp.DefaultClient(),
 		}
 
-                if c.Insecure {
-                        transport := awsConfig.HTTPClient.Transport.(*http.Transport)
-                        transport.TLSClientConfig = &tls.Config{
-                                InsecureSkipVerify:true,
-                        }
-                }
+		if c.Insecure {
+			transport := awsConfig.HTTPClient.Transport.(*http.Transport)
+			transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		}
 
 		log.Println("[INFO] Initializing IAM Connection")
 		sess := session.New(awsConfig)
 
-                awsIamConfig := *awsConfig
-                awsIamConfig.Endpoint = aws.String(c.IamEndpoint)
+		awsIamConfig := *awsConfig
+		awsIamConfig.Endpoint = aws.String(c.IamEndpoint)
 
-                awsIamSess := session.New(&awsIamConfig)
-                client.iamconn = iam.New(awsIamSess)
+		awsIamSess := session.New(&awsIamConfig)
+		client.iamconn = iam.New(awsIamSess)
 
 		err = c.ValidateCredentials(client.iamconn)
 		if err != nil {
@@ -184,12 +184,12 @@ func (c *Config) Client() (interface{}, error) {
 		client.dynamodbconn = dynamodb.New(dynamoSess)
 
 		log.Println("[INFO] Initializing ELB connection")
-                awsElbConfig := *awsConfig
-                awsElbConfig.Endpoint = aws.String(c.ElbEndpoint)
+		awsElbConfig := *awsConfig
+		awsElbConfig.Endpoint = aws.String(c.ElbEndpoint)
 
-                awsElbSess := session.New(&awsElbConfig)
+		awsElbSess := session.New(&awsElbConfig)
 
-                client.elbconn = elb.New(awsElbSess)
+		client.elbconn = elb.New(awsElbSess)
 
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(sess)
@@ -223,11 +223,11 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing EC2 Connection")
 
-                awsEc2Config := *awsConfig
-                awsEc2Config.Endpoint = aws.String(c.Ec2Endpoint)
+		awsEc2Config := *awsConfig
+		awsEc2Config.Endpoint = aws.String(c.Ec2Endpoint)
 
-                awsEc2Sess := session.New(&awsEc2Config)
-                client.ec2conn = ec2.New(awsEc2Sess)
+		awsEc2Sess := session.New(&awsEc2Config)
+		client.ec2conn = ec2.New(awsEc2Sess)
 
 		log.Println("[INFO] Initializing ECR Connection")
 		client.ecrconn = ecr.New(sess)
