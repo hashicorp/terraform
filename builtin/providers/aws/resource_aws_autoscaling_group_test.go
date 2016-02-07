@@ -153,13 +153,11 @@ func TestAccAWSAutoScalingGroup_VpcUpdates(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributesVPCZoneIdentifer(&group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.#", "2"),
+						"aws_autoscaling_group.bar", "availability_zones.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.221770259", "us-west-2b"),
-					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "vpc_zone_identifier.#", "2"),
+						"aws_autoscaling_group.bar", "vpc_zone_identifier.#", "1"),
 				),
 			},
 		},
@@ -589,29 +587,18 @@ resource "aws_subnet" "main" {
   }
 }
 
-resource "aws_subnet" "alt" {
-  vpc_id = "${aws_vpc.default.id}"
-  cidr_block = "10.0.2.0/24"
-  availability_zone = "us-west-2b"
-  tags {
-     Name = "asg-vpc-thing"
-  }
-}
-
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-b5b3fc85"
   instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "bar" {
-  availability_zones = ["us-west-2a"]
-  max_size = 2
-  min_size = 1
-  health_check_grace_period = 300
-  health_check_type = "ELB"
-  desired_capacity = 1
-  force_delete = true
-  termination_policies = ["OldestInstance"]
+  availability_zones = [
+	  "us-west-2a"
+  ]
+  desired_capacity = 0
+  max_size = 0
+  min_size = 0
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 }
 `
@@ -633,15 +620,6 @@ resource "aws_subnet" "main" {
   }
 }
 
-resource "aws_subnet" "alt" {
-  vpc_id = "${aws_vpc.default.id}"
-  cidr_block = "10.0.2.0/24"
-  availability_zone = "us-west-2b"
-  tags {
-     Name = "asg-vpc-thing"
-  }
-}
-
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-b5b3fc85"
   instance_type = "t2.micro"
@@ -650,15 +628,10 @@ resource "aws_launch_configuration" "foobar" {
 resource "aws_autoscaling_group" "bar" {
   vpc_zone_identifier = [
     "${aws_subnet.main.id}",
-    "${aws_subnet.alt.id}",
   ]
-  max_size = 2
-  min_size = 1
-  health_check_grace_period = 300
-  health_check_type = "ELB"
-  desired_capacity = 1
-  force_delete = true
-  termination_policies = ["OldestInstance"]
+  desired_capacity = 0
+  max_size = 0
+  min_size = 0
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 }
 `
