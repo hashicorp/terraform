@@ -122,6 +122,25 @@ expr:
             Posx:  $1.Pos,
         }
     }
+|   ARITH_OP expr
+    {
+        // This is REALLY jank. We assume that a singular ARITH_OP
+        // means 0 ARITH_OP expr, which... is weird. We don't want to
+        // support *, /, etc., only -. We should fix this later with a pure
+        // Go scanner/parser.
+        if $1.Value.(ast.ArithmeticOp) != ast.ArithmeticOpSub {
+            panic("Unary - is only allowed")
+        }
+
+        $$ = &ast.Arithmetic{
+            Op:    $1.Value.(ast.ArithmeticOp),
+            Exprs: []ast.Node{
+                &ast.LiteralNode{Value: 0, Typex: ast.TypeInt},
+                $2,
+            },
+            Posx:  $2.Pos(),
+        }
+    }
 |   expr ARITH_OP expr
     {
         $$ = &ast.Arithmetic{
