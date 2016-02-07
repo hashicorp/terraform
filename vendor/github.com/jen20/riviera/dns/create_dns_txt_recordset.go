@@ -3,7 +3,7 @@ package dns
 import "github.com/jen20/riviera/azure"
 
 type TXTRecord struct {
-	Value int `json:"value" mapstructure:"value"`
+	Value string `json:"value" mapstructure:"value"`
 }
 
 type CreateTXTRecordSetResponse struct {
