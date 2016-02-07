@@ -8,6 +8,7 @@ FEATURES:
   * **New resource:** `azurerm_dns_cname_record` [GH-5013]
   * **New resource:** `azurerm_sql_database` [GH-5003]
   * **New resource:** `azurerm_sql_server` [GH-4991]
+  * **New interpolation function:** `signum` [GH-4854]
 
 IMPROVEMENTS:
 
