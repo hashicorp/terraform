@@ -149,7 +149,7 @@ func resourceArmDnsNsRecordDelete(d *schema.ResourceData, meta interface{}) erro
 
 	deleteRequest := rivieraClient.NewRequestForURI(d.Id())
 	deleteRequest.Command = &dns.DeleteRecordSet{
-		RecordSetType: "TXT",
+		RecordSetType: "NS",
 	}
 
 	deleteResponse, err := deleteRequest.Execute()
