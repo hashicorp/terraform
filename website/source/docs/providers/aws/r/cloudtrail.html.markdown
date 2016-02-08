@@ -75,9 +75,14 @@ The following arguments are supported:
     region or in all regions. Defaults to `false`.
 * `sns_topic_name` - (Optional) Specifies the name of the Amazon SNS topic
     defined for notification of log file delivery.
+* `enable_log_file_validation` - (Optional) Specifies whether log file integrity validation is enabled.
+    Defaults to `false`.
+* `kms_key_id` - (Optional) Specifies the KMS key ID to use to encrypt the logs delivered by CloudTrail.
 
 ## Attribute Reference
 
 The following attributes are exported:
 
 * `id` - The name of the trail.
+* `home_region` - The region in which the trail was created.
+* `arn` - The Amazon Resource Name of the trail.
