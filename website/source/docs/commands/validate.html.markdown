@@ -3,22 +3,27 @@ layout: "docs"
 page_title: "Command: validate"
 sidebar_current: "docs-commands-validate"
 description: |-
-  The `terraform validate` command is used to validate the format and structure of the terraform files.
+  The `terraform validate` command is used to validate the syntax of the terraform files.
 ---
 
-# Command: verify
+# Command: validate
 
 The `terraform validate` command is used to validate the syntax of the terraform files.
-Terraform performs a syntax check on all the terraform files in the directory, and will display an error if the file(s)
-doesn't validate.
+Terraform performs a syntax check on all the terraform files in the directory,
+and will display an error if any of the files doesn't validate.
 
-These errors include:
+This command **does not** check formatting (e.g. tabs vs spaces, newlines, comments etc.).
 
- * Interpolation in variable values, depends_on, module source etc.
+The following can be reported:
 
- * Duplicate names in resource, modules and providers.
-
- * Missing variable values.
+ * invalid [HCL](https://github.com/hashicorp/hcl) syntax (e.g. missing trailing quote or equal sign)
+ * invalid HCL references (e.g. variable name or attribute which doesn't exist)
+ * same `provider` declared multiple times
+ * same `module` declared multiple times
+ * same `resource` declared multiple times
+ * invalid `module` name
+ * interpolation used in places where it's unsupported
+ 	(e.g. `variable`, `depends_on`, `module.source`, `provider`)
 
 ## Usage
 
