@@ -138,6 +138,12 @@ func TestAccAWSAutoScalingGroup_VpcUpdates(t *testing.T) {
 				Config: testAccAWSAutoScalingGroupConfigWithAZ,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "availability_zones.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "vpc_zone_identifier.#", "1"),
 				),
 			},
 
@@ -146,6 +152,14 @@ func TestAccAWSAutoScalingGroup_VpcUpdates(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributesVPCZoneIdentifer(&group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "availability_zones.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "availability_zones.221770259", "us-west-2b"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "vpc_zone_identifier.#", "2"),
 				),
 			},
 		},
