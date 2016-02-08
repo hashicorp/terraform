@@ -18,6 +18,7 @@ FEATURES:
 IMPROVEMENTS:
 
   * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
+  * provider/aws: Fix reading auto scaling group load balancers [GH-5045]
 
 BUG FIXES:
 
