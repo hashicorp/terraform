@@ -3,6 +3,18 @@ variable "foo" {
     description = "bar"
 }
 
+variable "bar" {
+    type = "string"
+}
+
+variable "baz" {
+    type = "map"
+
+    default = {
+        key = "value"
+    }
+}
+
 provider "aws" {
   access_key = "foo"
   secret_key = "bar"

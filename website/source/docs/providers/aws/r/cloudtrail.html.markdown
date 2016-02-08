@@ -29,14 +29,18 @@ resource "aws_s3_bucket" "foo" {
         {
             "Sid": "AWSCloudTrailAclCheck",
             "Effect": "Allow",
-            "Principal": "*",
+            "Principal": {
+              "Service": "cloudtrail.amazonaws.com"
+            },
             "Action": "s3:GetBucketAcl",
             "Resource": "arn:aws:s3:::tf-test-trail"
         },
         {
             "Sid": "AWSCloudTrailWrite",
             "Effect": "Allow",
-            "Principal": "*",
+            "Principal": {
+              "Service": "cloudtrail.amazonaws.com"
+            },
             "Action": "s3:PutObject",
             "Resource": "arn:aws:s3:::tf-test-trail/*",
             "Condition": {
@@ -63,8 +67,12 @@ The following arguments are supported:
     endpoint to assume to write to a user’s log group.
 * `cloud_watch_logs_group_arn` - (Optional) Specifies a log group name using an Amazon Resource Name (ARN),
     that represents the log group to which CloudTrail logs will be delivered.
+* `enable_logging` - (Optional) Enables logging for the trail. Defaults to `true`.
+    Setting this to `false` will pause logging.
 * `include_global_service_events` - (Optional) Specifies whether the trail is publishing events
     from global services such as IAM to the log files. Defaults to `true`.
+* `is_multi_region_trail` - (Optional) Specifies whether the trail is created in the current
+    region or in all regions. Defaults to `false`.
 * `sns_topic_name` - (Optional) Specifies the name of the Amazon SNS topic
     defined for notification of log file delivery.
 

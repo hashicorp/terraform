@@ -37,4 +37,5 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The db subnet group name.
+* `arn` - The ARN of the db subnet group.
 

@@ -355,4 +355,6 @@ ENV['https_proxy'] = "https://proxy.local"
 ENV['HTTPS_PROXY'] = "https://proxy.local"
 
 
-no_proxy "http://local.local,https://local.local"`
+
+no_proxy          "http://local.local,https://local.local"
+ENV['no_proxy'] = "http://local.local,https://local.local"`

@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccHerokuDomain_Basic(t *testing.T) {
 	var domain heroku.Domain
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -18,16 +20,17 @@ func TestAccHerokuDomain_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckHerokuDomainConfig_basic,
+				Config: testAccCheckHerokuDomainConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuDomainExists("heroku_domain.foobar", &domain),
 					testAccCheckHerokuDomainAttributes(&domain),
 					resource.TestCheckResourceAttr(
 						"heroku_domain.foobar", "hostname", "terraform.example.com"),
 					resource.TestCheckResourceAttr(
-						"heroku_domain.foobar", "app", "terraform-test-app"),
+						"heroku_domain.foobar", "app", appName),
 					resource.TestCheckResourceAttr(
-						"heroku_domain.foobar", "cname", "terraform-test-app.herokuapp.com"),
+						"heroku_domain.foobar", "cname",
+						fmt.Sprintf("%s.herokuapp.com", appName)),
 				),
 			},
 		},
@@ -93,13 +96,14 @@ func testAccCheckHerokuDomainExists(n string, Domain *heroku.Domain) resource.Te
 	}
 }
 
-const testAccCheckHerokuDomainConfig_basic = `
-resource "heroku_app" "foobar" {
-    name = "terraform-test-app"
+func testAccCheckHerokuDomainConfig_basic(appName string) string {
+	return fmt.Sprintf(`resource "heroku_app" "foobar" {
+    name = "%s"
     region = "us"
 }
 
 resource "heroku_domain" "foobar" {
     app = "${heroku_app.foobar.name}"
     hostname = "terraform.example.com"
-}`
+}`, appName)
+}

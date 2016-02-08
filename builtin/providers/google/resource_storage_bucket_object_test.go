@@ -16,6 +16,7 @@ import (
 var tf, err = ioutil.TempFile("", "tf-gce-test")
 var bucketName = "tf-gce-bucket-test"
 var objectName = "tf-gce-test"
+var content = "now this is content!"
 
 func TestAccGoogleStorageObject_basic(t *testing.T) {
 	data := []byte("data data data")
@@ -36,6 +37,31 @@ func TestAccGoogleStorageObject_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testGoogleStorageBucketsObjectBasic,
+				Check:  testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
+			},
+		},
+	})
+}
+
+func TestAccGoogleStorageObject_content(t *testing.T) {
+	data := []byte(content)
+	h := md5.New()
+	h.Write(data)
+	data_md5 := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	ioutil.WriteFile(tf.Name(), data, 0644)
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if err != nil {
+				panic(err)
+			}
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleStorageBucketsObjectContent,
 				Check:  testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
 			},
 		},
@@ -86,6 +112,19 @@ func testAccGoogleStorageObjectDestroy(s *terraform.State) error {
 
 	return nil
 }
+
+var testGoogleStorageBucketsObjectContent = fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+}
+
+resource "google_storage_bucket_object" "object" {
+	name = "%s"
+	bucket = "${google_storage_bucket.bucket.name}"
+	content = "%s"
+	predefined_acl = "projectPrivate"
+}
+`, bucketName, objectName, content)
 
 var testGoogleStorageBucketsObjectBasic = fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {

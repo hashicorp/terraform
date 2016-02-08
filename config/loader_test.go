@@ -45,6 +45,56 @@ func TestLoadFile_badType(t *testing.T) {
 	}
 }
 
+func TestLoadFile_lifecycleKeyCheck(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "lifecycle_cbd_typo.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	t.Logf("err: %s", err)
+}
+
+func TestLoadFile_resourceArityMistake(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "resource-arity-mistake.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+	expected := "Error loading test-fixtures/resource-arity-mistake.tf: position 2:10: resource must be followed by exactly two strings, a type and a name"
+	if err.Error() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
+	}
+}
+
+func TestLoadFileWindowsLineEndings(t *testing.T) {
+	testFile := filepath.Join(fixtureDir, "windows-line-endings.tf")
+
+	contents, err := ioutil.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !strings.Contains(string(contents), "\r\n") {
+		t.Fatalf("Windows line endings test file %s contains no windows line endings - this may be an autocrlf related issue.", testFile)
+	}
+
+	c, err := LoadFile(testFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(windowsHeredocResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFileHeredoc(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "heredoc.tf"))
 	if err != nil {
@@ -66,6 +116,26 @@ func TestLoadFileHeredoc(t *testing.T) {
 
 	actual = resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(heredocResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadFileEscapedQuotes(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "escapedquotes.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(escapedquotesResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 }
@@ -374,6 +444,30 @@ func TestLoadDir_override(t *testing.T) {
 	}
 }
 
+func TestLoadFile_mismatchedVariableTypes(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "variable-mismatched-type.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'not_a_map' has a default value which is not of type 'string'") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
+func TestLoadFile_badVariableTypes(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "bad-variable-type.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'bad_type' must be of type string") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
 func TestLoadFile_provisioners(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
@@ -557,6 +651,107 @@ func TestLoad_temporary_files(t *testing.T) {
 	}
 }
 
+func TestLoad_hclAttributes(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "attributes.tf"))
+	if err != nil {
+		t.Fatalf("Bad: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	print(actual)
+	if actual != strings.TrimSpace(jsonAttributeStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	r := c.Resources[0]
+	if r.Name != "test" && r.Type != "cloudstack_firewall" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	raw := r.RawConfig
+	if raw.Raw["ipaddress"] != "192.168.0.1" {
+		t.Fatalf("Bad: %s", raw.Raw["ipAddress"])
+	}
+
+	rule := raw.Raw["rule"].([]map[string]interface{})[0]
+	if rule["protocol"] != "tcp" {
+		t.Fatalf("Bad: %s", rule["protocol"])
+	}
+
+	if rule["source_cidr"] != "10.0.0.0/8" {
+		t.Fatalf("Bad: %s", rule["source_cidr"])
+	}
+
+	ports := rule["ports"].([]interface{})
+
+	if ports[0] != "80" {
+		t.Fatalf("Bad ports: %s", ports[0])
+	}
+	if ports[1] != "1000-2000" {
+		t.Fatalf("Bad ports: %s", ports[1])
+	}
+}
+
+func TestLoad_jsonAttributes(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "attributes.tf.json"))
+	if err != nil {
+		t.Fatalf("Bad: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	print(actual)
+	if actual != strings.TrimSpace(jsonAttributeStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	r := c.Resources[0]
+	if r.Name != "test" && r.Type != "cloudstack_firewall" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	raw := r.RawConfig
+	if raw.Raw["ipaddress"] != "192.168.0.1" {
+		t.Fatalf("Bad: %s", raw.Raw["ipAddress"])
+	}
+
+	rule := raw.Raw["rule"].([]map[string]interface{})[0]
+	if rule["protocol"] != "tcp" {
+		t.Fatalf("Bad: %s", rule["protocol"])
+	}
+
+	if rule["source_cidr"] != "10.0.0.0/8" {
+		t.Fatalf("Bad: %s", rule["source_cidr"])
+	}
+
+	ports := rule["ports"].([]interface{})
+
+	if ports[0] != "80" {
+		t.Fatalf("Bad ports: %s", ports[0])
+	}
+	if ports[1] != "1000-2000" {
+		t.Fatalf("Bad ports: %s", ports[1])
+	}
+}
+
+const jsonAttributeStr = `
+cloudstack_firewall[test] (x1)
+  ipaddress
+  rule
+`
+
+const windowsHeredocResourcesStr = `
+aws_instance[test] (x1)
+  user_data
+`
+
 const heredocProvidersStr = `
 aws
   access_key
@@ -569,6 +764,23 @@ aws_iam_policy[policy] (x1)
   name
   path
   policy
+aws_instance[heredocwithnumbers] (x1)
+  ami
+  provisioners
+    local-exec
+      command
+aws_instance[test] (x1)
+  ami
+  provisioners
+    remote-exec
+      inline
+`
+
+const escapedquotesResourcesStr = `
+aws_instance[quotes] (x1)
+  ami
+  vars
+    user: var.ami
 `
 
 const basicOutputsStr = `
@@ -614,6 +826,12 @@ aws_security_group[firewall] (x5)
 `
 
 const basicVariablesStr = `
+bar (required) (string)
+  <>
+  <>
+baz (map)
+  map[key:value]
+  <>
 foo
   bar
   bar

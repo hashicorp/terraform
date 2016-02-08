@@ -24,15 +24,30 @@ func resourceAwsSecurityGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					if len(value) > 255 {
 						errors = append(errors, fmt.Errorf(
 							"%q cannot be longer than 255 characters", k))
+					}
+					return
+				},
+			},
+
+			"name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 100 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 100 characters, name is limited to 255", k))
 					}
 					return
 				},
@@ -178,6 +193,8 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	var groupName string
 	if v, ok := d.GetOk("name"); ok {
 		groupName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		groupName = resource.PrefixedUniqueId(v.(string))
 	} else {
 		groupName = resource.UniqueId()
 	}
@@ -201,7 +218,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{""},
-		Target:  "exists",
+		Target:  []string{"exists"},
 		Refresh: SGStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
@@ -260,15 +277,21 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	sg := sgRaw.(*ec2.SecurityGroup)
 
-	ingressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IpPermissions)
-	egressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IpPermissionsEgress)
+	ingressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissions)
+	egressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissionsEgress)
 
 	d.Set("description", sg.Description)
 	d.Set("name", sg.GroupName)
 	d.Set("vpc_id", sg.VpcId)
 	d.Set("owner_id", sg.OwnerId)
-	d.Set("ingress", ingressRules)
-	d.Set("egress", egressRules)
+	if err := d.Set("ingress", ingressRules); err != nil {
+		log.Printf("[WARN] Error setting Ingress rule set for (%s): %s", d.Id(), err)
+	}
+
+	if err := d.Set("egress", egressRules); err != nil {
+		log.Printf("[WARN] Error setting Egress rule set for (%s): %s", d.Id(), err)
+	}
+
 	d.Set("tags", tagsToMap(sg.Tags))
 	return nil
 }
@@ -377,7 +400,7 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []*ec2.IpPermission) []map[string]interface{} {
+func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpPermission) []map[string]interface{} {
 	ruleMap := make(map[string]map[string]interface{})
 	for _, perm := range permissions {
 		var fromPort, toPort int64
@@ -418,7 +441,7 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 			groups = flattenSecurityGroups(perm.UserIdGroupPairs)
 		}
 		for i, id := range groups {
-			if id == d.Id() {
+			if id == groupId {
 				groups[i], groups = groups[len(groups)-1], groups[:len(groups)-1]
 				m["self"] = true
 			}
@@ -427,11 +450,14 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 		if len(groups) > 0 {
 			raw, ok := m["security_groups"]
 			if !ok {
-				raw = make([]string, 0, len(groups))
+				raw = schema.NewSet(schema.HashString, nil)
 			}
-			list := raw.([]string)
+			list := raw.(*schema.Set)
 
-			list = append(list, groups...)
+			for _, g := range groups {
+				list.Add(g)
+			}
+
 			m["security_groups"] = list
 		}
 	}
@@ -439,6 +465,7 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 	for _, m := range ruleMap {
 		rules = append(rules, m)
 	}
+
 	return rules
 }
 

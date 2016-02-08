@@ -123,8 +123,8 @@ support for the "us-west-2" region as well:
 ```
 variable "amis" {
 	default = {
-		us-east-1 = "ami-aa7ab6c2"
-		us-west-2 = "ami-23f78e13"
+		us-east-1 = "ami-b8b061d0"
+		us-west-2 = "ami-ef5e24df"
 	}
 }
 ```

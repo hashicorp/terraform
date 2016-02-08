@@ -2,9 +2,10 @@ package vcd
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/hmrc/vmware-govcd/types/v56"
-	"log"
 )
 
 func resourceVcdVApp() *schema.Resource {

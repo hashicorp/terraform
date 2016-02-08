@@ -1,6 +1,7 @@
 package chef
 
 import (
+	"fmt"
 	"path"
 	"testing"
 
@@ -163,14 +164,18 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			}),
 
 			Commands: map[string]bool{
-				"sudo mkdir -p " + linuxConfDir:                                    true,
-				"sudo chmod 777 " + linuxConfDir:                                   true,
-				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):           true,
-				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):          true,
-				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):          true,
-				"sudo chown -R root.root " + path.Join(linuxConfDir, "ohai/hints"): true,
-				"sudo chmod 755 " + linuxConfDir:                                   true,
-				"sudo chown -R root.root " + linuxConfDir:                          true,
+				"sudo mkdir -p " + linuxConfDir:                                          true,
+				"sudo chmod 777 " + linuxConfDir:                                         true,
+				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 666):                          true,
+				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "ohai/hints"):       true,
+				"sudo chmod 755 " + linuxConfDir:                                         true,
+				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 600):                          true,
+				"sudo chown -R root.root " + linuxConfDir:                                true,
 			},
 
 			Uploads: map[string]string{
@@ -323,4 +328,6 @@ ENV['https_proxy'] = "https://proxy.local"
 ENV['HTTPS_PROXY'] = "https://proxy.local"
 
 
-no_proxy "http://local.local,https://local.local"`
+
+no_proxy          "http://local.local,https://local.local"
+ENV['no_proxy'] = "http://local.local,https://local.local"`

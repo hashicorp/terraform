@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -20,6 +21,7 @@ import (
 
 func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -27,7 +29,29 @@ func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleSqlDatabaseInstance_basic,
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_basic, databaseID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance", &instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGoogleSqlDatabaseInstance_basic2(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testGoogleSqlDatabaseInstance_basic2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
 						"google_sql_database_instance.instance", &instance),
@@ -41,6 +65,7 @@ func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 
 func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -48,7 +73,8 @@ func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleSqlDatabaseInstance_settings,
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_settings, databaseID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
 						"google_sql_database_instance.instance", &instance),
@@ -62,6 +88,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 
 func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -69,7 +96,8 @@ func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleSqlDatabaseInstance_basic,
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_basic, databaseID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
 						"google_sql_database_instance.instance", &instance),
@@ -78,7 +106,8 @@ func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testGoogleSqlDatabaseInstance_settings,
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_settings, databaseID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
 						"google_sql_database_instance.instance", &instance),
@@ -92,6 +121,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 
 func TestAccGoogleSqlDatabaseInstance_settings_downgrade(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -99,7 +129,8 @@ func TestAccGoogleSqlDatabaseInstance_settings_downgrade(t *testing.T) {
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleSqlDatabaseInstance_settings,
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_settings, databaseID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
 						"google_sql_database_instance.instance", &instance),
@@ -108,7 +139,8 @@ func TestAccGoogleSqlDatabaseInstance_settings_downgrade(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testGoogleSqlDatabaseInstance_basic,
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_basic, databaseID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
 						"google_sql_database_instance.instance", &instance),
@@ -319,9 +351,7 @@ func testAccGoogleSqlDatabaseInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
-var databaseId = genRandInt()
-
-var testGoogleSqlDatabaseInstance_basic = fmt.Sprintf(`
+var testGoogleSqlDatabaseInstance_basic = `
 resource "google_sql_database_instance" "instance" {
 	name = "tf-lw-%d"
 	region = "us-central"
@@ -330,9 +360,19 @@ resource "google_sql_database_instance" "instance" {
 		crash_safe_replication = false
 	}
 }
-`, databaseId)
+`
 
-var testGoogleSqlDatabaseInstance_settings = fmt.Sprintf(`
+var testGoogleSqlDatabaseInstance_basic2 = `
+resource "google_sql_database_instance" "instance" {
+	region = "us-central"
+	settings {
+		tier = "D0"
+		crash_safe_replication = false
+	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_settings = `
 resource "google_sql_database_instance" "instance" {
 	name = "tf-lw-%d"
 	region = "us-central"
@@ -361,11 +401,11 @@ resource "google_sql_database_instance" "instance" {
 		activation_policy = "ON_DEMAND"
 	}
 }
-`, databaseId)
+`
 
 // Note - this test is not feasible to run unless we generate
 // backups first.
-var testGoogleSqlDatabaseInstance_replica = fmt.Sprintf(`
+var testGoogleSqlDatabaseInstance_replica = `
 resource "google_sql_database_instance" "instance_master" {
 	name = "tf-lw-%d"
 	database_version = "MYSQL_5_6"
@@ -406,4 +446,4 @@ resource "google_sql_database_instance" "instance" {
 		verify_server_certificate = false
 	}
 }
-`, genRandInt(), genRandInt())
+`

@@ -137,7 +137,7 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"downloading", "creating"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, v.ID),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -243,7 +243,7 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 
 			stateConf := &resource.StateChangeConf{
 				Pending:    []string{"in-use", "attaching"},
-				Target:     "available",
+				Target:     []string{"available"},
 				Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
 				Timeout:    10 * time.Minute,
 				Delay:      10 * time.Second,
@@ -259,9 +259,13 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	err = volumes.Delete(blockStorageClient, d.Id()).ExtractErr()
-	if err != nil {
-		return fmt.Errorf("Error deleting OpenStack volume: %s", err)
+	// It's possible that this volume was used as a boot device and is currently
+	// in a "deleting" state from when the instance was terminated.
+	// If this is true, just move on. It'll eventually delete.
+	if v.Status != "deleting" {
+		if err := volumes.Delete(blockStorageClient, d.Id()).ExtractErr(); err != nil {
+			return CheckDeleted(d, err, "volume")
+		}
 	}
 
 	// Wait for the volume to delete before moving on.
@@ -269,7 +273,7 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"deleting", "downloading", "available"},
-		Target:     "deleted",
+		Target:     []string{"deleted"},
 		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,

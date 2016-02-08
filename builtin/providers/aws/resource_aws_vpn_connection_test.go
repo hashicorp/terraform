@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAwsVpnConnection_basic(t *testing.T) {
+func TestAccAWSVpnConnection_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -44,8 +45,40 @@ func TestAccAwsVpnConnection_basic(t *testing.T) {
 }
 
 func testAccAwsVpnConnectionDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_vpn_connection" {
+			continue
+		}
+
+		resp, err := conn.DescribeVpnConnections(&ec2.DescribeVpnConnectionsInput{
+			VpnConnectionIds: []*string{aws.String(rs.Primary.ID)},
+		})
+
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
+				// not found
+				return nil
+			}
+			return err
+		}
+
+		var vpn *ec2.VpnConnection
+		for _, v := range resp.VpnConnections {
+			if v.VpnConnectionId != nil && *v.VpnConnectionId == rs.Primary.ID {
+				vpn = v
+			}
+		}
+
+		if vpn == nil {
+			// vpn connection not found
+			return nil
+		}
+
+		if vpn.State != nil && *vpn.State == "deleted" {
+			return nil
+		}
+
 	}
 
 	return nil

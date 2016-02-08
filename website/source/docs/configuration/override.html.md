@@ -37,7 +37,7 @@ If you have a Terraform configuration `example.tf` with the contents:
 
 ```
 resource "aws_instance" "web" {
-    ami = "ami-1234567"
+    ami = "ami-408c7f28"
 }
 ```
 

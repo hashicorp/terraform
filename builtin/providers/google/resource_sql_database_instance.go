@@ -2,9 +2,12 @@ package google
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/sqladmin/v1beta4"
 )
 
@@ -18,7 +21,8 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"master_instance_name": &schema.Schema{
@@ -231,7 +235,6 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	name := d.Get("name").(string)
 	region := d.Get("region").(string)
 	databaseVersion := d.Get("database_version").(string)
 
@@ -376,10 +379,16 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	instance := &sqladmin.DatabaseInstance{
-		Name:            name,
 		Region:          region,
 		Settings:        settings,
 		DatabaseVersion: databaseVersion,
+	}
+
+	if v, ok := d.GetOk("name"); ok {
+		instance.Name = v.(string)
+	} else {
+		instance.Name = resource.UniqueId()
+		d.Set("name", instance.Name)
 	}
 
 	if v, ok := d.GetOk("replica_configuration"); ok {
@@ -444,7 +453,11 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	op, err := config.clientSqlAdmin.Instances.Insert(config.Project, instance).Do()
 	if err != nil {
-		return fmt.Errorf("Error, failed to create instance %s: %s", name, err)
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
+			return fmt.Errorf("Error, the name %s is unavailable because it was used recently", instance.Name)
+		} else {
+			return fmt.Errorf("Error, failed to create instance %s: %s", instance.Name, err)
+		}
 	}
 
 	err = sqladminOperationWait(config, op, "Create Instance")
@@ -462,6 +475,14 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 		d.Get("name").(string)).Do()
 
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing SQL Database %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error retrieving instance %s: %s",
 			d.Get("name").(string), err)
 	}

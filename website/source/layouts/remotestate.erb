@@ -1,0 +1,44 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+    	<div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-state") %>>
+                    <a href="/docs/state/index.html">&laquo; Documentation Home</a>
+                </li>
+
+                <li<%= sidebar_current("docs-state-remote_index") %>>
+                    <a href="/docs/state/remote/index.html">Remote State</a>
+                </li>
+
+                <li<%= sidebar_current(/^docs-state-remote-/) %>>
+                    <a href="#">Backends</a>
+                    <ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-state-remote-artifactory") %>>
+							<a href="/docs/state/remote/artifactory.html">artifactory</a>
+						</li>
+						<li<%= sidebar_current("docs-state-remote-atlas") %>>
+							<a href="/docs/state/remote/atlas.html">atlas</a>
+						</li>
+						<li<%= sidebar_current("docs-state-remote-consul") %>>
+							<a href="/docs/state/remote/consul.html">consul</a>
+						</li>
+						<li<%= sidebar_current("docs-state-remote-etcd") %>>
+							<a href="/docs/state/remote/etcd.html">etcd</a>
+						</li>
+						<li<%= sidebar_current("docs-state-remote-http") %>>
+							<a href="/docs/state/remote/http.html">http</a>
+						</li>
+						<li<%= sidebar_current("docs-state-remote-s3") %>>
+							<a href="/docs/state/remote/s3.html">s3</a>
+						</li>
+						<li<%= sidebar_current("docs-state-remote-swift") %>>
+							<a href="/docs/state/remote/swift.html">swift</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+    <% end %>
+
+    <%= yield %>
+<% end %>

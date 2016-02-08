@@ -9,7 +9,7 @@ description: |-
 # aws\_placement\_group
 
 Provides an EC2 placement group. Read more about placement groups
-in [AWS Docs](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html).
+in [AWS Docs](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html).
 
 ## Example Usage
 

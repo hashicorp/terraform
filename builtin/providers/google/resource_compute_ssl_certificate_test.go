@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -70,11 +71,11 @@ func testAccCheckComputeSslCertificateExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccComputeSslCertificate_basic = `
+var testAccComputeSslCertificate_basic = fmt.Sprintf(`
 resource "google_compute_ssl_certificate" "foobar" {
-	name = "terraform-test"
+	name = "sslcert-test-%s"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
-`
+`, acctest.RandString(10))

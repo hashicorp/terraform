@@ -5,8 +5,10 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -21,6 +23,38 @@ func TestAccAWSDirectoryServiceDirectory_basic(t *testing.T) {
 				Config: testAccDirectoryServiceDirectoryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceDirectoryExists("aws_directory_service_directory.bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDirectoryServiceDirectory_microsoft(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDirectoryServiceDirectoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDirectoryServiceDirectoryConfig_microsoft,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceDirectoryExists("aws_directory_service_directory.bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDirectoryServiceDirectory_connector(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDirectoryServiceDirectoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDirectoryServiceDirectoryConfig_connector,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceDirectoryExists("aws_directory_service_directory.connector"),
 				),
 			},
 		},
@@ -65,12 +99,33 @@ func TestAccAWSDirectoryServiceDirectory_withAliasAndSso(t *testing.T) {
 }
 
 func testAccCheckDirectoryServiceDirectoryDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v",
-			s.RootModule().Resources)
+	dsconn := testAccProvider.Meta().(*AWSClient).dsconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_directory_service_directory" {
+			continue
+		}
+
+		input := directoryservice.DescribeDirectoriesInput{
+			DirectoryIds: []*string{aws.String(rs.Primary.ID)},
+		}
+		out, err := dsconn.DescribeDirectories(&input)
+		if err != nil {
+			// EntityDoesNotExistException means it's gone, this is good
+			if dserr, ok := err.(awserr.Error); ok && dserr.Code() == "EntityDoesNotExistException" {
+				return nil
+			}
+			return err
+		}
+
+		if out != nil && len(out.DirectoryDescriptions) > 0 {
+			return fmt.Errorf("Expected AWS Directory Service Directory to be gone, but was still found")
+		}
+
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("Default error in Service Directory Test")
 }
 
 func testAccCheckServiceDirectoryExists(name string) resource.TestCheckFunc {
@@ -192,7 +247,77 @@ resource "aws_subnet" "bar" {
 }
 `
 
-var randomInteger = genRandInt()
+const testAccDirectoryServiceDirectoryConfig_connector = `
+resource "aws_directory_service_directory" "bar" {
+  name = "corp.notexample.com"
+  password = "SuperSecretPassw0rd"
+  size = "Small"
+
+  vpc_settings {
+    vpc_id = "${aws_vpc.main.id}"
+    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+  }
+}
+
+resource "aws_directory_service_directory" "connector" {
+  name = "corp.notexample.com"
+  password = "SuperSecretPassw0rd"
+  size = "Small"
+  type = "ADConnector"
+
+  connect_settings {
+    customer_dns_ips = ["${aws_directory_service_directory.bar.dns_ip_addresses}"]
+    customer_username = "Administrator"
+    vpc_id = "${aws_vpc.main.id}"
+    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2a"
+  cidr_block = "10.0.1.0/24"
+}
+resource "aws_subnet" "bar" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2b"
+  cidr_block = "10.0.2.0/24"
+}
+`
+
+const testAccDirectoryServiceDirectoryConfig_microsoft = `
+resource "aws_directory_service_directory" "bar" {
+  name = "corp.notexample.com"
+  password = "SuperSecretPassw0rd"
+  type = "MicrosoftAD"
+
+  vpc_settings {
+    vpc_id = "${aws_vpc.main.id}"
+    subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2a"
+  cidr_block = "10.0.1.0/24"
+}
+resource "aws_subnet" "bar" {
+  vpc_id = "${aws_vpc.main.id}"
+  availability_zone = "us-west-2b"
+  cidr_block = "10.0.2.0/24"
+}
+`
+
+var randomInteger = acctest.RandInt()
 var testAccDirectoryServiceDirectoryConfig_withAlias = fmt.Sprintf(`
 resource "aws_directory_service_directory" "bar_a" {
   name = "corp.notexample.com"

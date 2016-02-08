@@ -36,6 +36,7 @@ The following arguments are supported:
 * `family` - (Required) The family of the DB parameter group.
 * `description` - (Required) The description of the DB parameter group.
 * `parameter` - (Optional) A list of DB parameters to apply.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Parameter blocks support the following:
 
@@ -50,3 +51,4 @@ Parameter blocks support the following:
 The following attributes are exported:
 
 * `id` - The db parameter group name.
+* `arn` - The ARN of the db parameter group.

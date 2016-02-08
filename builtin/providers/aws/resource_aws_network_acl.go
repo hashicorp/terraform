@@ -50,6 +50,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from_port": &schema.Schema{
@@ -92,6 +93,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from_port": &schema.Schema{
@@ -316,87 +318,89 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 
 func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2.EC2) error {
 
-	o, n := d.GetChange(entryType)
+	if d.HasChange(entryType) {
+		o, n := d.GetChange(entryType)
 
-	if o == nil {
-		o = new(schema.Set)
-	}
-	if n == nil {
-		n = new(schema.Set)
-	}
-
-	os := o.(*schema.Set)
-	ns := n.(*schema.Set)
-
-	toBeDeleted, err := expandNetworkAclEntries(os.Difference(ns).List(), entryType)
-	if err != nil {
-		return err
-	}
-	for _, remove := range toBeDeleted {
-
-		// AWS includes default rules with all network ACLs that can be
-		// neither modified nor destroyed. They have a custom rule
-		// number that is out of bounds for any other rule. If we
-		// encounter it, just continue. There's no work to be done.
-		if *remove.RuleNumber == 32767 {
-			continue
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
 		}
 
-		// Delete old Acl
-		_, err := conn.DeleteNetworkAclEntry(&ec2.DeleteNetworkAclEntryInput{
-			NetworkAclId: aws.String(d.Id()),
-			RuleNumber:   remove.RuleNumber,
-			Egress:       remove.Egress,
-		})
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		toBeDeleted, err := expandNetworkAclEntries(os.Difference(ns).List(), entryType)
 		if err != nil {
-			return fmt.Errorf("Error deleting %s entry: %s", entryType, err)
-		}
-	}
-
-	toBeCreated, err := expandNetworkAclEntries(ns.Difference(os).List(), entryType)
-	if err != nil {
-		return err
-	}
-	for _, add := range toBeCreated {
-		// Protocol -1 rules don't store ports in AWS. Thus, they'll always
-		// hash differently when being read out of the API. Force the user
-		// to set from_port and to_port to 0 for these rules, to keep the
-		// hashing consistent.
-		if *add.Protocol == "-1" {
-			to := *add.PortRange.To
-			from := *add.PortRange.From
-			expected := &expectedPortPair{
-				to_port:   0,
-				from_port: 0,
-			}
-			if ok := validatePorts(to, from, *expected); !ok {
-				return fmt.Errorf(
-					"to_port (%d) and from_port (%d) must both be 0 to use the the 'all' \"-1\" protocol!",
-					to, from)
-			}
-		}
-
-		// AWS mutates the CIDR block into a network implied by the IP and
-		// mask provided. This results in hashing inconsistencies between
-		// the local config file and the state returned by the API. Error
-		// if the user provides a CIDR block with an inappropriate mask
-		if err := validateCIDRBlock(*add.CidrBlock); err != nil {
 			return err
 		}
+		for _, remove := range toBeDeleted {
 
-		// Add new Acl entry
-		_, connErr := conn.CreateNetworkAclEntry(&ec2.CreateNetworkAclEntryInput{
-			NetworkAclId: aws.String(d.Id()),
-			CidrBlock:    add.CidrBlock,
-			Egress:       add.Egress,
-			PortRange:    add.PortRange,
-			Protocol:     add.Protocol,
-			RuleAction:   add.RuleAction,
-			RuleNumber:   add.RuleNumber,
-			IcmpTypeCode: add.IcmpTypeCode,
-		})
-		if connErr != nil {
-			return fmt.Errorf("Error creating %s entry: %s", entryType, connErr)
+			// AWS includes default rules with all network ACLs that can be
+			// neither modified nor destroyed. They have a custom rule
+			// number that is out of bounds for any other rule. If we
+			// encounter it, just continue. There's no work to be done.
+			if *remove.RuleNumber == 32767 {
+				continue
+			}
+
+			// Delete old Acl
+			_, err := conn.DeleteNetworkAclEntry(&ec2.DeleteNetworkAclEntryInput{
+				NetworkAclId: aws.String(d.Id()),
+				RuleNumber:   remove.RuleNumber,
+				Egress:       remove.Egress,
+			})
+			if err != nil {
+				return fmt.Errorf("Error deleting %s entry: %s", entryType, err)
+			}
+		}
+
+		toBeCreated, err := expandNetworkAclEntries(ns.Difference(os).List(), entryType)
+		if err != nil {
+			return err
+		}
+		for _, add := range toBeCreated {
+			// Protocol -1 rules don't store ports in AWS. Thus, they'll always
+			// hash differently when being read out of the API. Force the user
+			// to set from_port and to_port to 0 for these rules, to keep the
+			// hashing consistent.
+			if *add.Protocol == "-1" {
+				to := *add.PortRange.To
+				from := *add.PortRange.From
+				expected := &expectedPortPair{
+					to_port:   0,
+					from_port: 0,
+				}
+				if ok := validatePorts(to, from, *expected); !ok {
+					return fmt.Errorf(
+						"to_port (%d) and from_port (%d) must both be 0 to use the the 'all' \"-1\" protocol!",
+						to, from)
+				}
+			}
+
+			// AWS mutates the CIDR block into a network implied by the IP and
+			// mask provided. This results in hashing inconsistencies between
+			// the local config file and the state returned by the API. Error
+			// if the user provides a CIDR block with an inappropriate mask
+			if err := validateCIDRBlock(*add.CidrBlock); err != nil {
+				return err
+			}
+
+			// Add new Acl entry
+			_, connErr := conn.CreateNetworkAclEntry(&ec2.CreateNetworkAclEntryInput{
+				NetworkAclId: aws.String(d.Id()),
+				CidrBlock:    add.CidrBlock,
+				Egress:       add.Egress,
+				PortRange:    add.PortRange,
+				Protocol:     add.Protocol,
+				RuleAction:   add.RuleAction,
+				RuleNumber:   add.RuleNumber,
+				IcmpTypeCode: add.IcmpTypeCode,
+			})
+			if connErr != nil {
+				return fmt.Errorf("Error creating %s entry: %s", entryType, connErr)
+			}
 		}
 	}
 	return nil

@@ -27,7 +27,7 @@ The following arguments are supported:
 * `instance` - (Optional) EC2 instance ID.
 * `network_interface` - (Optional) Network interface ID to associate with.
 
-~> **NOTE:** You can specify either the `instance` ID or the `network_interface` ID, 
+~> **NOTE:** You can specify either the `instance` ID or the `network_interface` ID,
 but not both. Including both will **not** return an error from the AWS API, but will
 have undefined behavior. See the relevant [AssociateAddress API Call][1] for
 more information.
@@ -36,10 +36,10 @@ more information.
 
 The following attributes are exported:
 
+* `id` - Contains the EIP allocation ID.
 * `private_ip` - Contains the private IP address (if in VPC).
 * `public_ip` - Contains the public IP address.
 * `instance` - Contains the ID of the attached instance.
 * `network_interface` - Contains the ID of the attached network interface.
 
-
-[1]: http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_AssociateAddress.html
+[1]: https://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_AssociateAddress.html

@@ -207,7 +207,8 @@ func (w *MapFieldWriter) setPrimitive(
 	k := strings.Join(addr, ".")
 
 	if v == nil {
-		delete(w.result, k)
+		// The empty string here means the value is removed.
+		w.result[k] = ""
 		return nil
 	}
 
@@ -276,7 +277,7 @@ func (w *MapFieldWriter) setSet(
 		// not the `value` directly is because this forces all types
 		// to become []interface{} (generic) instead of []string, which
 		// most hash functions are expecting.
-		s := &Set{F: schema.Set}
+		s := schema.ZeroValue().(*Set)
 		tempR := &MapFieldReader{
 			Map:    BasicMapReader(tempW.Map()),
 			Schema: tempSchemaMap,
@@ -298,8 +299,7 @@ func (w *MapFieldWriter) setSet(
 	}
 
 	for code, elem := range value.(*Set).m {
-		codeStr := strconv.FormatInt(int64(code), 10)
-		if err := w.set(append(addrCopy, codeStr), elem); err != nil {
+		if err := w.set(append(addrCopy, code), elem); err != nil {
 			return err
 		}
 	}

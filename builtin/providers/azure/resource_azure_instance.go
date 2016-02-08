@@ -622,7 +622,7 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	err = resource.Retry(5*time.Minute, func() error {
+	err = resource.Retry(15*time.Minute, func() error {
 		exists, err := blobClient.BlobExists(
 			storageContainterName, fmt.Sprintf(osDiskBlobNameFormat, name),
 		)
@@ -682,7 +682,7 @@ func retrieveImageDetails(
 func retrieveVMImageDetails(
 	vmImageClient virtualmachineimage.Client,
 	label string) (func(*virtualmachine.Role) error, string, []string, error) {
-	imgs, err := vmImageClient.ListVirtualMachineImages()
+	imgs, err := vmImageClient.ListVirtualMachineImages(virtualmachineimage.ListParameters{})
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("Error retrieving image details: %s", err)
 	}
@@ -695,7 +695,7 @@ func retrieveVMImageDetails(
 			}
 
 			configureForImage := func(role *virtualmachine.Role) error {
-				return vmutils.ConfigureDeploymentFromVMImage(
+				return vmutils.ConfigureDeploymentFromPublishedVMImage(
 					role,
 					img.Name,
 					"",

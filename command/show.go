@@ -118,7 +118,7 @@ Usage: terraform show [options] [path]
 Options:
 
   -module-depth=n     Specifies the depth of modules to show in the output.
-                      By default this is zero. -1 will expand all.
+                      By default this is -1, which will expand all.
 
   -no-color           If specified, output won't contain any color.
 

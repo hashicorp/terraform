@@ -23,10 +23,17 @@ Terraform will be installed. The directory will contain a set of binary
 programs, such as `terraform`, `terraform-provider-aws`, etc. The final
 step is to make sure the directory you installed Terraform to is on the
 PATH. See
-[this page](http://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux)
+[this page](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux)
 for instructions on setting the PATH on Linux and Mac.
-[This page](http://stackoverflow.com/questions/1618280/where-can-i-set-path-to-make-exe-on-windows)
+[This page](https://stackoverflow.com/questions/1618280/where-can-i-set-path-to-make-exe-on-windows)
 contains instructions for setting the PATH on Windows.
+
+Example for Linux/Mac - Type the following into your terminal:
+>`PATH=/usr/local/terraform/bin:/home/your-user-name/terraform:$PATH`
+
+Example for Windows - Type the following into Powershell:
+>`set PATH=%PATH%;C:\terraform`
+
 
 ## Verifying the Installation
 

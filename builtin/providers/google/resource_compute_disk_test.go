@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
 )
 
 func TestAccComputeDisk_basic(t *testing.T) {
+	diskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	var disk compute.Disk
 
 	resource.Test(t, resource.TestCase{
@@ -18,7 +20,7 @@ func TestAccComputeDisk_basic(t *testing.T) {
 		CheckDestroy: testAccCheckComputeDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeDisk_basic,
+				Config: testAccComputeDisk_basic(diskName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeDiskExists(
 						"google_compute_disk.foobar", &disk),
@@ -75,11 +77,13 @@ func testAccCheckComputeDiskExists(n string, disk *compute.Disk) resource.TestCh
 	}
 }
 
-const testAccComputeDisk_basic = `
+func testAccComputeDisk_basic(diskName string) string {
+	return fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
-	name = "terraform-test"
+	name = "%s"
 	image = "debian-7-wheezy-v20140814"
 	size = 50
 	type = "pd-ssd"
 	zone = "us-central1-a"
-}`
+}`, diskName)
+}

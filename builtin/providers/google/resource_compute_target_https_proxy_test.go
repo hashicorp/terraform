@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -97,28 +98,28 @@ func testAccCheckComputeTargetHttpsProxyExists(n string) resource.TestCheckFunc 
 	}
 }
 
-const testAccComputeTargetHttpsProxy_basic1 = `
+var testAccComputeTargetHttpsProxy_basic1 = fmt.Sprintf(`
 resource "google_compute_target_https_proxy" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test"
+	name = "httpsproxy-test-%s"
 	url_map = "${google_compute_url_map.foobar.self_link}"
 	ssl_certificates = ["${google_compute_ssl_certificate.foobar1.self_link}"]
 }
 
 resource "google_compute_backend_service" "foobar" {
-	name = "service"
+	name = "httpsproxy-test-%s"
 	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-	name = "tf-test-zero"
+	name = "httpsproxy-test-%s"
 	request_path = "/"
 	check_interval_sec = 1
 	timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+	name = "httpsproxy-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -140,42 +141,43 @@ resource "google_compute_url_map" "foobar" {
 }
 
 resource "google_compute_ssl_certificate" "foobar1" {
-	name = "terraform-test1"
+	name = "httpsproxy-test-%s"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
 
 resource "google_compute_ssl_certificate" "foobar2" {
-	name = "terraform-test2"
+	name = "httpsproxy-test-%s"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
+	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeTargetHttpsProxy_basic2 = `
+var testAccComputeTargetHttpsProxy_basic2 = fmt.Sprintf(`
 resource "google_compute_target_https_proxy" "foobar" {
 	description = "Resource created for Terraform acceptance testing"
-	name = "terraform-test"
+	name = "httpsproxy-test-%s"
 	url_map = "${google_compute_url_map.foobar.self_link}"
 	ssl_certificates = ["${google_compute_ssl_certificate.foobar1.self_link}"]
 }
 
 resource "google_compute_backend_service" "foobar" {
-	name = "service"
+	name = "httpsproxy-test-%s"
 	health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-	name = "tf-test-zero"
+	name = "httpsproxy-test-%s"
 	request_path = "/"
 	check_interval_sec = 1
 	timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+	name = "httpsproxy-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 	host_rule {
 		hosts = ["mysite.com", "myothersite.com"]
@@ -197,16 +199,17 @@ resource "google_compute_url_map" "foobar" {
 }
 
 resource "google_compute_ssl_certificate" "foobar1" {
-	name = "terraform-test1"
+	name = "httpsproxy-test-%s"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
 
 resource "google_compute_ssl_certificate" "foobar2" {
-	name = "terraform-test2"
+	name = "httpsproxy-test-%s"
 	description = "very descriptive"
-	private_key = "${file("~/cert/example.key")}"
-	certificate = "${file("~/cert/example.crt")}"
+	private_key = "${file("test-fixtures/ssl_cert/test.key")}"
+	certificate = "${file("test-fixtures/ssl_cert/test.crt")}"
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
+	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

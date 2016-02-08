@@ -22,7 +22,7 @@ Writing modules is covered in more detail in the
 [modules documentation](/docs/modules/index.html).
 
 ~> **Warning!** The examples on this page are _**not** eligible_ for the AWS
-[free-tier](http://aws.amazon.com/free/). Do not execute the examples on this
+[free-tier](https://aws.amazon.com/free/). Do not execute the examples on this
 page unless you're willing to spend a small amount of money.
 
 ## Using Modules
@@ -50,7 +50,7 @@ module "consul" {
 
 	key_name = "AWS SSH KEY NAME"
 	key_path = "PATH TO ABOVE PRIVATE KEY"
-	region = "AWS REGION"
+	region = "us-east-1"
 	servers = "3"
 }
 ```
@@ -94,14 +94,22 @@ With the modules downloaded, we can now plan and apply it. If you run
 ```
 $ terraform plan
 ...
-+ module.consul
-    4 resource(s)
++ module.consul.aws_instance.server.0
+...
++ module.consul.aws_instance.server.1
+...
++ module.consul.aws_instance.server.2
+...
++ module.consul.aws_security_group.consul
+...
+Plan: 4 to add, 0 to change, 0 to destroy.
 ```
 
-As you can see, the module is treated like a black box. In the plan, Terraform
-shows the module managed as a whole. It does not show what resources within
-the module will be created. If you care, you can see that by specifying
-a `-module-depth=-1` flag.
+Conceptually, the module is treated like a black box. In the plan, however
+Terraform shows each resource the module manages so you can see each detail
+about what the plan will do. If you'd like compressed plan output, you can
+specify the `-module-depth=` flag to get Terraform to output summaries by
+module.
 
 Next, run `terraform apply` to create the module. Note that as we warned above,
 the resources this module creates are outside of the AWS free tier, so this

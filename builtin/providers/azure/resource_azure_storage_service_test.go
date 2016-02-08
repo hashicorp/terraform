@@ -20,7 +20,7 @@ func TestAccAzureStorageService(t *testing.T) {
 				Config: testAccAzureStorageServiceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureStorageServiceExists(name),
-					resource.TestCheckResourceAttr(name, "name", "tftesting"),
+					resource.TestCheckResourceAttr(name, "name", "tftestingdis"),
 					resource.TestCheckResourceAttr(name, "location", "West US"),
 					resource.TestCheckResourceAttr(name, "description", "very descriptive"),
 					resource.TestCheckResourceAttr(name, "account_type", "Standard_LRS"),
@@ -70,7 +70,7 @@ func testAccAzureStorageServiceDestroyed(s *terraform.State) error {
 var testAccAzureStorageServiceConfig = `
 resource "azure_storage_service" "foo" {
   # NOTE: storage service names constrained to lowercase letters only.
-  name = "tftesting"
+  name = "tftestingdis"
   location = "West US"
   description = "very descriptive"
   account_type = "Standard_LRS"

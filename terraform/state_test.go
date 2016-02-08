@@ -895,3 +895,57 @@ func TestUpgradeV1State(t *testing.T) {
 		t.Fatalf("bad: %#v", bt)
 	}
 }
+
+func TestParseResourceStateKey(t *testing.T) {
+	cases := []struct {
+		Input       string
+		Expected    *ResourceStateKey
+		ExpectedErr bool
+	}{
+		{
+			Input: "aws_instance.foo.3",
+			Expected: &ResourceStateKey{
+				Type:  "aws_instance",
+				Name:  "foo",
+				Index: 3,
+			},
+		},
+		{
+			Input: "aws_instance.foo.0",
+			Expected: &ResourceStateKey{
+				Type:  "aws_instance",
+				Name:  "foo",
+				Index: 0,
+			},
+		},
+		{
+			Input: "aws_instance.foo",
+			Expected: &ResourceStateKey{
+				Type:  "aws_instance",
+				Name:  "foo",
+				Index: -1,
+			},
+		},
+		{
+			Input:       "aws_instance.foo.malformed",
+			ExpectedErr: true,
+		},
+		{
+			Input:       "aws_instance.foo.malformedwithnumber.123",
+			ExpectedErr: true,
+		},
+		{
+			Input:       "malformed",
+			ExpectedErr: true,
+		},
+	}
+	for _, tc := range cases {
+		rsk, err := ParseResourceStateKey(tc.Input)
+		if rsk != nil && tc.Expected != nil && !rsk.Equal(tc.Expected) {
+			t.Fatalf("%s: expected %s, got %s", tc.Input, tc.Expected, rsk)
+		}
+		if (err != nil) != tc.ExpectedErr {
+			t.Fatalf("%s: expected err: %t, got %s", tc.Input, tc.ExpectedErr, err)
+		}
+	}
+}

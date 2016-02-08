@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -119,21 +120,21 @@ func testAccCheckComputeUrlMapExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccComputeUrlMap_basic1 = `
+var testAccComputeUrlMap_basic1 = fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
-    name = "service"
+    name = "urlmap-test-%s"
     health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-    name = "tf-test-zero"
+    name = "urlmap-test-%s"
     request_path = "/"
     check_interval_sec = 1
     timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+    name = "urlmap-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 
     host_rule {
@@ -156,23 +157,23 @@ resource "google_compute_url_map" "foobar" {
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeUrlMap_basic2 = `
+var testAccComputeUrlMap_basic2 = fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
-    name = "service"
+    name = "urlmap-test-%s"
     health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-    name = "tf-test-zero"
+    name = "urlmap-test-%s"
     request_path = "/"
     check_interval_sec = 1
     timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+    name = "urlmap-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 
     host_rule {
@@ -195,23 +196,23 @@ resource "google_compute_url_map" "foobar" {
 		service = "${google_compute_backend_service.foobar.self_link}"
 	}
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeUrlMap_advanced1 = `
+var testAccComputeUrlMap_advanced1 = fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
-    name = "service"
+    name = "urlmap-test-%s"
     health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-    name = "tf-test-zero"
+    name = "urlmap-test-%s"
     request_path = "/"
     check_interval_sec = 1
     timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+    name = "urlmap-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 
     host_rule {
@@ -242,23 +243,23 @@ resource "google_compute_url_map" "foobar" {
         }
     }
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeUrlMap_advanced2 = `
+var testAccComputeUrlMap_advanced2 = fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
-    name = "service"
+    name = "urlmap-test-%s"
     health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
-    name = "tf-test-zero"
+    name = "urlmap-test-%s"
     request_path = "/"
     check_interval_sec = 1
     timeout_sec = 1
 }
 
 resource "google_compute_url_map" "foobar" {
-	name = "myurlmap"
+    name = "urlmap-test-%s"
 	default_service = "${google_compute_backend_service.foobar.self_link}"
 
     host_rule {
@@ -308,4 +309,4 @@ resource "google_compute_url_map" "foobar" {
         }
     }
 }
-`
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

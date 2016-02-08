@@ -54,4 +54,4 @@ as a last resort, as this can result in **data loss**. See
 * `instance_id` - ID of the Instance
 * `volume_id` - ID of the Volume 
 
-[1]: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-detaching-volume.html
+[1]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-detaching-volume.html

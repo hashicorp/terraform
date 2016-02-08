@@ -74,6 +74,10 @@ func resourceDMERecord() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"gtdLocation": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -168,6 +172,9 @@ func getAll(d *schema.ResourceData, cr map[string]interface{}) error {
 	if attr, ok := d.GetOk("value"); ok {
 		cr["value"] = attr.(string)
 	}
+	if attr, ok := d.GetOk("gtdLocation"); ok {
+		cr["gtdLocation"] = attr.(string)
+	}
 
 	switch strings.ToUpper(d.Get("type").(string)) {
 	case "A", "CNAME", "ANAME", "TXT", "SPF", "NS", "PTR", "AAAA":
@@ -213,6 +220,10 @@ func setAll(d *schema.ResourceData, rec *dnsmadeeasy.Record) error {
 	d.Set("name", rec.Name)
 	d.Set("ttl", rec.TTL)
 	d.Set("value", rec.Value)
+	// only set gtdLocation if it is given as this is optional.
+	if rec.GtdLocation != "" {
+		d.Set("gtdLocation", rec.GtdLocation)
+	}
 
 	switch rec.Type {
 	case "A", "CNAME", "ANAME", "TXT", "SPF", "NS", "PTR":

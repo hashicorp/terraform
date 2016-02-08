@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -124,14 +126,24 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 
 func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
-	_, err := conn.DeleteServerCertificate(&iam.DeleteServerCertificateInput{
-		ServerCertificateName: aws.String(d.Get("name").(string)),
+	log.Printf("[INFO] Deleting IAM Server Certificate: %s", d.Id())
+	err := resource.Retry(1*time.Minute, func() error {
+		_, err := conn.DeleteServerCertificate(&iam.DeleteServerCertificateInput{
+			ServerCertificateName: aws.String(d.Get("name").(string)),
+		})
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "DeleteConflict" && strings.Contains(awsErr.Message(), "currently in use by arn") {
+					return fmt.Errorf("[WARN] Conflict deleting server certificate: %s, retrying", awsErr.Message())
+				}
+			}
+			return resource.RetryError{Err: err}
+		}
+		return nil
 	})
 
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return fmt.Errorf("[WARN] Error deleting server certificate: %s: %s", awsErr.Code(), awsErr.Message())
-		}
 		return err
 	}
 

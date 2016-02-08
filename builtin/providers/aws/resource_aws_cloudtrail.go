@@ -22,6 +22,11 @@ func resourceAwsCloudTrail() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"enable_logging": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"s3_bucket_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -42,6 +47,11 @@ func resourceAwsCloudTrail() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+			},
+			"is_multi_region_trail": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 			"sns_topic_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -68,6 +78,9 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("include_global_service_events"); ok {
 		input.IncludeGlobalServiceEvents = aws.Bool(v.(bool))
 	}
+	if v, ok := d.GetOk("is_multi_region_trail"); ok {
+		input.IsMultiRegionTrail = aws.Bool(v.(bool))
+	}
 	if v, ok := d.GetOk("s3_key_prefix"); ok {
 		input.S3KeyPrefix = aws.String(v.(string))
 	}
@@ -83,6 +96,14 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] CloudTrail created: %s", t)
 
 	d.SetId(*t.Name)
+
+	// AWS CloudTrail sets newly-created trails to false.
+	if v, ok := d.GetOk("enable_logging"); ok && v.(bool) {
+		err := cloudTrailSetLogging(conn, v.(bool), d.Id())
+		if err != nil {
+			return err
+		}
+	}
 
 	return resourceAwsCloudTrailRead(d, meta)
 }
@@ -113,7 +134,14 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cloud_watch_logs_role_arn", trail.CloudWatchLogsRoleArn)
 	d.Set("cloud_watch_logs_group_arn", trail.CloudWatchLogsLogGroupArn)
 	d.Set("include_global_service_events", trail.IncludeGlobalServiceEvents)
+	d.Set("is_multi_region_trail", trail.IsMultiRegionTrail)
 	d.Set("sns_topic_name", trail.SnsTopicName)
+
+	logstatus, err := cloudTrailGetLoggingStatus(conn, trail.Name)
+	if err != nil {
+		return err
+	}
+	d.Set("enable_logging", logstatus)
 
 	return nil
 }
@@ -140,6 +168,9 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("include_global_service_events") {
 		input.IncludeGlobalServiceEvents = aws.Bool(d.Get("include_global_service_events").(bool))
 	}
+	if d.HasChange("is_multi_region_trail") {
+		input.IsMultiRegionTrail = aws.Bool(d.Get("is_multi_region_trail").(bool))
+	}
 	if d.HasChange("sns_topic_name") {
 		input.SnsTopicName = aws.String(d.Get("sns_topic_name").(string))
 	}
@@ -149,6 +180,15 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return err
 	}
+
+	if d.HasChange("enable_logging") {
+		log.Printf("[DEBUG] Updating logging on CloudTrail: %s", input)
+		err := cloudTrailSetLogging(conn, d.Get("enable_logging").(bool), *input.Name)
+		if err != nil {
+			return err
+		}
+	}
+
 	log.Printf("[DEBUG] CloudTrail updated: %s", t)
 
 	return resourceAwsCloudTrailRead(d, meta)
@@ -164,4 +204,46 @@ func resourceAwsCloudTrailDelete(d *schema.ResourceData, meta interface{}) error
 	})
 
 	return err
+}
+
+func cloudTrailGetLoggingStatus(conn *cloudtrail.CloudTrail, id *string) (bool, error) {
+	GetTrailStatusOpts := &cloudtrail.GetTrailStatusInput{
+		Name: id,
+	}
+	resp, err := conn.GetTrailStatus(GetTrailStatusOpts)
+	if err != nil {
+		return false, fmt.Errorf("Error retrieving logging status of CloudTrail (%s): %s", *id, err)
+	}
+
+	return *resp.IsLogging, err
+}
+
+func cloudTrailSetLogging(conn *cloudtrail.CloudTrail, enabled bool, id string) error {
+	if enabled {
+		log.Printf(
+			"[DEBUG] Starting logging on CloudTrail (%s)",
+			id)
+		StartLoggingOpts := &cloudtrail.StartLoggingInput{
+			Name: aws.String(id),
+		}
+		if _, err := conn.StartLogging(StartLoggingOpts); err != nil {
+			return fmt.Errorf(
+				"Error starting logging on CloudTrail (%s): %s",
+				id, err)
+		}
+	} else {
+		log.Printf(
+			"[DEBUG] Stopping logging on CloudTrail (%s)",
+			id)
+		StopLoggingOpts := &cloudtrail.StopLoggingInput{
+			Name: aws.String(id),
+		}
+		if _, err := conn.StopLogging(StopLoggingOpts); err != nil {
+			return fmt.Errorf(
+				"Error stopping logging on CloudTrail (%s): %s",
+				id, err)
+		}
+	}
+
+	return nil
 }

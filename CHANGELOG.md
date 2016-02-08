@@ -1,11 +1,290 @@
-## 0.6.7 (Unreleased)
+## 0.6.12 (Unreleased)
+
+FEATURES:
+
+  * **New resource:** `azurerm_dns_zone` [GH-4979]
+  * **New resource:** `azurerm_dns_a_record` [GH-5013]
+  * **New resource:** `azurerm_dns_aaaa_record` [GH-5013]
+  * **New resource:** `azurerm_dns_cname_record` [GH-5013]
+  * **New resource:** `azurerm_dns_mx_record` [GH-5041]
+  * **New resource:** `azurerm_dns_ns_record` [GH-5041]
+  * **New resource:** `azurerm_dns_srv_record` [GH-5041]
+  * **New resource:** `azurerm_dns_txt_record` [GH-5041]
+  * **New resource:** `azurerm_sql_database` [GH-5003]
+  * **New resource:** `azurerm_sql_server` [GH-4991]
+  * **New interpolation function:** `signum` [GH-4854]
+  * **New command:** `validate` to perform syntax validation [GH-3783]
+
+IMPROVEMENTS:
+
+  * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
+
+BUG FIXES:
+
+  * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
+  * core: Improve handling of Provisioners in the graph, fixing "Provisioner already initialized" errors [GH-4877]
+  * provider/openstack: Fix crash when `access_network` was not defined in instances [GH-4966]
+  * provider/aws: Fix DynamoDB Table Refresh to ensure deleted tables are removed from state [GH-4943]
+  * provider/cloudflare: `ttl` no longer shows a change on each plan on `cloudflare_record` resources [GH-5042]
+
+## 0.6.11 (February 1, 2016)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+  * The `max_size`, `min_size` and `desired_capacity` attributes on `aws_autoscaling_schedule` resources now default to 0
+
+FEATURES:
+
+  * **New provider: `powerdns` - PowerDNS REST API** [GH-4885]
+  * **New builtin function:** `trimspace` for trimming whitespaces [GH-4910]
+  * **New builtin function:** `base64sha256` for base64 encoding raw sha256 sum of a given string [GH-4899]
+  * **New resource:** `openstack_lb_member_v1` [GH-4359]
+
+IMPROVEMENTS:
+
+  * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources [GH-4873]
+  * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources [GH-4873]
+  * provider/aws: Provide a better message if no AWS creds are found [GH-4869]
+  * provider/openstack: Ability to specify per-network Floating IPs [GH-4812] 
+ 
+BUG FIXES:
+
+  * provider/aws: `aws_autoscale_schedule` 0 values [GH-4693]
+  * provider/aws: Fix regression with VPCs and ClassicLink for regions that do not support it [GH-4879]
+  * provider/aws: Change VPC ClassicLink to be computed [GH-4933]
+  * provider/aws: Fix SNS Topic Refresh to ensure deleted topics are removed from state [GH-4891]
+  * provider/aws: Refactor Route53 record to fix regression in deleting records created in previous versions of Terraform [GH-4892]
+  * provider/azurerm: Fix panic if no creds supplied [GH-4902]
+  * provider/openstack: Changing the port resource to mark the ip_address as optional [GH-4850]
+  * provider/docker: Catch potential custom network errors in docker [GH-4918]
+  
+
+
+## 0.6.10 (January 27, 2016)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+  * The `-module-depth` flag available on `plan`, `apply`, `show`, and `graph` now defaults to `-1`, causing
+    resources within modules to be expanded in command output. This is only a cosmetic change; it does not affect
+    any behavior.
+  * This release includes a bugfix for `$${}` interpolation escaping. These strings are now properly converted to `${}`
+    during interpolation. This may cause diffs on existing configurations in certain cases.
+  * Users of `consul_keys` should note that the `value` sub-attribute of `key` will no longer be updated with the remote value of the key. It should be only used to _set_ a key in Consul K/V. To reference key values, use the `var` attribute.
+  * The 0.6.9 release contained a regression in `aws_autoscaling_group` capacity waiting behavior for configs where `min_elb_capacity != desired_capacity` or `min_size != desired_capacity`. This release remedies that regression by un-deprecating `min_elb_capacity` and restoring the prior behavior.
+  * Users of `aws_security_group` may notice new diffs in initial plans with 0.6.10 due to a bugfix that fixes drift detection on nested security group rules. These new diffs should reflect the actual state of the resources, which Terraform previously was unable to see.
+
+
+FEATURES:
+
+  * **New resource: `aws_lambda_alias`** [GH-4664]
+  * **New resource: `aws_redshift_cluster`** [GH-3862]
+  * **New resource: `aws_redshift_parameter_group`** [GH-3862]
+  * **New resource: `aws_redshift_security_group`** [GH-3862]
+  * **New resource: `aws_redshift_subnet_group`** [GH-3862]
+  * **New resource: `azurerm_cdn_endpoint`** [GH-4759]
+  * **New resource: `azurerm_cdn_profile`** [GH-4740]
+  * **New resource: `azurerm_network_interface`** [GH-4598]
+  * **New resource: `azurerm_network_security_rule`** [GH-4586]
+  * **New resource: `azurerm_route_table`** [GH-4602]
+  * **New resource: `azurerm_route`** [GH-4604]
+  * **New resource: `azurerm_storage_account`** [GH-4698]
+  * **New resource: `azurerm_storage_blob`** [GH-4862]
+  * **New resource: `azurerm_storage_container`** [GH-4862]
+  * **New resource: `azurerm_storage_queue`** [GH-4862]
+  * **New resource: `azurerm_subnet`** [GH-4595]
+  * **New resource: `docker_network`** [GH-4483]
+  * **New resource: `docker_volume`** [GH-4483]
+  * **New resource: `google_sql_user`** [GH-4669]
+
+IMPROVEMENTS:
+
+  * core: Add `sha256()` interpolation function [GH-4704]
+  * core: Validate lifecycle keys to show helpful error messages whe they are mistypes [GH-4745]
+  * core: Default `module-depth` parameter to `-1`, which expands resources within modules in command output [GH-4763]
+  * core: Variable types may now be specified explicitly using the `type` argument [GH-4795]
+  * provider/aws: Add new parameters `az_mode` and `availability_zone(s)` in ElastiCache [GH-4631]
+  * provider/aws: Allow ap-northeast-2 (Seoul) as valid region [GH-4637]
+  * provider/aws: Limit SNS Topic Subscription protocols [GH-4639]
+  * provider/aws: Add support for configuring logging on `aws_s3_bucket` resources [GH-4482]
+  * provider/aws: Add AWS Classiclink for AWS VPC resource [GH-3994]
+  * provider/aws: Supporting New AWS Route53 HealthCheck additions [GH-4564]
+  * provider/aws: Store instance state [GH-3261]
+  * provider/aws: Add support for updating ELB availability zones and subnets [GH-4597]
+  * provider/aws: Enable specifying aws s3 redirect protocol [GH-4098]
+  * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations [GH-4481]
+  * provider/aws: Retry Listener Creation for ELBs [GH-4825]
+  * provider/aws: Add support for creating Managed Microsoft Active Directory 
+    and Directory Connectors [GH-4388]
+  * provider/aws: Mark some `aws_db_instance` fields as optional [GH-3138]
+  * provider/digitalocean: Add support for reassigning `digitalocean_floating_ip` resources [GH-4476]
+  * provider/dme: Add support for Global Traffic Director locations on `dme_record` resources [GH-4305]
+  * provider/docker: Add support for adding host entries on `docker_container` resources [GH-3463]
+  * provider/docker: Add support for mounting named volumes on `docker_container` resources [GH-4480]
+  * provider/google: Add content field to bucket object [GH-3893]
+  * provider/google: Add support for  `named_port` blocks on `google_compute_instance_group_manager` resources [GH-4605]
+  * provider/openstack: Add "personality" support to instance resource [GH-4623]
+  * provider/packet: Handle external state changes for Packet resources gracefully [GH-4676]
+  * provider/tls: `tls_private_key` now exports attributes with public key in both PEM and OpenSSH format [GH-4606]
+  * provider/vdc: Add `allow_unverified_ssl` for connections to vCloud API [GH-4811]
+  * state/remote: Allow KMS Key Encryption to be used with S3 backend [GH-2903]
+
+BUG FIXES:
+
+  * core: Fix handling of literals with escaped interpolations `$${var}` [GH-4747]
+  * core: Fix diff mismatch when RequiresNew field and list both change [GH-4749]
+  * core: Respect module target path argument on `terraform init` [GH-4753]
+  * core: Write planfile even on empty plans [GH-4766]
+  * core: Add validation error when output is missing value field [GH-4762]
+  * core: Fix improper handling of orphan resources when targeting [GH-4574]
+  * core: Properly handle references to computed set attributes [GH-4840]
+  * config: Detect a specific JSON edge case and show a helpful workaround [GH-4746]
+  * provider/openstack: Ensure valid Security Group Rule attribute combination [GH-4466]
+  * provider/openstack: Don't put fixed_ip in port creation request if not defined [GH-4617]
+  * provider/google: Clarify SQL Database Instance recent name restriction [GH-4577]
+  * provider/google: Split Instance network interface into two fields [GH-4265]
+  * provider/aws: Error with empty list item on security group [GH-4140]
+  * provider/aws: Fix issue with detecting drift in AWS Security Groups rules [GH-4779]
+  * provider/aws: Trap Instance error from mismatched SG IDs and Names [GH-4240]
+  * provider/aws: EBS optimised to force new resource in AWS Instance [GH-4627]
+  * provider/aws: Wait for NACL rule to be visible [GH-4734]
+  * provider/aws: `default_result` on `aws_autoscaling_lifecycle_hook` resources is now computed [GH-4695]
+  * provider/aws: fix ASG capacity waiting regression by un-deprecating `min_elb_capacity` [GH-4864]
+  * provider/consul: fix several bugs surrounding update behavior [GH-4787]
+  * provider/mailgun: Handle the fact that the domain destroy API is eventually consistent [GH-4777]
+  * provider/template: Fix race causing sporadic crashes in template_file with count > 1 [GH-4694]
+  * provider/template: Add support for updating `template_cloudinit_config` resources [GH-4757]
+  * provisioner/chef: Add ENV['no_proxy'] to chef provisioner if no_proxy is detected [GH-4661]
+
+## 0.6.9 (January 8, 2016)
+
+FEATURES:
+
+  * **New provider: `vcd` - VMware vCloud Director** [GH-3785]
+  * **New provider: `postgresql` - Create PostgreSQL databases and roles** [GH-3653]
+  * **New provider: `chef` - Create chef environments, roles, etc** [GH-3084]
+  * **New provider: `azurerm` - Preliminary support for Azure Resource Manager** [GH-4226]
+  * **New provider: `mysql` - Create MySQL databases** [GH-3122]
+  * **New resource: `aws_autoscaling_schedule`** [GH-4256]
+  * **New resource: `aws_nat_gateway`** [GH-4381]
+  * **New resource: `aws_network_acl_rule`** [GH-4286]
+  * **New resources: `aws_ecr_repository` and `aws_ecr_repository_policy`** [GH-4415]
+  * **New resource: `google_pubsub_topic`** [GH-3671]
+  * **New resource: `google_pubsub_subscription`** [GH-3671]
+  * **New resource: `template_cloudinit_config`** [GH-4095]
+  * **New resource: `tls_locally_signed_cert`** [GH-3930]
+  * **New remote state backend: `artifactory`** [GH-3684]
+
+IMPROVEMENTS:
+
+  * core: Change set internals for performance improvements [GH-3992]
+  * core: Support HTTP basic auth in consul remote state [GH-4166]
+  * core: Improve error message on resource arity mismatch [GH-4244]
+  * core: Add support for unary operators + and - to the interpolation syntax [GH-3621]
+  * core: Add SSH agent support for Windows [GH-4323]
+  * core: Add `sha1()` interpolation function [GH-4450]
+  * provider/aws: Add `placement_group` as an option for `aws_autoscaling_group` [GH-3704]
+  * provider/aws: Add support for DynamoDB Table StreamSpecifications [GH-4208]
+  * provider/aws: Add `name_prefix` to Security Groups [GH-4167]
+  * provider/aws: Add support for removing nodes to `aws_elasticache_cluster` [GH-3809]
+  * provider/aws: Add support for `skip_final_snapshot` to `aws_db_instance` [GH-3853]
+  * provider/aws: Adding support for Tags to DB SecurityGroup [GH-4260]
+  * provider/aws: Adding Tag support for DB Param Groups [GH-4259]
+  * provider/aws: Fix issue with updated route ids for VPC Endpoints [GH-4264]
+  * provider/aws: Added measure_latency option to Route 53 Health Check resource [GH-3688]
+  * provider/aws: Validate IOPs for EBS Volumes [GH-4146]
+  * provider/aws: DB Subnet group arn output [GH-4261]
+  * provider/aws: Get full Kinesis streams view with pagination [GH-4368]
+  * provider/aws: Allow changing private IPs for ENIs [GH-4307]
+  * provider/aws: Retry MalformedPolicy errors due to newly created principals in S3 Buckets [GH-4315]
+  * provider/aws: Validate `name` on `db_subnet_group` against AWS requirements [GH-4340]
+  * provider/aws: wait for ASG capacity on update [GH-3947]
+  * provider/aws: Add validation for ECR repository name [GH-4431]
+  * provider/cloudstack: performance improvements [GH-4150]
+  * provider/docker: Add support for setting the entry point on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting the restart policy on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting memory, swap and CPU shares on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting labels on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for setting log driver and options on `docker_container` resources [GH-3761]
+  * provider/docker: Add support for settings network mode on `docker_container` resources [GH-4475]
+  * provider/heroku: Improve handling of Applications within an Organization [GH-4495]
+  * provider/vsphere: Add support for custom vm params on `vsphere_virtual_machine` [GH-3867]
+  * provider/vsphere: Rename vcenter_server config parameter to something clearer [GH-3718]
+  * provider/vsphere: Make allow_unverified_ssl a configuable on the provider [GH-3933]
+  * provider/vsphere: Add folder handling for folder-qualified vm names [GH-3939]
+  * provider/vsphere: Change ip_address parameter for ipv6 support [GH-4035]
+  * provider/openstack: Increase instance timeout from 10 to 30 minutes [GH-4223]
+  * provider/google: Add `restart_policy` attribute to `google_managed_instance_group` [GH-3892]
+
+BUG FIXES:
+
+  * core: skip provider input for deprecated fields [GH-4193]
+  * core: Fix issue which could cause fields that become empty to retain old values in the state [GH-3257]
+  * provider/docker: Fix an issue running with Docker Swarm by looking up containers by ID instead of name [GH-4148]
+  * provider/openstack: Better handling of load balancing resource state changes [GH-3926]
+  * provider/aws: Treat `INACTIVE` ECS cluster as deleted [GH-4364]
+  * provider/aws: Skip `source_security_group_id` determination logic for Classic ELBs [GH-4075]
+  * provider/aws: Fix issue destroy Route 53 zone/record if it no longer exists [GH-4198]
+  * provider/aws: Fix issue force destroying a versioned S3 bucket [GH-4168]
+  * provider/aws: Update DB Replica to honor storage type [GH-4155]
+  * provider/aws: Fix issue creating AWS RDS replicas across regions [GH-4215]
+  * provider/aws: Fix issue with Route53 and zero weighted records [GH-4427]
+  * provider/aws: Fix issue with iam_profile in aws_instance when a path is specified [GH-3663]
+  * provider/aws: Refactor AWS Authentication chain to fix issue with authentication and IAM [GH-4254]
+  * provider/aws: Fix issue with finding S3 Hosted Zone ID for eu-central-1 region [GH-4236]
+  * provider/aws: Fix missing AMI issue with Launch Configurations [GH-4242]
+  * provider/aws: Opsworks stack SSH key is write-only [GH-4241]
+  * provider/aws: Update VPC Endpoint to correctly set route table ids [GH-4392]
+  * provider/aws: Fix issue with ElasticSearch Domain `access_policies` always appear changed [GH-4245]
+  * provider/aws: Fix issue with nil parameter group value causing panic in `aws_db_parameter_group` [GH-4318]
+  * provider/aws: Fix issue with Elastic IPs not recognizing when they have been unassigned manually [GH-4387]
+  * provider/aws: Use body or URL for all CloudFormation stack updates [GH-4370]
+  * provider/aws: Fix template_url/template_body conflict [GH-4540]
+  * provider/aws: Fix bug w/ changing ECS svc/ELB association [GH-4366]
+  * provider/aws: Fix RDS unexpected state config [GH-4490]
+  * provider/digitalocean: Fix issue where a floating IP attached to a missing droplet causes a panic [GH-4214]
+  * provider/google: Fix project metadata sshKeys from showing up and causing unnecessary diffs [GH-4512]
+  * provider/heroku: Retry drain create until log channel is assigned [GH-4823]
+  * provider/openstack: Handle volumes in "deleting" state [GH-4204]
+  * provider/rundeck: Tolerate Rundeck server not returning project name when reading a job [GH-4301]
+  * provider/vsphere: Create and attach additional disks before bootup [GH-4196]
+  * provider/openstack: Convert block_device from a Set to a List [GH-4288]
+  * provider/google: Terraform identifies deleted resources and handles them appropriately on Read [GH-3913]
+
+## 0.6.8 (December 2, 2015)
+
+FEATURES:
+
+  * **New provider: `statuscake`** [GH-3340]
+  * **New resource: `digitalocean_floating_ip`** [GH-3748]
+  * **New resource: `aws_lambda_event_source_mapping`** [GH-4093]
+
+IMPROVEMENTS:
+
+  * provider/cloudstack: Reduce the number of network calls required for common operations [GH-4051]
+  * provider/aws: Make `publically_accessible` on an `aws_db_instance` update existing instances instead of forcing new ones [GH-3895]
+  * provider/aws: Allow `block_duration_minutes` to be set for spot instance requests [GH-4071]
+  * provider/aws: Make setting `acl` on S3 buckets update existing buckets instead of forcing new ones [GH-4080]
+  * provider/aws: Make updates to `assume_role_policy` modify existing IAM roles instead of forcing new ones [GH-4107]
+
+BUG FIXES:
+
+  * core: Fix a bug which prevented HEREDOC syntax being used in lists [GH-4078]
+  * core: Fix a bug which prevented HEREDOC syntax where the anchor ends in a number [GH-4128]
+  * core: Fix a bug which prevented HEREDOC syntax being used with Windows line endings [GH-4069]
+  * provider/aws: Fix a bug which could result in a panic when reading EC2 metadata [GH-4024]
+  * provider/aws: Fix issue recreating security group rule if it has been destroyed [GH-4050]
+  * provider/aws: Fix issue with some attributes in Spot Instance Requests returning as nil [GH-4132]
+  * provider/aws: Fix issue where SPF records in Route 53 could show differences with no modification to the configuration [GH-4108]
+  * provisioner/chef: Fix issue with path separators breaking the Chef provisioner on Windows [GH-4041]
+
+## 0.6.7 (November 23, 2015)
 
 FEATURES:
 
   * **New provider: `tls`** - A utility provider for generating TLS keys/self-signed certificates for development and testing [GH-2778]
   * **New provider: `dyn`** - Manage DNS records on Dyn
   * **New resource: `aws_cloudformation_stack`** [GH-2636]
-  * **New resource: `aws_cloudtrail`** [GH-3094]
+  * **New resource: `aws_cloudtrail`** [GH-3094], [GH-4010]
   * **New resource: `aws_route`** [GH-3548]
   * **New resource: `aws_codecommit_repository`** [GH-3274]
   * **New resource: `aws_kinesis_firehose_delivery_stream`** [GH-3833]
@@ -23,20 +302,20 @@ FEATURES:
 IMPROVEMENTS:
 
   * core: Improve message to list only resources which will be destroyed when using `--target` [GH-3859]
-  * connection/ssh: accept private_key contents instead of paths [GH-3846]
-  * provider/google: preemptible option for instance_template [GH-3667]
+  * connection/ssh: Accept `private_key` contents instead of paths [GH-3846]
+  * provider/google: `preemptible` option for instance_template [GH-3667]
   * provider/google: Accurate Terraform Version [GH-3554]
   * provider/google: Simplified auth (DefaultClient support) [GH-3553]
-  * provider/google: automatic_restart, preemptible, on_host_maintenance options [GH-3643]
-  * provider/google: read credentials as contents instead of path [GH-3901]
-  * null_resource: enhance and document [GH-3244, GH-3659]
+  * provider/google: `automatic_restart`, `preemptible`, `on_host_maintenance` options [GH-3643]
+  * provider/google: Read credentials as contents instead of path [GH-3901]
+  * null_resource: Enhance and document [GH-3244, GH-3659]
   * provider/aws: Add CORS settings to S3 bucket [GH-3387]
   * provider/aws: Add notification topic ARN for ElastiCache clusters [GH-3674]
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis [GH-3255]
   * provider/aws: Add a computed ARN for S3 Buckets [GH-3685]
   * provider/aws: Add S3 support for Lambda Function resource [GH-3794]
   * provider/aws: Add `name_prefix` option to launch configurations [GH-3802]
-  * provider/aws: add support for group name and path changes with IAM group update function [GH-3237]
+  * provider/aws: Add support for group name and path changes with IAM group update function [GH-3237]
   * provider/aws: Provide `source_security_group_id` for ELBs inside a VPC [GH-3780]
   * provider/aws: Add snapshot window and retention limits for ElastiCache (Redis) [GH-3707]
   * provider/aws: Add username updates for `aws_iam_user` [GH-3227]
@@ -46,36 +325,44 @@ IMPROVEMENTS:
   * provider/aws: `engine_version` is now optional for DB Instance [GH-3744]
   * provider/aws: Add configuration to enable copying RDS tags to final snapshot [GH-3529]
   * provider/aws: RDS Cluster additions (`backup_retention_period`, `preferred_backup_window`, `preferred_maintenance_window`) [GH-3757]
-  * provider/aws: Document and validate ELB ssl_cert and protocol requirements [GH-3887]
-  * provider/azure: Read publish_settings as contents instead of path [GH-3899]
-  * provider/openstack: Use IPv4 as the defeault IP version for subnets [GH-3091]
-  * provider/aws: Apply security group after restoring db_instance from snapshot [GH-3513]
-  * provider/aws: Making the AutoScalingGroup name optional [GH-3710]
+  * provider/aws: Document and validate ELB `ssl_certificate_id` and protocol requirements [GH-3887]
+  * provider/azure: Read `publish_settings` as contents instead of path [GH-3899]
+  * provider/openstack: Use IPv4 as the default IP version for subnets [GH-3091]
+  * provider/aws: Apply security group after restoring `db_instance` from snapshot [GH-3513]
+  * provider/aws: Make the AutoScalingGroup `name` optional [GH-3710]
   * provider/openstack: Add "delete on termination" boot-from-volume option [GH-3232]
-  * provider/digitalocean: Make user_data force a new droplet [GH-3740]
+  * provider/digitalocean: Make `user_data` force a new droplet [GH-3740]
   * provider/vsphere: Do not add network interfaces by default [GH-3652]
   * provider/openstack: Configure Fixed IPs through ports [GH-3772]
   * provider/openstack: Specify a port ID on a Router Interface [GH-3903]
-  * provider/openstack: Made LBaaS Virtual IP computed [GH-3927]
+  * provider/openstack: Make LBaaS Virtual IP computed [GH-3927]
 
 BUG FIXES:
 
   * `terraform remote config`: update `--help` output [GH-3632]
-  * core: modules on Git branches now update properly [GH-1568]
+  * core: Modules on Git branches now update properly [GH-1568]
   * core: Fix issue preventing input prompts for unset variables during plan [GH-3843]
+  * core: Fix issue preventing input prompts for unset variables during refresh [GH-4017]
   * core: Orphan resources can now be targets [GH-3912]
-  * provider/google: Timeout when deleting large instance_group_manager [GH-3591]
-  * provider/aws: Fix issue with order of Termincation Policies in AutoScaling Groups. 
+  * helper/schema: Skip StateFunc when value is nil [GH-4002]
+  * provider/google: Timeout when deleting large `instance_group_manager` [GH-3591]
+  * provider/aws: Fix issue with order of Termination Policies in AutoScaling Groups.
       This will introduce plans on upgrade to this version, in order to correct the ordering [GH-2890]
   * provider/aws: Allow cluster name, not only ARN for `aws_ecs_service` [GH-3668]
+  * provider/aws: Fix a bug where a non-lower-cased `maintenance_window` can cause unnecessary planned changes [GH-4020]
   * provider/aws: Only set `weight` on an `aws_route53_record` if it has been set in configuration [GH-3900]
-  * provider/aws: ignore association not exist on route table destroy [GH-3615]
+  * provider/aws: Ignore association not existing on route table destroy [GH-3615]
   * provider/aws: Fix policy encoding issue with SNS Topics [GH-3700]
   * provider/aws: Correctly export ARN in `aws_iam_saml_provider` [GH-3827]
+  * provider/aws: Fix issue deleting users who are attached to a group [GH-4005]
   * provider/aws: Fix crash in Route53 Record if Zone not found [GH-3945]
+  * provider/aws: Retry deleting IAM Server Cert on dependency violation [GH-3898]
+  * provider/aws: Update Spot Instance request to provide connection information [GH-3940]
+  * provider/aws: Fix typo in error checking for IAM Policy Attachments [GH-3970]
+  * provider/aws: Fix issue with LB Cookie Stickiness and empty expiration period [GH-3908]
   * provider/aws: Tolerate ElastiCache clusters being deleted outside Terraform [GH-3767]
-  * provider/aws: Downcase Route 53 record names in statefile to match API output [GH-3574]
-  * provider/aws: Fix issue that could occur if no ECS Cluster was found for a give name [GH-3829]
+  * provider/aws: Downcase Route 53 record names in state file to match API output [GH-3574]
+  * provider/aws: Fix issue that could occur if no ECS Cluster was found for a given name [GH-3829]
   * provider/aws: Fix issue with SNS topic policy if omitted [GH-3777]
   * provider/aws: Support scratch volumes in `aws_ecs_task_definition` [GH-3810]
   * provider/aws: Treat `aws_ecs_service` w/ Status==INACTIVE as deleted [GH-3828]
@@ -83,12 +370,13 @@ BUG FIXES:
   * provider/aws: Fix issue with updating the `aws_ecs_task_definition` where `aws_ecs_service` didn't wait for a new computed ARN [GH-3924]
   * provider/aws: Prevent crashing when deleting `aws_ecs_service` that is already gone [GH-3914]
   * provider/aws: Allow spaces in `aws_db_subnet_group.name` (undocumented in the API) [GH-3955]
-  * provider/azure: various bugfixes [GH-3695]
-  * provider/digitalocean: fix issue preventing SSH fingerprints from working [GH-3633]
-  * provider/digitalocean: Fixing the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
+  * provider/aws: Make VPC ID required on subnets [GH-4021]
+  * provider/azure: Various bug fixes [GH-3695]
+  * provider/digitalocean: Fix issue preventing SSH fingerprints from working [GH-3633]
+  * provider/digitalocean: Fix the DigitalOcean Droplet 404 potential on refresh of state [GH-3768]
   * provider/openstack: Fix several issues causing unresolvable diffs [GH-3440]
   * provider/openstack: Safely delete security groups [GH-3696]
-  * provider/openstack: Ignore order of security_groups in instance [GH-3651]
+  * provider/openstack: Ignore order of `security_groups` in instance [GH-3651]
   * provider/vsphere: Fix d.SetConnInfo error in case of a missing IP address [GH-3636]
   * provider/openstack: Fix boot from volume [GH-3206]
   * provider/openstack: Fix crashing when image is no longer accessible [GH-2189]
@@ -97,7 +385,7 @@ BUG FIXES:
   * provider/packet: Fix issue that could cause errors when provisioning many devices at once [GH-3847]
   * provider/packet: Fix connection information for devices, allowing provisioners to run [GH-3948]
   * provider/openstack: Fix issue preventing security group rules from being removed [GH-3796]
-  * provider/template: template_file: source contents instead of path [GH-3909]
+  * provider/template: `template_file`: source contents instead of path [GH-3909]
 
 ## 0.6.6 (October 23, 2015)
 

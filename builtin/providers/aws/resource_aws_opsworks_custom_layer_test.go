@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/opsworks"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -11,20 +15,18 @@ import (
 // These tests assume the existence of predefined Opsworks IAM roles named `aws-opsworks-ec2-role`
 // and `aws-opsworks-service-role`.
 
-func TestAccAwsOpsworksCustomLayer(t *testing.T) {
-	opsiam := testAccAwsOpsworksStackIam{}
-	testAccAwsOpsworksStackPopulateIam(t, &opsiam)
-
+func TestAccAWSOpsworksCustomLayer(t *testing.T) {
+	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksCustomLayerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccAwsOpsworksCustomLayerConfigCreate, opsiam.ServiceRoleArn, opsiam.InstanceProfileArn),
+				Config: testAccAwsOpsworksCustomLayerConfigCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",
+						"aws_opsworks_custom_layer.tf-acc", "name", stackName,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "auto_assign_elastic_ips", "false",
@@ -68,10 +70,10 @@ func TestAccAwsOpsworksCustomLayer(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccAwsOpsworksCustomLayerConfigUpdate, opsiam.ServiceRoleArn, opsiam.InstanceProfileArn),
+				Config: testAccAwsOpsworksCustomLayerConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_opsworks_custom_layer.tf-acc", "name", "tf-ops-acc-custom-layer",
+						"aws_opsworks_custom_layer.tf-acc", "name", stackName,
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "drain_elb_on_shutdown", "false",
@@ -134,16 +136,36 @@ func TestAccAwsOpsworksCustomLayer(t *testing.T) {
 }
 
 func testAccCheckAwsOpsworksCustomLayerDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	opsworksconn := testAccProvider.Meta().(*AWSClient).opsworksconn
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_opsworks_custom_layer" {
+			continue
+		}
+		req := &opsworks.DescribeLayersInput{
+			LayerIds: []*string{
+				aws.String(rs.Primary.ID),
+			},
+		}
+
+		_, err := opsworksconn.DescribeLayers(req)
+		if err != nil {
+			if awserr, ok := err.(awserr.Error); ok {
+				if awserr.Code() == "ResourceNotFoundException" {
+					// not found, good to go
+					return nil
+				}
+			}
+			return err
+		}
 	}
 
-	return nil
+	return fmt.Errorf("Fall through error on OpsWorks custom layer test")
 }
 
-var testAccAwsOpsworksCustomLayerSecurityGroups = `
+func testAccAwsOpsworksCustomLayerSecurityGroups(name string) string {
+	return fmt.Sprintf(`
 resource "aws_security_group" "tf-ops-acc-layer1" {
-  name = "tf-ops-acc-layer1"
+  name = "%s-layer1"
   ingress {
     from_port = 8
     to_port = -1
@@ -152,20 +174,25 @@ resource "aws_security_group" "tf-ops-acc-layer1" {
   }
 }
 resource "aws_security_group" "tf-ops-acc-layer2" {
-  name = "tf-ops-acc-layer2"
+  name = "%s-layer2"
   ingress {
     from_port = 8
     to_port = -1
     protocol = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}`, name, name)
 }
-`
 
-var testAccAwsOpsworksCustomLayerConfigCreate = testAccAwsOpsworksStackConfigNoVpcCreate + testAccAwsOpsworksCustomLayerSecurityGroups + `
+func testAccAwsOpsworksCustomLayerConfigCreate(name string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+	region = "us-east-1"
+}
+
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-custom-layer"
+  name = "%s"
   short_name = "tf-ops-acc-custom-layer"
   auto_assign_public_ips = true
   custom_security_group_ids = [
@@ -186,9 +213,20 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
     raid_level = 0
   }
 }
-`
 
-var testAccAwsOpsworksCustomLayerConfigUpdate = testAccAwsOpsworksStackConfigNoVpcCreate + testAccAwsOpsworksCustomLayerSecurityGroups + `
+%s
+
+%s 
+
+`, name, testAccAwsOpsworksStackConfigNoVpcCreate(name), testAccAwsOpsworksCustomLayerSecurityGroups(name))
+}
+
+func testAccAwsOpsworksCustomLayerConfigUpdate(name string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+
 resource "aws_security_group" "tf-ops-acc-layer3" {
   name = "tf-ops-acc-layer3"
   ingress {
@@ -200,7 +238,7 @@ resource "aws_security_group" "tf-ops-acc-layer3" {
 }
 resource "aws_opsworks_custom_layer" "tf-acc" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
-  name = "tf-ops-acc-custom-layer"
+  name = "%s"
   short_name = "tf-ops-acc-custom-layer"
   auto_assign_public_ips = true
   custom_security_group_ids = [
@@ -231,4 +269,10 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
     iops = 3000
   }
 }
-`
+
+%s
+
+%s 
+
+`, name, testAccAwsOpsworksStackConfigNoVpcCreate(name), testAccAwsOpsworksCustomLayerSecurityGroups(name))
+}
