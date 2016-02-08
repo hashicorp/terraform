@@ -12,6 +12,7 @@ FEATURES:
   * **New resource:** `azurerm_dns_txt_record` [GH-5041]
   * **New resource:** `azurerm_sql_database` [GH-5003]
   * **New resource:** `azurerm_sql_server` [GH-4991]
+  * **New resource:** `azurerm_sql_firewall_rule` [GH-5057]
   * **New interpolation function:** `signum` [GH-4854]
   * **New command:** `validate` to perform syntax validation [GH-3783]
 
