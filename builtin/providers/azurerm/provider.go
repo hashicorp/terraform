@@ -70,6 +70,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
 			"azurerm_sql_server":             resourceArmSqlServer(),
 			"azurerm_sql_database":           resourceArmSqlDatabase(),
+			"azurerm_sql_firewall_rule":      resourceArmSqlFirewallRule(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
