@@ -1,9 +1,10 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/mitchellh/cli"
 )
 
 func setupTest(fixturepath string) (*cli.MockUi, int) {

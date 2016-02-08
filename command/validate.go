@@ -2,8 +2,9 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/config"
 	"path/filepath"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // ValidateCommand is a Command implementation that validates the terraform files
