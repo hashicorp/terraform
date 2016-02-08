@@ -133,6 +133,9 @@ The following arguments are supported in the `provider` block:
   to prevent you mistakenly using a wrong one (and end up destroying live environment).
   Conflicts with `allowed_account_ids`.
 
+* `insecure` - (Optional) Optional) Explicitly allow the provider to
+  perform "insecure" SSL requests. If omitted, default value is `false`
+
 * `dynamodb_endpoint` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   dynamodb-local.
@@ -141,17 +144,16 @@ The following arguments are supported in the `provider` block:
   URL constructed from the `region`. It's typically used to connect to
   kinesalite.
 
-* `iam_endpoint` - (Optional) Use this to override the default endpoint
+Nested `endpoints` block supports the followings:
+
+* `iam` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   custom iam endpoints.
 
-* `ec2_endpoint` - (Optional) Use this to override the default endpoint
+* `ec2` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   custom ec2 endpoints.
 
-
-* `token` - (Optional) Use this to set an MFA token. It can also be
-  sourced from the `AWS_SECURITY_TOKEN` environment variable.
-
-* `insecure` - (Optional) Optional) Explicitly allow the provider to
-  perform "insecure" SSL requests. If omitted, default value is `false`
+* `elb` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom elb endpoints.

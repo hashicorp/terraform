@@ -270,7 +270,6 @@ func init() {
 
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
-		"default value is `false`",
 	}
 }
 
