@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -750,7 +751,7 @@ var testAccAWSSecurityGroupRuleRace = func() string {
 			name   = "tf-sg-rule-race-group-%d"
 			vpc_id = "${aws_vpc.default.id}"
 		}
-	`, genRandInt()))
+	`, acctest.RandInt()))
 	for i := 1; i < iterations; i++ {
 		b.WriteString(fmt.Sprintf(`
 			resource "aws_security_group_rule" "ingress%d" {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -11,16 +12,19 @@ import (
 func TestAccAzureHostedServiceBasic(t *testing.T) {
 	name := "azure_hosted_service.foo"
 
+	hostedServiceName := fmt.Sprintf("terraform-testing-service%d", acctest.RandInt())
+	config := fmt.Sprintf(testAccAzureHostedServiceBasic, hostedServiceName)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureHostedServiceDestroyed,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureHostedServiceBasic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureHostedServiceExists(name),
-					resource.TestCheckResourceAttr(name, "name", "terraform-testing-service"),
+					resource.TestCheckResourceAttr(name, "name", hostedServiceName),
 					resource.TestCheckResourceAttr(name, "location", "North Europe"),
 					resource.TestCheckResourceAttr(name, "ephemeral_contents", "false"),
 					resource.TestCheckResourceAttr(name, "description", "very discriptive"),
@@ -34,16 +38,21 @@ func TestAccAzureHostedServiceBasic(t *testing.T) {
 func TestAccAzureHostedServiceUpdate(t *testing.T) {
 	name := "azure_hosted_service.foo"
 
+	hostedServiceName := fmt.Sprintf("terraform-testing-service%d", acctest.RandInt())
+
+	basicConfig := fmt.Sprintf(testAccAzureHostedServiceBasic, hostedServiceName)
+	updateConfig := fmt.Sprintf(testAccAzureHostedServiceUpdate, hostedServiceName)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureHostedServiceDestroyed,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureHostedServiceBasic,
+				Config: basicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureHostedServiceExists(name),
-					resource.TestCheckResourceAttr(name, "name", "terraform-testing-service"),
+					resource.TestCheckResourceAttr(name, "name", hostedServiceName),
 					resource.TestCheckResourceAttr(name, "location", "North Europe"),
 					resource.TestCheckResourceAttr(name, "ephemeral_contents", "false"),
 					resource.TestCheckResourceAttr(name, "description", "very discriptive"),
@@ -52,10 +61,10 @@ func TestAccAzureHostedServiceUpdate(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureHostedServiceUpdate,
+				Config: updateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureHostedServiceExists(name),
-					resource.TestCheckResourceAttr(name, "name", "terraform-testing-service"),
+					resource.TestCheckResourceAttr(name, "name", hostedServiceName),
 					resource.TestCheckResourceAttr(name, "location", "North Europe"),
 					resource.TestCheckResourceAttr(name, "ephemeral_contents", "true"),
 					resource.TestCheckResourceAttr(name, "description", "very discriptive"),
@@ -105,7 +114,7 @@ func testAccCheckAzureHostedServiceDestroyed(s *terraform.State) error {
 
 const testAccAzureHostedServiceBasic = `
 resource "azure_hosted_service" "foo" {
-	name = "terraform-testing-service"
+	name = "%s"
 	location = "North Europe"
     ephemeral_contents = false
 	description = "very discriptive"
@@ -114,7 +123,7 @@ resource "azure_hosted_service" "foo" {
 `
 const testAccAzureHostedServiceUpdate = `
 resource "azure_hosted_service" "foo" {
-	name = "terraform-testing-service"
+	name = "%s"
 	location = "North Europe"
     ephemeral_contents = true
 	description = "very discriptive"

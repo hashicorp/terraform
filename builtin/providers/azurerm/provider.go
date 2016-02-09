@@ -60,6 +60,17 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_container":      resourceArmStorageContainer(),
 			"azurerm_storage_blob":           resourceArmStorageBlob(),
 			"azurerm_storage_queue":          resourceArmStorageQueue(),
+			"azurerm_dns_zone":               resourceArmDnsZone(),
+			"azurerm_dns_a_record":           resourceArmDnsARecord(),
+			"azurerm_dns_aaaa_record":        resourceArmDnsAAAARecord(),
+			"azurerm_dns_cname_record":       resourceArmDnsCNameRecord(),
+			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
+			"azurerm_dns_ns_record":          resourceArmDnsNsRecord(),
+			"azurerm_dns_mx_record":          resourceArmDnsMxRecord(),
+			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
+			"azurerm_sql_server":             resourceArmSqlServer(),
+			"azurerm_sql_database":           resourceArmSqlDatabase(),
+			"azurerm_sql_firewall_rule":      resourceArmSqlFirewallRule(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -127,7 +138,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)
