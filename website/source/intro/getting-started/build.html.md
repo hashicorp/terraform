@@ -60,7 +60,7 @@ provider "aws" {
 
 resource "aws_instance" "example" {
 	ami = "ami-408c7f28"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 }
 ```
 
@@ -95,7 +95,7 @@ Within the resource block itself is configuration for that
 resource. This is dependent on each resource provider and
 is fully documented within our
 [providers reference](/docs/providers/index.html). For our EC2 instance, we specify
-an AMI for Ubuntu, and request a "t1.micro" instance so we
+an AMI for Ubuntu, and request a "t2.micro" instance so we
 qualify under the free tier.
 
 ## Execution Plan
