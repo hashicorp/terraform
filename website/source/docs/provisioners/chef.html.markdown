@@ -25,7 +25,7 @@ available on the target machine.
 resource "aws_instance" "web" {
     ...
     provisioner "chef"  {
-        attributes = <<EOF
+        attributes_json = <<EOF
         {
             "key": "value",
             "app": {
@@ -54,7 +54,7 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `attributes (string)` - (Optional) A raw JSON string with initial node attributes
+* `attributes_json (string)` - (Optional) A raw JSON string with initial node attributes
   for the new node. These can also be loaded from a file on disk using the [`file()`
   interpolation function](/docs/configuration/interpolation.html#file_path_).
 
@@ -128,5 +128,6 @@ The following arguments are supported:
 These are supported for backwards compatibility and may be removed in a
 future version:
 
-* `validation_key_path (string)` - __Deprecated: please use `validation_key` instead__.
+* `attributes (map)` - __Deprecated: please use `attributes_json` instead__.
 * `secret_key_path (string)` - __Deprecated: please use `secret_key` instead__.
+* `validation_key_path (string)` - __Deprecated: please use `validation_key` instead__.
