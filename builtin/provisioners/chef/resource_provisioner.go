@@ -77,6 +77,7 @@ ENV['no_proxy'] = "{{ join .NOProxy "," }}"
 // Provisioner represents a specificly configured chef provisioner
 type Provisioner struct {
 	Attributes            interface{} `mapstructure:"attributes"`
+	AttributesJSON        string      `mapstructure:"attributes_json"`
 	ClientOptions         []string    `mapstructure:"client_options"`
 	DisableReporting      bool        `mapstructure:"disable_reporting"`
 	Environment           string      `mapstructure:"environment"`
@@ -235,11 +236,9 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 		ws = append(ws, "secret_key_path is deprecated, please use "+
 			"secret_key instead and load the key contents via file()")
 	}
-	if attrs, ok := c.Config["attributes"]; ok {
-		if _, ok := attrs.(string); !ok {
-			ws = append(ws, "using map style attribute values is deprecated, "+
-				" please use a single raw JSON string instead")
-		}
+	if _, ok := c.Config["attributes"]; ok {
+		ws = append(ws, "using map style attribute values is deprecated, "+
+			" please use a single raw JSON string instead")
 	}
 
 	return ws, es
@@ -299,19 +298,18 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if attrs, ok := c.Config["attributes"]; ok {
-		switch attrs := attrs.(type) {
-		case string:
-			var m map[string]interface{}
-			if err := json.Unmarshal([]byte(attrs), &m); err != nil {
-				return nil, fmt.Errorf("Error parsing the attributes: %v", err)
-			}
-			p.Attributes = m
-		default:
-			p.Attributes, err = rawToJSON(attrs)
-			if err != nil {
-				return nil, fmt.Errorf("Error parsing the attributes: %v", err)
-			}
+		p.Attributes, err = rawToJSON(attrs)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing the attributes: %v", err)
 		}
+	}
+
+	if attrs, ok := c.Config["attributes_json"]; ok {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing the attributes: %v", err)
+		}
+		p.Attributes = m
 	}
 
 	return p, nil
