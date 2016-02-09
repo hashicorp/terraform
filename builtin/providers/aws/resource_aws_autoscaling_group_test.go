@@ -627,7 +627,7 @@ resource "aws_autoscaling_group" "bar" {
 const testAccAWSAutoScalingGroupConfig_withPlacementGroup = `
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
-  instance_type = "c3.large"
+  instance_type = "t2.micro"
 }
 
 resource "aws_placement_group" "test" {
