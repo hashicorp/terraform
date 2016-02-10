@@ -52,7 +52,7 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
    If you are within a non-default VPC, you'll need to use `vpc_security_group_ids` instead.
 * `vpc_security_group_ids` - (Optional) A list of security group IDs to associate with.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
-* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
+* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.  Boolean value. 
 * `private_ip` - (Optional) Private IP address to associate with the
      instance in a VPC.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
