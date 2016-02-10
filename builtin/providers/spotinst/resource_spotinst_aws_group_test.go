@@ -17,7 +17,7 @@ func TestAccSpotinstGroup_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckSpotinstGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckSpotinstGroupConfig_basic,
+				Config: testAccCheckSpotinstGroupConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSpotinstGroupExists("spotinst_aws_group.foo", &group), testAccCheckSpotinstGroupAttributes(&group),
 					resource.TestCheckResourceAttr("spotinst_aws_group.foo", "name", "terraform"),
@@ -36,7 +36,7 @@ func TestAccSpotinstGroup_Updated(t *testing.T) {
 		CheckDestroy: testAccCheckSpotinstGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckSpotinstGroupConfig_basic,
+				Config: testAccCheckSpotinstGroupConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSpotinstGroupExists("spotinst_aws_group.foo", &group), testAccCheckSpotinstGroupAttributes(&group),
 					resource.TestCheckResourceAttr("spotinst_aws_group.foo", "name", "terraform"),
@@ -44,7 +44,7 @@ func TestAccSpotinstGroup_Updated(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccCheckSpotinstGroupConfig_new_value,
+				Config: testAccCheckSpotinstGroupConfigNewValue,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSpotinstGroupExists("spotinst_aws_group.foo", &group), testAccCheckSpotinstGroupAttributesUpdated(&group),
 					resource.TestCheckResourceAttr("spotinst_aws_group.foo", "name", "terraform_updated"),
@@ -121,127 +121,127 @@ func testAccCheckSpotinstGroupExists(n string, group *spotinst.AwsGroup) resourc
 	}
 }
 
-const testAccCheckSpotinstGroupConfig_basic = `
+const testAccCheckSpotinstGroupConfigBasic = `
 resource "spotinst_aws_group" "foo" {
-  	name = "terraform"
+	name = "terraform"
 	description = "terraform"
 	product = "Linux/UNIX"
 
-  	capacity {
+	capacity {
 		target = 0
-    	minimum = 0
-    	maximum = 2
+		minimum = 0
+		maximum = 5
 	}
 
 	strategy {
 		risk = 100
 	}
 
-  	instance_types {
-    	ondemand = "c3.large"
-    	spot = ["c3.large"]
-  	}
+	instance_types {
+		ondemand = "c3.large"
+		spot = ["c3.large"]
+	}
 
-  	availability_zone {
-    	name = "us-west-2b"
-  	}
+	availability_zone {
+		name = "us-west-2b"
+	}
 
-  	launch_specification {
-    	monitoring = false
-    	image_id = "ami-f0091d91"
-    	key_pair = "float_east"
-    	security_group_ids = ["default"]
-    	user_data = "!#/bin/sh echo hello"
-  	}
+	launch_specification {
+		monitoring = false
+		image_id = "ami-f0091d91"
+		key_pair = "east"
+		security_group_ids = ["default"]
+		user_data = "!#/bin/sh echo hello"
+	}
 
-  	ebs_block_device {
-    	device_name = "foo"
-    	delete_on_termination = false
-  	}
+	ebs_block_device {
+		device_name = "foo"
+		delete_on_termination = false
+	}
 
-  	ebs_block_device {
-    	device_name = "bar"
-    	delete_on_termination = true
-  	}
+	ebs_block_device {
+		device_name = "bar"
+		delete_on_termination = true
+	}
 
-  	ephemeral_block_device {
-    	device_name = "baz"
-    	virtual_name = "xvda"
-  	}
+	ephemeral_block_device {
+		device_name = "baz"
+		virtual_name = "xvda"
+	}
 
-  	network_interface {
-    	description = "foo"
-    	device_index = 1
-    	secondary_private_ip_address_count = 1
-    	associate_public_ip_address = false
-    	delete_on_termination = false
-    	security_group_ids = ["foo"]
-    	network_interface_id = "bar"
-    	private_ip_address = "172.0.0.1"
-    	subnet_id = "foo"
-  	}
+	network_interface {
+		description = "foo"
+		device_index = 1
+		secondary_private_ip_address_count = 1
+		associate_public_ip_address = false
+		delete_on_termination = false
+		security_group_ids = ["foo"]
+		network_interface_id = "bar"
+		private_ip_address = "172.0.0.1"
+		subnet_id = "foo"
+	}
 
-  	elastic_ips = [
-  		"eipalloc-01",
-  		"eipalloc-02"
-  	]
+	elastic_ips = [
+		"eipalloc-01",
+		"eipalloc-02"
+	]
 
-  	tags {
-    	foo = "bar"
-    	bar = "baz"
-  	}
+	tags {
+		foo = "bar"
+		bar = "baz"
+	}
 
-  	scaling_up_policy {
-    	policy_name = "Scaling Policy 1"
-    	metric_name = "CPUUtilization"
-    	statistic = "average"
-    	unit = "percent"
-    	threshold = 80
-    	adjustment = 1
-    	namespace = "AWS/EC2"
-    	period = 300
-    	evaluation_periods = 2
-    	cooldown = 300
-  	}
+	scaling_up_policy {
+		policy_name = "Scaling Policy 1"
+		metric_name = "CPUUtilization"
+		statistic = "average"
+		unit = "percent"
+		threshold = 80
+		adjustment = 1
+		namespace = "AWS/EC2"
+		period = 300
+		evaluation_periods = 2
+		cooldown = 300
+	}
 
-  	scaling_down_policy {
-    	policy_name = "Scaling Policy 2"
-    	metric_name = "CPUUtilization"
-    	statistic = "average"
-    	unit = "percent"
-    	threshold = 40
-    	adjustment = 1
-    	namespace = "AWS/EC2"
-    	period = 300
-    	evaluation_periods = 2
-    	cooldown = 300
-  	}
+	scaling_down_policy {
+		policy_name = "Scaling Policy 2"
+		metric_name = "CPUUtilization"
+		statistic = "average"
+		unit = "percent"
+		threshold = 40
+		adjustment = 1
+		namespace = "AWS/EC2"
+		period = 300
+		evaluation_periods = 2
+		cooldown = 300
+	}
 
-  	scheduled_task {
-    	task_type = "scale"
-    	cron_expression = "0 5 * * 0-4"
-    	scale_target_capacity = 2
-  	}
+	scheduled_task {
+		task_type = "scale"
+		cron_expression = "0 5 * * 0-4"
+		scale_target_capacity = 2
+	}
 
-  	scheduled_task {
-    	task_type = "scale"
-    	cron_expression = "0 20 * * 0-4"
-    	scale_target_capacity = 0
-  	}
+	scheduled_task {
+		task_type = "scale"
+		cron_expression = "0 20 * * 0-4"
+		scale_target_capacity = 0
+	}
 
-  	scheduled_task {
-    	task_type = "backup_ami"
-    	frequency = "hourly"
-  	}
+	scheduled_task {
+		task_type = "backup_ami"
+		frequency = "hourly"
+	}
 
-  	rancher_integration {
-  		master_host = "localhost"
-  		access_key = "foo"
-  		secret_key = "bar"
-  	}
+	rancher_integration {
+		master_host = "localhost"
+		access_key = "foo"
+		secret_key = "bar"
+	}
 }`
 
-const testAccCheckSpotinstGroupConfig_new_value = `
+const testAccCheckSpotinstGroupConfigNewValue = `
 resource "spotinst_aws_group" "foo" {
 	name = "terraform_updated"
 	description = "terraform_updated"
@@ -249,39 +249,114 @@ resource "spotinst_aws_group" "foo" {
 
 	capacity {
 		target = 0
-    	minimum = 0
-    	maximum = 2
+		minimum = 0
+		maximum = 5
 	}
 
 	strategy {
-		risk = 50
+		risk = 100
 	}
 
 	instance_types {
-    	ondemand = "c4.large"
-    	spot = ["c4.large"]
-  	}
+		ondemand = "c3.large"
+		spot = ["c3.large"]
+	}
 
-  	availability_zone {
-    	name = "us-west-2b"
-  	}
+	availability_zone {
+		name = "us-west-2b"
+	}
 
-  	launch_specification {
-    	monitoring = false
-    	image_id = "ami-f0091d91"
-    	key_pair = "float_west"
-    	security_group_ids = ["default"]
-    	user_data = "!#/bin/sh echo hello"
-  	}
+	launch_specification {
+		monitoring = false
+		image_id = "ami-f0091d91"
+		key_pair = "east"
+		security_group_ids = ["default"]
+		user_data = "!#/bin/sh echo hello"
+	}
 
-  	scheduled_task {
-    	task_type = "scale"
-    	cron_expression = "0 18 * * 0-4"
-    	scale_target_capacity = 0
-  	}
+	ebs_block_device {
+		device_name = "foo"
+		delete_on_termination = false
+	}
 
-  	scheduled_task {
-    	task_type = "backup_ami"
-    	frequency = "weekly"
-  	}
+	ebs_block_device {
+		device_name = "bar"
+		delete_on_termination = true
+	}
+
+	ephemeral_block_device {
+		device_name = "baz"
+		virtual_name = "xvda"
+	}
+
+	network_interface {
+		description = "foo"
+		device_index = 1
+		secondary_private_ip_address_count = 1
+		associate_public_ip_address = false
+		delete_on_termination = false
+		security_group_ids = ["foo"]
+		network_interface_id = "bar"
+		private_ip_address = "172.0.0.1"
+		subnet_id = "foo"
+	}
+
+	elastic_ips = [
+		"eipalloc-01",
+		"eipalloc-02"
+	]
+
+	tags {
+		foo = "bar"
+		bar = "baz"
+	}
+
+	scaling_up_policy {
+		policy_name = "Scaling Policy 1"
+		metric_name = "CPUUtilization"
+		statistic = "average"
+		unit = "percent"
+		threshold = 80
+		adjustment = 1
+		namespace = "AWS/EC2"
+		period = 300
+		evaluation_periods = 2
+		cooldown = 300
+	}
+
+	scaling_down_policy {
+		policy_name = "Scaling Policy 2"
+		metric_name = "CPUUtilization"
+		statistic = "average"
+		unit = "percent"
+		threshold = 40
+		adjustment = 1
+		namespace = "AWS/EC2"
+		period = 300
+		evaluation_periods = 2
+		cooldown = 300
+	}
+
+	scheduled_task {
+		task_type = "scale"
+		cron_expression = "0 5 * * 0-4"
+		scale_target_capacity = 2
+	}
+
+	scheduled_task {
+		task_type = "scale"
+		cron_expression = "0 20 * * 0-4"
+		scale_target_capacity = 0
+	}
+
+	scheduled_task {
+		task_type = "backup_ami"
+		frequency = "hourly"
+	}
+
+	rancher_integration {
+		master_host = "localhost"
+		access_key = "foo"
+		secret_key = "bar"
+	}
 }`
