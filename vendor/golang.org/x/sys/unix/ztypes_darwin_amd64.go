@@ -1,4 +1,3 @@
-// +build amd64,darwin
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_darwin.go
 
@@ -131,9 +130,9 @@ type Fbootstraptransfer_t struct {
 }
 
 type Log2phys_t struct {
-	Flags     uint32
-	Pad_cgo_0 [8]byte
-	Pad_cgo_1 [8]byte
+	Flags       uint32
+	Contigbytes int64
+	Devoffset   int64
 }
 
 type Fsid struct {
@@ -455,8 +454,3 @@ type Termios struct {
 	Ispeed    uint64
 	Ospeed    uint64
 }
-
-const (
-	AT_FDCWD            = -0x2
-	AT_SYMLINK_NOFOLLOW = 0x20
-)
