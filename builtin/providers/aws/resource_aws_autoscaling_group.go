@@ -321,18 +321,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("termination_policies") {
 		// If the termination policy is set to null, we need to explicitly set
 		// it back to "Default", or the API won't reset it for us.
-		// This means GetOk() will fail us on the zero check.
-		v := d.Get("termination_policies")
-		if len(v.([]interface{})) > 0 {
+		if v, ok := d.GetOk("termination_policies"); ok && len(v.([]interface{})) > 0 {
 			opts.TerminationPolicies = expandStringList(v.([]interface{}))
 		} else {
-			// Policies is a slice of string pointers, so build one.
-			// Maybe there's a better idiom for this?
 			log.Printf("[DEBUG] Explictly setting null termination policy to 'Default'")
-			pol := "Default"
-			s := make([]*string, 1, 1)
-			s[0] = &pol
-			opts.TerminationPolicies = s
+			opts.TerminationPolicies = aws.StringSlice([]string{"Default"})
 		}
 	}
 
