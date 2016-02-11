@@ -18,6 +18,7 @@ import (
 func TestAccAWSBeanstalkAppVersion_basic(t *testing.T) {
 
 	var appVersion elasticbeanstalk.ApplicationVersionDescription
+	var randomBeanstalkBucket = acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -25,7 +26,7 @@ func TestAccAWSBeanstalkAppVersion_basic(t *testing.T) {
 		CheckDestroy: testAccCheckApplicationVersionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccApplicationVersionConfig,
+				Config: fmt.Sprintf(testAccBeanstalkApplicationVersionConfig, randomBeanstalkBucket),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckApplicationVersionExists("aws_elastic_beanstalk_application_version.default", &appVersion),
 				),
@@ -97,8 +98,7 @@ func testAccCheckApplicationVersionExists(n string, app *elasticbeanstalk.Applic
 	}
 }
 
-var randomBeanstalkBucket = acctest.RandInt()
-var testAccApplicationVersionConfig = fmt.Sprintf(`
+const testAccBeanstalkApplicationVersionConfig = `
 resource "aws_s3_bucket" "default" {
   bucket = "tftest.applicationversion.bucket-%d"
 }
@@ -120,4 +120,4 @@ resource "aws_elastic_beanstalk_application_version" "default" {
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
 }
-`, randomBeanstalkBucket)
+`
