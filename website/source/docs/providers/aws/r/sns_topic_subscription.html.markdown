@@ -51,9 +51,9 @@ The following arguments are supported:
 * `topic_arn` - (Required) The ARN of the SNS topic to subscribe to
 * `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`,  `lambda`, `application`. (`http` or `https` are partially supported, see below) (`email`, `sms`, are options but unsupported, see below).
 * `endpoint` - (Required) The endpoint to send data to, the contents will vary with the protocol. (see below for more information)
-* `endpoint_auto_confirms` - (Optional) Boolean indicating whether the end point is capable of auto confirming subscription (default is false)
-* `max_fetch_retries` - (Optional) Integer indicating number of times the subscriptions list for a topic to be fetched to get the subscription arn for auto confirming end points.
-* `fetch_retry_delay` - (Optional) Integer indicating number of seconds to sleep before re-fetching the subscription list for the topic.
+* `endpoint_auto_confirms` - (Optional) Boolean indicating whether the end point is capable of [auto confirming subscription](http://docs.aws.amazon.com/sns/latest/dg/SendMessageToHttp.html#SendMessageToHttp.prepare) (default is false)
+* `max_fetch_retries` - (Optional) Integer indicating number of times the subscriptions list for a topic to be fetched to get the subscription arn for auto confirming end points (default is 3 times).
+* `fetch_retry_delay` - (Optional) Integer indicating number of seconds to sleep before re-fetching the subscription list for the topic (default is 1 second).
 * `raw_message_delivery` - (Optional) Boolean indicating whether or not to enable raw message delivery (the original message is directly passed, not wrapped in JSON with the original message in the message property).
 
 ### Protocols supported
