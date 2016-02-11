@@ -109,6 +109,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"suspended_processes": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"vpc_zone_identifier": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -232,7 +239,12 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating Autoscaling Group: %s", err)
 	}
 
+	if err := updateSuspendedProcesses(d, meta); err != nil {
+		return err
+	}
+
 	d.SetId(d.Get("name").(string))
+
 	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
 
 	if err := waitForASGCapacity(d, meta); err != nil {
@@ -273,6 +285,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("max_size", g.MaxSize)
 	d.Set("placement_group", g.PlacementGroup)
 	d.Set("name", g.AutoScalingGroupName)
+	d.Set("suspended_processes", flattenSuspendedProcesses(g.SuspendedProcesses))
 	d.Set("tag", g.Tags)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
 
@@ -355,6 +368,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 			log.Printf("[DEBUG] Explictly setting null termination policy to 'Default'")
 			opts.TerminationPolicies = aws.StringSlice([]string{"Default"})
 		}
+	}
+
+	if err := updateSuspendedProcesses(d, meta); err != nil {
+		return err
 	}
 
 	if err := setAutoscalingTags(conn, d); err != nil {
@@ -639,4 +656,47 @@ func expandVpcZoneIdentifiers(list []interface{}) *string {
 		strs = append(strs, s.(string))
 	}
 	return aws.String(strings.Join(strs, ","))
+}
+
+func flattenSuspendedProcesses(procs []*autoscaling.SuspendedProcess) []string {
+	names := make([]string, len(procs))
+	for i, p := range procs {
+		names[i] = *p.ProcessName
+	}
+	return names
+}
+
+func updateSuspendedProcesses(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).autoscalingconn
+
+	if d.HasChange("suspended_processes") {
+		old, new := d.GetChange("suspended_processes")
+		oldSet := old.(*schema.Set)
+		newSet := new.(*schema.Set)
+
+		added := newSet.Difference(oldSet).List()
+		if len(added) > 0 {
+			_, err := conn.SuspendProcesses(&autoscaling.ScalingProcessQuery{
+				AutoScalingGroupName: aws.String(d.Get("name").(string)),
+				ScalingProcesses:     expandStringList(added),
+			})
+			if err != nil {
+				return fmt.Errorf("Failure suspending scaling processes: %s", err)
+			}
+		}
+
+		removed := oldSet.Difference(newSet).List()
+		if len(removed) > 0 {
+			_, err := conn.ResumeProcesses(&autoscaling.ScalingProcessQuery{
+				AutoScalingGroupName: aws.String(d.Get("name").(string)),
+				ScalingProcesses:     expandStringList(removed),
+			})
+			if err != nil {
+				return fmt.Errorf("Failure resuming scaling processes: %s", err)
+			}
+		}
+		d.SetPartial("suspended_processes")
+	}
+
+	return nil
 }
