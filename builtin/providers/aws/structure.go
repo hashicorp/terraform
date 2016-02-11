@@ -470,6 +470,11 @@ func expandStringList(configured []interface{}) []*string {
 	return vs
 }
 
+// Takes the result of schema.Set of strings and returns a []*string
+func expandStringSet(configured *schema.Set) []*string {
+	return expandStringList(configured.List())
+}
+
 // Takes list of pointers to strings. Expand to an array
 // of raw strings and returns a []interface{}
 // to keep compatibility w/ schema.NewSetschema.NewSet
