@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -16,20 +15,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 )
 
-var s3File, s3Err = ioutil.TempFile("", "tf.zip")
-
 func TestAccAWSBeanstalkAppVersion_basic(t *testing.T) {
-	ioutil.WriteFile(s3File.Name(), []byte("{anything will do }"), 0644)
 
 	var appVersion elasticbeanstalk.ApplicationVersionDescription
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			if s3Err != nil {
-				panic(s3Err)
-			}
-			testAccPreCheck(t)
-		},
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckApplicationVersionDestroy,
 		Steps: []resource.TestStep{
@@ -115,7 +106,7 @@ resource "aws_s3_bucket" "default" {
 resource "aws_s3_bucket_object" "default" {
   bucket = "${aws_s3_bucket.default.id}"
   key = "beanstalk/go-v1.zip"
-  source = "%s"
+  source = "test-fixtures/beanstalk-go-v1.zip"
 }
 
 resource "aws_elastic_beanstalk_application" "default" {
@@ -129,4 +120,4 @@ resource "aws_elastic_beanstalk_application_version" "default" {
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
 }
-`, randomBeanstalkBucket, s3File.Name())
+`, randomBeanstalkBucket)
