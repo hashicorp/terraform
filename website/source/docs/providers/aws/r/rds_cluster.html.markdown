@@ -75,6 +75,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance.
+* `db_cluster_parameter_group_name` - (Optional) The name of the DB cluster parameter group to use for the DB cluster.
 
 ## Attributes Reference
 
