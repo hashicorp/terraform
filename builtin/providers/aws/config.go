@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
@@ -73,6 +74,7 @@ type AWSClient struct {
 	cfconn             *cloudformation.CloudFormation
 	cloudtrailconn     *cloudtrail.CloudTrail
 	cloudwatchconn     *cloudwatch.CloudWatch
+	cloudfrontconn     *cloudfront.CloudFront
 	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
 	dsconn             *directoryservice.DirectoryService
 	dynamodbconn       *dynamodb.DynamoDB
@@ -182,6 +184,9 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing DynamoDB connection")
 		dynamoSess := session.New(&awsDynamoDBConfig)
 		client.dynamodbconn = dynamodb.New(dynamoSess)
+
+		log.Println("[INFO] Initializing Cloudfront connection")
+		client.cloudfrontconn = cloudfront.New(sess)
 
 		log.Println("[INFO] Initializing ELB connection")
 		awsElbConfig := *awsConfig
