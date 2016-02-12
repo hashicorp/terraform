@@ -1,5 +1,5 @@
 TEST?=$$(GO15VENDOREXPERIMENT=1 go list ./... | grep -v /vendor/)
-VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
+VETARGS?=-asmdecl -atomic -bool -buildtags -composites -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 
 default: test
 
