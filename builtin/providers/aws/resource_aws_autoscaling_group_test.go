@@ -136,6 +136,41 @@ func TestAccAWSAutoScalingGroup_terminationPolicies(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoScalingGroup_suspendedProcceses(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_suspendedProcessesNone,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "0"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_suspendedProcessesUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.997436260", "HealthCheck"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.2282213524", "ScheduledActions"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_suspendedProcessesNone,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 	var group autoscaling.Group
 
@@ -536,6 +571,41 @@ resource "aws_autoscaling_group" "bar" {
   termination_policies = ["OldestInstance"]
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
+}
+`
+
+const testAccAWSAutoScalingGroupConfig_suspendedProcessesNone = `
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  desired_capacity = 0
+  max_size = 0
+  min_size = 0
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+}
+`
+
+const testAccAWSAutoScalingGroupConfig_suspendedProcessesUpdate = `
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  desired_capacity = 0
+  max_size = 0
+  min_size = 0
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  suspended_processes = [
+    "HealthCheck",
+    "ScheduledActions",
+  ]
 }
 `
 
