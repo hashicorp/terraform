@@ -9,10 +9,12 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/hashicorp/terraform/helper/resource"
 	"time"
 )
 
 const awsSNSPendingConfirmationMessage = "pending confirmation"
+const awsSNSPendingConfirmationMessageWithoutSpaces = "pendingconfirmation"
 
 func resourceAwsSnsTopicSubscription() *schema.Resource {
 	return &schema.Resource{
@@ -43,40 +45,28 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 			"endpoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 			"endpoint_auto_confirms": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: false,
 				Default:  false,
 			},
-			"max_fetch_retries": &schema.Schema{
+			"confirmation_timeout_in_minutes": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: false,
-				Default:  3,
-			},
-			"fetch_retry_delay": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: false,
 				Default:  1,
 			},
 			"topic_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 			"delivery_policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
 			},
 			"raw_message_delivery": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: false,
 				Default:  false,
 			},
 			"arn": &schema.Schema{
@@ -198,8 +188,7 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 	endpoint := d.Get("endpoint").(string)
 	topic_arn := d.Get("topic_arn").(string)
 	endpoint_auto_confirms := d.Get("endpoint_auto_confirms").(bool)
-	max_fetch_retries := d.Get("max_fetch_retries").(int)
-	fetch_retry_delay := time.Duration(d.Get("fetch_retry_delay").(int))
+	confirmation_timeout_in_minutes := time.Duration(d.Get("confirmation_timeout_in_minutes").(int))
 
 	if strings.Contains(protocol, "http") && !endpoint_auto_confirms {
 		return nil, fmt.Errorf("Protocol http/https is only supported for endpoints which auto confirms!")
@@ -222,26 +211,26 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 
 	if strings.Contains(protocol, "http") && subscriptionHasPendingConfirmation(output.SubscriptionArn) {
 
-		log.Printf("[DEBUG] SNS create topic subscritpion is pending so fetching the subscription list for topic : %s (%s) @ '%s'", endpoint, protocol, topic_arn)
+		log.Printf("[DEBUG] SNS create topic subscription is pending so fetching the subscription list for topic : %s (%s) @ '%s'", endpoint, protocol, topic_arn)
 
-		for i := 0; i < max_fetch_retries && subscriptionHasPendingConfirmation(output.SubscriptionArn); i++ {
+		err = resource.Retry(time.Minute*confirmation_timeout_in_minutes, func() error {
 
 			subscription, err := findSubscriptionByNonID(d, snsconn)
 
-			if err != nil {
-				return nil, fmt.Errorf("Error fetching subscriptions for SNS topic %s: %s", topic_arn, err)
-			}
-
 			if subscription != nil {
 				output.SubscriptionArn = subscription.SubscriptionArn
-				break
+				return nil
 			}
 
-			time.Sleep(time.Second * fetch_retry_delay)
-		}
+			if err != nil {
+				return fmt.Errorf("Error fetching subscriptions for SNS topic %s: %s", topic_arn, err)
+			}
 
-		if subscriptionHasPendingConfirmation(output.SubscriptionArn) {
-			return nil, fmt.Errorf("Endpoint (%s) did not autoconfirm the subscription for topic %s", endpoint, topic_arn)
+			return fmt.Errorf("Endpoint (%s) did not autoconfirm the subscription for topic %s", endpoint, topic_arn)
+		})
+
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -285,7 +274,7 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 
 // returns true if arn is nil or has both pending and confirmation words in the arn
 func subscriptionHasPendingConfirmation(arn *string) bool {
-	if arn != nil && !strings.Contains(strings.ToLower(*arn), "pending") && !strings.Contains(strings.ToLower(*arn), "confirmation") {
+	if arn != nil && !strings.Contains(strings.Replace(strings.ToLower(*arn), " ", "", -1), awsSNSPendingConfirmationMessageWithoutSpaces) {
 		return false
 	}
 
