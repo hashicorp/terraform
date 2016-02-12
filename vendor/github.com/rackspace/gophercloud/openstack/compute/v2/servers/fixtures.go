@@ -399,6 +399,18 @@ func HandleServerDeletionSuccessfully(t *testing.T) {
 	})
 }
 
+// HandleAdminPasswordChangeSuccessfully sets up the test server to respond to a server password
+// change request.
+func HandleServerForceDeletionSuccessfully(t *testing.T) {
+	th.Mux.HandleFunc("/servers/asdfasdfasdf/action", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", client.TokenID)
+		th.TestJSONRequest(t, r, `{ "forceDelete": "" }`)
+
+		w.WriteHeader(http.StatusAccepted)
+	})
+}
+
 // HandleServerGetSuccessfully sets up the test server to respond to a server Get request.
 func HandleServerGetSuccessfully(t *testing.T) {
 	th.Mux.HandleFunc("/servers/1234asdf", func(w http.ResponseWriter, r *http.Request) {
