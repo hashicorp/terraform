@@ -218,7 +218,7 @@ func testAccCheckCloudTrailLogValidationEnabled(n string, desired bool, trail *c
 
 		if *trail.LogFileValidationEnabled != desired {
 			return fmt.Errorf("Expected log validation status %t, given %t", desired,
-				trail.LogFileValidationEnabled)
+				*trail.LogFileValidationEnabled)
 		}
 
 		// local state comparison
@@ -229,8 +229,7 @@ func testAccCheckCloudTrailLogValidationEnabled(n string, desired bool, trail *c
 		}
 		desiredInString := fmt.Sprintf("%t", desired)
 		if enabled != desiredInString {
-			return fmt.Errorf("Expected log validation status %t, saved %t", desiredInString,
-				enabled)
+			return fmt.Errorf("Expected log validation status %s, saved %s", desiredInString, enabled)
 		}
 
 		return nil
