@@ -37,6 +37,7 @@ BUG FIXES:
   * provider/aws: Fix reading auto scaling group load balancers [GH-5045]
   * provider/aws: Fix reading auto scaling group availability zones [GH-5044]
   * provider/docker: Fix the default docker_host value [GH-5088]
+  * provider/google: Fix backend service max_utilization attribute [GH-5075]
 
 ## 0.6.11 (February 1, 2016)
 
