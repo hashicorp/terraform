@@ -21,6 +21,7 @@ IMPROVEMENTS:
   * core: Backend names are now down cased during `init` in the same manner as `remote config` [GH-5012]
   * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
   * provider/aws: Add support for log validation + KMS encryption to `aws_cloudtrail` [GH-5051]
+  * provider/aws: Support custom endpoints for AWS EC2 ELB and IAM [GH-5114]
 
 BUG FIXES:
 
