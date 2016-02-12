@@ -106,9 +106,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set: func(v interface{}) int {
-								return hashcode.String(v.(string))
-							},
+							Set:      schema.HashString,
 						},
 
 						"self": &schema.Schema{
@@ -152,9 +150,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set: func(v interface{}) int {
-								return hashcode.String(v.(string))
-							},
+							Set:      schema.HashString,
 						},
 
 						"self": &schema.Schema{

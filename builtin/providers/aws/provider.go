@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -73,9 +72,7 @@ func Provider() terraform.ResourceProvider {
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				ConflictsWith: []string{"forbidden_account_ids"},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:           schema.HashString,
 			},
 
 			"forbidden_account_ids": &schema.Schema{
@@ -83,9 +80,7 @@ func Provider() terraform.ResourceProvider {
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				ConflictsWith: []string{"allowed_account_ids"},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:           schema.HashString,
 			},
 
 			"dynamodb_endpoint": &schema.Schema{
