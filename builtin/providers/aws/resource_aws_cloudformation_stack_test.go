@@ -116,6 +116,32 @@ func TestAccAWSCloudFormation_withUrl_withParams(t *testing.T) {
 	})
 }
 
+// if a stack has parameters and/or capabilities, and only template is updated, parameters and capabilities values still have to be
+// included in the update request even though they are not modified
+func TestAccAWSCloudFormation_withParamsAndCapabilitiesAndModifiedTemplate(t *testing.T) {
+	var stack cloudformation.Stack
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudFormationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudFormationConfig_withParamsAndCapabilities,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with_params_and_capabilities", &stack),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCloudFormationConfig_withParamsAndCapabilities_templateModified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFormationStackExists("aws_cloudformation_stack.with_params_and_capabilities", &stack),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudFormationStackExists(n string, stack *cloudformation.Stack) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -374,3 +400,60 @@ var testAccAWSCloudFormationConfig_templateUrl_withParams = fmt.Sprintf(
 var testAccAWSCloudFormationConfig_templateUrl_withParams_modified = fmt.Sprintf(
 	tpl_testAccAWSCloudFormationConfig_templateUrl_withParams,
 	cfBucketName, cfBucketName, "13.0.0.0/16")
+
+var tpl_testAccAWSCloudFormationConfig_withParamsAndCapabilities = `
+resource "aws_cloudformation_stack" "with_params_and_capabilities" {
+  name = "tf-stack-with-params-and-capabilities"
+  parameters {
+    RolePath = "/trfrmtest/"
+  }
+  capabilities = [ "CAPABILITY_IAM" ]
+  template_body = <<STACK
+{
+  "Parameters" : {
+    "RolePath": {
+      "Description" : "Role path",
+      "Type": "String"
+    }
+  },
+  "Resources" : {
+    "InstanceRole" : {
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [ {
+            "Effect": "Allow",
+            "Principal": { "Service": "ec2.amazonaws.com" },
+            "Action": "sts:AssumeRole"
+          } ]
+        },
+        "Path" : { "Ref" : "RolePath" },
+        "Policies" : [ {
+          "PolicyName": "terraformtest",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [ {
+              "Effect": "Allow",
+              "Action": [ %s ],
+              "Resource": [ "*" ]
+            } ]
+          }
+        } ]
+      }
+    }
+  }
+}
+STACK
+
+  on_failure = "DELETE"
+  timeout_in_minutes = 1
+}
+`
+
+var testAccAWSCloudFormationConfig_withParamsAndCapabilities = fmt.Sprintf(
+	tpl_testAccAWSCloudFormationConfig_withParamsAndCapabilities,
+	"\"ec2:DescribeSnapshots\", \"ec2:DescribeVolumes\"")
+var testAccAWSCloudFormationConfig_withParamsAndCapabilities_templateModified = fmt.Sprintf(
+	tpl_testAccAWSCloudFormationConfig_withParamsAndCapabilities,
+	"\"ec2:DescribeSnapshots\"")
