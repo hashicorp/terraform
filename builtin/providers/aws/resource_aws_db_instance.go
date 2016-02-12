@@ -369,12 +369,20 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.StorageType = aws.String(attr.(string))
 		}
 
+		log.Printf("[DEBUG] DB Instance restore from snapshot configuration: %s", opts)
 		_, err := conn.RestoreDBInstanceFromDBSnapshot(&opts)
 		if err != nil {
 			return fmt.Errorf("Error creating DB Instance: %s", err)
 		}
 
+		var sgUpdate bool
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+			sgUpdate = true
+		}
+		if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
+			sgUpdate = true
+		}
+		if sgUpdate {
 			log.Printf("[INFO] DB is restoring from snapshot with default security, but custom security should be set, will now update after snapshot is restored!")
 
 			// wait for instance to get up and then modify security
@@ -775,7 +783,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		requestUpdate = true
 	}
 
-	if d.HasChange("vpc_security_group_ids") {
+	if d.HasChange("security_group_names") {
 		if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
 			var s []*string
 			for _, v := range attr.List() {

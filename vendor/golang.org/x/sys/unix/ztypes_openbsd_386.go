@@ -1,8 +1,6 @@
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_openbsd.go
 
-// +build 386,openbsd
-
 package unix
 
 const (
