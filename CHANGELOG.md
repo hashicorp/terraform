@@ -22,6 +22,7 @@ IMPROVEMENTS:
   * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
   * provider/aws: Add support for log validation + KMS encryption to `aws_cloudtrail` [GH-5051]
   * provider/aws: Support custom endpoints for AWS EC2 ELB and IAM [GH-5114]
+  * provider/aws: Expose additional VPN Connection attributes [GH-5032]
 
 BUG FIXES:
 
