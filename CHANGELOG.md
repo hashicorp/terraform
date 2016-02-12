@@ -30,10 +30,12 @@ BUG FIXES:
   * core: Fix race condition when handling tainted resource destroys [GH-5026]
   * provider/openstack: Fix crash when `access_network` was not defined in instances [GH-4966]
   * provider/aws: Fix DynamoDB Table Refresh to ensure deleted tables are removed from state [GH-4943]
+  * provider/aws: Fix issue applying security group changes in EC2 Classic RDS for aws_db_instance [GH-4969]
   * provider/cloudflare: `ttl` no longer shows a change on each plan on `cloudflare_record` resources [GH-5042]
   * provider/aws: Fix reading auto scaling group load balancers [GH-5045]
   * provider/aws: Fix reading auto scaling group availability zones [GH-5044]
-  * provider/google: Fix backend service max_utilization attribute [GH-4895]
+  * provider/docker: Fix the default docker_host value [GH-5088]
+  * provider/google: Fix backend service max_utilization attribute [GH-5075]
 
 ## 0.6.11 (February 1, 2016)
 
