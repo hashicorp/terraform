@@ -655,8 +655,8 @@
 		},
 		{
 			"ImportPath": "github.com/rackspace/gophercloud",
-			"Comment": "v1.0.0-774-g680aa02",
-			"Rev": "680aa02616313d8399abc91f17a444cf9292f0e1"
+			"Comment": "v1.0.0-803-g6769c3b",
+			"Rev": "6769c3b3e54a5cf1b0bdb10ea5b25f5cff0a3134"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
