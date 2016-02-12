@@ -117,7 +117,7 @@ func testAccAwsVpnConnection(
 	}
 }
 
-func TestAccAWSVpnConnection_xmlconfig(t *testing.T) {
+func TestAWSVpnConnection_xmlconfig(t *testing.T) {
 	tunnelInfo := xmlConfigToTunnelInfo(testAccAwsVpnTunnelInfoXML)
 	if tunnelInfo.Tunnel1Address != "FIRST_ADDRESS" {
 		t.Fatalf("First address from tunnel XML was incorrect.")
