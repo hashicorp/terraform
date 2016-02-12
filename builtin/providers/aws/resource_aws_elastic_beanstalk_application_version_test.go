@@ -1,10 +1,9 @@
 package aws
 
 import (
-	"testing"
-
 	"fmt"
 	"log"
+	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -18,7 +17,6 @@ import (
 func TestAccAWSBeanstalkAppVersion_basic(t *testing.T) {
 
 	var appVersion elasticbeanstalk.ApplicationVersionDescription
-	var randomBeanstalkBucket = acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -26,7 +24,7 @@ func TestAccAWSBeanstalkAppVersion_basic(t *testing.T) {
 		CheckDestroy: testAccCheckApplicationVersionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccBeanstalkApplicationVersionConfig, randomBeanstalkBucket),
+				Config: testAccBeanstalkApplicationVersionConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckApplicationVersionExists("aws_elastic_beanstalk_application_version.default", &appVersion),
 				),
@@ -98,7 +96,8 @@ func testAccCheckApplicationVersionExists(n string, app *elasticbeanstalk.Applic
 	}
 }
 
-const testAccBeanstalkApplicationVersionConfig = `
+func testAccBeanstalkApplicationVersionConfig(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_s3_bucket" "default" {
   bucket = "tftest.applicationversion.bucket-%d"
 }
@@ -119,5 +118,6 @@ resource "aws_elastic_beanstalk_application_version" "default" {
   name = "tf-test-version-label"
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
+ }
+ `, randInt)
 }
-`
