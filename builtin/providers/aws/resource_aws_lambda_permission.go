@@ -72,9 +72,17 @@ func resourceAwsLambdaPermission() *schema.Resource {
 func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).lambdaconn
 
+	functionName := d.Get("function_name").(string)
+
+	// There is a bug in the API (reported and acknowledged by AWS)
+	// which causes some permissions to be ignored when API calls are sent in parallel
+	// We work around this bug via mutex
+	awsMutexKV.Lock(functionName)
+	defer awsMutexKV.Unlock(functionName)
+
 	input := lambda.AddPermissionInput{
 		Action:       aws.String(d.Get("action").(string)),
-		FunctionName: aws.String(d.Get("function_name").(string)),
+		FunctionName: aws.String(functionName),
 		Principal:    aws.String(d.Get("principal").(string)),
 		StatementId:  aws.String(d.Get("statement_id").(string)),
 	}
@@ -99,7 +107,8 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 			if awsErr, ok := err.(awserr.Error); ok {
 				// IAM is eventually consistent :/
 				if awsErr.Code() == "ResourceConflictException" {
-					return fmt.Errorf("[WARN] Error creating ELB Listener with SSL Cert, retrying: %s", err)
+					return fmt.Errorf("[WARN] Error adding new Lambda Permission for %s, retrying: %s",
+						*input.FunctionName, err)
 				}
 			}
 			return resource.RetryError{Err: err}
@@ -115,7 +124,26 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 
 	d.SetId(d.Get("statement_id").(string))
 
-	return resourceAwsLambdaPermissionRead(d, meta)
+	err = resource.Retry(5*time.Minute, func() error {
+		// IAM is eventually cosistent :/
+		err := resourceAwsLambdaPermissionRead(d, meta)
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "Error reading Lambda policy: ResourceNotFoundException") {
+				return fmt.Errorf("[WARN] Error reading newly created Lambda Permission for %s, retrying: %s",
+					*input.FunctionName, err)
+			}
+			if strings.HasPrefix(err.Error(), "Failed to find statement \""+d.Id()) {
+				return fmt.Errorf("[WARN] Error reading newly created Lambda Permission statement for %s, retrying: %s",
+					*input.FunctionName, err)
+			}
+
+			log.Printf("[ERROR] An actual error occured when expecting Lambda policy to be there: %s", err)
+			return resource.RetryError{Err: err}
+		}
+		return nil
+	})
+
+	return err
 }
 
 func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) error {
@@ -129,20 +157,31 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	log.Printf("[DEBUG] Looking for Lambda permission: %s", input)
-	out, err := conn.GetPolicy(&input)
-	if err != nil {
-		return fmt.Errorf("Error reading Lambda policy: %s", err)
-	}
+	var out *lambda.GetPolicyOutput
+	var statement *LambdaPolicyStatement
+	err := resource.Retry(1*time.Minute, func() error {
+		// IAM is eventually cosistent :/
+		var err error
+		out, err = conn.GetPolicy(&input)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "ResourceNotFoundException" {
+					return err
+				}
+			}
+			return resource.RetryError{Err: err}
+		}
 
-	d.Set("full_policy", *out.Policy)
-	policyInBytes := []byte(*out.Policy)
-	policy := LambdaPolicy{}
-	err = json.Unmarshal(policyInBytes, &policy)
-	if err != nil {
-		return fmt.Errorf("Error unmarshalling Lambda policy: %s", err)
-	}
+		policyInBytes := []byte(*out.Policy)
+		policy := LambdaPolicy{}
+		err = json.Unmarshal(policyInBytes, &policy)
+		if err != nil {
+			return resource.RetryError{Err: fmt.Errorf("Error unmarshalling Lambda policy: %s", err)}
+		}
 
-	statement, err := findLambdaPolicyStatementById(&policy, d.Id())
+		statement, err = findLambdaPolicyStatementById(&policy, d.Id())
+		return err
+	})
 	if err != nil {
 		return err
 	}
@@ -182,8 +221,16 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 func resourceAwsLambdaPermissionDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).lambdaconn
 
+	functionName := d.Get("function_name").(string)
+
+	// There is a bug in the API (reported and acknowledged by AWS)
+	// which causes some permissions to be ignored when API calls are sent in parallel
+	// We work around this bug via mutex
+	awsMutexKV.Lock(functionName)
+	defer awsMutexKV.Unlock(functionName)
+
 	input := lambda.RemovePermissionInput{
-		FunctionName: aws.String(d.Get("function_name").(string)),
+		FunctionName: aws.String(functionName),
 		StatementId:  aws.String(d.Id()),
 	}
 
@@ -197,6 +244,51 @@ func resourceAwsLambdaPermissionDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	err = resource.Retry(5*time.Minute, func() error {
+		log.Printf("[DEBUG] Checking if Lambda permission %q is deleted", d.Id())
+
+		params := &lambda.GetPolicyInput{
+			FunctionName: aws.String(d.Get("function_name").(string)),
+		}
+		if v, ok := d.GetOk("qualifier"); ok {
+			params.Qualifier = aws.String(v.(string))
+		}
+
+		log.Printf("[DEBUG] Looking for Lambda permission: %s", *params)
+		resp, err := conn.GetPolicy(params)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "ResourceNotFoundException" {
+					return nil
+				}
+			}
+			return resource.RetryError{Err: err}
+		}
+
+		if resp.Policy == nil {
+			return nil
+		}
+
+		policyInBytes := []byte(*resp.Policy)
+		policy := LambdaPolicy{}
+		err = json.Unmarshal(policyInBytes, &policy)
+		if err != nil {
+			return fmt.Errorf("Error unmarshalling Lambda policy: %s", err)
+		}
+
+		_, err = findLambdaPolicyStatementById(&policy, d.Id())
+		if err != nil {
+			return nil
+		}
+
+		log.Printf("[DEBUG] No error when checking if Lambda permission %s is deleted", d.Id())
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("Failed removing Lambda permission: %s", err)
+	}
+
 	log.Printf("[DEBUG] Lambda permission with ID %q removed", d.Id())
 	d.SetId("")
 
@@ -206,14 +298,14 @@ func resourceAwsLambdaPermissionDelete(d *schema.ResourceData, meta interface{})
 func findLambdaPolicyStatementById(policy *LambdaPolicy, id string) (
 	*LambdaPolicyStatement, error) {
 
-	log.Printf("[DEBUG] Received %d statements in Lambda policy", len(policy.Statement))
+	log.Printf("[DEBUG] Received %d statements in Lambda policy: %s", len(policy.Statement), policy.Statement)
 	for _, statement := range policy.Statement {
 		if statement.Sid == id {
 			return &statement, nil
 		}
 	}
 
-	return nil, fmt.Errorf("Failed to find statement %q in Lambda policy", id)
+	return nil, fmt.Errorf("Failed to find statement %q in Lambda policy:\n%s", id, policy.Statement)
 }
 
 func getQualifierFromLambdaAliasOrVersionArn(arn string) (string, error) {
