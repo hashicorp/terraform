@@ -3,11 +3,13 @@ package aws
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"regexp"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -207,6 +209,8 @@ func TestAccAWSLambdaPermission_multiplePerms(t *testing.T) {
 	var secondStatement LambdaPolicyStatement
 	var secondStatementModified LambdaPolicyStatement
 
+	var thirdStatement LambdaPolicyStatement
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -242,11 +246,18 @@ func TestAccAWSLambdaPermission_multiplePerms(t *testing.T) {
 					resource.TestMatchResourceAttr("aws_lambda_permission.first", "function_name",
 						regexp.MustCompile(":function:lambda_function_name_perm_multiperms$")),
 					// 2nd
-					testAccCheckLambdaPermissionExists("aws_lambda_permission.renamed", &secondStatementModified),
-					resource.TestCheckResourceAttr("aws_lambda_permission.renamed", "action", "lambda:*"),
-					resource.TestCheckResourceAttr("aws_lambda_permission.renamed", "principal", "events.amazonaws.com"),
-					resource.TestCheckResourceAttr("aws_lambda_permission.renamed", "statement_id", "AllowExecutionSecond"),
-					resource.TestMatchResourceAttr("aws_lambda_permission.renamed", "function_name",
+					testAccCheckLambdaPermissionExists("aws_lambda_permission.sec0nd", &secondStatementModified),
+					resource.TestCheckResourceAttr("aws_lambda_permission.sec0nd", "action", "lambda:*"),
+					resource.TestCheckResourceAttr("aws_lambda_permission.sec0nd", "principal", "events.amazonaws.com"),
+					resource.TestCheckResourceAttr("aws_lambda_permission.sec0nd", "statement_id", "AllowExecutionSec0nd"),
+					resource.TestMatchResourceAttr("aws_lambda_permission.sec0nd", "function_name",
+						regexp.MustCompile(":function:lambda_function_name_perm_multiperms$")),
+					// 3rd
+					testAccCheckLambdaPermissionExists("aws_lambda_permission.third", &thirdStatement),
+					resource.TestCheckResourceAttr("aws_lambda_permission.third", "action", "lambda:*"),
+					resource.TestCheckResourceAttr("aws_lambda_permission.third", "principal", "events.amazonaws.com"),
+					resource.TestCheckResourceAttr("aws_lambda_permission.third", "statement_id", "AllowExecutionThird"),
+					resource.TestMatchResourceAttr("aws_lambda_permission.third", "function_name",
 						regexp.MustCompile(":function:lambda_function_name_perm_multiperms$")),
 				),
 			},
@@ -311,31 +322,26 @@ func testAccCheckLambdaPermissionExists(n string, statement *LambdaPolicyStateme
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).lambdaconn
-		params := &lambda.GetPolicyInput{
-			FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
-		}
-		if v, ok := rs.Primary.Attributes["qualifier"]; ok {
-			params.Qualifier = aws.String(v)
-		}
 
-		log.Printf("[DEBUG] Looking for Lambda permission: %s", *params)
-		resp, err := conn.GetPolicy(params)
-		if err != nil {
-			return fmt.Errorf("Lambda policy not found: %q", err)
-		}
-
-		if resp.Policy == nil {
-			return fmt.Errorf("Received Lambda policy is empty")
-		}
-
-		policyInBytes := []byte(*resp.Policy)
-		policy := LambdaPolicy{}
-		err = json.Unmarshal(policyInBytes, &policy)
-		if err != nil {
-			return fmt.Errorf("Error unmarshalling Lambda policy: %s", err)
-		}
-
-		foundStatement, err := findLambdaPolicyStatementById(&policy, rs.Primary.ID)
+		// IAM is eventually consistent
+		var foundStatement *LambdaPolicyStatement
+		err := resource.Retry(5*time.Minute, func() error {
+			var err error
+			foundStatement, err = lambdaPermissionExists(rs, conn)
+			if err != nil {
+				if strings.HasPrefix(err.Error(), "ResourceNotFoundException") {
+					return err
+				}
+				if strings.HasPrefix(err.Error(), "Lambda policy not found") {
+					return err
+				}
+				if strings.HasPrefix(err.Error(), "Failed to find statement") {
+					return err
+				}
+				return resource.RetryError{Err: err}
+			}
+			return nil
+		})
 		if err != nil {
 			return err
 		}
@@ -354,22 +360,87 @@ func testAccCheckAWSLambdaPermissionDestroy(s *terraform.State) error {
 			continue
 		}
 
-		params := &lambda.GetPolicyInput{
-			FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
-		}
-		if v, ok := rs.Primary.Attributes["qualifier"]; ok {
-			params.Qualifier = aws.String(v)
-		}
-
-		resp, err := conn.GetPolicy(params)
-		if err == nil {
-			// No permissions should exist at this point
-			return fmt.Errorf("Lambda Permission still exists: %s\n%s",
-				rs.Primary.ID, *resp.Policy)
+		// IAM is eventually consistent
+		err := resource.Retry(5*time.Minute, func() error {
+			err := isLambdaPermissionGone(rs, conn)
+			if err != nil {
+				if !strings.HasPrefix(err.Error(), "Error unmarshalling Lambda policy") {
+					return err
+				}
+				return resource.RetryError{Err: err}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func isLambdaPermissionGone(rs *terraform.ResourceState, conn *lambda.Lambda) error {
+	params := &lambda.GetPolicyInput{
+		FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
+	}
+	if v, ok := rs.Primary.Attributes["qualifier"]; ok {
+		params.Qualifier = aws.String(v)
+	}
+
+	resp, err := conn.GetPolicy(params)
+	if awsErr, ok := err.(awserr.Error); ok {
+		if awsErr.Code() == "ResourceNotFoundException" {
+			// no policy found => all statements deleted
+			return nil
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("Unexpected error when checking existence of Lambda permission: %s\n%s",
+			rs.Primary.ID, err)
+	}
+
+	policyInBytes := []byte(*resp.Policy)
+	policy := LambdaPolicy{}
+	err = json.Unmarshal(policyInBytes, &policy)
+	if err != nil {
+		return fmt.Errorf("Error unmarshalling Lambda policy (%s): %s", *resp.Policy, err)
+	}
+
+	state, err := findLambdaPolicyStatementById(&policy, rs.Primary.ID)
+	if err != nil {
+		// statement not found => deleted
+		return nil
+	}
+
+	return fmt.Errorf("Policy statement expected to be gone (%s):\n%s",
+		rs.Primary.ID, *state)
+}
+
+func lambdaPermissionExists(rs *terraform.ResourceState, conn *lambda.Lambda) (*LambdaPolicyStatement, error) {
+	params := &lambda.GetPolicyInput{
+		FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
+	}
+	if v, ok := rs.Primary.Attributes["qualifier"]; ok {
+		params.Qualifier = aws.String(v)
+	}
+
+	resp, err := conn.GetPolicy(params)
+	if err != nil {
+		return nil, fmt.Errorf("Lambda policy not found: %q", err)
+	}
+
+	if resp.Policy == nil {
+		return nil, fmt.Errorf("Received Lambda policy is empty")
+	}
+
+	policyInBytes := []byte(*resp.Policy)
+	policy := LambdaPolicy{}
+	err = json.Unmarshal(policyInBytes, &policy)
+	if err != nil {
+		return nil, fmt.Errorf("Error unmarshalling Lambda policy: %s", err)
+	}
+
+	return findLambdaPolicyStatementById(&policy, rs.Primary.ID)
 }
 
 var testAccAWSLambdaPermissionConfig = `
@@ -496,11 +567,12 @@ resource "aws_lambda_permission" "first" {
 }
 
 resource "aws_lambda_permission" "%s" {
-    statement_id = "AllowExecutionSecond"
+    statement_id = "%s"
     action = "lambda:*"
     function_name = "${aws_lambda_function.test_lambda.arn}"
     principal = "events.amazonaws.com"
 }
+%s
 
 resource "aws_lambda_function" "test_lambda" {
     filename = "test-fixtures/lambdatest.zip"
@@ -530,9 +602,15 @@ EOF
 `
 
 var testAccAWSLambdaPermissionConfig_multiplePerms = fmt.Sprintf(
-	testAccAWSLambdaPermissionConfig_multiplePerms_tpl, "second")
+	testAccAWSLambdaPermissionConfig_multiplePerms_tpl, "second", "AllowExecutionSecond", "")
 var testAccAWSLambdaPermissionConfig_multiplePermsModified = fmt.Sprintf(
-	testAccAWSLambdaPermissionConfig_multiplePerms_tpl, "renamed")
+	testAccAWSLambdaPermissionConfig_multiplePerms_tpl, "sec0nd", "AllowExecutionSec0nd", `
+resource "aws_lambda_permission" "third" {
+    statement_id = "AllowExecutionThird"
+    action = "lambda:*"
+    function_name = "${aws_lambda_function.test_lambda.arn}"
+    principal = "events.amazonaws.com"
+}`)
 
 var testAccAWSLambdaPermissionConfig_withS3 = `
 resource "aws_lambda_permission" "with_s3" {
