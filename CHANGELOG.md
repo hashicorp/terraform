@@ -13,6 +13,8 @@ FEATURES:
   * **New resource:** `azurerm_sql_database` [GH-5003]
   * **New resource:** `azurerm_sql_server` [GH-4991]
   * **New resource:** `azurerm_sql_firewall_rule` [GH-5057]
+  * **New resource:** `aws_cloudwatch_event_rule` [GH-4986]
+  * **New resource:** `aws_cloudwatch_event_target` [GH-4986]
   * **New interpolation function:** `signum` [GH-4854]
   * **New command:** `validate` to perform syntax validation [GH-3783]
 
