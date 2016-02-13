@@ -5,11 +5,11 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/hashicorp/terraform/helper/resource"
 	"time"
 )
 
@@ -188,7 +188,7 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 	endpoint := d.Get("endpoint").(string)
 	topic_arn := d.Get("topic_arn").(string)
 	endpoint_auto_confirms := d.Get("endpoint_auto_confirms").(bool)
-	confirmation_timeout_in_minutes := time.Duration(d.Get("confirmation_timeout_in_minutes").(int))
+	confirmation_timeout_in_minutes := d.Get("confirmation_timeout_in_minutes").(int)
 
 	if strings.Contains(protocol, "http") && !endpoint_auto_confirms {
 		return nil, fmt.Errorf("Protocol http/https is only supported for endpoints which auto confirms!")
@@ -213,7 +213,7 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 
 		log.Printf("[DEBUG] SNS create topic subscription is pending so fetching the subscription list for topic : %s (%s) @ '%s'", endpoint, protocol, topic_arn)
 
-		err = resource.Retry(time.Minute*confirmation_timeout_in_minutes, func() error {
+		err = resource.Retry(time.Duration(int(time.Minute)*confirmation_timeout_in_minutes), func() error {
 
 			subscription, err := findSubscriptionByNonID(d, snsconn)
 
