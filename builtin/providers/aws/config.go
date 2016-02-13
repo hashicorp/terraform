@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
@@ -70,35 +71,36 @@ type Config struct {
 }
 
 type AWSClient struct {
-	cfconn             *cloudformation.CloudFormation
-	cloudtrailconn     *cloudtrail.CloudTrail
-	cloudwatchconn     *cloudwatch.CloudWatch
-	cloudwatchlogsconn *cloudwatchlogs.CloudWatchLogs
-	dsconn             *directoryservice.DirectoryService
-	dynamodbconn       *dynamodb.DynamoDB
-	ec2conn            *ec2.EC2
-	ecrconn            *ecr.ECR
-	ecsconn            *ecs.ECS
-	efsconn            *efs.EFS
-	elbconn            *elb.ELB
-	esconn             *elasticsearch.ElasticsearchService
-	autoscalingconn    *autoscaling.AutoScaling
-	s3conn             *s3.S3
-	sqsconn            *sqs.SQS
-	snsconn            *sns.SNS
-	redshiftconn       *redshift.Redshift
-	r53conn            *route53.Route53
-	region             string
-	rdsconn            *rds.RDS
-	iamconn            *iam.IAM
-	kinesisconn        *kinesis.Kinesis
-	firehoseconn       *firehose.Firehose
-	elasticacheconn    *elasticache.ElastiCache
-	lambdaconn         *lambda.Lambda
-	opsworksconn       *opsworks.OpsWorks
-	glacierconn        *glacier.Glacier
-	codedeployconn     *codedeploy.CodeDeploy
-	codecommitconn     *codecommit.CodeCommit
+	cfconn               *cloudformation.CloudFormation
+	cloudtrailconn       *cloudtrail.CloudTrail
+	cloudwatchconn       *cloudwatch.CloudWatch
+	cloudwatchlogsconn   *cloudwatchlogs.CloudWatchLogs
+	cloudwatcheventsconn *cloudwatchevents.CloudWatchEvents
+	dsconn               *directoryservice.DirectoryService
+	dynamodbconn         *dynamodb.DynamoDB
+	ec2conn              *ec2.EC2
+	ecrconn              *ecr.ECR
+	ecsconn              *ecs.ECS
+	efsconn              *efs.EFS
+	elbconn              *elb.ELB
+	esconn               *elasticsearch.ElasticsearchService
+	autoscalingconn      *autoscaling.AutoScaling
+	s3conn               *s3.S3
+	sqsconn              *sqs.SQS
+	snsconn              *sns.SNS
+	redshiftconn         *redshift.Redshift
+	r53conn              *route53.Route53
+	region               string
+	rdsconn              *rds.RDS
+	iamconn              *iam.IAM
+	kinesisconn          *kinesis.Kinesis
+	firehoseconn         *firehose.Firehose
+	elasticacheconn      *elasticache.ElastiCache
+	lambdaconn           *lambda.Lambda
+	opsworksconn         *opsworks.OpsWorks
+	glacierconn          *glacier.Glacier
+	codedeployconn       *codedeploy.CodeDeploy
+	codecommitconn       *codecommit.CodeCommit
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -255,6 +257,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
 		client.cloudwatchconn = cloudwatch.New(sess)
+
+		log.Println("[INFO] Initializing CloudWatch Events connection")
+		client.cloudwatcheventsconn = cloudwatchevents.New(sess)
 
 		log.Println("[INFO] Initializing CloudTrail connection")
 		client.cloudtrailconn = cloudtrail.New(sess)
