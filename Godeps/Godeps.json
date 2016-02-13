@@ -263,6 +263,11 @@
 			"Rev": "be2ec39e520e3c4088c0c6288055bdc8184a89ee"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudwatchevents",
+			"Comment": "v1.1.0",
+			"Rev": "be2ec39e520e3c4088c0c6288055bdc8184a89ee"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudwatchlogs",
 			"Comment": "v1.1.0",
 			"Rev": "be2ec39e520e3c4088c0c6288055bdc8184a89ee"
