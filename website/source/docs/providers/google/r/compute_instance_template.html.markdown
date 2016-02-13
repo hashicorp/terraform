@@ -129,7 +129,11 @@ The `disk` block supports:
 * `source` - (Required if source_image not set) The name of the disk (such as
 	those managed by `google_compute_disk`) to attach.
 
-* `type` - (Optional) The GCE disk type.
+* `disk_type` - (Optional) The GCE disk type. Can be either `"pd-ssd"`,
+	`"local-ssd"`, or `"pd-standard"`.
+
+* `type` - (Optional) The type of GCE disk, can be either `"SCRATCH"` or
+	`"PERSISTENT"`.
 
 The `network_interface` block supports:
 
