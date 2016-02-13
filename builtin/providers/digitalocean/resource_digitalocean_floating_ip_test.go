@@ -61,7 +61,7 @@ func testAccCheckDigitalOceanFloatingIPDestroy(s *terraform.State) error {
 		_, _, err := client.FloatingIPs.Get(rs.Primary.ID)
 
 		if err == nil {
-			fmt.Errorf("Floating IP still exists")
+			return fmt.Errorf("Floating IP still exists")
 		}
 	}
 
