@@ -25,6 +25,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for log validation + KMS encryption to `aws_cloudtrail` [GH-5051]
   * provider/aws: Support custom endpoints for AWS EC2 ELB and IAM [GH-5114]
   * provider/aws: Expose additional VPN Connection attributes [GH-5032]
+  * provider/aws: Add support for HTTP(S) endpoints that auto confirm SNS subscription [GH-4711]
 
 BUG FIXES:
 
