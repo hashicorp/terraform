@@ -14,6 +14,7 @@ func resourceComputeNetwork() *schema.Resource {
 		Create: resourceComputeNetworkCreate,
 		Read:   resourceComputeNetworkRead,
 		Delete: resourceComputeNetworkDelete,
+		Update: resourceComputeNetworkUpdate,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -24,13 +25,24 @@ func resourceComputeNetwork() *schema.Resource {
 
 			"ipv4_range": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 
 			"gateway_ipv4": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"auto_create_subnetworks": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false, // copy behaviour of Google Cloud GUI and gcloud tool
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -44,11 +56,36 @@ func resourceComputeNetwork() *schema.Resource {
 func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	//
+	// Possible modes:
+	// -1- Legacy mode - Create a network in the legacy mode. ipv4_range is set. auto_create_subnetworks must be false
+	//     and not sent in reqest, and subnetworks empty
+	// -2- Distributed Mode - Create a new generation network that supports subnetworks:
+	//   2.a - Auto subnet mode - auto_create_subnetworks = true, Google will generate 1 subnetwork per region
+	//   2.b - Custom subnet mode - auto_create_subnetworks = false & ipv4_range not set,
+	//
+	ipv4range := d.Get("ipv4_range").(string)
+	autoCreateSubnetworks := d.Get("auto_create_subnetworks").(bool)
+
+	if ipv4range != "" && autoCreateSubnetworks {
+		return fmt.Errorf("Error: cannot define ipv4_range with auto_create_subnetworks = true.")
+	}
+
 	// Build the network parameter
 	network := &compute.Network{
-		Name:      d.Get("name").(string),
-		IPv4Range: d.Get("ipv4_range").(string),
+		Name: d.Get("name").(string),
+		AutoCreateSubnetworks: autoCreateSubnetworks,
+		Description:           d.Get("description").(string),
 	}
+
+	if v, ok := d.GetOk("ipv4_range"); ok {
+		log.Printf("[DEBUG] Setting IPv4Range (%#V) for legacy network mode", v.(string))
+		network.IPv4Range = v.(string)
+	} else {
+		// custom subnet mode, so make sure AutoCreateSubnetworks field is included in request
+		network.ForceSendFields = []string{"AutoCreateSubnetworks"}
+	}
+
 	log.Printf("[DEBUG] Network insert request: %#v", network)
 	op, err := config.clientCompute.Networks.Insert(
 		config.Project, network).Do()
@@ -64,7 +101,7 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	return resourceComputeNetworkRead(d, meta)
+	return nil
 }
 
 func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error {
@@ -86,6 +123,10 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 
 	d.Set("gateway_ipv4", network.GatewayIPv4)
 	d.Set("self_link", network.SelfLink)
+	for i, v := range network.Subnetworks {
+		prefix := fmt.Sprintf("subnetwork_links.%d", i)
+		d.Set(prefix, v)
+	}
 
 	return nil
 }
@@ -106,5 +147,10 @@ func resourceComputeNetworkDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.SetId("")
+	return nil
+}
+
+func resourceComputeNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
+	//config := meta.(*Config)
 	return nil
 }
