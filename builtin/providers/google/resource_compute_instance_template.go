@@ -141,6 +141,12 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"subnetwork": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"access_config": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -337,9 +343,12 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 			source += v.(string)
 		}
 
+		subnetworkLink := d.Get("subnetwork").(string)
+
 		// Build the networkInterface
 		var iface compute.NetworkInterface
 		iface.Network = source
+		iface.Subnetwork = subnetworkLink
 
 		accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
 		iface.AccessConfigs = make([]*compute.AccessConfig, accessConfigsCount)

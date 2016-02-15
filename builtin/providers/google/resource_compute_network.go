@@ -24,9 +24,10 @@ func resourceComputeNetwork() *schema.Resource {
 			},
 
 			"ipv4_range": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use custom subnetworks instead",
 			},
 
 			"gateway_ipv4": &schema.Schema{

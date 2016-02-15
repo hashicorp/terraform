@@ -145,3 +145,11 @@ func validateCredentials(v interface{}, k string) (warnings []string, errors []e
 
 	return
 }
+
+func getRegionFromZone(zone string) string {
+	if zone != "" && len(zone) > 2 {
+		region := zone[:len(zone)-2]
+		return region
+	}
+	return ""
+}
