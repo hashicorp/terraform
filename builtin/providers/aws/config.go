@@ -232,7 +232,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.ec2conn = ec2.New(awsEc2Sess)
 
 		log.Println("[INFO] Initializing ECR Connection")
-		client.ecrconn = ecr.New(sess)
+		client.ecrconn = ecr.New(sess, &aws.Config{Region: aws.String("us-east-1")})
 
 		log.Println("[INFO] Initializing ECS Connection")
 		client.ecsconn = ecs.New(sess)
