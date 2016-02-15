@@ -276,9 +276,7 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.TemplateBody = aws.String(normalizeJson(v.(string)))
 	}
 
-	if d.HasChange("capabilities") {
-		input.Capabilities = expandStringList(d.Get("capabilities").(*schema.Set).List())
-	}
+	input.Capabilities = expandStringList(d.Get("capabilities").(*schema.Set).List())
 	if d.HasChange("notification_arns") {
 		input.NotificationARNs = expandStringList(d.Get("notification_arns").(*schema.Set).List())
 	}
