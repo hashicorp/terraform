@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opDeleteRule = "DeleteRule"
@@ -25,6 +27,8 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteRuleOutput{}
 	req.Data = output
 	return
@@ -84,6 +88,8 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DisableRuleOutput{}
 	req.Data = output
 	return
@@ -116,6 +122,8 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &EnableRuleOutput{}
 	req.Data = output
 	return

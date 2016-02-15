@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
 const opAddSourceIdentifierToSubscription = "AddSourceIdentifierToSubscription"
@@ -52,6 +54,8 @@ func (c *RDS) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AddTagsToResourceOutput{}
 	req.Data = output
 	return
@@ -674,6 +678,8 @@ func (c *RDS) DeleteDBClusterParameterGroupRequest(input *DeleteDBClusterParamet
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBClusterParameterGroupOutput{}
 	req.Data = output
 	return
@@ -777,6 +783,8 @@ func (c *RDS) DeleteDBParameterGroupRequest(input *DeleteDBParameterGroupInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBParameterGroupOutput{}
 	req.Data = output
 	return
@@ -805,6 +813,8 @@ func (c *RDS) DeleteDBSecurityGroupRequest(input *DeleteDBSecurityGroupInput) (r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBSecurityGroupOutput{}
 	req.Data = output
 	return
@@ -864,6 +874,8 @@ func (c *RDS) DeleteDBSubnetGroupRequest(input *DeleteDBSubnetGroupInput) (req *
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBSubnetGroupOutput{}
 	req.Data = output
 	return
@@ -920,6 +932,8 @@ func (c *RDS) DeleteOptionGroupRequest(input *DeleteOptionGroupInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteOptionGroupOutput{}
 	req.Data = output
 	return
@@ -2454,6 +2468,8 @@ func (c *RDS) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RemoveTagsFromResourceOutput{}
 	req.Data = output
 	return
