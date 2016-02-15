@@ -74,6 +74,7 @@ func resourceAwsCloudTrail() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -118,6 +119,7 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] CloudTrail created: %s", t)
 
+	d.Set("arn", *t.TrailARN)
 	d.SetId(*t.Name)
 
 	// AWS CloudTrail sets newly-created trails to false.
@@ -128,7 +130,7 @@ func resourceAwsCloudTrailCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	return resourceAwsCloudTrailRead(d, meta)
+	return resourceAwsCloudTrailUpdate(d, meta)
 }
 
 func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
@@ -168,6 +170,26 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("arn", trail.TrailARN)
 	d.Set("home_region", trail.HomeRegion)
+
+	// Get tags
+	req := &cloudtrail.ListTagsInput{
+		ResourceIdList: []*string{trail.TrailARN},
+	}
+
+	tagsOut, err := conn.ListTags(req)
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Received CloudTrail tags: %s", tagsOut)
+
+	var tags []*cloudtrail.Tag
+	if tagsOut.ResourceTagList != nil && len(tagsOut.ResourceTagList) > 0 {
+		tags = tagsOut.ResourceTagList[0].TagsList
+	}
+
+	if err := d.Set("tags", tagsToMapCloudtrail(tags)); err != nil {
+		return err
+	}
 
 	logstatus, err := cloudTrailGetLoggingStatus(conn, trail.Name)
 	if err != nil {
@@ -217,6 +239,13 @@ func resourceAwsCloudTrailUpdate(d *schema.ResourceData, meta interface{}) error
 	t, err := conn.UpdateTrail(&input)
 	if err != nil {
 		return err
+	}
+
+	if d.HasChange("tags") {
+		err := setTagsCloudtrail(conn, d)
+		if err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("enable_logging") {
