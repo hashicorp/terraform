@@ -42,6 +42,8 @@ func TestAccComputeNetwork_auto_subnet(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeNetworkExists(
 						"google_compute_network.bar", &network),
+					testAccCheckComputeNetworkIsAutoSubnet(
+						"google_compute_network.bar", &network),
 				),
 			},
 		},
@@ -111,6 +113,28 @@ func testAccCheckComputeNetworkExists(n string, network *compute.Network) resour
 		}
 
 		*network = *found
+
+		return nil
+	}
+}
+
+func testAccCheckComputeNetworkIsAutoSubnet(n string, network *compute.Network) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Config)
+
+		found, err := config.clientCompute.Networks.Get(
+			config.Project, network.Name).Do()
+		if err != nil {
+			return err
+		}
+
+		if !found.AutoCreateSubnetworks {
+			return fmt.Errorf("should have AutoCreateSubnetworks = true")
+		}
+
+		if found.IPv4Range != "" {
+			return fmt.Errorf("should not have IPv4Range")
+		}
 
 		return nil
 	}
