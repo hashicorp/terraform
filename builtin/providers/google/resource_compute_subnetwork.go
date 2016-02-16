@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"strings"
 )
 
 func resourceComputeSubnetwork() *schema.Resource {
@@ -63,6 +64,13 @@ func createSubnetID(s *compute.Subnetwork) string {
 	return fmt.Sprintf("%s/%s", s.Region, s.Name)
 }
 
+func splitSubnetID(id string) (region string, name string) {
+	parts := strings.Split(id, "/")
+	region = parts[0]
+	name = parts[1]
+	return
+}
+
 func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -83,8 +91,11 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating subnetwork: %s", err)
 	}
 
-	// It probably maybe worked, so store the ID now
-	// Subnetwork name is not guaranteed to be unique in a project, but must be unique within a region
+	// It probably maybe worked, so store the ID now. ID is a combination of region + subnetwork
+	// name because subnetwork names are not unique in a project, per the Google docs:
+	// "When creating a new subnetwork, its name has to be unique in that project for that region, even across networks.
+	// The same name can appear twice in a project, as long as each one is in a different region."
+	// https://cloud.google.com/compute/docs/subnetworks
 	subnetwork.Region = region
 	d.SetId(createSubnetID(subnetwork))
 
@@ -125,14 +136,14 @@ func resourceComputeSubnetworkDelete(d *schema.ResourceData, meta interface{}) e
 	config := meta.(*Config)
 	region := d.Get("region").(string)
 
-	// Delete the network
+	// Delete the subnetwork
 	op, err := config.clientCompute.Subnetworks.Delete(
 		config.Project, region, d.Get("name").(string)).Do()
 	if err != nil {
-		return fmt.Errorf("Error deleting network: %s", err)
+		return fmt.Errorf("Error deleting subnetwork: %s", err)
 	}
 
-	err = computeOperationWaitRegion(config, op, region, "Deleting Network")
+	err = computeOperationWaitRegion(config, op, region, "Deleting Subnetwork")
 	if err != nil {
 		return err
 	}
