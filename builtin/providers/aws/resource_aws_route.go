@@ -322,5 +322,7 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf(`
+error finding matching route for Route table (%s) and destination CIDR block (%s)`,
+		rtbid, cidr)
 }
