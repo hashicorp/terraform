@@ -19,7 +19,7 @@ func schemaSBPoolProfile() *schema.Schema {
 }
 func schemaDirPoolRDataInfo() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeMap,
+		Type:     schema.TypeSet,
 		Optional: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
