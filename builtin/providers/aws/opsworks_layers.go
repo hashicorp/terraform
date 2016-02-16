@@ -67,10 +67,10 @@ func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 			Optional: true,
 		},
 
-                "elastic_load_balancer": &schema.Schema{
-                        Type:     schema.TypeString,
-                        Optional: true,
-                },
+		"elastic_load_balancer": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 
 		"custom_setup_recipes": &schema.Schema{
 			Type:     schema.TypeList,
@@ -293,25 +293,25 @@ func (lt *opsworksLayerType) Read(d *schema.ResourceData, client *opsworks.OpsWo
 	lt.SetCustomRecipes(d, layer.CustomRecipes)
 	lt.SetVolumeConfigurations(d, layer.VolumeConfigurations)
 
-        /* get ELB */
-        ebsRequest := &opsworks.DescribeElasticLoadBalancersInput{
-                LayerIds: []*string{
-                        aws.String(d.Id()),
-                },
-        }
-        loadBalancers, err := client.DescribeElasticLoadBalancers(ebsRequest)
-        if err != nil {
-                return err
-        }
+	/* get ELB */
+	ebsRequest := &opsworks.DescribeElasticLoadBalancersInput{
+		LayerIds: []*string{
+			aws.String(d.Id()),
+		},
+	}
+	loadBalancers, err := client.DescribeElasticLoadBalancers(ebsRequest)
+	if err != nil {
+		return err
+	}
 
-        if loadBalancers.ElasticLoadBalancers == nil || len(loadBalancers.ElasticLoadBalancers) == 0 {
-                d.Set("elastic_load_balancer", "")
-        } else {
-                loadBalancer := loadBalancers.ElasticLoadBalancers[0]
-                if loadBalancer != nil {
-                        d.Set("elastic_load_balancer", loadBalancer.ElasticLoadBalancerName)
-                }
-        }
+	if loadBalancers.ElasticLoadBalancers == nil || len(loadBalancers.ElasticLoadBalancers) == 0 {
+		d.Set("elastic_load_balancer", "")
+	} else {
+		loadBalancer := loadBalancers.ElasticLoadBalancers[0]
+		if loadBalancer != nil {
+			d.Set("elastic_load_balancer", loadBalancer.ElasticLoadBalancerName)
+		}
+	}
 
 	return nil
 }
@@ -353,19 +353,19 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
 	d.SetId(layerId)
 	d.Set("id", layerId)
 
-        loadBalancer := aws.String(d.Get("elastic_load_balancer").(string))
-        if loadBalancer != nil && *loadBalancer != "" {
-                log.Printf("[DEBUG] Attaching load balancer: %s", *loadBalancer)
-                _, err := client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
-                        ElasticLoadBalancerName: loadBalancer,
-                        LayerId:                 &layerId,
-                })
-                if err != nil {
-                        return err
-                }
-        }
+	loadBalancer := aws.String(d.Get("elastic_load_balancer").(string))
+	if loadBalancer != nil && *loadBalancer != "" {
+		log.Printf("[DEBUG] Attaching load balancer: %s", *loadBalancer)
+		_, err := client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
+			ElasticLoadBalancerName: loadBalancer,
+			LayerId:                 &layerId,
+		})
+		if err != nil {
+			return err
+		}
+	}
 
-        return lt.Read(d, client)
+	return lt.Read(d, client)
 }
 
 func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.OpsWorks) error {
@@ -395,31 +395,34 @@ func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.Ops
 
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
 
-        if d.HasChange("elastic_load_balancer") {
-                lbo, lbn := d.GetChange("elastic_load_balancer")
+	if d.HasChange("elastic_load_balancer") {
+		lbo, lbn := d.GetChange("elastic_load_balancer")
 
-                loadBalancerOld := aws.String(lbo.(string))
-                loadBalancerNew := aws.String(lbn.(string))
+		loadBalancerOld := aws.String(lbo.(string))
+		loadBalancerNew := aws.String(lbn.(string))
 
-                if loadBalancerOld != nil && *loadBalancerOld != "" {
-                        log.Printf("[DEBUG] Dettaching load balancer: %s", *loadBalancerOld)
-                        _, err := client.DetachElasticLoadBalancer(&opsworks.DetachElasticLoadBalancerInput{
-                                ElasticLoadBalancerName: loadBalancerOld,
-                                LayerId:                 aws.String(d.Id()),
-                        })
-                        if err != nil {
-                                return err
-                        }
-                }
+		if loadBalancerOld != nil && *loadBalancerOld != "" {
+			log.Printf("[DEBUG] Dettaching load balancer: %s", *loadBalancerOld)
+			_, err := client.DetachElasticLoadBalancer(&opsworks.DetachElasticLoadBalancerInput{
+				ElasticLoadBalancerName: loadBalancerOld,
+				LayerId:                 aws.String(d.Id()),
+			})
+			if err != nil {
+				return err
+			}
+		}
 
-                if loadBalancerNew != nil && *loadBalancerNew != "" {
-                        log.Printf("[DEBUG] Attaching load balancer: %s", *loadBalancerNew)
-                        client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
-                                ElasticLoadBalancerName: loadBalancerNew,
-                                LayerId:                 aws.String(d.Id()),
-                        })
-                }
-        }
+		if loadBalancerNew != nil && *loadBalancerNew != "" {
+			log.Printf("[DEBUG] Attaching load balancer: %s", *loadBalancerNew)
+			_, err := client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
+				ElasticLoadBalancerName: loadBalancerNew,
+				LayerId:                 aws.String(d.Id()),
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	_, err := client.UpdateLayer(req)
 	if err != nil {
