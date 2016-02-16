@@ -124,7 +124,7 @@ The `network_interface` block supports:
     `network` or `subnetwork` must be provided.
     
 *  `subnetwork` - (Optional) the name of the subnetwork to attach this interface to. The subnetwork
-     must exist in the same region this instance is to be created in. Either `network`
+     must exist in the same region this instance will be created in. Either `network`
      or `subnetwork` must be provided.
 
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this instance can be
