@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"testing"
 	"time"
@@ -157,6 +158,53 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 	})
 }
 
+func TestAccAWSCloudTrail_tags(t *testing.T) {
+	var trail cloudtrail.Trail
+	var trailTags []*cloudtrail.Tag
+	var trailTagsModified []*cloudtrail.Tag
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudTrailConfig_tags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "2"),
+					testAccCheckCloudTrailLoadTags(&trail, &trailTags),
+					testAccCheckCloudTrailCheckTags(&trailTags, map[string]string{"Foo": "moo", "Pooh": "hi"}),
+					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
+					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCloudTrailConfig_tagsModified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "3"),
+					testAccCheckCloudTrailLoadTags(&trail, &trailTagsModified),
+					testAccCheckCloudTrailCheckTags(&trailTagsModified, map[string]string{"Foo": "moo", "Moo": "boom", "Pooh": "hi"}),
+					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
+					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSCloudTrailConfig_tagsModifiedAgain,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
+					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "0"),
+					testAccCheckCloudTrailLoadTags(&trail, &trailTagsModified),
+					testAccCheckCloudTrailCheckTags(&trailTagsModified, map[string]string{}),
+					testAccCheckCloudTrailLogValidationEnabled("aws_cloudtrail.foobar", false, &trail),
+					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudTrailExists(n string, trail *cloudtrail.Trail) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -297,6 +345,25 @@ func testAccCheckAWSCloudTrailDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCheckCloudTrailLoadTags(trail *cloudtrail.Trail, tags *[]*cloudtrail.Tag) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).cloudtrailconn
+		input := cloudtrail.ListTagsInput{
+			ResourceIdList: []*string{trail.TrailARN},
+		}
+		out, err := conn.ListTags(&input)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] Received CloudTrail tags during test: %s", out)
+		if len(out.ResourceTagList) > 0 {
+			*tags = out.ResourceTagList[0].TagsList
+		}
+		log.Printf("[DEBUG] Loading CloudTrail tags into a var: %s", *tags)
+		return nil
+	}
 }
 
 var cloudTrailRandInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
@@ -498,3 +565,56 @@ resource "aws_s3_bucket" "foo" {
 POLICY
 }
 `, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+
+var testAccAWSCloudTrailConfig_tags_tpl = `
+resource "aws_cloudtrail" "foobar" {
+    name = "tf-acc-trail-log-validation-test"
+    s3_bucket_name = "${aws_s3_bucket.foo.id}"
+    %s
+}
+
+resource "aws_s3_bucket" "foo" {
+	bucket = "tf-test-trail-%d"
+	force_destroy = true
+	policy = <<POLICY
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "AWSCloudTrailAclCheck",
+			"Effect": "Allow",
+			"Principal": "*",
+			"Action": "s3:GetBucketAcl",
+			"Resource": "arn:aws:s3:::tf-test-trail-%d"
+		},
+		{
+			"Sid": "AWSCloudTrailWrite",
+			"Effect": "Allow",
+			"Principal": "*",
+			"Action": "s3:PutObject",
+			"Resource": "arn:aws:s3:::tf-test-trail-%d/*",
+			"Condition": {
+				"StringEquals": {
+					"s3:x-amz-acl": "bucket-owner-full-control"
+				}
+			}
+		}
+	]
+}
+POLICY
+}
+`
+
+var testAccAWSCloudTrailConfig_tags = fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+	`tags {
+		Foo = "moo"
+		Pooh = "hi"
+	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+var testAccAWSCloudTrailConfig_tagsModified = fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+	`tags {
+		Foo = "moo"
+		Pooh = "hi"
+		Moo = "boom"
+	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+var testAccAWSCloudTrailConfig_tagsModifiedAgain = fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+	"", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
