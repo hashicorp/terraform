@@ -27,6 +27,7 @@ IMPROVEMENTS:
   * provider/aws: Expose additional VPN Connection attributes [GH-5032]
   * provider/aws: Add support for HTTP(S) endpoints that auto confirm SNS subscription [GH-4711]
   * provider/aws: Add support for Tags to CloudTrail [GH-5135]
+  * provider/aws: Add support for Tags to ElasticSearch [GH-4973]
 
 BUG FIXES:
 
@@ -42,6 +43,7 @@ BUG FIXES:
   * provider/aws: Fix reading auto scaling group availability zones [GH-5044]
   * provider/docker: Fix the default docker_host value [GH-5088]
   * provider/google: Fix backend service max_utilization attribute [GH-5075]
+  * provider/aws: Fix ElasticSearch `domain_name` validation [GH-4973]
 
 ## 0.6.11 (February 1, 2016)
 
