@@ -39,7 +39,7 @@ echo "==> Building..."
 gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
-    -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
+    -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" \
     -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
     $(go list ./... | grep -v /vendor/)
 
