@@ -485,7 +485,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-cleanhttp",
-			"Rev": "ce617e79981a8fff618bb643d155133a8f38db96"
+			"Rev": "875fb671b3ddc66f8e2f0acc33829c8cb989a38d"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-getter",
