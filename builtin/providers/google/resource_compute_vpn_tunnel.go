@@ -113,7 +113,7 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 	config := meta.(*Config)
 
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
+	region := getOptionalRegion(d, config)
 	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
@@ -143,7 +143,7 @@ func resourceComputeVpnTunnelDelete(d *schema.ResourceData, meta interface{}) er
 	config := meta.(*Config)
 
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
+	region := getOptionalRegion(d, config)
 	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
