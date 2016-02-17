@@ -600,6 +600,10 @@
 			"Rev": "07bab5fdd9580500aea6ada0e09df4aa28e68abd"
 		},
 		{
+			"ImportPath": "github.com/mitchellh/hashstructure",
+			"Rev": "6b17d669fac5e2f71c16658d781ec3fdd3802b69"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
 			"Rev": "281073eb9eb092240d33ef253c404f1cca550309"
 		},
