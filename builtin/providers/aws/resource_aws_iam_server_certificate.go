@@ -58,9 +58,9 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				ConflictsWith: []string{"name_prefix"},
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if len(value) > 255 {
+					if len(value) > 128 {
 						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 255 characters", k))
+							"%q cannot be longer than 128 characters", k))
 					}
 					return
 				},
@@ -72,9 +72,9 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if len(value) > 100 {
+					if len(value) > 30 {
 						errors = append(errors, fmt.Errorf(
-							"%q cannot be longer than 100 characters, name is limited to 128", k))
+							"%q cannot be longer than 30 characters, name is limited to 128", k))
 					}
 					return
 				},
