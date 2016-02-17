@@ -18,7 +18,7 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 
 	rString := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
 	configBase := fmt.Sprintf(testAccAWSGroupMemberConfig, rString, rString, rString)
-	configUpdate := fmt.Sprintf(testAccAWSGroupMemberConfigUpdate, rString, rString, rString, rString)
+	configUpdate := fmt.Sprintf(testAccAWSGroupMemberConfigUpdate, rString, rString, rString, rString, rString)
 	configUpdateDown := fmt.Sprintf(testAccAWSGroupMemberConfigUpdateDown, rString, rString, rString)
 
 	testUser := fmt.Sprintf("test-user-%s", rString)
@@ -115,7 +115,7 @@ func testAccCheckAWSGroupMembershipExists(n string, g *iam.GetGroupOutput) resou
 func testAccCheckAWSGroupMembershipAttributes(group *iam.GetGroupOutput, users []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if !strings.Contains(*group.Group.GroupName, "test-group") {
-			return fmt.Errorf("Bad group membership: expected %d, got %d", "test-group", *group.Group.GroupName)
+			return fmt.Errorf("Bad group membership: expected %s, got %s", "test-group", *group.Group.GroupName)
 		}
 
 		uc := len(users)
