@@ -219,8 +219,11 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 				return fmt.Errorf("[WARN] Error creating S3 bucket %s, retrying: %s",
 					bucket, err)
 			}
+		}
+		if err != nil {
 			return resource.RetryError{Err: err}
 		}
+
 		return nil
 	})
 
