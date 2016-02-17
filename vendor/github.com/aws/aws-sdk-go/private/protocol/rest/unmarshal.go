@@ -15,6 +15,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 )
 
+// UnmarshalHandler is a named request handler for unmarshaling rest protocol requests
+var UnmarshalHandler = request.NamedHandler{Name: "awssdk.rest.Unmarshal", Fn: Unmarshal}
+
+// UnmarshalMetaHandler is a named request handler for unmarshaling rest protocol request metadata
+var UnmarshalMetaHandler = request.NamedHandler{Name: "awssdk.rest.UnmarshalMeta", Fn: UnmarshalMeta}
+
 // Unmarshal unmarshals the REST component of a response in a REST service.
 func Unmarshal(r *request.Request) {
 	if r.DataFilled() {

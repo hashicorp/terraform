@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -675,6 +676,20 @@ func flattenDSVpcSettings(
 	}
 
 	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["vpc_id"] = *s.VpcId
+
+	return []map[string]interface{}{settings}
+}
+
+func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SecurityGroupIds))
 	settings["vpc_id"] = *s.VpcId
 
 	return []map[string]interface{}{settings}

@@ -4,6 +4,11 @@
 // These are most useful to serialize concrete types to dynamodb.AttributeValue for
 // requests or unmarshalling the dynamodb.AttributeValue into a well known typed form.
 //
+// Converting []byte fields to dynamodb.AttributeValue are only currently supported
+// if the input is a map[string]interface{} type. []byte within typed structs are not
+// converted correctly and are converted into base64 strings. This is a known bug,
+// and will be fixed in a later release.
+//
 // Convert concrete type to dynamodb.AttributeValue: See (ExampleConvertTo)
 //
 //     type Record struct {
@@ -376,15 +381,6 @@ func convertTo(in interface{}) *dynamodb.AttributeValue {
 		return a
 	}
 
-	if l, ok := in.([]interface{}); ok {
-		a.L = make([]*dynamodb.AttributeValue, len(l))
-		for index, v := range l {
-			a.L[index] = convertTo(v)
-		}
-		return a
-	}
-
-	// Only primitive types should remain.
 	v := reflect.ValueOf(in)
 	switch v.Kind() {
 	case reflect.Bool:
@@ -406,6 +402,16 @@ func convertTo(in interface{}) *dynamodb.AttributeValue {
 		} else {
 			a.S = new(string)
 			*a.S = v.String()
+		}
+	case reflect.Slice:
+		switch v.Type() {
+		case reflect.TypeOf(([]byte)(nil)):
+			a.B = v.Bytes()
+		default:
+			a.L = make([]*dynamodb.AttributeValue, v.Len())
+			for i := 0; i < v.Len(); i++ {
+				a.L[i] = convertTo(v.Index(i).Interface())
+			}
 		}
 	default:
 		panic(fmt.Sprintf("the type %s is not supported", v.Type().String()))
@@ -457,6 +463,10 @@ func convertFrom(a *dynamodb.AttributeValue) interface{} {
 			l[index] = convertFrom(v)
 		}
 		return l
+	}
+
+	if a.B != nil {
+		return a.B
 	}
 
 	panic(fmt.Sprintf("%#v is not a supported dynamodb.AttributeValue", a))
