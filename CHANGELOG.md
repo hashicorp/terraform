@@ -47,6 +47,7 @@ BUG FIXES:
   * provider/aws: Fix reading auto scaling group availability zones [GH-5044]
   * provider/docker: Fix the default docker_host value [GH-5088]
   * provider/google: Fix backend service max_utilization attribute [GH-5075]
+  * provider/google: Fix reading of `google_compute_vpn_gateway` without an explicit [GH-5125]
   * provider/aws: Fix ElasticSearch `domain_name` validation [GH-4973]
 
 ## 0.6.11 (February 1, 2016)
