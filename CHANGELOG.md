@@ -29,6 +29,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for HTTP(S) endpoints that auto confirm SNS subscription [GH-4711]
   * provider/aws: Add support for Tags to CloudTrail [GH-5135]
   * provider/aws: Add support for Tags to ElasticSearch [GH-4973]
+  * provider/openstack Add support for Distributed Routers [GH-4878]
 
 BUG FIXES:
 
