@@ -70,3 +70,176 @@ func TestValidateCloudWatchEventRuleName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateLambdaFunctionName(t *testing.T) {
+	validNames := []string{
+		"arn:aws:lambda:us-west-2:123456789012:function:ThumbNail",
+		"FunctionName",
+		"function-name",
+	}
+	for _, v := range validNames {
+		_, errors := validateLambdaFunctionName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Lambda function name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"/FunctionNameWithSlash",
+		"function.name.with.dots",
+		// lenght > 140
+		"arn:aws:lambda:us-west-2:123456789012:function:TooLoooooo" +
+			"ooooooooooooooooooooooooooooooooooooooooooooooooooooooo" +
+			"ooooooooooooooooongFunctionName",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateLambdaFunctionName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Lambda function name", v)
+		}
+	}
+}
+
+func TestValidateLambdaQualifier(t *testing.T) {
+	validNames := []string{
+		"123",
+		"prod",
+		"PROD",
+		"MyTestEnv",
+		"$LATEST",
+	}
+	for _, v := range validNames {
+		_, errors := validateLambdaQualifier(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Lambda function qualifier: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		// No ARNs allowed
+		"arn:aws:lambda:us-west-2:123456789012:function:prod",
+		// lenght > 128
+		"TooLooooooooooooooooooooooooooooooooooooooooooooooooooo" +
+			"ooooooooooooooooooooooooooooooooooooooooooooooooooo" +
+			"oooooooooooongQualifier",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateLambdaQualifier(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Lambda function qualifier", v)
+		}
+	}
+}
+
+func TestValidateLambdaPermissionAction(t *testing.T) {
+	validNames := []string{
+		"lambda:*",
+		"lambda:InvokeFunction",
+		"*",
+	}
+	for _, v := range validNames {
+		_, errors := validateLambdaPermissionAction(v, "action")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Lambda permission action: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"yada",
+		"lambda:123",
+		"*:*",
+		"lambda:Invoke*",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateLambdaPermissionAction(v, "action")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Lambda permission action", v)
+		}
+	}
+}
+
+func TestValidateAwsAccountId(t *testing.T) {
+	validNames := []string{
+		"123456789012",
+		"999999999999",
+	}
+	for _, v := range validNames {
+		_, errors := validateAwsAccountId(v, "account_id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid AWS Account ID: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"12345678901",   // too short
+		"1234567890123", // too long
+		"invalid",
+		"x123456789012",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateAwsAccountId(v, "account_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid AWS Account ID", v)
+		}
+	}
+}
+
+func TestValidateArn(t *testing.T) {
+	validNames := []string{
+		"arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/My App/MyEnvironment", // Beanstalk
+		"arn:aws:iam::123456789012:user/David",                                             // IAM User
+		"arn:aws:rds:eu-west-1:123456789012:db:mysql-db",                                   // RDS
+		"arn:aws:s3:::my_corporate_bucket/exampleobject.png",                               // S3 object
+		"arn:aws:events:us-east-1:319201112229:rule/rule_name",                             // CloudWatch Rule
+		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
+		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
+	}
+	for _, v := range validNames {
+		_, errors := validateArn(v, "arn")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid ARN: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"arn",
+		"123456789012",
+		"arn:aws",
+		"arn:aws:logs",
+		"arn:aws:logs:region:*:*",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateArn(v, "arn")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid ARN", v)
+		}
+	}
+}
+
+func TestValidatePolicyStatementId(t *testing.T) {
+	validNames := []string{
+		"YadaHereAndThere",
+		"Valid-5tatement_Id",
+		"1234",
+	}
+	for _, v := range validNames {
+		_, errors := validatePolicyStatementId(v, "statement_id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Statement ID: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Invalid/StatementId/with/slashes",
+		"InvalidStatementId.with.dots",
+		// length > 100
+		"TooooLoooooooooooooooooooooooooooooooooooooooooooo" +
+			"ooooooooooooooooooooooooooooooooooooooooStatementId",
+	}
+	for _, v := range invalidNames {
+		_, errors := validatePolicyStatementId(v, "statement_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Statement ID", v)
+		}
+	}
+}
