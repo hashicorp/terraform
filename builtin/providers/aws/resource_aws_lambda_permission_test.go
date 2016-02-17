@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -266,6 +267,8 @@ func TestAccAWSLambdaPermission_multiplePerms(t *testing.T) {
 }
 
 func TestAccAWSLambdaPermission_withS3(t *testing.T) {
+	rInt := acctest.RandInt()
+
 	var statement LambdaPolicyStatement
 	endsWithFuncName := regexp.MustCompile(":function:lambda_function_name_perm_s3$")
 
@@ -275,14 +278,15 @@ func TestAccAWSLambdaPermission_withS3(t *testing.T) {
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSLambdaPermissionConfig_withS3,
+				Config: fmt.Sprintf(testAccAWSLambdaPermissionConfig_withS3_tpl, rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLambdaPermissionExists("aws_lambda_permission.with_s3", &statement),
 					resource.TestCheckResourceAttr("aws_lambda_permission.with_s3", "action", "lambda:InvokeFunction"),
 					resource.TestCheckResourceAttr("aws_lambda_permission.with_s3", "principal", "s3.amazonaws.com"),
 					resource.TestCheckResourceAttr("aws_lambda_permission.with_s3", "statement_id", "AllowExecutionFromS3"),
 					resource.TestMatchResourceAttr("aws_lambda_permission.with_s3", "function_name", endsWithFuncName),
-					resource.TestCheckResourceAttr("aws_lambda_permission.with_s3", "source_arn", "arn:aws:s3:::tf-acc-towards-lambda"),
+					resource.TestCheckResourceAttr("aws_lambda_permission.with_s3", "source_arn",
+						fmt.Sprintf("arn:aws:s3:::tf-acc-towards-lambda-%d", rInt)),
 				),
 			},
 		},
@@ -612,7 +616,7 @@ resource "aws_lambda_permission" "third" {
     principal = "events.amazonaws.com"
 }`)
 
-var testAccAWSLambdaPermissionConfig_withS3 = `
+var testAccAWSLambdaPermissionConfig_withS3_tpl = `
 resource "aws_lambda_permission" "with_s3" {
     statement_id = "AllowExecutionFromS3"
     action = "lambda:InvokeFunction"
@@ -622,7 +626,7 @@ resource "aws_lambda_permission" "with_s3" {
 }
 
 resource "aws_s3_bucket" "default" {
-	bucket = "tf-acc-towards-lambda"
+	bucket = "tf-acc-towards-lambda-%d"
     acl = "private"
 }
 
