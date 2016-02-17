@@ -43,7 +43,7 @@ func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[DEBUG] Domain create configuration: %#v, %#v", app, hostname)
 
-	do, err := client.DomainCreate(app, heroku.DomainCreateOpts{hostname})
+	do, err := client.DomainCreate(app, heroku.DomainCreateOpts{Hostname: hostname})
 	if err != nil {
 		return err
 	}

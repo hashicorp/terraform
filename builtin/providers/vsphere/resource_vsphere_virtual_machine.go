@@ -648,8 +648,8 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualVmxnet3{
-				types.VirtualVmxnet{
-					types.VirtualEthernetCard{
+				VirtualVmxnet: types.VirtualVmxnet{
+					VirtualEthernetCard: types.VirtualEthernetCard{
 						VirtualDevice: types.VirtualDevice{
 							Key:     -1,
 							Backing: backing,
@@ -663,7 +663,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualE1000{
-				types.VirtualEthernetCard{
+				VirtualEthernetCard: types.VirtualEthernetCard{
 					VirtualDevice: types.VirtualDevice{
 						Key:     -1,
 						Backing: backing,

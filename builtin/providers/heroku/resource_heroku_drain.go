@@ -50,7 +50,7 @@ func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 
 	var dr *heroku.LogDrain
 	err := resource.Retry(2*time.Minute, func() error {
-		d, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{url})
+		d, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{URL: url})
 		if err != nil {
 			if strings.Contains(err.Error(), retryableError) {
 				return err
