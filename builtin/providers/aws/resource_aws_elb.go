@@ -425,9 +425,15 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			err := resource.Retry(1*time.Minute, func() error {
 				log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
 				if _, err := elbconn.CreateLoadBalancerListeners(createListenersOpts); err != nil {
-					if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "DuplicateListener" {
-						log.Printf("[DEBUG] Duplicate listener found for ELB (%s), retrying", d.Id())
-						return awserr
+					if awsErr, ok := err.(awserr.Error); ok {
+						if awsErr.Code() == "DuplicateListener" {
+							log.Printf("[DEBUG] Duplicate listener found for ELB (%s), retrying", d.Id())
+							return awsErr
+						}
+						if awsErr.Code() == "CertificateNotFound" && strings.Contains(awsErr.Message(), "Server Certificate not found for the key: arn") {
+							log.Printf("[DEBUG] SSL Cert not found for given ARN, retrying")
+							return awsErr
+						}
 					}
 
 					// Didn't recognize the error, so shouldn't retry.
