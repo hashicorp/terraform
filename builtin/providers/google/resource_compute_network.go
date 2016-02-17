@@ -82,7 +82,7 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if v, ok := d.GetOk("ipv4_range"); ok {
-		log.Printf("[DEBUG] Setting IPv4Range (%#V) for legacy network mode", v.(string))
+		log.Printf("[DEBUG] Setting IPv4Range (%#v) for legacy network mode", v.(string))
 		network.IPv4Range = v.(string)
 	} else {
 		// custom subnet mode, so make sure AutoCreateSubnetworks field is included in request otherwise
