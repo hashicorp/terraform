@@ -684,6 +684,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 				"name":          iface.Name,
 				"address":       iface.NetworkIP,
 				"network":       d.Get(fmt.Sprintf("network_interface.%d.network", i)),
+				"subnetwork":    d.Get(fmt.Sprintf("network_interface.%d.subnetwork", i)),
 				"access_config": accessConfigs,
 			})
 		}
