@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -73,12 +74,14 @@ func TestAccAWSDBInstanceSnapshot(t *testing.T) {
 	var snap rds.DBInstance
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		// testAccCheckAWSDBInstanceSnapshot verifies a database snapshot is
+		// created, and subequently deletes it
 		CheckDestroy: testAccCheckAWSDBInstanceSnapshot,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccSnapshotInstanceConfig,
+				Config: testAccSnapshotInstanceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.snapshot", &snap),
 				),
@@ -367,12 +370,13 @@ func testAccReplicaInstanceConfig(val int) string {
 	`, val, val)
 }
 
-var testAccSnapshotInstanceConfig = `
+func testAccSnapshotInstanceConfig() string {
+	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
 }
 resource "aws_db_instance" "snapshot" {
-	identifier = "foobarbaz-test-terraform-snapshot-1"
+	identifier = "tf-snapshot-%d"
 
 	allocated_storage = 5
 	engine = "mysql"
@@ -388,8 +392,8 @@ resource "aws_db_instance" "snapshot" {
 
 	skip_final_snapshot = false
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-1"
+}`, acctest.RandInt())
 }
-`
 
 var testAccNoSnapshotInstanceConfig = `
 provider "aws" {
