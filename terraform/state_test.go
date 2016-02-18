@@ -150,6 +150,31 @@ func TestStateModuleOrphans_nilConfig(t *testing.T) {
 	}
 }
 
+func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "parent", "childfoo"},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "parent", "childbar"},
+			},
+		},
+	}
+
+	actual := state.ModuleOrphans(RootModulePath, nil)
+	expected := [][]string{
+		[]string{RootModuleName, "parent"},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool
@@ -770,9 +795,6 @@ func TestReadWriteState(t *testing.T) {
 		},
 	}
 
-	// Checksum before the write
-	chksum := checksumStruct(t, state)
-
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
 		t.Fatalf("err: %s", err)
@@ -781,12 +803,6 @@ func TestReadWriteState(t *testing.T) {
 	// Verify that the version and serial are set
 	if state.Version != StateVersion {
 		t.Fatalf("bad version number: %d", state.Version)
-	}
-
-	// Checksum after the write
-	chksumAfter := checksumStruct(t, state)
-	if chksumAfter != chksum {
-		t.Fatalf("structure changed during serialization!")
 	}
 
 	actual, err := ReadState(buf)

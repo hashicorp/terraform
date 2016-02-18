@@ -151,8 +151,8 @@ func sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Chown(path string, uid int, gid int) (err error)
 //sys	Chroot(path string) (err error)
 //sys	Close(fd int) (err error)
-//sys	Dup(fd int) (nfd int, err error)
-//sys	Dup2(from int, to int) (err error)
+//sysnb	Dup(fd int) (nfd int, err error)
+//sysnb	Dup2(from int, to int) (err error)
 //sys	Exit(code int)
 //sys	Fchdir(fd int) (err error)
 //sys	Fchflags(fd int, flags int) (err error)
@@ -186,11 +186,6 @@ func sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Mkdir(path string, mode uint32) (err error)
 //sys	Mkfifo(path string, mode uint32) (err error)
 //sys	Mknod(path string, mode uint32, dev int) (err error)
-//sys	Mlock(b []byte) (err error)
-//sys	Mlockall(flags int) (err error)
-//sys	Mprotect(b []byte, prot int) (err error)
-//sys	Munlock(b []byte) (err error)
-//sys	Munlockall() (err error)
 //sys	Nanosleep(time *Timespec, leftover *Timespec) (err error)
 //sys	Open(path string, mode int, perm uint32) (fd int, err error)
 //sys	Pathconf(path string, name int) (val int, err error)
@@ -423,7 +418,10 @@ func sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 // madvise
 // mincore
 // minherit
+// mlock
+// mlockall
 // modctl
+// mprotect
 // mq_close
 // mq_getattr
 // mq_notify
@@ -438,6 +436,8 @@ func sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 // msgget
 // msgrcv
 // msgsnd
+// munlock
+// munlockall
 // nfssvc
 // ntp_adjtime
 // pmc_control

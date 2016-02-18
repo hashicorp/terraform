@@ -81,6 +81,27 @@ type Resource struct {
 	Lifecycle    ResourceLifecycle
 }
 
+// Copy returns a copy of this Resource. Helpful for avoiding shared
+// config pointers across multiple pieces of the graph that need to do
+// interpolation.
+func (r *Resource) Copy() *Resource {
+	n := &Resource{
+		Name:         r.Name,
+		Type:         r.Type,
+		RawCount:     r.RawCount.Copy(),
+		RawConfig:    r.RawConfig.Copy(),
+		Provisioners: make([]*Provisioner, 0, len(r.Provisioners)),
+		Provider:     r.Provider,
+		DependsOn:    make([]string, len(r.DependsOn)),
+		Lifecycle:    *r.Lifecycle.Copy(),
+	}
+	for _, p := range r.Provisioners {
+		n.Provisioners = append(n.Provisioners, p.Copy())
+	}
+	copy(n.DependsOn, r.DependsOn)
+	return n
+}
+
 // ResourceLifecycle is used to store the lifecycle tuning parameters
 // to allow customized behavior
 type ResourceLifecycle struct {
@@ -89,11 +110,31 @@ type ResourceLifecycle struct {
 	IgnoreChanges       []string `mapstructure:"ignore_changes"`
 }
 
+// Copy returns a copy of this ResourceLifecycle
+func (r *ResourceLifecycle) Copy() *ResourceLifecycle {
+	n := &ResourceLifecycle{
+		CreateBeforeDestroy: r.CreateBeforeDestroy,
+		PreventDestroy:      r.PreventDestroy,
+		IgnoreChanges:       make([]string, len(r.IgnoreChanges)),
+	}
+	copy(n.IgnoreChanges, r.IgnoreChanges)
+	return n
+}
+
 // Provisioner is a configured provisioner step on a resource.
 type Provisioner struct {
 	Type      string
 	RawConfig *RawConfig
 	ConnInfo  *RawConfig
+}
+
+// Copy returns a copy of this Provisioner
+func (p *Provisioner) Copy() *Provisioner {
+	return &Provisioner{
+		Type:      p.Type,
+		RawConfig: p.RawConfig.Copy(),
+		ConnInfo:  p.ConnInfo.Copy(),
+	}
 }
 
 // Variable is a variable defined within the configuration.

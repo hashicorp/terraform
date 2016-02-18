@@ -5,19 +5,14 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
-func stringHashcode(v interface{}) int {
-	return hashcode.String(v.(string))
-}
-
 func stringScopeHashcode(v interface{}) int {
 	v = canonicalizeServiceScope(v.(string))
-	return hashcode.String(v.(string))
+	return schema.HashString(v)
 }
 
 func resourceComputeInstance() *schema.Resource {
@@ -263,7 +258,7 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringHashcode,
+				Set:      schema.HashString,
 			},
 
 			"metadata_fingerprint": &schema.Schema{

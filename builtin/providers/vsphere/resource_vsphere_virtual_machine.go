@@ -648,8 +648,8 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualVmxnet3{
-				types.VirtualVmxnet{
-					types.VirtualEthernetCard{
+				VirtualVmxnet: types.VirtualVmxnet{
+					VirtualEthernetCard: types.VirtualEthernetCard{
 						VirtualDevice: types.VirtualDevice{
 							Key:     -1,
 							Backing: backing,
@@ -663,7 +663,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 		return &types.VirtualDeviceConfigSpec{
 			Operation: types.VirtualDeviceConfigSpecOperationAdd,
 			Device: &types.VirtualE1000{
-				types.VirtualEthernetCard{
+				VirtualEthernetCard: types.VirtualEthernetCard{
 					VirtualDevice: types.VirtualDevice{
 						Key:     -1,
 						Backing: backing,
@@ -922,7 +922,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 
 			if d.Type == "StoragePod" {
 				sp := object.StoragePod{
-					object.NewFolder(c.Client, d),
+					Folder: object.NewFolder(c.Client, d),
 				}
 				sps := buildStoragePlacementSpecCreate(dcFolders, resourcePool, sp, configSpec)
 				datastore, err = findDatastore(c, sps)
@@ -1054,7 +1054,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 
 			if d.Type == "StoragePod" {
 				sp := object.StoragePod{
-					object.NewFolder(c.Client, d),
+					Folder: object.NewFolder(c.Client, d),
 				}
 				sps := buildStoragePlacementSpecClone(c, dcFolders, template, resourcePool, sp)
 				datastore, err = findDatastore(c, sps)

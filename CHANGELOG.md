@@ -12,20 +12,43 @@ FEATURES:
   * **New resource:** `azurerm_dns_txt_record` [GH-5041]
   * **New resource:** `azurerm_sql_database` [GH-5003]
   * **New resource:** `azurerm_sql_server` [GH-4991]
+  * **New resource:** `azurerm_sql_firewall_rule` [GH-5057]
+  * **New resource:** `aws_cloudwatch_event_rule` [GH-4986]
+  * **New resource:** `aws_cloudwatch_event_target` [GH-4986]
+  * **New resource:** `aws_lambda_permission` [GH-4826]
   * **New interpolation function:** `signum` [GH-4854]
   * **New command:** `validate` to perform syntax validation [GH-3783]
 
 IMPROVEMENTS:
 
+  * core: Backend names are now down cased during `init` in the same manner as `remote config` [GH-5012]
   * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
+  * provider/aws: Add support for log validation + KMS encryption to `aws_cloudtrail` [GH-5051]
+  * provider/aws: Support custom endpoints for AWS EC2 ELB and IAM [GH-5114]
+  * provider/aws: Expose additional VPN Connection attributes [GH-5032]
+  * provider/aws: Add support for HTTP(S) endpoints that auto confirm SNS subscription [GH-4711]
+  * provider/aws: Add support for Tags to CloudTrail [GH-5135]
+  * provider/aws: Add support for Tags to ElasticSearch [GH-4973]
+  * provider/aws: Return an error if no matching route is found for an AWS Route [GH-5155]
+  * provider/aws: `aws_lambda_function` resources now support VPC configuration [GH-5149]
+  * provider/openstack Add support for Distributed Routers [GH-4878]
 
 BUG FIXES:
 
   * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
   * core: Improve handling of Provisioners in the graph, fixing "Provisioner already initialized" errors [GH-4877]
+  * core: Fix bug detecting deeply nested module orphans [GH-5022]
+  * core: Fix race condition when handling tainted resource destroys [GH-5026]
   * provider/openstack: Fix crash when `access_network` was not defined in instances [GH-4966]
   * provider/aws: Fix DynamoDB Table Refresh to ensure deleted tables are removed from state [GH-4943]
+  * provider/aws: Fix issue applying security group changes in EC2 Classic RDS for aws_db_instance [GH-4969]
   * provider/cloudflare: `ttl` no longer shows a change on each plan on `cloudflare_record` resources [GH-5042]
+  * provider/aws: Fix reading auto scaling group load balancers [GH-5045]
+  * provider/aws: Fix reading auto scaling group availability zones [GH-5044]
+  * provider/docker: Fix the default docker_host value [GH-5088]
+  * provider/google: Fix backend service max_utilization attribute [GH-5075]
+  * provider/google: Fix reading of `google_compute_vpn_gateway` without an explicit [GH-5125]
+  * provider/aws: Fix ElasticSearch `domain_name` validation [GH-4973]
 
 ## 0.6.11 (February 1, 2016)
 

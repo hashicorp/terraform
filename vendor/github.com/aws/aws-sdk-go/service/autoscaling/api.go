@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
 const opAttachInstances = "AttachInstances"
@@ -25,6 +27,8 @@ func (c *AutoScaling) AttachInstancesRequest(input *AttachInstancesInput) (req *
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AttachInstancesOutput{}
 	req.Data = output
 	return
@@ -136,6 +140,8 @@ func (c *AutoScaling) CreateAutoScalingGroupRequest(input *CreateAutoScalingGrou
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &CreateAutoScalingGroupOutput{}
 	req.Data = output
 	return
@@ -170,6 +176,8 @@ func (c *AutoScaling) CreateLaunchConfigurationRequest(input *CreateLaunchConfig
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &CreateLaunchConfigurationOutput{}
 	req.Data = output
 	return
@@ -204,6 +212,8 @@ func (c *AutoScaling) CreateOrUpdateTagsRequest(input *CreateOrUpdateTagsInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &CreateOrUpdateTagsOutput{}
 	req.Data = output
 	return
@@ -244,6 +254,8 @@ func (c *AutoScaling) DeleteAutoScalingGroupRequest(input *DeleteAutoScalingGrou
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteAutoScalingGroupOutput{}
 	req.Data = output
 	return
@@ -286,6 +298,8 @@ func (c *AutoScaling) DeleteLaunchConfigurationRequest(input *DeleteLaunchConfig
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteLaunchConfigurationOutput{}
 	req.Data = output
 	return
@@ -347,6 +361,8 @@ func (c *AutoScaling) DeleteNotificationConfigurationRequest(input *DeleteNotifi
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteNotificationConfigurationOutput{}
 	req.Data = output
 	return
@@ -374,6 +390,8 @@ func (c *AutoScaling) DeletePolicyRequest(input *DeletePolicyInput) (req *reques
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeletePolicyOutput{}
 	req.Data = output
 	return
@@ -404,6 +422,8 @@ func (c *AutoScaling) DeleteScheduledActionRequest(input *DeleteScheduledActionI
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteScheduledActionOutput{}
 	req.Data = output
 	return
@@ -431,6 +451,8 @@ func (c *AutoScaling) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Re
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteTagsOutput{}
 	req.Data = output
 	return
@@ -1122,6 +1144,8 @@ func (c *AutoScaling) DisableMetricsCollectionRequest(input *DisableMetricsColle
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DisableMetricsCollectionOutput{}
 	req.Data = output
 	return
@@ -1150,6 +1174,8 @@ func (c *AutoScaling) EnableMetricsCollectionRequest(input *EnableMetricsCollect
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &EnableMetricsCollectionOutput{}
 	req.Data = output
 	return
@@ -1211,6 +1237,8 @@ func (c *AutoScaling) ExecutePolicyRequest(input *ExecutePolicyInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &ExecutePolicyOutput{}
 	req.Data = output
 	return
@@ -1317,6 +1345,8 @@ func (c *AutoScaling) PutNotificationConfigurationRequest(input *PutNotification
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutNotificationConfigurationOutput{}
 	req.Data = output
 	return
@@ -1387,6 +1417,8 @@ func (c *AutoScaling) PutScheduledUpdateGroupActionRequest(input *PutScheduledUp
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutScheduledUpdateGroupActionOutput{}
 	req.Data = output
 	return
@@ -1461,6 +1493,8 @@ func (c *AutoScaling) ResumeProcessesRequest(input *ScalingProcessQuery) (req *r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &ResumeProcessesOutput{}
 	req.Data = output
 	return
@@ -1492,6 +1526,8 @@ func (c *AutoScaling) SetDesiredCapacityRequest(input *SetDesiredCapacityInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetDesiredCapacityOutput{}
 	req.Data = output
 	return
@@ -1522,6 +1558,8 @@ func (c *AutoScaling) SetInstanceHealthRequest(input *SetInstanceHealthInput) (r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetInstanceHealthOutput{}
 	req.Data = output
 	return
@@ -1582,6 +1620,8 @@ func (c *AutoScaling) SuspendProcessesRequest(input *ScalingProcessQuery) (req *
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SuspendProcessesOutput{}
 	req.Data = output
 	return
@@ -1650,6 +1690,8 @@ func (c *AutoScaling) UpdateAutoScalingGroupRequest(input *UpdateAutoScalingGrou
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateAutoScalingGroupOutput{}
 	req.Data = output
 	return
@@ -4308,7 +4350,7 @@ type PutScalingPolicyInput struct {
 	MinAdjustmentMagnitude *int64 `type:"integer"`
 
 	// Available for backward compatibility. Use MinAdjustmentMagnitude instead.
-	MinAdjustmentStep *int64 `type:"integer"`
+	MinAdjustmentStep *int64 `deprecated:"true" type:"integer"`
 
 	// The name of the policy.
 	PolicyName *string `min:"1" type:"string" required:"true"`
@@ -4516,7 +4558,7 @@ type ScalingPolicy struct {
 	MinAdjustmentMagnitude *int64 `type:"integer"`
 
 	// Available for backward compatibility. Use MinAdjustmentMagnitude instead.
-	MinAdjustmentStep *int64 `type:"integer"`
+	MinAdjustmentStep *int64 `deprecated:"true" type:"integer"`
 
 	// The Amazon Resource Name (ARN) of the policy.
 	PolicyARN *string `min:"1" type:"string"`

@@ -12,7 +12,7 @@ install:
   - echo noop
 
 script:
-  - make test
+  - make test vet
 
 branches:
   only:

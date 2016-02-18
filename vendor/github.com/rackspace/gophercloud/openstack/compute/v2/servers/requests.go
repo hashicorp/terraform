@@ -303,6 +303,17 @@ func Delete(client *gophercloud.ServiceClient, id string) DeleteResult {
 	return res
 }
 
+func ForceDelete(client *gophercloud.ServiceClient, id string) ActionResult {
+	var req struct {
+		ForceDelete string `json:"forceDelete"`
+	}
+
+	var res ActionResult
+	_, res.Err = client.Post(actionURL(client, id), req, nil, nil)
+	return res
+
+}
+
 // Get requests details on a single server, by ID.
 func Get(client *gophercloud.ServiceClient, id string) GetResult {
 	var result GetResult

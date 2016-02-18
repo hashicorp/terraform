@@ -55,6 +55,12 @@ resource "aws_lambda_function" "test_lambda" {
 * `memory_size` - (Optional) Amount of memory in MB your Lambda Function can use at runtime. Defaults to `128`. See [Limits][5]
 * `runtime` - (Optional) Defaults to `nodejs`. See [Runtimes][6] for valid values.
 * `timeout` - (Optional) The amount of time your Lambda Function has to run in seconds. Defaults to `3`. See [Limits][5]
+* `vpc_config` - (Optional) Provide this to allow your function to access your VPC. Fields documented below. See [Lambda in VPC][7]
+
+**vpc\_config** requires the following:
+
+* `subnet_ids` - (Required) A list of subnet IDs associated with the Lambda function.
+* `security_group_ids` - (Required) A list of security group IDs associated with the Lambda function.
 
 ## Attributes Reference
 
@@ -67,3 +73,4 @@ resource "aws_lambda_function" "test_lambda" {
 [4]: https://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html
 [5]: https://docs.aws.amazon.com/lambda/latest/dg/limits.html
 [6]: https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html#API_CreateFunction_RequestBody
+[7]: http://docs.aws.amazon.com/lambda/latest/dg/vpc.html

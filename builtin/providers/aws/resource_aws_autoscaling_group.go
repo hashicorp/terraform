@@ -92,6 +92,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"availability_zones": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -237,13 +238,13 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	d.Set("availability_zones", g.AvailabilityZones)
+	d.Set("availability_zones", flattenStringList(g.AvailabilityZones))
 	d.Set("default_cooldown", g.DefaultCooldown)
 	d.Set("desired_capacity", g.DesiredCapacity)
 	d.Set("health_check_grace_period", g.HealthCheckGracePeriod)
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
-	d.Set("load_balancers", g.LoadBalancerNames)
+	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("placement_group", g.PlacementGroup)
@@ -300,7 +301,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("availability_zones") {
 		if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
-			opts.AvailabilityZones = expandStringList(d.Get("availability_zones").(*schema.Set).List())
+			opts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
 		}
 	}
 
