@@ -297,15 +297,43 @@ func resourceVcdVAppRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error refreshing vdc: %#v", err)
 	}
 
-	vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
+	_, err = vcdClient.OrgVdc.FindVAppByName(d.Id())
 	if err != nil {
 		log.Printf("[DEBUG] Unable to find vapp. Removing from tfstate")
 		d.SetId("")
 		return nil
 	}
-	d.Set("ip", vapp.VApp.Children.VM[0].NetworkConnectionSection.NetworkConnection.IPAddress)
+
+	ip, err := getVAppIPAddress(d, meta)
+	if err != nil {
+		return err
+	}
+	d.Set("ip", ip)
 
 	return nil
+}
+
+func getVAppIPAddress(d *schema.ResourceData, meta interface{}) (string, error) {
+	vcdClient := meta.(*VCDClient)
+	var ip string
+
+	err := retryCall(vcdClient.MaxRetryTimeout, func() error {
+		err := vcdClient.OrgVdc.Refresh()
+		if err != nil {
+			return fmt.Errorf("Error refreshing vdc: %#v", err)
+		}
+		vapp, err := vcdClient.OrgVdc.FindVAppByName(d.Id())
+		if err != nil {
+			return fmt.Errorf("Unable to find vapp.")
+		}
+		ip = vapp.VApp.Children.VM[0].NetworkConnectionSection.NetworkConnection.IPAddress
+		if ip == "" {
+			return fmt.Errorf("Timeout: VM did not aquire IP address")
+		}
+		return nil
+	})
+
+	return ip, err
 }
 
 func resourceVcdVAppDelete(d *schema.ResourceData, meta interface{}) error {
