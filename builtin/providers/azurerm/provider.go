@@ -74,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_sql_server":             resourceArmSqlServer(),
 			"azurerm_sql_database":           resourceArmSqlDatabase(),
 			"azurerm_sql_firewall_rule":      resourceArmSqlFirewallRule(),
+			"azurerm_search_service":         resourceArmSearchService(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -141,7 +142,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)
