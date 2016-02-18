@@ -16,6 +16,7 @@ FEATURES:
   * **New resource:** `aws_cloudwatch_event_rule` [GH-4986]
   * **New resource:** `aws_cloudwatch_event_target` [GH-4986]
   * **New resource:** `aws_lambda_permission` [GH-4826]
+  * **New resource:** `google_compute_subnetwork` [GH-5130]
   * **New interpolation function:** `signum` [GH-4854]
   * **New command:** `validate` to perform syntax validation [GH-3783]
 
