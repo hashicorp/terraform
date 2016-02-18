@@ -146,8 +146,7 @@ func validateCredentials(v interface{}, k string) (warnings []string, errors []e
 	return
 }
 
-// FIXME: not sure this is the best place for this
-// Given a Google zone (e.g. us-central1-f) this func returns the Region, us-central1 in this example.
+// getRegionFromZone returns the region from a zone for Google cloud.
 func getRegionFromZone(zone string) string {
 	if zone != "" && len(zone) > 2 {
 		region := zone[:len(zone)-2]
