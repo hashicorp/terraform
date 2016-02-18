@@ -23,42 +23,48 @@ func TestAccAzureRMSearchService_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_search_service.test", "tags.#", "2"),
 				),
 			},
 		},
 	})
 }
 
-//func TestAccAzureRMSearchService_withTags(t *testing.T) {
-//	ri := acctest.RandInt()
-//	preConfig := fmt.Sprintf(testAccAzureRMSearchService_withTags, ri, ri)
-//	postConfig := fmt.Sprintf(testAccAzureRMSearchService_withTagsUpdated, ri, ri)
-//
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:     func() { testAccPreCheck(t) },
-//		Providers:    testAccProviders,
-//		CheckDestroy: testCheckAzureRMSearchServiceDestroy,
-//		Steps: []resource.TestStep{
-//			resource.TestStep{
-//				Config: preConfig,
-//				Check: resource.ComposeTestCheckFunc(
-//					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
-//					resource.TestCheckResourceAttr(
-//						"azurerm_search_service.test", "tags.#", "2"),
-//				),
-//			},
-//
-//			resource.TestStep{
-//				Config: postConfig,
-//				Check: resource.ComposeTestCheckFunc(
-//					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
-//					resource.TestCheckResourceAttr(
-//						"azurerm_search_service.test", "tags.#", "1"),
-//				),
-//			},
-//		},
-//	})
-//}
+func TestAccAzureRMSearchService_updateReplicaCountAndTags(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMSearchService_basic, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMSearchService_updated, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMSearchServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_search_service.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_search_service.test", "replica_count", "1"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_search_service.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_search_service.test", "replica_count", "2"),
+				),
+			},
+		},
+	})
+}
 
 func testCheckAzureRMSearchServiceExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -119,44 +125,28 @@ resource "azurerm_search_service" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     location = "West US"
     sku = "standard"
+
+    tags {
+    	environment = "staging"
+    	database = "test"
+    }
 }
 `
 
-//var testAccAzureRMSearchService_withTags = `
-//resource "azurerm_resource_group" "test" {
-//    name = "acctest_rg_%d"
-//    location = "West US"
-//}
-//resource "azurerm_sql_server" "test" {
-//    name = "acctestsqlserver%d"
-//    resource_group_name = "${azurerm_resource_group.test.name}"
-//    location = "West US"
-//    version = "12.0"
-//    administrator_login = "mradministrator"
-//    administrator_login_password = "thisIsDog11"
-//
-//    tags {
-//    	environment = "staging"
-//    	database = "test"
-//    }
-//}
-//`
-//
-//var testAccAzureRMSearchService_withTagsUpdated = `
-//resource "azurerm_resource_group" "test" {
-//    name = "acctest_rg_%d"
-//    location = "West US"
-//}
-//resource "azurerm_sql_server" "test" {
-//    name = "acctestsqlserver%d"
-//    resource_group_name = "${azurerm_resource_group.test.name}"
-//    location = "West US"
-//    version = "12.0"
-//    administrator_login = "mradministrator"
-//    administrator_login_password = "thisIsDog11"
-//
-//    tags {
-//    	environment = "production"
-//    }
-//}
-//`
+var testAccAzureRMSearchService_updated = `
+resource "azurerm_resource_group" "test" {
+    name = "acctest_rg_%d"
+    location = "West US"
+}
+resource "azurerm_search_service" "test" {
+    name = "acctestsearchservice%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "West US"
+    sku = "standard"
+    replica_count = 2
+
+    tags {
+    	environment = "production"
+    }
+}
+`

@@ -11,9 +11,9 @@ type CreateOrUpdateSearchServiceResponse struct {
 	Name               *string             `mapstructure:"name"`
 	Location           *string             `mapstructure:"location"`
 	Tags               *map[string]*string `mapstructure:"tags"`
-	Sku                *Sku                `json:"sku,omitempty"`
-	ReplicaCount       *string             `json:"replicaCount,omitempty"`
-	PartitionCount     *string             `json:"partitionCount,omitempty"`
+	Sku                *Sku                `mapstructure:"sku"`
+	ReplicaCount       *int                `mapstructure:"replicaCount"`
+	PartitionCount     *int                `mapstructure:"partitionCount"`
 	Status             *string             `mapstructure:"status"`
 	StatusDetails      *string             `mapstructure:"statusDetails"`
 	ProvisioningStatus *string             `mapstructure:"provisioningStatus"`
@@ -25,8 +25,8 @@ type CreateOrUpdateSearchService struct {
 	Location          string             `json:"-" riviera:"location"`
 	Tags              map[string]*string `json:"-" riviera:"tags"`
 	Sku               Sku                `json:"-" riviera:"sku"`
-	ReplicaCount      *string            `json:"replicaCount,omitempty"`
-	PartitionCount    *string            `json:"partitionCount,omitempty"`
+	ReplicaCount      *int               `json:"replicaCount,omitempty"`
+	PartitionCount    *int               `json:"partitionCount,omitempty"`
 }
 
 func (s CreateOrUpdateSearchService) APIInfo() azure.APIInfo {

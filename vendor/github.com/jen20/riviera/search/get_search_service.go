@@ -4,13 +4,13 @@ import "github.com/jen20/riviera/azure"
 
 type GetSearchServiceResponse struct {
 	ID                *string            `mapstructure:"id"`
-	Name              string             `json:"-"`
-	ResourceGroupName string             `json:"-"`
-	Location          string             `json:"-" riviera:"location"`
-	Tags              map[string]*string `json:"-" riviera:"tags"`
-	Sku               *Sku               `json:"sku,omitempty"`
-	ReplicaCount      *string            `json:"replicaCount,omitempty"`
-	PartitionCount    *string            `json:"partitionCount,omitempty"`
+	Name              string             `mapstructure:"name"`
+	ResourceGroupName string             `mapstructure:"-"`
+	Location          string             `mapstructure:"location"`
+	Tags              map[string]*string `mapstructure:"tags"`
+	Sku               *Sku               `mapstructure:"sku"`
+	ReplicaCount      *int               `mapstructure:"replicaCount"`
+	PartitionCount    *int               `mapstructure:"partitionCount"`
 	Status            *string            `mapstructure:"status"`
 	StatusDetails     *string            `mapstructure:"statusDetails"`
 	ProvisioningState *string            `mapstructure:"provisioningState"`

@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/jen20/riviera/azure"
 	"github.com/jen20/riviera/search"
 )
 
@@ -78,11 +77,13 @@ func resourceArmSearchServiceCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if v, ok := d.GetOk("replica_count"); ok {
-		command.ReplicaCount = azure.String(v.(string))
+		replica_count := v.(int)
+		command.ReplicaCount = &replica_count
 	}
 
 	if v, ok := d.GetOk("partition_count"); ok {
-		command.PartitionCount = azure.String(v.(string))
+		partition_count := v.(int)
+		command.PartitionCount = &partition_count
 	}
 
 	createRequest := rivieraClient.NewRequest()
@@ -119,7 +120,8 @@ func resourceArmSearchServiceCreate(d *schema.ResourceData, meta interface{}) er
 		Target:  []string{"succeeded"},
 		Refresh: azureStateRefreshFunc(*resp.ID, client, getSearchServiceCommand),
 		// ¯\_(ツ)_/¯
-		Timeout: 30 * time.Minute,
+		Timeout:    30 * time.Minute,
+		MinTimeout: 15 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for Search Service (%s) to become available: %s", d.Get("name"), err)
@@ -149,6 +151,12 @@ func resourceArmSearchServiceRead(d *schema.ResourceData, meta interface{}) erro
 
 	resp := readResponse.Parsed.(*search.GetSearchServiceResponse)
 	d.Set("sku", resp.Sku)
+	if resp.PartitionCount != nil {
+		d.Set("partition_count", resp.PartitionCount)
+	}
+	if resp.ReplicaCount != nil {
+		d.Set("replica_count", resp.ReplicaCount)
+	}
 	return nil
 }
 
