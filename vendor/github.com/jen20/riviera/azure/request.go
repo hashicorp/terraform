@@ -37,7 +37,6 @@ func readTaggedFields(command interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 
 	for i := 0; i < value.NumField(); i++ { // iterates through every struct type field
-		fmt.Println(i, value.Type().Field(i).Name)
 		tag := value.Type().Field(i).Tag // returns the tag string
 		tagValue := tag.Get("riviera")
 		if tagValue != "" {
