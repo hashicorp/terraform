@@ -40,6 +40,8 @@ The following arguments are supported:
 * `application` – (Required) Name of the application that contains the version 
   to be deployed
 * `description` - (Optional) Short description of the Environment 
+* `tier` - (Optional) Elastic Beanstalk Environment tier. Valid values are `Worker` 
+  or `WebServer`. If tier is left blank `WebServer` will be used.
 * `setting` – (Optional) Option settings to configure the new Environment. These
   override specific values that are set as defaults. The format is detailed
   below in [Option Settings](#option-settings)
@@ -68,6 +70,7 @@ The following attributes are exported:
 
 * `name`
 * `description`
+* `tier` - the environment tier specified. 
 * `application` – the application specified
 * `setting` – Settings specifically set for this Environment
 * `all_settings` – List of all option settings configured in the Environment. These
