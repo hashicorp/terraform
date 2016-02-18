@@ -690,7 +690,9 @@ func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]in
 
 	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
 	settings["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SecurityGroupIds))
-	settings["vpc_id"] = *s.VpcId
+	if s.VpcId != nil {
+		settings["vpc_id"] = *s.VpcId
+	}
 
 	return []map[string]interface{}{settings}
 }
