@@ -38,8 +38,11 @@ func resourceComputeNetwork() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
-				Default:  false, // TODO: ideally should be true to match Google's default behaviour, but this causes backward
-				// compatibility issue with existing terraform configs
+				/* Ideally this would default to true as per the API, but that would cause
+				   existing Terraform configs which have not been updated to report this as
+				   a change. Perhaps we can bump this for a minor release bump rather than
+				   a point release. */
+				Default: false,
 			},
 
 			"description": &schema.Schema{
