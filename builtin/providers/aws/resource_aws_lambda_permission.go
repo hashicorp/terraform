@@ -189,7 +189,14 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 		statement, err = findLambdaPolicyStatementById(&policy, d.Id())
 		return resource.RetryableError(err)
 	})
+
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "timeout while waiting for state") {
+			// Policy really doesn't exist
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
