@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"math/rand"
 	"testing"
@@ -216,7 +217,36 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if newerr.Code() == "DBSnapshotNotFound" {
 				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
 			}
-		} else {
+		} else { // snapshot was found
+			// verify we have the tags copied to the snapshot
+			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta())
+			// tags have a different ARN, just swapping :db: for :snapshot:
+			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
+			if err != nil {
+				return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, err)
+			}
+			resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+				ResourceName: aws.String(tagsARN),
+			})
+			if err != nil {
+				return fmt.Errorf("Error retrieving tags for ARN (%s): ", tagsARN, err)
+			}
+
+			if resp.TagList == nil || len(resp.TagList) == 0 {
+				return fmt.Errorf("Tag list is nil or zero: %s", resp.TagList)
+			}
+
+			var found bool
+			for _, t := range resp.TagList {
+				if *t.Key == "Name" && *t.Value == "tf-tags-db" {
+					found = true
+				}
+			}
+			if !found {
+				return fmt.Errorf("Expected to find tag Name (%s), but wasn't found. Tags: %s", "tf-tags-db", resp.TagList)
+			}
+			// end tag search
+
 			log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
 			_, snapDeleteErr := conn.DeleteDBSnapshot(
 				&rds.DeleteDBSnapshotInput{
@@ -225,7 +255,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if snapDeleteErr != nil {
 				return err
 			}
-		}
+		} // end snapshot was found
 	}
 
 	return nil
@@ -391,7 +421,11 @@ resource "aws_db_instance" "snapshot" {
 	parameter_group_name = "default.mysql5.6"
 
 	skip_final_snapshot = false
+	copy_tags_to_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-1"
+	tags {
+		Name = "tf-tags-db"
+	}
 }`, acctest.RandInt())
 }
 

@@ -322,7 +322,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			DBInstanceIdentifier:    aws.String(d.Get("identifier").(string)),
 			DBSnapshotIdentifier:    aws.String(d.Get("snapshot_identifier").(string)),
 			AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
-			Tags: tags,
+			Tags:               tags,
+			CopyTagsToSnapshot: aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 		}
 
 		if attr, ok := d.GetOk("availability_zone"); ok {
@@ -439,7 +440,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			EngineVersion:           aws.String(d.Get("engine_version").(string)),
 			StorageEncrypted:        aws.Bool(d.Get("storage_encrypted").(bool)),
 			AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
-			Tags: tags,
+			Tags:               tags,
+			CopyTagsToSnapshot: aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 		}
 
 		attr := d.Get("backup_retention_period")
@@ -586,7 +588,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSARN(d, meta)
+	arn, err := buildRDSARN(d.Id(), meta)
 	if err != nil {
 		name := "<empty>"
 		if v.DBName != nil && *v.DBName != "" {
@@ -825,7 +827,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if arn, err := buildRDSARN(d, meta); err == nil {
+	if arn, err := buildRDSARN(d.Id(), meta); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -888,7 +890,7 @@ func resourceAwsDbInstanceStateRefreshFunc(
 	}
 }
 
-func buildRDSARN(d *schema.ResourceData, meta interface{}) (string, error) {
+func buildRDSARN(identifier string, meta interface{}) (string, error) {
 	iamconn := meta.(*AWSClient).iamconn
 	region := meta.(*AWSClient).region
 	// An zero value GetUserInput{} defers to the currently logged in user
@@ -898,6 +900,6 @@ func buildRDSARN(d *schema.ResourceData, meta interface{}) (string, error) {
 	}
 	userARN := *resp.User.Arn
 	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountID, d.Id())
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountID, identifier)
 	return arn, nil
 }
