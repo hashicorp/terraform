@@ -23,14 +23,29 @@ func resourceComputeNetwork() *schema.Resource {
 			},
 
 			"ipv4_range": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use google_compute_subnetwork resources instead.",
 			},
 
 			"gateway_ipv4": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"auto_create_subnetworks": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false, // TODO: ideally should be true to match Google's default behaviour, but this causes backward
+				// compatibility issue with existing terraform configs
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -44,11 +59,37 @@ func resourceComputeNetwork() *schema.Resource {
 func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	//
+	// Possible modes:
+	// - 1 Legacy mode - Create a network in the legacy mode. ipv4_range is set. auto_create_subnetworks must be false
+	//     and not sent in request
+	// - 2 Distributed Mode - Create a new generation network that supports subnetworks:
+	//   - 2.a - Auto subnet mode - auto_create_subnetworks = true, Google will generate 1 subnetwork per region
+	//   - 2.b - Custom subnet mode - auto_create_subnetworks = false & ipv4_range not set,
+	//
+	ipv4range := d.Get("ipv4_range").(string)
+	autoCreateSubnetworks := d.Get("auto_create_subnetworks").(bool)
+
+	if ipv4range != "" && autoCreateSubnetworks {
+		return fmt.Errorf("Error: cannot define ipv4_range with auto_create_subnetworks = true.")
+	}
+
 	// Build the network parameter
 	network := &compute.Network{
-		Name:      d.Get("name").(string),
-		IPv4Range: d.Get("ipv4_range").(string),
+		Name: d.Get("name").(string),
+		AutoCreateSubnetworks: autoCreateSubnetworks,
+		Description:           d.Get("description").(string),
 	}
+
+	if v, ok := d.GetOk("ipv4_range"); ok {
+		log.Printf("[DEBUG] Setting IPv4Range (%#V) for legacy network mode", v.(string))
+		network.IPv4Range = v.(string)
+	} else {
+		// custom subnet mode, so make sure AutoCreateSubnetworks field is included in request otherwise
+		// google will create a network in legacy mode.
+		network.ForceSendFields = []string{"AutoCreateSubnetworks"}
+	}
+
 	log.Printf("[DEBUG] Network insert request: %#v", network)
 	op, err := config.clientCompute.Networks.Insert(
 		config.Project, network).Do()

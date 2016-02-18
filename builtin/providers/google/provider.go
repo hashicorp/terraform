@@ -59,6 +59,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
 			"google_compute_route":                  resourceComputeRoute(),
 			"google_compute_ssl_certificate":        resourceComputeSslCertificate(),
+			"google_compute_subnetwork":             resourceComputeSubnetwork(),
 			"google_compute_target_http_proxy":      resourceComputeTargetHttpProxy(),
 			"google_compute_target_https_proxy":     resourceComputeTargetHttpsProxy(),
 			"google_compute_target_pool":            resourceComputeTargetPool(),
@@ -143,4 +144,14 @@ func validateCredentials(v interface{}, k string) (warnings []string, errors []e
 	}
 
 	return
+}
+
+// FIXME: not sure this is the best place for this
+// Given a Google zone (e.g. us-central1-f) this func returns the Region, us-central1 in this example.
+func getRegionFromZone(zone string) string {
+	if zone != "" && len(zone) > 2 {
+		region := zone[:len(zone)-2]
+		return region
+	}
+	return ""
 }
