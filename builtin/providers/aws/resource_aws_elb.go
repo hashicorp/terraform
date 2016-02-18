@@ -195,6 +195,13 @@ func resourceAwsElb() *schema.Resource {
 					},
 				},
 				Set: resourceAwsElbHealthCheckHash,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					vs := v.([]interface{})
+					if len(vs) > 1 {
+						errors = append(errors, fmt.Errorf("ELB doesn't support multiple health checks"))
+					}
+					return
+				},
 			},
 
 			"dns_name": &schema.Schema{

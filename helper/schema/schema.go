@@ -542,13 +542,6 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 				}
 			}
 		}
-
-		if v.ValidateFunc != nil {
-			switch v.Type {
-			case TypeList, TypeSet:
-				return fmt.Errorf("ValidateFunc is not yet supported on lists or sets.")
-			}
-		}
 	}
 
 	return nil
@@ -1076,6 +1069,23 @@ func (m schemaMap) validateList(
 		if len(es2) > 0 {
 			es = append(es, es2...)
 		}
+	}
+
+	if schema.ValidateFunc != nil {
+		validatableList := make([]interface{}, 0, len(raws))
+		for _, raw := range raws {
+			switch schema.Elem.(type) {
+			case *Resource:
+				validatableMap := make(map[string]interface{})
+				for k, v := range raw.(map[string]interface{}) {
+					validatableMap[k] = v
+				}
+				validatableList = append(validatableList, validatableMap)
+			case *Schema:
+				validatableList = append(validatableList, raw)
+			}
+		}
+		return schema.ValidateFunc(validatableList, k)
 	}
 
 	return ws, es
