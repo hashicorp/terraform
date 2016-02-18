@@ -173,32 +173,29 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if v, ok := d.GetOk("vpc_config"); ok {
-		configs := v.([]interface{})
+		config, err := validateVPCConfig(v)
+		if err != nil {
+			return err
+		}
 
-		if len(configs) > 1 {
-			return errors.New("Only a single vpc_config block is expected")
-		} else if len(configs) == 1 {
-			config := configs[0].(map[string]interface{})
-			var subnetIds []*string
-			for _, id := range config["subnet_ids"].(*schema.Set).List() {
-				subnetIds = append(subnetIds, aws.String(id.(string)))
-			}
+		var subnetIds []*string
+		for _, id := range config["subnet_ids"].(*schema.Set).List() {
+			subnetIds = append(subnetIds, aws.String(id.(string)))
+		}
 
-			var securityGroupIds []*string
-			for _, id := range config["security_group_ids"].(*schema.Set).List() {
-				securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
-			}
+		var securityGroupIds []*string
+		for _, id := range config["security_group_ids"].(*schema.Set).List() {
+			securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
+		}
 
-			var vpcConfig = &lambda.VpcConfig{
-				SubnetIds:        subnetIds,
-				SecurityGroupIds: securityGroupIds,
-			}
-			params.VpcConfig = vpcConfig
+		params.VpcConfig = &lambda.VpcConfig{
+			SubnetIds:        subnetIds,
+			SecurityGroupIds: securityGroupIds,
 		}
 	}
 
 	// IAM profiles can take ~10 seconds to propagate in AWS:
-	//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
 	err := resource.Retry(1*time.Minute, func() error {
 		_, err := conn.CreateFunction(params)
@@ -257,7 +254,9 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("role", function.Role)
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
-	d.Set("vpc_config", flattenLambdaVpcConfigResponse(function.VpcConfig))
+	if config := flattenLambdaVpcConfigResponse(function.VpcConfig); len(config) > 0 {
+		d.Set("vpc_config", config)
+	}
 
 	return nil
 }
@@ -286,7 +285,28 @@ func resourceAwsLambdaFunctionDelete(d *schema.ResourceData, meta interface{}) e
 // resourceAwsLambdaFunctionUpdate maps to:
 // UpdateFunctionCode in the API / SDK
 func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) error {
-	// conn := meta.(*AWSClient).lambdaconn
-
 	return nil
+}
+
+func validateVPCConfig(v interface{}) (map[string]interface{}, error) {
+	configs := v.([]interface{})
+	if len(configs) > 1 {
+		return nil, errors.New("Only a single vpc_config block is expected")
+	}
+
+	config, ok := configs[0].(map[string]interface{})
+
+	if !ok {
+		return nil, errors.New("vpc_config is <nil>")
+	}
+
+	if config["subnet_ids"].(*schema.Set).Len() == 0 {
+		return nil, errors.New("vpc_config.subnet_ids cannot be empty")
+	}
+
+	if config["security_group_ids"].(*schema.Set).Len() == 0 {
+		return nil, errors.New("vpc_config.security_group_ids cannot be empty")
+	}
+
+	return config, nil
 }
