@@ -107,7 +107,6 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -578,6 +577,28 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 				return err
 			}
 			log.Printf("[WARN] Attempted to modify SourceDestCheck on non VPC instance: %s", ec2err.Message())
+		}
+	}
+
+	if d.HasChange("security_groups") {
+		var groupIds []*string
+		if v := d.Get("security_groups").(*schema.Set); v.Len() > 0 {
+			resp, err := conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+				GroupNames: expandStringList(v.List()),
+			})
+			if err != nil {
+				return err
+			}
+			for _, v := range resp.SecurityGroups {
+				groupIds = append(groupIds, aws.String(*v.GroupId))
+			}
+		}
+		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+			InstanceId: aws.String(d.Id()),
+			Groups:     groupIds,
+		})
+		if err != nil {
+			return err
 		}
 	}
 
