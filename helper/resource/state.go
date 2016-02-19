@@ -172,7 +172,12 @@ type ErrUnexpectedState struct {
 }
 
 func (e ErrUnexpectedState) Error() string {
-	return fmt.Sprintf("unexpected state '%s', wanted target '%s'", e.State, strings.Join(e.ExpectedState, ", "))
+	return fmt.Sprintf(
+		"unexpected state '%s', wanted target '%s'. last error: %s",
+		e.State,
+		strings.Join(e.ExpectedState, ", "),
+		e.LastError,
+	)
 }
 
 // ErrTimeout is returned when WaitForState times out
@@ -182,5 +187,9 @@ type ErrTimeout struct {
 }
 
 func (e ErrTimeout) Error() string {
-	return fmt.Sprintf("timeout while waiting for state to become '%s'", strings.Join(e.ExpectedState, ", "))
+	return fmt.Sprintf(
+		"timeout while waiting for state to become '%s'. last error: %s",
+		strings.Join(e.ExpectedState, ", "),
+		e.LastError,
+	)
 }
