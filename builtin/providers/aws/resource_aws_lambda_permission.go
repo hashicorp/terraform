@@ -191,7 +191,7 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	})
 
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "timeout while waiting for state") {
+		if _, isTimeout := err.(resource.ErrTimeout); isTimeout {
 			// Policy really doesn't exist
 			d.SetId("")
 			return nil

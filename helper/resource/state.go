@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -109,7 +110,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				// not finding it for awhile, and if so, report an error.
 				notfoundTick += 1
 				if notfoundTick > conf.NotFoundChecks {
-					resulterr = errors.New("couldn't find resource")
+					resulterr = ErrResourceNotFound
 					return
 				}
 			} else {
@@ -138,10 +139,11 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 
 				if !found {
-					resulterr = fmt.Errorf(
-						"unexpected state '%s', wanted target '%s'",
-						currentState,
-						conf.Target)
+					resulterr = ErrUnexpectedState{
+						State:         currentState,
+						ExpectedState: conf.Target,
+						LastError:     resulterr,
+					}
 					return
 				}
 			}
@@ -152,8 +154,33 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 	case <-doneCh:
 		return result, resulterr
 	case <-time.After(conf.Timeout):
-		return nil, fmt.Errorf(
-			"timeout while waiting for state to become '%s'",
-			conf.Target)
+		return nil, ErrTimeout{
+			ExpectedState: conf.Target,
+			LastError:     resulterr,
+		}
 	}
+}
+
+// ErrResourceNotFound is returned when NotFoundChecks is set and the number of attempts is exceeded
+var ErrResourceNotFound = errors.New("couldn't find resource")
+
+// ErrUnexpectedState is returned when Refresh returns a state that's neither in Target nor Pending
+type ErrUnexpectedState struct {
+	State         string
+	ExpectedState []string
+	LastError     error
+}
+
+func (e ErrUnexpectedState) Error() string {
+	return fmt.Sprintf("unexpected state '%s', wanted target '%s'", e.State, strings.Join(e.ExpectedState, ", "))
+}
+
+// ErrTimeout is returned when WaitForState times out
+type ErrTimeout struct {
+	ExpectedState []string
+	LastError     error
+}
+
+func (e ErrTimeout) Error() string {
+	return fmt.Sprintf("timeout while waiting for state to become '%s'", strings.Join(e.ExpectedState, ", "))
 }
