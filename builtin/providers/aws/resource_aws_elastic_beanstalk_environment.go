@@ -322,7 +322,14 @@ func fetchAwsElasticBeanstalkEnvironmentSettings(d *schema.ResourceData, meta in
 		}
 
 		if optionSetting.Value != nil {
-			m["value"] = *optionSetting.Value
+			switch *optionSetting.OptionName {
+			case "SecurityGroups":
+				m["value"] = dropGeneratedSecurityGroup(*optionSetting.Value, meta)
+			case "Subnets", "ELBSubnets":
+				m["value"] = sortValues(*optionSetting.Value)
+			default:
+				m["value"] = *optionSetting.Value
+			}
 		}
 
 		settings.Add(m)
@@ -338,8 +345,6 @@ func resourceAwsElasticBeanstalkEnvironmentSettingsRead(d *schema.ResourceData, 
 	if err != nil {
 		return err
 	}
-
-	dropGeneratedSecurityGroup(allSettings, meta)
 
 	settings := d.Get("setting").(*schema.Set)
 
@@ -483,44 +488,29 @@ func extractOptionSettings(s *schema.Set) []*elasticbeanstalk.ConfigurationOptio
 	return settings
 }
 
-func dropGeneratedSecurityGroup(settings *schema.Set, meta interface{}) {
+func dropGeneratedSecurityGroup(settingValue string, meta interface{}) string {
 	conn := meta.(*AWSClient).ec2conn
 
-	for _, s := range settings.List() {
-		setting := s.(map[string]interface{})
+	groups := strings.Split(settingValue, ",")
 
-		if setting["name"].(string) != "SecurityGroups" {
-			continue
-		}
+	resp, err := conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+		GroupIds: aws.StringSlice(groups),
+	})
 
-		log.Printf("[DEBUG] Elastic Beanstalk setting: %v", setting)
-		settingValue, isString := setting["value"].(string)
-		if !isString {
-			continue
-		}
-
-		groups := strings.Split(settingValue, ",")
-
-		resp, err := conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
-			GroupIds: aws.StringSlice(groups),
-		})
-
-		if err != nil {
-			log.Printf("[DEBUG] Elastic Beanstalk error describing SecurityGroups: %v", err)
-			continue
-		}
-
-		var legitGroups []string
-		for _, group := range resp.SecurityGroups {
-			log.Printf("[DEBUG] Elastic Beanstalk SecurityGroup: %v", *group.GroupName)
-			if !strings.HasPrefix(*group.GroupName, "awseb") {
-				legitGroups = append(legitGroups, *group.GroupId)
-			}
-		}
-
-		settings.Remove(s)
-
-		setting["value"] = strings.Join(legitGroups, ",")
-		settings.Add(setting)
+	if err != nil {
+		log.Printf("[DEBUG] Elastic Beanstalk error describing SecurityGroups: %v", err)
+		return settingValue
 	}
+
+	var legitGroups []string
+	for _, group := range resp.SecurityGroups {
+		log.Printf("[DEBUG] Elastic Beanstalk SecurityGroup: %v", *group.GroupName)
+		if !strings.HasPrefix(*group.GroupName, "awseb") {
+			legitGroups = append(legitGroups, *group.GroupId)
+		}
+	}
+
+	sort.Strings(legitGroups)
+
+	return strings.Join(legitGroups, ",")
 }
