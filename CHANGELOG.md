@@ -32,7 +32,8 @@ IMPROVEMENTS:
   * provider/aws: Add support for Tags to ElasticSearch [GH-4973]
   * provider/aws: Return an error if no matching route is found for an AWS Route [GH-5155]
   * provider/aws: `aws_lambda_function` resources now support VPC configuration [GH-5149]
-  * provider/openstack Add support for Distributed Routers [GH-4878]
+  * provider/openstack: Add support for Distributed Routers [GH-4878]
+  * provider/openstack: Add support for optional cacert_file parameter [GH-5106]
 
 BUG FIXES:
 
