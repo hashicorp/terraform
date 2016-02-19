@@ -128,8 +128,8 @@ resource "azurerm_resource_group" "test" {
     location = "West US"
 
     tags {
-	environment = "Production"
-	cost_center = "MSFT"
+		environment = "Production"
+		cost_center = "MSFT"
     }
 }
 `
