@@ -98,7 +98,7 @@ const (
 // Comments contains corresponding types used by mymysql. string type may be
 // replaced by []byte type and vice versa. []byte type is native for sending
 // on a network, so any string is converted to it before sending. Than for
-// better preformance use []byte. 
+// better preformance use []byte.
 const (
 	// Client send and receive, mymysql representation for send / receive
 	TINYINT   = MYSQL_TYPE_TINY      // int8 / int8

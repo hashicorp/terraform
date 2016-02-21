@@ -1,4 +1,3 @@
 // +build acceptance
 
 package openstack
-

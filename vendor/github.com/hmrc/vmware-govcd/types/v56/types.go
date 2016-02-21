@@ -268,9 +268,9 @@ type NetworkConnection struct {
 type NetworkConnectionSection struct {
 	// Extends OVF Section_Type
 	// FIXME: Fix the OVF section
-	XMLName       xml.Name              `xml:"NetworkConnectionSection"`
-	Xmlns         string                `xml:"xmlns,attr,omitempty"`
-	Ovf     			string   							`xml:"xmlns:ovf,attr,omitempty"`
+	XMLName xml.Name `xml:"NetworkConnectionSection"`
+	Xmlns   string   `xml:"xmlns,attr,omitempty"`
+	Ovf     string   `xml:"xmlns:ovf,attr,omitempty"`
 
 	Info string `xml:"ovf:Info"`
 	//
@@ -317,7 +317,7 @@ type OrgVDCNetwork struct {
 	IsShared      bool                  `xml:"IsShared"`
 	Link          []Link                `xml:"Link,omitempty"`
 	ServiceConfig *GatewayFeatures      `xml:"ServiceConfig,omitempty"` // Specifies the service configuration for an isolated Org vDC networks
-	Tasks         *TasksInProgress       `xml:"Tasks,omitempty"`
+	Tasks         *TasksInProgress      `xml:"Tasks,omitempty"`
 }
 
 // SupportedHardwareVersions contains a list of VMware virtual hardware versions supported in this vDC.
@@ -767,15 +767,15 @@ type VApp struct {
 }
 
 type MetadataValue struct {
-	XMLName xml.Name `xml:"MetadataValue"`
-	Xsi     string   `xml:"xmlns:xsi,attr"`
-	Xmlns   string   `xml:"xmlns,attr"`
-	TypedValue *TypedValue	`xml:"TypedValue"`
+	XMLName    xml.Name    `xml:"MetadataValue"`
+	Xsi        string      `xml:"xmlns:xsi,attr"`
+	Xmlns      string      `xml:"xmlns,attr"`
+	TypedValue *TypedValue `xml:"TypedValue"`
 }
 
 type TypedValue struct {
-	XsiType		string		`xml:"xsi:type,attr"`
-	Value 		string 		`xml:"Value"`
+	XsiType string `xml:"xsi:type,attr"`
+	Value   string `xml:"Value"`
 }
 
 // VAppChildren is a container for virtual machines included in this vApp.
@@ -806,8 +806,6 @@ type VAppTemplateChildren struct {
 	// Elements
 	VM []*VAppTemplate `xml:"Vm"` // Represents a virtual machine in this vApp template.
 }
-
-
 
 // VAppTemplate represents a vApp template.
 // Type: VAppTemplateType
@@ -853,10 +851,10 @@ type VAppTemplate struct {
 // Since: 0.9
 type VM struct {
 	// Attributes
-	XMLName         xml.Name `xml:"Vm"`
-	Ovf   string `xml:"xmlns:ovf,attr,omitempty"`
-	Xsi   string `xml:"xmlns:xsi,attr,omitempty"`
-	Xmlns string `xml:"xmlns,attr,omitempty"`
+	XMLName xml.Name `xml:"Vm"`
+	Ovf     string   `xml:"xmlns:ovf,attr,omitempty"`
+	Xsi     string   `xml:"xmlns:xsi,attr,omitempty"`
+	Xmlns   string   `xml:"xmlns,attr,omitempty"`
 
 	HREF                    string `xml:"href,attr,omitempty"`                    // The URI of the entity.
 	Type                    string `xml:"type,attr,omitempty"`                    // The MIME type of the entity.
@@ -1060,11 +1058,11 @@ type SubnetParticipation struct {
 }
 
 type EdgeGatewayServiceConfiguration struct {
-	XMLName                xml.Name 					   `xml:"EdgeGatewayServiceConfiguration"`
-	Xmlns                  string                `xml:"xmlns,attr,omitempty"`
-	GatewayDhcpService     *GatewayDhcpService   `xml:"GatewayDhcpService,omitempty"`
-	FirewallService        *FirewallService      `xml:"FirewallService,omitempty"`
-	NatService 						 *NatService				   `xml:"NatService,omitempty"`
+	XMLName            xml.Name            `xml:"EdgeGatewayServiceConfiguration"`
+	Xmlns              string              `xml:"xmlns,attr,omitempty"`
+	GatewayDhcpService *GatewayDhcpService `xml:"GatewayDhcpService,omitempty"`
+	FirewallService    *FirewallService    `xml:"FirewallService,omitempty"`
+	NatService         *NatService         `xml:"NatService,omitempty"`
 }
 
 // GatewayFeatures represents edge gateway services.

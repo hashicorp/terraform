@@ -164,7 +164,7 @@ func (c *conn) handlePgpass(o values) {
 		return
 	}
 	mode := fileinfo.Mode()
-	if mode & (0x77) != 0 {
+	if mode&(0x77) != 0 {
 		// XXX should warn about incorrect .pgpass permissions as psql does
 		return
 	}
@@ -180,7 +180,7 @@ func (c *conn) handlePgpass(o values) {
 	db := o.Get("dbname")
 	username := o.Get("user")
 	// From: https://github.com/tg/pgpass/blob/master/reader.go
-	getFields := func (s string) []string {
+	getFields := func(s string) []string {
 		fs := make([]string, 0, 5)
 		f := make([]rune, 0, len(s))
 
@@ -200,7 +200,7 @@ func (c *conn) handlePgpass(o values) {
 			}
 		}
 		return append(fs, string(f))
-	}	
+	}
 	for scanner.Scan() {
 		line := scanner.Text()
 		if len(line) == 0 || line[0] == '#' {
@@ -210,7 +210,7 @@ func (c *conn) handlePgpass(o values) {
 		if len(split) != 5 {
 			continue
 		}
-		if (split[0] == "*" || split[0] == hostname || (split[0] == "localhost" && (hostname == "" || ntw == "unix"))) && (split[1] == "*" || split[1] == port) && (split[2] == "*" || split[2] == db)  && (split[3] == "*" || split[3] == username)  {
+		if (split[0] == "*" || split[0] == hostname || (split[0] == "localhost" && (hostname == "" || ntw == "unix"))) && (split[1] == "*" || split[1] == port) && (split[2] == "*" || split[2] == db) && (split[3] == "*" || split[3] == username) {
 			o["password"] = split[4]
 			return
 		}
