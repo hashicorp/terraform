@@ -178,6 +178,26 @@ func TestAccAWSEcsService_withIamRole(t *testing.T) {
 	})
 }
 
+func TestAccAWSEcsService_withDeploymentValues(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsServiceWithDeploymentValues,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
+					resource.TestCheckResourceAttr(
+						"aws_ecs_service.mongo", "deployment_maximum_percent", "200"),
+					resource.TestCheckResourceAttr(
+						"aws_ecs_service.mongo", "deployment_minimum_healthy_percent", "100"),
+				),
+			},
+		},
+	})
+}
+
 // Regression for https://github.com/hashicorp/terraform/issues/3444
 func TestAccAWSEcsService_withLbChanges(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -415,6 +435,34 @@ resource "aws_ecs_service" "ghost" {
   }
 
   depends_on = ["aws_iam_role_policy.ecs_service"]
+}
+`
+
+var testAccAWSEcsServiceWithDeploymentValues = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstest1"
+}
+
+resource "aws_ecs_task_definition" "mongo" {
+  family = "mongodb"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "mongo:latest",
+    "memory": 128,
+    "name": "mongodb"
+  }
+]
+DEFINITION
+}
+
+resource "aws_ecs_service" "mongo" {
+  name = "mongodb"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.mongo.arn}"
+  desired_count = 1
 }
 `
 
