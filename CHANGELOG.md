@@ -34,6 +34,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_lambda_function` resources now support VPC configuration [GH-5149]
   * provider/openstack: Add support for Distributed Routers [GH-4878]
   * provider/openstack: Add support for optional cacert_file parameter [GH-5106]
+  * provider/aws: Add support for deployment configuration to `aws_ecs_service` [GH-5220]
 
 BUG FIXES:
 
