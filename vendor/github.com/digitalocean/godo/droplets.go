@@ -135,7 +135,6 @@ type DropletCreateRequest struct {
 	UserData          string                `json:"user_data,omitempty"`
 }
 
-
 type DropletMultiCreateRequest struct {
 	Names             []string              `json:"names"`
 	Region            string                `json:"region"`
