@@ -192,6 +192,7 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
+			log.Printf("[ERROR] Received %q, retrying CreateFunction", err)
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "InvalidParameterValueException" {
 					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)
