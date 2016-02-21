@@ -28,6 +28,8 @@ func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "cluster_type", "single-node"),
 				),
 			},
 		},
@@ -243,7 +245,6 @@ resource "aws_redshift_cluster" "default" {
   master_username = "foo"
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
-  cluster_type = "single-node"
   automated_snapshot_retention_period = 7
   allow_version_upgrade = false
 }`
