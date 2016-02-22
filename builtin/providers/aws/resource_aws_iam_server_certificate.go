@@ -51,9 +51,33 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 			},
 
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 128 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 128 characters", k))
+					}
+					return
+				},
+			},
+
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 30 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 30 characters, name is limited to 128", k))
+					}
+					return
+				},
 			},
 
 			"arn": &schema.Schema{
@@ -68,10 +92,19 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 func resourceAwsIAMServerCertificateCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 
+	var sslCertName string
+	if v, ok := d.GetOk("name"); ok {
+		sslCertName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		sslCertName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		sslCertName = resource.UniqueId()
+	}
+
 	createOpts := &iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String(d.Get("certificate_body").(string)),
 		PrivateKey:            aws.String(d.Get("private_key").(string)),
-		ServerCertificateName: aws.String(d.Get("name").(string)),
+		ServerCertificateName: aws.String(sslCertName),
 	}
 
 	if v, ok := d.GetOk("certificate_chain"); ok {
@@ -92,6 +125,7 @@ func resourceAwsIAMServerCertificateCreate(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(*resp.ServerCertificateMetadata.ServerCertificateId)
+	d.Set("name", sslCertName)
 
 	return resourceAwsIAMServerCertificateRead(d, meta)
 }
@@ -135,7 +169,8 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "DeleteConflict" && strings.Contains(awsErr.Message(), "currently in use by arn") {
-					return fmt.Errorf("[WARN] Conflict deleting server certificate: %s, retrying", awsErr.Message())
+					log.Printf("[WARN] Conflict deleting server certificate: %s, retrying", awsErr.Message())
+					return err
 				}
 			}
 			return resource.RetryError{Err: err}
