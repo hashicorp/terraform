@@ -229,7 +229,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 				ResourceName: aws.String(tagsARN),
 			})
 			if err != nil {
-				return fmt.Errorf("Error retrieving tags for ARN (%s): ", tagsARN, err)
+				return fmt.Errorf("Error retrieving tags for ARN (%s): %s", tagsARN, err)
 			}
 
 			if resp.TagList == nil || len(resp.TagList) == 0 {
