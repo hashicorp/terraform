@@ -230,11 +230,15 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) error {
-	g, err := getAwsAutoscalingGroup(d, meta)
+	conn := meta.(*AWSClient).autoscalingconn
+
+	g, err := getAwsAutoscalingGroup(d.Id(), conn)
 	if err != nil {
 		return err
 	}
 	if g == nil {
+		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		d.SetId("")
 		return nil
 	}
 
@@ -389,11 +393,13 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// Read the autoscaling group first. If it doesn't exist, we're done.
 	// We need the group in order to check if there are instances attached.
 	// If so, we need to remove those first.
-	g, err := getAwsAutoscalingGroup(d, meta)
+	g, err := getAwsAutoscalingGroup(d.Id(), conn)
 	if err != nil {
 		return err
 	}
 	if g == nil {
+		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		d.SetId("")
 		return nil
 	}
 	if len(g.Instances) > 0 || *g.DesiredCapacity > 0 {
@@ -434,7 +440,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	return resource.Retry(5*time.Minute, func() error {
-		if g, _ = getAwsAutoscalingGroup(d, meta); g != nil {
+		if g, _ = getAwsAutoscalingGroup(d.Id(), conn); g != nil {
 			return fmt.Errorf("Auto Scaling Group still exists")
 		}
 		return nil
@@ -442,12 +448,11 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 }
 
 func getAwsAutoscalingGroup(
-	d *schema.ResourceData,
-	meta interface{}) (*autoscaling.Group, error) {
-	conn := meta.(*AWSClient).autoscalingconn
+	asgName string,
+	conn *autoscaling.AutoScaling) (*autoscaling.Group, error) {
 
 	describeOpts := autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{aws.String(d.Id())},
+		AutoScalingGroupNames: []*string{aws.String(asgName)},
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group describe configuration: %#v", describeOpts)
@@ -455,7 +460,6 @@ func getAwsAutoscalingGroup(
 	if err != nil {
 		autoscalingerr, ok := err.(awserr.Error)
 		if ok && autoscalingerr.Code() == "InvalidGroup.NotFound" {
-			d.SetId("")
 			return nil, nil
 		}
 
@@ -464,13 +468,11 @@ func getAwsAutoscalingGroup(
 
 	// Search for the autoscaling group
 	for idx, asc := range describeGroups.AutoScalingGroups {
-		if *asc.AutoScalingGroupName == d.Id() {
+		if *asc.AutoScalingGroupName == asgName {
 			return describeGroups.AutoScalingGroups[idx], nil
 		}
 	}
 
-	// ASG not found
-	d.SetId("")
 	return nil, nil
 }
 
@@ -497,11 +499,13 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	// Next, wait for the autoscale group to drain
 	log.Printf("[DEBUG] Waiting for group to have zero instances")
 	return resource.Retry(10*time.Minute, func() error {
-		g, err := getAwsAutoscalingGroup(d, meta)
+		g, err := getAwsAutoscalingGroup(d.Id(), conn)
 		if err != nil {
 			return resource.RetryError{Err: err}
 		}
 		if g == nil {
+			log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+			d.SetId("")
 			return nil
 		}
 
