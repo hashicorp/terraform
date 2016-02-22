@@ -170,6 +170,23 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 					},
 				},
 			},
+			"ip_address": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ip_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"time_to_retire": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"replica_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -699,6 +716,19 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 			d.Set("replica_configuration", _replicaConfigurationList)
 		}
 	}
+
+	_ipAddresses := make([]interface{}, len(instance.IpAddresses))
+
+	for i, ip := range instance.IpAddresses {
+		_ipAddress := make(map[string]interface{})
+
+		_ipAddress["ip_address"] = ip.IpAddress
+		_ipAddress["time_to_retire"] = ip.TimeToRetire
+
+		_ipAddresses[i] = _ipAddress
+	}
+
+	d.Set("ip_address", _ipAddresses)
 
 	if v, ok := d.GetOk("master_instance_name"); ok && v != nil {
 		d.Set("master_instance_name", instance.MasterInstanceName)
