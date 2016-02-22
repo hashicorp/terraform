@@ -152,7 +152,7 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("port", strconv.Itoa(rec.Port))
 
 	en := constructFqdn(rec.Name, d.Get("domain").(string))
-	log.Printf("[DEBUG] Constructred FQDN: %s", en)
+	log.Printf("[DEBUG] Constructed FQDN: %s", en)
 	d.Set("fqdn", en)
 
 	return nil
