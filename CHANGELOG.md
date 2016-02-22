@@ -2,7 +2,12 @@
 
 FEATURES:
 
-  * **New resource:** `azurerm_dns_zone` [GH-4979]
+  * **New command:** `validate` to perform syntax validation [GH-3783]
+  * **New provider:** `datadog` [GH-5251]
+  * **New interpolation function:** `signum` [GH-4854]
+  * **New resource:** `aws_cloudwatch_event_rule` [GH-4986]
+  * **New resource:** `aws_cloudwatch_event_target` [GH-4986]
+  * **New resource:** `aws_lambda_permission` [GH-4826]
   * **New resource:** `azurerm_dns_a_record` [GH-5013]
   * **New resource:** `azurerm_dns_aaaa_record` [GH-5013]
   * **New resource:** `azurerm_dns_cname_record` [GH-5013]
@@ -10,16 +15,12 @@ FEATURES:
   * **New resource:** `azurerm_dns_ns_record` [GH-5041]
   * **New resource:** `azurerm_dns_srv_record` [GH-5041]
   * **New resource:** `azurerm_dns_txt_record` [GH-5041]
+  * **New resource:** `azurerm_dns_zone` [GH-4979]
   * **New resource:** `azurerm_search_service` [GH-5203]
   * **New resource:** `azurerm_sql_database` [GH-5003]
-  * **New resource:** `azurerm_sql_server` [GH-4991]
   * **New resource:** `azurerm_sql_firewall_rule` [GH-5057]
-  * **New resource:** `aws_cloudwatch_event_rule` [GH-4986]
-  * **New resource:** `aws_cloudwatch_event_target` [GH-4986]
-  * **New resource:** `aws_lambda_permission` [GH-4826]
+  * **New resource:** `azurerm_sql_server` [GH-4991]
   * **New resource:** `google_compute_subnetwork` [GH-5130]
-  * **New interpolation function:** `signum` [GH-4854]
-  * **New command:** `validate` to perform syntax validation [GH-3783]
 
 IMPROVEMENTS:
 
