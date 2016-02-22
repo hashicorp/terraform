@@ -1,7 +1,7 @@
 TEST?=$$(GO15VENDOREXPERIMENT=1 go list ./... | grep -v /vendor/)
 VETARGS?=-all
 
-default: test
+default: test vet
 
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
