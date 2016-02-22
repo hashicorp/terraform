@@ -160,7 +160,7 @@ Each `scaling_*_policy` supports the following:
 * `policy_name` - (Optional) The name of the policy.
 * `statistic` - (Optional) The metric statistics to return. For information about specific statistics go to [Statistics](http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/index.html?CHAP_TerminologyandKeyConcepts.html#Statistic) in the Amazon CloudWatch Developer Guide.
 * `unit` - (Optional) The unit for the alarm's associated metric.
-* `adjustment` - (Optional) A positive value adds to the current capacity while a negative number removes from the current capacity.
+* `adjustment` - (Optional) The number of instances to add/remove to/from the target capacity when scale is needed.
 * `period` - (Optional) The granularity, in seconds, of the returned datapoints. Period must be at least 60 seconds and must be a multiple of 60.
 * `evaluation_periods` - (Optional) The number of periods over which data is compared to the specified threshold.
 * `cooldown` - (Optional) The amount of time, in seconds, after a scaling activity completes and before the next scaling activity can start. If this parameter is not specified, the default cooldown period for the group applies.
