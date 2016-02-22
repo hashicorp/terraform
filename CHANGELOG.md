@@ -36,6 +36,7 @@ IMPROVEMENTS:
   * provider/openstack: Add support for optional cacert_file parameter [GH-5106]
   * provider/aws: Add support for deployment configuration to `aws_ecs_service` [GH-5220]
   * provider/google: Add assigned IP Address to CloudSQL Instance `google_sql_database_instance` [GH-5245]
+  * provider/aws: Allow name-prefix and auto-generated names for IAM Server Cert [GH-5178]
 
 BUG FIXES:
 
