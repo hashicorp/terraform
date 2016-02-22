@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -240,6 +241,36 @@ func TestValidatePolicyStatementId(t *testing.T) {
 		_, errors := validatePolicyStatementId(v, "statement_id")
 		if len(errors) == 0 {
 			t.Fatalf("%q should be an invalid Statement ID", v)
+		}
+	}
+}
+
+func TestValidateCIDRNetworkAddress(t *testing.T) {
+	cases := []struct {
+		CIDR              string
+		ExpectedErrSubstr string
+	}{
+		{"notacidr", `must contain a valid CIDR`},
+		{"10.0.1.0/16", `must contain a valid network CIDR`},
+		{"10.0.1.0/24", ``},
+	}
+
+	for i, tc := range cases {
+		_, errs := validateCIDRNetworkAddress(tc.CIDR, "foo")
+		if tc.ExpectedErrSubstr == "" {
+			if len(errs) != 0 {
+				t.Fatalf("%d/%d: Expected no error, got errs: %#v",
+					i+1, len(cases), errs)
+			}
+		} else {
+			if len(errs) != 1 {
+				t.Fatalf("%d/%d: Expected 1 err containing %q, got %d errs",
+					i+1, len(cases), tc.ExpectedErrSubstr, len(errs))
+			}
+			if !strings.Contains(errs[0].Error(), tc.ExpectedErrSubstr) {
+				t.Fatalf("%d/%d: Expected err: %q, to include %q",
+					i+1, len(cases), errs[0], tc.ExpectedErrSubstr)
+			}
 		}
 	}
 }

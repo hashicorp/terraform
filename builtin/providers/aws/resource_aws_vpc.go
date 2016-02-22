@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"net"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,19 +21,10 @@ func resourceAwsVpc() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"cidr_block": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					_, ipnet, err := net.ParseCIDR(value)
-
-					if err != nil || ipnet == nil || value != ipnet.String() {
-						errors = append(errors, fmt.Errorf(
-							"%q must contain a valid CIDR", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateCIDRNetworkAddress,
 			},
 
 			"instance_tenancy": &schema.Schema{
