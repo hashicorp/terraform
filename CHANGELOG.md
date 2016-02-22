@@ -37,6 +37,7 @@ IMPROVEMENTS:
   * provider/aws: Support custom endpoints for AWS EC2 ELB and IAM [GH-5114]
   * provider/aws: The `cluster_type` on `aws_redshift_cluster` resources is now computed [GH-5238]
   * provider/aws: `aws_lambda_function` resources now support VPC configuration [GH-5149]
+  * provider/aws: Add support for Enhanced Monitoring to RDS Instances [GH-4945]
   * provider/digitalocean: `digitalocean_record` resources now export a computed `fqdn` attribute [GH-5071]
   * provider/google: Add assigned IP Address to CloudSQL Instance `google_sql_database_instance` [GH-5245]
   * provider/openstack: Add support for Distributed Routers [GH-4878]
