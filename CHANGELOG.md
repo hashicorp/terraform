@@ -10,6 +10,7 @@ FEATURES:
   * **New resource:** `azurerm_dns_ns_record` [GH-5041]
   * **New resource:** `azurerm_dns_srv_record` [GH-5041]
   * **New resource:** `azurerm_dns_txt_record` [GH-5041]
+  * **New resource:** `azurerm_search_service` [GH-5203]
   * **New resource:** `azurerm_sql_database` [GH-5003]
   * **New resource:** `azurerm_sql_server` [GH-4991]
   * **New resource:** `azurerm_sql_firewall_rule` [GH-5057]
