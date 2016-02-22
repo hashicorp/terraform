@@ -50,7 +50,7 @@ string.
                                  The version selected runs on all the nodes in the cluster.
 * `allow_version_upgrade` - (Optional) If true , major version upgrades can be applied during the maintenance window to the Amazon Redshift engine that is running on the cluster. Default is true
 * `number_of_nodes` - (Optional) The number of compute nodes in the cluster. This parameter is required when the ClusterType parameter is specified as multi-node. Default is 1.
-* `publicly_accessible` - (Optional) If true , the cluster can be accessed from a public network.
+* `publicly_accessible` - (Optional) If true, the cluster can be accessed from a public network. Default is `true`.
 * `encrypted` - (Optional) If true , the data in the cluster is encrypted at rest.
 * `elastic_ip` - (Optional) The Elastic IP (EIP) address for the cluster.
 * `skip_final_snapshot` - (Optional) Determines whether a final snapshot of the cluster is created before Amazon Redshift deletes the cluster. If true , a final cluster snapshot is not created. If false , a final cluster snapshot is created before the cluster is deleted. Default is true.

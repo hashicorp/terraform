@@ -146,6 +146,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
+				Default:  true,
 			},
 
 			"encrypted": &schema.Schema{
@@ -205,6 +206,7 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		NodeType:            aws.String(d.Get("node_type").(string)),
 		DBName:              aws.String(d.Get("database_name").(string)),
 		AllowVersionUpgrade: aws.Bool(d.Get("allow_version_upgrade").(bool)),
+		PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
 	}
 
 	if v := d.Get("number_of_nodes").(int); v > 1 {
@@ -240,10 +242,6 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 
 	if v, ok := d.GetOk("automated_snapshot_retention_period"); ok {
 		createOpts.AutomatedSnapshotRetentionPeriod = aws.Int64(int64(v.(int)))
-	}
-
-	if v, ok := d.GetOk("publicly_accessible"); ok {
-		createOpts.PubliclyAccessible = aws.Bool(v.(bool))
 	}
 
 	if v, ok := d.GetOk("encrypted"); ok {
