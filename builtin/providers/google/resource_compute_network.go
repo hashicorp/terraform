@@ -41,8 +41,9 @@ func resourceComputeNetwork() *schema.Resource {
 				/* Ideally this would default to true as per the API, but that would cause
 				   existing Terraform configs which have not been updated to report this as
 				   a change. Perhaps we can bump this for a minor release bump rather than
-				   a point release. */
-				Default: false,
+				   a point release.
+				Default: false, */
+				ConflictsWith: []string{"ipv4_range"},
 			},
 
 			"description": &schema.Schema{
@@ -64,18 +65,13 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 
 	//
 	// Possible modes:
-	// - 1 Legacy mode - Create a network in the legacy mode. ipv4_range is set. auto_create_subnetworks must be false
-	//     and not sent in request
+	// - 1 Legacy mode - Create a network in the legacy mode. ipv4_range is set. auto_create_subnetworks must not be
+	//     set (enforced by ConflictsWith schema attribute)
 	// - 2 Distributed Mode - Create a new generation network that supports subnetworks:
 	//   - 2.a - Auto subnet mode - auto_create_subnetworks = true, Google will generate 1 subnetwork per region
 	//   - 2.b - Custom subnet mode - auto_create_subnetworks = false & ipv4_range not set,
 	//
-	ipv4range := d.Get("ipv4_range").(string)
 	autoCreateSubnetworks := d.Get("auto_create_subnetworks").(bool)
-
-	if ipv4range != "" && autoCreateSubnetworks {
-		return fmt.Errorf("Error: cannot define ipv4_range with auto_create_subnetworks = true.")
-	}
 
 	// Build the network parameter
 	network := &compute.Network{
