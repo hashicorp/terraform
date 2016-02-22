@@ -400,7 +400,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 
 						"associate_public_ip_address": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeBool,
 							Optional: true,
 							ForceNew: false,
 						},
