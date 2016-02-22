@@ -20,9 +20,10 @@ const (
 	statusResumeIncomplete = 308
 )
 
-// uploadPause determines the delay between failed upload attempts
-// TODO(mcgreevy): improve this retry mechanism.
-var uploadPause = 1 * time.Second
+// DefaultBackoffStrategy returns a default strategy to use for retrying failed upload requests.
+func DefaultBackoffStrategy() BackoffStrategy {
+	return &ExponentialBackoff{BasePause: time.Second}
+}
 
 // ResumableUpload is used by the generated APIs to provide resumable uploads.
 // It is not used by developers directly.
@@ -41,6 +42,9 @@ type ResumableUpload struct {
 
 	// Callback is an optional function that will be periodically called with the cumulative number of bytes uploaded.
 	Callback func(int64)
+
+	// If not specified, a default exponential backoff strategy will be used.
+	Backoff BackoffStrategy
 }
 
 // Progress returns the number of bytes uploaded at this point.
@@ -50,68 +54,105 @@ func (rx *ResumableUpload) Progress() int64 {
 	return rx.progress
 }
 
-func (rx *ResumableUpload) transferChunks(ctx context.Context) (*http.Response, error) {
-	var res *http.Response
-	var err error
-
-	for {
-		select { // Check for cancellation
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
-		chunk, off, size, e := rx.Media.Chunk()
-		reqSize := int64(size)
-		done := e == io.EOF
-
-		if !done && e != nil {
-			return nil, e
-		}
-
-		req, _ := http.NewRequest("POST", rx.URI, chunk)
-		req.ContentLength = reqSize
-		var contentRange string
-		if done {
-			if reqSize == 0 {
-				contentRange = fmt.Sprintf("bytes */%v", off)
-			} else {
-				contentRange = fmt.Sprintf("bytes %v-%v/%v", off, off+reqSize-1, off+reqSize)
-			}
-		} else {
-			contentRange = fmt.Sprintf("bytes %v-%v/*", off, off+reqSize-1)
-		}
-		req.Header.Set("Content-Range", contentRange)
-		req.Header.Set("Content-Type", rx.MediaType)
-		req.Header.Set("User-Agent", rx.UserAgent)
-		res, err = ctxhttp.Do(ctx, rx.Client, req)
-
-		success := err == nil && res.StatusCode == statusResumeIncomplete || res.StatusCode == http.StatusOK
-		if success && reqSize > 0 {
-			rx.mu.Lock()
-			rx.progress = off + reqSize // number of bytes sent so far
-			rx.mu.Unlock()
-			if rx.Callback != nil {
-				rx.Callback(off + reqSize)
-			}
-		}
-		if err != nil || res.StatusCode != statusResumeIncomplete {
-			break
-		}
-		rx.Media.Next()
-		res.Body.Close()
+// doUploadRequest performs a single HTTP request to upload data.
+// off specifies the offset in rx.Media from which data is drawn.
+// size is the number of bytes in data.
+// final specifies whether data is the final chunk to be uploaded.
+func (rx *ResumableUpload) doUploadRequest(ctx context.Context, data io.Reader, off, size int64, final bool) (*http.Response, error) {
+	req, err := http.NewRequest("POST", rx.URI, data)
+	if err != nil {
+		return nil, err
 	}
-	return res, err
+
+	req.ContentLength = size
+	var contentRange string
+	if final {
+		if size == 0 {
+			contentRange = fmt.Sprintf("bytes */%v", off)
+		} else {
+			contentRange = fmt.Sprintf("bytes %v-%v/%v", off, off+size-1, off+size)
+		}
+	} else {
+		contentRange = fmt.Sprintf("bytes %v-%v/*", off, off+size-1)
+	}
+	req.Header.Set("Content-Range", contentRange)
+	req.Header.Set("Content-Type", rx.MediaType)
+	req.Header.Set("User-Agent", rx.UserAgent)
+	return ctxhttp.Do(ctx, rx.Client, req)
+
+}
+
+// reportProgress calls a user-supplied callback to report upload progress.
+// If old==updated, the callback is not called.
+func (rx *ResumableUpload) reportProgress(old, updated int64) {
+	if updated-old == 0 {
+		return
+	}
+	rx.mu.Lock()
+	rx.progress = updated
+	rx.mu.Unlock()
+	if rx.Callback != nil {
+		rx.Callback(updated)
+	}
+}
+
+// transferChunk performs a single HTTP request to upload a single chunk from rx.Media.
+func (rx *ResumableUpload) transferChunk(ctx context.Context) (*http.Response, error) {
+	chunk, off, size, err := rx.Media.Chunk()
+
+	done := err == io.EOF
+	if !done && err != nil {
+		return nil, err
+	}
+
+	res, err := rx.doUploadRequest(ctx, chunk, off, int64(size), done)
+	if err != nil {
+		return res, err
+	}
+
+	if res.StatusCode == statusResumeIncomplete || res.StatusCode == http.StatusOK {
+		rx.reportProgress(off, off+int64(size))
+	}
+
+	if res.StatusCode == statusResumeIncomplete {
+		rx.Media.Next()
+	}
+	return res, nil
+}
+
+func contextDone(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
 }
 
 // Upload starts the process of a resumable upload with a cancellable context.
-// It retries indefinitely (with a pause of uploadPause between attempts) until cancelled.
+// It retries indefinitely (using exponential backoff) until cancelled.
 // It is called from the auto-generated API code and is not visible to the user.
 // rx is private to the auto-generated API code.
 // Exactly one of resp or err will be nil.  If resp is non-nil, the caller must call resp.Body.Close.
 func (rx *ResumableUpload) Upload(ctx context.Context) (resp *http.Response, err error) {
+	var pause time.Duration
+	backoff := rx.Backoff
+	if backoff == nil {
+		backoff = DefaultBackoffStrategy()
+	}
+
 	for {
-		resp, err = rx.transferChunks(ctx)
+		// Ensure that we return in the case of cancelled context, even if pause is 0.
+		if contextDone(ctx) {
+			return nil, ctx.Err()
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(pause):
+		}
+
+		resp, err = rx.transferChunk(ctx)
 		// It's possible for err and resp to both be non-nil here, but we expose a simpler
 		// contract to our callers: exactly one of resp and err will be non-nil.  This means
 		// that any response body must be closed here before returning a non-nil error.
@@ -125,10 +166,12 @@ func (rx *ResumableUpload) Upload(ctx context.Context) (resp *http.Response, err
 			return resp, nil
 		}
 		resp.Body.Close()
-		select { // Check for cancellation
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(uploadPause):
+
+		if resp.StatusCode == statusResumeIncomplete {
+			pause = 0
+			backoff.Reset()
+		} else {
+			pause = backoff.Pause()
 		}
 	}
 }

@@ -4,7 +4,7 @@
 
 // Package googleapi contains the common code shared by all Google API
 // libraries.
-package googleapi // import "google.golang.org/api/googleapi"
+package googleapi
 
 import (
 	"bytes"
