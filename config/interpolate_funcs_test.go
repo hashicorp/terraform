@@ -778,6 +778,14 @@ func TestInterpolateFuncElement(t *testing.T) {
 				false,
 			},
 
+			// Negative number should fail
+			{
+				fmt.Sprintf(`${element("%s", "-1")}`,
+					NewStringList([]string{"foo"}).String()),
+				nil,
+				true,
+			},
+
 			// Too many args
 			{
 				fmt.Sprintf(`${element("%s", "0", "2")}`,
