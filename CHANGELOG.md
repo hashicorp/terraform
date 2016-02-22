@@ -54,6 +54,7 @@ BUG FIXES:
   * provider/google: Fix reading of `google_compute_vpn_gateway` without an explicit [GH-5125]
   * provider/aws: Fix ElasticSearch `domain_name` validation [GH-4973]
   * provider/vcd: Wait for DHCP assignment when creating `vcd_vapp` resources with no static IP assignment [GH-5195]
+  * provider/aws: Fix Copy of Tags to DB Instance when created from Snapshot [GH-5197]
 
 ## 0.6.11 (February 1, 2016)
 
