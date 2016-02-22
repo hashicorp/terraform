@@ -397,6 +397,10 @@
 			"Rev": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
 		},
 		{
+			"ImportPath": "github.com/cenkalti/backoff",
+			"Rev": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
 			"Comment": "v2.3.0-alpha.0-652-ge552791",
 			"Rev": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
@@ -716,6 +720,10 @@
 			"ImportPath": "github.com/ziutek/mymysql/thrsafe",
 			"Comment": "v1.5.4-13-g75ce5fb",
 			"Rev": "75ce5fbba34b1912a3641adbd58cf317d7315821"
+		},
+		{
+			"ImportPath": "github.com/zorkian/go-datadog-api",
+			"Rev": "632146c79714fe4232b496087802f922c1daf96f"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
