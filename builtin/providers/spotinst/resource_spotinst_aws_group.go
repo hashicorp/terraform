@@ -389,7 +389,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 
 						"device_index": &schema.Schema{
 							Type:     schema.TypeInt,
-							Optional: true,
+							Required: true,
 							ForceNew: false,
 						},
 
