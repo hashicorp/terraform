@@ -68,6 +68,7 @@ BUG FIXES:
   * provider/docker: Fix the default docker_host value [GH-5088]
   * provider/google: Fix backend service max_utilization attribute [GH-5075]
   * provider/google: Fix reading of `google_compute_vpn_gateway` without an explicit [GH-5125]
+  * provider/google: Fix crash when setting `ack_deadline_seconds` on `google_pubsub_subscription` [GH-5110]
   * provider/openstack: Fix crash when `access_network` was not defined in instances [GH-4966]
   * provider/powerdns: Fix refresh of `powerdns_record` no longer fails if the record name contains a `-` [GH-5228] 
   * provider/vcd: Wait for DHCP assignment when creating `vcd_vapp` resources with no static IP assignment [GH-5195]
