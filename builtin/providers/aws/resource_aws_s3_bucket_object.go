@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/go-homedir"
@@ -144,7 +145,9 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
 	}
 
-	d.Set("etag", resp.ETag)
+	// See https://forums.aws.amazon.com/thread.jspa?threadID=44003
+	d.Set("etag", strings.Trim(*resp.ETag, `"`))
+
 	d.SetId(key)
 	return nil
 }
