@@ -300,6 +300,56 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	}
 }
 
+// https://github.com/hashicorp/terraform/pull/5096
+func TestContext2Apply_destroySkipsCBD(t *testing.T) {
+	// Config contains CBD resource depending on non-CBD resource, which triggers
+	// a cycle if they are both replaced, but should _not_ trigger a cycle when
+	// just doing a `terraform destroy`.
+	m := testModule(t, "apply-destroy-cbd")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 // https://github.com/hashicorp/terraform/issues/2892
 func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 	m := testModule(t, "apply-destroy-cross-providers")
