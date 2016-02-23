@@ -144,6 +144,60 @@ func TestAccDockerContainer_customized(t *testing.T) {
 	})
 }
 
+func TestAccDockerContainer_network(t *testing.T) {
+	var c dc.Container
+
+	testCheck := func(s *terraform.State) error {
+		rn := "docker_network.foo"
+
+		rs, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("Network not found: %s", rn)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("Network ID is not set")
+		}
+
+		client := testAccProvider.Meta().(*dc.Client)
+
+		n, err := client.NetworkInfo(rs.Primary.ID)
+		if err != nil {
+			return fmt.Errorf("Network testAccDockerContainerNetwork_network not found")
+		}
+
+		if n.Name != "testAccDockerContainerNetwork_network" {
+			return fmt.Errorf("Bad network name, expected testAccDockerContainerNetwork_network, got %q", n.Name)
+		}
+
+		if len(n.Containers) != 1 {
+			return fmt.Errorf("Incorrect number of containers, expected 1, got %d", len(n.Containers))
+		}
+
+		for ncID := range n.Containers {
+			if ncID == c.ID {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("Container 'tf-test-nw' not connected to network: %s", rs.Primary.ID)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerContainerNetwork,
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning("docker_container.foo", &c),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(n string, container *dc.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -242,5 +296,20 @@ resource "docker_container" "foo" {
 		host = "testhost2"
 		ip = "10.0.2.0"
 	}
+}
+`
+const testAccDockerContainerNetwork = `
+resource "docker_image" "foo" {
+	name = "nginx:latest"
+}
+
+resource "docker_network" "foo" {
+	name = "testAccDockerContainerNetwork_network"
+}
+
+resource "docker_container" "foo" {
+	name = "tf-test-nw"
+	image = "${docker_image.foo.latest}"
+	networks = ["${docker_network.foo.id}"]
 }
 `

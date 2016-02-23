@@ -4,6 +4,8 @@ import (
 	"os/exec"
 	"testing"
 
+	dc "github.com/fsouza/go-dockerclient"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -15,6 +17,11 @@ func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"docker": testAccProvider,
+	}
+
+	// Use local socket for the acceptance tests
+	testAccProvider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+		return dc.NewClient("unix://var/run/docker.sock")
 	}
 }
 
