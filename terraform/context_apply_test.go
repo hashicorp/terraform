@@ -3944,7 +3944,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	// Apply cleanly step 0
-	t.Log("Applying Step 0")
 	ctx := testContext2(t, &ContextOpts{
 		Module: testModule(t, "issue-5254/step-0"),
 		Providers: map[string]ResourceProviderFactory{
@@ -3956,7 +3955,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	t.Logf("Plan for Step 0: %s", plan)
 
 	state, err := ctx.Apply()
 	if err != nil {
@@ -3964,8 +3962,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	}
 
 	// Application success. Now make the modification and store a plan
-	println("Planning Step 1")
-	t.Log("Planning Step 1")
 	ctx = testContext2(t, &ContextOpts{
 		Module: testModule(t, "issue-5254/step-1"),
 		State:  state,
@@ -3990,11 +3986,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	t.Logf("Plan for Step 1: %s", planFromFile)
-
-	// Apply the plan
-	println("Applying Step 1 (from Plan)")
-	t.Log("Applying Step 1 (from plan)")
 	ctx = planFromFile.Context(&ContextOpts{
 		Providers: map[string]ResourceProviderFactory{
 			"template": testProviderFuncFixed(p),
@@ -4006,11 +3997,21 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	/*
-		actual := strings.TrimSpace(state.String())
-		expected := strings.TrimSpace(testTerraformApplyProviderAliasStr)
-		if actual != expected {
-			t.Fatalf("bad: \n%s", actual)
-		}
-	*/
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+template_file.child:
+  ID = foo
+  template = Hi
+  type = template_file
+
+  Dependencies:
+    template_file.parent
+template_file.parent:
+  ID = foo
+  template = Hi
+  type = template_file
+               `)
+	if actual != expected {
+		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+	}
 }
