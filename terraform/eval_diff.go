@@ -48,14 +48,15 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 				"Terraform and should be reported as a GitHub Issue.\n"+
 				"\n"+
 				"Please include the following information in your report:\n"+
-				"  Terraform Version: %s\n"+
-				"  Resource ID: %s\n"+
-				"  Mismatch reason: %s\n"+
-				"  Diff One (usually from plan): %#v\n"+
-				"  Diff Two (usually from apply): %#v\n"+
 				"\n"+
-				"Also include as much context as you can about your config, state,\n"+
-				"  and the steps you performed to trigger this error.\n",
+				"    Terraform Version: %s\n"+
+				"    Resource ID: %s\n"+
+				"    Mismatch reason: %s\n"+
+				"    Diff One (usually from plan): %#v\n"+
+				"    Diff Two (usually from apply): %#v\n"+
+				"\n"+
+				"Also include as much context as you can about your config, state, "+
+				"and the steps you performed to trigger this error.\n",
 			n.Info.Id, Version, n.Info.Id, reason, one, two)
 	}
 
