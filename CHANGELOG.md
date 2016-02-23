@@ -30,6 +30,7 @@ IMPROVEMENTS:
 
   * core: Backend names are now down cased during `init` in the same manner as `remote config` [GH-5012]
   * core: Upgrade resource name validation warning to an error as planned [GH-5272]
+  * core: output "diffs didn't match" error details [GH-5276]
   * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
   * provider/aws: Add support for HTTP(S) endpoints that auto confirm SNS subscription [GH-4711]
   * provider/aws: Add support for Tags to CloudTrail [GH-5135]
