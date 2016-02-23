@@ -1597,7 +1597,7 @@ func expandAwsGroupLaunchSpecification(m map[string]interface{}) *spotinst.AwsGr
 	}
 
 	if v, ok := m["iam_instance_profile"].(string); ok && v != "" {
-		lc.IamRole = &spotinst.AwsGroupComputeIamInstanceProfile{Arn: v}
+		lc.IamInstanceProfile = &spotinst.AwsGroupComputeIamInstanceProfile{Arn: v}
 	}
 
 	if v, ok := m["user_data"].(string); ok && v != "" {
