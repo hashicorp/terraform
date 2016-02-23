@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.6",
 	"Packages": [
 		"./..."
 	],
@@ -715,7 +715,7 @@
 		{
 			"ImportPath": "github.com/jen20/riviera/sql",
 			"Rev": "64de55fa8cdd0c52f7d59494c1b03c1b583c52b4"
-        },
+		},
 		{
 			"ImportPath": "github.com/jmespath/go-jmespath",
 			"Comment": "0.2.2-2-gc01cf91",
