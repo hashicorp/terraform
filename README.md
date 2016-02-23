@@ -36,13 +36,10 @@ For local dev first make sure Go is properly installed, including setting up a [
 - [Git](http://git-scm.com/)
 - [Mercurial](http://mercurial.selenic.com/)
 
-Next, clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. Install the necessary dependencies by running `make updatedeps` and then just type `make`. This will compile some more dependencies and then run the tests. If this exits with exit status 0, then everything is working!
+Next, clone this repository into `$GOPATH/src/github.com/hashicorp/terraform` and run `make`. This will compile dependencies and run the tests. If this exits with exit status 0, then everything is working!
 
 ```sh
-$ make updatedeps
-...
 $ make
-...
 ```
 
 To compile a development version of Terraform and the built-in plugins, run `make dev`. This will put Terraform binaries in the `bin` and `$GOPATH/bin` folders:
