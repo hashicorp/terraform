@@ -109,6 +109,56 @@ func TestBuiltinGraphBuilder_Verbose(t *testing.T) {
 	}
 }
 
+// This tests that the CreateBeforeDestoryTransformer is not present when
+// we perform a "terraform destroy" operation. We don't actually do anything
+// else.
+func TestBuiltinGraphBuilder_CreateBeforeDestroy_Destroy_Bypass(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-basic"),
+		Validate: true,
+		Destroy:  true,
+	}
+
+	steps := b.Steps([]string{})
+
+	actual := false
+	expected := false
+	for _, v := range steps {
+		switch v.(type) {
+		case *CreateBeforeDestroyTransformer:
+			actual = true
+		}
+	}
+
+	if actual != expected {
+		t.Fatalf("bad: CreateBeforeDestroyTransformer still in root path")
+	}
+}
+
+// This tests that the CreateBeforeDestoryTransformer *is* present
+// during a non-destroy operation (ie: Destroy not set).
+func TestBuiltinGraphBuilder_CreateBeforeDestroy_NonDestroy_Present(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-basic"),
+		Validate: true,
+	}
+
+	steps := b.Steps([]string{})
+
+	actual := false
+	expected := true
+	for _, v := range steps {
+		switch v.(type) {
+		case *CreateBeforeDestroyTransformer:
+			actual = true
+		}
+	}
+
+	if actual != expected {
+		t.Fatalf("bad: CreateBeforeDestroyTransformer not in root path")
+	}
+}
+
 // This tests a cycle we got when a CBD resource depends on a non-CBD
 // resource. This cycle shouldn't happen in the general case anymore.
 func TestBuiltinGraphBuilder_cbdDepNonCbd(t *testing.T) {
