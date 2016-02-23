@@ -4010,7 +4010,76 @@ template_file.parent:
   ID = foo
   template = Hi
   type = template_file
-               `)
+		`)
+	if actual != expected {
+		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "apply-tainted-targets"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.iambeingadded"},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.ifailedprovisioners": &ResourceState{
+							Tainted: []*InstanceState{
+								&InstanceState{
+									ID: "ifailedprovisioners",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write / Read plan to simulate running it through a Plan file
+	var buf bytes.Buffer
+	if err := WritePlan(plan, &buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFromFile, err := ReadPlan(&buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx = planFromFile.Context(&ContextOpts{
+		Module: testModule(t, "apply-tainted-targets"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+aws_instance.iambeingadded:
+  ID = foo
+aws_instance.ifailedprovisioners: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = ifailedprovisioners
+		`)
 	if actual != expected {
 		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
 	}
