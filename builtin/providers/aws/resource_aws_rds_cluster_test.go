@@ -27,6 +27,8 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster.default", "storage_encrypted", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "parameter_group_name", "default.aurora5.6"),
 				),
 			},
 		},
@@ -47,6 +49,8 @@ func TestAccAWSRDSCluster_encrypted(t *testing.T) {
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster.default", "storage_encrypted", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "parameter_group_name", "default.aurora5.6"),
 				),
 			},
 		},
@@ -164,6 +168,7 @@ resource "aws_rds_cluster" "default" {
   database_name = "mydb"
   master_username = "foo"
   master_password = "mustbeeightcharaters"
+  parameter_group_name = "default.aurora5.6"
 }`, n)
 }
 
