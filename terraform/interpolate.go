@@ -238,6 +238,10 @@ func (i *Interpolater) valueSelfVar(
 	n string,
 	v *config.SelfVariable,
 	result map[string]ast.Variable) error {
+	if scope == nil || scope.Resource == nil {
+		return fmt.Errorf(
+			"%s: invalid scope, self variables are only valid on resources", n)
+	}
 	rv, err := config.NewResourceVariable(fmt.Sprintf(
 		"%s.%s.%d.%s",
 		scope.Resource.Type,
