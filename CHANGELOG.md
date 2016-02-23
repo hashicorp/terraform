@@ -54,6 +54,8 @@ BUG FIXES:
   * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
   * core: Fix race condition when handling tainted resource destroys [GH-5026]
   * core: Improve handling of Provisioners in the graph, fixing "Provisioner already initialized" errors [GH-4877]
+  * core: Skip `create_before_destroy` processing during a `terraform destroy`, solving several issues preventing `destroy`
+          from working properly with CBD resources [GH-5096]
   * provider/aws: Fix Copy of Tags to DB Instance when created from Snapshot [GH-5197]
   * provider/aws: Fix DynamoDB Table Refresh to ensure deleted tables are removed from state [GH-4943]
   * provider/aws: Fix ElasticSearch `domain_name` validation [GH-4973]
