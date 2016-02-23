@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
@@ -40,6 +41,7 @@ func Funcs() map[string]ast.Function {
 		"join":         interpolationFuncJoin(),
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
+		"md5":          interpolationFuncMd5(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -595,6 +597,20 @@ func interpolationFuncLower() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			toLower := args[0].(string)
 			return strings.ToLower(toLower), nil
+		},
+	}
+}
+
+func interpolationFuncMd5() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := md5.New()
+			h.Write([]byte(s))
+			hash := hex.EncodeToString(h.Sum(nil))
+			return hash, nil
 		},
 	}
 }
