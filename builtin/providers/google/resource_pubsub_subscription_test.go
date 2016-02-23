@@ -69,6 +69,7 @@ resource "google_pubsub_topic" "foobar_sub" {
 }
 
 resource "google_pubsub_subscription" "foobar_sub" {
-	name = "pssub-test-%s"
-	topic = "${google_pubsub_topic.foobar_sub.name}"
+	name                 = "pssub-test-%s"
+	topic                = "${google_pubsub_topic.foobar_sub.name}"
+	ack_deadline_seconds = 20
 }`, acctest.RandString(10), acctest.RandString(10))
