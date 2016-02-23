@@ -262,7 +262,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 							},
 						},
 
-						"iam_role": &schema.Schema{
+						"iam_instance_profile": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: false,
@@ -661,7 +661,7 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		lspec = append(lspec, map[string]interface{}{
 			"health_check_grace_period": g.Compute.LaunchSpecification.HealthCheckGracePeriod,
 			"health_check_type":         g.Compute.LaunchSpecification.HealthCheckType,
-			"iam_role":                  g.Compute.LaunchSpecification.IamRole,
+			"iam_instance_profile":      g.Compute.LaunchSpecification.IamInstanceProfile.Arn,
 			"image_id":                  g.Compute.LaunchSpecification.ImageID,
 			"key_pair":                  g.Compute.LaunchSpecification.KeyPair,
 			"load_balancer_names":       g.Compute.LaunchSpecification.LoadBalancerNames,
@@ -1589,8 +1589,8 @@ func expandAwsGroupLaunchSpecification(m map[string]interface{}) *spotinst.AwsGr
 		lc.HealthCheckGracePeriod = v
 	}
 
-	if v, ok := m["iam_role"].(string); ok && v != "" {
-		lc.IamRole = &spotinst.AwsGroupComputeIamRole{Name: v}
+	if v, ok := m["iam_instance_profile"].(string); ok && v != "" {
+		lc.IamRole = &spotinst.AwsGroupComputeIamInstanceProfile{Arn: v}
 	}
 
 	if v, ok := m["user_data"].(string); ok && v != "" {
