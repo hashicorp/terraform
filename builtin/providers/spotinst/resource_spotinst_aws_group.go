@@ -262,6 +262,13 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 							},
 						},
 
+						"iam_role": &schema.Schema{
+							Type:       schema.TypeString,
+							Optional:   true,
+							ForceNew:   false,
+							Deprecated: "Attribute iam_role is deprecated. Use iam_instance_profile instead",
+						},
+
 						"iam_instance_profile": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
