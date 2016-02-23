@@ -111,9 +111,9 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		content := v.(string)
 		body = bytes.NewReader([]byte(content))
 	} else {
-
 		return fmt.Errorf("Must specify \"source\" or \"content\" field")
 	}
+
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
