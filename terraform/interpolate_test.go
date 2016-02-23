@@ -386,6 +386,24 @@ func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
 	})
 }
 
+func TestInterpolater_selfVarWithoutResource(t *testing.T) {
+	i := &Interpolater{}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	v, err := config.NewInterpolatedVariable("self.name")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = i.Values(scope, map[string]config.InterpolatedVariable{"foo": v})
+	if err == nil {
+		t.Fatalf("expected err, got none")
+	}
+}
+
 func getInterpolaterFixture(t *testing.T) *Interpolater {
 	lock := new(sync.RWMutex)
 	state := &State{
