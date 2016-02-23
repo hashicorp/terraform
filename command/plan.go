@@ -15,8 +15,47 @@ type PlanCommand struct {
 	Meta
 }
 
+// PROOF-OF-CONCEPT HACK
+// Faking out the context so we don't have to connect to the real
+// environment to create a plan.
+//
+// Stealing ideas from command/command_test.go
+//
+// I'm not sure exactly what is required here for this to be viable.
+// My test project was creating vsphere, and I arrived at these
+// Providers and Provisioners through trial-and-error.
+func makeFakeCtxConfigOpts() *terraform.ContextOpts {
+	return &terraform.ContextOpts{
+		Providers: map[string]terraform.ResourceProviderFactory{
+			// The tests set other mock methods (eg
+			// DiffReturn, RefreshFn, etc) in the
+			// MockResourceProvider, but I'm assuming
+			// these are not needed during fake plan
+			// generation.
+			"vsphere": func() (terraform.ResourceProvider, error) {
+				return new(terraform.MockResourceProvider), nil
+			},
+		},
+		Provisioners: map[string]terraform.ResourceProvisionerFactory{
+			"file": func() (terraform.ResourceProvisioner, error) {
+				return new(terraform.MockResourceProvisioner), nil
+			},
+			"remote-exec": func() (terraform.ResourceProvisioner, error) {
+				return new(terraform.MockResourceProvisioner), nil
+			},
+			"local-exec": func() (terraform.ResourceProvisioner, error) {
+				return new(terraform.MockResourceProvisioner), nil
+			},
+			"chef": func() (terraform.ResourceProvisioner, error) {
+				return new(terraform.MockResourceProvisioner), nil
+			},
+		},
+	}
+}
+
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh, detailed bool
+	var fakecontext bool
 	var outPath string
 	var moduleDepth int
 
@@ -25,6 +64,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
+	cmdFlags.BoolVar(&fakecontext, "fakecontext", false, "fakecontext")
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.IntVar(
@@ -57,6 +97,11 @@ func (c *PlanCommand) Run(args []string) int {
 
 	countHook := new(CountHook)
 	c.Meta.extraHooks = []terraform.Hook{countHook}
+
+	// PROOF-OF-CONCEPT HACK
+	if fakecontext {
+		c.Meta.ContextOpts = makeFakeCtxConfigOpts()
+	}
 
 	ctx, _, err := c.Context(contextOpts{
 		Destroy:     destroy,
