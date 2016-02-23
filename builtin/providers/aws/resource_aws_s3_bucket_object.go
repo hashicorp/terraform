@@ -20,6 +20,7 @@ func resourceAwsS3BucketObject() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsS3BucketObjectPut,
 		Read:   resourceAwsS3BucketObjectRead,
+		Update: resourceAwsS3BucketObjectPut,
 		Delete: resourceAwsS3BucketObjectDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -32,31 +33,26 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			"cache_control": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"content_disposition": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"content_encoding": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"content_language": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"content_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 			},
 
@@ -69,19 +65,21 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			"source": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				ForceNew:      true,
 				ConflictsWith: []string{"content"},
 			},
 
 			"content": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				ForceNew:      true,
 				ConflictsWith: []string{"source"},
 			},
 
 			"etag": &schema.Schema{
-				Type:     schema.TypeString,
+				Type: schema.TypeString,
+				// This will conflict with SSE-C and SSE-KMS encryption and multi-part upload
+				// if/when it's actually implemented. The Etag then won't match raw-file MD5.
+				// See http://docs.aws.amazon.com/AmazonS3/latest/API/RESTCommonResponseHeaders.html
+				Optional: true,
 				Computed: true,
 			},
 		},
@@ -149,7 +147,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
 	d.SetId(key)
-	return nil
+	return resourceAwsS3BucketObjectRead(d, meta)
 }
 
 func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) error {
