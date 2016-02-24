@@ -127,7 +127,7 @@ func resourceAwsElasticacheSecurityGroupDelete(d *schema.ResourceData, meta inte
 			if !ok {
 				return err
 			}
-			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code)
+			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code())
 			switch apierr.Code() {
 			case "InvalidCacheSecurityGroupState":
 				return err
