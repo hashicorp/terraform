@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -3977,11 +3978,22 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	t.Logf("Plan for Step 1: %s", plan)
+	// Write / Read plan to simulate running it through a Plan file
+	var buf bytes.Buffer
+	if err := WritePlan(plan, &buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFromFile, err := ReadPlan(&buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("Plan for Step 1: %s", planFromFile)
 
 	// Apply the plan
 	t.Log("Applying Step 1 (from plan)")
-	ctx = plan.Context(&ContextOpts{
+	ctx = planFromFile.Context(&ContextOpts{
 		Providers: map[string]ResourceProviderFactory{
 			"template": testProviderFuncFixed(p),
 		},
