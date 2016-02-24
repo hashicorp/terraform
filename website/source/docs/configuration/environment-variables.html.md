@@ -44,7 +44,7 @@ export TF_INPUT=0
 
 ## TF_MODULE_DEPTH
 
-When given a value, causes terraform commands to behave as if the `-module=depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
+When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
 
 ```
 export TF_MODULE_DEPTH=0
