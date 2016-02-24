@@ -8,9 +8,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"time"
 )
 
 const awsSNSPendingConfirmationMessage = "pending confirmation"
@@ -213,7 +214,7 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 
 		log.Printf("[DEBUG] SNS create topic subscription is pending so fetching the subscription list for topic : %s (%s) @ '%s'", endpoint, protocol, topic_arn)
 
-		err = resource.Retry(time.Duration(int(time.Minute)*confirmation_timeout_in_minutes), func() error {
+		err = resource.Retry(time.Duration(confirmation_timeout_in_minutes)*time.Minute, func() error {
 
 			subscription, err := findSubscriptionByNonID(d, snsconn)
 
