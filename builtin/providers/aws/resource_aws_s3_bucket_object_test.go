@@ -14,24 +14,27 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-var tf, err = ioutil.TempFile("", "tf")
-
 func TestAccAWSS3BucketObject_source(t *testing.T) {
+	tmpFile, err := ioutil.TempFile("", "tf-acc-s3-obj-source")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+
 	rInt := acctest.RandInt()
 	// first write some data to the tempfile just so it's not 0 bytes.
-	ioutil.WriteFile(tf.Name(), []byte("{anything will do }"), 0644)
+	err = ioutil.WriteFile(tmpFile.Name(), []byte("{anything will do }"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			if err != nil {
-				panic(err)
-			}
-			testAccPreCheck(t)
-		},
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketObjectConfigSource(rInt),
+				Config: testAccAWSS3BucketObjectConfigSource(rInt, tmpFile.Name()),
 				Check:  testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
 			},
 		},
@@ -40,40 +43,42 @@ func TestAccAWSS3BucketObject_source(t *testing.T) {
 
 func TestAccAWSS3BucketObject_content(t *testing.T) {
 	rInt := acctest.RandInt()
+
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			if err != nil {
-				panic(err)
-			}
-			testAccPreCheck(t)
-		},
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketObjectConfigContent(rInt),
-				Check:  testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
+				PreConfig: func() {},
+				Config:    testAccAWSS3BucketObjectConfigContent(rInt),
+				Check:     testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
 			},
 		},
 	})
 }
 
 func TestAccAWSS3BucketObject_withContentCharacteristics(t *testing.T) {
+	tmpFile, err := ioutil.TempFile("", "tf-acc-s3-obj-content-characteristics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+
 	rInt := acctest.RandInt()
 	// first write some data to the tempfile just so it's not 0 bytes.
-	ioutil.WriteFile(tf.Name(), []byte("{anything will do }"), 0644)
+	err = ioutil.WriteFile(tmpFile.Name(), []byte("{anything will do }"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			if err != nil {
-				panic(err)
-			}
-			testAccPreCheck(t)
-		},
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSS3BucketObjectConfig_withContentCharacteristics(rInt),
+				Config: testAccAWSS3BucketObjectConfig_withContentCharacteristics(rInt, tmpFile.Name()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
 					resource.TestCheckResourceAttr(
@@ -107,9 +112,6 @@ func testAccCheckAWSS3BucketObjectDestroy(s *terraform.State) error {
 
 func testAccCheckAWSS3BucketObjectExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
-		defer os.Remove(tf.Name())
-
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not Found: %s", n)
@@ -133,7 +135,7 @@ func testAccCheckAWSS3BucketObjectExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccAWSS3BucketObjectConfigSource(randInt int) string {
+func testAccAWSS3BucketObjectConfigSource(randInt int, source string) string {
 	return fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
     bucket = "tf-object-test-bucket-%d"
@@ -144,10 +146,10 @@ resource "aws_s3_bucket_object" "object" {
 	source = "%s"
 	content_type = "binary/octet-stream"
 }
-`, randInt, tf.Name())
+`, randInt, source)
 }
 
-func testAccAWSS3BucketObjectConfig_withContentCharacteristics(randInt int) string {
+func testAccAWSS3BucketObjectConfig_withContentCharacteristics(randInt int, source string) string {
 	return fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket_2" {
 	bucket = "tf-object-test-bucket-%d"
@@ -160,7 +162,7 @@ resource "aws_s3_bucket_object" "object" {
 	content_language = "en"
 	content_type = "binary/octet-stream"
 }
-`, randInt, tf.Name())
+`, randInt, source)
 }
 
 func testAccAWSS3BucketObjectConfigContent(randInt int) string {
