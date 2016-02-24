@@ -34,14 +34,20 @@ if [ "${TF_DEV}x" != "x" ]; then
     XC_ARCH=$(go env GOARCH)
 fi
 
+XC_LIST=${XC_LIST:-$(go list ./... | grep -v /vendor/)}
+
 # Build!
+echo "==> OS: $XC_OS"
+echo "==> Arch: $XC_ARCH"
+echo "==> Modules: $XC_LIST"
+
 echo "==> Building..."
 gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" \
     -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
-    $(go list ./... | grep -v /vendor/)
+    $XC_LIST
 
 # Make sure "terraform-terraform" is renamed properly
 for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do

@@ -276,14 +276,16 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.TemplateBody = aws.String(normalizeJson(v.(string)))
 	}
 
-	if d.HasChange("capabilities") {
-		input.Capabilities = expandStringList(d.Get("capabilities").(*schema.Set).List())
+	// Capabilities must be present whether they are changed or not
+	if v, ok := d.GetOk("capabilities"); ok {
+		input.Capabilities = expandStringList(v.(*schema.Set).List())
 	}
 	if d.HasChange("notification_arns") {
 		input.NotificationARNs = expandStringList(d.Get("notification_arns").(*schema.Set).List())
 	}
-	if d.HasChange("parameters") {
-		input.Parameters = expandCloudFormationParameters(d.Get("parameters").(map[string]interface{}))
+	// Parameters must be present whether they are changed or not
+	if v, ok := d.GetOk("parameters"); ok {
+		input.Parameters = expandCloudFormationParameters(v.(map[string]interface{}))
 	}
 	if d.HasChange("policy_body") {
 		input.StackPolicyBody = aws.String(normalizeJson(d.Get("policy_body").(string)))
