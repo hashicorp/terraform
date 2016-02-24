@@ -328,24 +328,18 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 
 func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 	return func(s *terraform.State) error {
-		ms := s.RootModule()
-		rs, ok := ms.Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
+		attribute, err := getResourceAttribute(s, name, key)
+		if err != nil {
+			return err
 		}
 
-		is := rs.Primary
-		if is == nil {
-			return fmt.Errorf("No primary instance: %s", name)
-		}
-
-		if is.Attributes[key] != value {
+		if attribute != value {
 			return fmt.Errorf(
 				"%s: Attribute '%s' expected %#v, got %#v",
 				name,
 				key,
 				value,
-				is.Attributes[key])
+				attribute)
 		}
 
 		return nil
@@ -354,24 +348,18 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 
 func TestMatchResourceAttr(name, key string, r *regexp.Regexp) TestCheckFunc {
 	return func(s *terraform.State) error {
-		ms := s.RootModule()
-		rs, ok := ms.Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
+		attribute, err := getResourceAttribute(s, name, key)
+		if err != nil {
+			return err
 		}
 
-		is := rs.Primary
-		if is == nil {
-			return fmt.Errorf("No primary instance: %s", name)
-		}
-
-		if !r.MatchString(is.Attributes[key]) {
+		if !r.MatchString(attribute) {
 			return fmt.Errorf(
 				"%s: Attribute '%s' didn't match %q, got %#v",
 				name,
 				key,
 				r.String(),
-				is.Attributes[key])
+				attribute)
 		}
 
 		return nil
@@ -385,6 +373,34 @@ func TestCheckResourceAttrPtr(name string, key string, value *string) TestCheckF
 	return func(s *terraform.State) error {
 		return TestCheckResourceAttr(name, key, *value)(s)
 	}
+}
+
+func getResourceAttribute(s *terraform.State, name, key string) (string, error) {
+	ms := s.RootModule()
+	rs, ok := ms.Resources[name]
+	if !ok {
+		return "", fmt.Errorf("Not found: %s", name)
+	}
+
+	is := rs.Primary
+	if is == nil {
+		return "", fmt.Errorf("No primary instance: %s", name)
+	}
+
+	if attribute, ok := is.Attributes[key]; ok {
+		return attribute, nil
+	}
+
+	if parts := strings.Split(key, "."); len(parts) == 2 {
+		prefix, suffix := parts[0], parts[1]
+		for k, v := range is.Attributes {
+			if strings.HasPrefix(k, prefix) && strings.HasSuffix(k, suffix) {
+				return v, nil
+			}
+		}
+	}
+
+	return is.Attributes[key], nil
 }
 
 // TestT is the interface used to handle the test lifecycle of a test.
