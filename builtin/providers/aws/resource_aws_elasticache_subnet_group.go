@@ -152,7 +152,7 @@ func resourceAwsElasticacheSubnetGroupDelete(d *schema.ResourceData, meta interf
 			if !ok {
 				return err
 			}
-			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code)
+			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code())
 			switch apierr.Code() {
 			case "DependencyViolation":
 				// If it is a dependency violation, we want to retry
