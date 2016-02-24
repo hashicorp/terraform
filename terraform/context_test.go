@@ -52,6 +52,11 @@ func testDiffFn(
 			continue
 		}
 
+		// Ignore __-prefixed keys since they're used for magic
+		if k[0] == '_' && k[1] == '_' {
+			continue
+		}
+
 		if k == "nil" {
 			return nil, nil
 		}
@@ -98,6 +103,9 @@ func testDiffFn(
 		}
 
 		if k == "require_new" {
+			attrDiff.RequiresNew = true
+		}
+		if _, ok := c.Raw["__"+k+"_requires_new"]; ok {
 			attrDiff.RequiresNew = true
 		}
 		diff.Attributes[k] = attrDiff
