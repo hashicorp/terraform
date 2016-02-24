@@ -96,7 +96,8 @@ func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 }
 
 func (w *ContextGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode {
-	log.Printf("[TRACE] Entering eval tree: %s", dag.VertexName(v))
+	log.Printf("[TRACE] [%s] Entering eval tree: %s",
+		w.Operation, dag.VertexName(v))
 
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
@@ -108,7 +109,8 @@ func (w *ContextGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode {
 
 func (w *ContextGraphWalker) ExitEvalTree(
 	v dag.Vertex, output interface{}, err error) error {
-	log.Printf("[TRACE] Exiting eval tree: %s", dag.VertexName(v))
+	log.Printf("[TRACE] [%s] Exiting eval tree: %s",
+		w.Operation, dag.VertexName(v))
 
 	// Release the semaphore
 	w.Context.parallelSem.Release()
