@@ -615,23 +615,38 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 func launchSpecsToSet(ls []*ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) *schema.Set {
 	specs := &schema.Set{F: hashLaunchSpecification}
 	for _, val := range ls {
-		specs.Add(launchSpecToMap(val, conn))
+		dn, err := fetchRootDeviceName(aws.StringValue(val.ImageId), conn)
+		if err != nil {
+			log.Panic(err)
+		} else {
+			ls := launchSpecToMap(val, dn)
+			specs.Add(ls)
+		}
 	}
 	return specs
 }
 
-func launchSpecToMap(l *ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) map[string]interface{} {
+func launchSpecToMap(
+	l *ec2.SpotFleetLaunchSpecification,
+	rootDevName *string,
+) map[string]interface{} {
 	m := make(map[string]interface{})
 	// m["ebs_block_device"] = ebsBlockDevicesToSet(l.BlockDeviceMappings)
 	// m["ephemeral_block_device"] = ephemeralBlockDevicesToSet(l.BlockDeviceMappings)
-	m["root_block_device"] = rootBlockDeviceToSet(l.BlockDeviceMappings, conn)
+	m["root_block_device"] = rootBlockDeviceToSet(l.BlockDeviceMappings, rootDevName)
 	m["ami"] = aws.StringValue(l.ImageId)
 	m["instance_type"] = aws.StringValue(l.InstanceType)
 	m["spot_price"] = aws.StringValue(l.SpotPrice)
 	m["ebs_optimized"] = aws.BoolValue(l.EbsOptimized)
 	m["monitoring"] = aws.BoolValue(l.Monitoring.Enabled)
 	m["iam_instance_profile"] = aws.StringValue(l.IamInstanceProfile.Name)
-	m["user_data"] = aws.StringValue(l.UserData)
+
+	ud_dec, err := base64.StdEncoding.DecodeString(aws.StringValue(l.UserData))
+	if err != nil {
+		log.Panic(err)
+	}
+	m["user_data"] = string(ud_dec)
+
 	m["key_name"] = aws.StringValue(l.KeyName)
 	if l.Placement != nil {
 		m["availability_zone"] = aws.StringValue(l.Placement.AvailabilityZone)
@@ -654,9 +669,37 @@ func launchSpecToMap(l *ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) map[str
 // 	return nil
 // }
 
-func rootBlockDeviceToSet(bdm []*ec2.BlockDeviceMapping, conn *ec2.EC2) map[string]interface{} {
+func rootBlockDeviceToSet(
+	bdm []*ec2.BlockDeviceMapping,
+	rootDevName *string,
+) *schema.Set {
+	set := &schema.Set{F: hashRootBlockDevice}
+	if rootDevName != nil {
+		for _, val := range bdm {
+			if aws.StringValue(val.DeviceName) == aws.StringValue(rootDevName) {
+				m := make(map[string]interface{})
+				if val.Ebs.DeleteOnTermination != nil {
+					m["delete_on_termination"] = aws.BoolValue(val.Ebs.DeleteOnTermination)
+				}
 
-	return nil
+				if val.Ebs.VolumeSize != nil {
+					m["volume_size"] = aws.Int64Value(val.Ebs.VolumeSize)
+				}
+
+				if val.Ebs.VolumeType != nil {
+					m["volume_type"] = aws.StringValue(val.Ebs.VolumeType)
+				}
+
+				if val.Ebs.Iops != nil {
+					m["iops"] = aws.Int64Value(val.Ebs.Iops)
+				}
+
+				set.Add(m)
+			}
+		}
+	}
+
+	return set
 }
 
 func resourceAwsSpotFleetRequestUpdate(d *schema.ResourceData, meta interface{}) error {
