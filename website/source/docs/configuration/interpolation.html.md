@@ -85,14 +85,6 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha256(string))`
     since `sha256()` returns hexadecimal representation.
 
-  * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
-    SHA-1 hash of the given string.
-    Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
-
-  * `sha256(string)` - Returns a (conventional) hexadecimal representation of the
-    SHA-256 hash of the given string.
-    Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
-
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
     ``cidrhost("10.0.0.0/8", 2)`` returns ``10.0.0.2``.
@@ -169,6 +161,9 @@ The supported built-in functions are:
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 
+  * `md5(string)` - Returns a (conventional) hexadecimal representation of the
+    MD5 hash of the given string.
+
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated
@@ -176,6 +171,14 @@ The supported built-in functions are:
       can reference subcaptures in the regular expression by using `$n` where
       `n` is the index or name of the subcapture. If using a regular expression,
       the syntax conforms to the [re2 regular expression syntax](https://code.google.com/p/re2/wiki/Syntax).
+
+  * `sha1(string)` - Returns a (conventional) hexadecimal representation of the
+    SHA-1 hash of the given string.
+    Example: `"${sha1(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
+
+  * `sha256(string)` - Returns a (conventional) hexadecimal representation of the
+    SHA-256 hash of the given string.
+    Example: `"${sha256(concat(aws_vpc.default.tags.customer, "-s3-bucket"))}"`
 
   * `signum(int)` - Returns -1 for negative numbers, 0 for 0 and 1 for positive numbers.
       This function is useful when you need to set a value for the first resource and

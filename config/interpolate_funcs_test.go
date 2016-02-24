@@ -923,6 +923,28 @@ func TestInterpolateFuncBase64Sha256(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncMd5(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${md5("tada")}`,
+				"ce47d07243bb6eaf5e1322c81baf9bbf",
+				false,
+			},
+			{ // Confirm that we're not trimming any whitespaces
+				`${md5(" tada ")}`,
+				"aadf191a583e53062de2d02c008141c4",
+				false,
+			},
+			{ // We accept empty string too
+				`${md5("")}`,
+				"d41d8cd98f00b204e9800998ecf8427e",
+				false,
+			},
+		},
+	})
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
