@@ -8,6 +8,7 @@ FEATURES:
 
   * **New command:** `validate` to perform syntax validation [GH-3783]
   * **New provider:** `datadog` [GH-5251]
+  * **New interpolation function:** `md5` [GH-5267]
   * **New interpolation function:** `signum` [GH-4854]
   * **New resource:** `aws_cloudwatch_event_rule` [GH-4986]
   * **New resource:** `aws_cloudwatch_event_target` [GH-4986]
