@@ -23,6 +23,8 @@ import (
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
+		"base64decode": interpolationFuncBase64Decode(),
+		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
@@ -39,13 +41,11 @@ func Funcs() map[string]ast.Function {
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
 		"replace":      interpolationFuncReplace(),
-		"signum":       interpolationFuncSignum(),
-		"split":        interpolationFuncSplit(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
+		"signum":       interpolationFuncSignum(),
+		"split":        interpolationFuncSplit(),
 		"trimspace":    interpolationFuncTrimSpace(),
-		"base64encode": interpolationFuncBase64Encode(),
-		"base64decode": interpolationFuncBase64Decode(),
 		"upper":        interpolationFuncUpper(),
 	}
 }
