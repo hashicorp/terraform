@@ -1179,7 +1179,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "c65f27ffe69a43ae814a5e64c2fabb6c6312a4af"
+			"Rev": "5eaf0df67e70d6997a9fe0ed24383fa1b01638d3"
 		},
 		{
 			"ImportPath": "google.golang.org/api/compute/v1",
