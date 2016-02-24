@@ -85,6 +85,12 @@ The following arguments are supported:
 * `network_interface` - (Required) Networks to attach to instances created from this template.
  	This can be specified multiple times for multiple networks. Structure is
 	documented below.
+	
+* `region` - (Optional) An instance template is a global resource that is not bound to a zone 
+    or a region. However, you can still specify some regional resources in an instance template, 
+    which restricts the template to the region where that resource resides. For example, a
+    custom `subnetwork` resource is tied to a specific region.
+    Defaults to the region of the Provider if no value is given.
 
 * `automatic_restart` - (Optional, Deprecated - see `scheduling`) 
 	Specifies whether the instance should be
@@ -129,11 +135,21 @@ The `disk` block supports:
 * `source` - (Required if source_image not set) The name of the disk (such as
 	those managed by `google_compute_disk`) to attach.
 
-* `type` - (Optional) The GCE disk type.
+* `disk_type` - (Optional) The GCE disk type. Can be either `"pd-ssd"`,
+	`"local-ssd"`, or `"pd-standard"`.
+
+* `type` - (Optional) The type of GCE disk, can be either `"SCRATCH"` or
+	`"PERSISTENT"`.
 
 The `network_interface` block supports:
 
-* `network` - (Required) The name of the network to attach this interface to.
+* `network` - (Optional) The name of the network to attach this interface to. Use `network`
+   attribute for Legacy or Auto subnetted networks and `subnetwork` for custom subnetted
+   networks.
+
+* `subnetwork` - (Optional) the name of the subnetwork to attach this interface to. The subnetwork
+   must exist in the same `region` this instance will be created in. Either `network`
+   or `subnetwork` must be provided.
 
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this instance can be
   accessed via the Internet.  Omit to ensure that the instance is not accessible from the Internet

@@ -1,3 +1,85 @@
+## 0.6.12 (February 24, 2016)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+  * The `publicly_accessible` attribute on `aws_redshift_cluster` resources now defaults to true
+
+FEATURES:
+
+  * **New command:** `validate` to perform syntax validation [GH-3783]
+  * **New provider:** `datadog` [GH-5251]
+  * **New interpolation function:** `md5` [GH-5267]
+  * **New interpolation function:** `signum` [GH-4854]
+  * **New resource:** `aws_cloudwatch_event_rule` [GH-4986]
+  * **New resource:** `aws_cloudwatch_event_target` [GH-4986]
+  * **New resource:** `aws_lambda_permission` [GH-4826]
+  * **New resource:** `azurerm_dns_a_record` [GH-5013]
+  * **New resource:** `azurerm_dns_aaaa_record` [GH-5013]
+  * **New resource:** `azurerm_dns_cname_record` [GH-5013]
+  * **New resource:** `azurerm_dns_mx_record` [GH-5041]
+  * **New resource:** `azurerm_dns_ns_record` [GH-5041]
+  * **New resource:** `azurerm_dns_srv_record` [GH-5041]
+  * **New resource:** `azurerm_dns_txt_record` [GH-5041]
+  * **New resource:** `azurerm_dns_zone` [GH-4979]
+  * **New resource:** `azurerm_search_service` [GH-5203]
+  * **New resource:** `azurerm_sql_database` [GH-5003]
+  * **New resource:** `azurerm_sql_firewall_rule` [GH-5057]
+  * **New resource:** `azurerm_sql_server` [GH-4991]
+  * **New resource:** `google_compute_subnetwork` [GH-5130]
+
+IMPROVEMENTS:
+
+  * core: Backend names are now down cased during `init` in the same manner as `remote config` [GH-5012]
+  * core: Upgrade resource name validation warning to an error as planned [GH-5272]
+  * core: output "diffs didn't match" error details [GH-5276]
+  * provider/aws: Add `is_multi_region_trail` option to CloudTrail [GH-4939]
+  * provider/aws: Add support for HTTP(S) endpoints that auto confirm SNS subscription [GH-4711]
+  * provider/aws: Add support for Tags to CloudTrail [GH-5135]
+  * provider/aws: Add support for Tags to ElasticSearch [GH-4973]
+  * provider/aws: Add support for deployment configuration to `aws_ecs_service` [GH-5220]
+  * provider/aws: Add support for log validation + KMS encryption to `aws_cloudtrail` [GH-5051]
+  * provider/aws: Allow name-prefix and auto-generated names for IAM Server Cert [GH-5178]
+  * provider/aws: Expose additional VPN Connection attributes [GH-5032]
+  * provider/aws: Return an error if no matching route is found for an AWS Route [GH-5155]
+  * provider/aws: Support custom endpoints for AWS EC2 ELB and IAM [GH-5114]
+  * provider/aws: The `cluster_type` on `aws_redshift_cluster` resources is now computed [GH-5238]
+  * provider/aws: `aws_lambda_function` resources now support VPC configuration [GH-5149]
+  * provider/aws: Add support for Enhanced Monitoring to RDS Instances [GH-4945]
+  * provider/aws: Improve vpc cidr_block err message [GH-5255]
+  * provider/aws: Implement Retention Period for `aws_kinesis_stream` [GH-5223]
+  * provider/aws: Enable `stream_arm` output for DynamoDB Table when streams are enabled [GH-5271]
+  * provider/digitalocean: `digitalocean_record` resources now export a computed `fqdn` attribute [GH-5071]
+  * provider/google: Add assigned IP Address to CloudSQL Instance `google_sql_database_instance` [GH-5245]
+  * provider/openstack: Add support for Distributed Routers [GH-4878]
+  * provider/openstack: Add support for optional cacert_file parameter [GH-5106]
+
+BUG FIXES:
+
+  * core: Fix bug detecting deeply nested module orphans [GH-5022]
+  * core: Fix bug where `ignore_changes` could produce "diffs didn't match during apply" errors [GH-4965]
+  * core: Fix race condition when handling tainted resource destroys [GH-5026]
+  * core: Improve handling of Provisioners in the graph, fixing "Provisioner already initialized" errors [GH-4877]
+  * core: Skip `create_before_destroy` processing during a `terraform destroy`, solving several issues preventing `destroy`
+          from working properly with CBD resources [GH-5096]
+  * core: Error instead of panic on self var in wrong scope [GH-5273]
+  * provider/aws: Fix Copy of Tags to DB Instance when created from Snapshot [GH-5197]
+  * provider/aws: Fix DynamoDB Table Refresh to ensure deleted tables are removed from state [GH-4943]
+  * provider/aws: Fix ElasticSearch `domain_name` validation [GH-4973]
+  * provider/aws: Fix issue applying security group changes in EC2 Classic RDS for aws_db_instance [GH-4969]
+  * provider/aws: Fix reading auto scaling group availability zones [GH-5044]
+  * provider/aws: Fix reading auto scaling group load balancers [GH-5045]
+  * provider/aws: Fix `aws_redshift_cluster` to allow `publicly_accessible` to be false [GH-5262]
+  * provider/aws: Wait longer for internet gateways to detach [GH-5120]
+  * provider/aws: Fix issue reading auto scaling group termination policies [GH-5101]
+  * provider/cloudflare: `ttl` no longer shows a change on each plan on `cloudflare_record` resources [GH-5042]
+  * provider/docker: Fix the default docker_host value [GH-5088]
+  * provider/google: Fix backend service max_utilization attribute [GH-5075]
+  * provider/google: Fix reading of `google_compute_vpn_gateway` without an explicit [GH-5125]
+  * provider/google: Fix crash when setting `ack_deadline_seconds` on `google_pubsub_subscription` [GH-5110]
+  * provider/openstack: Fix crash when `access_network` was not defined in instances [GH-4966]
+  * provider/powerdns: Fix refresh of `powerdns_record` no longer fails if the record name contains a `-` [GH-5228] 
+  * provider/vcd: Wait for DHCP assignment when creating `vcd_vapp` resources with no static IP assignment [GH-5195]
+
 ## 0.6.11 (February 1, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:

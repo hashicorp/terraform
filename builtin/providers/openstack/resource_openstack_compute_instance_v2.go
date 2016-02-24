@@ -374,8 +374,8 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	if keyName, ok := d.Get("key_pair").(string); ok && keyName != "" {
 		createOpts = &keypairs.CreateOptsExt{
-			createOpts,
-			keyName,
+			CreateOptsBuilder: createOpts,
+			KeyName:           keyName,
 		}
 	}
 
@@ -384,8 +384,8 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 			blockDeviceRaw := v.(map[string]interface{})
 			blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
 			createOpts = &bootfromvolume.CreateOptsExt{
-				createOpts,
-				blockDevice,
+				CreateOptsBuilder: createOpts,
+				BlockDevice:       blockDevice,
 			}
 			log.Printf("[DEBUG] Create BFV Options: %+v", createOpts)
 		}
@@ -396,8 +396,8 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		log.Printf("[DEBUG] schedulerhints: %+v", schedulerHintsRaw)
 		schedulerHints := resourceInstanceSchedulerHintsV2(d, schedulerHintsRaw[0].(map[string]interface{}))
 		createOpts = &schedulerhints.CreateOptsExt{
-			createOpts,
-			schedulerHints,
+			CreateOptsBuilder: createOpts,
+			SchedulerHints:    schedulerHints,
 		}
 	}
 
@@ -998,7 +998,7 @@ func getInstanceAccessAddresses(d *schema.ResourceData, networks []map[string]in
 			hostv6 = n["fixed_ip_v6"].(string)
 		}
 
-		if n["access_network"].(bool) {
+		if an, ok := n["access_network"].(bool); ok && an {
 			break
 		}
 	}

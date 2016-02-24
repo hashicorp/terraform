@@ -66,6 +66,11 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: envDefaultFuncAllowMissing("OS_ENDPOINT_TYPE"),
 			},
+			"cacert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFuncAllowMissing("OS_CACERT"),
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -108,6 +113,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		DomainName:       d.Get("domain_name").(string),
 		Insecure:         d.Get("insecure").(bool),
 		EndpointType:     d.Get("endpoint_type").(string),
+		CACertFile:       d.Get("cacert_file").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {

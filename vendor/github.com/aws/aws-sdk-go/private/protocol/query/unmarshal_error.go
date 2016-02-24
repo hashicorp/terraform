@@ -15,6 +15,9 @@ type xmlErrorResponse struct {
 	RequestID string   `xml:"RequestId"`
 }
 
+// UnmarshalErrorHandler is a name request handler to unmarshal request errors
+var UnmarshalErrorHandler = request.NamedHandler{Name: "awssdk.query.UnmarshalError", Fn: UnmarshalError}
+
 // UnmarshalError unmarshals an error response for an AWS Query service.
 func UnmarshalError(r *request.Request) {
 	defer r.HTTPResponse.Body.Close()

@@ -15,24 +15,24 @@ Provides a VPN connection connected to a VPC. These objects can be connected to 
 
 ```
 resource "aws_vpc" "vpc" {
-	  cidr_block = "10.0.0.0/16"
+    cidr_block = "10.0.0.0/16"
 }
 
 resource "aws_vpn_gateway" "vpn_gateway" {
-	  vpc_id = "${aws_vpc.vpc.id}"
+    vpc_id = "${aws_vpc.vpc.id}"
 }
 
 resource "aws_customer_gateway" "customer_gateway" {
-	  bgp_asn = 60000
-	  ip_address = "172.0.0.1"
-	  type = "ipsec.1"
+    bgp_asn = 60000
+    ip_address = "172.0.0.1"
+    type = "ipsec.1"
 }
 
 resource "aws_vpn_connection" "main" {
-	  vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
-	  customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
-	  type = "ipsec.1"
-	  static_routes_only = true
+    vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
+    customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
+    type = "ipsec.1"
+    static_routes_only = true
 }
 ```
 
@@ -55,5 +55,9 @@ The following attributes are exported:
 * `customer_gateway_id` - The ID of the customer gateway to which the connection is attached.
 * `static_routes_only` - Whether the VPN connection uses static routes exclusively.
 * `tags` - Tags applied to the connection.
+* `tunnel1_address` - The public IP address of the first VPN tunnel.
+* `tunnel1_preshared_key` - The preshared key of the first VPN tunnel.
+* `tunnel2_address` - The public IP address of the second VPN tunnel.
+* `tunnel2_preshared_key` - The preshared key of the second VPN tunnel.
 * `type` - The type of VPN connection.
 * `vpn_gateway_id` - The ID of the virtual private gateway to which the connection is attached.

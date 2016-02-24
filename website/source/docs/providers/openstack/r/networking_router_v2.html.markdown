@@ -36,6 +36,10 @@ The following arguments are supported:
     (must be "true" or "false" if provided). Changing this updates the
     `admin_state_up` of an existing router.
 
+* `distributed` - (Optional) Indicates whether or not to create a
+    distributed router. The default policy setting in Neutron restricts
+    usage of this property to administrative users only.
+
 * `external_gateway` - (Optional) The network UUID of an external gateway for
     the router. A router with an external gateway is required if any compute
     instances or load balancers will be using floating IPs. Changing this

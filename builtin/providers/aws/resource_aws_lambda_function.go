@@ -83,6 +83,29 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Default:  3,
 				ForceNew: true, // TODO make this editable
 			},
+			"vpc_config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subnet_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"security_group_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+					},
+				},
+			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -149,6 +172,31 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		Timeout:      aws.Int64(int64(d.Get("timeout").(int))),
 	}
 
+	if v, ok := d.GetOk("vpc_config"); ok {
+		configs := v.([]interface{})
+
+		if len(configs) > 1 {
+			return errors.New("Only a single vpc_config block is expected")
+		} else if len(configs) == 1 {
+			config := configs[0].(map[string]interface{})
+			var subnetIds []*string
+			for _, id := range config["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
+
+			var securityGroupIds []*string
+			for _, id := range config["security_group_ids"].(*schema.Set).List() {
+				securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
+			}
+
+			var vpcConfig = &lambda.VpcConfig{
+				SubnetIds:        subnetIds,
+				SecurityGroupIds: securityGroupIds,
+			}
+			params.VpcConfig = vpcConfig
+		}
+	}
+
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
@@ -157,10 +205,12 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "InvalidParameterValueException" {
+					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)
 					// Retryable
 					return awserr
 				}
 			}
+			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
 			// Not retryable
 			return resource.RetryError{Err: err}
 		}
@@ -207,6 +257,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("role", function.Role)
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
+	d.Set("vpc_config", flattenLambdaVpcConfigResponse(function.VpcConfig))
 
 	return nil
 }

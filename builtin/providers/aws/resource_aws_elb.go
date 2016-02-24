@@ -163,7 +163,7 @@ func resourceAwsElb() *schema.Resource {
 			},
 
 			"health_check": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -194,7 +194,6 @@ func resourceAwsElb() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceAwsElbHealthCheckHash,
 			},
 
 			"dns_name": &schema.Schema{
@@ -374,6 +373,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		et = resp.TagDescriptions[0].Tags
 	}
 	d.Set("tags", tagsToMapELB(et))
+
 	// There's only one health check, so save that to state as we
 	// currently can
 	if *lb.HealthCheck.Target != "" {
@@ -425,9 +425,15 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			err := resource.Retry(1*time.Minute, func() error {
 				log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
 				if _, err := elbconn.CreateLoadBalancerListeners(createListenersOpts); err != nil {
-					if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "DuplicateListener" {
-						log.Printf("[DEBUG] Duplicate listener found for ELB (%s), retrying", d.Id())
-						return awserr
+					if awsErr, ok := err.(awserr.Error); ok {
+						if awsErr.Code() == "DuplicateListener" {
+							log.Printf("[DEBUG] Duplicate listener found for ELB (%s), retrying", d.Id())
+							return awsErr
+						}
+						if awsErr.Code() == "CertificateNotFound" && strings.Contains(awsErr.Message(), "Server Certificate not found for the key: arn") {
+							log.Printf("[DEBUG] SSL Cert not found for given ARN, retrying")
+							return awsErr
+						}
 					}
 
 					// Didn't recognize the error, so shouldn't retry.
@@ -574,9 +580,11 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("health_check") {
-		vs := d.Get("health_check").(*schema.Set).List()
-		if len(vs) > 0 {
-			check := vs[0].(map[string]interface{})
+		hc := d.Get("health_check").([]interface{})
+		if len(hc) > 1 {
+			return fmt.Errorf("Only one health check per ELB is supported")
+		} else if len(hc) > 0 {
+			check := hc[0].(map[string]interface{})
 			configureHealthCheckOpts := elb.ConfigureHealthCheckInput{
 				LoadBalancerName: aws.String(d.Id()),
 				HealthCheck: &elb.HealthCheck{
@@ -709,18 +717,6 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func resourceAwsElbHealthCheckHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["healthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["unhealthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
-
-	return hashcode.String(buf.String())
 }
 
 func resourceAwsElbAccessLogsHash(v interface{}) int {

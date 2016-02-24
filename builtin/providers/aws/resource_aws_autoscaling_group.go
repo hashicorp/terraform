@@ -92,6 +92,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"availability_zones": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -229,28 +230,41 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) error {
-	g, err := getAwsAutoscalingGroup(d, meta)
+	conn := meta.(*AWSClient).autoscalingconn
+
+	g, err := getAwsAutoscalingGroup(d.Id(), conn)
 	if err != nil {
 		return err
 	}
 	if g == nil {
+		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		d.SetId("")
 		return nil
 	}
 
-	d.Set("availability_zones", g.AvailabilityZones)
+	d.Set("availability_zones", flattenStringList(g.AvailabilityZones))
 	d.Set("default_cooldown", g.DefaultCooldown)
 	d.Set("desired_capacity", g.DesiredCapacity)
 	d.Set("health_check_grace_period", g.HealthCheckGracePeriod)
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
-	d.Set("load_balancers", g.LoadBalancerNames)
+	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("placement_group", g.PlacementGroup)
 	d.Set("name", g.AutoScalingGroupName)
 	d.Set("tag", g.Tags)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
-	d.Set("termination_policies", g.TerminationPolicies)
+
+	// If no termination polices are explicitly configured and the upstream state
+	// is only using the "Default" policy, clear the state to make it consistent
+	// with the default AWS create API behavior.
+	_, ok := d.GetOk("termination_policies")
+	if !ok && len(g.TerminationPolicies) == 1 && *g.TerminationPolicies[0] == "Default" {
+		d.Set("termination_policies", []interface{}{})
+	} else {
+		d.Set("termination_policies", flattenStringList(g.TerminationPolicies))
+	}
 
 	return nil
 }
@@ -300,7 +314,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("availability_zones") {
 		if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
-			opts.AvailabilityZones = expandStringList(d.Get("availability_zones").(*schema.Set).List())
+			opts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
 		}
 	}
 
@@ -311,18 +325,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("termination_policies") {
 		// If the termination policy is set to null, we need to explicitly set
 		// it back to "Default", or the API won't reset it for us.
-		// This means GetOk() will fail us on the zero check.
-		v := d.Get("termination_policies")
-		if len(v.([]interface{})) > 0 {
+		if v, ok := d.GetOk("termination_policies"); ok && len(v.([]interface{})) > 0 {
 			opts.TerminationPolicies = expandStringList(v.([]interface{}))
 		} else {
-			// Policies is a slice of string pointers, so build one.
-			// Maybe there's a better idiom for this?
 			log.Printf("[DEBUG] Explictly setting null termination policy to 'Default'")
-			pol := "Default"
-			s := make([]*string, 1, 1)
-			s[0] = &pol
-			opts.TerminationPolicies = s
+			opts.TerminationPolicies = aws.StringSlice([]string{"Default"})
 		}
 	}
 
@@ -388,11 +395,13 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// Read the autoscaling group first. If it doesn't exist, we're done.
 	// We need the group in order to check if there are instances attached.
 	// If so, we need to remove those first.
-	g, err := getAwsAutoscalingGroup(d, meta)
+	g, err := getAwsAutoscalingGroup(d.Id(), conn)
 	if err != nil {
 		return err
 	}
 	if g == nil {
+		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		d.SetId("")
 		return nil
 	}
 	if len(g.Instances) > 0 || *g.DesiredCapacity > 0 {
@@ -433,7 +442,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	return resource.Retry(5*time.Minute, func() error {
-		if g, _ = getAwsAutoscalingGroup(d, meta); g != nil {
+		if g, _ = getAwsAutoscalingGroup(d.Id(), conn); g != nil {
 			return fmt.Errorf("Auto Scaling Group still exists")
 		}
 		return nil
@@ -441,12 +450,11 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 }
 
 func getAwsAutoscalingGroup(
-	d *schema.ResourceData,
-	meta interface{}) (*autoscaling.Group, error) {
-	conn := meta.(*AWSClient).autoscalingconn
+	asgName string,
+	conn *autoscaling.AutoScaling) (*autoscaling.Group, error) {
 
 	describeOpts := autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{aws.String(d.Id())},
+		AutoScalingGroupNames: []*string{aws.String(asgName)},
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group describe configuration: %#v", describeOpts)
@@ -454,7 +462,6 @@ func getAwsAutoscalingGroup(
 	if err != nil {
 		autoscalingerr, ok := err.(awserr.Error)
 		if ok && autoscalingerr.Code() == "InvalidGroup.NotFound" {
-			d.SetId("")
 			return nil, nil
 		}
 
@@ -463,13 +470,11 @@ func getAwsAutoscalingGroup(
 
 	// Search for the autoscaling group
 	for idx, asc := range describeGroups.AutoScalingGroups {
-		if *asc.AutoScalingGroupName == d.Id() {
+		if *asc.AutoScalingGroupName == asgName {
 			return describeGroups.AutoScalingGroups[idx], nil
 		}
 	}
 
-	// ASG not found
-	d.SetId("")
 	return nil, nil
 }
 
@@ -496,11 +501,13 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	// Next, wait for the autoscale group to drain
 	log.Printf("[DEBUG] Waiting for group to have zero instances")
 	return resource.Retry(10*time.Minute, func() error {
-		g, err := getAwsAutoscalingGroup(d, meta)
+		g, err := getAwsAutoscalingGroup(d.Id(), conn)
 		if err != nil {
 			return resource.RetryError{Err: err}
 		}
 		if g == nil {
+			log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+			d.SetId("")
 			return nil
 		}
 

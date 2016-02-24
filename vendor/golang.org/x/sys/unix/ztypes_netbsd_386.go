@@ -1,8 +1,6 @@
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_netbsd.go
 
-// +build 386,netbsd
-
 package unix
 
 const (

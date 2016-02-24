@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/lang"
+	"github.com/hashicorp/hil"
 )
 
 func TestNewInterpolatedVariable(t *testing.T) {
@@ -222,7 +222,7 @@ func TestDetectVariables(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		ast, err := lang.Parse(tc.Input)
+		ast, err := hil.Parse(tc.Input)
 		if err != nil {
 			t.Fatalf("%s\n\nInput: %s", err, tc.Input)
 		}

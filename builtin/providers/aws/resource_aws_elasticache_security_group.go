@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -35,9 +34,7 @@ func resourceAwsElasticacheSecurityGroup() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -130,7 +127,7 @@ func resourceAwsElasticacheSecurityGroupDelete(d *schema.ResourceData, meta inte
 			if !ok {
 				return err
 			}
-			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code)
+			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code())
 			switch apierr.Code() {
 			case "InvalidCacheSecurityGroupState":
 				return err
