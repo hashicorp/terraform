@@ -89,6 +89,48 @@ func TestAccAWSS3BucketObject_withContentCharacteristics(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3BucketObject_updates(t *testing.T) {
+	tmpFile, err := ioutil.TempFile("", "tf-acc-s3-obj-updates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	rInt := acctest.RandInt()
+	err = ioutil.WriteFile(tmpFile.Name(), []byte("initial object state"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketObjectConfig_updates(rInt, tmpFile.Name()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
+					resource.TestCheckResourceAttr("aws_s3_bucket_object.object", "etag", "647d1d58e1011c743ec67d5e8af87b53"),
+				),
+			},
+			resource.TestStep{
+				PreConfig: func() {
+					err = ioutil.WriteFile(tmpFile.Name(), []byte("modified object"), 0644)
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config: testAccAWSS3BucketObjectConfig_updates(rInt, tmpFile.Name()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object"),
+					resource.TestCheckResourceAttr("aws_s3_bucket_object.object", "etag", "1c7fd13df1515c2a13ad9eb068931f09"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSS3BucketObjectDestroy(s *terraform.State) error {
 	s3conn := testAccProvider.Meta().(*AWSClient).s3conn
 
@@ -176,4 +218,19 @@ resource "aws_s3_bucket_object" "object" {
         content = "some_bucket_content"
 }
 `, randInt)
+}
+
+func testAccAWSS3BucketObjectConfig_updates(randInt int, source string) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "object_bucket_3" {
+	bucket = "tf-object-test-bucket-%d"
+}
+
+resource "aws_s3_bucket_object" "object" {
+	bucket = "${aws_s3_bucket.object_bucket_3.bucket}"
+	key = "updateable-key"
+	source = "%s"
+	etag = "${md5(file("%s"))}"
+}
+`, randInt, source, source)
 }
