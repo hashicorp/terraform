@@ -3,31 +3,25 @@ package aws
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/firehose"
+        "github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSKinesisFirehoseDeliveryStream_basic(t *testing.T) {
+func TestAccAWSKinesisFirehoseDeliveryStream_s3basic(t *testing.T) {
 	var stream firehose.DeliveryStreamDescription
-	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_basic,
+        ri := acctest.RandInt()
+        config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3basic,
 		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set")
-			}
-		},
+                PreCheck:     testAccKinesisFirehosePreCheck(t),
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
 		Steps: []resource.TestStep{
@@ -45,19 +39,81 @@ func TestAccAWSKinesisFirehoseDeliveryStream_basic(t *testing.T) {
 func TestAccAWSKinesisFirehoseDeliveryStream_s3ConfigUpdates(t *testing.T) {
 	var stream firehose.DeliveryStreamDescription
 
-	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3,
+        ri := acctest.RandInt()
+        preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3basic,
 		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 	postConfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_s3Updates,
 		os.Getenv("AWS_ACCOUNT_ID"), ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set")
-			}
+                PreCheck:     testAccKinesisFirehosePreCheck(t),
+                Providers:    testAccProviders,
+                CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
+                Steps: []resource.TestStep{
+                        resource.TestStep{
+                                Config: preconfig,
+                                Check: resource.ComposeTestCheckFunc(
+                                        testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
+                                        testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "5"),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "300"),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "UNCOMPRESSED"),
+                                ),
+                        },
+
+                        resource.TestStep{
+                                Config: postConfig,
+                                Check: resource.ComposeTestCheckFunc(
+                                        testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
+                                        testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "10"),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "400"),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "GZIP"),
+                                ),
+                        },
 		},
+        })
+}
+
+func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftBasic(t *testing.T) {
+        var stream firehose.DeliveryStreamDescription
+        ri := acctest.RandInt()
+        config := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic,
+                os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
+
+        resource.Test(t, resource.TestCase{
+                PreCheck:     testAccKinesisFirehosePreCheck(t),
+                Providers:    testAccProviders,
+                CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
+                Steps: []resource.TestStep{
+                        resource.TestStep{
+                                Config: config,
+                                Check: resource.ComposeTestCheckFunc(
+                                        testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
+                                        testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
+                                ),
+                        },
+                },
+        })
+}
+
+func TestAccAWSKinesisFirehoseDeliveryStream_RedshiftConfigUpdates(t *testing.T) {
+        var stream firehose.DeliveryStreamDescription
+
+        ri := acctest.RandInt()
+        preconfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic,
+                os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
+        postConfig := fmt.Sprintf(testAccKinesisFirehoseDeliveryStreamConfig_RedshiftUpdates,
+                os.Getenv("AWS_ACCOUNT_ID"), ri, ri, ri)
+
+        resource.Test(t, resource.TestCase{
+                PreCheck:     testAccKinesisFirehosePreCheck(t),
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckKinesisFirehoseDeliveryStreamDestroy,
 		Steps: []resource.TestStep{
@@ -67,11 +123,15 @@ func TestAccAWSKinesisFirehoseDeliveryStream_s3ConfigUpdates(t *testing.T) {
 					testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
 					testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
 					resource.TestCheckResourceAttr(
-						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_buffer_size", "5"),
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "5"),
 					resource.TestCheckResourceAttr(
-						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_buffer_interval", "300"),
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "300"),
 					resource.TestCheckResourceAttr(
-						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_data_compression", "UNCOMPRESSED"),
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "UNCOMPRESSED"),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.copy_options", ""),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.data_table_columns", ""),
 				),
 			},
 
@@ -81,11 +141,15 @@ func TestAccAWSKinesisFirehoseDeliveryStream_s3ConfigUpdates(t *testing.T) {
 					testAccCheckKinesisFirehoseDeliveryStreamExists("aws_kinesis_firehose_delivery_stream.test_stream", &stream),
 					testAccCheckAWSKinesisFirehoseDeliveryStreamAttributes(&stream),
 					resource.TestCheckResourceAttr(
-						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_buffer_size", "10"),
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_size", "10"),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.buffer_interval", "400"),
 					resource.TestCheckResourceAttr(
-						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_buffer_interval", "400"),
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "s3_configuration.compression_format", "GZIP"),
 					resource.TestCheckResourceAttr(
-						"aws_kinesis_firehose_delivery_stream.test_stream", "s3_data_compression", "GZIP"),
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.copy_options", "GZIP"),
+                                        resource.TestCheckResourceAttr(
+                                                "aws_kinesis_firehose_delivery_stream.test_stream", "redshift_configuration.data_table_columns", "test-col"),
 				),
 			},
 		},
@@ -159,10 +223,19 @@ func testAccCheckKinesisFirehoseDeliveryStreamDestroy(s *terraform.State) error 
 	return nil
 }
 
-var testAccKinesisFirehoseDeliveryStreamConfig_basic = `
+func testAccKinesisFirehosePreCheck(t *testing.T) func() {
+        return func() {
+                testAccPreCheck(t)
+                if os.Getenv("AWS_ACCOUNT_ID") == "" {
+                        t.Fatal("AWS_ACCOUNT_ID must be set")
+                }
+        }
+}
+
+const testAccKinesisFirehoseDeliveryStreamBaseConfig = `
 resource "aws_iam_role" "firehose" {
-	name = "terraform_acctest_firehose_delivery_role"
-	assume_role_policy = <<EOF
+  name = "terraform_acctest_firehose_delivery_role"
+  assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -185,14 +258,14 @@ EOF
 }
 
 resource "aws_s3_bucket" "bucket" {
-	bucket = "tf-test-bucket-%d"
-	acl = "private"
+  bucket = "tf-test-bucket-%d"
+  acl = "private"
 }
 
 resource "aws_iam_role_policy" "firehose" {
-	name = "terraform_acctest_firehose_delivery_policy"
-	role = "${aws_iam_role.firehose.id}"
-	policy = <<EOF
+  name = "terraform_acctest_firehose_delivery_policy"
+  role = "${aws_iam_role.firehose.id}"
+  policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -217,145 +290,80 @@ resource "aws_iam_role_policy" "firehose" {
 EOF
 }
 
+`
+
+var testAccKinesisFirehoseDeliveryStreamConfig_s3basic = testAccKinesisFirehoseDeliveryStreamBaseConfig + `
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
-	depends_on = ["aws_iam_role_policy.firehose"]
-	name = "terraform-kinesis-firehose-basictest-%d"
-	destination = "s3"
-	role_arn = "${aws_iam_role.firehose.arn}"
-	s3_bucket_arn = "${aws_s3_bucket.bucket.arn}"
+  depends_on = ["aws_iam_role_policy.firehose"]
+  name = "terraform-kinesis-firehose-basictest-%d"
+  destination = "s3"
+  s3_configuration {
+    role_arn = "${aws_iam_role.firehose.arn}"
+    bucket_arn = "${aws_s3_bucket.bucket.arn}"
+  }
 }`
 
-var testAccKinesisFirehoseDeliveryStreamConfig_s3 = `
-resource "aws_iam_role" "firehose" {
-	name = "terraform_acctest_firehose_delivery_role_s3"
-	assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "firehose.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole",
-      "Condition": {
-        "StringEquals": {
-          "sts:ExternalId": "%s"
-        }
-      }
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_s3_bucket" "bucket" {
-	bucket = "tf-test-bucket-%d"
-	acl = "private"
-}
-
-resource "aws_iam_role_policy" "firehose" {
-	name = "terraform_acctest_firehose_delivery_policy_s3"
-	role = "${aws_iam_role.firehose.id}"
-	policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Action": [
-        "s3:AbortMultipartUpload",
-        "s3:GetBucketLocation",
-        "s3:GetObject",
-        "s3:ListBucket",
-        "s3:ListBucketMultipartUploads",
-        "s3:PutObject"
-      ],
-      "Resource": [
-        "arn:aws:s3:::${aws_s3_bucket.bucket.id}",
-        "arn:aws:s3:::${aws_s3_bucket.bucket.id}/*"
-      ]
-    }
-  ]
-}
-EOF
-}
-
+var testAccKinesisFirehoseDeliveryStreamConfig_s3Updates = testAccKinesisFirehoseDeliveryStreamBaseConfig + `
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
-	depends_on = ["aws_iam_role_policy.firehose"]
-	name = "terraform-kinesis-firehose-s3test-%d"
-	destination = "s3"
-	role_arn = "${aws_iam_role.firehose.arn}"
-	s3_bucket_arn = "${aws_s3_bucket.bucket.arn}"
+  depends_on = ["aws_iam_role_policy.firehose"]
+  name = "terraform-kinesis-firehose-s3test-%d"
+  destination = "s3"
+  s3_configuration {
+    role_arn = "${aws_iam_role.firehose.arn}"
+    bucket_arn = "${aws_s3_bucket.bucket.arn}"
+    buffer_size = 10
+    buffer_interval = 400
+    compression_format = "GZIP"
+  }
 }`
 
-var testAccKinesisFirehoseDeliveryStreamConfig_s3Updates = `
-resource "aws_iam_role" "firehose" {
-	name = "terraform_acctest_firehose_delivery_role_s3"
-	assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "firehose.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole",
-      "Condition": {
-        "StringEquals": {
-          "sts:ExternalId": "%s"
-        }
-      }
-    }
-  ]
-}
-EOF
-}
+var testAccKinesisFirehoseDeliveryStreamBaseRedshiftConfig = testAccKinesisFirehoseDeliveryStreamBaseConfig + `
+resource "aws_redshift_cluster" "test_cluster" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  database_name = "test"
+  master_username = "testuser"
+  master_password = "T3stPass"
+  node_type = "dc1.large"
+  cluster_type = "single-node"
+}`
 
-resource "aws_s3_bucket" "bucket" {
-	bucket = "tf-test-bucket-%d"
-	acl = "private"
-}
-
-resource "aws_iam_role_policy" "firehose" {
-	name = "terraform_acctest_firehose_delivery_policy_s3"
-	role = "${aws_iam_role.firehose.id}"
-	policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Action": [
-        "s3:AbortMultipartUpload",
-        "s3:GetBucketLocation",
-        "s3:GetObject",
-        "s3:ListBucket",
-        "s3:ListBucketMultipartUploads",
-        "s3:PutObject"
-      ],
-      "Resource": [
-        "arn:aws:s3:::${aws_s3_bucket.bucket.id}",
-        "arn:aws:s3:::${aws_s3_bucket.bucket.id}/*"
-      ]
-    }
-  ]
-}
-EOF
-}
-
+var testAccKinesisFirehoseDeliveryStreamConfig_RedshiftBasic = testAccKinesisFirehoseDeliveryStreamBaseRedshiftConfig + `
 resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
-	depends_on = ["aws_iam_role_policy.firehose"]
-	name = "terraform-kinesis-firehose-s3test-%d"
-	destination = "s3"
-	role_arn = "${aws_iam_role.firehose.arn}"
-	s3_bucket_arn = "${aws_s3_bucket.bucket.arn}"
-	s3_buffer_size = 10
-	s3_buffer_interval = 400
-	s3_data_compression = "GZIP"
+  depends_on = ["aws_iam_role_policy.firehose", "aws_redshift_cluster.test_cluster"]
+  name = "terraform-kinesis-firehose-basicredshifttest-%d"
+  destination = "redshift"
+  s3_configuration {
+    role_arn = "${aws_iam_role.firehose.arn}"
+    bucket_arn = "${aws_s3_bucket.bucket.arn}"
+  }
+  redshift_configuration {
+    role_arn = "${aws_iam_role.firehose.arn}"
+    cluster_jdbcurl = "jdbc:redshift://${aws_redshift_cluster.test_cluster.endpoint}/${aws_redshift_cluster.test_cluster.database_name}"
+    username = "testuser"
+    password = "T3stPass"
+    data_table_name = "test-table"
+  }
+}`
+
+var testAccKinesisFirehoseDeliveryStreamConfig_RedshiftUpdates = testAccKinesisFirehoseDeliveryStreamBaseRedshiftConfig + `
+resource "aws_kinesis_firehose_delivery_stream" "test_stream" {
+  depends_on = ["aws_iam_role_policy.firehose", "aws_redshift_cluster.test_cluster"]
+  name = "terraform-kinesis-firehose-basicredshifttest-%d"
+  destination = "redshift"
+  s3_configuration {
+    role_arn = "${aws_iam_role.firehose.arn}"
+    bucket_arn = "${aws_s3_bucket.bucket.arn}"
+    buffer_size = 10
+    buffer_interval = 400
+    compression_format = "GZIP"
+  }
+  redshift_configuration {
+    role_arn = "${aws_iam_role.firehose.arn}"
+    cluster_jdbcurl = "jdbc:redshift://${aws_redshift_cluster.test_cluster.endpoint}/${aws_redshift_cluster.test_cluster.database_name}"
+    username = "testuser"
+    password = "T3stPass"
+    data_table_name = "test-table"
+    copy_options = "GZIP"
+    data_table_columns = "test-col"
+  }
 }`
