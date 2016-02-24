@@ -3929,3 +3929,74 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 		t.Fatalf("bad: %d", invokeCount)
 	}
 }
+
+// GH-5254
+func TestContext2Apply_issue5254(t *testing.T) {
+	// Create a provider. We use "template" here just to match the repro
+	// we got from the issue itself.
+	p := testProvider("template")
+	p.ResourcesReturn = append(p.ResourcesReturn, ResourceType{
+		Name: "template_file",
+	})
+
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// Apply cleanly step 0
+	t.Log("Applying Step 0")
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "issue-5254/step-0"),
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Logf("Plan for Step 0: %s", plan)
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Application success. Now make the modification and store a plan
+	t.Log("Planning Step 1")
+	ctx = testContext2(t, &ContextOpts{
+		Module: testModule(t, "issue-5254/step-1"),
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err = ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("Plan for Step 1: %s", plan)
+
+	// Apply the plan
+	t.Log("Applying Step 1 (from plan)")
+	ctx = plan.Context(&ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	/*
+		actual := strings.TrimSpace(state.String())
+		expected := strings.TrimSpace(testTerraformApplyProviderAliasStr)
+		if actual != expected {
+			t.Fatalf("bad: \n%s", actual)
+		}
+	*/
+}
