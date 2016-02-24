@@ -3964,6 +3964,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	}
 
 	// Application success. Now make the modification and store a plan
+	println("Planning Step 1")
 	t.Log("Planning Step 1")
 	ctx = testContext2(t, &ContextOpts{
 		Module: testModule(t, "issue-5254/step-1"),
@@ -3992,6 +3993,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	t.Logf("Plan for Step 1: %s", planFromFile)
 
 	// Apply the plan
+	println("Applying Step 1 (from Plan)")
 	t.Log("Applying Step 1 (from plan)")
 	ctx = planFromFile.Context(&ContextOpts{
 		Providers: map[string]ResourceProviderFactory{
