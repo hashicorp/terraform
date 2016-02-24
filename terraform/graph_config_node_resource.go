@@ -283,6 +283,13 @@ func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
 		return false
 	}
 
+	// If the count has any interpolations, we can't prune this node since
+	// we need to be sure to evaluate the count so that splat variables work
+	// later (which need to know the full count).
+	if len(n.Resource.RawCount.Interpolations) > 0 {
+		return false
+	}
+
 	// If we have no module diff, we're certainly a noop. This is because
 	// it means there is a diff, and that the module we're in just isn't
 	// in it, meaning we're not doing anything.
