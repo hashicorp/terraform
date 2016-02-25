@@ -171,6 +171,10 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set("delegation_set_id", cleanDelegationSetId(*zone.DelegationSet.Id))
 	}
 
+	if zone.HostedZone != nil && zone.HostedZone.Config != nil && zone.HostedZone.Config.Comment != nil {
+		d.Set("comment", zone.HostedZone.Config.Comment)
+	}
+
 	// get tags
 	req := &route53.ListTagsForResourceInput{
 		ResourceId:   aws.String(d.Id()),
@@ -197,11 +201,29 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
+	d.Partial(true)
+
+	if d.HasChange("comment") {
+		zoneInput := route53.UpdateHostedZoneCommentInput{
+			Id:      aws.String(d.Id()),
+			Comment: aws.String(d.Get("comment").(string)),
+		}
+
+		_, err := conn.UpdateHostedZoneComment(&zoneInput)
+		if err != nil {
+			return err
+		} else {
+			d.SetPartial("comment")
+		}
+	}
+
 	if err := setTagsR53(conn, d, "hostedzone"); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
 	}
+
+	d.Partial(false)
 
 	return resourceAwsRoute53ZoneRead(d, meta)
 }
