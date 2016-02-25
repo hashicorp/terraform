@@ -236,8 +236,8 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							ForceNew: true,
 						},
 
-						"type" : &schema.Schema{
-							Type:	  schema.TypeString,
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 							Default:  "eager_zeroed",
@@ -404,7 +404,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 			if v, ok := disk["type"].(string); ok && v != "" {
 				disks[i].initType = v
-			} 
+			}
 		}
 		vm.hardDisks = disks
 		log.Printf("[DEBUG] disk init: %v", disks)
