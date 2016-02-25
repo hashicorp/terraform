@@ -151,16 +151,10 @@ func TestAccAWSLambdaFunction_s3Update(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				ExpectNonEmptyPlan: true,
 				PreConfig: func() {
 					// Upload 2nd version
 					testAccCreateZipFromFiles(map[string]string{"test-fixtures/lambda_func_modified.js": "lambda.js"}, zipFile)
 				},
-				Config: genAWSLambdaFunctionConfig_s3(bucketName, key, path),
-			},
-			// Extra step because of missing ComputedWhen
-			// See https://github.com/hashicorp/terraform/pull/4846 & https://github.com/hashicorp/terraform/pull/5330
-			resource.TestStep{
 				Config: genAWSLambdaFunctionConfig_s3(bucketName, key, path),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3", &conf),

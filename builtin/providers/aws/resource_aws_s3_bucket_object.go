@@ -89,8 +89,9 @@ func resourceAwsS3BucketObject() *schema.Resource {
 			},
 
 			"version_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:         schema.TypeString,
+				Computed:     true,
+				ComputedWhen: []string{"etag", "source", "content"},
 			},
 		},
 	}
