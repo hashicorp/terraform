@@ -75,6 +75,69 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	gateway := os.Getenv("VSPHERE_NETWORK_GATEWAY")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL")
+	ip_address := os.Getenv("VSPHERE_NETWORK_IP_ADDRESS")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_initType,
+					locationOpt,
+					gateway,
+					label,
+					ip_address,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.thin", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.#", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.0.type", "thin"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.1.type", "eager_zeroed"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
 func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	var vm virtualMachine
 	var locationOpt string
@@ -356,9 +419,9 @@ func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 			}
 		}
 
-		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), folder, rs.Primary.Attributes["name"])
+		v, err := object.NewSearchIndex(client.Client).FindChild(context.TODO(), folder, rs.Primary.Attributes["name"])
 
-		if err == nil {
+		if v != nil {
 			return fmt.Errorf("Record still exists")
 		}
 	}
@@ -514,6 +577,30 @@ resource "vsphere_virtual_machine" "foo" {
 %s
         template = "%s"
         iops = 500
+    }
+    disk {
+        size = 1
+        iops = 500
+    }
+}
+`
+const testAccCheckVSphereVirtualMachineConfig_initType = `
+resource "vsphere_virtual_machine" "thin" {
+    name = "terraform-test"
+%s
+    vcpu = 2
+    memory = 4096
+    gateway = "%s"
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+    }
+    disk {
+%s
+        template = "%s"
+        iops = 500
+        type = "thin"
     }
     disk {
         size = 1
