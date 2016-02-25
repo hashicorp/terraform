@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 IMPROVEMENTS:
 
   * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
+  * provider/vsphere: Add support for disk init types [GH-4284]
 
 ## 0.6.12 (February 24, 2016)
 
