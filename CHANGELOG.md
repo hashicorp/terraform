@@ -1,5 +1,13 @@
 ## 0.6.13 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+  * provider/aws: `aws_s3_bucket_object` field `etag` is now trimming off quotes (returns raw MD5 hash) [GH-5305]
+
+IMPROVEMENTS:
+
+  * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
+
 ## 0.6.12 (February 24, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
