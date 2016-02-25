@@ -39,7 +39,7 @@ Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src
 $ make
 ```
 
-To compile a development version of Terraform and the built-in plugins, run `make dev`. This will put Terraform binaries in the `bin` and `$GOPATH/bin` folders:
+To compile a development version of Terraform and the built-in plugins, run `make dev`. This will build everything using [gox](https://github.com/mitchellh/gox) and put Terraform binaries in the `bin` and `$GOPATH/bin` folders:
 
 ```sh
 $ make dev
