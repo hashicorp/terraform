@@ -240,7 +240,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Default",
-				ForceNew: true,
+				ForceNew: false,
 			},
 			"spot_price": &schema.Schema{
 				Type:     schema.TypeString,
@@ -551,7 +551,7 @@ func resourceAwsSpotFleetRequestCreate(d *schema.ResourceData, meta interface{})
 
 	d.SetId(*resp.SpotFleetRequestId)
 
-	return resourceAwsSpotFleetRequestUpdate(d, meta)
+	return resourceAwsSpotFleetRequestRead(d, meta)
 }
 
 func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) error {
@@ -806,12 +806,28 @@ func rootBlockDeviceToSet(
 
 func resourceAwsSpotFleetRequestUpdate(d *schema.ResourceData, meta interface{}) error {
 	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifySpotFleetRequest.html
-	//	conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	d.Partial(true)
-	// TODO: Adjust target capacity
 
-	return resourceAwsSpotFleetRequestRead(d, meta)
+	req := &ec2.ModifySpotFleetRequestInput{
+		SpotFleetRequestId: aws.String(d.Id()),
+	}
+
+	if val, ok := d.GetOk("target_capacity"); ok {
+		req.TargetCapacity = aws.Int64(int64(val.(int)))
+	}
+
+	if val, ok := d.GetOk("excess_capacity_termination_policy"); ok {
+		req.ExcessCapacityTerminationPolicy = aws.String(val.(string))
+	}
+
+	resp, err := conn.ModifySpotFleetRequest(req)
+	if err == nil && aws.BoolValue(resp.Return) {
+		// TODO: rollback to old values?
+	}
+
+	return nil
 }
 
 func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{}) error {
