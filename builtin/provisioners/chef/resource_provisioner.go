@@ -143,13 +143,13 @@ func (r *ResourceProvisioner) Apply(
 	case "linux":
 		p.installChefClient = p.linuxInstallChefClient
 		p.createConfigFiles = p.linuxCreateConfigFiles
-		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxChefCmd, linuxConfDir)
+		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.installChefClient = p.windowsInstallChefClient
 		p.createConfigFiles = p.windowsCreateConfigFiles
-		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsChefCmd, windowsConfDir)
+		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
 		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
 		p.useSudo = false
 	default:
