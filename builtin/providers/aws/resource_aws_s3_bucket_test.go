@@ -185,6 +185,51 @@ func TestAccAWSS3Bucket_WebsiteRedirect(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_WebsiteRoutingRules(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketWebsiteConfigWithRoutingRules(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "index.html", "error.html", "", ""),
+					testAccCheckAWSS3BucketWebsiteRoutingRules(
+						"aws_s3_bucket.bucket",
+						[]*s3.RoutingRule{
+							&s3.RoutingRule{
+								Condition: &s3.Condition{
+									KeyPrefixEquals: aws.String("docs/"),
+								},
+								Redirect: &s3.Redirect{
+									ReplaceKeyPrefixWith: aws.String("documents/"),
+								},
+							},
+						},
+					),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint(rInt)),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "", "", "", ""),
+					testAccCheckAWSS3BucketWebsiteRoutingRules("aws_s3_bucket.bucket", nil),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", ""),
+				),
+			},
+		},
+	})
+}
+
 // Test TestAccAWSS3Bucket_shouldFailNotFound is designed to fail with a "plan
 // not empty" error in Terraform, to check against regresssions.
 // See https://github.com/hashicorp/terraform/pull/2925
@@ -396,6 +441,7 @@ func testAccCheckAWSS3BucketPolicy(n string, policy string) resource.TestCheckFu
 		return nil
 	}
 }
+
 func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, redirectProtocol string, redirectTo string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, _ := s.RootModule().Resources[n]
@@ -452,6 +498,30 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, 
 	}
 }
 
+func testAccCheckAWSS3BucketWebsiteRoutingRules(n string, routingRules []*s3.RoutingRule) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketWebsite(&s3.GetBucketWebsiteInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			if routingRules == nil {
+				return nil
+			}
+			return fmt.Errorf("GetBucketWebsite error: %v", err)
+		}
+
+		if !reflect.DeepEqual(out.RoutingRules, routingRules) {
+			return fmt.Errorf("bad routing rule, expected: %v, got %v", routingRules, out.RoutingRules)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSS3BucketVersioning(n string, versioningStatus string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, _ := s.RootModule().Resources[n]
@@ -478,6 +548,7 @@ func testAccCheckAWSS3BucketVersioning(n string, versioningStatus string) resour
 		return nil
 	}
 }
+
 func testAccCheckAWSS3BucketCors(n string, corsRules []*s3.CORSRule) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, _ := s.RootModule().Resources[n]
@@ -605,6 +676,30 @@ resource "aws_s3_bucket" "bucket" {
 
 	website {
 		redirect_all_requests_to = "https://hashicorp.com"
+	}
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketWebsiteConfigWithRoutingRules(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+
+	website {
+		index_document = "index.html"
+		error_document = "error.html"
+		routing_rules = <<EOF
+[{
+	"Condition": {
+		"KeyPrefixEquals": "docs/"
+	},
+	"Redirect": {
+		"ReplaceKeyPrefixWith": "documents/"
+	}
+}]
+EOF
 	}
 }
 `, randInt)
