@@ -343,6 +343,24 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_Issue5310(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleIssue5310,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.issue_5310", &group),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
 	var group ec2.SecurityGroup
 
@@ -524,6 +542,26 @@ resource "aws_security_group_rule" "ingress_1" {
   cidr_blocks = ["10.0.0.0/8"]
 
   security_group_id = "${aws_security_group.web.id}"
+}
+`
+
+const testAccAWSSecurityGroupRuleIssue5310 = `
+provider "aws" {
+        region = "us-east-1"
+}
+
+resource "aws_security_group" "issue_5310" {
+    name = "terraform-test-issue_5310"
+    description = "SG for test of issue 5310"
+}
+
+resource "aws_security_group_rule" "issue_5310" {
+    type = "ingress"
+    from_port = 0
+    to_port = 65535
+    protocol = "tcp"
+    security_group_id = "${aws_security_group.issue_5310.id}"
+    self = true
 }
 `
 
