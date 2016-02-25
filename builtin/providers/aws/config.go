@@ -50,6 +50,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -81,33 +82,34 @@ type AWSClient struct {
 	cloudtrailconn        *cloudtrail.CloudTrail
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
-	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
-	dsconn                *directoryservice.DirectoryService
-	dynamodbconn          *dynamodb.DynamoDB
-	ec2conn               *ec2.EC2
-	ecrconn               *ecr.ECR
-	ecsconn               *ecs.ECS
-	efsconn               *efs.EFS
-	elbconn               *elb.ELB
-	emrconn               *emr.EMR
-	esconn                *elasticsearch.ElasticsearchService
-	apigateway            *apigateway.APIGateway
-	autoscalingconn       *autoscaling.AutoScaling
-	s3conn                *s3.S3
-	sqsconn               *sqs.SQS
-	snsconn               *sns.SNS
-	stsconn               *sts.STS
-	redshiftconn          *redshift.Redshift
-	r53conn               *route53.Route53
-	accountid             string
-	region                string
-	rdsconn               *rds.RDS
-	iamconn               *iam.IAM
-	kinesisconn           *kinesis.Kinesis
-	kmsconn               *kms.KMS
-	firehoseconn          *firehose.Firehose
-	elasticacheconn       *elasticache.ElastiCache
-	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
+	cloudwatcheventsconn *cloudwatchevents.CloudWatchEvents
+	dsconn               *directoryservice.DirectoryService
+	dynamodbconn         *dynamodb.DynamoDB
+	ec2conn              *ec2.EC2
+	ecrconn              *ecr.ECR
+	ecsconn              *ecs.ECS
+	efsconn              *efs.EFS
+	elbconn              *elb.ELB
+	emrconn              *emr.EMR
+	esconn               *elasticsearch.ElasticsearchService
+	apigateway           *apigateway.APIGateway
+	autoscalingconn      *autoscaling.AutoScaling
+	s3conn               *s3.S3
+	sesConn              *ses.SES
+	sqsconn              *sqs.SQS
+	snsconn              *sns.SNS
+	stsconn              *sts.STS
+	redshiftconn         *redshift.Redshift
+	r53conn              *route53.Route53
+	accountid            string
+	region               string
+	rdsconn              *rds.RDS
+	iamconn              *iam.IAM
+	kinesisconn          *kinesis.Kinesis
+	kmsconn              *kms.KMS
+	firehoseconn         *firehose.Firehose
+	elasticacheconn      *elasticache.ElastiCache
+	elasticbeanstalkconn *elasticbeanstalk.ElasticBeanstalk
 	elastictranscoderconn *elastictranscoder.ElasticTranscoder
 	lambdaconn            *lambda.Lambda
 	opsworksconn          *opsworks.OpsWorks
@@ -213,6 +215,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(sess)
+
+		log.Println("[INFO] Initializing SES connection")
+		client.sesConn = ses.New(sess)
 
 		log.Println("[INFO] Initializing SQS connection")
 		client.sqsconn = sqs.New(sess)
