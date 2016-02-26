@@ -101,9 +101,9 @@ func resourceDockerContainer() *schema.Resource {
 				Default:  "no",
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(string)
-					if !regexp.MustCompile(`^(no|on-failure|always)$`).MatchString(value) {
+					if !regexp.MustCompile(`^(no|on-failure|always|unless-stopped)$`).MatchString(value) {
 						es = append(es, fmt.Errorf(
-							"%q must be one of \"no\", \"on-failure\", or \"always\"", k))
+							"%q must be one of \"no\", \"on-failure\", \"always\" or \"unless-stopped\"", k))
 					}
 					return
 				},

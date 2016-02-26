@@ -51,7 +51,7 @@ The following arguments are supported:
 * `hostname` - (Optional, string) Hostname of the container.
 * `domainname` - (Optional, string) Domain name of the container.
 * `restart` - (Optional, string) The restart policy for the container. Must be
-  one of "no", "on-failure", "always".
+  one of "no", "on-failure", "always", "unless-stopped".
 * `max_retry_count` - (Optional, int) The maximum amount of times to an attempt
   a restart when `restart` is set to "on-failure"
 * `must_run` - (Optional, bool) If true, then the Docker container will be
