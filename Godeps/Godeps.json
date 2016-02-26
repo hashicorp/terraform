@@ -666,11 +666,11 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hil",
-			"Rev": "42518c6f01625b5e6948a6a0e6a0792df126c548"
+			"Rev": "0457360d54ca4d081a769eaa1617e0462153fd70"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hil/ast",
-			"Rev": "42518c6f01625b5e6948a6a0e6a0792df126c548"
+			"Rev": "0457360d54ca4d081a769eaa1617e0462153fd70"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/logutils",
