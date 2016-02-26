@@ -4,6 +4,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
   * provider/aws: `aws_s3_bucket_object` field `etag` is now trimming off quotes (returns raw MD5 hash) [GH-5305]
 
+FEATURES:
+
+  * **New resource:** `aws_iam_account_password_policy` [GH-5029]
+
 IMPROVEMENTS:
 
   * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
