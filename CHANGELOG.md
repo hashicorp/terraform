@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
   * **New resource:** `aws_iam_account_password_policy` [GH-5029]
+  * **New resource:** `google_compute_instance_group` [GH-4087]
 
 IMPROVEMENTS:
 
