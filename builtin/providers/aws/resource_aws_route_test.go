@@ -32,7 +32,7 @@ func TestAccAWSRoute_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() {
+		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -95,7 +95,7 @@ func TestAccAWSRoute_changeCidr(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() {
+		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -133,7 +133,7 @@ func TestAccAWSRoute_noopdiff(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() {
+		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
