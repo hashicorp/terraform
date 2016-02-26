@@ -196,5 +196,6 @@ func setProjectid(p projectidSetter, cs *cloudstack.CloudStackClient, d *schema.
 		}
 		p.SetProjectid(projectid)
 	}
+
 	return nil
 }
