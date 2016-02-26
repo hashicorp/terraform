@@ -10,10 +10,15 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * provider/aws: Add support for routing rules on `aws_s3_bucket` resources [GH-5327]
   * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
   * provider/aws: Add ability to update Route53 zone comments [GH-5318]
   * provider/vsphere: Add support for disk init types [GH-4284]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
+
+BUG FIXES:
+
+  * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
 
 ## 0.6.12 (February 24, 2016)
 
