@@ -61,6 +61,9 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	case *ast.Call:
 		tc := &typeCheckCall{n}
 		result, err = tc.TypeCheck(v)
+	case *ast.Index:
+		tc := &typeCheckIndex{n}
+		result, err = tc.TypeCheck(v)
 	case *ast.Concat:
 		tc := &typeCheckConcat{n}
 		result, err = tc.TypeCheck(v)
@@ -282,6 +285,55 @@ func (tc *typeCheckVariableAccess) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	// Add the type to the stack
 	v.StackPush(variable.Type)
 
+	return tc.n, nil
+}
+
+type typeCheckIndex struct {
+	n *ast.Index
+}
+
+func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
+
+	value, err := tc.n.Key.Type(v.Scope)
+	if err != nil {
+		return nil, err
+	}
+	if value != ast.TypeInt {
+		return nil, fmt.Errorf("key of an index must be an int, was %s", value)
+	}
+
+	// Ensure we have a VariableAccess as the target
+	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)
+	if !ok {
+		return nil, fmt.Errorf("target of an index must be a VariableAccess node, was %T", tc.n.Target)
+	}
+
+	// Get the variable
+	variable, ok := v.Scope.LookupVar(varAccessNode.Name)
+	if !ok {
+		return nil, fmt.Errorf("unknown variable accessed: %s", varAccessNode.Name)
+	}
+	if variable.Type != ast.TypeList {
+		return nil, fmt.Errorf("invalid index operation into non-indexable type: %s", variable.Type)
+	}
+
+	list := variable.Value.([]ast.Variable)
+
+	// Ensure that the types of the list elements are homogenous
+	listTypes := make(map[ast.Type]struct{})
+	for _, v := range list {
+		if _, ok := listTypes[v.Type]; ok {
+			continue
+		}
+		listTypes[v.Type] = struct{}{}
+	}
+
+	if len(listTypes) != 1 {
+		return nil, fmt.Errorf("list %q does not have homogenous types (%s)", varAccessNode.Name)
+	}
+
+	// This is the type since the list is homogenous in type
+	v.StackPush(list[0].Type)
 	return tc.n, nil
 }
 
