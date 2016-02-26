@@ -140,6 +140,8 @@ func (v *evalVisitor) visit(raw ast.Node) ast.Node {
 // types as well as any other EvalNode implementations.
 func evalNode(raw ast.Node) (EvalNode, error) {
 	switch n := raw.(type) {
+	case *ast.Index:
+		return &evalIndex{n}, nil
 	case *ast.Call:
 		return &evalCall{n}, nil
 	case *ast.Concat:
@@ -182,6 +184,53 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 	}
 
 	return result, function.ReturnType, nil
+}
+
+type evalIndex struct{ *ast.Index }
+
+func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
+	evalVarAccess, err := evalNode(v.Target)
+	if err != nil {
+		return nil, ast.TypeInvalid, err
+	}
+	target, targetType, err := evalVarAccess.Eval(scope, stack)
+
+	evalKey, err := evalNode(v.Key)
+	if err != nil {
+		return nil, ast.TypeInvalid, err
+	}
+	key, keyType, err := evalKey.Eval(scope, stack)
+
+	// Last sanity check
+	if targetType != ast.TypeList {
+		return nil, ast.TypeInvalid, fmt.Errorf("target for indexing must be ast.TypeList, is %s", targetType)
+	}
+	if keyType != ast.TypeInt {
+		return nil, ast.TypeInvalid, fmt.Errorf("key for indexing must be ast.TypeInt, is %s", keyType)
+	}
+
+	list, ok := target.([]ast.Variable)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to []Variable")
+	}
+
+	keyInt, ok := key.(int)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to int")
+	}
+
+	if len(list) == 0 {
+		return nil, ast.TypeInvalid, fmt.Errorf("list is empty")
+	}
+
+	if keyInt < 0 || len(list) < keyInt+1 {
+		return nil, ast.TypeInvalid, fmt.Errorf("index %d out of range (max %d)", keyInt, len(list))
+	}
+
+	returnVal := list[keyInt].Value
+	returnType := list[keyInt].Type
+
+	return returnVal, returnType, nil
 }
 
 type evalConcat struct{ *ast.Concat }

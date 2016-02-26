@@ -21,6 +21,7 @@ import (
 %token  <str> PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
+%token  <str> SQUARE_BRACKET_LEFT SQUARE_BRACKET_RIGHT
 
 %token <token> ARITH_OP IDENTIFIER INTEGER FLOAT STRING
 
@@ -156,6 +157,17 @@ expr:
 |   IDENTIFIER PAREN_LEFT args PAREN_RIGHT
     {
         $$ = &ast.Call{Func: $1.Value.(string), Args: $3, Posx: $1.Pos}
+    }
+|   IDENTIFIER SQUARE_BRACKET_LEFT expr SQUARE_BRACKET_RIGHT
+    {
+        $$ = &ast.Index{
+                Target: &ast.VariableAccess{
+                    Name: $1.Value.(string),
+                    Posx: $1.Pos,
+                },
+                Key: $3,
+                Posx: $1.Pos,
+            }
     }
 
 args:
