@@ -11,6 +11,7 @@ FEATURES:
 IMPROVEMENTS:
 
   * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
+  * provider/aws: Add ability to update Route53 zone comments [GH-5318]
   * provider/vsphere: Add support for disk init types [GH-4284]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
 
