@@ -47,14 +47,14 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: envDefaultFuncAllowMissing("OS_AUTH_TOKEN"),
 			},
 			"domain_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFuncAllowMissing("OS_DOMAIN_ID"),
 			},
 			"domain_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFuncAllowMissing("OS_DOMAIN_NAME"),
 			},
 			"insecure": &schema.Schema{
 				Type:     schema.TypeBool,
