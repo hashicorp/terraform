@@ -403,7 +403,6 @@ func TestAccComputeV2Instance_bootFromVolumeVolume(t *testing.T) {
 			block_device {
 				uuid = "${openstack_blockstorage_volume_v1.foo.id}"
 				source_type = "volume"
-				volume_size = 5
 				boot_index = 0
 				destination_type = "volume"
 				delete_on_termination = true
@@ -476,7 +475,6 @@ func TestAccComputeV2Instance_multiEphemeral(t *testing.T) {
 				boot_index = -1
 				delete_on_termination = true
 				destination_type = "local"
-				guest_format = "ext4"
 				source_type = "blank"
 				volume_size = 1
 			}
@@ -484,7 +482,6 @@ func TestAccComputeV2Instance_multiEphemeral(t *testing.T) {
 				boot_index = -1
 				delete_on_termination = true
 				destination_type = "local"
-				guest_format = "ext4"
 				source_type = "blank"
 				volume_size = 1
 			}

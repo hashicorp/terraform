@@ -201,7 +201,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 						},
 						"volume_size": &schema.Schema{
 							Type:     schema.TypeInt,
-							Required: true,
+							Optional: true,
 						},
 						"destination_type": &schema.Schema{
 							Type:     schema.TypeString,
@@ -334,10 +334,15 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	// determine if volume/block_device configuration is correct
+	// determine if volume configuration is correct
 	// this includes ensuring volume_ids are set
-	// and if only one block_device was specified.
 	if err := checkVolumeConfig(d); err != nil {
+		return err
+	}
+
+	// determine if block_device configuration is correct
+	// this includes valid combinations and required attributes
+	if err := checkBlockDeviceConfig(d); err != nil {
 		return err
 	}
 
@@ -1416,11 +1421,28 @@ func checkVolumeConfig(d *schema.ResourceData) error {
 		}
 	}
 
+	return nil
+}
+
+func checkBlockDeviceConfig(d *schema.ResourceData) error {
 	if vL, ok := d.GetOk("block_device"); ok {
 		for _, v := range vL.([]interface{}) {
 			vM := v.(map[string]interface{})
+
 			if vM["source_type"] != "blank" && vM["uuid"] == "" {
 				return fmt.Errorf("You must specify a uuid for %s block device types", vM["source_type"])
+			}
+
+			if vM["source_type"] == "image" && vM["destination_type"] == "volume" {
+				if vM["volume_size"] == 0 {
+					return fmt.Errorf("You must specify a volume_size when creating a volume from an image")
+				}
+			}
+
+			if vM["source_type"] == "blank" && vM["destination_type"] == "local" {
+				if vM["volume_size"] == 0 {
+					return fmt.Errorf("You must specify a volume_size when creating a blank block device")
+				}
 			}
 		}
 	}
