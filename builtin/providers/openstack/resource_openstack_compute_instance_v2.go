@@ -201,7 +201,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 						},
 						"volume_size": &schema.Schema{
 							Type:     schema.TypeInt,
-							Optional: true,
+							Required: true,
 						},
 						"destination_type": &schema.Schema{
 							Type:     schema.TypeString,

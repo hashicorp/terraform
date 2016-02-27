@@ -121,7 +121,7 @@ The `block_device` block supports:
 * `source_type` - (Required) The source type of the device. Must be one of
     "image", "volume", or "snapshot".
 
-* `volume_size` - (Optional) The size of the volume to create (in gigabytes).
+* `volume_size` - (Required) The size of the volume to create (in gigabytes).
 
 * `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
 
