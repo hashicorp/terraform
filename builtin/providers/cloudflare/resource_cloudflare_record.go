@@ -35,6 +35,7 @@ func resourceCloudFlareRecord() *schema.Resource {
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"value": &schema.Schema{
