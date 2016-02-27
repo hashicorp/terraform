@@ -123,7 +123,9 @@ The `block_device` block supports:
 * `source_type` - (Required) The source type of the device. Must be one of
     "image", "volume", or "snapshot".
 
-* `volume_size` - (Required) The size of the volume to create (in gigabytes).
+* `volume_size` - The size of the volume to create (in gigabytes). Required
+    in the following combinations: source=image and destination=volume,
+    source=blank and destination=local.
 
 * `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
 
@@ -231,7 +233,6 @@ resource "openstack_compute_instance_v2" "foo" {
     boot_index = -1
     delete_on_termination = true
     destination_type = "local"
-    guest_format = "ext4"
     source_type = "blank"
     volume_size = 1
   }
@@ -240,7 +241,6 @@ resource "openstack_compute_instance_v2" "foo" {
     boot_index = -1
     delete_on_termination = true
     destination_type = "local"
-    guest_format = "ext4"
     source_type = "blank"
     volume_size = 1
   }
