@@ -18,11 +18,11 @@ IMPROVEMENTS:
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
   * provider/openstack: Add Support for Domain ID and Domain Name environment variables [GH-5355]
+  * provider/openstack: Add support for instances to have multiple ephemeral disks. [GH-5131]
 
 BUG FIXES:
 
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
-  * provider/openstack: Make instance block_device volume size required [GH-5354]
 
 ## 0.6.12 (February 24, 2016)
 
