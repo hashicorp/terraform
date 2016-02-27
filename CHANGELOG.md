@@ -21,6 +21,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
+  * provider/openstack: Make instance block_device volume size required [GH-5354]
 
 ## 0.6.12 (February 24, 2016)
 
