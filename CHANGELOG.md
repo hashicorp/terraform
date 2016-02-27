@@ -16,6 +16,7 @@ IMPROVEMENTS:
   * provider/aws: Add ability to update Route53 zone comments [GH-5318]
   * provider/vsphere: Add support for disk init types [GH-4284]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
+  * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
 
 BUG FIXES:
 
