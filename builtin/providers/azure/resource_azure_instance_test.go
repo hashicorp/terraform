@@ -508,7 +508,7 @@ resource "azure_security_group_rule" "foo" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, September 2015"
+    image = "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-20150916-en.us-127GB.vhd"
     size = "Basic_A1"
     storage_service_name = "%s"
     location = "West US"
@@ -582,7 +582,7 @@ resource "azure_security_group_rule" "bar" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, September 2015"
+    image = "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-20150916-en.us-127GB.vhd"
     size = "Basic_A2"
     storage_service_name = "%s"
     location = "West US"
