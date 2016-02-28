@@ -151,13 +151,15 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		s3Bucket, bucketOk := d.GetOk("s3_bucket")
 		s3Key, keyOk := d.GetOk("s3_key")
 		s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
-		if !bucketOk || !keyOk || !versionOk {
-			return errors.New("s3_bucket, s3_key and s3_object_version must all be set while using S3 code source")
+		if !bucketOk || !keyOk {
+			return errors.New("s3_bucket and s3_key must all be set while using S3 code source")
 		}
 		functionCode = &lambda.FunctionCode{
-			S3Bucket:        aws.String(s3Bucket.(string)),
-			S3Key:           aws.String(s3Key.(string)),
-			S3ObjectVersion: aws.String(s3ObjectVersion.(string)),
+			S3Bucket: aws.String(s3Bucket.(string)),
+			S3Key:    aws.String(s3Key.(string)),
+		}
+		if versionOk {
+			functionCode.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
 		}
 	}
 
@@ -200,6 +202,8 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	err := resource.Retry(1*time.Minute, func() error {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
+			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
+
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "InvalidParameterValueException" {
 					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)

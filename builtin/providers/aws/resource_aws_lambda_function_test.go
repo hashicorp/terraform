@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -40,8 +42,31 @@ func TestAccAWSLambdaFunction_VPC(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSLambdaConfigWithVPC,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", &conf),
-					testAccCheckAWSLambdaAttributes(&conf),
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", "example_lambda_name", &conf),
+					testAccCheckAWSLambdaFunctionName("example_lambda_name", &conf),
+					testAccCheckAWSLambdaFunctionARN(&conf),
+					testAccCheckAWSLambdaFunctionVersion("$LATEST", &conf),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSLambdaFunction_s3(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSLambdaConfigS3,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3test", "example_lambda_name_s3", &conf),
+					testAccCheckAWSLambdaFunctionName("example_lambda_name_s3", &conf),
+					testAccCheckAWSLambdaFunctionARN(&conf),
+					testAccCheckAWSLambdaFunctionVersion("$LATEST", &conf),
 				),
 			},
 		},
@@ -70,12 +95,12 @@ func testAccCheckLambdaFunctionDestroy(s *terraform.State) error {
 
 }
 
-func testAccCheckAwsLambdaFunctionExists(n string, function *lambda.GetFunctionOutput) resource.TestCheckFunc {
+func testAccCheckAwsLambdaFunctionExists(res, fname string, function *lambda.GetFunctionOutput) resource.TestCheckFunc {
 	// Wait for IAM role
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
+		rs, ok := s.RootModule().Resources[res]
 		if !ok {
-			return fmt.Errorf("Lambda function not found: %s", n)
+			return fmt.Errorf("Lambda function not found: %s", res)
 		}
 
 		if rs.Primary.ID == "" {
@@ -85,7 +110,7 @@ func testAccCheckAwsLambdaFunctionExists(n string, function *lambda.GetFunctionO
 		conn := testAccProvider.Meta().(*AWSClient).lambdaconn
 
 		params := &lambda.GetFunctionInput{
-			FunctionName: aws.String("example_lambda_name"),
+			FunctionName: aws.String(fname),
 		}
 
 		getFunction, err := conn.GetFunction(params)
@@ -99,18 +124,32 @@ func testAccCheckAwsLambdaFunctionExists(n string, function *lambda.GetFunctionO
 	}
 }
 
-func testAccCheckAWSLambdaAttributes(function *lambda.GetFunctionOutput) resource.TestCheckFunc {
+func testAccCheckAWSLambdaFunctionName(expected string, function *lambda.GetFunctionOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		c := function.Configuration
-		const expectedName = "example_lambda_name"
-		if *c.FunctionName != expectedName {
-			return fmt.Errorf("Expected function name %s, got %s", expectedName, *c.FunctionName)
+		if *c.FunctionName != expected {
+			return fmt.Errorf("Expected function name %s, got %s", expected, *c.FunctionName)
 		}
+		return nil
+	}
+}
 
+func testAccCheckAWSLambdaFunctionVersion(expected string, function *lambda.GetFunctionOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		c := function.Configuration
+		if *c.Version != expected {
+			return fmt.Errorf("Expected version %s, got %s", expected, *c.Version)
+		}
+		return nil
+	}
+}
+
+func testAccCheckAWSLambdaFunctionARN(function *lambda.GetFunctionOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		c := function.Configuration
 		if *c.FunctionArn == "" {
 			return fmt.Errorf("Could not read Lambda Function's ARN")
 		}
-
 		return nil
 	}
 }
@@ -222,3 +261,42 @@ resource "aws_lambda_function" "lambda_function_test" {
     }
 }
 `
+
+var testAccAWSLambdaConfigS3 = fmt.Sprintf(`
+resource "aws_s3_bucket" "lambda_bucket" {
+  bucket = "tf-test-bucket-%d"
+}
+
+resource "aws_s3_bucket_object" "lambda_code" {
+  bucket = "${aws_s3_bucket.lambda_bucket.id}"
+  key = "lambdatest.zip"
+  source = "test-fixtures/lambdatest.zip"
+}
+
+resource "aws_iam_role" "iam_for_lambda" {
+    name = "iam_for_lambda"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_function" "lambda_function_s3test" {
+    s3_bucket = "${aws_s3_bucket.lambda_bucket.id}"
+    s3_key = "${aws_s3_bucket_object.lambda_code.id}"
+    function_name = "example_lambda_name_s3"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+}
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
