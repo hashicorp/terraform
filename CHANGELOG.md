@@ -23,7 +23,8 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
-  * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359] 
+  * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
+  * provider/openstack: Fix crashing during certain network updates in instances [GH-5365] 
 
 ## 0.6.12 (February 24, 2016)
 
