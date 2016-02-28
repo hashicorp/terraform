@@ -153,6 +153,19 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	vID := d.Get("volume_id").(string)
 	iID := d.Get("instance_id").(string)
 
+	// Stop instance ID using the Volume to avoid losing data.
+	stopInstanceInput := &ec2.StopInstancesInput{
+		InstanceIds: []*string{aws.String(iID)},
+	}
+
+	log.Printf("[DEBUG] Stopping Instance (%s) using Volume (%s) in order to detach.", iID, vID)
+	_, err := conn.StopInstances(stopInstanceInput)
+	if err != nil {
+		return fmt.Errorf(
+			"Unable to detach Volume (%s), Instance (%s) using it could not be stopped.",
+			vID, iID)
+	}
+
 	opts := &ec2.DetachVolumeInput{
 		Device:     aws.String(d.Get("device_name").(string)),
 		InstanceId: aws.String(iID),
@@ -160,7 +173,7 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 		Force:      aws.Bool(d.Get("force_detach").(bool)),
 	}
 
-	_, err := conn.DetachVolume(opts)
+	_, err = conn.DetachVolume(opts)
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
 		Target:     []string{"detached"},
