@@ -290,10 +290,12 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
+	var est []*elasticsearch.Tag
+	if len(listOut.TagList) > 0 {
+		est = listOut.TagList
+	}
 
-	log.Printf("[DEBUG] Received ElasticSearch tags: %s", out)
-
-	d.Set("tags", listOut)
+	d.Set("tags", tagsToMapElasticsearchService(est))
 
 	return nil
 }

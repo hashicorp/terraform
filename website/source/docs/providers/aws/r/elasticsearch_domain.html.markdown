@@ -37,6 +37,10 @@ CONFIG
 	snapshot_options {
 		automated_snapshot_start_hour = 23
 	}
+	
+	tags {
+      Domain = "TestDomain"
+    }
 }
 ```
 
@@ -50,6 +54,7 @@ The following arguments are supported:
 * `ebs_options` - (Optional) EBS related options, see below.
 * `cluster_config` - (Optional) Cluster configuration of the domain, see below.
 * `snapshot_options` - (Optional) Snapshot related options, see below.
+* `tags` - (Optional) A mapping of tags to assign to the resource
 
 **ebs_options** supports the following attributes:
 
