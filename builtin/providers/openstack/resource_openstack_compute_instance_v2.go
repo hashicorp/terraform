@@ -654,16 +654,23 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		oldNetworkList := oldNetworks.([]interface{})
 		newNetworkList := newNetworks.([]interface{})
 		for i, oldNet := range oldNetworkList {
-			oldNetRaw := oldNet.(map[string]interface{})
-			oldFIP := oldNetRaw["floating_ip"].(string)
-			oldFixedIP := oldNetRaw["fixed_ip_v4"].(string)
+			var oldFIP, newFIP string
+			var oldFixedIP, newFixedIP string
 
-			newNetRaw := newNetworkList[i].(map[string]interface{})
-			newFIP := newNetRaw["floating_ip"].(string)
-			newFixedIP := newNetRaw["fixed_ip_v4"].(string)
+			if oldNetRaw, ok := oldNet.(map[string]interface{}); ok {
+				oldFIP = oldNetRaw["floating_ip"].(string)
+				oldFixedIP = oldNetRaw["fixed_ip_v4"].(string)
+			}
+
+			if len(newNetworkList) > i {
+				if newNetRaw, ok := newNetworkList[i].(map[string]interface{}); ok {
+					newFIP = newNetRaw["floating_ip"].(string)
+					newFixedIP = newNetRaw["fixed_ip_v4"].(string)
+				}
+			}
 
 			// Only changes to the floating IP are supported
-			if oldFIP != newFIP {
+			if oldFIP != "" && newFIP != "" && oldFIP != newFIP {
 				log.Printf("[DEBUG] Attempting to disassociate %s from %s", oldFIP, d.Id())
 				if err := disassociateFloatingIPFromInstance(computeClient, oldFIP, d.Id(), oldFixedIP); err != nil {
 					return fmt.Errorf("Error disassociating Floating IP during update: %s", err)
