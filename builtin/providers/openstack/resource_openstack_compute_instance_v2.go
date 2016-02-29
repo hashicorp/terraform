@@ -497,6 +497,14 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	// Determine the best IPv4 and IPv6 addresses to access the instance with
 	hostv4, hostv6 := getInstanceAccessAddresses(d, networks)
 
+	if server.AccessIPv4 != "" && hostv4 == "" {
+		hostv4 = server.AccessIPv4
+	}
+
+	if server.AccessIPv6 != "" && hostv6 == "" {
+		hostv6 = server.AccessIPv6
+	}
+
 	d.Set("network", networks)
 	d.Set("access_ip_v4", hostv4)
 	d.Set("access_ip_v6", hostv6)
