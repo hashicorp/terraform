@@ -3,9 +3,9 @@ package aws
 import (
 	"fmt"
 	"log"
-	"time"
-	"strings"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -448,7 +448,7 @@ func optionSettingValueHash(v interface{}) int {
 	optionName := rd["name"].(string)
 	value, _ := rd["value"].(string)
 	hk := fmt.Sprintf("%s:%s=%s", namespace, optionName, sortValues(value))
-	log.Printf("[DEBUG] Elastic Beanstalk optionSettingValueHash(%#v): %s: hk=%s,hc=%d", v, optionName,hk, hashcode.String(hk))
+	log.Printf("[DEBUG] Elastic Beanstalk optionSettingValueHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)
 }
 
@@ -457,7 +457,7 @@ func optionSettingKeyHash(v interface{}) int {
 	namespace := rd["namespace"].(string)
 	optionName := rd["name"].(string)
 	hk := fmt.Sprintf("%s:%s", namespace, optionName)
-	log.Printf("[DEBUG] Elastic Beanstalk optionSettingKeyHash(%#v): %s: hk=%s,hc=%d", v, optionName,hk, hashcode.String(hk))
+	log.Printf("[DEBUG] Elastic Beanstalk optionSettingKeyHash(%#v): %s: hk=%s,hc=%d", v, optionName, hk, hashcode.String(hk))
 	return hashcode.String(hk)
 }
 
