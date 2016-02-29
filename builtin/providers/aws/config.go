@@ -215,7 +215,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.kinesisconn = kinesis.New(kinesisSess)
 
 		log.Println("[INFO] Initializing Elastic Beanstalk Connection")
-		client.elasticbeanstalkconn = elasticbeanstalk.New(awsConfig)
+		client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
 
 		authErr := c.ValidateAccountId(client.iamconn)
 		if authErr != nil {
