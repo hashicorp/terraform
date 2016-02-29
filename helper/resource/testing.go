@@ -281,9 +281,13 @@ func testStep(
 	if p, err = ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on follow-up plan: %s", err)
 	}
-	if p.Diff != nil && !p.Diff.Empty() && !step.ExpectNonEmptyPlan {
-		return state, fmt.Errorf(
-			"After applying this step, the plan was not empty:\n\n%s", p)
+	if p.Diff != nil && !p.Diff.Empty() {
+		if step.ExpectNonEmptyPlan {
+			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", p)
+		} else {
+			return state, fmt.Errorf(
+				"After applying this step, the plan was not empty:\n\n%s", p)
+		}
 	}
 
 	// And another after a Refresh.
@@ -295,9 +299,14 @@ func testStep(
 	if p, err = ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
 	}
-	if p.Diff != nil && !p.Diff.Empty() && !step.ExpectNonEmptyPlan {
-		return state, fmt.Errorf(
-			"After applying this step and refreshing, the plan was not empty:\n\n%s", p)
+	if p.Diff != nil && !p.Diff.Empty() {
+		if step.ExpectNonEmptyPlan {
+			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", p)
+		} else {
+			return state, fmt.Errorf(
+				"After applying this step and refreshing, "+
+					"the plan was not empty:\n\n%s", p)
+		}
 	}
 
 	// Made it here, but expected a non-empty plan, fail!
