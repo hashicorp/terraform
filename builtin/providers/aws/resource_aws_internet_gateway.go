@@ -33,11 +33,20 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).ec2conn
 
 	// Create the gateway
-	log.Printf("[DEBUG] Creating internet gateway")
+	var resp *ec2.CreateInternetGatewayOutput
 	var err error
-	resp, err := conn.CreateInternetGateway(nil)
+	err = resource.Retry(1*time.Minute, func() error {
+		log.Printf("[DEBUG] Creating internet gateway")
+		resp, err = conn.CreateInternetGateway(nil)
+		if err != nil {
+			log.Printf("[ERROR] Error creating internet gateway: %s", err)
+			return &resource.RetryError{Err: err}
+
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("Error creating internet gateway: %s", err)
+		return err
 	}
 
 	// Get the ID and store it
