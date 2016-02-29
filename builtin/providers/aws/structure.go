@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -771,4 +772,14 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 		outputs[*o.OutputKey] = *o.OutputValue
 	}
 	return outputs
+}
+
+func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Metric != nil {
+			strs = append(strs, *r.Metric)
+		}
+	}
+	return strs
 }
