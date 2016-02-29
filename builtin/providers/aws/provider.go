@@ -116,7 +116,6 @@ func Provider() terraform.ResourceProvider {
 			"aws_ami_from_instance":                resourceAwsAmiFromInstance(),
 			"aws_app_cookie_stickiness_policy":     resourceAwsAppCookieStickinessPolicy(),
 			"aws_autoscaling_group":                resourceAwsAutoscalingGroup(),
-			"aws_autoscaling_metrics_collection":   resourceAwsAutoscalingMetric(),
 			"aws_autoscaling_notification":         resourceAwsAutoscalingNotification(),
 			"aws_autoscaling_policy":               resourceAwsAutoscalingPolicy(),
 			"aws_autoscaling_schedule":             resourceAwsAutoscalingSchedule(),
