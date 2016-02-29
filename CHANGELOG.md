@@ -20,6 +20,7 @@ IMPROVEMENTS:
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
   * provider/openstack: Add Support for Domain ID and Domain Name environment variables [GH-5355]
   * provider/openstack: Add support for instances to have multiple ephemeral disks. [GH-5131]
+  * provider/openstack: Re-Add server.AccessIPv4 and server.AccessIPv6 [GH-5366]
 
 BUG FIXES:
 
