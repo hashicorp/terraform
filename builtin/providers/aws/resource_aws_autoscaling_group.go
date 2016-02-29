@@ -147,6 +147,19 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Optional: true,
 			},
 
+			"enabled_metrics": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"metrics_granularity": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "1Minute",
+			},
+
 			"tag": autoscalingTagsSchema(),
 		},
 	}
@@ -226,6 +239,13 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	if _, ok := d.GetOk("enabled_metrics"); ok {
+		metricsErr := enableASGMetricsCollection(d, conn)
+		if metricsErr != nil {
+			return metricsErr
+		}
+	}
+
 	return resourceAwsAutoscalingGroupRead(d, meta)
 }
 
@@ -264,6 +284,13 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 		d.Set("termination_policies", []interface{}{})
 	} else {
 		d.Set("termination_policies", flattenStringList(g.TerminationPolicies))
+	}
+
+	if g.EnabledMetrics != nil {
+		if err := d.Set("enabled_metrics", flattenAsgEnabledMetrics(g.EnabledMetrics)); err != nil {
+			log.Printf("[WARN] Error setting metrics for (%s): %s", d.Id(), err)
+		}
+		d.Set("metrics_granularity", g.EnabledMetrics[0].Granularity)
 	}
 
 	return nil
@@ -384,6 +411,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if shouldWaitForCapacity {
 		waitForASGCapacity(d, meta, capacitySatifiedUpdate)
+	}
+
+	if d.HasChange("enabled_metrics") {
+		updateASGMetricsCollection(d, conn)
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
@@ -517,6 +548,64 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 
 		return fmt.Errorf("group still has %d instances", len(g.Instances))
 	})
+}
+
+func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+	props := &autoscaling.EnableMetricsCollectionInput{
+		AutoScalingGroupName: aws.String(d.Id()),
+		Granularity:          aws.String(d.Get("metrics_granularity").(string)),
+		Metrics:              expandStringList(d.Get("enabled_metrics").(*schema.Set).List()),
+	}
+
+	log.Printf("[INFO] Enabling metrics collection for the ASG: %s", d.Id())
+	_, metricsErr := conn.EnableMetricsCollection(props)
+	if metricsErr != nil {
+		return metricsErr
+	}
+
+	return nil
+}
+
+func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+
+	o, n := d.GetChange("enabled_metrics")
+	if o == nil {
+		o = new(schema.Set)
+	}
+	if n == nil {
+		n = new(schema.Set)
+	}
+
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+
+	disableMetrics := os.Difference(ns)
+	if disableMetrics.Len() != 0 {
+		props := &autoscaling.DisableMetricsCollectionInput{
+			AutoScalingGroupName: aws.String(d.Id()),
+			Metrics:              expandStringList(disableMetrics.List()),
+		}
+
+		_, err := conn.DisableMetricsCollection(props)
+		if err != nil {
+			return fmt.Errorf("Failure to Disable metrics collection types for ASG %s: %s", d.Id(), err)
+		}
+	}
+
+	enabledMetrics := ns.Difference(os)
+	if enabledMetrics.Len() != 0 {
+		props := &autoscaling.EnableMetricsCollectionInput{
+			AutoScalingGroupName: aws.String(d.Id()),
+			Metrics:              expandStringList(enabledMetrics.List()),
+		}
+
+		_, err := conn.EnableMetricsCollection(props)
+		if err != nil {
+			return fmt.Errorf("Failure to Enable metrics collection types for ASG %s: %s", d.Id(), err)
+		}
+	}
+
+	return nil
 }
 
 // Returns a mapping of the instance states of all the ELBs attached to the
