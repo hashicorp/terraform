@@ -71,11 +71,17 @@ $ make core-dev
 
 Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`godep`](https://github.com/tools/godep) to manage the vendored dependencies.
 
+Generally speaking, `godep` operations follow this pattern:
+
+ 1. Get current state of dependencies into your `$GOPATH` with `godep restore`.
+ 2. Make changes to the packages in `$GOPATH`.
+ 3. Tell `godep` to capture those changes in the Terraform repo.
+
 If you're developing Terraform, there are a few tasks you might need to perform.
 
 #### Adding a dependency
 
-If you're adding a dependency. You'll need to vendor it in the same Pull Request as the code that depends on it. You should do this in a separate commit from your code, as makes PR review easier and Git history simpler to read in the future.
+If you're adding a dependency, you'll need to vendor it in the same Pull Request as the code that depends on it. You should do this in a separate commit from your code, as makes PR review easier and Git history simpler to read in the future.
 
 Because godep captures new dependencies from the local `$GOPATH`, you first need to `godep restore` from the master branch to ensure that the only diff is your new dependency.
 
@@ -85,7 +91,7 @@ Assuming your work is on a branch called `my-feature-branch`, the steps look lik
 # Get latest master branch's dependencies staged in local $GOPATH
 git checkout master
 git pull
-godep restore -v # flag is optional, enables verbose output
+godep restore -v
 
 # Capture the new dependency referenced from my-feature-branch
 git checkout my-feature-branch
@@ -108,7 +114,19 @@ git push origin my-feature-branch
 If you're updating an existing dependency, godep provides a specific command to snag the newer version from your `$GOPATH`.
 
 ```bash
-# Update the dependncy to the version currently in your $GOPATH
+# Get latest master branch's dependencies staged in local $GOPATH
+git checkout master
+git pull
+godep restore -v
+
+# Make your way to the dependency in question and checkout the target ref
+pushd $GOPATH/src/github.com/some/dependency
+git checkout v-1.next
+
+# Head back to Terraform on a feature branch and update the dependncy to the
+# version currently in your $GOPATH
+popd
+git checkout my-feature-branch
 godep update github.com/some/dependency/...
 
 # There should now be a diff in `vendor/` with changed files for your dependency,
