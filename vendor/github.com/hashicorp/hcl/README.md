@@ -64,6 +64,16 @@ of the syntax and grammar is listed here.
   * Strings are double-quoted and can contain any UTF-8 characters.
     Example: `"Hello, World"`
 
+  * Multi-line strings start with `<<EOF` at the end of a line, and end
+    with `EOF` on its own line ([here documents](https://en.wikipedia.org/wiki/Here_document)).
+    Any text may be used in place of `EOF`. Example:
+```
+<<FOO
+hello
+world
+FOO
+```
+
   * Numbers are assumed to be base 10. If you prefix a number with 0x,
     it is treated as a hexadecimal. If it is prefixed with 0, it is
     treated as an octal. Numbers can be in scientific notation: "1e10".
