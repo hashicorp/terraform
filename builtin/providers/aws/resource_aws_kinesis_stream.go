@@ -247,7 +247,7 @@ func readKinesisStreamState(conn *kinesis.Kinesis, sn string) (kinesisStreamStat
 	err := conn.DescribeStreamPages(describeOpts, func(page *kinesis.DescribeStreamOutput, last bool) (shouldContinue bool) {
 		state.arn = aws.StringValue(page.StreamDescription.StreamARN)
 		state.status = aws.StringValue(page.StreamDescription.StreamStatus)
-		state.shardCount += len(page.StreamDescription.Shards)
+		state.shardCount += len(openShards(page.StreamDescription.Shards))
 		state.retentionPeriod = aws.Int64Value(page.StreamDescription.RetentionPeriodHours)
 		return !last
 	})
@@ -269,4 +269,16 @@ func streamStateRefreshFunc(conn *kinesis.Kinesis, sn string) resource.StateRefr
 
 		return state, state.status, nil
 	}
+}
+
+// See http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-resharding-merge.html
+func openShards(shards []*kinesis.Shard) []*kinesis.Shard {
+	var open []*kinesis.Shard
+	for _, s := range shards {
+		if s.SequenceNumberRange.EndingSequenceNumber == nil {
+			open = append(open, s)
+		}
+	}
+
+	return open
 }
