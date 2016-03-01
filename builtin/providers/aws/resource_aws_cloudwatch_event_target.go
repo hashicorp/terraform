@@ -61,9 +61,6 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 	rule := d.Get("rule").(string)
 	targetId := d.Get("target_id").(string)
 
-	id := rule + "-" + targetId
-	d.SetId(id)
-
 	input := buildPutTargetInputStruct(d)
 	log.Printf("[DEBUG] Creating CloudWatch Event Target: %s", input)
 	out, err := conn.PutTargets(input)
@@ -75,6 +72,9 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("Creating CloudWatch Event Target failed: %s",
 			out.FailedEntries)
 	}
+
+	id := rule + "-" + targetId
+	d.SetId(id)
 
 	log.Printf("[INFO] CloudWatch Event Target %q created", d.Id())
 
