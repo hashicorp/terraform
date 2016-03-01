@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
 
@@ -93,6 +94,15 @@ func resourceAwsCloudWatchEventTargetRead(d *schema.ResourceData, meta interface
 			log.Printf("[WARN] Removing CloudWatch Event Target %q because it's gone.", d.Id())
 			d.SetId("")
 			return nil
+		}
+		if awsErr, ok := err.(awserr.Error); ok {
+			// This should never happen, but it's useful
+			// for recovering from https://github.com/hashicorp/terraform/issues/5389
+			if awsErr.Code() == "ValidationException" {
+				log.Printf("[WARN] Removing CloudWatch Event Target %q because it never existed.", d.Id())
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
