@@ -31,6 +31,10 @@ BUG FIXES:
   * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
   * provider/openstack: Fix crashing during certain network updates in instances [GH-5365] 
 
+INTERNAL IMPROVEMENTS:
+
+  * helper/schema: `MaxItems` attribute on schema lists and sets [GH-5218]
+
 ## 0.6.12 (February 24, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
