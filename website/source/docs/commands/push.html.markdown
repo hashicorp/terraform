@@ -65,7 +65,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-var='foo=bar'` - Set the value of a variable for the Terraform configuration.
 
 * `-var-file=foo` - Set the value of variables using a variable file. This flag 
-  can be repeated multiple times. 
+  can be used multiple times. 
  
 
 * `-vcs=true` - If true (default), then Terraform will detect if a VCS
