@@ -106,6 +106,24 @@ func TestAccComputeV2SecGroup_self(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2SecGroup_icmpZero(t *testing.T) {
+	var secgroup secgroups.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2SecGroup_icmpZero,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.test_group_1", &secgroup),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeV2SecGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)
@@ -302,5 +320,17 @@ var testAccComputeV2SecGroup_self = fmt.Sprintf(`
 			to_port = 22
 			ip_protocol = "tcp"
 			self = true
+		}
+	}`)
+
+var testAccComputeV2SecGroup_icmpZero = fmt.Sprintf(`
+	resource "openstack_compute_secgroup_v2" "test_group_1" {
+		name = "test_group_1"
+		description = "first test security group"
+		rule {
+			from_port = 0
+			to_port = 0
+			ip_protocol = "icmp"
+			cidr = "0.0.0.0/0"
 		}
 	}`)
