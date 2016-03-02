@@ -122,6 +122,7 @@ The following arguments are supported:
     * `monitoring` - (Optional) Indicates whether monitoring is enabled for the instance.
     * `user_data` - (Optional) The user data to provide when launching the instance.
     * `iam_instance_profile` - (Optional) The ARN of an IAM instance profile to associate with launched instances.
+    * `load_balancer_names` - (Optional) Registers each instance with the specified Elastic Load Balancers.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 * `elastic_ips` - (Optional) A list of [AWS Elastic IP](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html) allocation IDs to associate to the group instances.
