@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -337,7 +338,13 @@ func resourceAwsSesReceiptRuleRead(d *schema.ResourceData, meta interface{}) err
 
 	response, err := conn.DescribeReceiptRule(describeOpts)
 	if err != nil {
-		return err
+		_, ok := err.(awserr.Error)
+		if ok && err.(awserr.Error).Code() == "RuleDoesNotExist" {
+			d.SetId("")
+			return nil
+		} else {
+			return err
+		}
 	}
 
 	d.Set("enabled", *response.Rule.Enabled)
