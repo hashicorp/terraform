@@ -665,17 +665,20 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 		// Set the launch specification.
 		lspec := make([]map[string]interface{}, 0, 1)
-		lspec = append(lspec, map[string]interface{}{
+		l := map[string]interface{}{
 			"health_check_grace_period": g.Compute.LaunchSpecification.HealthCheckGracePeriod,
 			"health_check_type":         g.Compute.LaunchSpecification.HealthCheckType,
-			"iam_instance_profile":      g.Compute.LaunchSpecification.IamInstanceProfile.Arn,
 			"image_id":                  g.Compute.LaunchSpecification.ImageID,
 			"key_pair":                  g.Compute.LaunchSpecification.KeyPair,
 			"load_balancer_names":       g.Compute.LaunchSpecification.LoadBalancerNames,
 			"monitoring":                g.Compute.LaunchSpecification.Monitoring,
 			"security_group_ids":        g.Compute.LaunchSpecification.SecurityGroupIDs,
 			"user_data":                 g.Compute.LaunchSpecification.UserData,
-		})
+		}
+		if g.Compute.LaunchSpecification.IamInstanceProfile != nil {
+			l["iam_instance_profile"] = g.Compute.LaunchSpecification.IamInstanceProfile.Arn
+		}
+		lspec = append(lspec, l)
 		d.Set("launch_specification", lspec)
 
 		// Set the availability zones.
