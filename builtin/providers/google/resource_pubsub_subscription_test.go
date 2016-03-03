@@ -34,8 +34,8 @@ func testAccCheckPubsubSubscriptionDestroy(s *terraform.State) error {
 		}
 
 		config := testAccProvider.Meta().(*Config)
-		_, err := config.clientPubsub.Projects.Subscriptions.Get(rs.Primary.ID).Do()
-		if err != nil {
+		sub, _ := config.clientPubsub.Projects.Subscriptions.Get(rs.Primary.ID).Do()
+		if sub != nil {
 			return fmt.Errorf("Subscription still present")
 		}
 	}
@@ -56,7 +56,7 @@ func testAccPubsubSubscriptionExists(n string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*Config)
 		_, err := config.clientPubsub.Projects.Subscriptions.Get(rs.Primary.ID).Do()
 		if err != nil {
-			return fmt.Errorf("Subscription still present")
+			return fmt.Errorf("Subscription does not exist")
 		}
 
 		return nil
