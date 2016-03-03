@@ -50,3 +50,11 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("GOOGLE_REGION must be set to us-central1 for acceptance tests")
 	}
 }
+
+func TestProvider_getRegionFromZone(t *testing.T) {
+	expected := "us-central1"
+	actual := getRegionFromZone("us-central1-f")
+	if expected != actual {
+		t.Fatalf("Region (%s) did not match expected value: %s", actual, expected)
+	}
+}

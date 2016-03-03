@@ -66,16 +66,19 @@ resource "aws_security_group" "allow_all" {
 
 The following arguments are supported:
 
-* `name` - (Optional) The name of the security group. If omitted, Terraform will
+* `name` - (Optional, Forces new resource) The name of the security group. If omitted, Terraform will
 assign a random, unique name
-* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified
   prefix. Conflicts with `name`.
-* `description` - (Optional) The security group description. Defaults to "Managed by Terraform". Cannot be "".
+* `description` - (Optional, Forces new resource) The security group description. Defaults to
+  "Managed by Terraform". Cannot be "". __NOTE__: This field maps to the AWS
+  `GroupDescription` attribute, for which there is no Update API. If you'd like
+  to classify your security groups in a way that can be updated, use `tags`.
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
 * `egress` - (Optional, VPC only) Can be specified multiple times for each
       egress rule. Each egress block supports fields documented below.
-* `vpc_id` - (Optional) The VPC ID.
+* `vpc_id` - (Optional, Forces new resource) The VPC ID.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `ingress` block supports:

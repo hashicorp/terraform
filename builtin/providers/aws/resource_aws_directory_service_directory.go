@@ -321,7 +321,7 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] Waiting for DS (%q) to become available", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Requested", "Creating", "Created"},
-		Target:  "Active",
+		Target:  []string{"Active"},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := dsconn.DescribeDirectories(&directoryservice.DescribeDirectoriesInput{
 				DirectoryIds: []*string{aws.String(d.Id())},
@@ -340,7 +340,7 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
-			"Error waiting for Directory Service (%s) to become available: %#v",
+			"Error waiting for Directory Service (%s) to become available: %s",
 			d.Id(), err)
 	}
 
@@ -404,7 +404,7 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	}
 
 	dir := out.DirectoryDescriptions[0]
-	log.Printf("[DEBUG] Received DS directory: %s", *dir)
+	log.Printf("[DEBUG] Received DS directory: %s", dir)
 
 	d.Set("access_url", *dir.AccessUrl)
 	d.Set("alias", *dir.Alias)
@@ -449,7 +449,7 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] Waiting for DS (%q) to be deleted", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Deleting"},
-		Target:  "Deleted",
+		Target:  []string{"Deleted"},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := dsconn.DescribeDirectories(&directoryservice.DescribeDirectoriesInput{
 				DirectoryIds: []*string{aws.String(d.Id())},

@@ -3,11 +3,13 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -73,12 +75,14 @@ func TestAccAWSDBInstanceSnapshot(t *testing.T) {
 	var snap rds.DBInstance
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		// testAccCheckAWSDBInstanceSnapshot verifies a database snapshot is
+		// created, and subequently deletes it
 		CheckDestroy: testAccCheckAWSDBInstanceSnapshot,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccSnapshotInstanceConfig,
+				Config: testAccSnapshotInstanceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.snapshot", &snap),
 				),
@@ -99,6 +103,26 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 				Config: testAccNoSnapshotInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.no_snapshot", &nosnap),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
+	var dbInstance rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccSnapshotInstanceConfig_enhancedMonitoring,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.enhanced_monitoring", &dbInstance),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.enhanced_monitoring", "monitoring_interval", "5"),
 				),
 			},
 		},
@@ -213,7 +237,36 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if newerr.Code() == "DBSnapshotNotFound" {
 				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
 			}
-		} else {
+		} else { // snapshot was found
+			// verify we have the tags copied to the snapshot
+			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta())
+			// tags have a different ARN, just swapping :db: for :snapshot:
+			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
+			if err != nil {
+				return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, err)
+			}
+			resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+				ResourceName: aws.String(tagsARN),
+			})
+			if err != nil {
+				return fmt.Errorf("Error retrieving tags for ARN (%s): %s", tagsARN, err)
+			}
+
+			if resp.TagList == nil || len(resp.TagList) == 0 {
+				return fmt.Errorf("Tag list is nil or zero: %s", resp.TagList)
+			}
+
+			var found bool
+			for _, t := range resp.TagList {
+				if *t.Key == "Name" && *t.Value == "tf-tags-db" {
+					found = true
+				}
+			}
+			if !found {
+				return fmt.Errorf("Expected to find tag Name (%s), but wasn't found. Tags: %s", "tf-tags-db", resp.TagList)
+			}
+			// end tag search
+
 			log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
 			_, snapDeleteErr := conn.DeleteDBSnapshot(
 				&rds.DeleteDBSnapshotInput{
@@ -222,7 +275,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if snapDeleteErr != nil {
 				return err
 			}
-		}
+		} // end snapshot was found
 	}
 
 	return nil
@@ -367,12 +420,13 @@ func testAccReplicaInstanceConfig(val int) string {
 	`, val, val)
 }
 
-var testAccSnapshotInstanceConfig = `
+func testAccSnapshotInstanceConfig() string {
+	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
 }
 resource "aws_db_instance" "snapshot" {
-	identifier = "foobarbaz-test-terraform-snapshot-1"
+	identifier = "tf-snapshot-%d"
 
 	allocated_storage = 5
 	engine = "mysql"
@@ -387,9 +441,13 @@ resource "aws_db_instance" "snapshot" {
 	parameter_group_name = "default.mysql5.6"
 
 	skip_final_snapshot = false
+	copy_tags_to_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-1"
+	tags {
+		Name = "tf-tags-db"
+	}
+}`, acctest.RandInt())
 }
-`
 
 var testAccNoSnapshotInstanceConfig = `
 provider "aws" {
@@ -412,5 +470,61 @@ resource "aws_db_instance" "no_snapshot" {
 
 	skip_final_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
+}
+`
+
+var testAccSnapshotInstanceConfig_enhancedMonitoring = `
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_iam_role" "enhanced_policy_role" {
+    name = "enhanced-monitoring-role"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "monitoring.rds.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+}
+
+resource "aws_iam_policy_attachment" "test-attach" {
+    name = "enhanced-monitoring-attachment"
+    roles = [
+        "${aws_iam_role.enhanced_policy_role.name}",
+    ]
+
+    policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+resource "aws_db_instance" "enhanced_monitoring" {
+	identifier = "foobarbaz-test-terraform-enhanced-monitoring"
+	depends_on = ["aws_iam_policy_attachment.test-attach"]
+
+	allocated_storage = 5
+	engine = "mysql"
+	engine_version = "5.6.21"
+	instance_class = "db.t2.small"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	backup_retention_period = 1
+
+	parameter_group_name = "default.mysql5.6"
+
+	monitoring_role_arn = "${aws_iam_role.enhanced_policy_role.arn}"
+	monitoring_interval = "5"
+
+	skip_final_snapshot = true
 }
 `

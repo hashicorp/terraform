@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -113,14 +113,20 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		return nil
 	}
 
-	astRoot, err := lang.Parse(v.String())
+	astRoot, err := hil.Parse(v.String())
 	if err != nil {
 		return err
 	}
 
-	// If the AST we got is just a literal string value, then we ignore it
-	if _, ok := astRoot.(*ast.LiteralNode); ok {
-		return nil
+	// If the AST we got is just a literal string value with the same
+	// value then we ignore it. We have to check if its the same value
+	// because it is possible to input a string, get out a string, and
+	// have it be different. For example: "foo-$${bar}" turns into
+	// "foo-${bar}"
+	if n, ok := astRoot.(*ast.LiteralNode); ok {
+		if s, ok := n.Value.(string); ok && s == v.String() {
+			return nil
+		}
 	}
 
 	if w.ContextF != nil {

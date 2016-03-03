@@ -81,7 +81,7 @@ func testAccCheckAzureSqlDatabaseServerDeleted(s *terraform.State) error {
 
 		for _, srv := range servers.DatabaseServers {
 			if srv.Name == resource.Primary.ID {
-				fmt.Errorf("SQL Server %s still exists.", resource.Primary.ID)
+				return fmt.Errorf("SQL Server %s still exists.", resource.Primary.ID)
 			}
 		}
 	}

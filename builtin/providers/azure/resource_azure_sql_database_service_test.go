@@ -156,7 +156,7 @@ func testAccCheckAzureSqlDatabaseServiceDeleted(s *terraform.State) error {
 
 		for _, srv := range dbs.ServiceResources {
 			if srv.Name == resource.Primary.ID {
-				fmt.Errorf("SQL Service %s still exists.", resource.Primary.ID)
+				return fmt.Errorf("SQL Service %s still exists.", resource.Primary.ID)
 			}
 		}
 	}

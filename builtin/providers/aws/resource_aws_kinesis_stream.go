@@ -32,6 +32,20 @@ func resourceAwsKinesisStream() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"retention_period": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  24,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(int)
+					if value < 24 || value > 168 {
+						errors = append(errors, fmt.Errorf(
+							"%q must be between 24 and 168 hours", k))
+					}
+					return
+				},
+			},
+
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -60,7 +74,7 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"CREATING"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    streamStateRefreshFunc(conn, sn),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
@@ -93,6 +107,10 @@ func resourceAwsKinesisStreamUpdate(d *schema.ResourceData, meta interface{}) er
 	d.SetPartial("tags")
 	d.Partial(false)
 
+	if err := setKinesisRetentionPeriod(conn, d); err != nil {
+		return err
+	}
+
 	return resourceAwsKinesisStreamRead(d, meta)
 }
 
@@ -114,6 +132,7 @@ func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) erro
 	}
 	d.Set("arn", state.arn)
 	d.Set("shard_count", state.shardCount)
+	d.Set("retention_period", state.retentionPeriod)
 
 	// set tags
 	describeTagsOpts := &kinesis.ListTagsForStreamInput{
@@ -142,7 +161,7 @@ func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"DELETING"},
-		Target:     "DESTROYED",
+		Target:     []string{"DESTROYED"},
 		Refresh:    streamStateRefreshFunc(conn, sn),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
@@ -160,10 +179,63 @@ func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
+func setKinesisRetentionPeriod(conn *kinesis.Kinesis, d *schema.ResourceData) error {
+	sn := d.Get("name").(string)
+
+	oraw, nraw := d.GetChange("retention_period")
+	o := oraw.(int)
+	n := nraw.(int)
+
+	if n == 0 {
+		log.Printf("[DEBUG] Kinesis Stream (%q) Retention Period Not Changed", sn)
+		return nil
+	}
+
+	if n > o {
+		log.Printf("[DEBUG] Increasing %s Stream Retention Period to %d", sn, n)
+		_, err := conn.IncreaseStreamRetentionPeriod(&kinesis.IncreaseStreamRetentionPeriodInput{
+			StreamName:           aws.String(sn),
+			RetentionPeriodHours: aws.Int64(int64(n)),
+		})
+		if err != nil {
+			return err
+		}
+
+	} else {
+		log.Printf("[DEBUG] Decreasing %s Stream Retention Period to %d", sn, n)
+		_, err := conn.DecreaseStreamRetentionPeriod(&kinesis.DecreaseStreamRetentionPeriodInput{
+			StreamName:           aws.String(sn),
+			RetentionPeriodHours: aws.Int64(int64(n)),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"UPDATING"},
+		Target:     []string{"ACTIVE"},
+		Refresh:    streamStateRefreshFunc(conn, sn),
+		Timeout:    5 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for Kinesis Stream (%s) to become active: %s",
+			sn, err)
+	}
+
+	return nil
+}
+
 type kinesisStreamState struct {
-	arn        string
-	status     string
-	shardCount int
+	arn             string
+	status          string
+	shardCount      int
+	retentionPeriod int64
 }
 
 func readKinesisStreamState(conn *kinesis.Kinesis, sn string) (kinesisStreamState, error) {
@@ -176,6 +248,7 @@ func readKinesisStreamState(conn *kinesis.Kinesis, sn string) (kinesisStreamStat
 		state.arn = aws.StringValue(page.StreamDescription.StreamARN)
 		state.status = aws.StringValue(page.StreamDescription.StreamStatus)
 		state.shardCount += len(page.StreamDescription.Shards)
+		state.retentionPeriod = aws.Int64Value(page.StreamDescription.RetentionPeriodHours)
 		return !last
 	})
 	return state, err

@@ -153,7 +153,7 @@ func resourceArmNetworkSecurityRuleCreate(d *schema.ResourceData, meta interface
 	log.Printf("[DEBUG] Waiting for Network Security Rule (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: securityRuleStateRefreshFunc(client, resGroup, nsgName, name),
 		Timeout: 10 * time.Minute,
 	}

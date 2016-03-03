@@ -51,9 +51,8 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			},
 
 			"min_elb_capacity": &schema.Schema{
-				Type:       schema.TypeInt,
-				Optional:   true,
-				Deprecated: "Please use 'wait_for_elb_capacity' instead.",
+				Type:     schema.TypeInt,
+				Optional: true,
 			},
 
 			"min_size": &schema.Schema{
@@ -93,6 +92,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"availability_zones": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -145,6 +145,19 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"wait_for_elb_capacity": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+			},
+
+			"enabled_metrics": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"metrics_granularity": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "1Minute",
 			},
 
 			"tag": autoscalingTagsSchema(),
@@ -222,36 +235,63 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	d.SetId(d.Get("name").(string))
 	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
 
-	if err := waitForASGCapacity(d, meta); err != nil {
+	if err := waitForASGCapacity(d, meta, capacitySatifiedCreate); err != nil {
 		return err
+	}
+
+	if _, ok := d.GetOk("enabled_metrics"); ok {
+		metricsErr := enableASGMetricsCollection(d, conn)
+		if metricsErr != nil {
+			return metricsErr
+		}
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
 }
 
 func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) error {
-	g, err := getAwsAutoscalingGroup(d, meta)
+	conn := meta.(*AWSClient).autoscalingconn
+
+	g, err := getAwsAutoscalingGroup(d.Id(), conn)
 	if err != nil {
 		return err
 	}
 	if g == nil {
+		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		d.SetId("")
 		return nil
 	}
 
-	d.Set("availability_zones", g.AvailabilityZones)
+	d.Set("availability_zones", flattenStringList(g.AvailabilityZones))
 	d.Set("default_cooldown", g.DefaultCooldown)
 	d.Set("desired_capacity", g.DesiredCapacity)
 	d.Set("health_check_grace_period", g.HealthCheckGracePeriod)
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
-	d.Set("load_balancers", g.LoadBalancerNames)
+	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("placement_group", g.PlacementGroup)
 	d.Set("name", g.AutoScalingGroupName)
 	d.Set("tag", g.Tags)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
-	d.Set("termination_policies", g.TerminationPolicies)
+
+	// If no termination polices are explicitly configured and the upstream state
+	// is only using the "Default" policy, clear the state to make it consistent
+	// with the default AWS create API behavior.
+	_, ok := d.GetOk("termination_policies")
+	if !ok && len(g.TerminationPolicies) == 1 && *g.TerminationPolicies[0] == "Default" {
+		d.Set("termination_policies", []interface{}{})
+	} else {
+		d.Set("termination_policies", flattenStringList(g.TerminationPolicies))
+	}
+
+	if g.EnabledMetrics != nil {
+		if err := d.Set("enabled_metrics", flattenAsgEnabledMetrics(g.EnabledMetrics)); err != nil {
+			log.Printf("[WARN] Error setting metrics for (%s): %s", d.Id(), err)
+		}
+		d.Set("metrics_granularity", g.EnabledMetrics[0].Granularity)
+	}
 
 	return nil
 }
@@ -301,7 +341,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("availability_zones") {
 		if v, ok := d.GetOk("availability_zones"); ok && v.(*schema.Set).Len() > 0 {
-			opts.AvailabilityZones = expandStringList(d.Get("availability_zones").(*schema.Set).List())
+			opts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
 		}
 	}
 
@@ -312,18 +352,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("termination_policies") {
 		// If the termination policy is set to null, we need to explicitly set
 		// it back to "Default", or the API won't reset it for us.
-		// This means GetOk() will fail us on the zero check.
-		v := d.Get("termination_policies")
-		if len(v.([]interface{})) > 0 {
+		if v, ok := d.GetOk("termination_policies"); ok && len(v.([]interface{})) > 0 {
 			opts.TerminationPolicies = expandStringList(v.([]interface{}))
 		} else {
-			// Policies is a slice of string pointers, so build one.
-			// Maybe there's a better idiom for this?
 			log.Printf("[DEBUG] Explictly setting null termination policy to 'Default'")
-			pol := "Default"
-			s := make([]*string, 1, 1)
-			s[0] = &pol
-			opts.TerminationPolicies = s
+			opts.TerminationPolicies = aws.StringSlice([]string{"Default"})
 		}
 	}
 
@@ -377,7 +410,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if shouldWaitForCapacity {
-		waitForASGCapacity(d, meta)
+		waitForASGCapacity(d, meta, capacitySatifiedUpdate)
+	}
+
+	if d.HasChange("enabled_metrics") {
+		updateASGMetricsCollection(d, conn)
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
@@ -389,11 +426,13 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// Read the autoscaling group first. If it doesn't exist, we're done.
 	// We need the group in order to check if there are instances attached.
 	// If so, we need to remove those first.
-	g, err := getAwsAutoscalingGroup(d, meta)
+	g, err := getAwsAutoscalingGroup(d.Id(), conn)
 	if err != nil {
 		return err
 	}
 	if g == nil {
+		log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+		d.SetId("")
 		return nil
 	}
 	if len(g.Instances) > 0 || *g.DesiredCapacity > 0 {
@@ -434,7 +473,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	return resource.Retry(5*time.Minute, func() error {
-		if g, _ = getAwsAutoscalingGroup(d, meta); g != nil {
+		if g, _ = getAwsAutoscalingGroup(d.Id(), conn); g != nil {
 			return fmt.Errorf("Auto Scaling Group still exists")
 		}
 		return nil
@@ -442,12 +481,11 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 }
 
 func getAwsAutoscalingGroup(
-	d *schema.ResourceData,
-	meta interface{}) (*autoscaling.Group, error) {
-	conn := meta.(*AWSClient).autoscalingconn
+	asgName string,
+	conn *autoscaling.AutoScaling) (*autoscaling.Group, error) {
 
 	describeOpts := autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{aws.String(d.Id())},
+		AutoScalingGroupNames: []*string{aws.String(asgName)},
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group describe configuration: %#v", describeOpts)
@@ -455,7 +493,6 @@ func getAwsAutoscalingGroup(
 	if err != nil {
 		autoscalingerr, ok := err.(awserr.Error)
 		if ok && autoscalingerr.Code() == "InvalidGroup.NotFound" {
-			d.SetId("")
 			return nil, nil
 		}
 
@@ -464,13 +501,11 @@ func getAwsAutoscalingGroup(
 
 	// Search for the autoscaling group
 	for idx, asc := range describeGroups.AutoScalingGroups {
-		if *asc.AutoScalingGroupName == d.Id() {
+		if *asc.AutoScalingGroupName == asgName {
 			return describeGroups.AutoScalingGroups[idx], nil
 		}
 	}
 
-	// ASG not found
-	d.SetId("")
 	return nil, nil
 }
 
@@ -497,11 +532,13 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	// Next, wait for the autoscale group to drain
 	log.Printf("[DEBUG] Waiting for group to have zero instances")
 	return resource.Retry(10*time.Minute, func() error {
-		g, err := getAwsAutoscalingGroup(d, meta)
+		g, err := getAwsAutoscalingGroup(d.Id(), conn)
 		if err != nil {
 			return resource.RetryError{Err: err}
 		}
 		if g == nil {
+			log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+			d.SetId("")
 			return nil
 		}
 
@@ -513,92 +550,62 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	})
 }
 
-// Waits for a minimum number of healthy instances to show up as healthy in the
-// ASG before continuing. Waits up to `waitForASGCapacityTimeout` for
-// "desired_capacity", or "min_size" if desired capacity is not specified.
-//
-// If "wait_for_elb_capacity" is specified, will also wait for that number of
-// instances to show up InService in all attached ELBs. See "Waiting for
-// Capacity" in docs for more discussion of the feature.
-func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
-	wantASG := d.Get("min_size").(int)
-	if v := d.Get("desired_capacity").(int); v > 0 {
-		wantASG = v
-	}
-	wantELB := d.Get("wait_for_elb_capacity").(int)
-
-	// Covers deprecated field support
-	wantELB += d.Get("min_elb_capacity").(int)
-
-	wait, err := time.ParseDuration(d.Get("wait_for_capacity_timeout").(string))
-	if err != nil {
-		return err
+func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+	props := &autoscaling.EnableMetricsCollectionInput{
+		AutoScalingGroupName: aws.String(d.Id()),
+		Granularity:          aws.String(d.Get("metrics_granularity").(string)),
+		Metrics:              expandStringList(d.Get("enabled_metrics").(*schema.Set).List()),
 	}
 
-	if wait == 0 {
-		log.Printf("[DEBUG] Capacity timeout set to 0, skipping capacity waiting.")
-		return nil
+	log.Printf("[INFO] Enabling metrics collection for the ASG: %s", d.Id())
+	_, metricsErr := conn.EnableMetricsCollection(props)
+	if metricsErr != nil {
+		return metricsErr
 	}
 
-	log.Printf("[DEBUG] Waiting %s for capacity: %d ASG, %d ELB",
-		wait, wantASG, wantELB)
+	return nil
+}
 
-	return resource.Retry(wait, func() error {
-		g, err := getAwsAutoscalingGroup(d, meta)
+func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+
+	o, n := d.GetChange("enabled_metrics")
+	if o == nil {
+		o = new(schema.Set)
+	}
+	if n == nil {
+		n = new(schema.Set)
+	}
+
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+
+	disableMetrics := os.Difference(ns)
+	if disableMetrics.Len() != 0 {
+		props := &autoscaling.DisableMetricsCollectionInput{
+			AutoScalingGroupName: aws.String(d.Id()),
+			Metrics:              expandStringList(disableMetrics.List()),
+		}
+
+		_, err := conn.DisableMetricsCollection(props)
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return fmt.Errorf("Failure to Disable metrics collection types for ASG %s: %s", d.Id(), err)
 		}
-		if g == nil {
-			return nil
+	}
+
+	enabledMetrics := ns.Difference(os)
+	if enabledMetrics.Len() != 0 {
+		props := &autoscaling.EnableMetricsCollectionInput{
+			AutoScalingGroupName: aws.String(d.Id()),
+			Metrics:              expandStringList(enabledMetrics.List()),
 		}
-		lbis, err := getLBInstanceStates(g, meta)
+
+		_, err := conn.EnableMetricsCollection(props)
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return fmt.Errorf("Failure to Enable metrics collection types for ASG %s: %s", d.Id(), err)
 		}
+	}
 
-		haveASG := 0
-		haveELB := 0
-
-		for _, i := range g.Instances {
-			if i.HealthStatus == nil || i.InstanceId == nil || i.LifecycleState == nil {
-				continue
-			}
-
-			if !strings.EqualFold(*i.HealthStatus, "Healthy") {
-				continue
-			}
-
-			if !strings.EqualFold(*i.LifecycleState, "InService") {
-				continue
-			}
-
-			haveASG++
-
-			if wantELB > 0 {
-				inAllLbs := true
-				for _, states := range lbis {
-					state, ok := states[*i.InstanceId]
-					if !ok || !strings.EqualFold(state, "InService") {
-						inAllLbs = false
-					}
-				}
-				if inAllLbs {
-					haveELB++
-				}
-			}
-		}
-
-		log.Printf("[DEBUG] %q Capacity: %d/%d ASG, %d/%d ELB",
-			d.Id(), haveASG, wantASG, haveELB, wantELB)
-
-		if haveASG == wantASG && haveELB == wantELB {
-			return nil
-		}
-
-		return fmt.Errorf(
-			"Still waiting for %q instances. Current/Desired: %d/%d ASG, %d/%d ELB",
-			d.Id(), haveASG, wantASG, haveELB, wantELB)
-	})
+	return nil
 }
 
 // Returns a mapping of the instance states of all the ELBs attached to the

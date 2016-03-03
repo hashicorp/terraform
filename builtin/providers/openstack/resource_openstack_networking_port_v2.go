@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -67,9 +66,7 @@ func resourceNetworkingPortV2() *schema.Resource {
 				ForceNew: false,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 			"device_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -81,6 +78,7 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"subnet_id": &schema.Schema{
@@ -89,7 +87,8 @@ func resourceNetworkingPortV2() *schema.Resource {
 						},
 						"ip_address": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 					},
 				},
@@ -127,7 +126,7 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Waiting for OpenStack Neutron Port (%s) to become available.", p.ID)
 
 	stateConf := &resource.StateChangeConf{
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForNetworkPortActive(networkingClient, p.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -163,7 +162,16 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 	d.Set("device_owner", p.DeviceOwner)
 	d.Set("security_group_ids", p.SecurityGroups)
 	d.Set("device_id", p.DeviceID)
-	d.Set("fixed_ip", p.FixedIPs)
+
+	// Convert FixedIPs to list of map
+	var ips []map[string]interface{}
+	for _, ipObject := range p.FixedIPs {
+		ip := make(map[string]interface{})
+		ip["subnet_id"] = ipObject.SubnetID
+		ip["ip_address"] = ipObject.IPAddress
+		ips = append(ips, ip)
+	}
+	d.Set("fixed_ip", ips)
 
 	return nil
 }
@@ -220,7 +228,7 @@ func resourceNetworkingPortV2Delete(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForNetworkPortDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,

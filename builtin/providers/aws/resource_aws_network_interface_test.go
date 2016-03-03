@@ -333,7 +333,7 @@ resource "aws_subnet" "foo" {
     cidr_block = "172.16.10.0/24"
     availability_zone = "us-west-2a"
         tags {
-            Name = "tf-eni-test"
+            Name = "tf-foo-eni-test"
         }
 }
 
@@ -342,7 +342,7 @@ resource "aws_subnet" "bar" {
     cidr_block = "172.16.11.0/24"
     availability_zone = "us-west-2a"
         tags {
-            Name = "tf-eni-test"
+            Name = "tf-bar-eni-test"
         }
 }
 
@@ -359,7 +359,7 @@ resource "aws_instance" "foo" {
     associate_public_ip_address = false
     private_ip = "172.16.11.50"
     tags {
-        Name = "tf-eni-test"
+        Name = "foo-tf-eni-test"
     }
 }
 

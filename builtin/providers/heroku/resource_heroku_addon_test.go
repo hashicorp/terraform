@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccHerokuAddon_Basic(t *testing.T) {
 	var addon heroku.Addon
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -18,14 +20,14 @@ func TestAccHerokuAddon_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuAddonDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckHerokuAddonConfig_basic,
+				Config: testAccCheckHerokuAddonConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
 					testAccCheckHerokuAddonAttributes(&addon, "deployhooks:http"),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "config.0.url", "http://google.com"),
 					resource.TestCheckResourceAttr(
-						"heroku_addon.foobar", "app", "terraform-test-app"),
+						"heroku_addon.foobar", "app", appName),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "plan", "deployhooks:http"),
 				),
@@ -37,6 +39,7 @@ func TestAccHerokuAddon_Basic(t *testing.T) {
 // GH-198
 func TestAccHerokuAddon_noPlan(t *testing.T) {
 	var addon heroku.Addon
+	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -44,23 +47,23 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 		CheckDestroy: testAccCheckHerokuAddonDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckHerokuAddonConfig_no_plan,
+				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
 					testAccCheckHerokuAddonAttributes(&addon, "memcachier:dev"),
 					resource.TestCheckResourceAttr(
-						"heroku_addon.foobar", "app", "terraform-test-app"),
+						"heroku_addon.foobar", "app", appName),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "plan", "memcachier"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccCheckHerokuAddonConfig_no_plan,
+				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
 					testAccCheckHerokuAddonAttributes(&addon, "memcachier:dev"),
 					resource.TestCheckResourceAttr(
-						"heroku_addon.foobar", "app", "terraform-test-app"),
+						"heroku_addon.foobar", "app", appName),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "plan", "memcachier"),
 				),
@@ -128,9 +131,10 @@ func testAccCheckHerokuAddonExists(n string, addon *heroku.Addon) resource.TestC
 	}
 }
 
-const testAccCheckHerokuAddonConfig_basic = `
+func testAccCheckHerokuAddonConfig_basic(appName string) string {
+	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
-    name = "terraform-test-app"
+    name = "%s"
     region = "us"
 }
 
@@ -140,15 +144,18 @@ resource "heroku_addon" "foobar" {
     config {
         url = "http://google.com"
     }
-}`
+}`, appName)
+}
 
-const testAccCheckHerokuAddonConfig_no_plan = `
+func testAccCheckHerokuAddonConfig_no_plan(appName string) string {
+	return fmt.Sprintf(`
 resource "heroku_app" "foobar" {
-    name = "terraform-test-app"
+    name = "%s"
     region = "us"
 }
 
 resource "heroku_addon" "foobar" {
     app = "${heroku_app.foobar.name}"
     plan = "memcachier"
-}`
+}`, appName)
+}

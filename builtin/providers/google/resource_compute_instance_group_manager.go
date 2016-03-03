@@ -8,7 +8,6 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -53,6 +52,25 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Required: true,
 			},
 
+			"named_port": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+			},
+
 			"update_strategy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -63,9 +81,7 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"target_size": &schema.Schema{
@@ -88,6 +104,18 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 	}
 }
 
+func getNamedPorts(nps []interface{}) []*compute.NamedPort {
+	namedPorts := make([]*compute.NamedPort, 0, len(nps))
+	for _, v := range nps {
+		np := v.(map[string]interface{})
+		namedPorts = append(namedPorts, &compute.NamedPort{
+			Name: np["name"].(string),
+			Port: int64(np["port"].(int)),
+		})
+	}
+	return namedPorts
+}
+
 func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -108,6 +136,10 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 	// Set optional fields
 	if v, ok := d.GetOk("description"); ok {
 		manager.Description = v.(string)
+	}
+
+	if v, ok := d.GetOk("named_port"); ok {
+		manager.NamedPorts = getNamedPorts(v.([]interface{}))
 	}
 
 	if attr := d.Get("target_pools").(*schema.Set); attr.Len() > 0 {
@@ -160,6 +192,7 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 	}
 
 	// Set computed fields
+	d.Set("named_port", manager.NamedPorts)
 	d.Set("fingerprint", manager.Fingerprint)
 	d.Set("instance_group", manager.InstanceGroup)
 	d.Set("target_size", manager.TargetSize)
@@ -251,6 +284,31 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		d.SetPartial("instance_template")
+	}
+
+	// If named_port changes then update:
+	if d.HasChange("named_port") {
+
+		// Build the parameters for a "SetNamedPorts" request:
+		namedPorts := getNamedPorts(d.Get("named_port").([]interface{}))
+		setNamedPorts := &compute.InstanceGroupsSetNamedPortsRequest{
+			NamedPorts: namedPorts,
+		}
+
+		// Make the request:
+		op, err := config.clientCompute.InstanceGroups.SetNamedPorts(
+			config.Project, d.Get("zone").(string), d.Id(), setNamedPorts).Do()
+		if err != nil {
+			return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
+		}
+
+		// Wait for the operation to complete:
+		err = computeOperationWaitZone(config, op, d.Get("zone").(string), "Updating InstanceGroupManager")
+		if err != nil {
+			return err
+		}
+
+		d.SetPartial("named_port")
 	}
 
 	// If size changes trigger a resize

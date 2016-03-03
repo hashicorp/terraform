@@ -83,6 +83,29 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Default:  3,
 				ForceNew: true, // TODO make this editable
 			},
+			"vpc_config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"subnet_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"security_group_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+					},
+				},
+			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -128,13 +151,15 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		s3Bucket, bucketOk := d.GetOk("s3_bucket")
 		s3Key, keyOk := d.GetOk("s3_key")
 		s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
-		if !bucketOk || !keyOk || !versionOk {
-			return errors.New("s3_bucket, s3_key and s3_object_version must all be set while using S3 code source")
+		if !bucketOk || !keyOk {
+			return errors.New("s3_bucket and s3_key must all be set while using S3 code source")
 		}
 		functionCode = &lambda.FunctionCode{
-			S3Bucket:        aws.String(s3Bucket.(string)),
-			S3Key:           aws.String(s3Key.(string)),
-			S3ObjectVersion: aws.String(s3ObjectVersion.(string)),
+			S3Bucket: aws.String(s3Bucket.(string)),
+			S3Key:    aws.String(s3Key.(string)),
+		}
+		if versionOk {
+			functionCode.S3ObjectVersion = aws.String(s3ObjectVersion.(string))
 		}
 	}
 
@@ -149,18 +174,42 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		Timeout:      aws.Int64(int64(d.Get("timeout").(int))),
 	}
 
+	if v, ok := d.GetOk("vpc_config"); ok {
+		config, err := validateVPCConfig(v)
+		if err != nil {
+			return err
+		}
+
+		var subnetIds []*string
+		for _, id := range config["subnet_ids"].(*schema.Set).List() {
+			subnetIds = append(subnetIds, aws.String(id.(string)))
+		}
+
+		var securityGroupIds []*string
+		for _, id := range config["security_group_ids"].(*schema.Set).List() {
+			securityGroupIds = append(securityGroupIds, aws.String(id.(string)))
+		}
+
+		params.VpcConfig = &lambda.VpcConfig{
+			SubnetIds:        subnetIds,
+			SecurityGroupIds: securityGroupIds,
+		}
+	}
+
 	// IAM profiles can take ~10 seconds to propagate in AWS:
-	//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
 	err := resource.Retry(1*time.Minute, func() error {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "InvalidParameterValueException" {
+					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)
 					// Retryable
 					return awserr
 				}
 			}
+			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
 			// Not retryable
 			return resource.RetryError{Err: err}
 		}
@@ -207,6 +256,9 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("role", function.Role)
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
+	if config := flattenLambdaVpcConfigResponse(function.VpcConfig); len(config) > 0 {
+		d.Set("vpc_config", config)
+	}
 
 	return nil
 }
@@ -235,7 +287,28 @@ func resourceAwsLambdaFunctionDelete(d *schema.ResourceData, meta interface{}) e
 // resourceAwsLambdaFunctionUpdate maps to:
 // UpdateFunctionCode in the API / SDK
 func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) error {
-	// conn := meta.(*AWSClient).lambdaconn
-
 	return nil
+}
+
+func validateVPCConfig(v interface{}) (map[string]interface{}, error) {
+	configs := v.([]interface{})
+	if len(configs) > 1 {
+		return nil, errors.New("Only a single vpc_config block is expected")
+	}
+
+	config, ok := configs[0].(map[string]interface{})
+
+	if !ok {
+		return nil, errors.New("vpc_config is <nil>")
+	}
+
+	if config["subnet_ids"].(*schema.Set).Len() == 0 {
+		return nil, errors.New("vpc_config.subnet_ids cannot be empty")
+	}
+
+	if config["security_group_ids"].(*schema.Set).Len() == 0 {
+		return nil, errors.New("vpc_config.security_group_ids cannot be empty")
+	}
+
+	return config, nil
 }

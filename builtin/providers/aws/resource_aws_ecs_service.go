@@ -55,6 +55,18 @@ func resourceAwsEcsService() *schema.Resource {
 				Optional: true,
 			},
 
+			"deployment_maximum_percent": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  200,
+			},
+
+			"deployment_minimum_healthy_percent": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  100,
+			},
+
 			"load_balancer": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -94,6 +106,10 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		TaskDefinition: aws.String(d.Get("task_definition").(string)),
 		DesiredCount:   aws.Int64(int64(d.Get("desired_count").(int))),
 		ClientToken:    aws.String(resource.UniqueId()),
+		DeploymentConfiguration: &ecs.DeploymentConfiguration{
+			MaximumPercent:        aws.Int64(int64(d.Get("deployment_maximum_percent").(int))),
+			MinimumHealthyPercent: aws.Int64(int64(d.Get("deployment_minimum_healthy_percent").(int))),
+		},
 	}
 
 	if v, ok := d.GetOk("cluster"); ok {
@@ -208,6 +224,11 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if service.DeploymentConfiguration != nil {
+		d.Set("deployment_maximum_percent", *service.DeploymentConfiguration.MaximumPercent)
+		d.Set("deployment_minimum_healthy_percent", *service.DeploymentConfiguration.MinimumHealthyPercent)
+	}
+
 	if service.LoadBalancers != nil {
 		d.Set("load_balancers", flattenEcsLoadBalancers(service.LoadBalancers))
 	}
@@ -231,6 +252,13 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("task_definition") {
 		_, n := d.GetChange("task_definition")
 		input.TaskDefinition = aws.String(n.(string))
+	}
+
+	if d.HasChange("deployment_maximum_percent") || d.HasChange("deployment_minimum_healthy_percent") {
+		input.DeploymentConfiguration = &ecs.DeploymentConfiguration{
+			MaximumPercent:        aws.Int64(int64(d.Get("deployment_maximum_percent").(int))),
+			MinimumHealthyPercent: aws.Int64(int64(d.Get("deployment_minimum_healthy_percent").(int))),
+		}
 	}
 
 	out, err := conn.UpdateService(&input)
@@ -313,7 +341,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	// Wait until it's deleted
 	wait := resource.StateChangeConf{
 		Pending:    []string{"DRAINING"},
-		Target:     "INACTIVE",
+		Target:     []string{"INACTIVE"},
 		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {

@@ -32,11 +32,12 @@ func TestAccRole_basic(t *testing.T) {
 							return fmt.Errorf("wrong description; expected %v, got %v", expected, role.Description)
 						}
 
-						expectedRunList := chefc.RunList{
+						expectedRunListStrings := []string{
 							"recipe[terraform@1.0.0]",
 							"recipe[consul]",
 							"role[foo]",
 						}
+						expectedRunList := chefc.RunList(expectedRunListStrings)
 						if !reflect.DeepEqual(role.RunList, expectedRunList) {
 							return fmt.Errorf("wrong runlist; expected %#v, got %#v", expectedRunList, role.RunList)
 						}

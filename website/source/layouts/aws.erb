@@ -31,6 +31,13 @@
                 <li<%= sidebar_current(/^docs-aws-resource-cloudwatch/) %>>
                     <a href="#">CloudWatch Resources</a>
                     <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-event-rule") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_event_rule.html">aws_cloudwatch_event_rule</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-event-target") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_event_target.html">aws_cloudwatch_event_target</a>
+                        </li>
 
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-group") %>>
                             <a href="/docs/providers/aws/r/cloudwatch_log_group.html">aws_cloudwatch_log_group</a>
@@ -92,7 +99,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement|key-pair)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -148,6 +155,10 @@
                             <a href="/docs/providers/aws/r/instance.html">aws_instance</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-key-pair") %>>
+                            <a href="/docs/providers/aws/r/key_pair.html">aws_key_pair</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-launch-configuration") %>>
                             <a href="/docs/providers/aws/r/launch_configuration.html">aws_launch_configuration</a>
                         </li>
@@ -159,7 +170,6 @@
                         <li<%= sidebar_current("docs-aws-resource-placement-group") %>>
                             <a href="/docs/providers/aws/r/placement_group.html">aws_placement_group</a>
                         </li>
-
                         <li<%= sidebar_current("docs-aws-resource-proxy-protocol-policy") %>>
                             <a href="/docs/providers/aws/r/proxy_protocol_policy.html">aws_proxy_protocol_policy</a>
                         </li>
@@ -172,7 +182,6 @@
                         <li<%= sidebar_current("docs-aws-resource-volume-attachment") %>>
                             <a href="/docs/providers/aws/r/volume_attachment.html">aws_volume_attachment</a>
                         </li>
-
                     </ul>
                 </li>
 
@@ -274,6 +283,10 @@
                             <a href="/docs/providers/aws/r/iam_access_key.html">aws_iam_access_key</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-iam-account-password-policy") %>>
+                            <a href="/docs/providers/aws/r/iam_account_password_policy.html">aws_iam_account_password_policy</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-iam-group") %>>
                             <a href="/docs/providers/aws/r/iam_group.html">aws_iam_group</a>
                         </li>
@@ -350,11 +363,17 @@
               <li<%= sidebar_current(/^docs-aws-resource-lambda/) %>>
                   <a href="#">Lambda Resources</a>
                   <ul class="nav nav-visible">
+                      <li<%= sidebar_current("docs-aws-resource-lambda-alias") %>>
+                          <a href="/docs/providers/aws/r/lambda_alias.html">aws_lambda_alias</a>
+                      </li>
                       <li<%= sidebar_current("docs-aws-resource-lambda-function") %>>
                           <a href="/docs/providers/aws/r/lambda_function.html">aws_lambda_function</a>
                       </li>
                       <li<%= sidebar_current("docs-aws-resource-aws-lambda-event-source-mapping") %>>
                           <a href="/docs/providers/aws/r/lambda_event_source_mapping.html">aws_lambda_event_source_mapping</a>
+                      </li>
+                      <li<%= sidebar_current("docs-aws-resource-lambda-permission") %>>
+                          <a href="/docs/providers/aws/r/lambda_permission.html">aws_lambda_permission</a>
                       </li>
                   </ul>
               </li>
@@ -537,7 +556,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(customer|flow|internet-gateway|key-pair|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(customer|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
                     <a href="#">VPC Resources</a>
                     <ul class="nav nav-visible">
 
@@ -551,10 +570,6 @@
 
                         <li<%= sidebar_current("docs-aws-resource-internet-gateway") %>>
                             <a href="/docs/providers/aws/r/internet_gateway.html">aws_internet_gateway</a>
-                        </li>
-
-                        <li<%= sidebar_current("docs-aws-resource-key-pair") %>>
-                            <a href="/docs/providers/aws/r/key_pair.html">aws_key_pair</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-main-route-table-assoc") %>>

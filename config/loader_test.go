@@ -45,6 +45,15 @@ func TestLoadFile_badType(t *testing.T) {
 	}
 }
 
+func TestLoadFile_lifecycleKeyCheck(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "lifecycle_cbd_typo.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	t.Logf("err: %s", err)
+}
+
 func TestLoadFile_resourceArityMistake(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "resource-arity-mistake.tf"))
 	if err == nil {
@@ -435,6 +444,30 @@ func TestLoadDir_override(t *testing.T) {
 	}
 }
 
+func TestLoadFile_mismatchedVariableTypes(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "variable-mismatched-type.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'not_a_map' has a default value which is not of type 'string'") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
+func TestLoadFile_badVariableTypes(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "bad-variable-type.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'bad_type' must be of type string") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
 func TestLoadFile_provisioners(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
@@ -793,6 +826,12 @@ aws_security_group[firewall] (x5)
 `
 
 const basicVariablesStr = `
+bar (required) (string)
+  <>
+  <>
+baz (map)
+  map[key:value]
+  <>
 foo
   bar
   bar

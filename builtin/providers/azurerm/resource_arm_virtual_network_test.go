@@ -5,18 +5,23 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/core/http"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMVirtualNetwork_basic(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualNetwork_basic, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMVirtualNetwork_basic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
 				),
@@ -26,13 +31,18 @@ func TestAccAzureRMVirtualNetwork_basic(t *testing.T) {
 }
 
 func TestAccAzureRMVirtualNetwork_withTags(t *testing.T) {
+
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualNetwork_withTags, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualNetwork_withTagsUpdated, ri, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMVirtualNetwork_withTags,
+				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
 					resource.TestCheckResourceAttr(
@@ -45,7 +55,7 @@ func TestAccAzureRMVirtualNetwork_withTags(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAzureRMVirtualNetwork_withTagsUpdated,
+				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
 					resource.TestCheckResourceAttr(
@@ -115,12 +125,12 @@ func testCheckAzureRMVirtualNetworkDestroy(s *terraform.State) error {
 
 var testAccAzureRMVirtualNetwork_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acceptanceTestVirtualNetwork1"
+    name = "acctestvirtnet%d"
     address_space = ["10.0.0.0/16"]
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -134,12 +144,12 @@ resource "azurerm_virtual_network" "test" {
 
 var testAccAzureRMVirtualNetwork_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acceptanceTestVirtualNetwork1"
+    name = "acctestvirtnet%d"
     address_space = ["10.0.0.0/16"]
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
@@ -158,12 +168,12 @@ resource "azurerm_virtual_network" "test" {
 
 var testAccAzureRMVirtualNetwork_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestrg-%d"
     location = "West US"
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acceptanceTestVirtualNetwork1"
+    name = "acctestvirtnet%d"
     address_space = ["10.0.0.0/16"]
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"

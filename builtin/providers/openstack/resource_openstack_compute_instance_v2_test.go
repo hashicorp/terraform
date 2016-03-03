@@ -178,10 +178,10 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 	})
 }
 
-func TestAccComputeV2Instance_floatingIPAttach(t *testing.T) {
+func TestAccComputeV2Instance_floatingIPAttachGlobally(t *testing.T) {
 	var instance servers.Server
 	var fip floatingip.FloatingIP
-	var testAccComputeV2Instance_floatingIPAttach = fmt.Sprintf(`
+	var testAccComputeV2Instance_floatingIPAttachGlobally = fmt.Sprintf(`
 		resource "openstack_compute_floatingip_v2" "myip" {
 		}
 
@@ -202,9 +202,111 @@ func TestAccComputeV2Instance_floatingIPAttach(t *testing.T) {
 		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeV2Instance_floatingIPAttach,
+				Config: testAccComputeV2Instance_floatingIPAttachGlobally,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_floatingIPAttachToNetwork(t *testing.T) {
+	var instance servers.Server
+	var fip floatingip.FloatingIP
+	var testAccComputeV2Instance_floatingIPAttachToNetwork = fmt.Sprintf(`
+		resource "openstack_compute_floatingip_v2" "myip" {
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			network {
+				uuid = "%s"
+				floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
+				access_network = true
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_floatingIPAttachToNetwork,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_floatingIPAttachAndChange(t *testing.T) {
+	var instance servers.Server
+	var fip floatingip.FloatingIP
+	var testAccComputeV2Instance_floatingIPAttachToNetwork_1 = fmt.Sprintf(`
+		resource "openstack_compute_floatingip_v2" "myip_1" {
+		}
+
+		resource "openstack_compute_floatingip_v2" "myip_2" {
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			network {
+				uuid = "%s"
+				floating_ip = "${openstack_compute_floatingip_v2.myip_1.address}"
+				access_network = true
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	var testAccComputeV2Instance_floatingIPAttachToNetwork_2 = fmt.Sprintf(`
+		resource "openstack_compute_floatingip_v2" "myip_1" {
+		}
+
+		resource "openstack_compute_floatingip_v2" "myip_2" {
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			network {
+				uuid = "%s"
+				floating_ip = "${openstack_compute_floatingip_v2.myip_2.address}"
+				access_network = true
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_floatingIPAttachToNetwork_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip_1", &fip),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_floatingIPAttachToNetwork_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip_2", &fip),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
 				),
@@ -301,7 +403,6 @@ func TestAccComputeV2Instance_bootFromVolumeVolume(t *testing.T) {
 			block_device {
 				uuid = "${openstack_blockstorage_volume_v1.foo.id}"
 				source_type = "volume"
-				volume_size = 5
 				boot_index = 0
 				destination_type = "volume"
 				delete_on_termination = true
@@ -349,6 +450,51 @@ func TestAccComputeV2Instance_personality(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccComputeV2Instance_personality,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_multiEphemeral(t *testing.T) {
+	var instance servers.Server
+	var testAccComputeV2Instance_multiEphemeral = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+			block_device {
+				boot_index = 0
+				delete_on_termination = true
+				destination_type = "local"
+				source_type = "image"
+				uuid = "%s"
+			}
+			block_device {
+				boot_index = -1
+				delete_on_termination = true
+				destination_type = "local"
+				source_type = "blank"
+				volume_size = 1
+			}
+			block_device {
+				boot_index = -1
+				delete_on_termination = true
+				destination_type = "local"
+				source_type = "blank"
+				volume_size = 1
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_multiEphemeral,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 				),

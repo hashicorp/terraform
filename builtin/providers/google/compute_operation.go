@@ -63,7 +63,7 @@ func (w *ComputeOperationWaiter) RefreshFunc() resource.StateRefreshFunc {
 func (w *ComputeOperationWaiter) Conf() *resource.StateChangeConf {
 	return &resource.StateChangeConf{
 		Pending: []string{"PENDING", "RUNNING"},
-		Target:  "DONE",
+		Target:  []string{"DONE"},
 		Refresh: w.RefreshFunc(),
 	}
 }

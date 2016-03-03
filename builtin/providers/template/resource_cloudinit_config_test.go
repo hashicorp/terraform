@@ -85,3 +85,49 @@ func TestRender(t *testing.T) {
 		})
 	}
 }
+
+func TestCloudConfig_update(t *testing.T) {
+	r.Test(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			r.TestStep{
+				Config: testCloudInitConfig_basic,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("template_cloudinit_config.config", "rendered", testCloudInitConfig_basic_expected),
+				),
+			},
+
+			r.TestStep{
+				Config: testCloudInitConfig_update,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("template_cloudinit_config.config", "rendered", testCloudInitConfig_update_expected),
+				),
+			},
+		},
+	})
+}
+
+var testCloudInitConfig_basic = `
+resource "template_cloudinit_config" "config" {
+  part {
+    content_type = "text/x-shellscript"
+    content      = "baz"
+  }
+}`
+
+var testCloudInitConfig_basic_expected = `Content-Type: multipart/mixed; boundary=\"MIMEBOUNDRY\"\nMIME-Version: 1.0\r\n--MIMEBOUNDRY\r\nContent-Transfer-Encoding: 7bit\r\nContent-Type: text/x-shellscript\r\nMime-Version: 1.0\r\n\r\nbaz\r\n--MIMEBOUNDRY--\r\n`
+
+var testCloudInitConfig_update = `
+resource "template_cloudinit_config" "config" {
+  part {
+    content_type = "text/x-shellscript"
+    content      = "baz"
+  }
+
+  part {
+    content_type = "text/x-shellscript"
+    content      = "ffbaz"
+  }
+}`
+
+var testCloudInitConfig_update_expected = `Content-Type: multipart/mixed; boundary=\"MIMEBOUNDARY\"\nMIME-Version: 1.0\r\n--MIMEBOUNDARY\r\nContent-Transfer-Encoding: 7bit\r\nContent-Type: text/x-shellscript\r\nMime-Version: 1.0\r\n\r\nbaz\r\n--MIMEBOUNDARY\r\nContent-Transfer-Encoding: 7bit\r\nContent-Type: text/x-shellscript\r\nMime-Version: 1.0\r\n\r\nffbaz\r\n--MIMEBOUNDARY--\r\n`

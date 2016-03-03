@@ -75,7 +75,7 @@ func resourcePubsubSubscriptionCreate(d *schema.ResourceData, meta interface{}) 
 	var ackDeadlineSeconds int64
 	ackDeadlineSeconds = 10
 	if v, ok := d.GetOk("ack_deadline_seconds"); ok {
-		ackDeadlineSeconds = v.(int64)
+		ackDeadlineSeconds = int64(v.(int))
 	}
 
 	var subscription *pubsub.Subscription

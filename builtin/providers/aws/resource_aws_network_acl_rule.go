@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -118,6 +120,22 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error Creating Network Acl Rule: %s", err.Error())
 	}
 	d.SetId(networkAclIdRuleNumberEgressHash(d.Get("network_acl_id").(string), d.Get("rule_number").(int), d.Get("egress").(bool), d.Get("protocol").(string)))
+
+	// It appears it might be a while until the newly created rule is visible via the
+	// API (see issue GH-4721). Retry the `findNetworkAclRule` function until it is
+	// visible (which in most cases is likely immediately).
+	err = resource.Retry(3*time.Minute, func() error {
+		_, findErr := findNetworkAclRule(d, meta)
+		if findErr != nil {
+			return findErr
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Created Network ACL Rule was not visible in API within 3 minute period. Running 'terraform apply' again will resume infrastructure creation.")
+	}
+
 	return resourceAwsNetworkAclRuleRead(d, meta)
 }
 

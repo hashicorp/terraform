@@ -112,7 +112,7 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Waiting for Subnet (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Accepted", "Updating"},
-		Target:  "Succeeded",
+		Target:  []string{"Succeeded"},
 		Refresh: subnetRuleStateRefreshFunc(client, resGroup, vnetName, name),
 		Timeout: 10 * time.Minute,
 	}

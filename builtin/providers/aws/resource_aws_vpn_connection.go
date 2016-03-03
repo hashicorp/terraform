@@ -2,8 +2,10 @@ package aws
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,6 +16,34 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
+
+type XmlVpnConnectionConfig struct {
+	Tunnels []XmlIpsecTunnel `xml:"ipsec_tunnel"`
+}
+
+type XmlIpsecTunnel struct {
+	OutsideAddress string `xml:"vpn_gateway>tunnel_outside_address>ip_address"`
+	PreSharedKey   string `xml:"ike>pre_shared_key"`
+}
+
+type TunnelInfo struct {
+	Tunnel1Address      string
+	Tunnel1PreSharedKey string
+	Tunnel2Address      string
+	Tunnel2PreSharedKey string
+}
+
+func (slice XmlVpnConnectionConfig) Len() int {
+	return len(slice.Tunnels)
+}
+
+func (slice XmlVpnConnectionConfig) Less(i, j int) bool {
+	return slice.Tunnels[i].OutsideAddress < slice.Tunnels[j].OutsideAddress
+}
+
+func (slice XmlVpnConnectionConfig) Swap(i, j int) {
+	slice.Tunnels[i], slice.Tunnels[j] = slice.Tunnels[j], slice.Tunnels[i]
+}
 
 func resourceAwsVpnConnection() *schema.Resource {
 	return &schema.Resource{
@@ -54,6 +84,26 @@ func resourceAwsVpnConnection() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
+			},
+
+			"tunnel1_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"tunnel1_preshared_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"tunnel2_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"tunnel2_preshared_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"routes": &schema.Schema{
@@ -171,7 +221,7 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 	// more frequently than every ten seconds.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    vpnConnectionRefreshFunc(conn, *vpnConnection.VpnConnectionId),
 		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
@@ -254,6 +304,13 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 
 	// Set read only attributes.
 	d.Set("customer_gateway_configuration", vpnConnection.CustomerGatewayConfiguration)
+
+	tunnelInfo := xmlConfigToTunnelInfo(*vpnConnection.CustomerGatewayConfiguration)
+	d.Set("tunnel1_address", tunnelInfo.Tunnel1Address)
+	d.Set("tunnel1_preshared_key", tunnelInfo.Tunnel1PreSharedKey)
+	d.Set("tunnel2_address", tunnelInfo.Tunnel2Address)
+	d.Set("tunnel2_preshared_key", tunnelInfo.Tunnel2PreSharedKey)
+
 	if err := d.Set("vgw_telemetry", telemetryToMapList(vpnConnection.VgwTelemetry)); err != nil {
 		return err
 	}
@@ -303,7 +360,7 @@ func resourceAwsVpnConnectionDelete(d *schema.ResourceData, meta interface{}) er
 	// VPC stack can safely run.
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"deleting"},
-		Target:     "deleted",
+		Target:     []string{"deleted"},
 		Refresh:    vpnConnectionRefreshFunc(conn, d.Id()),
 		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
@@ -354,4 +411,22 @@ func telemetryToMapList(telemetry []*ec2.VgwTelemetry) []map[string]interface{} 
 	}
 
 	return result
+}
+
+func xmlConfigToTunnelInfo(xmlConfig string) TunnelInfo {
+	var vpnConfig XmlVpnConnectionConfig
+	xml.Unmarshal([]byte(xmlConfig), &vpnConfig)
+
+	// don't expect consistent ordering from the XML
+	sort.Sort(vpnConfig)
+
+	tunnelInfo := TunnelInfo{
+		Tunnel1Address:      vpnConfig.Tunnels[0].OutsideAddress,
+		Tunnel1PreSharedKey: vpnConfig.Tunnels[0].PreSharedKey,
+
+		Tunnel2Address:      vpnConfig.Tunnels[1].OutsideAddress,
+		Tunnel2PreSharedKey: vpnConfig.Tunnels[1].PreSharedKey,
+	}
+
+	return tunnelInfo
 }

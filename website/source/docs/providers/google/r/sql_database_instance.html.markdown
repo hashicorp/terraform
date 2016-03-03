@@ -148,3 +148,11 @@ The following attributes are exported:
 The `settings` block exports:
 
 * `version` - Used to make sure changes to the `settings` block are atomic.
+
+The `ip_address` block exports a list of IPv4 addresses assigned to this
+instance, with the following properties:
+
+* `ip_address` - The IPv4 address assigned.
+
+* `time_to_retire` - The time this IP address will be retired, in RFC 3339
+  format.

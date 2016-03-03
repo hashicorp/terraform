@@ -44,10 +44,10 @@ export TF_INPUT=0
 
 ## TF_MODULE_DEPTH
 
-When given a value, causes terraform commands to behave as if the `-module=depth=VALUE` flag was specified. Modules are treated like a black box and terraform commands do not show what resources within the module will be created. By setting this to -1, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more detailed information.
+When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
 
 ```
-export TF_MODULE_DEPTH=-1
+export TF_MODULE_DEPTH=0
 ```
 
 For more information regarding modules, check out the section on [Using Modules](/docs/modules/usage.html).
@@ -62,3 +62,15 @@ export TF_VAR_ami=ami-049d8641
 ```
 
 For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/docs/configuration/variables.html).
+
+## TF_SKIP_REMOTE_TESTS
+
+This can be set prior to running the unit tests to opt-out of any tests
+requiring remote network connectivity. The unit tests make an attempt to
+automatically detect when connectivity is unavailable and skip the relevant
+tests, but by setting this variable you can force these tests to be skipped.
+
+```
+export TF_SKIP_REMOTE_TESTS=1
+make test
+```
