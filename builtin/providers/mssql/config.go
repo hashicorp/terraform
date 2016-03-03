@@ -31,11 +31,11 @@ func (c *Config) NewClient() (*Client, error) {
 	// Connection String
 	var connStr string
 	// We need to validate some parameters
-	var errs []error
+	var errs *multierror.Error
 
 	err := c.ValidateEncrypt()
 	if err != nil {
-		errs = append(errs, err)
+		errs = multierror.Append(errs, err)
 	}
 
 	connStr = fmt.Sprintf("server=%s;user id=%s;password=%s;port=%d", c.Host, c.Username, c.Password, c.Port)
@@ -62,11 +62,7 @@ func (c *Config) NewClient() (*Client, error) {
 		username: c.Username,
 	}
 
-	if len(errs) > 0 {
-		return nil, &multierror.Error{Errors: errs}
-	}
-
-	return &client, nil
+	return &client, errs.ErrorOrNil()
 }
 
 //Connect will manually connect/diconnect to prevent a large number or db connections being made
@@ -81,7 +77,7 @@ func (c *Client) Connect() (*sql.DB, error) {
 
 // ValidateEncrypt returns error if the configured value for encrypt parameter is not a valid one
 func (c *Config) ValidateEncrypt() error {
-	var encryptValues = [3]string{"disable", "false", "true"}
+	var encryptValues = []string{"disable", "false", "true"}
 
 	for _, valid := range encryptValues {
 		if c.Encrypt == valid {

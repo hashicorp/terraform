@@ -73,7 +73,7 @@ func resourceMSsqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 
 	dbName := d.Get("name").(string)
 
-	result, err := conn.Query("SELECT db_id('" + dbName + "')")
+	result, err := conn.Query("SELECT db_id(?1)", dbName)
 	defer result.Close()
 
 	if err != nil {
