@@ -16,7 +16,7 @@ func TestAccZone_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZone_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "example.com"),
+					testAccCheckZoneState("zone", "terraform.io"),
 				),
 			},
 		},
@@ -46,6 +46,6 @@ func testAccCheckZoneState(key, value string) resource.TestCheckFunc {
 
 const testAccZone_basic = `
 resource "nsone_zone" "foobar" {
-	zone = "example.com"
-	hostmaster = "example.com"
+	zone = "terraform.io"
+	hostmaster = "hostmaster@nsone.net"
 }`
