@@ -41,11 +41,11 @@ provider "mssql" {
   password = "mssql_password2"
 }
 
-resource "mssql" "my_db1" {
+resource "mssql_database" "my_db1" {
   provider = "mssql.sql1"
   name = "my_db1"
 }
-resource "mssql" "my_db2" {
+resource "mssql_database" "my_db2" {
   provider = "mssql.sql2"
   name = "my_db2"
 }
