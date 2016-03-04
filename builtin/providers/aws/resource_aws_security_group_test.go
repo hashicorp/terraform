@@ -24,7 +24,7 @@ func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 			IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("0.0.0.0/0")}},
 			UserIdGroupPairs: []*ec2.UserIdGroupPair{
 				&ec2.UserIdGroupPair{
-					GroupId: aws.String("sg-22222"),
+					GroupId: aws.String("sg-11111"),
 				},
 			},
 		},
@@ -33,8 +33,27 @@ func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 			FromPort:   aws.Int64(int64(80)),
 			ToPort:     aws.Int64(int64(80)),
 			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				// VPC
 				&ec2.UserIdGroupPair{
-					GroupId: aws.String("foo"),
+					GroupId: aws.String("sg-22222"),
+				},
+			},
+		},
+		&ec2.IpPermission{
+			IpProtocol: aws.String("tcp"),
+			FromPort:   aws.Int64(int64(443)),
+			ToPort:     aws.Int64(int64(443)),
+			UserIdGroupPairs: []*ec2.UserIdGroupPair{
+				// Classic
+				&ec2.UserIdGroupPair{
+					UserId:    aws.String("12345"),
+					GroupId:   aws.String("sg-33333"),
+					GroupName: aws.String("ec2_classic"),
+				},
+				&ec2.UserIdGroupPair{
+					UserId:    aws.String("amazon-elb"),
+					GroupId:   aws.String("sg-d2c979d3"),
+					GroupName: aws.String("amazon-elb-sg"),
 				},
 			},
 		},
@@ -53,12 +72,21 @@ func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 			"from_port": int64(80),
 			"to_port":   int64(80),
 			"security_groups": schema.NewSet(schema.HashString, []interface{}{
-				"foo",
+				"sg-22222",
+			}),
+		},
+		map[string]interface{}{
+			"protocol":  "tcp",
+			"from_port": int64(443),
+			"to_port":   int64(443),
+			"security_groups": schema.NewSet(schema.HashString, []interface{}{
+				"ec2_classic",
+				"amazon-elb/amazon-elb-sg",
 			}),
 		},
 	}
 
-	out := resourceAwsSecurityGroupIPPermGather("sg-22222", raw)
+	out := resourceAwsSecurityGroupIPPermGather("sg-11111", raw, aws.String("12345"))
 	for _, i := range out {
 		// loop and match rules, because the ordering is not guarneteed
 		for _, l := range local {
