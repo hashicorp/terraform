@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -74,6 +75,11 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				ConflictsWith: []string{"source"},
 			},
 
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"etag": &schema.Schema{
 				Type: schema.TypeString,
 				// This will conflict with SSE-C and SSE-KMS encryption and multi-part upload
@@ -97,6 +103,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
 	var body io.ReadSeeker
+	headers := make(http.Header)
 
 	if v, ok := d.GetOk("source"); ok {
 		source := v.(string)
@@ -143,7 +150,14 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.ContentDisposition = aws.String(v.(string))
 	}
 
-	resp, err := s3conn.PutObject(putInput)
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		putInput.SSEKMSKeyId = aws.String(v.(string))
+		headers.Add("x-amz-server-side-encryption", "aws:kms")
+	}
+
+	req, resp := s3conn.PutObjectRequest(putInput)
+	req.HTTPRequest.Header = headers
+	err := req.Send()
 	if err != nil {
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
 	}
@@ -186,6 +200,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_language", resp.ContentLanguage)
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
+	d.Set("kms_key_id", resp.SSEKMSKeyId)
 
 	log.Printf("[DEBUG] Reading S3 Bucket Object meta: %s", resp)
 	return nil
