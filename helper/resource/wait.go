@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"sync"
 	"time"
 )
 
@@ -10,6 +11,11 @@ type RetryFunc func() error
 // Retry is a basic wrapper around StateChangeConf that will just retry
 // a function until it no longer returns an error.
 func Retry(timeout time.Duration, f RetryFunc) error {
+	// These are used to pull the error out of the function; need a mutex to
+	// avoid a data race.
+	var resultErr error
+	var resultErrMu sync.Mutex
+
 	c := &StateChangeConf{
 		Pending:    []string{"error"},
 		Target:     []string{"success"},
@@ -21,17 +27,25 @@ func Retry(timeout time.Duration, f RetryFunc) error {
 				return 42, "success", nil
 			}
 
+			resultErrMu.Lock()
+			defer resultErrMu.Unlock()
+			resultErr = err
 			if rerr, ok := err.(RetryError); ok {
-				err = rerr.Err
-				return nil, "quit", err
+				resultErr = rerr.Err
+				return nil, "quit", rerr.Err
 			}
 
 			return 42, "error", nil
 		},
 	}
 
-	_, err := c.WaitForState()
-	return err
+	c.WaitForState()
+
+	// Need to acquire the lock here to be able to avoid race using resultErr as
+	// the return value
+	resultErrMu.Lock()
+	defer resultErrMu.Unlock()
+	return resultErr
 }
 
 // RetryError, if returned, will quit the retry immediately with the
