@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 
@@ -103,7 +102,6 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
 	var body io.ReadSeeker
-	headers := make(http.Header)
 
 	if v, ok := d.GetOk("source"); ok {
 		source := v.(string)
@@ -122,6 +120,12 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		body = bytes.NewReader([]byte(content))
 	} else {
 		return fmt.Errorf("Must specify \"source\" or \"content\" field")
+	}
+
+	if _, ok := d.GetOk("kms_key_id"); ok {
+		if _, ok := d.GetOk("etag"); ok {
+			return fmt.Errorf("Unable to specify kms_key_id and etag on the same object")
+		}
 	}
 
 	putInput := &s3.PutObjectInput{
@@ -152,12 +156,10 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	if v, ok := d.GetOk("kms_key_id"); ok {
 		putInput.SSEKMSKeyId = aws.String(v.(string))
-		headers.Add("x-amz-server-side-encryption", "aws:kms")
+		putInput.ServerSideEncryption = aws.String("aws:kms")
 	}
 
-	req, resp := s3conn.PutObjectRequest(putInput)
-	req.HTTPRequest.Header = headers
-	err := req.Send()
+	resp, err := s3conn.PutObject(putInput)
 	if err != nil {
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
 	}
