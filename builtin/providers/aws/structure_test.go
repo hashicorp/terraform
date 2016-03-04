@@ -82,7 +82,7 @@ func TestExpandIPPerms(t *testing.T) {
 					GroupId: aws.String("sg-22222"),
 				},
 				&ec2.UserIdGroupPair{
-					GroupId: aws.String("sg-22222"),
+					GroupId: aws.String("sg-11111"),
 				},
 			},
 		},
@@ -92,7 +92,7 @@ func TestExpandIPPerms(t *testing.T) {
 			ToPort:     aws.Int64(int64(-1)),
 			UserIdGroupPairs: []*ec2.UserIdGroupPair{
 				&ec2.UserIdGroupPair{
-					UserId: aws.String("foo"),
+					GroupId: aws.String("foo"),
 				},
 			},
 		},
@@ -122,6 +122,29 @@ func TestExpandIPPerms(t *testing.T) {
 			*exp.UserIdGroupPairs[0].UserId)
 	}
 
+	if *exp.UserIdGroupPairs[0].GroupId != *perm.UserIdGroupPairs[0].GroupId {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupId,
+			*exp.UserIdGroupPairs[0].GroupId)
+	}
+
+	if *exp.UserIdGroupPairs[1].GroupId != *perm.UserIdGroupPairs[1].GroupId {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[1].GroupId,
+			*exp.UserIdGroupPairs[1].GroupId)
+	}
+
+	exp = expected[1]
+	perm = perms[1]
+
+	if *exp.UserIdGroupPairs[0].GroupId != *perm.UserIdGroupPairs[0].GroupId {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupId,
+			*exp.UserIdGroupPairs[0].GroupId)
+	}
 }
 
 func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
@@ -161,7 +184,7 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 					GroupId: aws.String("sg-22222"),
 				},
 				&ec2.UserIdGroupPair{
-					GroupId: aws.String("sg-22222"),
+					GroupId: aws.String("sg-11111"),
 				},
 			},
 		},
@@ -256,7 +279,7 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 					GroupName: aws.String("sg-22222"),
 				},
 				&ec2.UserIdGroupPair{
-					GroupName: aws.String("sg-22222"),
+					GroupName: aws.String("sg-11111"),
 				},
 			},
 		},
@@ -287,6 +310,30 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			*perm.IpRanges[0].CidrIp,
 			*exp.IpRanges[0].CidrIp)
+	}
+
+	if *exp.UserIdGroupPairs[0].GroupName != *perm.UserIdGroupPairs[0].GroupName {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupName,
+			*exp.UserIdGroupPairs[0].GroupName)
+	}
+
+	if *exp.UserIdGroupPairs[1].GroupName != *perm.UserIdGroupPairs[1].GroupName {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[1].GroupName,
+			*exp.UserIdGroupPairs[1].GroupName)
+	}
+
+	exp = expected[1]
+	perm = perms[1]
+
+	if *exp.UserIdGroupPairs[0].GroupName != *perm.UserIdGroupPairs[0].GroupName {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupName,
+			*exp.UserIdGroupPairs[0].GroupName)
 	}
 }
 
