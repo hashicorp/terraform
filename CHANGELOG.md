@@ -30,7 +30,8 @@ BUG FIXES:
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
   * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly [GH-5361]
   * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
-  * provider/openstack: Fix crashing during certain network updates in instances [GH-5365] 
+  * provider/openstack: Fix crashing during certain network updates in instances [GH-5365]
+  * provider/openstack: Account for a 403 reply when os-tenant-networks is disabled [GH-5432]
 
 INTERNAL IMPROVEMENTS:
 
