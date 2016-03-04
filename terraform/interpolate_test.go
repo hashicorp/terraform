@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 func TestInterpolater_countIndex(t *testing.T) {
@@ -346,6 +346,62 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 		Value: config.NewStringList([]string{"reindeer", "white-hart"}).String(),
 		Type:  ast.TypeString,
 	})
+}
+
+func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
+	lock := new(sync.RWMutex)
+	// The state would never be written with an UnknownVariableValue in it, but
+	// it can/does exist that way in memory during the plan phase.
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type: "aws_route53_zone",
+						Primary: &InstanceState{
+							ID: "z-abc123",
+							Attributes: map[string]string{
+								"name_servers.#": config.UnknownVariableValue,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: lock,
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeString,
+	})
+}
+
+func TestInterpolater_selfVarWithoutResource(t *testing.T) {
+	i := &Interpolater{}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	v, err := config.NewInterpolatedVariable("self.name")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = i.Values(scope, map[string]config.InterpolatedVariable{"foo": v})
+	if err == nil {
+		t.Fatalf("expected err, got none")
+	}
 }
 
 func getInterpolaterFixture(t *testing.T) *Interpolater {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 	"time"
 
@@ -49,7 +48,6 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Set:      schema.HashString,
 			},
@@ -85,7 +83,6 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Set:      schema.HashString,
 			},
@@ -166,7 +163,7 @@ func resourceAwsElb() *schema.Resource {
 			},
 
 			"health_check": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -197,7 +194,6 @@ func resourceAwsElb() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceAwsElbHealthCheckHash,
 			},
 
 			"dns_name": &schema.Schema{
@@ -339,10 +335,10 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("dns_name", *lb.DNSName)
 	d.Set("zone_id", *lb.CanonicalHostedZoneNameID)
 	d.Set("internal", *lb.Scheme == "internal")
-	d.Set("availability_zones", lb.AvailabilityZones)
+	d.Set("availability_zones", flattenStringList(lb.AvailabilityZones))
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
-	d.Set("security_groups", lb.SecurityGroups)
+	d.Set("security_groups", flattenStringList(lb.SecurityGroups))
 	if lb.SourceSecurityGroup != nil {
 		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
 
@@ -358,7 +354,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 	}
-	d.Set("subnets", lb.Subnets)
+	d.Set("subnets", flattenStringList(lb.Subnets))
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
@@ -377,6 +373,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		et = resp.TagDescriptions[0].Tags
 	}
 	d.Set("tags", tagsToMapELB(et))
+
 	// There's only one health check, so save that to state as we
 	// currently can
 	if *lb.HealthCheck.Target != "" {
@@ -423,8 +420,28 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				Listeners:        add,
 			}
 
-			log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
-			_, err := elbconn.CreateLoadBalancerListeners(createListenersOpts)
+			// Occasionally AWS will error with a 'duplicate listener', without any
+			// other listeners on the ELB. Retry here to eliminate that.
+			err := resource.Retry(1*time.Minute, func() error {
+				log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
+				if _, err := elbconn.CreateLoadBalancerListeners(createListenersOpts); err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						if awsErr.Code() == "DuplicateListener" {
+							log.Printf("[DEBUG] Duplicate listener found for ELB (%s), retrying", d.Id())
+							return awsErr
+						}
+						if awsErr.Code() == "CertificateNotFound" && strings.Contains(awsErr.Message(), "Server Certificate not found for the key: arn") {
+							log.Printf("[DEBUG] SSL Cert not found for given ARN, retrying")
+							return awsErr
+						}
+					}
+
+					// Didn't recognize the error, so shouldn't retry.
+					return resource.RetryError{Err: err}
+				}
+				// Successful creation
+				return nil
+			})
 			if err != nil {
 				return fmt.Errorf("Failure adding new or updated ELB listeners: %s", err)
 			}
@@ -563,9 +580,11 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("health_check") {
-		vs := d.Get("health_check").(*schema.Set).List()
-		if len(vs) > 0 {
-			check := vs[0].(map[string]interface{})
+		hc := d.Get("health_check").([]interface{})
+		if len(hc) > 1 {
+			return fmt.Errorf("Only one health check per ELB is supported")
+		} else if len(hc) > 0 {
+			check := hc[0].(map[string]interface{})
 			configureHealthCheckOpts := elb.ConfigureHealthCheckInput{
 				LoadBalancerName: aws.String(d.Id()),
 				HealthCheck: &elb.HealthCheck{
@@ -600,6 +619,80 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("security_groups")
 	}
 
+	if d.HasChange("availability_zones") {
+		o, n := d.GetChange("availability_zones")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		removed := expandStringList(os.Difference(ns).List())
+		added := expandStringList(ns.Difference(os).List())
+
+		if len(added) > 0 {
+			enableOpts := &elb.EnableAvailabilityZonesForLoadBalancerInput{
+				LoadBalancerName:  aws.String(d.Id()),
+				AvailabilityZones: added,
+			}
+
+			log.Printf("[DEBUG] ELB enable availability zones opts: %s", enableOpts)
+			_, err := elbconn.EnableAvailabilityZonesForLoadBalancer(enableOpts)
+			if err != nil {
+				return fmt.Errorf("Failure enabling ELB availability zones: %s", err)
+			}
+		}
+
+		if len(removed) > 0 {
+			disableOpts := &elb.DisableAvailabilityZonesForLoadBalancerInput{
+				LoadBalancerName:  aws.String(d.Id()),
+				AvailabilityZones: removed,
+			}
+
+			log.Printf("[DEBUG] ELB disable availability zones opts: %s", disableOpts)
+			_, err := elbconn.DisableAvailabilityZonesForLoadBalancer(disableOpts)
+			if err != nil {
+				return fmt.Errorf("Failure disabling ELB availability zones: %s", err)
+			}
+		}
+
+		d.SetPartial("availability_zones")
+	}
+
+	if d.HasChange("subnets") {
+		o, n := d.GetChange("subnets")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		removed := expandStringList(os.Difference(ns).List())
+		added := expandStringList(ns.Difference(os).List())
+
+		if len(added) > 0 {
+			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          added,
+			}
+
+			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
+			_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
+			if err != nil {
+				return fmt.Errorf("Failure adding ELB subnets: %s", err)
+			}
+		}
+
+		if len(removed) > 0 {
+			detachOpts := &elb.DetachLoadBalancerFromSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          removed,
+			}
+
+			log.Printf("[DEBUG] ELB detach subnets opts: %s", detachOpts)
+			_, err := elbconn.DetachLoadBalancerFromSubnets(detachOpts)
+			if err != nil {
+				return fmt.Errorf("Failure removing ELB subnets: %s", err)
+			}
+		}
+
+		d.SetPartial("subnets")
+	}
+
 	if err := setTagsELB(elbconn, d); err != nil {
 		return err
 	}
@@ -624,18 +717,6 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func resourceAwsElbHealthCheckHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["healthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["unhealthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
-
-	return hashcode.String(buf.String())
 }
 
 func resourceAwsElbAccessLogsHash(v interface{}) int {
@@ -671,29 +752,6 @@ func resourceAwsElbListenerHash(v interface{}) int {
 func isLoadBalancerNotFound(err error) bool {
 	elberr, ok := err.(awserr.Error)
 	return ok && elberr.Code() == "LoadBalancerNotFound"
-}
-
-func validateElbName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters and hyphens allowed in %q: %q",
-			k, value))
-	}
-	if len(value) > 32 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be longer than 32 characters: %q", k, value))
-	}
-	if regexp.MustCompile(`^-`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot begin with a hyphen: %q", k, value))
-	}
-	if regexp.MustCompile(`-$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen: %q", k, value))
-	}
-	return
-
 }
 
 func sourceSGIdByName(meta interface{}, sg, vpcId string) (string, error) {

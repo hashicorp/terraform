@@ -9,15 +9,19 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-
 	//"google.golang.org/api/storage/v1"
 )
 
 var tfObjectAcl, errObjectAcl = ioutil.TempFile("", "tf-gce-test")
-var testAclObjectName = fmt.Sprintf("%s-%d", "tf-test-acl-object",
-	rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
+func testAclObjectName() string {
+	return fmt.Sprintf("%s-%d", "tf-test-acl-object",
+		rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+}
 
 func TestAccGoogleStorageObjectAcl_basic(t *testing.T) {
+	bucketName := testAclBucketName()
+	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)
 	resource.Test(t, resource.TestCase{
@@ -31,12 +35,12 @@ func TestAccGoogleStorageObjectAcl_basic(t *testing.T) {
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclBasic1,
+				Config: testGoogleStorageObjectsAclBasic1(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic1),
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic2),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic1),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic2),
 				),
 			},
 		},
@@ -44,6 +48,8 @@ func TestAccGoogleStorageObjectAcl_basic(t *testing.T) {
 }
 
 func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
+	bucketName := testAclBucketName()
+	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)
 	resource.Test(t, resource.TestCase{
@@ -57,34 +63,34 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclBasic1,
+				Config: testGoogleStorageObjectsAclBasic1(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic1),
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic2),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic1),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic2),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclBasic2,
+				Config: testGoogleStorageObjectsAclBasic2(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic2),
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic3_owner),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic2),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic3_owner),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclBasicDelete,
+				Config: testGoogleStorageObjectsAclBasicDelete(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
-						testAclObjectName, roleEntityBasic1),
-					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
-						testAclObjectName, roleEntityBasic2),
-					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
-						testAclObjectName, roleEntityBasic3_reader),
+					testAccCheckGoogleStorageObjectAclDelete(bucketName,
+						objectName, roleEntityBasic1),
+					testAccCheckGoogleStorageObjectAclDelete(bucketName,
+						objectName, roleEntityBasic2),
+					testAccCheckGoogleStorageObjectAclDelete(bucketName,
+						objectName, roleEntityBasic3_reader),
 				),
 			},
 		},
@@ -92,6 +98,8 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 }
 
 func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
+	bucketName := testAclBucketName()
+	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)
 	resource.Test(t, resource.TestCase{
@@ -105,34 +113,34 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclBasic2,
+				Config: testGoogleStorageObjectsAclBasic2(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic2),
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic3_owner),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic2),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic3_owner),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclBasic3,
+				Config: testGoogleStorageObjectsAclBasic3(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic2),
-					testAccCheckGoogleStorageObjectAcl(testAclBucketName,
-						testAclObjectName, roleEntityBasic3_reader),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic2),
+					testAccCheckGoogleStorageObjectAcl(bucketName,
+						objectName, roleEntityBasic3_reader),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclBasicDelete,
+				Config: testGoogleStorageObjectsAclBasicDelete(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
-						testAclObjectName, roleEntityBasic1),
-					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
-						testAclObjectName, roleEntityBasic2),
-					testAccCheckGoogleStorageObjectAclDelete(testAclBucketName,
-						testAclObjectName, roleEntityBasic3_reader),
+					testAccCheckGoogleStorageObjectAclDelete(bucketName,
+						objectName, roleEntityBasic1),
+					testAccCheckGoogleStorageObjectAclDelete(bucketName,
+						objectName, roleEntityBasic2),
+					testAccCheckGoogleStorageObjectAclDelete(bucketName,
+						objectName, roleEntityBasic3_reader),
 				),
 			},
 		},
@@ -140,6 +148,8 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 }
 
 func TestAccGoogleStorageObjectAcl_predefined(t *testing.T) {
+	bucketName := testAclBucketName()
+	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)
 	resource.Test(t, resource.TestCase{
@@ -153,7 +163,7 @@ func TestAccGoogleStorageObjectAcl_predefined(t *testing.T) {
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageObjectsAclPredefined,
+				Config: testGoogleStorageObjectsAclPredefined(bucketName, objectName),
 			},
 		},
 	})
@@ -216,7 +226,8 @@ func testAccGoogleStorageObjectAclDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testGoogleStorageObjectsAclBasicDelete = fmt.Sprintf(`
+func testGoogleStorageObjectsAclBasicDelete(bucketName string, objectName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -232,9 +243,11 @@ resource "google_storage_object_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = []
 }
-`, testAclBucketName, testAclObjectName, tfObjectAcl.Name())
+`, bucketName, objectName, tfObjectAcl.Name())
+}
 
-var testGoogleStorageObjectsAclBasic1 = fmt.Sprintf(`
+func testGoogleStorageObjectsAclBasic1(bucketName string, objectName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -250,10 +263,12 @@ resource "google_storage_object_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = ["%s", "%s"]
 }
-`, testAclBucketName, testAclObjectName, tfObjectAcl.Name(),
-	roleEntityBasic1, roleEntityBasic2)
+`, bucketName, objectName, tfObjectAcl.Name(),
+		roleEntityBasic1, roleEntityBasic2)
+}
 
-var testGoogleStorageObjectsAclBasic2 = fmt.Sprintf(`
+func testGoogleStorageObjectsAclBasic2(bucketName string, objectName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -269,10 +284,12 @@ resource "google_storage_object_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = ["%s", "%s"]
 }
-`, testAclBucketName, testAclObjectName, tfObjectAcl.Name(),
-	roleEntityBasic2, roleEntityBasic3_owner)
+`, bucketName, objectName, tfObjectAcl.Name(),
+		roleEntityBasic2, roleEntityBasic3_owner)
+}
 
-var testGoogleStorageObjectsAclBasic3 = fmt.Sprintf(`
+func testGoogleStorageObjectsAclBasic3(bucketName string, objectName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -288,10 +305,12 @@ resource "google_storage_object_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = ["%s", "%s"]
 }
-`, testAclBucketName, testAclObjectName, tfObjectAcl.Name(),
-	roleEntityBasic2, roleEntityBasic3_reader)
+`, bucketName, objectName, tfObjectAcl.Name(),
+		roleEntityBasic2, roleEntityBasic3_reader)
+}
 
-var testGoogleStorageObjectsAclPredefined = fmt.Sprintf(`
+func testGoogleStorageObjectsAclPredefined(bucketName string, objectName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -307,4 +326,5 @@ resource "google_storage_object_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	predefined_acl = "projectPrivate"
 }
-`, testAclBucketName, testAclObjectName, tfObjectAcl.Name())
+`, bucketName, objectName, tfObjectAcl.Name())
+}

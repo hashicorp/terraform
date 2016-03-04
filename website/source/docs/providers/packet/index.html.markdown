@@ -22,9 +22,9 @@ provider "packet" {
 }
 
 # Create a project
-resource "packet_project" "tf_project_1" {
+resource "packet_project" "cool_project" {
 		name = "My First Terraform Project"
-		payment_method = "PAYMENT_METHOD_ID"
+		payment_method = "PAYMENT_METHOD_ID" # Only required for a non-default payment method
 }
 
 # Create a device and add it to tf_project_1
@@ -34,7 +34,7 @@ resource "packet_device" "web1" {
 		facility = "ewr1"
 		operating_system = "coreos_stable"
 		billing_cycle = "hourly"
-		project_id = "${packet_project.tf_project_1.id}"
+		project_id = "${packet_project.cool_project.id}"
 }
 ```
 
@@ -44,4 +44,3 @@ The following arguments are supported:
 
 * `auth_token` - (Required) This is your Packet API Auth token. This can also be specified
   with the `PACKET_AUTH_TOKEN` shell environment variable.
-

@@ -170,7 +170,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Waiting for internet gateway (%s) to attach", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"detached", "attaching"},
-		Target:  "available",
+		Target:  []string{"available"},
 		Refresh: IGAttachStateRefreshFunc(conn, d.Id(), "available"),
 		Timeout: 1 * time.Minute,
 	}
@@ -204,11 +204,12 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	// Wait for it to be fully detached before continuing
 	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"detaching"},
-		Target:  "detached",
-		Refresh: detachIGStateRefreshFunc(conn, d.Id(), vpcID.(string)),
-		Timeout: 5 * time.Minute,
-		Delay:   10 * time.Second,
+		Pending:        []string{"detaching"},
+		Target:         []string{"detached"},
+		Refresh:        detachIGStateRefreshFunc(conn, d.Id(), vpcID.(string)),
+		Timeout:        15 * time.Minute,
+		Delay:          10 * time.Second,
+		NotFoundChecks: 30,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(

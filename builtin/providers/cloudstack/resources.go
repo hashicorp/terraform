@@ -14,6 +14,9 @@ import (
 // UnlimitedResourceID is a "special" ID to define an unlimited resource
 const UnlimitedResourceID = "-1"
 
+// Define a regexp for parsing the port
+var splitPorts = regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
+
 type retrieveError struct {
 	name  string
 	value string
@@ -178,4 +181,21 @@ func setCidrList(rule map[string]interface{}, cidrList string) {
 	}
 
 	rule["cidr_list"] = cidrs
+}
+
+type projectidSetter interface {
+	SetProjectid(string)
+}
+
+// If there is a project supplied, we retrieve and set the project id
+func setProjectid(p projectidSetter, cs *cloudstack.CloudStackClient, d *schema.ResourceData) error {
+	if project, ok := d.GetOk("project"); ok {
+		projectid, e := retrieveID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		p.SetProjectid(projectid)
+	}
+
+	return nil
 }

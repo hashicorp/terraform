@@ -3,6 +3,15 @@
         "foo": {
             "default": "bar",
             "description": "bar"
+        },
+        "bar": {
+            "type": "string"
+        },
+        "baz": {
+            "type": "map",
+            "default": {
+                "key": "value"
+            }
         }
     },
 

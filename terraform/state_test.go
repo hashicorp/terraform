@@ -150,6 +150,31 @@ func TestStateModuleOrphans_nilConfig(t *testing.T) {
 	}
 }
 
+func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "parent", "childfoo"},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "parent", "childbar"},
+			},
+		},
+	}
+
+	actual := state.ModuleOrphans(RootModulePath, nil)
+	expected := [][]string{
+		[]string{RootModuleName, "parent"},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool
@@ -770,9 +795,6 @@ func TestReadWriteState(t *testing.T) {
 		},
 	}
 
-	// Checksum before the write
-	chksum := checksumStruct(t, state)
-
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
 		t.Fatalf("err: %s", err)
@@ -781,12 +803,6 @@ func TestReadWriteState(t *testing.T) {
 	// Verify that the version and serial are set
 	if state.Version != StateVersion {
 		t.Fatalf("bad version number: %d", state.Version)
-	}
-
-	// Checksum after the write
-	chksumAfter := checksumStruct(t, state)
-	if chksumAfter != chksum {
-		t.Fatalf("structure changed during serialization!")
 	}
 
 	actual, err := ReadState(buf)
@@ -893,5 +909,59 @@ func TestUpgradeV1State(t *testing.T) {
 	bt := bar.Tainted[0]
 	if bt.ID != "1234" || bt.Attributes["a"] != "b" {
 		t.Fatalf("bad: %#v", bt)
+	}
+}
+
+func TestParseResourceStateKey(t *testing.T) {
+	cases := []struct {
+		Input       string
+		Expected    *ResourceStateKey
+		ExpectedErr bool
+	}{
+		{
+			Input: "aws_instance.foo.3",
+			Expected: &ResourceStateKey{
+				Type:  "aws_instance",
+				Name:  "foo",
+				Index: 3,
+			},
+		},
+		{
+			Input: "aws_instance.foo.0",
+			Expected: &ResourceStateKey{
+				Type:  "aws_instance",
+				Name:  "foo",
+				Index: 0,
+			},
+		},
+		{
+			Input: "aws_instance.foo",
+			Expected: &ResourceStateKey{
+				Type:  "aws_instance",
+				Name:  "foo",
+				Index: -1,
+			},
+		},
+		{
+			Input:       "aws_instance.foo.malformed",
+			ExpectedErr: true,
+		},
+		{
+			Input:       "aws_instance.foo.malformedwithnumber.123",
+			ExpectedErr: true,
+		},
+		{
+			Input:       "malformed",
+			ExpectedErr: true,
+		},
+	}
+	for _, tc := range cases {
+		rsk, err := ParseResourceStateKey(tc.Input)
+		if rsk != nil && tc.Expected != nil && !rsk.Equal(tc.Expected) {
+			t.Fatalf("%s: expected %s, got %s", tc.Input, tc.Expected, rsk)
+		}
+		if (err != nil) != tc.ExpectedErr {
+			t.Fatalf("%s: expected err: %t, got %s", tc.Input, tc.ExpectedErr, err)
+		}
 	}
 }

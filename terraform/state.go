@@ -9,6 +9,7 @@ import (
 	"log"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -150,8 +151,23 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 			continue
 		}
 
+		orphanPath := m.Path[:len(path)+1]
+
+		// Don't double-add if we've already added this orphan (which can happen if
+		// there are multiple nested sub-modules that get orphaned together).
+		alreadyAdded := false
+		for _, o := range orphans {
+			if reflect.DeepEqual(o, orphanPath) {
+				alreadyAdded = true
+				break
+			}
+		}
+		if alreadyAdded {
+			continue
+		}
+
 		// Add this orphan
-		orphans = append(orphans, m.Path[:len(path)+1])
+		orphans = append(orphans, orphanPath)
 	}
 
 	return orphans
@@ -659,6 +675,65 @@ func (m *ModuleState) String() string {
 	}
 
 	return buf.String()
+}
+
+// ResourceStateKey is a structured representation of the key used for the
+// ModuleState.Resources mapping
+type ResourceStateKey struct {
+	Name  string
+	Type  string
+	Index int
+}
+
+// Equal determines whether two ResourceStateKeys are the same
+func (rsk *ResourceStateKey) Equal(other *ResourceStateKey) bool {
+	if rsk == nil || other == nil {
+		return false
+	}
+	if rsk.Type != other.Type {
+		return false
+	}
+	if rsk.Name != other.Name {
+		return false
+	}
+	if rsk.Index != other.Index {
+		return false
+	}
+	return true
+}
+
+func (rsk *ResourceStateKey) String() string {
+	if rsk == nil {
+		return ""
+	}
+	if rsk.Index == -1 {
+		return fmt.Sprintf("%s.%s", rsk.Type, rsk.Name)
+	}
+	return fmt.Sprintf("%s.%s.%d", rsk.Type, rsk.Name, rsk.Index)
+}
+
+// ParseResourceStateKey accepts a key in the format used by
+// ModuleState.Resources and returns a resource name and resource index. In the
+// state, a resource has the format "type.name.index" or "type.name". In the
+// latter case, the index is returned as -1.
+func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
+	parts := strings.Split(k, ".")
+	if len(parts) < 2 || len(parts) > 3 {
+		return nil, fmt.Errorf("Malformed resource state key: %s", k)
+	}
+	rsk := &ResourceStateKey{
+		Type:  parts[0],
+		Name:  parts[1],
+		Index: -1,
+	}
+	if len(parts) == 3 {
+		index, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return nil, fmt.Errorf("Malformed resource state key index: %s", k)
+		}
+		rsk.Index = index
+	}
+	return rsk, nil
 }
 
 // ResourceState holds the state of a resource that is used so that

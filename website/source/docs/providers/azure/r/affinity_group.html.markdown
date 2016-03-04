@@ -29,7 +29,7 @@ The following arguments are supported:
     Azure subscription.
 
 * `location` - (Required) The location where the affinity group should be created.
-    For a list of all Azure locations, please consult [this link](http://azure.microsoft.com/en-us/regions/).
+    For a list of all Azure locations, please consult [this link](https://azure.microsoft.com/en-us/regions/).
 
 * `label` - (Required) A label to be used for tracking purposes.
 

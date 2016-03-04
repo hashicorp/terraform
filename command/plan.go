@@ -102,15 +102,6 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
-	if plan.Diff.Empty() {
-		c.Ui.Output(
-			"No changes. Infrastructure is up-to-date. This means that Terraform\n" +
-				"could not detect any differences between your configuration and\n" +
-				"the real physical resources that exist. As a result, Terraform\n" +
-				"doesn't need to do anything.")
-		return 0
-	}
-
 	if outPath != "" {
 		log.Printf("[INFO] Writing plan output to: %s", outPath)
 		f, err := os.Create(outPath)
@@ -122,6 +113,15 @@ func (c *PlanCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("Error writing plan file: %s", err))
 			return 1
 		}
+	}
+
+	if plan.Diff.Empty() {
+		c.Ui.Output(
+			"No changes. Infrastructure is up-to-date. This means that Terraform\n" +
+				"could not detect any differences between your configuration and\n" +
+				"the real physical resources that exist. As a result, Terraform\n" +
+				"doesn't need to do anything.")
+		return 0
 	}
 
 	if outPath == "" {
@@ -181,7 +181,7 @@ Options:
 
   -module-depth=n     Specifies the depth of modules to show in the output.
                       This does not affect the plan itself, only the output
-                      shown. By default, this is zero. -1 will expand all.
+                      shown. By default, this is -1, which will expand all.
 
   -no-color           If specified, output won't contain any color.
 

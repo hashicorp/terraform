@@ -196,6 +196,31 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
 		},
+
+		"Attributes JSON": {
+			Config: testConfig(t, map[string]interface{}{
+				"attributes_json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
+				"node_name":              "nodename1",
+				"run_list":               []interface{}{"cookbook::recipe"},
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
+				"server_url":             "https://chef.local",
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+			}),
+
+			Commands: map[string]bool{
+				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
+			},
+
+			Uploads: map[string]string{
+				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
+				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
+				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
+			},
+		},
 	}
 
 	r := new(ResourceProvisioner)
@@ -355,4 +380,6 @@ ENV['https_proxy'] = "https://proxy.local"
 ENV['HTTPS_PROXY'] = "https://proxy.local"
 
 
-no_proxy "http://local.local,https://local.local"`
+
+no_proxy          "http://local.local,https://local.local"
+ENV['no_proxy'] = "http://local.local,https://local.local"`

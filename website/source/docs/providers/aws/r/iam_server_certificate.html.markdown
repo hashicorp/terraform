@@ -78,8 +78,10 @@ resource "aws_elb" "ourapp" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Server Certificate. Do not include the 
-  path in this value.
+* `name` - (Optional) The name of the Server Certificate. Do not include the 
+  path in this value.If omitted, Terraform will assign a random, unique name.
+* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+  prefix. Conflicts with `name`.
 * `certificate_body` – (Required) The contents of the public key certificate in 
   PEM-encoded format.
 * `certificate_chain` – (Optional) The contents of the certificate chain. 
@@ -91,6 +93,8 @@ The following arguments are supported:
     AWS CloudFront, the path must be in format `/cloudfront/your_path_here`.
     See [IAM Identifiers][1] for more details on IAM Paths.
 
+~> **NOTE:** AWS performs behind-the-scenes modifications to some certificate files if they do not adhere to a specific format. These modifications will result in terraform forever believing that it needs to update the resources since the local and AWS file contents will not match after theses modifications occur. In order to prevent this from happening you must ensure that all your PEM-encoded files use UNIX line-breaks and that `certificate_body` contains only one certificate. All other certificates should go in `certificate_chain`. It is common for some Certificate Authorities to issue certificate files that have DOS line-breaks and that are actually multiple certificates concatenated together in order to form a full certificate chain.
+
 ## Attributes Reference
 
 * `id` - The unique Server Certificate name
@@ -98,5 +102,5 @@ The following arguments are supported:
 * `arn` - The Amazon Resource Name (ARN) specifying the server certificate.
 
 
-[1]: http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html
-[2]: http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingServerCerts.html
+[1]: https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html
+[2]: https://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingServerCerts.html

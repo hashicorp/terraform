@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/efs"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEFSMountTarget(t *testing.T) {
+func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -41,8 +42,25 @@ func TestAccAWSEFSMountTarget(t *testing.T) {
 }
 
 func testAccCheckEfsMountTargetDestroy(s *terraform.State) error {
-	if len(s.RootModule().Resources) > 0 {
-		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
+	conn := testAccProvider.Meta().(*AWSClient).efsconn
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_efs_mount_target" {
+			continue
+		}
+
+		resp, err := conn.DescribeMountTargets(&efs.DescribeMountTargetsInput{
+			MountTargetId: aws.String(rs.Primary.ID),
+		})
+		if err != nil {
+			if efsErr, ok := err.(awserr.Error); ok && efsErr.Code() == "MountTargetNotFound" {
+				// gone
+				return nil
+			}
+			return fmt.Errorf("Error describing EFS Mount in tests: %s", err)
+		}
+		if len(resp.MountTargets) > 0 {
+			return fmt.Errorf("EFS Mount target %q still exists", rs.Primary.ID)
+		}
 	}
 
 	return nil

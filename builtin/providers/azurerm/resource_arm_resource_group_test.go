@@ -5,20 +5,61 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/core/http"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMResourceGroup_basic(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMResourceGroup_basic, ri)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMResourceGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureRMResourceGroup_basic,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMResourceGroup_withTags(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMResourceGroup_withTags, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMResourceGroup_withTagsUpdated, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMResourceGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.#", "2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.environment", "Production"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.cost_center", "MSFT"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"azurerm_resource_group.test", "tags.environment", "staging"),
 				),
 			},
 		},
@@ -76,7 +117,30 @@ func testCheckAzureRMResourceGroupDestroy(s *terraform.State) error {
 
 var testAccAzureRMResourceGroup_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1_basic"
+    name = "acctestrg-%d"
     location = "West US"
+}
+`
+
+var testAccAzureRMResourceGroup_withTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+
+    tags {
+		environment = "Production"
+		cost_center = "MSFT"
+    }
+}
+`
+
+var testAccAzureRMResourceGroup_withTagsUpdated = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+
+    tags {
+	environment = "staging"
+    }
 }
 `

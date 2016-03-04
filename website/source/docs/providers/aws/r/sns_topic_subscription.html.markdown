@@ -49,35 +49,39 @@ resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
 The following arguments are supported:
 
 * `topic_arn` - (Required) The ARN of the SNS topic to subscribe to
-* `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`, `http`, `https`, `sms`, or `application`. (`email` is an option but unsupported, see below)
+* `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`,  `lambda`, `application`. (`http` or `https` are partially supported, see below) (`email`, `sms`, are options but unsupported, see below).
 * `endpoint` - (Required) The endpoint to send data to, the contents will vary with the protocol. (see below for more information)
+* `endpoint_auto_confirms` - (Optional) Boolean indicating whether the end point is capable of [auto confirming subscription](http://docs.aws.amazon.com/sns/latest/dg/SendMessageToHttp.html#SendMessageToHttp.prepare) e.g., PagerDuty (default is false)
+* `confirmation_timeout_in_minutes` - (Optional) Integer indicating number of minutes to wait in retying mode for fetching subscription arn before marking it as failure. Only applicable for http and https protocols (default is 1 minute).
 * `raw_message_delivery` - (Optional) Boolean indicating whether or not to enable raw message delivery (the original message is directly passed, not wrapped in JSON with the original message in the message property).
 
 ### Protocols supported
 
 Supported SNS protocols include:
 
-* `http` -- delivery of JSON-encoded message via HTTP POST
-* `https` -- delivery of JSON-encoded message via HTTPS POST
 * `lambda` -- delivery of JSON-encoded message to a lambda function
-* `sms` -- delivery of message via SMS
 * `sqs` -- delivery of JSON-encoded message to an Amazon SQS queue
 * `application` -- delivery of JSON-encoded message to an EndpointArn for a mobile app and device
+
+Partially supported SNS protocols include:
+
+* `http` -- delivery of JSON-encoded messages via HTTP. Supported only for the end points that auto confirms the subscription.
+* `https` -- delivery of JSON-encoded messages via HTTPS. Supported only for the end points that auto confirms the subscription.
 
 Unsupported protocols include the following:
 
 * `email` -- delivery of message via SMTP
 * `email-json` -- delivery of JSON-encoded message via SMTP
+* `sms` -- delivery text message
 
-These are unsupported because the email address needs to be authorized and does not generate an ARN until the target email address has been validated. This breaks
+These are unsupported because the endpoint needs to be authorized and does not 
+generate an ARN until the target email address has been validated. This breaks
 the Terraform model and as a result are not currently supported.
 
 ### Specifying endpoints
 
 Endpoints have different format requirements according to the protocol that is chosen.
 
-* HTTP/HTTPS endpoints will require a URL to POST data to
-* SMS endpoints are mobile numbers that are capable of receiving an SMS
 * SQS endpoints come in the form of the SQS queue's ARN (not the URL of the queue) e.g: `arn:aws:sqs:us-west-2:432981146916:terraform-queue-too`
 * Application endpoints are also the endpoint ARN for the mobile app and device.
 

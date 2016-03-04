@@ -16,6 +16,10 @@ Creates a new resource group on Azure.
 resource "azurerm_resource_group" "test" {
   name     = "testResourceGroup1"
   location = "West US"
+  
+  tags {
+    environment = "Production"
+  }
 }
 ```
 
@@ -28,6 +32,8 @@ The following arguments are supported:
 
 * `location` - (Required) The location where the resource group should be created.
     For a list of all Azure locations, please consult [this link](http://azure.microsoft.com/en-us/regions/).
+    
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 ## Attributes Reference
 

@@ -28,6 +28,15 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        2,
 			},
 		},
+		"implicit primary, explicit index over ten": {
+			Input: "aws_instance.foo[12]",
+			Expected: &ResourceAddress{
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        12,
+			},
+		},
 		"explicit primary, explicit index": {
 			Input: "aws_instance.foo.primary[2]",
 			Expected: &ResourceAddress{
@@ -183,6 +192,21 @@ func TestResourceAddressEquals(t *testing.T) {
 				Index:        -1,
 			},
 			Expect: true,
+		},
+		"index over ten": {
+			Address: &ResourceAddress{
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        1,
+			},
+			Other: &ResourceAddress{
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        13,
+			},
+			Expect: false,
 		},
 		"different type": {
 			Address: &ResourceAddress{

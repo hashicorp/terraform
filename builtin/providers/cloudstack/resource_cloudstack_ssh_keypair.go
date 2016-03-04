@@ -2,12 +2,11 @@ package cloudstack
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/go-homedir"
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
@@ -25,6 +24,12 @@ func resourceCloudStackSSHKeyPair() *schema.Resource {
 			},
 
 			"public_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -51,17 +56,17 @@ func resourceCloudStackSSHKeyPairCreate(d *schema.ResourceData, meta interface{}
 
 	if publicKey != "" {
 		// Register supplied key
-		keyPath, err := homedir.Expand(publicKey)
-		if err != nil {
-			return fmt.Errorf("Error expanding the public key path: %v", err)
-		}
-
-		key, err := ioutil.ReadFile(keyPath)
+		key, _, err := pathorcontents.Read(publicKey)
 		if err != nil {
 			return fmt.Errorf("Error reading the public key: %v", err)
 		}
 
 		p := cs.SSH.NewRegisterSSHKeyPairParams(name, string(key))
+
+		if err := setProjectid(p, cs, d); err != nil {
+			return err
+		}
+
 		_, err = cs.SSH.RegisterSSHKeyPair(p)
 		if err != nil {
 			return err
@@ -69,6 +74,11 @@ func resourceCloudStackSSHKeyPairCreate(d *schema.ResourceData, meta interface{}
 	} else {
 		// No key supplied, must create one and return the private key
 		p := cs.SSH.NewCreateSSHKeyPairParams(name)
+
+		if err := setProjectid(p, cs, d); err != nil {
+			return err
+		}
+
 		r, err := cs.SSH.CreateSSHKeyPair(p)
 		if err != nil {
 			return err
@@ -89,6 +99,10 @@ func resourceCloudStackSSHKeyPairRead(d *schema.ResourceData, meta interface{}) 
 
 	p := cs.SSH.NewListSSHKeyPairsParams()
 	p.SetName(d.Id())
+
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
+	}
 
 	r, err := cs.SSH.ListSSHKeyPairs(p)
 	if err != nil {
@@ -112,6 +126,10 @@ func resourceCloudStackSSHKeyPairDelete(d *schema.ResourceData, meta interface{}
 
 	// Create a new parameter struct
 	p := cs.SSH.NewDeleteSSHKeyPairParams(d.Id())
+
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
+	}
 
 	// Remove the SSH Keypair
 	_, err := cs.SSH.DeleteSSHKeyPair(p)

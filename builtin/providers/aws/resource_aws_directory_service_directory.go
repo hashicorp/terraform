@@ -8,9 +8,16 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/hashicorp/terraform/helper/resource"
 )
+
+var directoryCreationFuncs = map[string]func(*directoryservice.DirectoryService, *schema.ResourceData) (string, error){
+	"SimpleAD":    createSimpleDirectoryService,
+	"MicrosoftAD": createActiveDirectoryService,
+	"ADConnector": createDirectoryConnector,
+}
 
 func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 	return &schema.Resource{
@@ -32,7 +39,7 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			},
 			"size": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"alias": &schema.Schema{
@@ -54,9 +61,43 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			},
 			"vpc_settings": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"subnet_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"vpc_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
+			"connect_settings": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"customer_username": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"customer_dns_ips": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
 						"subnet_ids": &schema.Schema{
 							Type:     schema.TypeSet,
 							Required: true,
@@ -89,14 +130,120 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				Default:  "SimpleAD",
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					validTypes := []string{"SimpleAD", "MicrosoftAD"}
+					value := v.(string)
+					for validType, _ := range directoryCreationFuncs {
+						if validType == value {
+							return
+						}
+					}
+					es = append(es, fmt.Errorf("%q must be one of %q", k, validTypes))
+					return
+				},
 			},
 		},
 	}
 }
 
-func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta interface{}) error {
-	dsconn := meta.(*AWSClient).dsconn
+func buildVpcSettings(d *schema.ResourceData) (vpcSettings *directoryservice.DirectoryVpcSettings, err error) {
+	if v, ok := d.GetOk("vpc_settings"); !ok {
+		return nil, fmt.Errorf("vpc_settings is required for type = SimpleAD or MicrosoftAD")
+	} else {
+		settings := v.([]interface{})
+
+		if len(settings) > 1 {
+			return nil, fmt.Errorf("Only a single vpc_settings block is expected")
+		} else if len(settings) == 1 {
+			s := settings[0].(map[string]interface{})
+			var subnetIds []*string
+			for _, id := range s["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
+
+			vpcSettings = &directoryservice.DirectoryVpcSettings{
+				SubnetIds: subnetIds,
+				VpcId:     aws.String(s["vpc_id"].(string)),
+			}
+		}
+	}
+
+	return vpcSettings, nil
+}
+
+func buildConnectSettings(d *schema.ResourceData) (connectSettings *directoryservice.DirectoryConnectSettings, err error) {
+	if v, ok := d.GetOk("connect_settings"); !ok {
+		return nil, fmt.Errorf("connect_settings is required for type = ADConnector")
+	} else {
+		settings := v.([]interface{})
+
+		if len(settings) > 1 {
+			return nil, fmt.Errorf("Only a single connect_settings block is expected")
+		} else if len(settings) == 1 {
+			s := settings[0].(map[string]interface{})
+
+			var subnetIds []*string
+			for _, id := range s["subnet_ids"].(*schema.Set).List() {
+				subnetIds = append(subnetIds, aws.String(id.(string)))
+			}
+
+			var customerDnsIps []*string
+			for _, id := range s["customer_dns_ips"].(*schema.Set).List() {
+				customerDnsIps = append(customerDnsIps, aws.String(id.(string)))
+			}
+
+			connectSettings = &directoryservice.DirectoryConnectSettings{
+				CustomerDnsIps:   customerDnsIps,
+				CustomerUserName: aws.String(s["customer_username"].(string)),
+				SubnetIds:        subnetIds,
+				VpcId:            aws.String(s["vpc_id"].(string)),
+			}
+		}
+	}
+
+	return connectSettings, nil
+}
+
+func createDirectoryConnector(dsconn *directoryservice.DirectoryService, d *schema.ResourceData) (directoryId string, err error) {
+	if _, ok := d.GetOk("size"); !ok {
+		return "", fmt.Errorf("size is required for type = ADConnector")
+	}
+
+	input := directoryservice.ConnectDirectoryInput{
+		Name:     aws.String(d.Get("name").(string)),
+		Password: aws.String(d.Get("password").(string)),
+		Size:     aws.String(d.Get("size").(string)),
+	}
+
+	if v, ok := d.GetOk("description"); ok {
+		input.Description = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("short_name"); ok {
+		input.ShortName = aws.String(v.(string))
+	}
+
+	input.ConnectSettings, err = buildConnectSettings(d)
+	if err != nil {
+		return "", err
+	}
+
+	log.Printf("[DEBUG] Creating Directory Connector: %s", input)
+	out, err := dsconn.ConnectDirectory(&input)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[DEBUG] Directory Connector created: %s", out)
+
+	return *out.DirectoryId, nil
+}
+
+func createSimpleDirectoryService(dsconn *directoryservice.DirectoryService, d *schema.ResourceData) (directoryId string, err error) {
+	if _, ok := d.GetOk("size"); !ok {
+		return "", fmt.Errorf("size is required for type = SimpleAD")
+	}
 
 	input := directoryservice.CreateDirectoryInput{
 		Name:     aws.String(d.Get("name").(string)),
@@ -111,39 +258,70 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 		input.ShortName = aws.String(v.(string))
 	}
 
-	if v, ok := d.GetOk("vpc_settings"); ok {
-		settings := v.([]interface{})
-
-		if len(settings) > 1 {
-			return fmt.Errorf("Only a single vpc_settings block is expected")
-		} else if len(settings) == 1 {
-			s := settings[0].(map[string]interface{})
-			var subnetIds []*string
-			for _, id := range s["subnet_ids"].(*schema.Set).List() {
-				subnetIds = append(subnetIds, aws.String(id.(string)))
-			}
-
-			vpcSettings := directoryservice.DirectoryVpcSettings{
-				SubnetIds: subnetIds,
-				VpcId:     aws.String(s["vpc_id"].(string)),
-			}
-			input.VpcSettings = &vpcSettings
-		}
+	input.VpcSettings, err = buildVpcSettings(d)
+	if err != nil {
+		return "", err
 	}
 
-	log.Printf("[DEBUG] Creating Directory Service: %s", input)
+	log.Printf("[DEBUG] Creating Simple Directory Service: %s", input)
 	out, err := dsconn.CreateDirectory(&input)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[DEBUG] Simple Directory Service created: %s", out)
+
+	return *out.DirectoryId, nil
+}
+
+func createActiveDirectoryService(dsconn *directoryservice.DirectoryService, d *schema.ResourceData) (directoryId string, err error) {
+	input := directoryservice.CreateMicrosoftADInput{
+		Name:     aws.String(d.Get("name").(string)),
+		Password: aws.String(d.Get("password").(string)),
+	}
+
+	if v, ok := d.GetOk("description"); ok {
+		input.Description = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("short_name"); ok {
+		input.ShortName = aws.String(v.(string))
+	}
+
+	input.VpcSettings, err = buildVpcSettings(d)
+	if err != nil {
+		return "", err
+	}
+
+	log.Printf("[DEBUG] Creating Microsoft AD Directory Service: %s", input)
+	out, err := dsconn.CreateMicrosoftAD(&input)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[DEBUG] Microsoft AD Directory Service created: %s", out)
+
+	return *out.DirectoryId, nil
+}
+
+func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta interface{}) error {
+	dsconn := meta.(*AWSClient).dsconn
+
+	creationFunc, ok := directoryCreationFuncs[d.Get("type").(string)]
+	if !ok {
+		// Shouldn't happen as this is validated above
+		return fmt.Errorf("Unsupported directory type: %s", d.Get("type"))
+	}
+
+	directoryId, err := creationFunc(dsconn, d)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Directory Service created: %s", out)
-	d.SetId(*out.DirectoryId)
+
+	d.SetId(directoryId)
 
 	// Wait for creation
 	log.Printf("[DEBUG] Waiting for DS (%q) to become available", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Requested", "Creating", "Created"},
-		Target:  "Active",
+		Target:  []string{"Active"},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := dsconn.DescribeDirectories(&directoryservice.DescribeDirectoriesInput{
 				DirectoryIds: []*string{aws.String(d.Id())},
@@ -158,11 +336,11 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 				d.Id(), *ds.Stage)
 			return ds, *ds.Stage, nil
 		},
-		Timeout: 10 * time.Minute,
+		Timeout: 30 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
-			"Error waiting for Directory Service (%s) to become available: %#v",
+			"Error waiting for Directory Service (%s) to become available: %s",
 			d.Id(), err)
 	}
 
@@ -226,21 +404,29 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	}
 
 	dir := out.DirectoryDescriptions[0]
-	log.Printf("[DEBUG] Received DS directory: %s", *dir)
+	log.Printf("[DEBUG] Received DS directory: %s", dir)
 
 	d.Set("access_url", *dir.AccessUrl)
 	d.Set("alias", *dir.Alias)
 	if dir.Description != nil {
 		d.Set("description", *dir.Description)
 	}
-	d.Set("dns_ip_addresses", schema.NewSet(schema.HashString, flattenStringList(dir.DnsIpAddrs)))
+
+	if *dir.Type == "ADConnector" {
+		d.Set("dns_ip_addresses", schema.NewSet(schema.HashString, flattenStringList(dir.ConnectSettings.ConnectIps)))
+	} else {
+		d.Set("dns_ip_addresses", schema.NewSet(schema.HashString, flattenStringList(dir.DnsIpAddrs)))
+	}
 	d.Set("name", *dir.Name)
 	if dir.ShortName != nil {
 		d.Set("short_name", *dir.ShortName)
 	}
-	d.Set("size", *dir.Size)
+	if dir.Size != nil {
+		d.Set("size", *dir.Size)
+	}
 	d.Set("type", *dir.Type)
 	d.Set("vpc_settings", flattenDSVpcSettings(dir.VpcSettings))
+	d.Set("connect_settings", flattenDSConnectSettings(dir.DnsIpAddrs, dir.ConnectSettings))
 	d.Set("enable_sso", *dir.SsoEnabled)
 
 	return nil
@@ -252,6 +438,8 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 	input := directoryservice.DeleteDirectoryInput{
 		DirectoryId: aws.String(d.Id()),
 	}
+
+	log.Printf("[DEBUG] Delete Directory input: %s", input)
 	_, err := dsconn.DeleteDirectory(&input)
 	if err != nil {
 		return err
@@ -261,17 +449,20 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 	log.Printf("[DEBUG] Waiting for DS (%q) to be deleted", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"Deleting"},
-		Target:  "",
+		Target:  []string{"Deleted"},
 		Refresh: func() (interface{}, string, error) {
 			resp, err := dsconn.DescribeDirectories(&directoryservice.DescribeDirectoriesInput{
 				DirectoryIds: []*string{aws.String(d.Id())},
 			})
 			if err != nil {
-				return nil, "", err
+				if dserr, ok := err.(awserr.Error); ok && dserr.Code() == "EntityDoesNotExistException" {
+					return 42, "Deleted", nil
+				}
+				return nil, "error", err
 			}
 
 			if len(resp.DirectoryDescriptions) == 0 {
-				return nil, "", nil
+				return 42, "Deleted", nil
 			}
 
 			ds := resp.DirectoryDescriptions[0]
@@ -279,7 +470,7 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 				d.Id(), *ds.Stage)
 			return ds, *ds.Stage, nil
 		},
-		Timeout: 10 * time.Minute,
+		Timeout: 30 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(

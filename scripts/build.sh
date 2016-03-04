@@ -16,14 +16,7 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
-XC_OS=${XC_OS:-linux darwin windows freebsd openbsd}
-
-
-# Get dependencies unless running in quick mode
-if [ "${TF_QUICKDEV}x" == "x" ]; then
-    echo "==> Getting dependencies..."
-    go get -d ./...
-fi
+XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
 
 # Delete the old dir
 echo "==> Removing old directory..."
@@ -31,11 +24,15 @@ rm -f bin/*
 rm -rf pkg/*
 mkdir -p bin/
 
-
 # If its dev mode, only build for ourself
 if [ "${TF_DEV}x" != "x" ]; then
     XC_OS=$(go env GOOS)
     XC_ARCH=$(go env GOARCH)
+fi
+
+if ! which gox > /dev/null; then
+    echo "==> Installing gox..."
+    go get -u github.com/mitchellh/gox
 fi
 
 # Build!
@@ -43,9 +40,9 @@ echo "==> Building..."
 gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
-    -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
+    -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" \
     -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
-    ./...
+    $(go list ./... | grep -v /vendor/)
 
 # Make sure "terraform-terraform" is renamed properly
 for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do

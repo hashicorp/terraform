@@ -5,19 +5,14 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
-func stringHashcode(v interface{}) int {
-	return hashcode.String(v.(string))
-}
-
 func stringScopeHashcode(v interface{}) int {
 	v = canonicalizeServiceScope(v.(string))
-	return hashcode.String(v.(string))
+	return schema.HashString(v)
 }
 
 func resourceComputeInstance() *schema.Resource {
@@ -116,7 +111,13 @@ func resourceComputeInstance() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"network": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"subnetwork": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 
@@ -137,8 +138,12 @@ func resourceComputeInstance() *schema.Resource {
 								Schema: map[string]*schema.Schema{
 									"nat_ip": &schema.Schema{
 										Type:     schema.TypeString,
-										Computed: true,
 										Optional: true,
+									},
+
+									"assigned_nat_ip": &schema.Schema{
+										Type:     schema.TypeString,
+										Computed: true,
 									},
 								},
 							},
@@ -259,7 +264,7 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringHashcode,
+				Set:      schema.HashString,
 			},
 
 			"metadata_fingerprint": &schema.Schema{
@@ -285,6 +290,7 @@ func getInstance(config *Config, d *schema.ResourceData) (*compute.Instance, err
 		config.Project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Instance %q because it's gone", d.Get("name").(string))
 			// The resource doesn't exist anymore
 			id := d.Id()
 			d.SetId("")
@@ -445,17 +451,36 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			prefix := fmt.Sprintf("network_interface.%d", i)
 			// Load up the name of this network_interfac
 			networkName := d.Get(prefix + ".network").(string)
-			network, err := config.clientCompute.Networks.Get(
-				config.Project, networkName).Do()
-			if err != nil {
-				return fmt.Errorf(
-					"Error referencing network '%s': %s",
-					networkName, err)
+			subnetworkName := d.Get(prefix + ".subnetwork").(string)
+			var networkLink, subnetworkLink string
+
+			if networkName != "" && subnetworkName != "" {
+				return fmt.Errorf("Cannot specify both network and subnetwork values.")
+			} else if networkName != "" {
+				network, err := config.clientCompute.Networks.Get(
+					config.Project, networkName).Do()
+				if err != nil {
+					return fmt.Errorf(
+						"Error referencing network '%s': %s",
+						networkName, err)
+				}
+				networkLink = network.SelfLink
+			} else {
+				region := getRegionFromZone(d.Get("zone").(string))
+				subnetwork, err := config.clientCompute.Subnetworks.Get(
+					config.Project, region, subnetworkName).Do()
+				if err != nil {
+					return fmt.Errorf(
+						"Error referencing subnetwork '%s' in region '%s': %s",
+						subnetworkName, region, err)
+				}
+				subnetworkLink = subnetwork.SelfLink
 			}
 
 			// Build the networkInterface
 			var iface compute.NetworkInterface
-			iface.Network = network.SelfLink
+			iface.Network = networkLink
+			iface.Subnetwork = subnetworkLink
 
 			// Handle access_config structs
 			accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
@@ -562,7 +587,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Synch metadata
 	md := instance.Metadata
 
-	_md := MetadataFormatSchema(md)
+	_md := MetadataFormatSchema(d.Get("metadata").(map[string]interface{}), md)
 	delete(_md, "startup-script")
 
 	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
@@ -636,9 +661,10 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			var natIP string
 			accessConfigs := make(
 				[]map[string]interface{}, 0, len(iface.AccessConfigs))
-			for _, config := range iface.AccessConfigs {
+			for j, config := range iface.AccessConfigs {
 				accessConfigs = append(accessConfigs, map[string]interface{}{
-					"nat_ip": config.NatIP,
+					"nat_ip":          d.Get(fmt.Sprintf("network_interface.%d.access_config.%d.nat_ip", i, j)),
+					"assigned_nat_ip": config.NatIP,
 				})
 
 				if natIP == "" {
@@ -658,6 +684,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 				"name":          iface.Name,
 				"address":       iface.NetworkIP,
 				"network":       d.Get(fmt.Sprintf("network_interface.%d.network", i)),
+				"subnetwork":    d.Get(fmt.Sprintf("network_interface.%d.subnetwork", i)),
 				"access_config": accessConfigs,
 			})
 		}

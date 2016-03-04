@@ -2,13 +2,13 @@ package aws
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -36,9 +36,9 @@ func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 func TestAccAWSElasticacheCluster_snapshotsWithUpdates(t *testing.T) {
 	var ec elasticache.CacheCluster
 
-	ri := genRandInt()
-	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshots, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshotsUpdated, ri, ri, ri)
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshots, ri, ri, acctest.RandString(10))
+	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfig_snapshotsUpdated, ri, ri, acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -75,9 +75,9 @@ func TestAccAWSElasticacheCluster_snapshotsWithUpdates(t *testing.T) {
 func TestAccAWSElasticacheCluster_decreasingCacheNodes(t *testing.T) {
 	var ec elasticache.CacheCluster
 
-	ri := genRandInt()
-	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes_update, ri, ri, ri)
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes, ri, ri, acctest.RandString(10))
+	postConfig := fmt.Sprintf(testAccAWSElasticacheClusterConfigDecreasingNodes_update, ri, ri, acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -121,6 +121,29 @@ func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
 					testAccCheckAWSElasticacheClusterAttributes(&ec),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "availability_zone", "us-west-2a"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSElasticacheCluster_multiAZInVpc(t *testing.T) {
+	var csg elasticache.CacheSubnetGroup
+	var ec elasticache.CacheCluster
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSElasticacheClusterMultiAZInVPCConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar", &ec),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "availability_zone", "Multiple"),
 				),
 			},
 		},
@@ -152,6 +175,10 @@ func testAccCheckAWSElasticacheClusterDestroy(s *terraform.State) error {
 			CacheClusterId: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
+			// Verify the error is what we want
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "CacheClusterNotFound" {
+				continue
+			}
 			return err
 		}
 		if len(res.CacheClusters) > 0 {
@@ -190,10 +217,6 @@ func testAccCheckAWSElasticacheClusterExists(n string, v *elasticache.CacheClust
 	}
 }
 
-func genRandInt() int {
-	return rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 1000
-}
-
 var testAccAWSElasticacheClusterConfig = fmt.Sprintf(`
 provider "aws" {
 	region = "us-east-1"
@@ -216,7 +239,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-test-%03d"
+    cluster_id = "tf-%s"
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
@@ -224,7 +247,7 @@ resource "aws_elasticache_cluster" "bar" {
     parameter_group_name = "default.memcached1.4"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
 }
-`, genRandInt(), genRandInt(), genRandInt())
+`, acctest.RandInt(), acctest.RandInt(), acctest.RandString(10))
 
 var testAccAWSElasticacheClusterConfig_snapshots = `
 provider "aws" {
@@ -248,7 +271,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-test-%03d"
+    cluster_id = "tf-%s"
     engine = "redis"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
@@ -282,7 +305,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-test-%03d"
+    cluster_id = "tf-%s"
     engine = "redis"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
@@ -317,7 +340,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-test-%03d"
+    cluster_id = "tf-%s"
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 3
@@ -349,7 +372,7 @@ resource "aws_elasticache_security_group" "bar" {
 }
 
 resource "aws_elasticache_cluster" "bar" {
-    cluster_id = "tf-test-%03d"
+    cluster_id = "tf-%s"
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
@@ -399,7 +422,7 @@ resource "aws_elasticache_cluster" "bar" {
     // Including uppercase letters in this name to ensure
     // that we correctly handle the fact that the API
     // normalizes names to lowercase.
-    cluster_id = "tf-TEST-%03d"
+    cluster_id = "tf-%s"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
     engine = "redis"
@@ -409,9 +432,74 @@ resource "aws_elasticache_cluster" "bar" {
     security_group_ids = ["${aws_security_group.bar.id}"]
     parameter_group_name = "default.redis2.8"
     notification_topic_arn      = "${aws_sns_topic.topic_example.arn}"
+    availability_zone = "us-west-2a"
 }
 
 resource "aws_sns_topic" "topic_example" {
   name = "tf-ecache-cluster-test"
 }
-`, genRandInt(), genRandInt(), genRandInt())
+`, acctest.RandInt(), acctest.RandInt(), acctest.RandString(10))
+
+var testAccAWSElasticacheClusterMultiAZInVPCConfig = fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+    cidr_block = "192.168.0.0/16"
+    tags {
+            Name = "tf-test"
+    }
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "192.168.0.0/20"
+    availability_zone = "us-west-2a"
+    tags {
+            Name = "tf-test-%03d"
+    }
+}
+
+resource "aws_subnet" "bar" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "192.168.16.0/20"
+    availability_zone = "us-west-2b"
+    tags {
+            Name = "tf-test-%03d"
+    }
+}
+
+resource "aws_elasticache_subnet_group" "bar" {
+    name = "tf-test-cache-subnet-%03d"
+    description = "tf-test-cache-subnet-group-descr"
+    subnet_ids = [
+        "${aws_subnet.foo.id}",
+        "${aws_subnet.bar.id}"
+    ]
+}
+
+resource "aws_security_group" "bar" {
+    name = "tf-test-security-group-%03d"
+    description = "tf-test-security-group-descr"
+    vpc_id = "${aws_vpc.foo.id}"
+    ingress {
+        from_port = -1
+        to_port = -1
+        protocol = "icmp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+
+resource "aws_elasticache_cluster" "bar" {
+    cluster_id = "tf-%s"
+    engine = "memcached"
+    node_type = "cache.m1.small"
+    num_cache_nodes = 2
+    port = 11211
+    subnet_group_name = "${aws_elasticache_subnet_group.bar.name}"
+    security_group_ids = ["${aws_security_group.bar.id}"]
+    parameter_group_name = "default.memcached1.4"
+    az_mode = "cross-az"
+    availability_zones = [
+        "us-west-2a",
+        "us-west-2b"
+    ]
+}
+`, acctest.RandInt(), acctest.RandInt(), acctest.RandInt(), acctest.RandInt(), acctest.RandString(10))

@@ -9,7 +9,7 @@ description: |-
 # Resource Graph
 
 Terraform builds a
-[dependency graph](http://en.wikipedia.org/wiki/Dependency_graph)
+[dependency graph](https://en.wikipedia.org/wiki/Dependency_graph)
 from the Terraform configurations, and walks this graph to
 generate plans, refresh state, and more. This page documents
 the details of what are contained in this graph, what types

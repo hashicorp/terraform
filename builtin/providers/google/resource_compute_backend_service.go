@@ -186,6 +186,7 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
+			log.Printf("[WARN] Removing Backend Service %q because it's gone", d.Get("name").(string))
 			d.SetId("")
 
 			return nil
@@ -299,7 +300,7 @@ func expandBackends(configured []interface{}) []*compute.Backend {
 		if v, ok := data["max_rate_per_instance"]; ok {
 			b.MaxRatePerInstance = v.(float64)
 		}
-		if v, ok := data["max_rate_per_instance"]; ok {
+		if v, ok := data["max_utilization"]; ok {
 			b.MaxUtilization = v.(float64)
 		}
 

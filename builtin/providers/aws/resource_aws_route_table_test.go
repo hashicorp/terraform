@@ -218,11 +218,6 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 	var v ec2.RouteTable
 
-	acctId := os.Getenv("TF_ACC_ID")
-	if acctId == "" && os.Getenv(resource.TestEnvVar) != "" {
-		t.Fatal("Error: Test TestAccAWSRouteTable_vpcPeering requires an Account ID in TF_ACC_ID ")
-	}
-
 	testCheck := func(*terraform.State) error {
 		if len(v.Routes) != 2 {
 			return fmt.Errorf("bad routes: %#v", v.Routes)
@@ -243,12 +238,17 @@ func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 		return nil
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("AWS_ACCOUNT_ID") == "" {
+				t.Fatal("Error: Test TestAccAWSRouteTable_vpcPeering requires an Account ID in AWS_ACCOUNT_ID ")
+			}
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRouteTableVpcPeeringConfig(acctId),
+				Config: testAccRouteTableVpcPeeringConfig(os.Getenv("AWS_ACCOUNT_ID")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
 						"aws_route_table.foo", &v),
@@ -401,7 +401,7 @@ resource "aws_route_table" "foo" {
 `
 
 // VPC Peering connections are prefixed with pcx
-// This test requires an ENV var, TF_ACC_ID, with a valid AWS Account ID
+// This test requires an ENV var, AWS_ACCOUNT_ID, with a valid AWS Account ID
 func testAccRouteTableVpcPeeringConfig(acc string) string {
 	cfg := `resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"

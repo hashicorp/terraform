@@ -37,6 +37,12 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				ForceNew: false,
 				Computed: true,
 			},
+			"distributed": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 			"external_gateway": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -69,6 +75,11 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 		createOpts.AdminStateUp = &asu
 	}
 
+	if dRaw, ok := d.GetOk("distributed"); ok {
+		d := dRaw.(bool)
+		createOpts.Distributed = &d
+	}
+
 	externalGateway := d.Get("external_gateway").(string)
 	if externalGateway != "" {
 		gatewayInfo := routers.GatewayInfo{
@@ -87,7 +98,7 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Waiting for OpenStack Neutron Router (%s) to become available", n.ID)
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD", "PENDING_CREATE", "PENDING_UPDATE"},
-		Target:     "ACTIVE",
+		Target:     []string{"ACTIVE"},
 		Refresh:    waitForRouterActive(networkingClient, n.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,
@@ -126,6 +137,7 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", n.AdminStateUp)
+	d.Set("distributed", n.Distributed)
 	d.Set("tenant_id", n.TenantID)
 	d.Set("external_gateway", n.GatewayInfo.NetworkID)
 
@@ -167,7 +179,7 @@ func resourceNetworkingRouterV2Delete(d *schema.ResourceData, meta interface{}) 
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"ACTIVE"},
-		Target:     "DELETED",
+		Target:     []string{"DELETED"},
 		Refresh:    waitForRouterDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,

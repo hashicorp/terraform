@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -27,6 +30,20 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Default:     "",
 				Description: descriptions["secret_key"],
+			},
+
+			"profile": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["profile"],
+			},
+
+			"shared_credentials_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: descriptions["shared_credentials_file"],
 			},
 
 			"token": &schema.Schema{
@@ -59,9 +76,7 @@ func Provider() terraform.ResourceProvider {
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				ConflictsWith: []string{"forbidden_account_ids"},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:           schema.HashString,
 			},
 
 			"forbidden_account_ids": &schema.Schema{
@@ -69,9 +84,7 @@ func Provider() terraform.ResourceProvider {
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
 				ConflictsWith: []string{"allowed_account_ids"},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:           schema.HashString,
 			},
 
 			"dynamodb_endpoint": &schema.Schema{
@@ -87,6 +100,14 @@ func Provider() terraform.ResourceProvider {
 				Default:     "",
 				Description: descriptions["kinesis_endpoint"],
 			},
+			"endpoints": endpointsSchema(),
+
+			"insecure": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["insecure"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -100,6 +121,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_schedule":             resourceAwsAutoscalingSchedule(),
 			"aws_cloudformation_stack":             resourceAwsCloudFormationStack(),
 			"aws_cloudtrail":                       resourceAwsCloudTrail(),
+			"aws_cloudwatch_event_rule":            resourceAwsCloudWatchEventRule(),
+			"aws_cloudwatch_event_target":          resourceAwsCloudWatchEventTarget(),
 			"aws_cloudwatch_log_group":             resourceAwsCloudWatchLogGroup(),
 			"aws_autoscaling_lifecycle_hook":       resourceAwsAutoscalingLifecycleHook(),
 			"aws_cloudwatch_metric_alarm":          resourceAwsCloudWatchMetricAlarm(),
@@ -114,6 +137,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_directory_service_directory":      resourceAwsDirectoryServiceDirectory(),
 			"aws_dynamodb_table":                   resourceAwsDynamoDbTable(),
 			"aws_ebs_volume":                       resourceAwsEbsVolume(),
+			"aws_ecr_repository":                   resourceAwsEcrRepository(),
+			"aws_ecr_repository_policy":            resourceAwsEcrRepositoryPolicy(),
 			"aws_ecs_cluster":                      resourceAwsEcsCluster(),
 			"aws_ecs_service":                      resourceAwsEcsService(),
 			"aws_ecs_task_definition":              resourceAwsEcsTaskDefinition(),
@@ -129,6 +154,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_flow_log":                         resourceAwsFlowLog(),
 			"aws_glacier_vault":                    resourceAwsGlacierVault(),
 			"aws_iam_access_key":                   resourceAwsIamAccessKey(),
+			"aws_iam_account_password_policy":      resourceAwsIamAccountPasswordPolicy(),
 			"aws_iam_group_policy":                 resourceAwsIamGroupPolicy(),
 			"aws_iam_group":                        resourceAwsIamGroup(),
 			"aws_iam_group_membership":             resourceAwsIamGroupMembership(),
@@ -148,6 +174,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_kinesis_stream":                   resourceAwsKinesisStream(),
 			"aws_lambda_function":                  resourceAwsLambdaFunction(),
 			"aws_lambda_event_source_mapping":      resourceAwsLambdaEventSourceMapping(),
+			"aws_lambda_alias":                     resourceAwsLambdaAlias(),
+			"aws_lambda_permission":                resourceAwsLambdaPermission(),
 			"aws_launch_configuration":             resourceAwsLaunchConfiguration(),
 			"aws_lb_cookie_stickiness_policy":      resourceAwsLBCookieStickinessPolicy(),
 			"aws_main_route_table_association":     resourceAwsMainRouteTableAssociation(),
@@ -170,6 +198,10 @@ func Provider() terraform.ResourceProvider {
 			"aws_proxy_protocol_policy":            resourceAwsProxyProtocolPolicy(),
 			"aws_rds_cluster":                      resourceAwsRDSCluster(),
 			"aws_rds_cluster_instance":             resourceAwsRDSClusterInstance(),
+			"aws_redshift_cluster":                 resourceAwsRedshiftCluster(),
+			"aws_redshift_security_group":          resourceAwsRedshiftSecurityGroup(),
+			"aws_redshift_parameter_group":         resourceAwsRedshiftParameterGroup(),
+			"aws_redshift_subnet_group":            resourceAwsRedshiftSubnetGroup(),
 			"aws_route53_delegation_set":           resourceAwsRoute53DelegationSet(),
 			"aws_route53_record":                   resourceAwsRoute53Record(),
 			"aws_route53_zone_association":         resourceAwsRoute53ZoneAssociation(),
@@ -215,6 +247,12 @@ func init() {
 		"secret_key": "The secret key for API operations. You can retrieve this\n" +
 			"from the 'Security & Credentials' section of the AWS console.",
 
+		"profile": "The profile for API operations. If not set, the default profile\n" +
+			"created with `aws configure` will be used.",
+
+		"shared_credentials_file": "The path to the shared credentials file. If not set\n" +
+			"this defaults to ~/.aws/credentials.",
+
 		"token": "session token. A session token is only required if you are\n" +
 			"using temporary security credentials.",
 
@@ -227,6 +265,15 @@ func init() {
 
 		"kinesis_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n" +
 			"It's typically used to connect to kinesalite.",
+
+		"iam_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"ec2_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
+			"default value is `false`",
 	}
 }
 
@@ -234,11 +281,23 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccessKey:        d.Get("access_key").(string),
 		SecretKey:        d.Get("secret_key").(string),
+		Profile:          d.Get("profile").(string),
+		CredsFilename:    d.Get("shared_credentials_file").(string),
 		Token:            d.Get("token").(string),
 		Region:           d.Get("region").(string),
 		MaxRetries:       d.Get("max_retries").(int),
 		DynamoDBEndpoint: d.Get("dynamodb_endpoint").(string),
 		KinesisEndpoint:  d.Get("kinesis_endpoint").(string),
+		Insecure:         d.Get("insecure").(bool),
+	}
+
+	endpointsSet := d.Get("endpoints").(*schema.Set)
+
+	for _, endpointsSetI := range endpointsSet.List() {
+		endpoints := endpointsSetI.(map[string]interface{})
+		config.IamEndpoint = endpoints["iam"].(string)
+		config.Ec2Endpoint = endpoints["ec2"].(string)
+		config.ElbEndpoint = endpoints["elb"].(string)
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
@@ -254,3 +313,45 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 // This is a global MutexKV for use within this plugin.
 var awsMutexKV = mutexkv.NewMutexKV()
+
+func endpointsSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"iam": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["iam_endpoint"],
+				},
+
+				"ec2": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["ec2_endpoint"],
+				},
+
+				"elb": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["elb_endpoint"],
+				},
+			},
+		},
+		Set: endpointsToHash,
+	}
+}
+
+func endpointsToHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["iam"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["elb"].(string)))
+
+	return hashcode.String(buf.String())
+}

@@ -24,16 +24,18 @@ import (
 )
 
 const (
-	clienrb        = "client.rb"
-	defaultEnv     = "_default"
-	firstBoot      = "first-boot.json"
-	logfileDir     = "logfiles"
-	linuxChefCmd   = "chef-client"
-	linuxConfDir   = "/etc/chef"
-	secretKey      = "encrypted_data_bag_secret"
-	validationKey  = "validation.pem"
-	windowsChefCmd = "cmd /c chef-client"
-	windowsConfDir = "C:/chef"
+	clienrb         = "client.rb"
+	defaultEnv      = "_default"
+	firstBoot       = "first-boot.json"
+	logfileDir      = "logfiles"
+	linuxChefCmd    = "chef-client"
+	linuxKnifeCmd   = "knife"
+	linuxConfDir    = "/etc/chef"
+	secretKey       = "encrypted_data_bag_secret"
+	validationKey   = "validation.pem"
+	windowsChefCmd  = "cmd /c chef-client"
+	windowsKnifeCmd = "cmd /c knife"
+	windowsConfDir  = "C:/chef"
 )
 
 const clientConf = `
@@ -60,38 +62,51 @@ ENV['https_proxy'] = "{{ .HTTPSProxy }}"
 ENV['HTTPS_PROXY'] = "{{ .HTTPSProxy }}"
 {{ end }}
 
-{{ if .NOProxy }}no_proxy "{{ join .NOProxy "," }}"{{ end }}
+{{ if .NOProxy }}
+no_proxy          "{{ join .NOProxy "," }}"
+ENV['no_proxy'] = "{{ join .NOProxy "," }}"
+{{ end }}
+
 {{ if .SSLVerifyMode }}ssl_verify_mode {{ .SSLVerifyMode }}{{ end }}
+
+{{ if .DisableReporting }}enable_reporting false{{ end }}
+
+{{ if .ClientOptions }}{{ join .ClientOptions "\n" }}{{ end }}
 `
 
 // Provisioner represents a specificly configured chef provisioner
 type Provisioner struct {
-	Attributes           interface{} `mapstructure:"attributes"`
-	Environment          string      `mapstructure:"environment"`
-	LogToFile            bool        `mapstructure:"log_to_file"`
-	UsePolicyfile        bool        `mapstructure:"use_policyfile"`
-	PolicyGroup          string      `mapstructure:"policy_group"`
-	PolicyName           string      `mapstructure:"policy_name"`
-	HTTPProxy            string      `mapstructure:"http_proxy"`
-	HTTPSProxy           string      `mapstructure:"https_proxy"`
-	NOProxy              []string    `mapstructure:"no_proxy"`
-	NodeName             string      `mapstructure:"node_name"`
-	OhaiHints            []string    `mapstructure:"ohai_hints"`
-	OSType               string      `mapstructure:"os_type"`
-	PreventSudo          bool        `mapstructure:"prevent_sudo"`
-	RunList              []string    `mapstructure:"run_list"`
-	SecretKey            string      `mapstructure:"secret_key"`
-	ServerURL            string      `mapstructure:"server_url"`
-	SkipInstall          bool        `mapstructure:"skip_install"`
-	SSLVerifyMode        string      `mapstructure:"ssl_verify_mode"`
-	ValidationClientName string      `mapstructure:"validation_client_name"`
-	ValidationKey        string      `mapstructure:"validation_key"`
-	Version              string      `mapstructure:"version"`
+	Attributes            interface{} `mapstructure:"attributes"`
+	AttributesJSON        string      `mapstructure:"attributes_json"`
+	ClientOptions         []string    `mapstructure:"client_options"`
+	DisableReporting      bool        `mapstructure:"disable_reporting"`
+	Environment           string      `mapstructure:"environment"`
+	FetchChefCertificates bool        `mapstructure:"fetch_chef_certificates"`
+	LogToFile             bool        `mapstructure:"log_to_file"`
+	UsePolicyfile         bool        `mapstructure:"use_policyfile"`
+	PolicyGroup           string      `mapstructure:"policy_group"`
+	PolicyName            string      `mapstructure:"policy_name"`
+	HTTPProxy             string      `mapstructure:"http_proxy"`
+	HTTPSProxy            string      `mapstructure:"https_proxy"`
+	NOProxy               []string    `mapstructure:"no_proxy"`
+	NodeName              string      `mapstructure:"node_name"`
+	OhaiHints             []string    `mapstructure:"ohai_hints"`
+	OSType                string      `mapstructure:"os_type"`
+	PreventSudo           bool        `mapstructure:"prevent_sudo"`
+	RunList               []string    `mapstructure:"run_list"`
+	SecretKey             string      `mapstructure:"secret_key"`
+	ServerURL             string      `mapstructure:"server_url"`
+	SkipInstall           bool        `mapstructure:"skip_install"`
+	SSLVerifyMode         string      `mapstructure:"ssl_verify_mode"`
+	ValidationClientName  string      `mapstructure:"validation_client_name"`
+	ValidationKey         string      `mapstructure:"validation_key"`
+	Version               string      `mapstructure:"version"`
 
-	installChefClient func(terraform.UIOutput, communicator.Communicator) error
-	createConfigFiles func(terraform.UIOutput, communicator.Communicator) error
-	runChefClient     func(terraform.UIOutput, communicator.Communicator) error
-	useSudo           bool
+	installChefClient     func(terraform.UIOutput, communicator.Communicator) error
+	createConfigFiles     func(terraform.UIOutput, communicator.Communicator) error
+	fetchChefCertificates func(terraform.UIOutput, communicator.Communicator) error
+	runChefClient         func(terraform.UIOutput, communicator.Communicator) error
+	useSudo               bool
 
 	// Deprecated Fields
 	SecretKeyPath     string `mapstructure:"secret_key_path"`
@@ -128,11 +143,13 @@ func (r *ResourceProvisioner) Apply(
 	case "linux":
 		p.installChefClient = p.linuxInstallChefClient
 		p.createConfigFiles = p.linuxCreateConfigFiles
+		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.installChefClient = p.windowsInstallChefClient
 		p.createConfigFiles = p.windowsCreateConfigFiles
+		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
 		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
 		p.useSudo = false
 	default:
@@ -164,6 +181,13 @@ func (r *ResourceProvisioner) Apply(
 	o.Output("Creating configuration files...")
 	if err := p.createConfigFiles(o, comm); err != nil {
 		return err
+	}
+
+	if p.FetchChefCertificates {
+		o.Output("Fetch Chef certificates...")
+		if err := p.fetchChefCertificates(o, comm); err != nil {
+			return err
+		}
 	}
 
 	o.Output("Starting initial Chef-Client run...")
@@ -211,6 +235,10 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	if p.SecretKeyPath != "" {
 		ws = append(ws, "secret_key_path is deprecated, please use "+
 			"secret_key instead and load the key contents via file()")
+	}
+	if _, ok := c.Config["attributes"]; ok {
+		ws = append(ws, "using map style attribute values is deprecated, "+
+			" please use a single raw JSON string instead")
 	}
 
 	return ws, es
@@ -276,6 +304,14 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		}
 	}
 
+	if attrs, ok := c.Config["attributes_json"]; ok {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing the attributes: %v", err)
+		}
+		p.Attributes = m
+	}
+
 	return p, nil
 }
 
@@ -296,7 +332,7 @@ func rawToJSON(raw interface{}) (interface{}, error) {
 
 		return s[0], nil
 	default:
-		return raw, nil
+		return s, nil
 	}
 }
 
@@ -315,6 +351,17 @@ func retryFunc(timeout time.Duration, f func() error) error {
 			return err
 		case <-time.After(3 * time.Second):
 		}
+	}
+}
+
+func (p *Provisioner) fetchChefCertificatesFunc(
+	knifeCmd string,
+	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
+	return func(o terraform.UIOutput, comm communicator.Communicator) error {
+		clientrb := path.Join(confDir, clienrb)
+		cmd := fmt.Sprintf("%s ssl fetch -c %s", knifeCmd, clientrb)
+
+		return p.runCommand(o, comm, cmd)
 	}
 }
 

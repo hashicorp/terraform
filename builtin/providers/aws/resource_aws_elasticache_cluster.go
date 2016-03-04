@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -89,18 +88,14 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 			"security_group_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 			// Exported Attributes
 			"cache_nodes": &schema.Schema{
@@ -118,6 +113,10 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"availability_zone": &schema.Schema{
+							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
@@ -138,9 +137,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"snapshot_window": &schema.Schema{
@@ -160,6 +157,28 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 					}
 					return
 				},
+			},
+
+			"az_mode": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"availability_zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"availability_zones": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 
 			"tags": tagsSchema(),
@@ -234,6 +253,20 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		log.Printf("[DEBUG] Restoring Redis cluster from S3 snapshot: %#v", s)
 	}
 
+	if v, ok := d.GetOk("az_mode"); ok {
+		req.AZMode = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("availability_zone"); ok {
+		req.PreferredAvailabilityZone = aws.String(v.(string))
+	}
+
+	preferred_azs := d.Get("availability_zones").(*schema.Set).List()
+	if len(preferred_azs) > 0 {
+		azs := expandStringList(preferred_azs)
+		req.PreferredAvailabilityZones = azs
+	}
+
 	resp, err := conn.CreateCacheCluster(req)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache: %s", err)
@@ -248,7 +281,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	pending := []string{"creating"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
-		Target:     "available",
+		Target:     []string{"available"},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "available", pending),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -306,6 +339,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 				d.Set("notification_topic_arn", c.NotificationConfiguration.TopicArn)
 			}
 		}
+		d.Set("availability_zone", c.PreferredAvailabilityZone)
 
 		if err := setCacheNodeData(d, c); err != nil {
 			return err
@@ -398,6 +432,9 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 		oraw, nraw := d.GetChange("num_cache_nodes")
 		o := oraw.(int)
 		n := nraw.(int)
+		if v, ok := d.GetOk("az_mode"); ok && v.(string) == "cross-az" && n == 1 {
+			return fmt.Errorf("[WARN] Error updateing Elasticache cluster (%s), error: Cross-AZ mode is not supported in a single cache node.", d.Id())
+		}
 		if n < o {
 			log.Printf("[INFO] Cluster %s is marked for Decreasing cache nodes from %d to %d", d.Id(), o, n)
 			nodesToRemove := getCacheNodesToRemove(d, o, o-n)
@@ -420,7 +457,7 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 		pending := []string{"modifying", "rebooting cache cluster nodes", "snapshotting"}
 		stateConf := &resource.StateChangeConf{
 			Pending:    pending,
-			Target:     "available",
+			Target:     []string{"available"},
 			Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "available", pending),
 			Timeout:    5 * time.Minute,
 			Delay:      5 * time.Second,
@@ -454,13 +491,14 @@ func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error
 	cacheNodeData := make([]map[string]interface{}, 0, len(sortedCacheNodes))
 
 	for _, node := range sortedCacheNodes {
-		if node.CacheNodeId == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil {
+		if node.CacheNodeId == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil || node.CustomerAvailabilityZone == nil {
 			return fmt.Errorf("Unexpected nil pointer in: %s", node)
 		}
 		cacheNodeData = append(cacheNodeData, map[string]interface{}{
-			"id":      *node.CacheNodeId,
-			"address": *node.Endpoint.Address,
-			"port":    int(*node.Endpoint.Port),
+			"id":                *node.CacheNodeId,
+			"address":           *node.Endpoint.Address,
+			"port":              int(*node.Endpoint.Port),
+			"availability_zone": *node.CustomerAvailabilityZone,
 		})
 	}
 
@@ -490,9 +528,9 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 	log.Printf("[DEBUG] Waiting for deletion: %v", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "available", "deleting", "incompatible-parameters", "incompatible-network", "restore-failed"},
-		Target:     "",
+		Target:     []string{},
 		Refresh:    cacheClusterStateRefreshFunc(conn, d.Id(), "", []string{}),
-		Timeout:    10 * time.Minute,
+		Timeout:    20 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}

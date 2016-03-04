@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -38,9 +37,7 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -103,7 +100,9 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("vpc_id", vpce.VpcId)
 	d.Set("policy", normalizeJson(*vpce.PolicyDocument))
 	d.Set("service_name", vpce.ServiceName)
-	d.Set("route_table_ids", vpce.RouteTableIds)
+	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -142,7 +141,7 @@ func resourceAwsVPCEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	log.Printf("[DEBUG] VPC Endpoint %q updated", input.VpcEndpointId)
 
-	return nil
+	return resourceAwsVPCEndpointRead(d, meta)
 }
 
 func resourceAwsVPCEndpointDelete(d *schema.ResourceData, meta interface{}) error {

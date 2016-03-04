@@ -34,8 +34,21 @@ The following arguments are supported:
 * `cidr` - (Required) The CIDR block for the network. Changing this forces a new
     resource to be created.
 
+* `startip` - (Optional) Start of the IP block that will be available on the 
+    network. Defaults to the second available IP in the range.
+
+* `endip` - (Optional) End of the IP block that will be available on the 
+    network. Defaults to the last available IP in the range.
+
+* `gateway` - (Optional) Gateway that will be provided to the instances in this
+    network. Defaults to the first usable IP in the range.
+
 * `network_offering` - (Required) The name or ID of the network offering to use
     for this network.
+
+* `vlan` - (Optional) The VLAN number (1-4095) the network will use. This might be
+    required by the Network Offering if specifyVlan=true is set. Only the ROOT 
+    admin can set this value.
 
 * `vpc` - (Optional) The name or ID of the VPC to create this network for. Changing
     this forces a new resource to be created.
@@ -48,6 +61,8 @@ The following arguments are supported:
 
 * `zone` - (Required) The name or ID of the zone where this disk volume will be
     available. Changing this forces a new resource to be created.
+
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 ## Attributes Reference
 

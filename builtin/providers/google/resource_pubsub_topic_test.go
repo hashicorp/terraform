@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -33,9 +34,9 @@ func testAccCheckPubsubTopicDestroy(s *terraform.State) error {
 		}
 
 		config := testAccProvider.Meta().(*Config)
-		_, err := config.clientPubsub.Projects.Topics.Get(rs.Primary.ID).Do()
-		if err != nil {
-			fmt.Errorf("Topic still present")
+		topic, _ := config.clientPubsub.Projects.Topics.Get(rs.Primary.ID).Do()
+		if topic != nil {
+			return fmt.Errorf("Topic still present")
 		}
 	}
 
@@ -55,14 +56,14 @@ func testAccPubsubTopicExists(n string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*Config)
 		_, err := config.clientPubsub.Projects.Topics.Get(rs.Primary.ID).Do()
 		if err != nil {
-			fmt.Errorf("Topic still present")
+			return fmt.Errorf("Topic does not exist")
 		}
 
 		return nil
 	}
 }
 
-const testAccPubsubTopic = `
+var testAccPubsubTopic = fmt.Sprintf(`
 resource "google_pubsub_topic" "foobar" {
-	name = "foobar"
-}`
+	name = "pstopic-test-%s"
+}`, acctest.RandString(10))

@@ -3,6 +3,7 @@ package google
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -50,9 +51,7 @@ func resourceComputeFirewall() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set: func(v interface{}) int {
-								return hashcode.String(v.(string))
-							},
+							Set:      schema.HashString,
 						},
 					},
 				},
@@ -63,27 +62,21 @@ func resourceComputeFirewall() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"source_tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"target_tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"self_link": &schema.Schema{
@@ -150,6 +143,7 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
+			log.Printf("[WARN] Removing Firewall %q because it's gone", d.Get("name").(string))
 			d.SetId("")
 
 			return nil

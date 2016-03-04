@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceContainerCluster() *schema.Resource {
@@ -280,7 +281,7 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	// Wait until it's created
 	wait := resource.StateChangeConf{
 		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     "DONE",
+		Target:     []string{"DONE"},
 		Timeout:    30 * time.Minute,
 		MinTimeout: 3 * time.Second,
 		Refresh: func() (interface{}, string, error) {
@@ -312,6 +313,14 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	cluster, err := config.clientContainer.Projects.Zones.Clusters.Get(
 		config.Project, zoneName, d.Get("name").(string)).Do()
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Container Cluster %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return err
 	}
 
@@ -364,7 +373,7 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 	// Wait until it's updated
 	wait := resource.StateChangeConf{
 		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     "DONE",
+		Target:     []string{"DONE"},
 		Timeout:    10 * time.Minute,
 		MinTimeout: 2 * time.Second,
 		Refresh: func() (interface{}, string, error) {
@@ -404,7 +413,7 @@ func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) er
 	// Wait until it's deleted
 	wait := resource.StateChangeConf{
 		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     "DONE",
+		Target:     []string{"DONE"},
 		Timeout:    10 * time.Minute,
 		MinTimeout: 3 * time.Second,
 		Refresh: func() (interface{}, string, error) {

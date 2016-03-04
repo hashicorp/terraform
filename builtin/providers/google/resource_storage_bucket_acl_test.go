@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-
 	//"google.golang.org/api/storage/v1"
 )
 
@@ -18,19 +18,22 @@ var roleEntityBasic3_owner = "OWNER:user-yetanotheremail@gmail.com"
 
 var roleEntityBasic3_reader = "READER:user-yetanotheremail@gmail.com"
 
-var testAclBucketName = fmt.Sprintf("%s-%d", "tf-test-acl-bucket", genRandInt())
+func testAclBucketName() string {
+	return fmt.Sprintf("%s-%d", "tf-test-acl-bucket", acctest.RandInt())
+}
 
 func TestAccGoogleStorageBucketAcl_basic(t *testing.T) {
+	bucketName := testAclBucketName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageBucketAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclBasic1,
+				Config: testGoogleStorageBucketsAclBasic1(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic1),
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic2),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic1),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic2),
 				),
 			},
 		},
@@ -38,33 +41,34 @@ func TestAccGoogleStorageBucketAcl_basic(t *testing.T) {
 }
 
 func TestAccGoogleStorageBucketAcl_upgrade(t *testing.T) {
+	bucketName := testAclBucketName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageBucketAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclBasic1,
+				Config: testGoogleStorageBucketsAclBasic1(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic1),
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic2),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic1),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic2),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclBasic2,
+				Config: testGoogleStorageBucketsAclBasic2(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic2),
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic3_owner),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic2),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic3_owner),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclBasicDelete,
+				Config: testGoogleStorageBucketsAclBasicDelete(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageBucketAclDelete(testAclBucketName, roleEntityBasic1),
-					testAccCheckGoogleStorageBucketAclDelete(testAclBucketName, roleEntityBasic2),
-					testAccCheckGoogleStorageBucketAclDelete(testAclBucketName, roleEntityBasic3_owner),
+					testAccCheckGoogleStorageBucketAclDelete(bucketName, roleEntityBasic1),
+					testAccCheckGoogleStorageBucketAclDelete(bucketName, roleEntityBasic2),
+					testAccCheckGoogleStorageBucketAclDelete(bucketName, roleEntityBasic3_owner),
 				),
 			},
 		},
@@ -72,33 +76,34 @@ func TestAccGoogleStorageBucketAcl_upgrade(t *testing.T) {
 }
 
 func TestAccGoogleStorageBucketAcl_downgrade(t *testing.T) {
+	bucketName := testAclBucketName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageBucketAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclBasic2,
+				Config: testGoogleStorageBucketsAclBasic2(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic2),
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic3_owner),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic2),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic3_owner),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclBasic3,
+				Config: testGoogleStorageBucketsAclBasic3(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic2),
-					testAccCheckGoogleStorageBucketAcl(testAclBucketName, roleEntityBasic3_reader),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic2),
+					testAccCheckGoogleStorageBucketAcl(bucketName, roleEntityBasic3_reader),
 				),
 			},
 
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclBasicDelete,
+				Config: testGoogleStorageBucketsAclBasicDelete(bucketName),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleStorageBucketAclDelete(testAclBucketName, roleEntityBasic1),
-					testAccCheckGoogleStorageBucketAclDelete(testAclBucketName, roleEntityBasic2),
-					testAccCheckGoogleStorageBucketAclDelete(testAclBucketName, roleEntityBasic3_owner),
+					testAccCheckGoogleStorageBucketAclDelete(bucketName, roleEntityBasic1),
+					testAccCheckGoogleStorageBucketAclDelete(bucketName, roleEntityBasic2),
+					testAccCheckGoogleStorageBucketAclDelete(bucketName, roleEntityBasic3_owner),
 				),
 			},
 		},
@@ -112,7 +117,7 @@ func TestAccGoogleStorageBucketAcl_predefined(t *testing.T) {
 		CheckDestroy: testAccGoogleStorageBucketAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testGoogleStorageBucketsAclPredefined,
+				Config: testGoogleStorageBucketsAclPredefined(bucketName),
 			},
 		},
 	})
@@ -172,7 +177,8 @@ func testAccGoogleStorageBucketAclDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testGoogleStorageBucketsAclBasic1 = fmt.Sprintf(`
+func testGoogleStorageBucketsAclBasic1(bucketName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -181,9 +187,11 @@ resource "google_storage_bucket_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = ["%s", "%s"]
 }
-`, testAclBucketName, roleEntityBasic1, roleEntityBasic2)
+`, bucketName, roleEntityBasic1, roleEntityBasic2)
+}
 
-var testGoogleStorageBucketsAclBasic2 = fmt.Sprintf(`
+func testGoogleStorageBucketsAclBasic2(bucketName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -192,9 +200,11 @@ resource "google_storage_bucket_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = ["%s", "%s"]
 }
-`, testAclBucketName, roleEntityBasic2, roleEntityBasic3_owner)
+`, bucketName, roleEntityBasic2, roleEntityBasic3_owner)
+}
 
-var testGoogleStorageBucketsAclBasicDelete = fmt.Sprintf(`
+func testGoogleStorageBucketsAclBasicDelete(bucketName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -203,9 +213,11 @@ resource "google_storage_bucket_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = []
 }
-`, testAclBucketName)
+`, bucketName)
+}
 
-var testGoogleStorageBucketsAclBasic3 = fmt.Sprintf(`
+func testGoogleStorageBucketsAclBasic3(bucketName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -214,9 +226,11 @@ resource "google_storage_bucket_acl" "acl" {
 	bucket = "${google_storage_bucket.bucket.name}"
 	role_entity = ["%s", "%s"]
 }
-`, testAclBucketName, roleEntityBasic2, roleEntityBasic3_reader)
+`, bucketName, roleEntityBasic2, roleEntityBasic3_reader)
+}
 
-var testGoogleStorageBucketsAclPredefined = fmt.Sprintf(`
+func testGoogleStorageBucketsAclPredefined(bucketName string) string {
+	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
 	name = "%s"
 }
@@ -226,4 +240,5 @@ resource "google_storage_bucket_acl" "acl" {
 	predefined_acl = "projectPrivate"
 	default_acl = "projectPrivate"
 }
-`, testAclBucketName)
+`, bucketName)
+}

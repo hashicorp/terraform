@@ -25,14 +25,19 @@ available on the target machine.
 resource "aws_instance" "web" {
     ...
     provisioner "chef"  {
-        attributes {
-            "key" = "value"
-            "app" {
-                "cluster1" {
-                    "nodes" = ["webserver1", "webserver2"]
+        attributes_json = <<EOF
+        {
+            "key": "value",
+            "app": {
+                "cluster1": {
+                    "nodes": [
+                        "webserver1",
+                        "webserver2"
+                    ]
                 }
             }
         }
+        EOF
         environment = "_default"
         run_list = ["cookbook::recipe"]
         node_name = "webserver1"
@@ -49,11 +54,22 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `attributes (map)` - (Optional) A map with initial node attributes for the new node.
-  See example.
+* `attributes_json (string)` - (Optional) A raw JSON string with initial node attributes
+  for the new node. These can also be loaded from a file on disk using the [`file()`
+  interpolation function](/docs/configuration/interpolation.html#file_path_).
+
+* `client_options (array)` - (Optional) A list of optional Chef Client configuration
+  options. See the [Chef Client ](https://docs.chef.io/config_rb_client.html) documentation for all available options.
+
+* `disable_reporting (boolean)` - (Optional) If true the Chef Client will not try to send
+  reporting data (used by Chef Reporting) to the Chef Server (defaults false)
 
 * `environment (string)` - (Optional) The Chef environment the new node will be joining
   (defaults `_default`).
+
+* `fetch_chef_certificates (boolean)` (Optional) If true the SSL certificates configured
+  on your Chef server will be fetched and trusted. See the knife [ssl_fetch](https://docs.chef.io/knife_ssl_fetch.html)
+  documentation for more details.
 
 * `log_to_file (boolean)` - (Optional) If true, the output of the initial Chef Client run
   will be logged to a local file instead of the console. The file will be created in a
@@ -112,5 +128,6 @@ The following arguments are supported:
 These are supported for backwards compatibility and may be removed in a
 future version:
 
-* `validation_key_path (string)` - __Deprecated: please use `validation_key` instead__.
+* `attributes (map)` - __Deprecated: please use `attributes_json` instead__.
 * `secret_key_path (string)` - __Deprecated: please use `secret_key` instead__.
+* `validation_key_path (string)` - __Deprecated: please use `validation_key` instead__.

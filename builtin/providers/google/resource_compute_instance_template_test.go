@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
+	"strings"
 )
 
 func TestAccComputeInstanceTemplate_basic(t *testing.T) {
@@ -66,6 +68,47 @@ func TestAccComputeInstanceTemplate_disks(t *testing.T) {
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814", true, true),
 					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "terraform-test-foobar", false, false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstanceTemplate_subnet_auto(t *testing.T) {
+	var instanceTemplate compute.InstanceTemplate
+	network := "network-" + acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceTemplate_subnet_auto(network),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceTemplateExists(
+						"google_compute_instance_template.foobar", &instanceTemplate),
+					testAccCheckComputeInstanceTemplateNetworkName(&instanceTemplate, network),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstanceTemplate_subnet_custom(t *testing.T) {
+	var instanceTemplate compute.InstanceTemplate
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceTemplate_subnet_custom,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceTemplateExists(
+						"google_compute_instance_template.foobar", &instanceTemplate),
+					testAccCheckComputeInstanceTemplateSubnetwork(&instanceTemplate),
 				),
 			},
 		},
@@ -157,6 +200,18 @@ func testAccCheckComputeInstanceTemplateNetwork(instanceTemplate *compute.Instan
 	}
 }
 
+func testAccCheckComputeInstanceTemplateNetworkName(instanceTemplate *compute.InstanceTemplate, network string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, i := range instanceTemplate.Properties.NetworkInterfaces {
+			if !strings.Contains(i.Network, network) {
+				return fmt.Errorf("Network doesn't match expected value, Expected: %s Actual: %s", network, i.Network[strings.LastIndex("/", i.Network)+1:])
+			}
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckComputeInstanceTemplateDisk(instanceTemplate *compute.InstanceTemplate, source string, delete bool, boot bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if instanceTemplate.Properties.Disks == nil {
@@ -185,6 +240,18 @@ func testAccCheckComputeInstanceTemplateDisk(instanceTemplate *compute.InstanceT
 	}
 }
 
+func testAccCheckComputeInstanceTemplateSubnetwork(instanceTemplate *compute.InstanceTemplate) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, i := range instanceTemplate.Properties.NetworkInterfaces {
+			if i.Subnetwork == "" {
+				return fmt.Errorf("no subnet")
+			}
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckComputeInstanceTemplateTag(instanceTemplate *compute.InstanceTemplate, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if instanceTemplate.Properties.Tags == nil {
@@ -201,9 +268,9 @@ func testAccCheckComputeInstanceTemplateTag(instanceTemplate *compute.InstanceTe
 	}
 }
 
-const testAccComputeInstanceTemplate_basic = `
+var testAccComputeInstanceTemplate_basic = fmt.Sprintf(`
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test"
+	name = "instancet-test-%s"
 	machine_type = "n1-standard-1"
 	can_ip_forward = false
 	tags = ["foo", "bar"]
@@ -230,15 +297,15 @@ resource "google_compute_instance_template" "foobar" {
 	service_account {
 		scopes = ["userinfo-email", "compute-ro", "storage-ro"]
 	}
-}`
+}`, acctest.RandString(10))
 
-const testAccComputeInstanceTemplate_ip = `
+var testAccComputeInstanceTemplate_ip = fmt.Sprintf(`
 resource "google_compute_address" "foo" {
-	name = "foo"
+	name = "instancet-test-%s"
 }
 
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test"
+	name = "instancet-test-%s"
 	machine_type = "n1-standard-1"
 	tags = ["foo", "bar"]
 
@@ -256,11 +323,11 @@ resource "google_compute_instance_template" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))
 
-const testAccComputeInstanceTemplate_disks = `
+var testAccComputeInstanceTemplate_disks = fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
-	name = "terraform-test-foobar"
+	name = "instancet-test-%s"
 	image = "debian-7-wheezy-v20140814"
 	size = 10
 	type = "pd-ssd"
@@ -268,7 +335,7 @@ resource "google_compute_disk" "foobar" {
 }
 
 resource "google_compute_instance_template" "foobar" {
-	name = "terraform-test"
+	name = "instancet-test-%s"
 	machine_type = "n1-standard-1"
 
 	disk {
@@ -291,4 +358,66 @@ resource "google_compute_instance_template" "foobar" {
 	metadata {
 		foo = "bar"
 	}
-}`
+}`, acctest.RandString(10), acctest.RandString(10))
+
+func testAccComputeInstanceTemplate_subnet_auto(network string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "auto-network" {
+		name = "%s"
+		auto_create_subnetworks = true
+	}
+
+	resource "google_compute_instance_template" "foobar" {
+		name = "instance-tpl-%s"
+		machine_type = "n1-standard-1"
+
+		disk {
+			source_image = "debian-7-wheezy-v20160211"
+			auto_delete = true
+			disk_size_gb = 10
+			boot = true
+		}
+
+		network_interface {
+			network = "${google_compute_network.auto-network.name}"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, network, acctest.RandString(10))
+}
+
+var testAccComputeInstanceTemplate_subnet_custom = fmt.Sprintf(`
+resource "google_compute_network" "network" {
+	name = "network-%s"
+	auto_create_subnetworks = false
+}
+
+resource "google_compute_subnetwork" "subnetwork" {
+	name = "subnetwork-%s"
+	ip_cidr_range = "10.0.0.0/24"
+	region = "us-central1"
+	network = "${google_compute_network.network.self_link}"
+}
+
+resource "google_compute_instance_template" "foobar" {
+	name = "instance-test-%s"
+	machine_type = "n1-standard-1"
+	region = "us-central1"
+
+	disk {
+		source_image = "debian-7-wheezy-v20160211"
+		auto_delete = true
+		disk_size_gb = 10
+		boot = true
+	}
+
+	network_interface {
+		subnetwork = "${google_compute_subnetwork.subnetwork.name}"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

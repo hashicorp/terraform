@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -16,7 +16,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -233,6 +235,29 @@ func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 	return parameters, nil
 }
 
+func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, error) {
+	var parameters []*redshift.Parameter
+
+	// Loop over our configured parameters and create
+	// an array of aws-sdk-go compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		if data["name"].(string) == "" {
+			continue
+		}
+
+		p := &redshift.Parameter{
+			ParameterName:  aws.String(data["name"].(string)),
+			ParameterValue: aws.String(data["value"].(string)),
+		}
+
+		parameters = append(parameters, p)
+	}
+
+	return parameters, nil
+}
+
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
 func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
@@ -413,6 +438,18 @@ func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 	return result
 }
 
+// Flattens an array of Redshift Parameters into a []map[string]interface{}
+func flattenRedshiftParameters(list []*redshift.Parameter) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		result = append(result, map[string]interface{}{
+			"name":  strings.ToLower(*i.ParameterName),
+			"value": strings.ToLower(*i.ParameterValue),
+		})
+	}
+	return result
+}
+
 // Flattens an array of Parameters into a []map[string]interface{}
 func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
@@ -433,6 +470,11 @@ func expandStringList(configured []interface{}) []*string {
 		vs = append(vs, aws.String(v.(string)))
 	}
 	return vs
+}
+
+// Takes the result of schema.Set of strings and returns a []*string
+func expandStringSet(configured *schema.Set) []*string {
+	return expandStringList(configured.List())
 }
 
 // Takes list of pointers to strings. Expand to an array
@@ -514,27 +556,6 @@ func expandResourceRecords(recs []interface{}, typeStr string) []*route53.Resour
 		}
 	}
 	return records
-}
-
-func validateRdsId(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
-	}
-	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
-	}
-	if regexp.MustCompile(`--`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
-	}
-	if regexp.MustCompile(`-$`).MatchString(value) {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
-	}
-	return
 }
 
 func expandESClusterConfig(m map[string]interface{}) *elasticsearch.ElasticsearchClusterConfig {
@@ -651,6 +672,48 @@ func flattenDSVpcSettings(
 	s *directoryservice.DirectoryVpcSettingsDescription) []map[string]interface{} {
 	settings := make(map[string]interface{}, 0)
 
+	if s == nil {
+		return nil
+	}
+
+	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["vpc_id"] = *s.VpcId
+
+	return []map[string]interface{}{settings}
+}
+
+func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && s.VpcId == nil {
+		return nil
+	}
+
+	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SecurityGroupIds))
+	if s.VpcId != nil {
+		settings["vpc_id"] = *s.VpcId
+	}
+
+	return []map[string]interface{}{settings}
+}
+
+func flattenDSConnectSettings(
+	customerDnsIps []*string,
+	s *directoryservice.DirectoryConnectSettingsDescription) []map[string]interface{} {
+	if s == nil {
+		return nil
+	}
+
+	settings := make(map[string]interface{}, 0)
+
+	settings["customer_dns_ips"] = schema.NewSet(schema.HashString, flattenStringList(customerDnsIps))
+	settings["connect_ips"] = schema.NewSet(schema.HashString, flattenStringList(s.ConnectIps))
+	settings["customer_username"] = *s.CustomerUserName
 	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
 	settings["vpc_id"] = *s.VpcId
 
@@ -709,4 +772,14 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 		outputs[*o.OutputKey] = *o.OutputValue
 	}
 	return outputs
+}
+
+func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Metric != nil {
+			strs = append(strs, *r.Metric)
+		}
+	}
+	return strs
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -101,8 +102,15 @@ func resourceAwsS3Bucket() *schema.Resource {
 							ConflictsWith: []string{
 								"website.0.index_document",
 								"website.0.error_document",
+								"website.0.routing_rules",
 							},
 							Optional: true,
+						},
+
+						"routing_rules": &schema.Schema{
+							Type:      schema.TypeString,
+							Optional:  true,
+							StateFunc: normalizeJson,
 						},
 					},
 				},
@@ -151,6 +159,30 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"logging": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"target_bucket": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"target_prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["target_bucket"]))
+					buf.WriteString(fmt.Sprintf("%s-", m["target_prefix"]))
+					return hashcode.String(buf.String())
+				},
+			},
+
 			"tags": tagsSchema(),
 
 			"force_destroy": &schema.Schema{
@@ -185,7 +217,23 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	_, err := s3conn.CreateBucket(req)
+	err := resource.Retry(5*time.Minute, func() error {
+		log.Printf("[DEBUG] Trying to create new S3 bucket: %q", bucket)
+		_, err := s3conn.CreateBucket(req)
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "OperationAborted" {
+				log.Printf("[WARN] Got an error while trying to create S3 bucket %s: %s", bucket, err)
+				return fmt.Errorf("[WARN] Error creating S3 bucket %s, retrying: %s",
+					bucket, err)
+			}
+		}
+		if err != nil {
+			return resource.RetryError{Err: err}
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating S3 bucket: %s", err)
 	}
@@ -227,6 +275,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if d.HasChange("acl") {
 		if err := resourceAwsS3BucketAclUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("logging") {
+		if err := resourceAwsS3BucketLoggingUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -310,7 +364,22 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if v := ws.RedirectAllRequestsTo; v != nil {
-			w["redirect_all_requests_to"] = *v.HostName
+			if v.Protocol == nil {
+				w["redirect_all_requests_to"] = *v.HostName
+			} else {
+				w["redirect_all_requests_to"] = (&url.URL{
+					Host:   *v.HostName,
+					Scheme: *v.Protocol,
+				}).String()
+			}
+		}
+
+		if v := ws.RoutingRules; v != nil {
+			rr, err := normalizeRoutingRules(v)
+			if err != nil {
+				return fmt.Errorf("Error while marshaling routing rules: %s", err)
+			}
+			w["routing_rules"] = rr
 		}
 
 		websites = append(websites, w)
@@ -337,6 +406,29 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		vcl = append(vcl, vc)
 		if err := d.Set("versioning", vcl); err != nil {
+			return err
+		}
+	}
+
+	// Read the logging configuration
+	logging, err := s3conn.GetBucketLogging(&s3.GetBucketLoggingInput{
+		Bucket: aws.String(d.Id()),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] S3 Bucket: %s, logging: %v", d.Id(), logging)
+	if v := logging.LoggingEnabled; v != nil {
+		lcl := make([]map[string]interface{}, 0, 1)
+		lc := make(map[string]interface{})
+		if *v.TargetBucket != "" {
+			lc["target_bucket"] = *v.TargetBucket
+		}
+		if *v.TargetPrefix != "" {
+			lc["target_prefix"] = *v.TargetPrefix
+		}
+		lcl = append(lcl, lc)
+		if err := d.Set("logging", lcl); err != nil {
 			return err
 		}
 	}
@@ -583,6 +675,7 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 	indexDocument := website["index_document"].(string)
 	errorDocument := website["error_document"].(string)
 	redirectAllRequestsTo := website["redirect_all_requests_to"].(string)
+	routingRules := website["routing_rules"].(string)
 
 	if indexDocument == "" && redirectAllRequestsTo == "" {
 		return fmt.Errorf("Must specify either index_document or redirect_all_requests_to.")
@@ -599,7 +692,20 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 	}
 
 	if redirectAllRequestsTo != "" {
-		websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
+		redirect, err := url.Parse(redirectAllRequestsTo)
+		if err == nil && redirect.Scheme != "" {
+			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirect.Host), Protocol: aws.String(redirect.Scheme)}
+		} else {
+			websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
+		}
+	}
+
+	if routingRules != "" {
+		var unmarshaledRules []*s3.RoutingRule
+		if err := json.Unmarshal([]byte(routingRules), &unmarshaledRules); err != nil {
+			return err
+		}
+		websiteConfiguration.RoutingRules = unmarshaledRules
 	}
 
 	putInput := &s3.PutBucketWebsiteInput{
@@ -726,11 +832,85 @@ func resourceAwsS3BucketVersioningUpdate(s3conn *s3.S3, d *schema.ResourceData) 
 	return nil
 }
 
+func resourceAwsS3BucketLoggingUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	logging := d.Get("logging").(*schema.Set).List()
+	bucket := d.Get("bucket").(string)
+	loggingStatus := &s3.BucketLoggingStatus{}
+
+	if len(logging) > 0 {
+		c := logging[0].(map[string]interface{})
+
+		loggingEnabled := &s3.LoggingEnabled{}
+		if val, ok := c["target_bucket"]; ok {
+			loggingEnabled.TargetBucket = aws.String(val.(string))
+		}
+		if val, ok := c["target_prefix"]; ok {
+			loggingEnabled.TargetPrefix = aws.String(val.(string))
+		}
+
+		loggingStatus.LoggingEnabled = loggingEnabled
+	}
+
+	i := &s3.PutBucketLoggingInput{
+		Bucket:              aws.String(bucket),
+		BucketLoggingStatus: loggingStatus,
+	}
+	log.Printf("[DEBUG] S3 put bucket logging: %#v", i)
+
+	_, err := s3conn.PutBucketLogging(i)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 logging: %s", err)
+	}
+
+	return nil
+}
+
+func normalizeRoutingRules(w []*s3.RoutingRule) (string, error) {
+	withNulls, err := json.Marshal(w)
+	if err != nil {
+		return "", err
+	}
+
+	var rules []map[string]interface{}
+	json.Unmarshal(withNulls, &rules)
+
+	var cleanRules []map[string]interface{}
+	for _, rule := range rules {
+		cleanRules = append(cleanRules, removeNil(rule))
+	}
+
+	withoutNulls, err := json.Marshal(cleanRules)
+	if err != nil {
+		return "", err
+	}
+
+	return string(withoutNulls), nil
+}
+
+func removeNil(data map[string]interface{}) map[string]interface{} {
+	withoutNil := make(map[string]interface{})
+
+	for k, v := range data {
+		if v == nil {
+			continue
+		}
+
+		switch v.(type) {
+		case map[string]interface{}:
+			withoutNil[k] = removeNil(v.(map[string]interface{}))
+		default:
+			withoutNil[k] = v
+		}
+	}
+
+	return withoutNil
+}
+
 func normalizeJson(jsonString interface{}) string {
 	if jsonString == nil {
 		return ""
 	}
-	j := make(map[string]interface{})
+	var j interface{}
 	err := json.Unmarshal([]byte(jsonString.(string)), &j)
 	if err != nil {
 		return fmt.Sprintf("Error parsing JSON: %s", err)

@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -54,7 +55,7 @@ func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if ec2err.Code() != "InvalidNetworkAclEntry.NotFound" {
+		if ec2err.Code() != "InvalidNetworkAclID.NotFound" {
 			return err
 		}
 	}
@@ -63,7 +64,6 @@ func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 }
 
 func testAccCheckAWSNetworkAclRuleExists(n string, networkAcl *ec2.NetworkAcl) resource.TestCheckFunc {
-
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		rs, ok := s.RootModule().Resources[n]
@@ -76,30 +76,30 @@ func testAccCheckAWSNetworkAclRuleExists(n string, networkAcl *ec2.NetworkAcl) r
 		}
 
 		req := &ec2.DescribeNetworkAclsInput{
-			NetworkAclIds: []*string{aws.String(rs.Primary.ID)},
+			NetworkAclIds: []*string{aws.String(rs.Primary.Attributes["network_acl_id"])},
 		}
 		resp, err := conn.DescribeNetworkAcls(req)
-		if err == nil {
-			if len(resp.NetworkAcls) > 0 && *resp.NetworkAcls[0].NetworkAclId == rs.Primary.ID {
-				networkAcl := resp.NetworkAcls[0]
-				if networkAcl.Entries == nil {
-					return fmt.Errorf("No Network ACL Entries exist")
-				}
+		if err != nil {
+			return err
+		}
+		if len(resp.NetworkAcls) != 1 {
+			return fmt.Errorf("Network ACL not found")
+		}
+		egress, err := strconv.ParseBool(rs.Primary.Attributes["egress"])
+		if err != nil {
+			return err
+		}
+		ruleNo, err := strconv.ParseInt(rs.Primary.Attributes["rule_number"], 10, 64)
+		if err != nil {
+			return err
+		}
+		for _, e := range resp.NetworkAcls[0].Entries {
+			if *e.RuleNumber == ruleNo && *e.Egress == egress {
+				return nil
 			}
 		}
-
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
-		if ec2err.Code() != "InvalidNetworkAclEntry.NotFound" {
-			return err
-		}
-
-		return nil
+		return fmt.Errorf("Entry not found: %s", resp.NetworkAcls[0])
 	}
-
-	return nil
 }
 
 const testAccAWSNetworkAclRuleBasicConfig = `

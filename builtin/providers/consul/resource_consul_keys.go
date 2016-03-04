@@ -1,13 +1,11 @@
 package consul
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"strconv"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -17,6 +15,9 @@ func resourceConsulKeys() *schema.Resource {
 		Update: resourceConsulKeysCreate,
 		Read:   resourceConsulKeysRead,
 		Delete: resourceConsulKeysDelete,
+
+		SchemaVersion: 1,
+		MigrateState:  resourceConsulKeysMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"datacenter": &schema.Schema{
@@ -64,7 +65,6 @@ func resourceConsulKeys() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceConsulKeysHash,
 			},
 
 			"var": &schema.Schema{
@@ -75,35 +75,13 @@ func resourceConsulKeys() *schema.Resource {
 	}
 }
 
-func resourceConsulKeysHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["path"].(string)))
-	return hashcode.String(buf.String())
-}
-
 func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
 	kv := client.KV()
-
-	// Resolve the datacenter first, all the other keys are dependent
-	// on this.
-	var dc string
-	if v, ok := d.GetOk("datacenter"); ok {
-		dc = v.(string)
-		log.Printf("[DEBUG] Consul datacenter: %s", dc)
-	} else {
-		log.Printf("[DEBUG] Resolving Consul datacenter...")
-		var err error
-		dc, err = getDC(client)
-		if err != nil {
-			return err
-		}
-	}
-	var token string
-	if v, ok := d.GetOk("token"); ok {
-		token = v.(string)
+	token := d.Get("token").(string)
+	dc, err := getDC(d, client)
+	if err != nil {
+		return err
 	}
 
 	// Setup the operations using the datacenter
@@ -129,8 +107,6 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 				return fmt.Errorf("Failed to set Consul key '%s': %v", path, err)
 			}
 			vars[key] = value
-			sub["value"] = value
-
 		} else {
 			log.Printf("[DEBUG] Getting key '%s' in %s", path, dc)
 			pair, _, err := kv.Get(path, &qOpts)
@@ -142,29 +118,29 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// Update the resource
+	// The ID doesn't matter, since we use provider config, datacenter,
+	// and key paths to address consul properly. So we just need to fill it in
+	// with some value to indicate the resource has been created.
 	d.SetId("consul")
+
+	// Set the vars we collected above
+	if err := d.Set("var", vars); err != nil {
+		return err
+	}
+	// Store the datacenter on this resource, which can be helpful for reference
+	// in case it was read from the provider
 	d.Set("datacenter", dc)
-	d.Set("key", keys)
-	d.Set("var", vars)
+
 	return nil
 }
 
 func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
 	kv := client.KV()
-
-	// Get the DC, error if not available.
-	var dc string
-	if v, ok := d.GetOk("datacenter"); ok {
-		dc = v.(string)
-		log.Printf("[DEBUG] Consul datacenter: %s", dc)
-	} else {
-		return fmt.Errorf("Missing datacenter configuration")
-	}
-	var token string
-	if v, ok := d.GetOk("token"); ok {
-		token = v.(string)
+	token := d.Get("token").(string)
+	dc, err := getDC(d, client)
+	if err != nil {
+		return err
 	}
 
 	// Setup the operations using the datacenter
@@ -189,30 +165,26 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 
 		value := attributeValue(sub, key, pair)
 		vars[key] = value
-		sub["value"] = value
 	}
 
 	// Update the resource
-	d.Set("key", keys)
-	d.Set("var", vars)
+	if err := d.Set("var", vars); err != nil {
+		return err
+	}
+	// Store the datacenter on this resource, which can be helpful for reference
+	// in case it was read from the provider
+	d.Set("datacenter", dc)
+
 	return nil
 }
 
 func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
 	kv := client.KV()
-
-	// Get the DC, error if not available.
-	var dc string
-	if v, ok := d.GetOk("datacenter"); ok {
-		dc = v.(string)
-		log.Printf("[DEBUG] Consul datacenter: %s", dc)
-	} else {
-		return fmt.Errorf("Missing datacenter configuration")
-	}
-	var token string
-	if v, ok := d.GetOk("token"); ok {
-		token = v.(string)
+	token := d.Get("token").(string)
+	dc, err := getDC(d, client)
+	if err != nil {
+		return err
 	}
 
 	// Setup the operations using the datacenter
@@ -285,11 +257,13 @@ func attributeValue(sub map[string]interface{}, key string, pair *consulapi.KVPa
 }
 
 // getDC is used to get the datacenter of the local agent
-func getDC(client *consulapi.Client) (string, error) {
+func getDC(d *schema.ResourceData, client *consulapi.Client) (string, error) {
+	if v, ok := d.GetOk("datacenter"); ok {
+		return v.(string), nil
+	}
 	info, err := client.Agent().Self()
 	if err != nil {
 		return "", fmt.Errorf("Failed to get datacenter from Consul agent: %v", err)
 	}
-	dc := info["Config"]["Datacenter"].(string)
-	return dc, nil
+	return info["Config"]["Datacenter"].(string), nil
 }

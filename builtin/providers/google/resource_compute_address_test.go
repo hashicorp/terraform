@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -75,7 +76,7 @@ func testAccCheckComputeAddressExists(n string, addr *compute.Address) resource.
 	}
 }
 
-const testAccComputeAddress_basic = `
+var testAccComputeAddress_basic = fmt.Sprintf(`
 resource "google_compute_address" "foobar" {
-	name = "terraform-test"
-}`
+	name = "address-test-%s"
+}`, acctest.RandString(10))

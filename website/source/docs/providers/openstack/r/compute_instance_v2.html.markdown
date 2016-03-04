@@ -50,7 +50,8 @@ The following arguments are supported:
     desired flavor for the server. Changing this resizes the existing server.
 
 * `floating_ip` - (Optional) A *Compute* Floating IP that will be associated
-    with the Instance. The Floating IP must be provisioned already.
+    with the Instance. The Floating IP must be provisioned already. See *Notes*
+    for more information about Floating IPs.
 
 * `user_data` - (Optional) The user data to provide when launching the instance.
     Changing this creates a new server.
@@ -81,12 +82,18 @@ The following arguments are supported:
 
 * `block_device` - (Optional) The object for booting by volume. The block_device
     object structure is documented below. Changing this creates a new server.
+    You can specify multiple block devices which will create an instance with
+    multiple ephemeral (local) disks.
 
 * `volume` - (Optional) Attach an existing volume to the instance. The volume
     structure is described below.
 
-* `scheduler_hints` - (Optional) Provider the Nova scheduler with hints on how
+* `scheduler_hints` - (Optional) Provide the Nova scheduler with hints on how
     the instance should be launched. The available hints are described below.
+
+* `personality` - (Optional) Customize the personality of an instance by
+    defining one or more files and their contents. The personality structure
+    is described below.
 
 The `network` block supports:
 
@@ -102,6 +109,13 @@ The `network` block supports:
 * `fixed_ip_v4` - (Optional) Specifies a fixed IPv4 address to be used on this
     network.
 
+* `floating_ip` - (Optional) Specifies a floating IP address to be associated
+    with this network. Cannot be combined with a top-level floating IP. See
+    *Notes* for more information about Floating IPs.
+
+* `access_network` - (Optional) Specifies if this network should be used for
+    provisioning access. Accepts true or false. Defaults to false.
+
 The `block_device` block supports:
 
 * `uuid` - (Required) The UUID of the image, volume, or snapshot.
@@ -109,7 +123,9 @@ The `block_device` block supports:
 * `source_type` - (Required) The source type of the device. Must be one of
     "image", "volume", or "snapshot".
 
-* `volume_size` - (Optional) The size of the volume to create (in gigabytes).
+* `volume_size` - The size of the volume to create (in gigabytes). Required
+    in the following combinations: source=image and destination=volume,
+    source=blank and destination=local.
 
 * `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
 
@@ -143,6 +159,12 @@ The `scheduler_hints` block supports:
 * `build_near_host_ip` - (Optional) An IP Address in CIDR form. The instance
     will be placed on a compute node that is in the same subnet.
 
+The `personality` block supports:
+
+* `file` - (Required) The absolute path of the destination file.
+
+* `contents` - (Required) The contents of the file. Limited to 255 bytes.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -163,11 +185,64 @@ The following attributes are exported:
     network.
 * `network/fixed_ip_v6` - The Fixed IPv6 address of the Instance on that
     network.
+* `network/floating_ip` - The Floating IP address of the Instance on that
+    network.
 * `network/mac` - The MAC address of the NIC on that network.
 
 ## Notes
 
-If you configure the instance to have multiple networks, be aware that only
-the first network can be associated with a Floating IP. So the first network
-in the instance resource _must_ be the network that you have configured to
-communicate with your floating IP / public network via a Neutron Router.
+### Floating IPs
+
+Floating IPs can be associated in one of two ways:
+
+* You can specify a Floating IP address by using the top-level `floating_ip`
+attribute. This floating IP will be associated with either the network defined
+in the first `network` block or the default network if no `network` blocks are
+defined.
+
+* You can specify a Floating IP address by using the `floating_ip` attribute
+defined in the `network` block. Each `network` block can have its own floating
+IP address.
+
+Only one of the above methods can be used.
+
+### Multiple Ephemeral Disks
+
+It's possible to specify multiple `block_device` entries to create an instance
+with multiple ephemeral (local) disks. In order to create multiple ephemeral
+disks, the sum of the total amount of ephemeral space must be less than or
+equal to what the chosen flavor supports.
+
+The following example shows how to create an instance with multiple ephemeral
+disks:
+
+```
+resource "openstack_compute_instance_v2" "foo" {
+  name = "terraform-test"
+  security_groups = ["default"]
+
+  block_device {
+    boot_index = 0
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "image"
+    uuid = "<image uuid>"
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "blank"
+    volume_size = 1
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "blank"
+    volume_size = 1
+  }
+}
+```

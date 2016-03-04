@@ -69,8 +69,9 @@ The `fixed_ip` block supports:
 * `subnet_id` - (Required) Subnet in which to allocate IP address for
 this port.
 
-* `ip_address` - (Required) IP address desired in the subnet for this
-port.
+* `ip_address` - (Optional) IP address desired in the subnet for this port. If
+you don't specify `ip_address`, an available IP address from the specified
+subnet will be allocated to this port.
 
 ## Attributes Reference
 
@@ -83,3 +84,4 @@ The following attributes are exported:
 * `device_owner` - See Argument Reference above.
 * `security_groups` - See Argument Reference above.
 * `device_id` - See Argument Reference above.
+* `fixed_ip/ip_address` - See Argument Reference above.

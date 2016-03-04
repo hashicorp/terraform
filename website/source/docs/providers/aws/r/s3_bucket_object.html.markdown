@@ -19,6 +19,7 @@ resource "aws_s3_bucket_object" "object" {
 	bucket = "your_bucket_name"
 	key = "new_object_key"
 	source = "path/to/file"
+	etag = "${md5(file("path/to/file"))}"
 }
 ```
 
@@ -35,6 +36,7 @@ The following arguments are supported:
 * `content_encoding` - (Optional) Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field. Read [w3c content encoding](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.11) for further information.
 * `content_language` - (Optional) The language the content is in e.g. en-US or en-GB.
 * `content_type` - (Optional) A standard MIME type describing the format of the object data, e.g. application/octet-stream. All Valid MIME Types are valid for this input.
+* `etag` - (Optional) Used to trigger updates. The only meaningful value is `${md5(file("path/to/file"))}`
 
 Either `source` or `content` must be provided to specify the bucket content.
 These two arguments are mutually-exclusive.
@@ -44,5 +46,4 @@ These two arguments are mutually-exclusive.
 The following attributes are exported
 
 * `id` - the `key` of the resource supplied above
-* `etag` - the ETag generated for the object. This is often the MD5 hash of the
-object, unless you specify your own encryption keys
+* `etag` - the ETag generated for the object (an MD5 sum of the object content).

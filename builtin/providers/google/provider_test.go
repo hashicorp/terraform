@@ -1,6 +1,7 @@
 package google
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -29,6 +30,14 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
+	if v := os.Getenv("GOOGLE_CREDENTIALS_FILE"); v != "" {
+		creds, err := ioutil.ReadFile(v)
+		if err != nil {
+			t.Fatalf("Error reading GOOGLE_CREDENTIALS_FILE path: %s", err)
+		}
+		os.Setenv("GOOGLE_CREDENTIALS", string(creds))
+	}
+
 	if v := os.Getenv("GOOGLE_CREDENTIALS"); v == "" {
 		t.Fatal("GOOGLE_CREDENTIALS must be set for acceptance tests")
 	}
@@ -39,5 +48,13 @@ func testAccPreCheck(t *testing.T) {
 
 	if v := os.Getenv("GOOGLE_REGION"); v != "us-central1" {
 		t.Fatal("GOOGLE_REGION must be set to us-central1 for acceptance tests")
+	}
+}
+
+func TestProvider_getRegionFromZone(t *testing.T) {
+	expected := "us-central1"
+	actual := getRegionFromZone("us-central1-f")
+	if expected != actual {
+		t.Fatalf("Region (%s) did not match expected value: %s", actual, expected)
 	}
 }

@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -426,7 +428,32 @@ func TestExpandParameters(t *testing.T) {
 	}
 }
 
-func TestExpandElasticacheParameters(t *testing.T) {
+func TestexpandRedshiftParameters(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":  "character_set_client",
+			"value": "utf8",
+		},
+	}
+	parameters, err := expandRedshiftParameters(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &redshift.Parameter{
+		ParameterName:  aws.String("character_set_client"),
+		ParameterValue: aws.String("utf8"),
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
+func TestexpandElasticacheParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "activerehashing",
@@ -481,7 +508,36 @@ func TestFlattenParameters(t *testing.T) {
 	}
 }
 
-func TestFlattenElasticacheParameters(t *testing.T) {
+func TestflattenRedshiftParameters(t *testing.T) {
+	cases := []struct {
+		Input  []*redshift.Parameter
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []*redshift.Parameter{
+				&redshift.Parameter{
+					ParameterName:  aws.String("character_set_client"),
+					ParameterValue: aws.String("utf8"),
+				},
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"name":  "character_set_client",
+					"value": "utf8",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenRedshiftParameters(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
+}
+
+func TestflattenElasticacheParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*elasticache.Parameter
 		Output []map[string]interface{}
@@ -643,5 +699,26 @@ func TestFlattenResourceRecords(t *testing.T) {
 
 	if len(result) != 2 {
 		t.Fatal("expected result to have value, but got nil")
+	}
+}
+
+func TestFlattenAsgEnabledMetrics(t *testing.T) {
+	expanded := []*autoscaling.EnabledMetric{
+		&autoscaling.EnabledMetric{Granularity: aws.String("1Minute"), Metric: aws.String("GroupTotalInstances")},
+		&autoscaling.EnabledMetric{Granularity: aws.String("1Minute"), Metric: aws.String("GroupMaxSize")},
+	}
+
+	result := flattenAsgEnabledMetrics(expanded)
+
+	if len(result) != 2 {
+		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
+	}
+
+	if result[0] != "GroupTotalInstances" {
+		t.Fatalf("expected id to be GroupTotalInstances, but was %s", result[0])
+	}
+
+	if result[1] != "GroupMaxSize" {
+		t.Fatalf("expected id to be GroupMaxSize, but was %s", result[1])
 	}
 }

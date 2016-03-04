@@ -120,7 +120,12 @@ the type is "local-ssd", in which case scratch must be true).
 
 The `network_interface` block supports:
 
-* `network` - (Required) The name of the network to attach this interface to.
+* `network` - (Optional) The name of the network to attach this interface to. Either
+    `network` or `subnetwork` must be provided.
+    
+*  `subnetwork` - (Optional) the name of the subnetwork to attach this interface to. The subnetwork
+     must exist in the same region this instance will be created in. Either `network`
+     or `subnetwork` must be provided.
 
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this instance can be
   accessed via the Internet.  Omit to ensure that the instance is not accessible from the Internet
@@ -132,6 +137,10 @@ The `access_config` block supports:
 
 * `nat_ip` - (Optional) The IP address that will be 1:1 mapped to the instance's network ip.  If not
   given, one will be generated.
+
+* `assigned_nat_ip` - (Optional) The IP address that is assigned to the
+  instance. If `nat_ip` is filled, it will appear here. If `nat_ip` is left
+  blank, the ephemeral assigned IP will appear here.
 
 (DEPRECATED) The `network` block supports:
 

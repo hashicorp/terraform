@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/storage/v1"
 )
 
@@ -134,6 +135,14 @@ func resourceStorageObjectAclRead(d *schema.ResourceData, meta interface{}) erro
 		res, err := config.clientStorage.ObjectAccessControls.List(bucket, object).Do()
 
 		if err != nil {
+			if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+				log.Printf("[WARN] Removing Storage Object ACL for Bucket %q because it's gone", d.Get("bucket").(string))
+				// The resource doesn't exist anymore
+				d.SetId("")
+
+				return nil
+			}
+
 			return err
 		}
 

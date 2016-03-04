@@ -1,10 +1,6 @@
 package terraform
 
 import (
-	"bytes"
-	"crypto/sha1"
-	"encoding/gob"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,21 +16,6 @@ import (
 
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
-
-func checksumStruct(t *testing.T, i interface{}) string {
-	// TODO(mitchellh): write a library to do this because gob is not
-	// deterministic in order
-	return "foo"
-
-	buf := new(bytes.Buffer)
-	enc := gob.NewEncoder(buf)
-	if err := enc.Encode(i); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	sum := sha1.Sum(buf.Bytes())
-	return hex.EncodeToString(sum[:])
-}
 
 func tempDir(t *testing.T) string {
 	dir, err := ioutil.TempDir("", "tf")
@@ -977,6 +958,18 @@ DIFF:
 
 CREATE: aws_instance.bar
 CREATE: aws_instance.foo
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanEscapedVarStr = `
+DIFF:
+
+CREATE: aws_instance.foo
+  foo:  "" => "bar-${baz}"
+  type: "" => "aws_instance"
 
 STATE:
 

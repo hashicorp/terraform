@@ -161,7 +161,7 @@ func TestInit_remoteState(t *testing.T) {
 	}
 
 	args := []string{
-		"-backend", "http",
+		"-backend", "HTTP",
 		"-backend-config", "address=" + conf.Config["address"],
 		testFixturePath("init"),
 		tmp,
@@ -175,6 +175,42 @@ func TestInit_remoteState(t *testing.T) {
 	}
 
 	if _, err := os.Stat(filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)); err != nil {
+		t.Fatalf("missing state: %s", err)
+	}
+}
+
+func TestInit_remoteStateSubdir(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+	subdir := filepath.Join(tmp, "subdir")
+
+	s := terraform.NewState()
+	conf, srv := testRemoteState(t, s, 200)
+	defer srv.Close()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-backend", "http",
+		"-backend-config", "address=" + conf.Config["address"],
+		testFixturePath("init"),
+		subdir,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(subdir, "hello.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(subdir, DefaultDataDir, DefaultStateFilename)); err != nil {
 		t.Fatalf("missing state: %s", err)
 	}
 }

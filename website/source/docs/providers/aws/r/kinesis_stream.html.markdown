@@ -19,6 +19,7 @@ For more details, see the [Amazon Kinesis Documentation][1].
 resource "aws_kinesis_stream" "test_stream" {
 	name = "terraform-kinesis-test"
 	shard_count = 1
+	retention_period = 48
 	tags {
 		Environment = "test"
 	}
@@ -34,6 +35,7 @@ AWS account and region the Stream is created in.
 * `shard_count` – (Required) The number of shards that the stream will use.
 Amazon has guidlines for specifying the Stream size that should be referenced 
 when creating a Kinesis stream. See [Amazon Kinesis Streams][2] for more.
+* `retention_period` - (Optional) Length of time data records are accessible after they are added to the stream. The maximum value of a stream's retention period is 168 hours. Minimum value is 24. Default is 24.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
@@ -44,5 +46,5 @@ when creating a Kinesis stream. See [Amazon Kinesis Streams][2] for more.
 * `arn` - The Amazon Resource Name (ARN) specifying the Stream
 
 
-[1]: http://aws.amazon.com/documentation/kinesis/
-[2]: http://docs.aws.amazon.com/kinesis/latest/dev/amazon-kinesis-streams.html
+[1]: https://aws.amazon.com/documentation/kinesis/
+[2]: https://docs.aws.amazon.com/kinesis/latest/dev/amazon-kinesis-streams.html

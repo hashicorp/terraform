@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	chmod      = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
 	installURL = "https://www.chef.io/chef/install.sh"
 )
 
@@ -58,6 +59,9 @@ func (p *Provisioner) linuxCreateConfigFiles(
 		if err := p.runCommand(o, comm, "chmod 777 "+linuxConfDir); err != nil {
 			return err
 		}
+		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 666)); err != nil {
+			return err
+		}
 	}
 
 	if err := p.deployConfigFiles(o, comm, linuxConfDir); err != nil {
@@ -76,6 +80,9 @@ func (p *Provisioner) linuxCreateConfigFiles(
 			if err := p.runCommand(o, comm, "chmod 777 "+hintsDir); err != nil {
 				return err
 			}
+			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, hintsDir, 666)); err != nil {
+				return err
+			}
 		}
 
 		if err := p.deployOhaiHints(o, comm, hintsDir); err != nil {
@@ -87,6 +94,9 @@ func (p *Provisioner) linuxCreateConfigFiles(
 			if err := p.runCommand(o, comm, "chmod 755 "+hintsDir); err != nil {
 				return err
 			}
+			if err := p.runCommand(o, comm, fmt.Sprintf(chmod, hintsDir, 600)); err != nil {
+				return err
+			}
 			if err := p.runCommand(o, comm, "chown -R root.root "+hintsDir); err != nil {
 				return err
 			}
@@ -96,6 +106,9 @@ func (p *Provisioner) linuxCreateConfigFiles(
 	// When done copying all files restore the rights and make sure root is owner
 	if p.useSudo {
 		if err := p.runCommand(o, comm, "chmod 755 "+linuxConfDir); err != nil {
+			return err
+		}
+		if err := p.runCommand(o, comm, fmt.Sprintf(chmod, linuxConfDir, 600)); err != nil {
 			return err
 		}
 		if err := p.runCommand(o, comm, "chown -R root.root "+linuxConfDir); err != nil {

@@ -1,6 +1,7 @@
 package chef
 
 import (
+	"fmt"
 	"path"
 	"testing"
 
@@ -163,14 +164,18 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 			}),
 
 			Commands: map[string]bool{
-				"sudo mkdir -p " + linuxConfDir:                                    true,
-				"sudo chmod 777 " + linuxConfDir:                                   true,
-				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):           true,
-				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):          true,
-				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):          true,
-				"sudo chown -R root.root " + path.Join(linuxConfDir, "ohai/hints"): true,
-				"sudo chmod 755 " + linuxConfDir:                                   true,
-				"sudo chown -R root.root " + linuxConfDir:                          true,
+				"sudo mkdir -p " + linuxConfDir:                                          true,
+				"sudo chmod 777 " + linuxConfDir:                                         true,
+				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 666):                          true,
+				"sudo mkdir -p " + path.Join(linuxConfDir, "ohai/hints"):                 true,
+				"sudo chmod 777 " + path.Join(linuxConfDir, "ohai/hints"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 666): true,
+				"sudo chmod 755 " + path.Join(linuxConfDir, "ohai/hints"):                true,
+				"sudo " + fmt.Sprintf(chmod, path.Join(linuxConfDir, "ohai/hints"), 600): true,
+				"sudo chown -R root.root " + path.Join(linuxConfDir, "ohai/hints"):       true,
+				"sudo chmod 755 " + linuxConfDir:                                         true,
+				"sudo " + fmt.Sprintf(chmod, linuxConfDir, 600):                          true,
+				"sudo chown -R root.root " + linuxConfDir:                                true,
 			},
 
 			Uploads: map[string]string{
@@ -275,6 +280,32 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
 		},
+
+		"Attributes JSON": {
+			Config: testConfig(t, map[string]interface{}{
+				"attributes_json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
+				"node_name":              "nodename1",
+				"prevent_sudo":           true,
+				"run_list":               []interface{}{"cookbook::recipe"},
+				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
+				"server_url":             "https://chef.local",
+				"validation_client_name": "validator",
+				"validation_key_path":    "test-fixtures/validator.pem",
+			}),
+
+			Commands: map[string]bool{
+				"mkdir -p " + linuxConfDir: true,
+			},
+
+			Uploads: map[string]string{
+				linuxConfDir + "/client.rb":                 defaultLinuxClientConf,
+				linuxConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
+				linuxConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
+				linuxConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
+					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
+			},
+		},
 	}
 
 	r := new(ResourceProvisioner)
@@ -323,4 +354,6 @@ ENV['https_proxy'] = "https://proxy.local"
 ENV['HTTPS_PROXY'] = "https://proxy.local"
 
 
-no_proxy "http://local.local,https://local.local"`
+
+no_proxy          "http://local.local,https://local.local"
+ENV['no_proxy'] = "http://local.local,https://local.local"`

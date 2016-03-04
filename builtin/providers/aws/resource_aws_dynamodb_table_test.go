@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDynamoDbTable(t *testing.T) {
+func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -101,21 +102,23 @@ func testAccCheckAWSDynamoDbTableDestroy(s *terraform.State) error {
 			continue
 		}
 
-		fmt.Printf("[DEBUG] Checking if DynamoDB table %s exists", rs.Primary.ID)
+		log.Printf("[DEBUG] Checking if DynamoDB table %s exists", rs.Primary.ID)
 		// Check if queue exists by checking for its attributes
 		params := &dynamodb.DescribeTableInput{
 			TableName: aws.String(rs.Primary.ID),
 		}
+
 		_, err := conn.DescribeTable(params)
 		if err == nil {
 			return fmt.Errorf("DynamoDB table %s still exists. Failing!", rs.Primary.ID)
 		}
 
 		// Verify the error is what we want
-		_, ok := err.(awserr.Error)
-		if !ok {
-			return err
+		if dbErr, ok := err.(awserr.Error); ok && dbErr.Code() == "ResourceNotFoundException" {
+			return nil
 		}
+
+		return err
 	}
 
 	return nil

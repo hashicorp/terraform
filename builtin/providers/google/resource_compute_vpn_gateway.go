@@ -2,10 +2,12 @@ package google
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeVpnGateway() *schema.Resource {
@@ -81,13 +83,21 @@ func resourceComputeVpnGatewayRead(d *schema.ResourceData, meta interface{}) err
 	config := meta.(*Config)
 
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
+	region := getOptionalRegion(d, config)
 	project := config.Project
 
 	vpnGatewaysService := compute.NewTargetVpnGatewaysService(config.clientCompute)
 	vpnGateway, err := vpnGatewaysService.Get(project, region, name).Do()
 
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing VPN Gateway %q because it's gone", d.Get("name").(string))
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error Reading VPN Gateway %s: %s", name, err)
 	}
 
@@ -101,7 +111,7 @@ func resourceComputeVpnGatewayDelete(d *schema.ResourceData, meta interface{}) e
 	config := meta.(*Config)
 
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
+	region := getOptionalRegion(d, config)
 	project := config.Project
 
 	vpnGatewaysService := compute.NewTargetVpnGatewaysService(config.clientCompute)
