@@ -922,7 +922,7 @@ func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.Res
 				return nil, err
 			}
 
-			if errCode.Actual == 404 {
+			if errCode.Actual == 404 || errCode.Actual == 403 {
 				tenantNetworkExt = false
 			} else {
 				return nil, err
