@@ -784,6 +784,24 @@ func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
 	}
 	return strs
 }
+
+func expandApiGatewayStageKeys(d *schema.ResourceData) []*apigateway.StageKey {
+	var stageKeys []*apigateway.StageKey
+
+	if stageKeyData, ok := d.GetOk("stage_key"); ok {
+		params := stageKeyData.(*schema.Set).List()
+		for k := range params {
+			data := params[k].(map[string]interface{})
+			stageKeys = append(stageKeys, &apigateway.StageKey{
+				RestApiId: aws.String(data["rest_api_id"].(string)),
+				StageName: aws.String(data["stage_name"].(string)),
+			})
+		}
+	}
+
+	return stageKeys
+}
+
 func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key string, prefix string) []*apigateway.PatchOperation {
 	operations := make([]*apigateway.PatchOperation, 0)
 
@@ -827,3 +845,52 @@ func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key 
 	return operations
 }
 
+func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.PatchOperation {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	prev, curr := d.GetChange("stage_key")
+	prevList := prev.(*schema.Set).List()
+	currList := curr.(*schema.Set).List()
+
+	for i := range prevList {
+		p := prevList[i].(map[string]interface{})
+		exists := false
+
+		for j := range currList {
+			c := currList[j].(map[string]interface{})
+			if c["rest_api_id"].(string) == p["rest_api_id"].(string) && c["stage_name"].(string) == p["stage_name"].(string) {
+				exists = true
+			}
+		}
+
+		if !exists {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("remove"),
+				Path:  aws.String("/stages"),
+				Value: aws.String(fmt.Sprintf("%s/%s", p["rest_api_id"].(string), p["stage_name"].(string))),
+			})
+		}
+	}
+
+	for i := range currList {
+		c := currList[i].(map[string]interface{})
+		exists := false
+
+		for j := range prevList {
+			p := prevList[j].(map[string]interface{})
+			if c["rest_api_id"].(string) == p["rest_api_id"].(string) && c["stage_name"].(string) == p["stage_name"].(string) {
+				exists = true
+			}
+		}
+
+		if !exists {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String("/stages"),
+				Value: aws.String(fmt.Sprintf("%s/%s", c["rest_api_id"].(string), c["stage_name"].(string))),
+			})
+		}
+	}
+
+	return operations
+}
