@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
@@ -783,3 +784,46 @@ func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
 	}
 	return strs
 }
+func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key string, prefix string) []*apigateway.PatchOperation {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	oldModels, newModels := d.GetChange(key)
+	oldModelMap := oldModels.(map[string]interface{})
+	newModelMap := newModels.(map[string]interface{})
+
+	for k, _ := range oldModelMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+		}
+
+		for nK, nV := range newModelMap {
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(nV.(string))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newModelMap {
+		exists := false
+		for k, _ := range oldModelMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(nK, "/", "~1", -1))),
+				Value: aws.String(nV.(string)),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations
+}
+
