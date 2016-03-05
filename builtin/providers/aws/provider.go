@@ -115,6 +115,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ami_copy":                         resourceAwsAmiCopy(),
 			"aws_ami_from_instance":                resourceAwsAmiFromInstance(),
 			"aws_api_gateway_rest_api":             resourceAwsApiGatewayRestApi(),
+			"aws_api_gateway_resource":             resourceAwsApiGatewayResource(),
 			"aws_app_cookie_stickiness_policy":     resourceAwsAppCookieStickinessPolicy(),
 			"aws_autoscaling_group":                resourceAwsAutoscalingGroup(),
 			"aws_autoscaling_notification":         resourceAwsAutoscalingNotification(),
