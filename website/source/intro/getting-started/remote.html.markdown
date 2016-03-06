@@ -29,7 +29,14 @@ from long-running Terraform processes.
 You can learn how to use Terraform remotely with our [interactive tutorial](https://atlas.hashicorp.com/tutorial/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform)
 or you can follow the outlined steps below.
 
-First, configure [Terraform remote state storage](/docs/commands/remote.html)
+First, your configuration must be in a version control system, VCS, so create
+a git repository from your working directory if you haven't already:
+
+```
+$ git init && git add * && git add */* && git ci -m "Initial Terraform config"
+```
+
+Then, configure [Terraform remote state storage](/docs/commands/remote.html)
 with the command:
 
 ```
