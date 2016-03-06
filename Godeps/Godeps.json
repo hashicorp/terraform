@@ -297,6 +297,11 @@
 			"Rev": "8041be5461786460d86b4358305fbdf32d37cfb2"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/apigateway",
+			"Comment": "v1.1.2",
+			"Rev": "8041be5461786460d86b4358305fbdf32d37cfb2"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/autoscaling",
 			"Comment": "v1.1.2",
 			"Rev": "8041be5461786460d86b4358305fbdf32d37cfb2"

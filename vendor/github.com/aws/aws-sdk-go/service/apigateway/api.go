@@ -38,6 +38,32 @@ func (c *APIGateway) CreateApiKey(input *CreateApiKeyInput) (*ApiKey, error) {
 	return out, err
 }
 
+const opCreateAuthorizer = "CreateAuthorizer"
+
+// CreateAuthorizerRequest generates a request for the CreateAuthorizer operation.
+func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req *request.Request, output *Authorizer) {
+	op := &request.Operation{
+		Name:       opCreateAuthorizer,
+		HTTPMethod: "POST",
+		HTTPPath:   "/restapis/{restapi_id}/authorizers",
+	}
+
+	if input == nil {
+		input = &CreateAuthorizerInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &Authorizer{}
+	req.Data = output
+	return
+}
+
+func (c *APIGateway) CreateAuthorizer(input *CreateAuthorizerInput) (*Authorizer, error) {
+	req, out := c.CreateAuthorizerRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opCreateBasePathMapping = "CreateBasePathMapping"
 
 // CreateBasePathMappingRequest generates a request for the CreateBasePathMapping operation.
@@ -221,7 +247,8 @@ func (c *APIGateway) CreateStageRequest(input *CreateStageInput) (req *request.R
 	return
 }
 
-// Creates a Stage resource.
+// Creates a new Stage resource that references a pre-existing Deployment for
+// the API.
 func (c *APIGateway) CreateStage(input *CreateStageInput) (*Stage, error) {
 	req, out := c.CreateStageRequest(input)
 	err := req.Send()
@@ -253,6 +280,35 @@ func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request
 // Deletes the ApiKey resource.
 func (c *APIGateway) DeleteApiKey(input *DeleteApiKeyInput) (*DeleteApiKeyOutput, error) {
 	req, out := c.DeleteApiKeyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeleteAuthorizer = "DeleteAuthorizer"
+
+// DeleteAuthorizerRequest generates a request for the DeleteAuthorizer operation.
+func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req *request.Request, output *DeleteAuthorizerOutput) {
+	op := &request.Operation{
+		Name:       opDeleteAuthorizer,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/restapis/{restapi_id}/authorizers/{authorizer_id}",
+	}
+
+	if input == nil {
+		input = &DeleteAuthorizerInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &DeleteAuthorizerOutput{}
+	req.Data = output
+	return
+}
+
+// Deletes an existing Authorizer resource.
+func (c *APIGateway) DeleteAuthorizer(input *DeleteAuthorizerInput) (*DeleteAuthorizerOutput, error) {
+	req, out := c.DeleteAuthorizerRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -755,6 +811,60 @@ func (c *APIGateway) GetApiKeysPages(input *GetApiKeysInput, fn func(p *GetApiKe
 	})
 }
 
+const opGetAuthorizer = "GetAuthorizer"
+
+// GetAuthorizerRequest generates a request for the GetAuthorizer operation.
+func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *request.Request, output *Authorizer) {
+	op := &request.Operation{
+		Name:       opGetAuthorizer,
+		HTTPMethod: "GET",
+		HTTPPath:   "/restapis/{restapi_id}/authorizers/{authorizer_id}",
+	}
+
+	if input == nil {
+		input = &GetAuthorizerInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &Authorizer{}
+	req.Data = output
+	return
+}
+
+// Describe an existing Authorizer resource.
+func (c *APIGateway) GetAuthorizer(input *GetAuthorizerInput) (*Authorizer, error) {
+	req, out := c.GetAuthorizerRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetAuthorizers = "GetAuthorizers"
+
+// GetAuthorizersRequest generates a request for the GetAuthorizers operation.
+func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *request.Request, output *GetAuthorizersOutput) {
+	op := &request.Operation{
+		Name:       opGetAuthorizers,
+		HTTPMethod: "GET",
+		HTTPPath:   "/restapis/{restapi_id}/authorizers",
+	}
+
+	if input == nil {
+		input = &GetAuthorizersInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetAuthorizersOutput{}
+	req.Data = output
+	return
+}
+
+// Describe an existing Authorizers resource.
+func (c *APIGateway) GetAuthorizers(input *GetAuthorizersInput) (*GetAuthorizersOutput, error) {
+	req, out := c.GetAuthorizersRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetBasePathMapping = "GetBasePathMapping"
 
 // GetBasePathMappingRequest generates a request for the GetBasePathMapping operation.
@@ -1024,6 +1134,32 @@ func (c *APIGateway) GetDomainNamesPages(input *GetDomainNamesInput, fn func(p *
 	return page.EachPage(func(p interface{}, lastPage bool) bool {
 		return fn(p.(*GetDomainNamesOutput), lastPage)
 	})
+}
+
+const opGetExport = "GetExport"
+
+// GetExportRequest generates a request for the GetExport operation.
+func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Request, output *GetExportOutput) {
+	op := &request.Operation{
+		Name:       opGetExport,
+		HTTPMethod: "GET",
+		HTTPPath:   "/restapis/{restapi_id}/stages/{stage_name}/exports/{export_type}",
+	}
+
+	if input == nil {
+		input = &GetExportInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetExportOutput{}
+	req.Data = output
+	return
+}
+
+func (c *APIGateway) GetExport(input *GetExportInput) (*GetExportOutput, error) {
+	req, out := c.GetExportRequest(input)
+	err := req.Send()
+	return out, err
 }
 
 const opGetIntegration = "GetIntegration"
@@ -1634,6 +1770,33 @@ func (c *APIGateway) UpdateApiKey(input *UpdateApiKeyInput) (*ApiKey, error) {
 	return out, err
 }
 
+const opUpdateAuthorizer = "UpdateAuthorizer"
+
+// UpdateAuthorizerRequest generates a request for the UpdateAuthorizer operation.
+func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req *request.Request, output *Authorizer) {
+	op := &request.Operation{
+		Name:       opUpdateAuthorizer,
+		HTTPMethod: "PATCH",
+		HTTPPath:   "/restapis/{restapi_id}/authorizers/{authorizer_id}",
+	}
+
+	if input == nil {
+		input = &UpdateAuthorizerInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &Authorizer{}
+	req.Data = output
+	return
+}
+
+// Updates an existing Authorizer resource.
+func (c *APIGateway) UpdateAuthorizer(input *UpdateAuthorizerInput) (*Authorizer, error) {
+	req, out := c.UpdateAuthorizerRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opUpdateBasePathMapping = "UpdateBasePathMapping"
 
 // UpdateBasePathMappingRequest generates a request for the UpdateBasePathMapping operation.
@@ -1987,7 +2150,8 @@ func (s Account) GoString() string {
 type ApiKey struct {
 	_ struct{} `type:"structure"`
 
-	// The date when the API Key was created, in ISO 8601 format.
+	// The date when the API Key was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// target="_blank).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The description of the API Key.
@@ -2016,6 +2180,65 @@ func (s ApiKey) String() string {
 
 // GoString returns the string representation
 func (s ApiKey) GoString() string {
+	return s.String()
+}
+
+// Represents an authorization layer for methods. If enabled on a method, API
+// Gateway will activate the authorizer when a client calls the method.
+type Authorizer struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the credentials required for the authorizer, if any. Two options
+	// are available. To specify an IAM Role for Amazon API Gateway to assume, use
+	// the role's Amazon Resource Name (ARN). To use resource-based permissions
+	// on the Lambda function, specify null.
+	AuthorizerCredentials *string `locationName:"authorizerCredentials" type:"string"`
+
+	// The TTL in seconds of cached authorizer results. If greater than 0, API Gateway
+	// will cache authorizer responses. If this field is not set, the default value
+	// is 300. The maximum value is 3600, or 1 hour.
+	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
+
+	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
+	// For TOKEN authorizers, this must be a well-formed Lambda function URI. The
+	// URI should be of the form arn:aws:apigateway:{region}:lambda:path/{service_api}.
+	// Region is used to determine the right endpoint. In this case, path is used
+	// to indicate that the remaining substring in the URI should be treated as
+	// the path to the resource, including the initial /. For Lambda functions,
+	// this is usually of the form /2015-03-31/functions/[FunctionARN]/invocations
+	AuthorizerUri *string `locationName:"authorizerUri" type:"string"`
+
+	// The identifier for the authorizer resource.
+	Id *string `locationName:"id" type:"string"`
+
+	// [Required] The source of the identity in an incoming request. For TOKEN authorizers,
+	// this value is a mapping expression with the same syntax as integration parameter
+	// mappings. The only valid source for tokens is 'header', so the expression
+	// should match 'method.request.header.[headerName]'. The value of the header
+	// '[headerName]' will be interpreted as the incoming token.
+	IdentitySource *string `locationName:"identitySource" type:"string"`
+
+	// A validation expression for the incoming identity. For TOKEN authorizers,
+	// this value should be a regular expression. The incoming token from the client
+	// is matched against this expression, and will proceed if the token matches.
+	// If the token doesn't match, the client receives a 401 Unauthorized response.
+	IdentityValidationExpression *string `locationName:"identityValidationExpression" type:"string"`
+
+	// [Required] The name of the authorizer.
+	Name *string `locationName:"name" type:"string"`
+
+	// [Required] The type of the authorizer. Currently, the only valid type is
+	// TOKEN.
+	Type *string `locationName:"type" type:"string" enum:"AuthorizerType"`
+}
+
+// String returns the string representation
+func (s Authorizer) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Authorizer) GoString() string {
 	return s.String()
 }
 
@@ -2095,6 +2318,43 @@ func (s CreateApiKeyInput) GoString() string {
 	return s.String()
 }
 
+type CreateAuthorizerInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the credentials required for the authorizer, if any.
+	AuthorizerCredentials *string `locationName:"authorizerCredentials" type:"string"`
+
+	// The TTL of cached authorizer results.
+	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
+
+	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
+	AuthorizerUri *string `locationName:"authorizerUri" type:"string" required:"true"`
+
+	// [Required] The source of the identity in an incoming request.
+	IdentitySource *string `locationName:"identitySource" type:"string" required:"true"`
+
+	// A validation expression for the incoming identity.
+	IdentityValidationExpression *string `locationName:"identityValidationExpression" type:"string"`
+
+	// [Required] The name of the authorizer.
+	Name *string `locationName:"name" type:"string" required:"true"`
+
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+
+	// [Required] The type of the authorizer.
+	Type *string `locationName:"type" type:"string" required:"true" enum:"AuthorizerType"`
+}
+
+// String returns the string representation
+func (s CreateAuthorizerInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateAuthorizerInput) GoString() string {
+	return s.String()
+}
+
 // Requests Amazon API Gateway to create a new BasePathMapping resource.
 type CreateBasePathMappingInput struct {
 	_ struct{} `type:"structure"`
@@ -2151,8 +2411,8 @@ type CreateDeploymentInput struct {
 	StageName *string `locationName:"stageName" type:"string" required:"true"`
 
 	// A map that defines the stage variables for the Stage resource that is associated
-	// with the new deployment. Variable names can have alphabetic characters, and
-	// the values must match [A-Za-z0-9-._~:/?#&=,]+
+	// with the new deployment. Variable names can have alphanumeric characters,
+	// and the values must match [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -2218,7 +2478,7 @@ type CreateModelInput struct {
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The schema for the model. For application/json models, this should be JSON-schema
-	// draft v4 model.
+	// draft v4 (http://json-schema.org/documentation.html" target="_blank) model.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -2260,7 +2520,7 @@ func (s CreateResourceInput) GoString() string {
 type CreateRestApiInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the RestApi that you want to clone from.
+	// The Id of the RestApi that you want to clone from.
 	CloneFrom *string `locationName:"cloneFrom" type:"string"`
 
 	// The description of the RestApi.
@@ -2303,7 +2563,7 @@ type CreateStageInput struct {
 	StageName *string `locationName:"stageName" type:"string" required:"true"`
 
 	// A map that defines the stage variables for the new Stage resource. Variable
-	// names can have alphabetic characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+
+	// names can have alphanumeric characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -2346,6 +2606,41 @@ func (s DeleteApiKeyOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteApiKeyOutput) GoString() string {
+	return s.String()
+}
+
+// Request to delete an existing Authorizer resource.
+type DeleteAuthorizerInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Authorizer resource.
+	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
+
+	// The RestApi identifier for the Authorizer resource.
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteAuthorizerInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteAuthorizerInput) GoString() string {
+	return s.String()
+}
+
+type DeleteAuthorizerOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteAuthorizerOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteAuthorizerOutput) GoString() string {
 	return s.String()
 }
 
@@ -2814,11 +3109,13 @@ type DomainName struct {
 	// The name of the certificate.
 	CertificateName *string `locationName:"certificateName" type:"string"`
 
-	// The date when the certificate was uploaded, in ISO 8601 format.
+	// The date when the certificate was uploaded, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// target="_blank).
 	CertificateUploadDate *time.Time `locationName:"certificateUploadDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The domain name of the Amazon CloudFront distribution. For more information,
-	// see the Amazon CloudFront documentation.
+	// see the Amazon CloudFront documentation (http://aws.amazon.com/documentation/cloudfront/"
+	// target="_blank).
 	DistributionDomainName *string `locationName:"distributionDomainName" type:"string"`
 
 	// The name of the DomainName resource.
@@ -2958,6 +3255,69 @@ func (s GetApiKeysOutput) String() string {
 
 // GoString returns the string representation
 func (s GetApiKeysOutput) GoString() string {
+	return s.String()
+}
+
+// Request to describe an existing Authorizer resource.
+type GetAuthorizerInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Authorizer resource.
+	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
+
+	// The RestApi identifier for the Authorizer resource.
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetAuthorizerInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAuthorizerInput) GoString() string {
+	return s.String()
+}
+
+// Request to describe an existing Authorizers resource.
+type GetAuthorizersInput struct {
+	_ struct{} `type:"structure"`
+
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+
+	// The RestApi identifier for the Authorizers resource.
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetAuthorizersInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAuthorizersInput) GoString() string {
+	return s.String()
+}
+
+// Represents a collection of Authorizer resources.
+type GetAuthorizersOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Gets the current list of Authorizer resources in the collection.
+	Items []*Authorizer `locationName:"item" type:"list"`
+
+	Position *string `locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetAuthorizersOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAuthorizersOutput) GoString() string {
 	return s.String()
 }
 
@@ -3219,6 +3579,50 @@ func (s GetDomainNamesOutput) GoString() string {
 	return s.String()
 }
 
+type GetExportInput struct {
+	_ struct{} `type:"structure"`
+
+	Accepts *string `location:"header" locationName:"Accept" type:"string"`
+
+	ExportType *string `location:"uri" locationName:"export_type" type:"string" required:"true"`
+
+	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
+
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+
+	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetExportInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetExportInput) GoString() string {
+	return s.String()
+}
+
+type GetExportOutput struct {
+	_ struct{} `type:"structure" payload:"Body"`
+
+	Body []byte `locationName:"body" type:"blob"`
+
+	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
+
+	ContentType *string `location:"header" locationName:"Content-Type" type:"string"`
+}
+
+// String returns the string representation
+func (s GetExportOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetExportOutput) GoString() string {
+	return s.String()
+}
+
 // Represents a get integration request.
 type GetIntegrationInput struct {
 	_ struct{} `type:"structure"`
@@ -3370,8 +3774,8 @@ func (s GetModelTemplateInput) GoString() string {
 type GetModelTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The Apache Velocity Template Language (VTL) template content used for the
-	// template resource.
+	// The Apache Velocity Template Language (VTL) (http://velocity.apache.org/engine/devel/vtl-reference-guide.html"
+	// target="_blank) template content used for the template resource.
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -3705,12 +4109,13 @@ type Integration struct {
 
 	// Specifies the integration's Uniform Resource Identifier (URI). For HTTP integrations,
 	// the URI must be a fully formed, encoded HTTP(S) URL according to the RFC-3986
-	// specification. For AWS integrations, the URI should be of the form arn:aws:apigateway:{region}:{service}:{path|action}/{service_api}.
-	// Region and service are used to determine the right endpoint. For AWS services
-	// that use the Action= query string parameter, service_api should be a valid
-	// action for the desired service. For RESTful AWS service APIs, path is used
-	// to indicate that the remaining substring in the URI should be treated as
-	// the path to the resource, including the initial /.
+	// specification (https://www.ietf.org/rfc/rfc3986.txt" target="_blank). For
+	// AWS integrations, the URI should be of the form arn:aws:apigateway:{region}:{subdomain.service|service}:{path|action}/{service_api}.
+	// Region, subdomain and service are used to determine the right endpoint. For
+	// AWS services that use the Action= query string parameter, service_api should
+	// be a valid action for the desired service. For RESTful AWS service APIs,
+	// path is used to indicate that the remaining substring in the URI should be
+	// treated as the path to the resource, including the initial /.
 	Uri *string `locationName:"uri" type:"string"`
 }
 
@@ -3733,10 +4138,10 @@ type IntegrationResponse struct {
 	// Represents response parameters that can be read from the backend response.
 	// Response parameters are represented as a key/value map, with a destination
 	// as the key and a source as the value. A destination must match an existing
-	// response parameter in the Method. The source can be a header from the backend
-	// response, or a static value. Static values are specified using enclosing
-	// single quotes, and backend response headers can be read using the pattern
-	// integration.response.header.{name}.
+	// response parameter in the MethodResponse. The source can be a header from
+	// the backend response, or a static value. Static values are specified using
+	// enclosing single quotes, and backend response headers can be read using the
+	// pattern integration.response.header.{name}.
 	ResponseParameters map[string]*string `locationName:"responseParameters" type:"map"`
 
 	// Specifies the templates used to transform the integration response body.
@@ -3774,6 +4179,10 @@ type Method struct {
 
 	// The method's authorization type.
 	AuthorizationType *string `locationName:"authorizationType" type:"string"`
+
+	// Specifies the identifier of an Authorizer to use on this Method. The authorizationType
+	// must be CUSTOM.
+	AuthorizerId *string `locationName:"authorizerId" type:"string"`
 
 	// The HTTP method.
 	HttpMethod *string `locationName:"httpMethod" type:"string"`
@@ -3940,7 +4349,7 @@ type Model struct {
 	Name *string `locationName:"name" type:"string"`
 
 	// The schema for the model. For application/json models, this should be JSON-schema
-	// draft v4 model.
+	// draft v4 (http://json-schema.org/documentation.html" target="_blank) model.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -4100,6 +4509,10 @@ type PutMethodInput struct {
 	// Specifies the type of authorization used for the method.
 	AuthorizationType *string `locationName:"authorizationType" type:"string" required:"true"`
 
+	// Specifies the identifier of an Authorizer to use on this Method, if the type
+	// is CUSTOM.
+	AuthorizerId *string `locationName:"authorizerId" type:"string"`
+
 	// Specifies the put method request's HTTP method type.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
@@ -4211,7 +4624,8 @@ func (s Resource) GoString() string {
 type RestApi struct {
 	_ struct{} `type:"structure"`
 
-	// The date when the API was created, in ISO 8601 format.
+	// The date when the API was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// target="_blank).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The API's description.
@@ -4251,7 +4665,8 @@ type Stage struct {
 
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
-	// The date and time that the stage was created, in ISO 8601 format.
+	// The date and time that the stage was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
+	// target="_blank).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The identifier of the Deployment that the stage points to.
@@ -4261,7 +4676,7 @@ type Stage struct {
 	Description *string `locationName:"description" type:"string"`
 
 	// The date and time that information about the stage was last updated, in ISO
-	// 8601 format.
+	// 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm" target="_blank).
 	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp" timestampFormat:"unix"`
 
 	// A map that defines the method settings for a Stage resource. Keys are defined
@@ -4274,7 +4689,7 @@ type Stage struct {
 	StageName *string `locationName:"stageName" type:"string"`
 
 	// A map that defines the stage variables for a Stage resource. Variable names
-	// can have alphabetic characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+
+	// can have alphanumeric characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -4429,6 +4844,31 @@ func (s UpdateApiKeyInput) String() string {
 
 // GoString returns the string representation
 func (s UpdateApiKeyInput) GoString() string {
+	return s.String()
+}
+
+// Request to update an existing Authorizer resource.
+type UpdateAuthorizerInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Authorizer resource.
+	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
+
+	// A list of operations describing the updates to apply to the specified resource.
+	// The patches are applied in the order specified in the list.
+	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
+
+	// The RestApi identifier for the Authorizer resource.
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateAuthorizerInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateAuthorizerInput) GoString() string {
 	return s.String()
 }
 
@@ -4741,6 +5181,11 @@ func (s UpdateStageInput) String() string {
 func (s UpdateStageInput) GoString() string {
 	return s.String()
 }
+
+const (
+	// @enum AuthorizerType
+	AuthorizerTypeToken = "TOKEN"
+)
 
 // Returns the size of the CacheCluster.
 const (
