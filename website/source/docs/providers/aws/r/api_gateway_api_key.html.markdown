@@ -43,5 +43,5 @@ The following arguments are supported:
 
 Stage keys support the following:
 
-* `rest_api_id` - (Required) The ID of the associated APIGateway Rest API.
-* `stage_name` - (Required) The name of the APIGateway stage.
+* `rest_api_id` - (Required) The ID of the associated API Gateway Rest API.
+* `stage_name` - (Required) The name of the API Gateway stage.
