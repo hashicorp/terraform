@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_lambda_permission"
-sidebar_current: "docs-aws-resource-aws-lambda-permission"
+sidebar_current: "docs-aws-resource-lambda-permission"
 description: |-
   Creates a Lambda function permission.
 ---
