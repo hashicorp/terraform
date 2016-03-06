@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_lambda_function"
-sidebar_current: "docs-aws-resource-aws-lambda-function"
+sidebar_current: "docs-aws-resource-lambda-function"
 description: |-
   Provides a Lambda Function resource. Lambda allows you to trigger execution of code in response to events in AWS. The Lambda Function itself includes source code and runtime configuration.
 ---
