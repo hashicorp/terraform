@@ -274,3 +274,14 @@ func TestValidateCIDRNetworkAddress(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateHTTPMethod(t *testing.T) {
+	validCases := []string{"GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH"}
+	for i, method := range validCases {
+		_, errs := validateHTTPMethod(method, "foo")
+		if len(errs) != 0 {
+			t.Fatalf("%d/%d: Expected no error, got errs: %#v",
+				i+1, len(validCases), errs)
+		}
+	}
+}
