@@ -81,12 +81,14 @@ func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("[ERROR] No matching subscription %s", d.Id())
 	} else if len(subscriptions) > 1 {
 		return fmt.Errorf("[ERROR] Got %d results, only one is allowed", len(subscriptions))
-	} else {
-		s := subscriptions[0]
+	} else if s := subscriptions[0]; s != nil {
 		d.Set("resource_id", s.ResourceID)
 		d.Set("event_type", strings.ToLower(s.EventType))
 		d.Set("protocol", s.Protocol)
 		d.Set("endpoint", s.Endpoint)
+	} else {
+		d.SetId("")
+		return nil
 	}
 	return nil
 }
