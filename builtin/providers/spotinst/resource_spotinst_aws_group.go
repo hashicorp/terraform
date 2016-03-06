@@ -638,8 +638,7 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("[ERROR] No matching group %s", d.Id())
 	} else if len(groups) > 1 {
 		return fmt.Errorf("[ERROR] Got %d results, only one is allowed", len(groups))
-	} else {
-		g := groups[0]
+	} else if g := groups[0]; g != nil {
 		d.Set("name", g.Name)
 		d.Set("description", g.Description)
 		d.Set("product", g.Compute.Product)
@@ -827,7 +826,9 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 			})
 		}
 		d.Set("nirmata_integration", nirmata)
-
+	} else {
+		d.SetId("")
+		return nil
 	}
 	return nil
 }
