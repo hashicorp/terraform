@@ -87,6 +87,10 @@ func resourceAwsApiGatewayRestApiRead(d *schema.ResourceData, meta interface{}) 
 		RestApiId: aws.String(d.Id()),
 	})
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
