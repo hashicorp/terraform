@@ -154,25 +154,11 @@ func resourceAwsApiGatewayMethodDelete(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway Method: %s", d.Id())
 
-	resourceId := d.Get("resource_id").(string)
-	if o, n := d.GetChange("resource_id"); o.(string) != n.(string) {
-		resourceId = o.(string)
-	}
-	httpMethod := d.Get("http_method").(string)
-	if o, n := d.GetChange("http_method"); o.(string) != n.(string) {
-		httpMethod = o.(string)
-	}
-	restApiID := d.Get("rest_api_id").(string)
-	if o, n := d.GetChange("rest_api_id"); o.(string) != n.(string) {
-		restApiID = o.(string)
-	}
-
 	return resource.Retry(5*time.Minute, func() error {
-		log.Printf("[DEBUG] schema is %#v", d)
 		_, err := conn.DeleteMethod(&apigateway.DeleteMethodInput{
-			HttpMethod: aws.String(httpMethod),
-			ResourceId: aws.String(resourceId),
-			RestApiId:  aws.String(restApiID),
+			HttpMethod: aws.String(d.Get("http_method").(string)),
+			ResourceId: aws.String(d.Get("resource_id").(string)),
+			RestApiId:  aws.String(d.Get("rest_api_id").(string)),
 		})
 		if err == nil {
 			return nil
