@@ -6,6 +6,15 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
+  * **New resource:** `aws_api_gateway_api_key` [GH-4295]
+  * **New resource:** `aws_api_gateway_deployment` [GH-4295]
+  * **New resource:** `aws_api_gateway_integration` [GH-4295]
+  * **New resource:** `aws_api_gateway_integration_response` [GH-4295]
+  * **New resource:** `aws_api_gateway_method` [GH-4295]
+  * **New resource:** `aws_api_gateway_method_response` [GH-4295]
+  * **New resource:** `aws_api_gateway_model` [GH-4295]
+  * **New resource:** `aws_api_gateway_resource` [GH-4295]
+  * **New resource:** `aws_api_gateway_rest_api` [GH-4295]
   * **New resource:** `aws_iam_account_password_policy` [GH-5029]
   * **New resource:** `google_compute_instance_group` [GH-4087]
 
