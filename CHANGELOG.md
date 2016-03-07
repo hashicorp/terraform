@@ -15,6 +15,9 @@ FEATURES:
   * **New resource:** `aws_api_gateway_model` [GH-4295]
   * **New resource:** `aws_api_gateway_resource` [GH-4295]
   * **New resource:** `aws_api_gateway_rest_api` [GH-4295]
+  * **New resource:** `aws_elastic_beanstalk_application` [GH-3157]
+  * **New resource:** `aws_elastic_beanstalk_configuration_template` [GH-3157]
+  * **New resource:** `aws_elastic_beanstalk_environment` [GH-3157]
   * **New resource:** `aws_iam_account_password_policy` [GH-5029]
   * **New resource:** `google_compute_instance_group` [GH-4087]
 
