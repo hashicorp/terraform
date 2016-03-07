@@ -35,7 +35,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 
 The following arguments are supported:
 
-* `name` - (Required) A unique name for the this Environment. This name is used 
+* `name` - (Required) A unique name for this Environment. This name is used 
   in the application URL
 * `application` – (Required) Name of the application that contains the version 
   to be deployed
