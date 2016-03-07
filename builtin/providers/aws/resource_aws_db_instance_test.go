@@ -404,7 +404,7 @@ func testAccReplicaInstanceConfig(val int) string {
 	}
 	
 	resource "aws_db_instance" "replica" {
-	  identifier = "tf-replica-db-%d"
+		identifier = "tf-replica-db-%d"
 		backup_retention_period = 0
 		replicate_source_db = "${aws_db_instance.bar.identifier}"
 		allocated_storage = "${aws_db_instance.bar.allocated_storage}"
