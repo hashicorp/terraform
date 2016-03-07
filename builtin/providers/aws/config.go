@@ -35,6 +35,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/firehose"
@@ -98,6 +99,7 @@ type AWSClient struct {
 	kinesisconn          *kinesis.Kinesis
 	firehoseconn         *firehose.Firehose
 	elasticacheconn      *elasticache.ElastiCache
+	elasticbeanstalkconn *elasticbeanstalk.ElasticBeanstalk
 	lambdaconn           *lambda.Lambda
 	opsworksconn         *opsworks.OpsWorks
 	glacierconn          *glacier.Glacier
@@ -212,6 +214,9 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Kinesis Connection")
 		kinesisSess := session.New(&awsKinesisConfig)
 		client.kinesisconn = kinesis.New(kinesisSess)
+
+		log.Println("[INFO] Initializing Elastic Beanstalk Connection")
+		client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
 
 		authErr := c.ValidateAccountId(client.iamconn)
 		if authErr != nil {
