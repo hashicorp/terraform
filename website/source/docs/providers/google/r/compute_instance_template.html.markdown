@@ -138,6 +138,9 @@ The `disk` block supports:
 * `disk_type` - (Optional) The GCE disk type. Can be either `"pd-ssd"`,
 	`"local-ssd"`, or `"pd-standard"`.
 
+* `disk_size_gb` - (Optional) The size of the image in gigabytes. If not specified, 
+	it will inherit the size of its base image.
+
 * `type` - (Optional) The type of GCE disk, can be either `"SCRATCH"` or
 	`"PERSISTENT"`.
 
