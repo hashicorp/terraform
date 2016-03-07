@@ -907,7 +907,7 @@ func removeNil(data map[string]interface{}) map[string]interface{} {
 }
 
 func normalizeJson(jsonString interface{}) string {
-	if jsonString == nil {
+	if jsonString == nil || jsonString == "" {
 		return ""
 	}
 	var j interface{}
