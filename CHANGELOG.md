@@ -35,6 +35,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: Includes upstream HCL fix to properly detect unbalanced braces and throw an error [GH-5400]
+  * core: Fix issue with retry logic causing spurious "timeout while waiting for state to become ..." errors [GH-5460]
   * provider/aws: Allow recovering from failed CloudWatch Event Target creation [GH-5395]
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
   * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly [GH-5361]
