@@ -55,6 +55,13 @@ func resourceComputeVpnTunnel() *schema.Resource {
 				Default:  2,
 				ForceNew: true,
 			},
+			"local_traffic_selector": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
 			"detailed_status": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -82,14 +89,24 @@ func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Only IKE version 1 or 2 supported, not %d", ikeVersion)
 	}
 
+	// Build up the list of sources
+	var localTrafficSelectors []string
+	if v := d.Get("local_traffic_selector").(*schema.Set); v.Len() > 0 {
+		localTrafficSelectors = make([]string, v.Len())
+		for i, v := range v.List() {
+			localTrafficSelectors[i] = v.(string)
+		}
+	}
+
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
 
 	vpnTunnel := &compute.VpnTunnel{
-		Name:             name,
-		PeerIp:           peerIp,
-		SharedSecret:     sharedSecret,
-		TargetVpnGateway: targetVpnGateway,
-		IkeVersion:       int64(ikeVersion),
+		Name:                 name,
+		PeerIp:               peerIp,
+		SharedSecret:         sharedSecret,
+		TargetVpnGateway:     targetVpnGateway,
+		IkeVersion:           int64(ikeVersion),
+		LocalTrafficSelector: localTrafficSelectors,
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -113,7 +130,7 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 	config := meta.(*Config)
 
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
+	region := getOptionalRegion(d, config)
 	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
@@ -143,7 +160,7 @@ func resourceComputeVpnTunnelDelete(d *schema.ResourceData, meta interface{}) er
 	config := meta.(*Config)
 
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
+	region := getOptionalRegion(d, config)
 	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)

@@ -1,9 +1,0 @@
-[
-  {
-    "name": "davids",
-    "uri" : "http://localhost:8080/artifactory/api/security/users/davids"
-  }, {
-    "name": "danl",
-    "uri" : "http://localhost:8080/artifactory/api/security/users/danl"
-  }
-]

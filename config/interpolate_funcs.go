@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
@@ -16,13 +17,15 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-cidr/cidr"
-	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
 )
 
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
 	return map[string]ast.Function{
+		"base64decode": interpolationFuncBase64Decode(),
+		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
@@ -38,13 +41,13 @@ func Funcs() map[string]ast.Function {
 		"join":         interpolationFuncJoin(),
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
+		"md5":          interpolationFuncMd5(),
 		"replace":      interpolationFuncReplace(),
-		"split":        interpolationFuncSplit(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
+		"signum":       interpolationFuncSignum(),
+		"split":        interpolationFuncSplit(),
 		"trimspace":    interpolationFuncTrimSpace(),
-		"base64encode": interpolationFuncBase64Encode(),
-		"base64decode": interpolationFuncBase64Decode(),
 		"upper":        interpolationFuncUpper(),
 	}
 }
@@ -405,6 +408,25 @@ func interpolationFuncLength() ast.Function {
 	}
 }
 
+func interpolationFuncSignum() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeInt},
+		ReturnType: ast.TypeInt,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			num := args[0].(int)
+			switch {
+			case num < 0:
+				return -1, nil
+			case num > 0:
+				return +1, nil
+			default:
+				return 0, nil
+			}
+		},
+	}
+}
+
 // interpolationFuncSplit implements the "split" function that allows
 // strings to split into multi-variable values
 func interpolationFuncSplit() ast.Function {
@@ -575,6 +597,20 @@ func interpolationFuncLower() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			toLower := args[0].(string)
 			return strings.ToLower(toLower), nil
+		},
+	}
+}
+
+func interpolationFuncMd5() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			h := md5.New()
+			h.Write([]byte(s))
+			hash := hex.EncodeToString(h.Sum(nil))
+			return hash, nil
 		},
 	}
 }

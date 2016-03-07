@@ -26,8 +26,18 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `ipv4_range` - (Required) The IPv4 address range that machines in this
-     network are assigned to, represented as a CIDR block.
+* `ipv4_range` - (Optional) The IPv4 address range that machines in this
+     network are assigned to, represented as a CIDR block. If not
+     set, an auto or custom subnetted network will be created, depending
+     on the value of `auto_create_subnetworks` attribute. This attribute
+     may not be used if `auto_create_subnets` is specified.
+     
+* `auto_create_subnetworks` - (Optional) If set to true, this network 
+     will be created in auto subnet mode, and Google will create a
+     subnet for each region automatically.
+     If set to false, and `ipv4_range` is not set, a custom subnetted
+     network will be created that can support `google_compute_subnetwork`
+     resources. This attribute may not be used if `ipv4_range` is specified.
 
 ## Attributes Reference
 

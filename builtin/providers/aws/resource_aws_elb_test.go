@@ -339,15 +339,15 @@ func TestAccAWSELB_HealthCheck(t *testing.T) {
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributesHealthCheck(&conf),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.3484319807.healthy_threshold", "5"),
+						"aws_elb.bar", "health_check.0.healthy_threshold", "5"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.3484319807.unhealthy_threshold", "5"),
+						"aws_elb.bar", "health_check.0.unhealthy_threshold", "5"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.3484319807.target", "HTTP:8000/"),
+						"aws_elb.bar", "health_check.0.target", "HTTP:8000/"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.3484319807.timeout", "30"),
+						"aws_elb.bar", "health_check.0.timeout", "30"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.3484319807.interval", "60"),
+						"aws_elb.bar", "health_check.0.interval", "60"),
 				),
 			},
 		},
@@ -364,14 +364,14 @@ func TestAccAWSELBUpdate_HealthCheck(t *testing.T) {
 				Config: testAccAWSELBConfigHealthCheck,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.3484319807.healthy_threshold", "5"),
+						"aws_elb.bar", "health_check.0.healthy_threshold", "5"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSELBConfigHealthCheck_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.2648756019.healthy_threshold", "10"),
+						"aws_elb.bar", "health_check.0.healthy_threshold", "10"),
 				),
 			},
 		},

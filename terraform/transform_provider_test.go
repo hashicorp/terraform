@@ -222,14 +222,14 @@ func TestDisableProviderTransformer_keep(t *testing.T) {
 	}
 }
 
-func TestGraphNodeMissingProvider_impl(t *testing.T) {
-	var _ dag.Vertex = new(graphNodeMissingProvider)
-	var _ dag.NamedVertex = new(graphNodeMissingProvider)
-	var _ GraphNodeProvider = new(graphNodeMissingProvider)
+func TestGraphNodeProvider_impl(t *testing.T) {
+	var _ dag.Vertex = new(graphNodeProvider)
+	var _ dag.NamedVertex = new(graphNodeProvider)
+	var _ GraphNodeProvider = new(graphNodeProvider)
 }
 
-func TestGraphNodeMissingProvider_ProviderName(t *testing.T) {
-	n := &graphNodeMissingProvider{ProviderNameValue: "foo"}
+func TestGraphNodeProvider_ProviderName(t *testing.T) {
+	n := &graphNodeProvider{ProviderNameValue: "foo"}
 	if v := n.ProviderName(); v != "foo" {
 		t.Fatalf("bad: %#v", v)
 	}

@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -274,6 +275,56 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 							Attributes: map[string]string{
 								"output": "value",
 							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+// https://github.com/hashicorp/terraform/pull/5096
+func TestContext2Apply_destroySkipsCBD(t *testing.T) {
+	// Config contains CBD resource depending on non-CBD resource, which triggers
+	// a cycle if they are both replaced, but should _not_ trigger a cycle when
+	// just doing a `terraform destroy`.
+	m := testModule(t, "apply-destroy-cbd")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
 						},
 					},
 				},
@@ -3878,4 +3929,88 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 	if invokeCount != 3 {
 		t.Fatalf("bad: %d", invokeCount)
 	}
+}
+
+// GH-5254
+func TestContext2Apply_issue5254(t *testing.T) {
+	// Create a provider. We use "template" here just to match the repro
+	// we got from the issue itself.
+	p := testProvider("template")
+	p.ResourcesReturn = append(p.ResourcesReturn, ResourceType{
+		Name: "template_file",
+	})
+
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// Apply cleanly step 0
+	t.Log("Applying Step 0")
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "issue-5254/step-0"),
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Logf("Plan for Step 0: %s", plan)
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Application success. Now make the modification and store a plan
+	println("Planning Step 1")
+	t.Log("Planning Step 1")
+	ctx = testContext2(t, &ContextOpts{
+		Module: testModule(t, "issue-5254/step-1"),
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err = ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write / Read plan to simulate running it through a Plan file
+	var buf bytes.Buffer
+	if err := WritePlan(plan, &buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFromFile, err := ReadPlan(&buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("Plan for Step 1: %s", planFromFile)
+
+	// Apply the plan
+	println("Applying Step 1 (from Plan)")
+	t.Log("Applying Step 1 (from plan)")
+	ctx = planFromFile.Context(&ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	/*
+		actual := strings.TrimSpace(state.String())
+		expected := strings.TrimSpace(testTerraformApplyProviderAliasStr)
+		if actual != expected {
+			t.Fatalf("bad: \n%s", actual)
+		}
+	*/
 }

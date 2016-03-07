@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -15,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -470,6 +473,11 @@ func expandStringList(configured []interface{}) []*string {
 	return vs
 }
 
+// Takes the result of schema.Set of strings and returns a []*string
+func expandStringSet(configured *schema.Set) []*string {
+	return expandStringList(configured.List())
+}
+
 // Takes list of pointers to strings. Expand to an array
 // of raw strings and returns a []interface{}
 // to keep compatibility w/ schema.NewSetschema.NewSet
@@ -675,6 +683,26 @@ func flattenDSVpcSettings(
 	return []map[string]interface{}{settings}
 }
 
+func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
+	settings := make(map[string]interface{}, 0)
+
+	if s == nil {
+		return nil
+	}
+
+	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && s.VpcId == nil {
+		return nil
+	}
+
+	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
+	settings["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SecurityGroupIds))
+	if s.VpcId != nil {
+		settings["vpc_id"] = *s.VpcId
+	}
+
+	return []map[string]interface{}{settings}
+}
+
 func flattenDSConnectSettings(
 	customerDnsIps []*string,
 	s *directoryservice.DirectoryConnectSettingsDescription) []map[string]interface{} {
@@ -745,4 +773,124 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 		outputs[*o.OutputKey] = *o.OutputValue
 	}
 	return outputs
+}
+
+func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Metric != nil {
+			strs = append(strs, *r.Metric)
+		}
+	}
+	return strs
+}
+
+func expandApiGatewayStageKeys(d *schema.ResourceData) []*apigateway.StageKey {
+	var stageKeys []*apigateway.StageKey
+
+	if stageKeyData, ok := d.GetOk("stage_key"); ok {
+		params := stageKeyData.(*schema.Set).List()
+		for k := range params {
+			data := params[k].(map[string]interface{})
+			stageKeys = append(stageKeys, &apigateway.StageKey{
+				RestApiId: aws.String(data["rest_api_id"].(string)),
+				StageName: aws.String(data["stage_name"].(string)),
+			})
+		}
+	}
+
+	return stageKeys
+}
+
+func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key string, prefix string) []*apigateway.PatchOperation {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	oldModels, newModels := d.GetChange(key)
+	oldModelMap := oldModels.(map[string]interface{})
+	newModelMap := newModels.(map[string]interface{})
+
+	for k, _ := range oldModelMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+		}
+
+		for nK, nV := range newModelMap {
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(nV.(string))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newModelMap {
+		exists := false
+		for k, _ := range oldModelMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(nK, "/", "~1", -1))),
+				Value: aws.String(nV.(string)),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations
+}
+
+func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.PatchOperation {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	prev, curr := d.GetChange("stage_key")
+	prevList := prev.(*schema.Set).List()
+	currList := curr.(*schema.Set).List()
+
+	for i := range prevList {
+		p := prevList[i].(map[string]interface{})
+		exists := false
+
+		for j := range currList {
+			c := currList[j].(map[string]interface{})
+			if c["rest_api_id"].(string) == p["rest_api_id"].(string) && c["stage_name"].(string) == p["stage_name"].(string) {
+				exists = true
+			}
+		}
+
+		if !exists {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("remove"),
+				Path:  aws.String("/stages"),
+				Value: aws.String(fmt.Sprintf("%s/%s", p["rest_api_id"].(string), p["stage_name"].(string))),
+			})
+		}
+	}
+
+	for i := range currList {
+		c := currList[i].(map[string]interface{})
+		exists := false
+
+		for j := range prevList {
+			p := prevList[j].(map[string]interface{})
+			if c["rest_api_id"].(string) == p["rest_api_id"].(string) && c["stage_name"].(string) == p["stage_name"].(string) {
+				exists = true
+			}
+		}
+
+		if !exists {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String("/stages"),
+				Value: aws.String(fmt.Sprintf("%s/%s", c["rest_api_id"].(string), c["stage_name"].(string))),
+			})
+		}
+	}
+
+	return operations
 }

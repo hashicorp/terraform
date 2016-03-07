@@ -78,8 +78,10 @@ resource "aws_elb" "ourapp" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the Server Certificate. Do not include the 
-  path in this value.
+* `name` - (Optional) The name of the Server Certificate. Do not include the 
+  path in this value.If omitted, Terraform will assign a random, unique name.
+* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+  prefix. Conflicts with `name`.
 * `certificate_body` – (Required) The contents of the public key certificate in 
   PEM-encoded format.
 * `certificate_chain` – (Optional) The contents of the certificate chain. 

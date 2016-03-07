@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** To prevent race condition during service deletion, make sure to set `depends_on` to related `aws_iam_role_policy`, otherwise policy may be destroyed too soon and ECS service will then stuck in `DRAINING` state.
 
-Provides an ECS service - effectively a task that is expected to run until an error occures or user terminates it (typically a webserver or a database). 
+Provides an ECS service - effectively a task that is expected to run until an error occures or user terminates it (typically a webserver or a database).
 
 See [ECS Services section in AWS developer guide](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html).
 
@@ -42,6 +42,8 @@ The following arguments are supported:
 * `desired_count` - (Required) The number of instances of the task definition to place and keep running
 * `cluster` - (Optional) ARN of an ECS cluster
 * `iam_role` - (Optional) IAM role that allows your Amazon ECS container agent to make calls to your load balancer on your behalf. This parameter is only required if you are using a load balancer with your service.
+* `deployment_maximum_percent` - (Optional) The upper limit (as a percentage of the service's desiredCount) of the number of running tasks that can be running in a service during a deployment.
+* `deployment_minimum_healthy_percent` - (Optional) The lower limit (as a percentage of the service's desiredCount) of the number of running tasks that must remain running and healthy in a service during a deployment.
 * `load_balancer` - (Optional) A load balancer block. Load balancers documented below.
 
 Load balancers support the following:
