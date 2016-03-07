@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -15,7 +17,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmVirtualMachineCreate,
 		Read:   resourceArmVirtualMachineRead,
-		Update: resourceArmVirtualMachineUpdate,
+		Update: resourceArmVirtualMachineCreate,
 		Delete: resourceArmVirtualMachineDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -103,7 +105,8 @@ func resourceArmVirtualMachine() *schema.Resource {
 
 						"version": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 					},
 				},
@@ -261,6 +264,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceArmVirtualMachineStorageOsProfileWindowsConfigHash,
 			},
 
 			"os_profile_linux_config": &schema.Schema{
@@ -269,12 +273,12 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"disable_password_authentication": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeBool,
 							Required: true,
 						},
 						"ssh_keys": &schema.Schema{
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"path": &schema.Schema{
@@ -287,9 +291,11 @@ func resourceArmVirtualMachine() *schema.Resource {
 									},
 								},
 							},
+							Set: resourceArmVirtualMachineStorageOsProfileLinuxConfigSshKeyHash,
 						},
 					},
 				},
+				Set: resourceArmVirtualMachineStorageOsProfileLinuxConfigHash,
 			},
 
 			"os_profile_secrets": &schema.Schema{
@@ -406,9 +412,22 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		vm.Plan = plan
 	}
 
-	_, err = vmClient.CreateOrUpdate(resGroup, name, vm)
-	if err != nil {
-		return err
+	resp, vmErr := vmClient.CreateOrUpdate(resGroup, name, vm)
+	if vmErr != nil {
+		return vmErr
+	}
+
+	d.SetId(*resp.ID)
+
+	log.Printf("[DEBUG] Waiting for Virtual Machine (%s) to become available", name)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"Creating", "Updating"},
+		Target:  []string{"Succeeded"},
+		Refresh: virtualMachineStateRefreshFunc(client, resGroup, name),
+		Timeout: 10 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Virtual Machine (%s) to become available: %s", name, err)
 	}
 
 	return resourceArmVirtualMachineRead(d, meta)
@@ -432,11 +451,64 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
 	}
-	return nil
-}
 
-func resourceArmVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
-	return resourceArmVirtualMachineRead(d, meta)
+	if resp.Plan != nil {
+		if err := d.Set("plan", flattenAzureRmVirtualMachinePlan(resp.Plan)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Plan error: %#v", err)
+		}
+	}
+
+	if resp.Properties.AvailabilitySet != nil {
+		d.Set("availability_set_id", resp.Properties.AvailabilitySet.ID)
+	}
+
+	d.Set("vm_size", resp.Properties.HardwareProfile.VMSize)
+
+	if resp.Properties.StorageProfile.ImageReference != nil {
+		if err := d.Set("storage_image_reference", schema.NewSet(resourceArmVirtualMachineStorageImageReferenceHash, flattenAzureRmVirtualMachineImageReference(resp.Properties.StorageProfile.ImageReference))); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Image Reference error: %#v", err)
+		}
+	}
+
+	if err := d.Set("storage_os_disk", schema.NewSet(resourceArmVirtualMachineStorageOsDiskHash, flattenAzureRmVirtualMachineOsDisk(resp.Properties.StorageProfile.OsDisk))); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Disk error: %#v", err)
+	}
+
+	if resp.Properties.StorageProfile.DataDisks != nil {
+		if err := d.Set("storage_data_disk", flattenAzureRmVirtualMachineDataDisk(resp.Properties.StorageProfile.DataDisks)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Data Disks error: %#v", err)
+		}
+	}
+
+	if err := d.Set("os_profile", schema.NewSet(resourceArmVirtualMachineStorageOsProfileHash, flattenAzureRmVirtualMachineOsProfile(resp.Properties.OsProfile))); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile: %#v", err)
+	}
+
+	if resp.Properties.OsProfile.WindowsConfiguration != nil {
+		if err := d.Set("os_profile_windows_config", schema.NewSet(resourceArmVirtualMachineStorageOsProfileWindowsConfigHash, flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration))); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
+		}
+	}
+
+	if resp.Properties.OsProfile.LinuxConfiguration != nil {
+		if err := d.Set("os_profile_linux_config", schema.NewSet(resourceArmVirtualMachineStorageOsProfileLinuxConfigHash, flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.Properties.OsProfile.LinuxConfiguration))); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Linux Configuration: %#v", err)
+		}
+	}
+
+	if resp.Properties.OsProfile.Secrets != nil {
+		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.Properties.OsProfile.Secrets)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Secrets: %#v", err)
+		}
+	}
+
+	if resp.Properties.NetworkProfile != nil {
+		if err := d.Set("network_interface_ids", flattenAzureRmVirtualMachineNetworkInterfaces(resp.Properties.NetworkProfile)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Network Interfaces: %#v", err)
+		}
+	}
+
+	return nil
 }
 
 func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
@@ -452,6 +524,17 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	_, err = vmClient.Delete(resGroup, name)
 
 	return err
+}
+
+func virtualMachineStateRefreshFunc(client *ArmClient, resourceGroupName string, vmName string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		res, err := client.vmClient.Get(resourceGroupName, vmName, "")
+		if err != nil {
+			return nil, "", fmt.Errorf("Error issuing read request in virtualMachineStateRefreshFunc to Azure ARM for Virtual Machine '%s' (RG: '%s'): %s", vmName, resourceGroupName, err)
+		}
+
+		return res, *res.Properties.ProvisioningState, nil
+	}
 }
 
 func resourceArmVirtualMachinePlanHash(v interface{}) int {
@@ -470,7 +553,6 @@ func resourceArmVirtualMachineStorageImageReferenceHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["offer"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["sku"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["version"].(string)))
 
 	return hashcode.String(buf.String())
 }
@@ -479,7 +561,7 @@ func resourceArmVirtualMachineStorageOsProfileHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["admin_username"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["admin_password"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["computer_name"].(string)))
 	return hashcode.String(buf.String())
 }
 
@@ -500,9 +582,202 @@ func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["create_option"].(string)))
 
 	return hashcode.String(buf.String())
+}
+
+func resourceArmVirtualMachineStorageOsProfileLinuxConfigSshKeyHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["path"].(string)))
+	if m["key_data"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["key_data"].(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceArmVirtualMachineStorageOsProfileLinuxConfigHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%t-", m["disable_password_authentication"].(bool)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceArmVirtualMachineStorageOsProfileWindowsConfigHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	if m["provision_vm_agent"] != nil {
+		buf.WriteString(fmt.Sprintf("%t-", m["provision_vm_agent"].(bool)))
+	}
+	if m["enable_automatic_upgrades"] != nil {
+		buf.WriteString(fmt.Sprintf("%t-", m["enable_automatic_upgrades"].(bool)))
+	}
+	return hashcode.String(buf.String())
+}
+
+func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) map[string]interface{} {
+	result := make(map[string]interface{})
+	result["name"] = *plan.Name
+	result["publisher"] = *plan.Publisher
+	result["product"] = *plan.Product
+
+	return result
+}
+
+func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) []interface{} {
+	result := make(map[string]interface{})
+	result["offer"] = *image.Offer
+	result["publisher"] = *image.Publisher
+	result["sku"] = *image.Sku
+
+	if image.Version != nil {
+		result["version"] = *image.Version
+	}
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineNetworkInterfaces(profile *compute.NetworkProfile) []string {
+	result := make([]string, 0, len(*profile.NetworkInterfaces))
+	for _, nic := range *profile.NetworkInterfaces {
+		result = append(result, *nic.ID)
+	}
+	return result
+}
+
+func flattenAzureRmVirtualMachineOsProfileSecrets(secrets *[]compute.VaultSecretGroup) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(*secrets))
+	for _, secret := range *secrets {
+		s := map[string]interface{}{
+			"source_vault_id": *secret.SourceVault.ID,
+		}
+
+		if secret.VaultCertificates != nil {
+			certs := make([]map[string]interface{}, 0, len(*secret.VaultCertificates))
+			for _, cert := range *secret.VaultCertificates {
+				vaultCert := make(map[string]interface{})
+				vaultCert["certificate_url"] = *cert.CertificateURL
+
+				if cert.CertificateStore != nil {
+					vaultCert["certificate_store"] = *cert.CertificateStore
+				}
+
+				certs = append(certs, vaultCert)
+			}
+
+			s["vault_certificates"] = certs
+		}
+
+		result = append(result, s)
+	}
+	return result
+}
+
+func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(*disks))
+	for _, i := range *disks {
+		l := make(map[string]interface{})
+		l["name"] = *i.Name
+		l["vhd_url"] = *i.Vhd.URI
+		l["create_option"] = i.CreateOption
+		l["disk_size_gb"] = *i.DiskSizeGB
+		l["lun"] = *i.Lun
+
+		result = append(result, l)
+	}
+	return result
+}
+
+func flattenAzureRmVirtualMachineOsProfile(osProfile *compute.OSProfile) []interface{} {
+	result := make(map[string]interface{})
+	result["computer_name"] = *osProfile.ComputerName
+	result["admin_username"] = *osProfile.AdminUsername
+	if osProfile.CustomData != nil {
+		result["custom_data"] = *osProfile.CustomData
+	}
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(config *compute.WindowsConfiguration) []interface{} {
+	result := make(map[string]interface{})
+
+	if config.ProvisionVMAgent != nil {
+		result["provision_vm_agent"] = *config.ProvisionVMAgent
+	}
+
+	if config.EnableAutomaticUpdates != nil {
+		result["enable_automatic_upgrades"] = *config.EnableAutomaticUpdates
+	}
+
+	if config.WinRM != nil {
+		listeners := make([]map[string]interface{}, 0, len(*config.WinRM.Listeners))
+		for _, i := range *config.WinRM.Listeners {
+			listener := make(map[string]interface{})
+			listener["protocol"] = i.Protocol
+
+			if i.CertificateURL != nil {
+				listener["certificate_url"] = *i.CertificateURL
+			}
+
+			listeners = append(listeners, listener)
+		}
+
+		result["winrm"] = listeners
+	}
+
+	if config.AdditionalUnattendContent != nil {
+		content := make([]map[string]interface{}, 0, len(*config.AdditionalUnattendContent))
+		for _, i := range *config.AdditionalUnattendContent {
+			c := make(map[string]interface{})
+			c["pass"] = i.PassName
+			c["component"] = i.ComponentName
+			c["setting_name"] = i.SettingName
+			c["content"] = *i.Content
+
+			content = append(content, c)
+		}
+
+		result["additional_unattend_config"] = content
+	}
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(config *compute.LinuxConfiguration) []interface{} {
+	result := map[string]interface{}{
+		"disable_password_authentication": *config.DisablePasswordAuthentication,
+	}
+
+	if config.SSH != nil && len(*config.SSH.PublicKeys) > 0 {
+		ssh_keys := make([]map[string]interface{}, 0, len(*config.SSH.PublicKeys))
+		for _, i := range *config.SSH.PublicKeys {
+			key := make(map[string]interface{})
+			key["name"] = *i.Path
+
+			if i.KeyData != nil {
+				key["key_data"] = *i.KeyData
+			}
+
+			ssh_keys = append(ssh_keys, key)
+		}
+
+		result["ssh_keys"] = ssh_keys
+	}
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineOsDisk(disk *compute.OSDisk) []interface{} {
+	result := make(map[string]interface{})
+	result["name"] = *disk.Name
+	result["vhd_uri"] = *disk.Vhd.URI
+	result["create_option"] = disk.CreateOption
+	result["caching"] = disk.Caching
+
+	return []interface{}{result}
 }
 
 func expandAzureRmVirtualMachinePlan(d *schema.ResourceData) (*compute.Plan, error) {
@@ -538,10 +813,8 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 	adminPassword := osProfile["admin_password"].(string)
 
 	profile := &compute.OSProfile{
-		AdminUsername:        &adminUsername,
-		AdminPassword:        &adminPassword,
-		WindowsConfiguration: &compute.WindowsConfiguration{},
-		LinuxConfiguration:   &compute.LinuxConfiguration{},
+		AdminUsername: &adminUsername,
+		AdminPassword: &adminPassword,
 	}
 
 	if _, ok := d.GetOk("os_profile_windows_config"); ok {
@@ -678,45 +951,48 @@ func expandAzureRmVirtualMachineOsProfileWindowsConfig(d *schema.ResourceData) (
 
 	if v := osProfileConfig["winrm"]; v != nil {
 		winRm := v.(*schema.Set).List()
-		winRmListners := make([]compute.WinRMListener, 0, len(winRm))
-		for _, winRmConfig := range winRm {
-			config := winRmConfig.(map[string]interface{})
+		if len(winRm) > 0 {
+			winRmListners := make([]compute.WinRMListener, 0, len(winRm))
+			for _, winRmConfig := range winRm {
+				config := winRmConfig.(map[string]interface{})
 
-			protocol := config["protocol"].(string)
-			winRmListner := compute.WinRMListener{
-				Protocol: compute.ProtocolTypes(protocol),
-			}
-			if v := config["certificate_url"].(string); v != "" {
-				winRmListner.CertificateURL = &v
-			}
+				protocol := config["protocol"].(string)
+				winRmListner := compute.WinRMListener{
+					Protocol: compute.ProtocolTypes(protocol),
+				}
+				if v := config["certificate_url"].(string); v != "" {
+					winRmListner.CertificateURL = &v
+				}
 
-			winRmListners = append(winRmListners, winRmListner)
-		}
-		config.WinRM = &compute.WinRMConfiguration{
-			Listeners: &winRmListners,
+				winRmListners = append(winRmListners, winRmListner)
+			}
+			config.WinRM = &compute.WinRMConfiguration{
+				Listeners: &winRmListners,
+			}
 		}
 	}
 	if v := osProfileConfig["additional_unattend_config"]; v != nil {
 		additionalConfig := v.(*schema.Set).List()
-		additionalConfigContent := make([]compute.AdditionalUnattendContent, 0, len(additionalConfig))
-		for _, addConfig := range additionalConfig {
-			config := addConfig.(map[string]interface{})
-			pass := config["pass"].(string)
-			component := config["component"].(string)
-			settingName := config["setting_name"].(string)
-			content := config["content"].(string)
+		if len(additionalConfig) > 0 {
+			additionalConfigContent := make([]compute.AdditionalUnattendContent, 0, len(additionalConfig))
+			for _, addConfig := range additionalConfig {
+				config := addConfig.(map[string]interface{})
+				pass := config["pass"].(string)
+				component := config["component"].(string)
+				settingName := config["setting_name"].(string)
+				content := config["content"].(string)
 
-			addContent := compute.AdditionalUnattendContent{
-				PassName:      compute.PassNames(pass),
-				ComponentName: compute.ComponentNames(component),
-				SettingName:   compute.SettingNames(settingName),
-				Content:       &content,
+				addContent := compute.AdditionalUnattendContent{
+					PassName:      compute.PassNames(pass),
+					ComponentName: compute.ComponentNames(component),
+					SettingName:   compute.SettingNames(settingName),
+					Content:       &content,
+				}
+
+				additionalConfigContent = append(additionalConfigContent, addContent)
 			}
-
-			additionalConfigContent = append(additionalConfigContent, addContent)
+			config.AdditionalUnattendContent = &additionalConfigContent
 		}
-
-		config.AdditionalUnattendContent = &additionalConfigContent
 	}
 	return config, nil
 }
