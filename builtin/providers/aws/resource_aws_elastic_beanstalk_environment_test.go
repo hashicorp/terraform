@@ -30,6 +30,24 @@ func TestAccAWSBeanstalkEnv_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_tier(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkWorkerEnvConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvTier("aws_elastic_beanstalk_environment.tfenvtest", &app),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
 
@@ -81,25 +99,61 @@ func testAccCheckBeanstalkEnvExists(n string, app *elasticbeanstalk.EnvironmentD
 			return fmt.Errorf("Elastic Beanstalk ENV is not set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
-		describeBeanstalkEnvOpts := &elasticbeanstalk.DescribeEnvironmentsInput{
-			EnvironmentIds: []*string{aws.String(rs.Primary.ID)},
-		}
-
-		log.Printf("[DEBUG] Elastic Beanstalk Environment TEST describe opts: %s", describeBeanstalkEnvOpts)
-
-		resp, err := conn.DescribeEnvironments(describeBeanstalkEnvOpts)
+		env, err := describeBeanstalkEnv(testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn, aws.String(rs.Primary.ID))
 		if err != nil {
 			return err
 		}
-		if len(resp.Environments) == 0 {
-			return fmt.Errorf("Elastic Beanstalk ENV not found.")
-		}
 
-		*app = *resp.Environments[0]
+		*app = *env
 
 		return nil
 	}
+}
+
+func testAccCheckBeanstalkEnvTier(n string, app *elasticbeanstalk.EnvironmentDescription) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("Elastic Beanstalk ENV is not set")
+		}
+
+		env, err := describeBeanstalkEnv(testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn, aws.String(rs.Primary.ID))
+		if err != nil {
+			return err
+		}
+		if *env.Tier.Name != "Worker" {
+			return fmt.Errorf("Beanstalk Environment tier is %s, expected Worker", *env.Tier.Name)
+		}
+
+		*app = *env
+
+		return nil
+	}
+}
+
+func describeBeanstalkEnv(conn *elasticbeanstalk.ElasticBeanstalk,
+	envID *string) (*elasticbeanstalk.EnvironmentDescription, error) {
+	describeBeanstalkEnvOpts := &elasticbeanstalk.DescribeEnvironmentsInput{
+		EnvironmentIds: []*string{envID},
+	}
+
+	log.Printf("[DEBUG] Elastic Beanstalk Environment TEST describe opts: %s", describeBeanstalkEnvOpts)
+
+	resp, err := conn.DescribeEnvironments(describeBeanstalkEnvOpts)
+	if err != nil {
+		return &elasticbeanstalk.EnvironmentDescription{}, err
+	}
+	if len(resp.Environments) == 0 {
+		return &elasticbeanstalk.EnvironmentDescription{}, fmt.Errorf("Elastic Beanstalk ENV not found.")
+	}
+	if len(resp.Environments) > 1 {
+		return &elasticbeanstalk.EnvironmentDescription{}, fmt.Errorf("Found %d environments, expected 1.", len(resp.Environments))
+	}
+	return resp.Environments[0], nil
 }
 
 const testAccBeanstalkEnvConfig = `
@@ -113,5 +167,19 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   application = "${aws_elastic_beanstalk_application.tftest.name}"
   solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.8 running Go 1.4"
   #solution_stack_name =
+}
+`
+
+const testAccBeanstalkWorkerEnvConfig = `
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  tier = "Worker"
+  solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.4 running Go 1.4"
 }
 `
