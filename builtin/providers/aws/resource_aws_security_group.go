@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -817,7 +818,7 @@ func idHash(rType, protocol string, toPort, fromPort int64, self bool) string {
 	buf.WriteString(fmt.Sprintf("%s-", rType))
 	buf.WriteString(fmt.Sprintf("%d-", toPort))
 	buf.WriteString(fmt.Sprintf("%d-", fromPort))
-	buf.WriteString(fmt.Sprintf("%s-", protocol))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(protocol)))
 	buf.WriteString(fmt.Sprintf("%t-", self))
 
 	return fmt.Sprintf("rule-%d", hashcode.String(buf.String()))
