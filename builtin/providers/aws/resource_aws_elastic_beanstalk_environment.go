@@ -60,6 +60,22 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tier": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					switch value {
+					case
+						"Worker",
+						"WebServer":
+						return
+					}
+					errors = append(errors, fmt.Errorf("%s is not a valid tier. Valid options are WebServer or Worker", value))
+					return
+				},
+				ForceNew: true,
+			},
 			"setting": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -94,6 +110,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	// Get values from config
 	name := d.Get("name").(string)
 	cname := d.Get("cname").(string)
+	tier := d.Get("tier").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
 	settings := d.Get("setting").(*schema.Set)
@@ -116,6 +133,22 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	if cname != "" {
 		createOpts.CNAMEPrefix = aws.String(cname)
+	}
+
+	if tier != "" {
+		var tierType string
+
+		switch tier {
+		case "WebServer":
+			tierType = "Standard"
+		case "Worker":
+			tierType = "SQS/HTTP"
+		}
+		environmentTier := elasticbeanstalk.EnvironmentTier{
+			Name: aws.String(tier),
+			Type: aws.String(tierType),
+		}
+		createOpts.Tier = &environmentTier
 	}
 
 	if solutionStack != "" {
