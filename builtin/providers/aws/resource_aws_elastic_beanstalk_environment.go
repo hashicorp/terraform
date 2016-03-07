@@ -56,6 +56,10 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"version_label": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"cname": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -96,6 +100,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	cname := d.Get("cname").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
+	version := d.Get("version_label").(string)
 	settings := d.Get("setting").(*schema.Set)
 	solutionStack := d.Get("solution_stack_name").(string)
 	templateName := d.Get("template_name").(string)
@@ -126,13 +131,16 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		createOpts.TemplateName = aws.String(templateName)
 	}
 
+	if version != "" {
+		createOpts.VersionLabel = aws.String(version)
+	}
+
 	log.Printf("[DEBUG] Elastic Beanstalk Environment create opts: %s", createOpts)
 	resp, err := conn.CreateEnvironment(&createOpts)
 	if err != nil {
 		return err
 	}
 
-	// Assign the application name as the resource ID
 	d.SetId(*resp.EnvironmentId)
 
 	stateConf := &resource.StateChangeConf{
@@ -157,50 +165,18 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
+	envId := d.Id()
+
+	updateOpts := elasticbeanstalk.UpdateEnvironmentInput{
+		EnvironmentId: aws.String(envId),
+	}
+
 	if d.HasChange("description") {
-		if err := resourceAwsElasticBeanstalkEnvironmentDescriptionUpdate(conn, d); err != nil {
-			return err
-		}
+		updateOpts.Description = aws.String(d.Get("description").(string))
 	}
 
 	if d.HasChange("solution_stack_name") {
-		if err := resourceAwsElasticBeanstalkEnvironmentSolutionStackUpdate(conn, d); err != nil {
-			return err
-		}
-	}
-
-	if d.HasChange("setting") {
-		if err := resourceAwsElasticBeanstalkEnvironmentOptionSettingsUpdate(conn, d); err != nil {
-			return err
-		}
-	}
-
-	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
-}
-
-func resourceAwsElasticBeanstalkEnvironmentDescriptionUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
-	name := d.Get("name").(string)
-	desc := d.Get("description").(string)
-	envId := d.Id()
-
-	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update description: %s", name, desc)
-
-	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
-		EnvironmentId: aws.String(envId),
-		Description:   aws.String(desc),
-	})
-
-	return err
-}
-
-func resourceAwsElasticBeanstalkEnvironmentOptionSettingsUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
-	name := d.Get("name").(string)
-	envId := d.Id()
-
-	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update options", name)
-
-	req := &elasticbeanstalk.UpdateEnvironmentInput{
-		EnvironmentId: aws.String(envId),
+		updateOpts.SolutionStackName = aws.String(d.Get("solution_stack_name").(string))
 	}
 
 	if d.HasChange("setting") {
@@ -215,29 +191,36 @@ func resourceAwsElasticBeanstalkEnvironmentOptionSettingsUpdate(conn *elasticbea
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		req.OptionSettings = extractOptionSettings(ns.Difference(os))
+		updateOpts.OptionSettings = extractOptionSettings(ns.Difference(os))
 	}
 
-	if _, err := conn.UpdateEnvironment(req); err != nil {
+	if d.HasChange("version_label") {
+		updateOpts.VersionLabel = aws.String(d.Get("version_label").(string))
+	}
+
+	log.Printf("[DEBUG] Elastic Beanstalk Environment update opts: %s", updateOpts)
+	_, err := conn.UpdateEnvironment(&updateOpts)
+	if err != nil {
 		return err
 	}
 
-	return nil
-}
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Launching", "Updating"},
+		Target:     []string{"Ready"},
+		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
 
-func resourceAwsElasticBeanstalkEnvironmentSolutionStackUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
-	name := d.Get("name").(string)
-	solutionStack := d.Get("solution_stack_name").(string)
-	envId := d.Id()
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for Elastic Beanstalk Environment (%s) to become ready: %s",
+			d.Id(), err)
+	}
 
-	log.Printf("[DEBUG] Elastic Beanstalk application: %s, update solution_stack_name: %s", name, solutionStack)
-
-	_, err := conn.UpdateEnvironment(&elasticbeanstalk.UpdateEnvironmentInput{
-		EnvironmentId:     aws.String(envId),
-		SolutionStackName: aws.String(solutionStack),
-	})
-
-	return err
+	return resourceAwsElasticBeanstalkEnvironmentRead(d, meta)
 }
 
 func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
@@ -280,6 +263,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 	}
 
 	if err := d.Set("cname", env.CNAME); err != nil {
+		return err
+	}
+
+	if err := d.Set("version_label", env.VersionLabel); err != nil {
 		return err
 	}
 
