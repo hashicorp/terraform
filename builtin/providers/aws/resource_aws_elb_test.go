@@ -1050,6 +1050,10 @@ resource "aws_security_group" "bar" {
     to_port = 80
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+	tags {
+		Name = "tf_elb_sg_test"
+	}
 }
 `
 
