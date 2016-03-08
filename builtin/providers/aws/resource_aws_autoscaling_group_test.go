@@ -240,7 +240,7 @@ func TestAccAWSAutoScalingGroup_withPlacementGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "placement_group", "test"),
+						"aws_autoscaling_group.bar", "placement_group", "tf_placement_test"),
 				),
 			},
 		},
@@ -751,11 +751,11 @@ resource "aws_autoscaling_group" "bar" {
 const testAccAWSAutoScalingGroupConfig_withPlacementGroup = `
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
-  instance_type = "t2.micro"
+  instance_type = "c3.large"
 }
 
 resource "aws_placement_group" "test" {
-  name = "test"
+  name = "tf_placement_test"
   strategy = "cluster"
 }
 
