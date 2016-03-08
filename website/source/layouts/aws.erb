@@ -132,7 +132,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(ami|app|autoscaling|ebs|elb|eip|elastic-beanstalk|instance|launch|lb|proxy|spot|volume|placement|key-pair)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(ami|app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement|key-pair)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -182,18 +182,6 @@
 
                         <li<%= sidebar_current("docs-aws-resource-elb") %>>
                             <a href="/docs/providers/aws/r/elb.html">aws_elb</a>
-                        </li>
-
-                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-application") %>>
-                            <a href="/docs/providers/aws/r/elastic_beanstalk_application.html">aws_elastic_beanstalk_application</a>
-                        </li>
-
-                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-configuration-template") %>>
-                            <a href="/docs/providers/aws/r/elastic_beanstalk_configuration_template.html">aws_elastic_configuation_template</a>
-                        </li>
-
-                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-environment") %>>
-                            <a href="/docs/providers/aws/r/elastic_beanstalk_environment.html">aws_elastic_beanstalk_environment</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-instance") %>>
@@ -298,6 +286,23 @@
                     </ul>
                 </li>
 
+
+                <li<%= sidebar_current(/^docs-aws-resource-elastic-beanstalk/) %>>
+                    <a href="#">Elastic Beanstalk Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-application") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_application.html">aws_elastic_beanstalk_application</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-configuration-template") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_configuration_template.html">aws_elastic_beanstalk_configuration_template</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-environment") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_environment.html">aws_elastic_beanstalk_environment</a>
+                        </li>
+                    </ul>
+                </li>
 
                 <li<%= sidebar_current(/^docs-aws-resource-elasticsearch/) %>>
                     <a href="#">ElasticSearch Resources</a>
