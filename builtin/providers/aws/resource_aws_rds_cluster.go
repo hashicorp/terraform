@@ -74,6 +74,7 @@ func resourceAwsRDSCluster() *schema.Resource {
 			"storage_encrypted": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 				ForceNew: true,
 			},
 
