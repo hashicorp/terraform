@@ -28,6 +28,7 @@ IMPROVEMENTS:
   * provider/aws: Add ability to update Route53 zone comments [GH-5318]
   * provider/aws: Lambda S3 object version defaults to `$LATEST` if unspecified [GH-5370]
   * provider/aws: Add support for Metrics Collection to `aws_autoscaling_group` [GH-4688]
+  * provider/aws: Add support for `description` to `aws_network_interface` [GH-5523]
   * provider/vsphere: Add support for disk init types [GH-4284]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
