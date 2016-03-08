@@ -872,6 +872,36 @@ func (r *ResourceState) Taint() {
 	r.Primary = nil
 }
 
+// Untaint takes a tainted InstanceState and marks it as primary.
+// The index argument is used to select a single InstanceState from the
+// array of Tainted when there are more than one. If index is -1, the
+// first Tainted InstanceState will be untainted iff there is only one
+// Tainted InstanceState. Index must be >= 0 to specify an InstanceState
+// when Tainted has more than one member.
+func (r *ResourceState) Untaint(index int) error {
+	if len(r.Tainted) == 0 {
+		return fmt.Errorf("Nothing to untaint.")
+	}
+	if r.Primary != nil {
+		return fmt.Errorf("Resource has a primary instance in the state that would be overwritten by untainting. If you want to restore a tainted resource to primary, taint the existing primary instance first.")
+	}
+	if index == -1 && len(r.Tainted) > 1 {
+		return fmt.Errorf("There are %d tainted instances for this resource, please specify an index to select which one to untaint.", len(r.Tainted))
+	}
+	if index == -1 {
+		index = 0
+	}
+	if index >= len(r.Tainted) {
+		return fmt.Errorf("There are %d tainted instances for this resource, the index specified (%d) is out of range.", len(r.Tainted), index)
+	}
+
+	// Perform the untaint
+	r.Primary = r.Tainted[index]
+	r.Tainted = append(r.Tainted[:index], r.Tainted[index+1:]...)
+
+	return nil
+}
+
 func (r *ResourceState) init() {
 	if r.Primary == nil {
 		r.Primary = &InstanceState{}
