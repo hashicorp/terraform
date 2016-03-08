@@ -29,6 +29,8 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "storage_encrypted", "false"),
 				),
 			},
 		},
