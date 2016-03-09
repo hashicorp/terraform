@@ -71,6 +71,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
 * `port` - (Optional) The port on which the DB accepts connections
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate
   with the Cluster
+* `storage_encrypted` - (Optional) Specifies whether the DB cluster is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any cluster modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
@@ -97,7 +98,7 @@ The following attributes are exported:
 * `port` - The database port
 * `status` - The RDS instance status
 * `username` - The master username for the database
-* `storage_encrypted` - Specifies whether the DB instance is encrypted
+* `storage_encrypted` - Specifies whether the DB cluster is encrypted
 * `preferred_backup_window` - The daily time range during which the backups happen
 
 [1]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
