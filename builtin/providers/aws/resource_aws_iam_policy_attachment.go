@@ -223,7 +223,7 @@ func attachPolicyToRoles(conn *iam.IAM, roles []*string, arn string) error {
 
 			attachedPolicies, err := conn.ListRolePolicies(&input)
 			if err != nil {
-				return &resource.RetryError{Err: err}
+				return resource.RetryError{Err: err}
 			}
 
 			if len(attachedPolicies.PolicyNames) > 0 {
@@ -236,7 +236,7 @@ func attachPolicyToRoles(conn *iam.IAM, roles []*string, arn string) error {
 				}
 
 				if !foundPolicy {
-					return &resource.RetryError{Err: fmt.Errorf("Policy (%q) not yet found", arn)}
+					return resource.RetryError{Err: fmt.Errorf("Policy (%q) not yet found", arn)}
 				}
 			}
 

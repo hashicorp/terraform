@@ -316,7 +316,7 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return &resource.RetryError{Err: err}
+			return resource.RetryError{Err: err}
 		}
 
 		switch ec2err.Code() {
@@ -326,7 +326,7 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		return &resource.RetryError{
+		return resource.RetryError{
 			Err: fmt.Errorf("Error deleting VPC: %s", err),
 		}
 	})

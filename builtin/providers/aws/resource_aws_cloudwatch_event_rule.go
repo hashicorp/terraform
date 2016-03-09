@@ -81,7 +81,7 @@ func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface
 					return err
 				}
 			}
-			return &resource.RetryError{
+			return resource.RetryError{
 				Err: err,
 			}
 		}
@@ -168,7 +168,7 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 					return err
 				}
 			}
-			return &resource.RetryError{
+			return resource.RetryError{
 				Err: err,
 			}
 		}
