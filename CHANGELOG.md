@@ -50,6 +50,7 @@ BUG FIXES:
   * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
   * provider/openstack: Fix crashing during certain network updates in instances [GH-5365]
   * provider/openstack: Account for a 403 reply when os-tenant-networks is disabled [GH-5432]
+  * provider/google: Fix managed instance group preemptible instance creation [GH-4834]
 
 INTERNAL IMPROVEMENTS:
 
