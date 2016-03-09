@@ -23,37 +23,38 @@ FEATURES:
 
 IMPROVEMENTS:
 
-  * provider/aws: Add support for routing rules on `aws_s3_bucket` resources [GH-5327]
-  * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
+  * provider/aws: Add `repository_link` as a computed field for `aws_ecr_repository` [GH-5524]
   * provider/aws: Add ability to update Route53 zone comments [GH-5318]
-  * provider/aws: Lambda S3 object version defaults to `$LATEST` if unspecified [GH-5370]
   * provider/aws: Add support for Metrics Collection to `aws_autoscaling_group` [GH-4688]
   * provider/aws: Add support for `description` to `aws_network_interface` [GH-5523]
   * provider/aws: Add support for `storage_encrypted` to `aws_rds_cluster` [GH-5520]
+  * provider/aws: Add support for routing rules on `aws_s3_bucket` resources [GH-5327]
+  * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
+  * provider/aws: Lambda S3 object version defaults to `$LATEST` if unspecified [GH-5370]
   * provider/aws: Retry DB Creation on IAM propigation error [GH-5515]
-  * provider/aws: Add `repository_link` as a computed field for `aws_ecr_repository` [GH-5524]
-  * provider/vsphere: Add support for disk init types [GH-4284]
-  * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
+  * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
   * provider/openstack: Add Support for Domain ID and Domain Name environment variables [GH-5355]
   * provider/openstack: Add support for instances to have multiple ephemeral disks. [GH-5131]
   * provider/openstack: Re-Add server.AccessIPv4 and server.AccessIPv6 [GH-5366]
+  * provider/vsphere: Add support for disk init types [GH-4284]
 
 BUG FIXES:
 
-  * core: Includes upstream HCL fix to properly detect unbalanced braces and throw an error [GH-5400]
   * core: Fix issue with retry logic causing spurious "timeout while waiting for state to become ..." errors [GH-5460]
+  * core: Includes upstream HCL fix to properly detect unbalanced braces and throw an error [GH-5400]
   * provider/aws: Allow recovering from failed CloudWatch Event Target creation [GH-5395]
-  * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
-  * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly [GH-5361]
   * provider/aws: Fix a bug where AWS Kinesis Stream includes closed shards in the shard_count [GH-5401]
-  * provider/aws: Fix error with parsing JSON in `aws_s3_bucket` policy attribute [GH-5474]  
-  * provider/aws: Fix a bug where `publicly_assessible` wasn't being set to state in `aws_db_instance` [GH-5535]
+  * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly [GH-5361]
   * provider/aws: Fix a bug where `aws_route` would show continual changes in the plan when not computed [GH-5321]
-  * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
-  * provider/openstack: Fix crashing during certain network updates in instances [GH-5365]
-  * provider/openstack: Account for a 403 reply when os-tenant-networks is disabled [GH-5432]
+  * provider/aws: Fix a bug where `publicly_assessible` wasn't being set to state in `aws_db_instance` [GH-5535]
+  * provider/aws: Fix a bug where listener protocol on `aws_elb` resources was case insensitive [GH-5376]
+  * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
+  * provider/aws: Fix error with parsing JSON in `aws_s3_bucket` policy attribute [GH-5474]  
   * provider/google: Fix managed instance group preemptible instance creation [GH-4834]
+  * provider/openstack: Account for a 403 reply when os-tenant-networks is disabled [GH-5432]
+  * provider/openstack: Fix crashing during certain network updates in instances [GH-5365]
+  * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
 
 INTERNAL IMPROVEMENTS:
 
