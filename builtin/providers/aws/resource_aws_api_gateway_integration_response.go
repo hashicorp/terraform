@@ -116,7 +116,7 @@ func resourceAwsApiGatewayIntegrationResponseDelete(d *schema.ResourceData, meta
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway Integration Response: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteIntegrationResponse(&apigateway.DeleteIntegrationResponseInput{
 			HttpMethod: aws.String(d.Get("http_method").(string)),
 			ResourceId: aws.String(d.Get("resource_id").(string)),
@@ -133,9 +133,9 @@ func resourceAwsApiGatewayIntegrationResponseDelete(d *schema.ResourceData, meta
 		}
 
 		if !ok {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
-		return resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 	})
 }

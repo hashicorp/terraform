@@ -161,7 +161,7 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	log.Printf("[INFO] Deleting IAM Server Certificate: %s", d.Id())
-	err := resource.Retry(1*time.Minute, func() error {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteServerCertificate(&iam.DeleteServerCertificateInput{
 			ServerCertificateName: aws.String(d.Get("name").(string)),
 		})
@@ -170,10 +170,10 @@ func resourceAwsIAMServerCertificateDelete(d *schema.ResourceData, meta interfac
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "DeleteConflict" && strings.Contains(awsErr.Message(), "currently in use by arn") {
 					log.Printf("[WARN] Conflict deleting server certificate: %s, retrying", awsErr.Message())
-					return err
+					return resource.RetryableError(err)
 				}
 			}
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		return nil
 	})

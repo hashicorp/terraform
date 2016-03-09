@@ -10,13 +10,13 @@ func TestRetry(t *testing.T) {
 	t.Parallel()
 
 	tries := 0
-	f := func() error {
+	f := func() *RetryError {
 		tries++
 		if tries == 1 {
 			return nil
 		}
 
-		return fmt.Errorf("error")
+		return RetryableError(fmt.Errorf("error"))
 	}
 
 	err := Retry(2*time.Second, f)
@@ -28,8 +28,8 @@ func TestRetry(t *testing.T) {
 func TestRetry_timeout(t *testing.T) {
 	t.Parallel()
 
-	f := func() error {
-		return fmt.Errorf("always")
+	f := func() *RetryError {
+		return RetryableError(fmt.Errorf("always"))
 	}
 
 	err := Retry(1*time.Second, f)
@@ -42,8 +42,8 @@ func TestRetry_error(t *testing.T) {
 	t.Parallel()
 
 	expected := fmt.Errorf("nope")
-	f := func() error {
-		return RetryError{expected}
+	f := func() *RetryError {
+		return NonRetryableError(expected)
 	}
 
 	errCh := make(chan error)

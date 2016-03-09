@@ -114,7 +114,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Deleting Internet Gateway: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteInternetGateway(&ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: aws.String(d.Id()),
 		})
@@ -124,17 +124,17 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return err
+			return resource.RetryableError(err)
 		}
 
 		switch ec2err.Code() {
 		case "InvalidInternetGatewayID.NotFound":
 			return nil
 		case "DependencyViolation":
-			return err // retry
+			return resource.RetryableError(err) // retry
 		}
 
-		return resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 	})
 }
 

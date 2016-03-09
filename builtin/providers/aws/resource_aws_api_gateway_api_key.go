@@ -148,7 +148,7 @@ func resourceAwsApiGatewayApiKeyDelete(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway API Key: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteApiKey(&apigateway.DeleteApiKeyInput{
 			ApiKey: aws.String(d.Id()),
 		})
@@ -161,6 +161,6 @@ func resourceAwsApiGatewayApiKeyDelete(d *schema.ResourceData, meta interface{})
 			return nil
 		}
 
-		return resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 	})
 }
