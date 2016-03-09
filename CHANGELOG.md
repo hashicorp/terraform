@@ -32,6 +32,7 @@ IMPROVEMENTS:
   * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
   * provider/aws: Lambda S3 object version defaults to `$LATEST` if unspecified [GH-5370]
   * provider/aws: Retry DB Creation on IAM propigation error [GH-5515]
+  * provider/aws: `aws_instance` now allows changes to security groups without force new resource [GH-5193]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
   * provider/openstack: Add Support for Domain ID and Domain Name environment variables [GH-5355]
