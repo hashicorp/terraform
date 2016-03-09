@@ -58,7 +58,7 @@ func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 		},
 	}
 
-	out := resourceAwsSecurityGroupIPPermGather("sg-22222", raw)
+	out := resourceAwsSecurityGroupIPPermGather("sg-22222", raw, true)
 	for _, i := range out {
 		// loop and match rules, because the ordering is not guarneteed
 		for _, l := range local {
@@ -114,6 +114,57 @@ func TestAccAWSSecurityGroup_basic(t *testing.T) {
 						"aws_security_group.web", "ingress.3629188364.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "ingress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroup_ingressWithCidrAndSGs(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfig_ingressWithCidrAndSGs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupSGandCidrAttributes(&group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.#", "2"),
+				),
+			},
+		},
+	})
+}
+
+// This test requires an EC2 Classic region
+func TestAccAWSSecurityGroup_ingressWithCidrAndSGs_classic(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfig_ingressWithCidrAndSGs_classic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupSGandCidrAttributes(&group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.#", "2"),
 				),
 			},
 		},
@@ -525,6 +576,43 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) reso
 	}
 }
 
+func testAccCheckAWSSecurityGroupSGandCidrAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *group.GroupName != "terraform_acceptance_test_example" {
+			return fmt.Errorf("Bad name: %s", *group.GroupName)
+		}
+
+		if *group.Description != "Used in the terraform acceptance tests" {
+			return fmt.Errorf("Bad description: %s", *group.Description)
+		}
+
+		if len(group.IpPermissions) == 0 {
+			return fmt.Errorf("No IPPerms")
+		}
+
+		if len(group.IpPermissions) != 2 {
+			return fmt.Errorf("Expected 2 ingress rules, got %d", len(group.IpPermissions))
+		}
+
+		for _, p := range group.IpPermissions {
+			if *p.FromPort == int64(22) {
+				if len(p.IpRanges) != 1 || p.UserIdGroupPairs != nil {
+					return fmt.Errorf("Found ip perm of 22, but not the right ipranges / pairs: %s", p)
+				}
+				continue
+			} else if *p.FromPort == int64(80) {
+				if len(p.IpRanges) != 1 || len(p.UserIdGroupPairs) != 1 {
+					return fmt.Errorf("Found ip perm of 80, but not the right ipranges / pairs: %s", p)
+				}
+				continue
+			}
+			return fmt.Errorf("Found a rouge rule")
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := &ec2.IpPermission{
@@ -746,6 +834,93 @@ resource "aws_security_group" "web" {
 	tags {
 		Name = "tf-acc-test"
 	}
+}
+`
+
+const testAccAWSSecurityGroupConfig_ingressWithCidrAndSGs = `
+resource "aws_security_group" "other_web" {
+  name        = "tf_other_acc_tests"
+  description = "Used in the terraform acceptance tests"
+
+  tags {
+    Name = "tf-acc-test"
+  }
+}
+
+resource "aws_security_group" "web" {
+  name        = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+
+  ingress {
+    protocol  = "tcp"
+    from_port = "22"
+    to_port   = "22"
+
+    cidr_blocks = [
+      "192.168.0.1/32",
+    ]
+  }
+
+  ingress {
+    protocol        = "tcp"
+    from_port       = 80
+    to_port         = 8000
+    cidr_blocks     = ["10.0.0.0/8"]
+    security_groups = ["${aws_security_group.other_web.id}"]
+  }
+
+  egress {
+    protocol    = "tcp"
+    from_port   = 80
+    to_port     = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+  tags {
+    Name = "tf-acc-test"
+  }
+}
+`
+
+const testAccAWSSecurityGroupConfig_ingressWithCidrAndSGs_classic = `
+provider "aws" {
+        region = "us-east-1"
+}
+
+resource "aws_security_group" "other_web" {
+  name        = "tf_other_acc_tests"
+  description = "Used in the terraform acceptance tests"
+
+  tags {
+    Name = "tf-acc-test"
+  }
+}
+
+resource "aws_security_group" "web" {
+  name        = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+
+  ingress {
+    protocol  = "tcp"
+    from_port = "22"
+    to_port   = "22"
+
+    cidr_blocks = [
+      "192.168.0.1/32",
+    ]
+  }
+
+  ingress {
+    protocol        = "tcp"
+    from_port       = 80
+    to_port         = 8000
+    cidr_blocks     = ["10.0.0.0/8"]
+    security_groups = ["${aws_security_group.other_web.name}"]
+  }
+
+  tags {
+    Name = "tf-acc-test"
+  }
 }
 `
 
