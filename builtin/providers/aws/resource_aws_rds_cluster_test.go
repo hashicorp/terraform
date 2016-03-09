@@ -29,6 +29,31 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "storage_encrypted", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSCluster_encrypted(t *testing.T) {
+	var v rds.DBCluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	encConfig := fmt.Sprintf(testAccAWSClusterConfig_encrypted, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: encConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_rds_cluster.default", "storage_encrypted", "true"),
 				),
 			},
 		},
@@ -148,6 +173,16 @@ resource "aws_rds_cluster" "default" {
   database_name = "mydb"
   master_username = "foo"
   master_password = "mustbeeightcharaters"
+}`
+
+var testAccAWSClusterConfig_encrypted = `
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  database_name = "mydb"
+  master_username = "foo"
+  master_password = "mustbeeightcharaters"
+  storage_encrypted = true
 }`
 
 var testAccAWSClusterConfig_backups = `
