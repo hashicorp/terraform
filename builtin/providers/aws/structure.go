@@ -321,7 +321,7 @@ func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 	return result
 }
 
-// Flattens an array of UserSecurityGroups into a []string
+// Flattens an array of UserSecurityGroups into a []*ec2.GroupIdentifier
 func flattenSecurityGroups(list []*ec2.UserIdGroupPair, ownerId *string) []*ec2.GroupIdentifier {
 	result := make([]*ec2.GroupIdentifier, 0, len(list))
 	for _, g := range list {
