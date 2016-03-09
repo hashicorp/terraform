@@ -329,6 +329,7 @@ func flattenSecurityGroups(list []*ec2.UserIdGroupPair, ownerId *string) []*ec2.
 		if g.UserId != nil && *g.UserId != "" && (ownerId == nil || *ownerId != *g.UserId) {
 			userId = g.UserId
 		}
+		// userid nil here for same vpc groups
 
 		vpc := g.GroupName == nil || *g.GroupName == ""
 		var id *string
@@ -337,6 +338,9 @@ func flattenSecurityGroups(list []*ec2.UserIdGroupPair, ownerId *string) []*ec2.
 		} else {
 			id = g.GroupName
 		}
+
+		// id is groupid for vpcs
+		// id is groupname for non vpc (classic)
 
 		if userId != nil {
 			id = aws.String(*userId + "/" + *id)
