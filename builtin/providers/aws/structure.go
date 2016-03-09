@@ -51,7 +51,7 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 		if l.SSLCertificateId != nil && *l.SSLCertificateId != "" {
 			// validate the protocol is correct
 			for _, p := range []string{"https", "ssl"} {
-				if (*l.InstanceProtocol == p) || (*l.Protocol == p) {
+				if (strings.ToLower(*l.InstanceProtocol) == p) || (strings.ToLower(*l.Protocol) == p) {
 					valid = true
 				}
 			}
