@@ -199,21 +199,18 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
-	err := resource.Retry(1*time.Minute, func() error {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "InvalidParameterValueException" {
 					log.Printf("[DEBUG] InvalidParameterValueException creating Lambda Function: %s", awserr)
-					// Retryable
-					return awserr
+					return resource.RetryableError(awserr)
 				}
 			}
 			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
-			// Not retryable
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
-		// No error
 		return nil
 	})
 	if err != nil {

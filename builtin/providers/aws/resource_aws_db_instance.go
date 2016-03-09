@@ -534,15 +534,15 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
 		var err error
-		err = resource.Retry(5*time.Minute, func() error {
+		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 			_, err = conn.CreateDBInstance(&opts)
 			if err != nil {
 				if awsErr, ok := err.(awserr.Error); ok {
 					if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "ENHANCED_MONITORING") {
-						return awsErr
+						return resource.RetryableError(awsErr)
 					}
 				}
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 			return nil
 		})
