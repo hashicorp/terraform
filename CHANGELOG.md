@@ -30,6 +30,7 @@ IMPROVEMENTS:
   * provider/aws: Add support for Metrics Collection to `aws_autoscaling_group` [GH-4688]
   * provider/aws: Add support for `description` to `aws_network_interface` [GH-5523]
   * provider/aws: Add support for `storage_encrypted` to `aws_rds_cluster` [GH-5520]
+  * provider/aws: Retry DB Creation on IAM propigation error [GH-5515]
   * provider/aws: Add `repository_link` as a computed field for `aws_ecr_repository` [GH-5524]
   * provider/vsphere: Add support for disk init types [GH-4284]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
