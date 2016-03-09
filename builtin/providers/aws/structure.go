@@ -137,7 +137,7 @@ func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
 // to_port or from_port set to a non-zero value.
 func expandIPPerms(
 	group *ec2.SecurityGroup, configured []interface{}) ([]*ec2.IpPermission, error) {
-	vpc := group.VpcId != nil
+	vpc := group.VpcId != nil && *group.VpcId != ""
 
 	perms := make([]*ec2.IpPermission, len(configured))
 	for i, mRaw := range configured {
@@ -322,10 +322,36 @@ func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 }
 
 // Flattens an array of UserSecurityGroups into a []string
-func flattenSecurityGroups(list []*ec2.UserIdGroupPair) []string {
-	result := make([]string, 0, len(list))
+func flattenSecurityGroups(list []*ec2.UserIdGroupPair, ownerId *string) []*ec2.GroupIdentifier {
+	result := make([]*ec2.GroupIdentifier, 0, len(list))
 	for _, g := range list {
-		result = append(result, *g.GroupId)
+		var userId *string
+		if g.UserId != nil && *g.UserId != "" && (ownerId == nil || *ownerId != *g.UserId) {
+			userId = g.UserId
+		}
+
+		vpc := g.GroupName == nil || *g.GroupName == ""
+		var id *string
+		if vpc {
+			id = g.GroupId
+		} else {
+			id = g.GroupName
+		}
+
+		if userId != nil {
+			id = aws.String(*userId + "/" + *id)
+		}
+
+		if vpc {
+			result = append(result, &ec2.GroupIdentifier{
+				GroupId: id,
+			})
+		} else {
+			result = append(result, &ec2.GroupIdentifier{
+				GroupId:   g.GroupId,
+				GroupName: id,
+			})
+		}
 	}
 	return result
 }
