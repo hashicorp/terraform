@@ -163,7 +163,7 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		if err != nil {
 			codedeployErr, ok := err.(awserr.Error)
 			if !ok {
-				return &resource.RetryError{Err: err}
+				return resource.RetryError{Err: err}
 			}
 			if codedeployErr.Code() == "InvalidRoleException" {
 				log.Printf("[DEBUG] Trying to create deployment group again: %q",
@@ -171,7 +171,7 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 				return err
 			}
 
-			return &resource.RetryError{Err: err}
+			return resource.RetryError{Err: err}
 		}
 		return nil
 	})

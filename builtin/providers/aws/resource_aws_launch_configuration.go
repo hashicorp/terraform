@@ -436,7 +436,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 					return err
 				}
 			}
-			return &resource.RetryError{
+			return resource.RetryError{
 				Err: err,
 			}
 		}

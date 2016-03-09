@@ -137,7 +137,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
 			if !ok {
-				return &resource.RetryError{Err: err}
+				return resource.RetryError{Err: err}
 			}
 			if ec2err.Code() == "InvalidParameterException" {
 				log.Printf("[DEBUG] Trying to create ECS service again: %q",
@@ -145,7 +145,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 				return err
 			}
 
-			return &resource.RetryError{Err: err}
+			return resource.RetryError{Err: err}
 		}
 
 		return nil
@@ -322,7 +322,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return &resource.RetryError{Err: err}
+			return resource.RetryError{Err: err}
 		}
 		if ec2err.Code() == "InvalidParameterException" {
 			// Prevent "The service cannot be stopped while deployments are active."
@@ -331,7 +331,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 			return err
 		}
 
-		return &resource.RetryError{Err: err}
+		return resource.RetryError{Err: err}
 
 	})
 	if err != nil {
