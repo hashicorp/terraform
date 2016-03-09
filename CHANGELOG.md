@@ -47,6 +47,7 @@ BUG FIXES:
   * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly [GH-5361]
   * provider/aws: Fix a bug where AWS Kinesis Stream includes closed shards in the shard_count [GH-5401]
   * provider/aws: Fix error with parsing JSON in `aws_s3_bucket` policy attribute [GH-5474]  
+  * provider/aws: Fis a bug where `publicly_assessible` wasn't being set to state in `aws_db_instance` [GH-5535]
   * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
   * provider/openstack: Fix crashing during certain network updates in instances [GH-5365]
   * provider/openstack: Account for a 403 reply when os-tenant-networks is disabled [GH-5432]
