@@ -18,6 +18,8 @@ FEATURES:
   * **New resource:** `aws_elastic_beanstalk_application` [GH-3157]
   * **New resource:** `aws_elastic_beanstalk_configuration_template` [GH-3157]
   * **New resource:** `aws_elastic_beanstalk_environment` [GH-3157]
+  * **New resource:** `aws_kms_alias` [GH-3928]
+  * **New resource:** `aws_kms_key` [GH-3928]
   * **New resource:** `aws_iam_account_password_policy` [GH-5029]
   * **New resource:** `google_compute_instance_group` [GH-4087]
 
