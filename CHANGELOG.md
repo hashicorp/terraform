@@ -4,6 +4,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
   * provider/aws: `aws_s3_bucket_object` field `etag` is now trimming off quotes (returns raw MD5 hash) [GH-5305]
   * provider/consul: `consul_keys` `key` blocks now respect `delete` flag for removing individual blocks. Previously keys would be deleted only when the entire resource was removed.
+  * provider/google: `next_hop_network` on `google_compute_route` is now read-only, to mirror the behavior in the official docs [GH-5564]
 
 FEATURES:
 
