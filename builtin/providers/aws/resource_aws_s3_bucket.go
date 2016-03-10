@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log"
 	"net/url"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -116,6 +118,30 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"notifications": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"lambda": &schema.Schema{
+							Type:      schema.TypeString,
+							Optional:  true,
+							StateFunc: normalizeLambdaNotification,
+						},
+						"sqs": &schema.Schema{
+							Type:      schema.TypeString,
+							Optional:  true,
+							StateFunc: normalizeSqsNotification,
+						},
+						"sns": &schema.Schema{
+							Type:      schema.TypeString,
+							Optional:  true,
+							StateFunc: normalizeSnsNotification,
+						},
+					},
+				},
+			},
+
 			"hosted_zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -217,19 +243,18 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(5*time.Minute, func() error {
 		log.Printf("[DEBUG] Trying to create new S3 bucket: %q", bucket)
 		_, err := s3conn.CreateBucket(req)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "OperationAborted" {
 				log.Printf("[WARN] Got an error while trying to create S3 bucket %s: %s", bucket, err)
-				return resource.RetryableError(
-					fmt.Errorf("[WARN] Error creating S3 bucket %s, retrying: %s",
-						bucket, err))
+				return fmt.Errorf("[WARN] Error creating S3 bucket %s, retrying: %s",
+					bucket, err)
 			}
 		}
 		if err != nil {
-			return resource.NonRetryableError(err)
+			return resource.RetryError{Err: err}
 		}
 
 		return nil
@@ -265,6 +290,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("website") {
 		if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("notifications") {
+		if err := resourceAwsS3BucketNotificationsUpdate(s3conn, d); err != nil {
 			return err
 		}
 	}
@@ -387,6 +418,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if err := d.Set("website", websites); err != nil {
 		return err
+	}
+
+	// Read the notifications configuration
+	if err := resourceAwsS3BucketNotificationsRead(s3conn, d); err != nil {
+		return fmt.Errorf("Error reading s3 bucket notifications: %v", err)
 	}
 
 	// Read the versioning configuration
@@ -566,15 +602,18 @@ func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) erro
 			Policy: aws.String(policy),
 		}
 
-		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		err := resource.Retry(1*time.Minute, func() error {
 			if _, err := s3conn.PutBucketPolicy(params); err != nil {
 				if awserr, ok := err.(awserr.Error); ok {
 					if awserr.Code() == "MalformedPolicy" {
-						return resource.RetryableError(awserr)
+						// Retryable
+						return awserr
 					}
 				}
-				return resource.NonRetryableError(err)
+				// Not retryable
+				return resource.RetryError{Err: err}
 			}
+			// No error
 			return nil
 		})
 
@@ -734,6 +773,88 @@ func resourceAwsS3BucketWebsiteDelete(s3conn *s3.S3, d *schema.ResourceData) err
 
 	d.Set("website_endpoint", "")
 	d.Set("website_domain", "")
+
+	return nil
+}
+
+func resourceAwsS3BucketNotificationsUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	ns := d.Get("notifications").([]interface{})
+
+	if len(ns) == 1 {
+		notifications := ns[0].(map[string]interface{})
+		return resourceAwsS3BucketNotificationsPut(s3conn, d, notifications)
+	}
+
+	if len(ns) == 0 {
+		return resourceAwsS3BucketNotificationsDelete(s3conn, d)
+	}
+
+	return fmt.Errorf("Cannot specify more than one set of notitications. Combine json from multiple configurations into a single configuration.")
+}
+
+func resourceAwsS3BucketNotificationsRead(s3conn *s3.S3, d *schema.ResourceData) error {
+	ns, err := s3conn.GetBucketNotificationConfiguration(
+		&s3.GetBucketNotificationConfigurationRequest{
+			Bucket: aws.String(d.Id()),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	configuration := make(map[string]interface{})
+	if err := marshalNotificationConf(configuration, "lambda", ns.LambdaFunctionConfigurations); err != nil {
+		return err
+	}
+	if err := marshalNotificationConf(configuration, "sqs", ns.QueueConfigurations); err != nil {
+		return err
+	}
+	if err := marshalNotificationConf(configuration, "sns", ns.TopicConfigurations); err != nil {
+		return err
+	}
+
+	if len(configuration) == 0 {
+		return nil
+	}
+
+	return d.Set("notifications", []map[string]interface{}{configuration})
+}
+
+func resourceAwsS3BucketNotificationsPut(s3conn *s3.S3, d *schema.ResourceData, notifications map[string]interface{}) error {
+	bucket := d.Get("bucket").(string)
+
+	conf := &s3.NotificationConfiguration{}
+	if err := unmarshalNotificationConf(notifications, "lambda", &conf.LambdaFunctionConfigurations); err != nil {
+		return err
+	}
+	if err := unmarshalNotificationConf(notifications, "sqs", &conf.QueueConfigurations); err != nil {
+		return err
+	}
+	if err := unmarshalNotificationConf(notifications, "sns", &conf.TopicConfigurations); err != nil {
+		return err
+	}
+
+	_, err := s3conn.PutBucketNotificationConfiguration(&s3.PutBucketNotificationConfigurationInput{
+		Bucket: aws.String(bucket),
+		NotificationConfiguration: conf,
+	})
+	if err != nil {
+		return fmt.Errorf("error updating s3 bucket notifications: %s", err)
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketNotificationsDelete(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+
+	_, err := s3conn.PutBucketNotificationConfiguration(&s3.PutBucketNotificationConfigurationInput{
+		Bucket: aws.String(bucket),
+		NotificationConfiguration: &s3.NotificationConfiguration{},
+	})
+	if err != nil {
+		return fmt.Errorf("Error deleting S3 notifications: %s", err)
+	}
 
 	return nil
 }
@@ -908,13 +1029,74 @@ func normalizeJson(jsonString interface{}) string {
 	if jsonString == nil || jsonString == "" {
 		return ""
 	}
+
 	var j interface{}
-	err := json.Unmarshal([]byte(jsonString.(string)), &j)
-	if err != nil {
+	if err := json.Unmarshal([]byte(jsonString.(string)), &j); err != nil {
 		return fmt.Sprintf("Error parsing JSON: %s", err)
 	}
+
 	b, _ := json.Marshal(j)
-	return string(b[:])
+
+	return string(b)
+}
+
+func normalizeLambdaNotification(jsonString interface{}) string {
+	js := normalizeJson(jsonString)
+
+	var c []*s3.LambdaFunctionConfiguration
+	if err := json.Unmarshal([]byte(js), &c); err != nil {
+		return fmt.Sprintf("Error parsing JSON: %s", err)
+	}
+
+	for _, config := range c {
+		normalizeConfigId(&config.Id, js)
+	}
+
+	b, _ := json.Marshal(c)
+
+	return string(b)
+}
+
+func normalizeSqsNotification(jsonString interface{}) string {
+	js := normalizeJson(jsonString)
+
+	var c []*s3.QueueConfiguration
+	if err := json.Unmarshal([]byte(js), &c); err != nil {
+		return fmt.Sprintf("Error parsing JSON: %s", err)
+	}
+
+	for _, config := range c {
+		normalizeConfigId(&config.Id, js)
+	}
+
+	b, _ := json.Marshal(c)
+
+	return string(b)
+}
+
+func normalizeSnsNotification(jsonString interface{}) string {
+	js := normalizeJson(jsonString)
+
+	var c []*s3.TopicConfiguration
+	if err := json.Unmarshal([]byte(js), &c); err != nil {
+		return fmt.Sprintf("Error parsing JSON: %s", err)
+	}
+
+	for _, config := range c {
+		normalizeConfigId(&config.Id, js)
+	}
+
+	b, _ := json.Marshal(c)
+
+	return string(b)
+}
+
+func normalizeConfigId(id **string, js string) {
+	if *id == nil {
+		h := fnv.New32a()
+		h.Write([]byte(js))
+		*id = aws.String(fmt.Sprintf("%v", h.Sum32()))
+	}
 }
 
 func normalizeRegion(region string) string {
@@ -925,6 +1107,53 @@ func normalizeRegion(region string) string {
 	}
 
 	return region
+}
+
+func marshalNotificationConf(conf map[string]interface{}, key string, value interface{}) error {
+	if reflect.ValueOf(value).Len() == 0 {
+		return nil
+	}
+
+	marshalled, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("error while marshaling %s notification configuration: %s", key, err)
+	}
+
+	conf[key] = string(marshalled)
+
+	return nil
+}
+
+func unmarshalNotificationConf(notifications map[string]interface{}, key string, dest interface{}) error {
+	notif := notifications[key].(string)
+	if notif == "" {
+		return nil
+	}
+	notif = normalizeJson(notif)
+
+	if err := json.Unmarshal([]byte(notif), dest); err != nil {
+		return fmt.Errorf("error unmarshaling %s notification configuration: %s", key, err)
+	}
+
+	switch key {
+	case "lambda":
+		config := dest.(*[]*s3.LambdaFunctionConfiguration)
+		for _, conf := range *config {
+			normalizeConfigId(&conf.Id, notif)
+		}
+	case "sqs":
+		config := dest.(*[]*s3.QueueConfiguration)
+		for _, conf := range *config {
+			normalizeConfigId(&conf.Id, notif)
+		}
+	case "sns":
+		config := dest.(*[]*s3.TopicConfiguration)
+		for _, conf := range *config {
+			normalizeConfigId(&conf.Id, notif)
+		}
+	}
+
+	return nil
 }
 
 type S3Website struct {

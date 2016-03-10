@@ -238,6 +238,45 @@ func TestAccAWSS3Bucket_WebsiteRoutingRules(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_Notifications(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketLambdaNotificationsConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketNotifications("aws_s3_bucket.bucket", true, false, false),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketSQSNotificationsConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketNotifications("aws_s3_bucket.bucket", false, true, false),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketSNSNotificationsConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketNotifications("aws_s3_bucket.bucket", false, false, true),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketNotifications("aws_s3_bucket.bucket", false, false, false),
+				),
+			},
+		},
+	})
+}
+
 // Test TestAccAWSS3Bucket_shouldFailNotFound is designed to fail with a "plan
 // not empty" error in Terraform, to check against regresssions.
 // See https://github.com/hashicorp/terraform/pull/2925
@@ -530,6 +569,46 @@ func testAccCheckAWSS3BucketWebsiteRoutingRules(n string, routingRules []*s3.Rou
 	}
 }
 
+func testAccCheckAWSS3BucketNotifications(n string, hasLambdaNotifications bool, hasSqsNotifications bool, hasSnsNotifications bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+		if err != nil {
+			return fmt.Errorf("S3GetBucketNotifications error: %s", err)
+		}
+
+		if hasLambdaNotifications && out.LambdaFunctionConfigurations == nil {
+			return fmt.Errorf("Expected bucket to have lambda notifications")
+		}
+
+		if !hasLambdaNotifications && out.LambdaFunctionConfigurations != nil {
+			return fmt.Errorf("Expected bucket to not have lambda notifications")
+		}
+
+		if hasSqsNotifications && out.QueueConfigurations == nil {
+			return fmt.Errorf("Expected bucket to have sqs notifications")
+		}
+
+		if !hasSqsNotifications && out.QueueConfigurations != nil {
+			return fmt.Errorf("Expected bucket to not have sqs notifications")
+		}
+
+		if hasSnsNotifications && out.TopicConfigurations == nil {
+			return fmt.Errorf("Expected bucket to have sns notifications")
+		}
+
+		if !hasSnsNotifications && out.TopicConfigurations != nil {
+			return fmt.Errorf("Expected bucket to not have sns notifications")
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSS3BucketVersioning(n string, versioningStatus string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, _ := s.RootModule().Resources[n]
@@ -707,6 +786,160 @@ resource "aws_s3_bucket" "bucket" {
 		"ReplaceKeyPrefixWith": "documents/"
 	}
 }]
+EOF
+	}
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketLambdaNotificationsConfig(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "test_lambda_bucket" {
+	bucket = "test-lambda-%d"
+}
+
+resource "aws_s3_bucket_object" "test_lambda_bucket_object" {
+	depends_on = ["aws_s3_bucket.test_lambda_bucket"]
+  bucket =  "${aws_s3_bucket.test_lambda_bucket.id}"
+  key = "test-lambda.js"
+  source = "test-fixtures/lambdatest.zip"
+}
+
+resource "aws_iam_role" "test_iam_lambda" {
+	name = "iam_for_lambda"
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_function" "test_lambda" {
+	depends_on = ["aws_s3_bucket_object.test_lambda_bucket_object"]
+	function_name = "test-lambda"
+	role = "${aws_iam_role.test_iam_lambda.arn}"
+	handler = "exports.example"
+	s3_bucket = "${aws_s3_bucket.test_lambda_bucket.id}"
+	s3_key = "test-lambda.js"
+}
+
+resource "aws_lambda_permission" "s3_invoke" {
+  statement_id = "AllowInvocationFromS3"
+  action = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.test_lambda.arn}"
+  principal = "s3.amazonaws.com"
+}
+
+resource "aws_s3_bucket" "bucket" {
+	depends_on = ["aws_lambda_function.test_lambda"]
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	notifications {
+		lambda = <<EOF
+[
+  {
+  	"Events": [
+  		"s3:ObjectCreated:*"
+  	],
+  	"LambdaFunctionARN": "${aws_lambda_function.test_lambda.arn}"
+  }
+]
+EOF
+	}
+}
+`, randInt, randInt)
+}
+
+func testAccAWSS3BucketSQSNotificationsConfig(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "test_queue" {
+	name = "tf-test-queue"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Id": "AllowSQSSendMessage",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:*:*:*",
+      "Condition": {
+        "ArnLike": { "AWS:SourceArn": "arn:aws:s3:*:*:*" }
+      }
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_s3_bucket" "bucket" {
+	depends_on = ["aws_sqs_queue.test_queue"]
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	notifications {
+		sqs = <<EOF
+[
+  {
+  	"Events": [
+  		"s3:ObjectCreated:*"
+  	],
+  	"QueueARN": "${aws_sqs_queue.test_queue.arn}"
+  }
+]
+EOF
+	}
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketSNSNotificationsConfig(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_sns_topic" "test_topic" {
+  name = "test-topic"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Id": "AllowSNSPublish",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:*:*:*",
+      "Condition": {
+        "ArnLike": { "AWS:SourceArn": "arn:aws:s3:*:*:*" }
+      }
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_s3_bucket" "bucket" {
+	depends_on = ["aws_sns_topic.test_topic"]
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	notifications {
+		sns = <<EOF
+[
+  {
+  	"Events": [
+  		"s3:ObjectCreated:*"
+  	],
+  	"TopicARN": "${aws_sns_topic.test_topic.arn}"
+  }
+]
 EOF
 	}
 }

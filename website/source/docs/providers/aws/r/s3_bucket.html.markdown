@@ -51,6 +51,23 @@ EOF
 }
 ```
 
+### Using Notifications
+```
+resource "aws_s3_bucket" "b" {
+    bucket = "my_tf_test_bucket"
+    acl = "private"
+
+  notifications {
+    sns = <<EOF
+[{
+  "Events": ["s3:ObjectCreated:*"],
+  "TopicArn": "${aws_sns_topic.test_topic.arn}"
+}]
+EOF
+  }
+}
+```
+
 ### Using CORS
 
 ```
@@ -108,6 +125,7 @@ The following arguments are supported:
 * `tags` - (Optional) A mapping of tags to assign to the bucket.
 * `force_destroy` - (Optional, Default:false ) A boolean that indicates all objects should be deleted from the bucket so that the bucket can be destroyed without error. These objects are *not* recoverable.
 * `website` - (Optional) A website object (documented below).
+* `notifications` - (Optional) A notifications object (documented below).
 * `cors_rule` - (Optional) A rule of [Cross-Origin Resource Sharing](https://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html) (documented below).
 * `versioning` - (Optional) A state of [versioning](https://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) (documented below)
 * `logging` - (Optional) A settings of [bucket logging](https://docs.aws.amazon.com/AmazonS3/latest/UG/ManagingBucketLogging.html) (documented below).
@@ -119,6 +137,15 @@ The `website` object supports the following:
 * `redirect_all_requests_to` - (Optional) A hostname to redirect all website requests for this bucket to. Hostname can optionally be prefixed with a protocol (`http://` or `https://`) to use when redirecting requests. The default is the protocol that is used in the original request.
 * `routing_rules` - (Optional) A json array containing [routing rules](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-websiteconfiguration-routingrules.html)
 describing redirect behavior and when redirects are applied.
+
+The `notifications` objects supports the following:
+
+See the [aws docs](http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html)
+for detailed examples of s3 event notifications.
+
+* `lambda` - (Optional) A json blob containing lambda notification configurations.
+* `sqs` - (Optional) A json blob containing SQS notification configurations.
+* `sns` - (Optional) A json blob containing SNS notification configurations.
 
 The `CORS` object supports the following:
 
