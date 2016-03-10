@@ -345,14 +345,14 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
 			GroupId: aws.String(d.Id()),
 		})
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
 			if !ok {
-				return err
+				return resource.RetryableError(err)
 			}
 
 			switch ec2err.Code() {
@@ -360,10 +360,10 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 				return nil
 			case "DependencyViolation":
 				// If it is a dependency violation, we want to retry
-				return err
+				return resource.RetryableError(err)
 			default:
 				// Any other error, we want to quit the retry loop immediately
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 		}
 

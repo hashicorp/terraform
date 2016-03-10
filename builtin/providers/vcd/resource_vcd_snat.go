@@ -3,6 +3,7 @@ package vcd
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -51,14 +52,14 @@ func resourceVcdSNATCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 		task, err := edgeGateway.AddNATMapping("SNAT", d.Get("internal_ip").(string),
 			d.Get("external_ip").(string),
 			"any")
 		if err != nil {
-			return fmt.Errorf("Error setting SNAT rules: %#v", err)
+			return resource.RetryableError(fmt.Errorf("Error setting SNAT rules: %#v", err))
 		}
-		return task.WaitTaskCompletion()
+		return resource.RetryableError(task.WaitTaskCompletion())
 	})
 	if err != nil {
 		return err
@@ -106,14 +107,14 @@ func resourceVcdSNATDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 		task, err := edgeGateway.RemoveNATMapping("SNAT", d.Get("internal_ip").(string),
 			d.Get("external_ip").(string),
 			"")
 		if err != nil {
-			return fmt.Errorf("Error setting SNAT rules: %#v", err)
+			return resource.RetryableError(fmt.Errorf("Error setting SNAT rules: %#v", err))
 		}
-		return task.WaitTaskCompletion()
+		return resource.RetryableError(task.WaitTaskCompletion())
 	})
 	if err != nil {
 		return err

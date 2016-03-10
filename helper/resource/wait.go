@@ -5,9 +5,6 @@ import (
 	"time"
 )
 
-// RetryFunc is the function retried until it succeeds.
-type RetryFunc func() error
-
 // Retry is a basic wrapper around StateChangeConf that will just retry
 // a function until it no longer returns an error.
 func Retry(timeout time.Duration, f RetryFunc) error {
@@ -17,25 +14,24 @@ func Retry(timeout time.Duration, f RetryFunc) error {
 	var resultErrMu sync.Mutex
 
 	c := &StateChangeConf{
-		Pending:    []string{"error"},
+		Pending:    []string{"retryableerror"},
 		Target:     []string{"success"},
 		Timeout:    timeout,
 		MinTimeout: 500 * time.Millisecond,
 		Refresh: func() (interface{}, string, error) {
-			err := f()
-			if err == nil {
+			rerr := f()
+			if rerr == nil {
 				return 42, "success", nil
 			}
 
 			resultErrMu.Lock()
 			defer resultErrMu.Unlock()
-			resultErr = err
-			if rerr, ok := err.(RetryError); ok {
-				resultErr = rerr.Err
-				return nil, "quit", rerr.Err
-			}
+			resultErr = rerr.Err
 
-			return 42, "error", nil
+			if rerr.Retryable {
+				return 42, "retryableerror", nil
+			}
+			return nil, "quit", rerr.Err
 		},
 	}
 
@@ -48,12 +44,30 @@ func Retry(timeout time.Duration, f RetryFunc) error {
 	return resultErr
 }
 
-// RetryError, if returned, will quit the retry immediately with the
-// Err.
+// RetryFunc is the function retried until it succeeds.
+type RetryFunc func() *RetryError
+
+// RetryError is the required return type of RetryFunc. It forces client code
+// to choose whether or not a given error is retryable.
 type RetryError struct {
-	Err error
+	Err       error
+	Retryable bool
 }
 
-func (e RetryError) Error() string {
-	return e.Err.Error()
+// RetryableError is a helper to create a RetryError that's retryable from a
+// given error.
+func RetryableError(err error) *RetryError {
+	if err == nil {
+		return nil
+	}
+	return &RetryError{Err: err, Retryable: true}
+}
+
+// NonRetryableError is a helper to create a RetryError that's _not)_ retryable
+// from a given error.
+func NonRetryableError(err error) *RetryError {
+	if err == nil {
+		return nil
+	}
+	return &RetryError{Err: err, Retryable: false}
 }

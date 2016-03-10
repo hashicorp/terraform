@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/hmrc/vmware-govcd/types/v56"
 )
@@ -91,16 +92,17 @@ func resourceVcdFirewallRulesCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Unable to find edge gateway: %s", err)
 	}
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 		edgeGateway.Refresh()
 		firewallRules, _ := expandFirewallRules(d, edgeGateway.EdgeGateway)
 		task, err := edgeGateway.CreateFirewallRules(d.Get("default_action").(string), firewallRules)
 		if err != nil {
 			log.Printf("[INFO] Error setting firewall rules: %s", err)
-			return fmt.Errorf("Error setting firewall rules: %#v", err)
+			return resource.RetryableError(
+				fmt.Errorf("Error setting firewall rules: %#v", err))
 		}
 
-		return task.WaitTaskCompletion()
+		return resource.RetryableError(task.WaitTaskCompletion())
 	})
 	if err != nil {
 		return fmt.Errorf("Error completing tasks: %#v", err)
