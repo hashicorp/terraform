@@ -217,7 +217,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 						},
 						"availability_zone": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 							ForceNew: true,
 						},
 					},
