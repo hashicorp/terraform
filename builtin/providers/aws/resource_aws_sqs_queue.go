@@ -64,8 +64,9 @@ func resourceAwsSqsQueue() *schema.Resource {
 				Computed: true,
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: normalizeJson,
 			},
 			"redrive_policy": &schema.Schema{
 				Type:     schema.TypeString,
@@ -177,7 +178,11 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 					}
 					d.Set(iKey, value)
 				} else {
-					d.Set(iKey, *attrmap[oKey])
+					value := *attrmap[oKey]
+					if iKey == "policy" {
+						value = normalizeJson(value)
+					}
+					d.Set(iKey, value)
 				}
 			}
 		}
