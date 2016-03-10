@@ -136,7 +136,7 @@ func resourceAwsApiGatewayMethodResponseDelete(d *schema.ResourceData, meta inte
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway Method Response: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteMethodResponse(&apigateway.DeleteMethodResponseInput{
 			HttpMethod: aws.String(d.Get("http_method").(string)),
 			ResourceId: aws.String(d.Get("resource_id").(string)),
@@ -153,9 +153,9 @@ func resourceAwsApiGatewayMethodResponseDelete(d *schema.ResourceData, meta inte
 		}
 
 		if !ok {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
-		return resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 	})
 }

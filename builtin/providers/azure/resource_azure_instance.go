@@ -622,16 +622,17 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	err = resource.Retry(15*time.Minute, func() error {
+	err = resource.Retry(15*time.Minute, func() *resource.RetryError {
 		exists, err := blobClient.BlobExists(
 			storageContainterName, fmt.Sprintf(osDiskBlobNameFormat, name),
 		)
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		if exists {
-			return fmt.Errorf("Instance '%s''s disk storage blob still exists.", name)
+			return resource.RetryableError(
+				fmt.Errorf("Instance '%s''s disk storage blob still exists.", name))
 		}
 
 		return nil
