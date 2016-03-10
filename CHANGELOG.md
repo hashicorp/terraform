@@ -44,6 +44,7 @@ BUG FIXES:
 
   * core: Fix issue with retry logic causing spurious "timeout while waiting for state to become ..." errors [GH-5460]
   * core: Includes upstream HCL fix to properly detect unbalanced braces and throw an error [GH-5400]
+  * core: Address issues with retry behavior that were masking error messages and causing unnecessary retry loops [GH-5538] [GH-5543]
   * provider/aws: Allow recovering from failed CloudWatch Event Target creation [GH-5395]
   * provider/aws: Fix a bug where AWS Kinesis Stream includes closed shards in the shard_count [GH-5401]
   * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly [GH-5361]
