@@ -37,6 +37,7 @@ IMPROVEMENTS:
   * provider/aws: Lambda S3 object version defaults to `$LATEST` if unspecified [GH-5370]
   * provider/aws: Retry DB Creation on IAM propigation error [GH-5515]
   * provider/aws: `aws_instance` now allows changes to security groups without force new resource [GH-5193]
+  * provider/aws: Support KMS encryption of S3 objects [GH-5453]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
   * provider/consul: `consul_keys` now detects drift and supports deletion of individual `key` blocks [GH-5210]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
