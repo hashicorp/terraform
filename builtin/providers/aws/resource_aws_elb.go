@@ -341,7 +341,11 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
 	d.Set("security_groups", flattenStringList(lb.SecurityGroups))
 	if lb.SourceSecurityGroup != nil {
-		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
+		group := lb.SourceSecurityGroup.GroupName
+		if lb.SourceSecurityGroup.OwnerAlias != nil && *lb.SourceSecurityGroup.OwnerAlias != "" {
+			group = aws.String(*lb.SourceSecurityGroup.OwnerAlias + "/" + *lb.SourceSecurityGroup.GroupName)
+		}
+		d.Set("source_security_group", group)
 
 		// Manually look up the ELB Security Group ID, since it's not provided
 		var elbVpc string
