@@ -42,6 +42,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -97,6 +98,7 @@ type AWSClient struct {
 	rdsconn              *rds.RDS
 	iamconn              *iam.IAM
 	kinesisconn          *kinesis.Kinesis
+	kmsconn              *kms.KMS
 	firehoseconn         *firehose.Firehose
 	elasticacheconn      *elasticache.ElastiCache
 	elasticbeanstalkconn *elasticbeanstalk.ElasticBeanstalk
@@ -294,6 +296,8 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Redshift SDK connection")
 		client.redshiftconn = redshift.New(sess)
 
+		log.Println("[INFO] Initializing KMS connection")
+		client.kmsconn = kms.New(sess)
 	}
 
 	if len(errs) > 0 {
