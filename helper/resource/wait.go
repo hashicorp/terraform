@@ -21,6 +21,7 @@ func Retry(timeout time.Duration, f RetryFunc) error {
 		Refresh: func() (interface{}, string, error) {
 			rerr := f()
 			if rerr == nil {
+				resultErr = nil
 				return 42, "success", nil
 			}
 
