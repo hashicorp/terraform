@@ -12,14 +12,14 @@ func TestRetry(t *testing.T) {
 	tries := 0
 	f := func() *RetryError {
 		tries++
-		if tries == 1 {
+		if tries == 3 {
 			return nil
 		}
 
 		return RetryableError(fmt.Errorf("error"))
 	}
 
-	err := Retry(2*time.Second, f)
+	err := Retry(10*time.Second, f)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
