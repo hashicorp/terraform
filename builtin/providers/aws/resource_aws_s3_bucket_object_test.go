@@ -343,6 +343,9 @@ resource "aws_s3_bucket_object" "object" {
 
 func testAccAWSS3BucketObjectConfig_withKMSId(randInt int) string {
 	return fmt.Sprintf(`
+resource "aws_kms_key" "kms_key_1" {
+}
+
 resource "aws_s3_bucket" "object_bucket_2" {
 	bucket = "tf-object-test-bucket-%d"
 }
@@ -351,7 +354,7 @@ resource "aws_s3_bucket_object" "object" {
 	bucket = "${aws_s3_bucket.object_bucket_2.bucket}"
 	key = "test-key"
 	content = "stuff"
-	kms_key_id = "01961aed-d0b6-4ad3-9f7f-8264818ea611"
+	kms_key_id = "${aws_kms_key.kms_key_1.key_id}"
 }
 `, randInt)
 }
