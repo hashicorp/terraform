@@ -44,6 +44,7 @@ IMPROVEMENTS:
   * provider/openstack: Add support for instances to have multiple ephemeral disks. [GH-5131]
   * provider/openstack: Re-Add server.AccessIPv4 and server.AccessIPv6 [GH-5366]
   * provider/vsphere: Add support for disk init types [GH-4284]
+  * provider/google: Mark `next_hop_network` as read-only on `google_compute_route` [GH-5564]
 
 BUG FIXES:
 
