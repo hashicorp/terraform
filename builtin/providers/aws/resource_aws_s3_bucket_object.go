@@ -124,7 +124,7 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	if _, ok := d.GetOk("kms_key_id"); ok {
 		if _, ok := d.GetOk("etag"); ok {
-			return fmt.Errorf("Unable to specify kms_key_id and etag on the same object")
+			return fmt.Errorf("Unable to specify 'kms_key_id' and 'etag' together because 'etag' wouldn't equal the MD5 digest of the raw object data")
 		}
 	}
 
