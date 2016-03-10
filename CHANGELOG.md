@@ -3,6 +3,7 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
   * provider/aws: `aws_s3_bucket_object` field `etag` is now trimming off quotes (returns raw MD5 hash) [GH-5305]
+  * provider/consul: `consul_keys` `key` blocks now respect `delete` flag for removing individual blocks. Previously keys would be deleted only when the entire resource was removed.
 
 FEATURES:
 
@@ -36,6 +37,7 @@ IMPROVEMENTS:
   * provider/aws: Retry DB Creation on IAM propigation error [GH-5515]
   * provider/aws: `aws_instance` now allows changes to security groups without force new resource [GH-5193]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
+  * provider/consul: `consul_keys` now detects drift and supports deletion of individual `key` blocks [GH-5210]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
   * provider/google: Validate VPN tunnel peer_ip at plan time [GH-5501]
   * provider/openstack: Add Support for Domain ID and Domain Name environment variables [GH-5355]
