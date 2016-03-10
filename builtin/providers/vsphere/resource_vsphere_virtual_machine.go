@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1198,16 +1199,50 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		log.Printf("[DEBUG] virtual machine Extra Config spec: %v", configSpec.ExtraConfig)
 	}
 
-	// create CustomizationSpec
-	customSpec := types.CustomizationSpec{
-		Identity: &types.CustomizationLinuxPrep{
+	var template_mo mo.VirtualMachine
+	err = template.Properties(context.TODO(), template.Reference(), []string{"parent", "config.template", "config.guestId", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &template_mo)
+
+	var identity_options types.BaseCustomizationIdentitySettings
+	if strings.HasPrefix(template_mo.Config.GuestId, "win") {
+		var timeZone int
+		timeZone, err := strconv.Atoi(vm.timeZone)
+		if err != nil {
+			return fmt.Errorf("Error reading base VM properties: %s", err)
+		}
+		identity_options = &types.CustomizationSysprep{
+			GuiUnattended: types.CustomizationGuiUnattended{
+				AutoLogon:      false,
+				AutoLogonCount: 1,
+				Password: &types.CustomizationPassword{
+					PlainText: true,
+					Value:     "NULL",
+				},
+				TimeZone: timeZone,
+			},
+			Identification: types.CustomizationIdentification{},
+			UserData: types.CustomizationUserData{
+				ComputerName: &types.CustomizationFixedName{
+					Name: strings.Split(vm.name, ".")[0],
+				},
+				FullName:  "LSTTE",
+				OrgName:   "LSTTE",
+				ProductId: "ruh roh",
+			},
+		}
+	} else {
+		identity_options = &types.CustomizationLinuxPrep{
 			HostName: &types.CustomizationFixedName{
 				Name: strings.Split(vm.name, ".")[0],
 			},
 			Domain:     vm.domain,
 			TimeZone:   vm.timeZone,
 			HwClockUTC: types.NewBool(true),
-		},
+		}
+	}
+
+	// create CustomizationSpec
+	customSpec := types.CustomizationSpec{
+		Identity: identity_options,
 		GlobalIPSettings: types.CustomizationGlobalIPSettings{
 			DnsSuffixList: vm.dnsSuffixes,
 			DnsServerList: vm.dnsServers,
@@ -1224,8 +1259,6 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		PowerOn:  false,
 	}
 	if vm.linkedClone {
-		var template_mo mo.VirtualMachine
-		err = template.Properties(context.TODO(), template.Reference(), []string{"parent", "config.template", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &template_mo)
 		if err != nil {
 			return fmt.Errorf("Error reading base VM properties: %s", err)
 		}
