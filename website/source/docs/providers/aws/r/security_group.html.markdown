@@ -84,7 +84,7 @@ assign a random, unique name
 The `ingress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks.
-* `from_port` - (Required) The start port.
+* `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
@@ -96,7 +96,7 @@ The `ingress` block supports:
 The `egress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks.
-* `from_port` - (Required) The start port.
+* `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
 "-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
