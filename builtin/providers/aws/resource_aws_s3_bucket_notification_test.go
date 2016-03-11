@@ -331,22 +331,7 @@ func testAccAWSS3BucketConfigWithQueueNotification(randInt int) string {
 	return fmt.Sprintf(`
 resource "aws_sqs_queue" "queue" {
     name = "terraform-test-queue-%d"
-	policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "sqs:SendMessage",
-	  "Resource": "arn:aws:sqs:*:*:terraform-test-queue-%d",
-      "Condition": {
-        "ArnEquals": { "aws:SourceArn": "${aws_s3_bucket.bucket.arn}" }
-      }
-    }
-  ]
-}
-POLICY
+	policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"sqs:SendMessage\",\"Resource\":\"arn:aws:sqs:*:*:terraform-test-queue-%d\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"${aws_s3_bucket.bucket.arn}\"}}}]}"
 }
 
 resource "aws_s3_bucket" "bucket" {
