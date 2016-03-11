@@ -1264,6 +1264,13 @@ func WriteState(d *State, dst io.Writer) error {
 	if d.TFVersion == "" {
 		d.TFVersion = Version
 	}
+	if _, err := version.NewVersion(d.TFVersion); err != nil {
+		return fmt.Errorf(
+			"Error writing state, invalid version: %s\n\n"+
+				"The Terraform version when writing the state must be a semantic\n"+
+				"version.",
+			d.TFVersion)
+	}
 
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")

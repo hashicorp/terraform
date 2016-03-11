@@ -1066,16 +1066,17 @@ func TestWriteStateTFVersion(t *testing.T) {
 
 	for _, tc := range cases {
 		var buf bytes.Buffer
-		if err := WriteState(&State{TFVersion: tc.Write}, &buf); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		s, err := ReadState(&buf)
+		err := WriteState(&State{TFVersion: tc.Write}, &buf)
 		if (err != nil) != tc.Err {
 			t.Fatalf("%s: err: %s", tc.Write, err)
 		}
 		if err != nil {
 			continue
+		}
+
+		s, err := ReadState(&buf)
+		if err != nil {
+			t.Fatalf("%s: err: %s", tc.Write, err)
 		}
 
 		if s.TFVersion != tc.Read {
