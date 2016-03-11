@@ -284,6 +284,18 @@ func (s *State) IncrementSerialMaybe(other *State) {
 	}
 }
 
+// FromFutureTerraform checks if this state was written by a Terraform
+// version from the future.
+func (s *State) FromFutureTerraform() bool {
+	// No TF version means it is certainly from the past
+	if s.TFVersion == "" {
+		return false
+	}
+
+	v := version.Must(version.NewVersion(s.TFVersion))
+	return SemVersion.LessThan(v)
+}
+
 func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion

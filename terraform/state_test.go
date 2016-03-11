@@ -748,6 +748,34 @@ func TestStateEmpty(t *testing.T) {
 	}
 }
 
+func TestStateFromFutureTerraform(t *testing.T) {
+	cases := []struct {
+		In     string
+		Result bool
+	}{
+		{
+			"",
+			false,
+		},
+		{
+			"0.1",
+			false,
+		},
+		{
+			"999.15.1",
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		state := &State{TFVersion: tc.In}
+		actual := state.FromFutureTerraform()
+		if actual != tc.Result {
+			t.Fatalf("%s: bad: %s", tc.In, actual)
+		}
+	}
+}
+
 func TestStateIsRemote(t *testing.T) {
 	cases := []struct {
 		In     *State
