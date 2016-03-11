@@ -945,6 +945,28 @@ func TestInterpolateFuncMd5(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncUUID(t *testing.T) {
+	results := make(map[string]bool)
+
+	for i := 0; i < 100; i++ {
+		ast, err := hil.Parse("${uuid()}")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		out, _, err := hil.Eval(ast, langEvalConfig(nil))
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if results[out.(string)] {
+			t.Fatalf("Got unexpected duplicate uuid: %s", out)
+		}
+
+		results[out.(string)] = true
+	}
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
