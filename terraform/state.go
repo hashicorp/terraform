@@ -276,7 +276,7 @@ func (s *State) IncrementSerialMaybe(other *State) {
 	if s.Serial > other.Serial {
 		return
 	}
-	if !s.Equal(other) {
+	if other.TFVersion != s.TFVersion || !s.Equal(other) {
 		if other.Serial > s.Serial {
 			s.Serial = other.Serial
 		}

@@ -409,6 +409,11 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 			},
 			5,
 		},
+		"S2 has a different TFVersion": {
+			&State{TFVersion: "0.1"},
+			&State{TFVersion: "0.2"},
+			1,
+		},
 	}
 
 	for name, tc := range cases {
