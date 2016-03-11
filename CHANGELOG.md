@@ -10,6 +10,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
+  * **New interpolation function:** `uuid()`[GH-5575]
   * **New resource:** `aws_api_gateway_api_key` [GH-4295]
   * **New resource:** `aws_api_gateway_deployment` [GH-4295]
   * **New resource:** `aws_api_gateway_integration` [GH-4295]
