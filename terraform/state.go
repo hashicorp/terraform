@@ -32,7 +32,7 @@ type State struct {
 	Version int `json:"version"`
 
 	// TFVersion is the version of Terraform that wrote this state.
-	TFVersion string `json:"terraform_version"`
+	TFVersion string `json:"terraform_version,omitempty"`
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -1264,23 +1264,17 @@ func WriteState(d *State, dst io.Writer) error {
 	// Ensure the version is set
 	d.Version = StateVersion
 
-	// Set the TFVersion if it isn't set. Note that it might make
-	// sense to always set the TFVersion to latest, but there are
-	// cases (such as state manipulation functions) where we don't want
-	// to modify that.
-	if d.TFVersion == "" {
-		d.TFVersion = Version
-
-		// If we're changing the version we force increment the serial.
-		// This is to avoid any remote state thinking this is a conflict.
-		d.Serial++
-	}
-	if _, err := version.NewVersion(d.TFVersion); err != nil {
-		return fmt.Errorf(
-			"Error writing state, invalid version: %s\n\n"+
-				"The Terraform version when writing the state must be a semantic\n"+
-				"version.",
-			d.TFVersion)
+	// If the TFVersion is set, verify it. We used to just set the version
+	// here, but this isn't safe since it changes the MD5 sum on some remote
+	// state storage backends such as Atlas. We now leave it be if needed.
+	if d.TFVersion != "" {
+		if _, err := version.NewVersion(d.TFVersion); err != nil {
+			return fmt.Errorf(
+				"Error writing state, invalid version: %s\n\n"+
+					"The Terraform version when writing the state must be a semantic\n"+
+					"version.",
+				d.TFVersion)
+		}
 	}
 
 	// Encode the data in a human-friendly way
