@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -29,6 +30,9 @@ var rootModulePath = []string{"root"}
 type State struct {
 	// Version is the protocol version. Currently only "1".
 	Version int `json:"version"`
+
+	// TFVersion is the version of Terraform that wrote this state.
+	TFVersion string `json:"terraform_version,omitempty"`
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -362,9 +366,10 @@ func (s *State) DeepCopy() *State {
 		return nil
 	}
 	n := &State{
-		Version: s.Version,
-		Serial:  s.Serial,
-		Modules: make([]*ModuleState, 0, len(s.Modules)),
+		Version:   s.Version,
+		TFVersion: s.TFVersion,
+		Serial:    s.Serial,
+		Modules:   make([]*ModuleState, 0, len(s.Modules)),
 	}
 	for _, mod := range s.Modules {
 		n.Modules = append(n.Modules, mod.deepcopy())
@@ -387,13 +392,25 @@ func (s *State) IncrementSerialMaybe(other *State) {
 	if s.Serial > other.Serial {
 		return
 	}
-	if !s.Equal(other) {
+	if other.TFVersion != s.TFVersion || !s.Equal(other) {
 		if other.Serial > s.Serial {
 			s.Serial = other.Serial
 		}
 
 		s.Serial++
 	}
+}
+
+// FromFutureTerraform checks if this state was written by a Terraform
+// version from the future.
+func (s *State) FromFutureTerraform() bool {
+	// No TF version means it is certainly from the past
+	if s.TFVersion == "" {
+		return false
+	}
+
+	v := version.Must(version.NewVersion(s.TFVersion))
+	return SemVersion.LessThan(v)
 }
 
 func (s *State) init() {
@@ -1335,6 +1352,19 @@ func ReadState(src io.Reader) (*State, error) {
 			state.Version)
 	}
 
+	// Make sure the version is semantic
+	if state.TFVersion != "" {
+		if _, err := version.NewVersion(state.TFVersion); err != nil {
+			return nil, fmt.Errorf(
+				"State contains invalid version: %s\n\n"+
+					"Terraform validates the version format prior to writing it. This\n"+
+					"means that this is invalid of the state becoming corrupted through\n"+
+					"some external means. Please manually modify the Terraform version\n"+
+					"field to be a proper semantic version.",
+				state.TFVersion)
+		}
+	}
+
 	// Sort it
 	state.sort()
 
@@ -1348,6 +1378,19 @@ func WriteState(d *State, dst io.Writer) error {
 
 	// Ensure the version is set
 	d.Version = StateVersion
+
+	// If the TFVersion is set, verify it. We used to just set the version
+	// here, but this isn't safe since it changes the MD5 sum on some remote
+	// state storage backends such as Atlas. We now leave it be if needed.
+	if d.TFVersion != "" {
+		if _, err := version.NewVersion(d.TFVersion); err != nil {
+			return fmt.Errorf(
+				"Error writing state, invalid version: %s\n\n"+
+					"The Terraform version when writing the state must be a semantic\n"+
+					"version.",
+				d.TFVersion)
+		}
+	}
 
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")
