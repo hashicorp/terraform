@@ -1257,6 +1257,14 @@ func WriteState(d *State, dst io.Writer) error {
 	// Ensure the version is set
 	d.Version = StateVersion
 
+	// Set the TFVersion if it isn't set. Note that it might make
+	// sense to always set the TFVersion to latest, but there are
+	// cases (such as state manipulation functions) where we don't want
+	// to modify that.
+	if d.TFVersion == "" {
+		d.TFVersion = Version
+	}
+
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")
 	if err != nil {
