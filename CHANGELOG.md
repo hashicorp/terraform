@@ -70,6 +70,7 @@ BUG FIXES:
   * provider/openstack: Account for a 403 reply when os-tenant-networks is disabled [GH-5432]
   * provider/openstack: Fix crashing during certain network updates in instances [GH-5365]
   * provider/openstack: Fix race condition between instance deletion and volume detachment [GH-5359]
+  * provider/openstack: Fix create/delete statuses in load balancing resources [GH-5557]
   * provider/template: Warn when `template` attribute specified as path [GH-5563]
 
 INTERNAL IMPROVEMENTS:
