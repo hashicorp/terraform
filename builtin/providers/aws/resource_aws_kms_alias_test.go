@@ -138,7 +138,6 @@ resource "aws_kms_alias" "single" {
     target_key_id = "${aws_kms_key.one.key_id}"
 }`, kmsAliasTimestamp, kmsAliasTimestamp)
 
-
 var testAccAWSKmsSingleAlias_modified = fmt.Sprintf(`
 resource "aws_kms_key" "one" {
     description = "Terraform acc test One %s"
