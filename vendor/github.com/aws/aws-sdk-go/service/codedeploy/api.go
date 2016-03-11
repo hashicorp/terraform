@@ -41,6 +41,33 @@ func (c *CodeDeploy) AddTagsToOnPremisesInstances(input *AddTagsToOnPremisesInst
 	return out, err
 }
 
+const opBatchGetApplicationRevisions = "BatchGetApplicationRevisions"
+
+// BatchGetApplicationRevisionsRequest generates a request for the BatchGetApplicationRevisions operation.
+func (c *CodeDeploy) BatchGetApplicationRevisionsRequest(input *BatchGetApplicationRevisionsInput) (req *request.Request, output *BatchGetApplicationRevisionsOutput) {
+	op := &request.Operation{
+		Name:       opBatchGetApplicationRevisions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &BatchGetApplicationRevisionsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &BatchGetApplicationRevisionsOutput{}
+	req.Data = output
+	return
+}
+
+// Gets information about one or more application revisions.
+func (c *CodeDeploy) BatchGetApplicationRevisions(input *BatchGetApplicationRevisionsInput) (*BatchGetApplicationRevisionsOutput, error) {
+	req, out := c.BatchGetApplicationRevisionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opBatchGetApplications = "BatchGetApplications"
 
 // BatchGetApplicationsRequest generates a request for the BatchGetApplications operation.
@@ -64,6 +91,34 @@ func (c *CodeDeploy) BatchGetApplicationsRequest(input *BatchGetApplicationsInpu
 // Gets information about one or more applications.
 func (c *CodeDeploy) BatchGetApplications(input *BatchGetApplicationsInput) (*BatchGetApplicationsOutput, error) {
 	req, out := c.BatchGetApplicationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opBatchGetDeploymentInstances = "BatchGetDeploymentInstances"
+
+// BatchGetDeploymentInstancesRequest generates a request for the BatchGetDeploymentInstances operation.
+func (c *CodeDeploy) BatchGetDeploymentInstancesRequest(input *BatchGetDeploymentInstancesInput) (req *request.Request, output *BatchGetDeploymentInstancesOutput) {
+	op := &request.Operation{
+		Name:       opBatchGetDeploymentInstances,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &BatchGetDeploymentInstancesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &BatchGetDeploymentInstancesOutput{}
+	req.Data = output
+	return
+}
+
+// Gets information about one or more instances that are part of a deployment
+// group.
+func (c *CodeDeploy) BatchGetDeploymentInstances(input *BatchGetDeploymentInstancesInput) (*BatchGetDeploymentInstancesOutput, error) {
+	req, out := c.BatchGetDeploymentInstancesRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -986,7 +1041,7 @@ func (c *CodeDeploy) UpdateDeploymentGroup(input *UpdateDeploymentGroupInput) (*
 	return out, err
 }
 
-// Represents the input of an adds tags to on-premises instance operation.
+// Represents the input of and adds tags to on-premises instance operation.
 type AddTagsToOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1073,6 +1128,54 @@ func (s AutoScalingGroup) GoString() string {
 	return s.String()
 }
 
+// Represents the input of a batch get application revisions operation.
+type BatchGetApplicationRevisionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of an existing AWS CodeDeploy application to get revision information
+	// about.
+	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
+
+	// Information to get about the application revisions, including revision type
+	// and location.
+	Revisions []*RevisionLocation `locationName:"revisions" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s BatchGetApplicationRevisionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetApplicationRevisionsInput) GoString() string {
+	return s.String()
+}
+
+// Represents the output of a batch get application revisions operation.
+type BatchGetApplicationRevisionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the application that corresponds to the revisions.
+	ApplicationName *string `locationName:"applicationName" min:"1" type:"string"`
+
+	// Information about errors that may have occurred during the API call.
+	ErrorMessage *string `locationName:"errorMessage" type:"string"`
+
+	// Additional information about the revisions, including the revision type and
+	// location.
+	Revisions []*RevisionInfo `locationName:"revisions" type:"list"`
+}
+
+// String returns the string representation
+func (s BatchGetApplicationRevisionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetApplicationRevisionsOutput) GoString() string {
+	return s.String()
+}
+
 // Represents the input of a batch get applications operation.
 type BatchGetApplicationsInput struct {
 	_ struct{} `type:"structure"`
@@ -1107,6 +1210,48 @@ func (s BatchGetApplicationsOutput) String() string {
 
 // GoString returns the string representation
 func (s BatchGetApplicationsOutput) GoString() string {
+	return s.String()
+}
+
+// Represents the input of a batch get deployment instances operation.
+type BatchGetDeploymentInstancesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique ID of a deployment.
+	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
+
+	// The unique IDs of instances in the deployment's deployment group.
+	InstanceIds []*string `locationName:"instanceIds" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s BatchGetDeploymentInstancesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetDeploymentInstancesInput) GoString() string {
+	return s.String()
+}
+
+// Represents the output of a batch get deployment instances operation.
+type BatchGetDeploymentInstancesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about errors that may have occurred during the API call.
+	ErrorMessage *string `locationName:"errorMessage" type:"string"`
+
+	// Information about the instances.
+	InstancesSummary []*InstanceSummary `locationName:"instancesSummary" type:"list"`
+}
+
+// String returns the string representation
+func (s BatchGetDeploymentInstancesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchGetDeploymentInstancesOutput) GoString() string {
 	return s.String()
 }
 
@@ -1284,38 +1429,60 @@ type CreateDeploymentGroupInput struct {
 	// A list of associated Auto Scaling groups.
 	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
 
-	// If specified, the deployment configuration name must be one of the predefined
-	// values, or it can be a custom deployment configuration:
-	//
-	//  CodeDeployDefault.AllAtOnce deploys an application revision to up to all
-	// of the instances at once. The overall deployment succeeds if the application
-	// revision deploys to at least one of the instances. The overall deployment
-	// fails after the application revision fails to deploy to all of the instances.
-	// For example, for 9 instances, deploy to up to all 9 instances at once. The
-	// overall deployment succeeds if any of the 9 instances is successfully deployed
-	// to, and it fails if all 9 instances fail to be deployed to. CodeDeployDefault.HalfAtATime
-	// deploys to up to half of the instances at a time (with fractions rounded
-	// down). The overall deployment succeeds if the application revision deploys
-	// to at least half of the instances (with fractions rounded up); otherwise,
-	// the deployment fails. For example, for 9 instances, deploy to up to 4 instances
-	// at a time. The overall deployment succeeds if 5 or more instances are successfully
-	// deployed to; otherwise, the deployment fails. Note that the deployment may
-	// successfully deploy to some instances, even if the overall deployment fails.
-	// CodeDeployDefault.OneAtATime deploys the application revision to only one
-	// of the instances at a time. The overall deployment succeeds if the application
-	// revision deploys to all of the instances. The overall deployment fails after
-	// the application revision first fails to deploy to any one instances. For
-	// example, for 9 instances, deploy to one instance at a time. The overall deployment
-	// succeeds if all 9 instances are successfully deployed to, and it fails if
-	// any of one of the 9 instances fail to be deployed to. Note that the deployment
-	// may successfully deploy to some instances, even if the overall deployment
-	// fails. This is the default deployment configuration if a configuration isn't
-	// specified for either the deployment or the deployment group.  To create a
-	// custom deployment configuration, call the create deployment configuration
+	// If specified, the deployment configuration name can be either one of the
+	// predefined configurations provided with AWS CodeDeploy, or a custom deployment
+	// configuration that you created by calling the create deployment configuration
 	// operation.
+	//
+	//  CodeDeployDefault.OneAtATime is the default deployment configuration that
+	// is used if a configuration isn't specified for either the deployment or the
+	// deployment group.
+	//
+	//  The predefined deployment configurations including the following:
+	//
+	//   CodeDeployDefault.AllAtOnce attempts to deploy an application revision
+	// to as many instances as possible at once. The status of the overall deployment
+	// will be displayed as Succeeded if the application revision is deployed to
+	// one or more of the instances. The status of the overall deployment will be
+	// displayed as Failed if the application revision is not deployed to any of
+	// the instances. Using an example of nine instances, CodeDeployDefault.AllAtOnce
+	// will attempt to deploy to all nine instances at once. The overall deployment
+	// will succeed if deployment to even a single instance is successful; it will
+	// fail only if deployments to all nine instances fail.
+	//
+	//   CodeDeployDefault.HalfAtATime deploys to up to half of the instances at
+	// a time (with fractions rounded down). The overall deployment succeeds if
+	// the application revision deploys to at least half of the instances (with
+	// fractions rounded up); otherwise, the deployment fails. For example, for
+	// nine instances, deploy to up to four instances at a time. The overall deployment
+	// succeeds if deployment to five or more instances succeed; otherwise, the
+	// deployment fails. Note that the deployment may successfully deploy to some
+	// instances, even if the overall deployment fails.
+	//
+	//   CodeDeployDefault.OneAtATime deploys the application revision to only
+	// one instance at a time.
+	//
+	// For deployment groups that contain more than one instance:
+	//
+	//   The overall deployment succeeds if the application revision deploys to
+	// all of the instances. The exception to this rule is that if deployment to
+	// the last instance fails, the overall deployment still succeeds. This is because
+	// AWS CodeDeploy allows only one instance to be taken offline at a time with
+	// the CodeDeployDefault.OneAtATime configuration.
+	//
+	//   The overall deployment fails as soon as the application revision fails
+	// to deploy to any but the last instance. Note that the deployment may successfully
+	// deploy to some instances, even if the overall deployment fails.
+	//
+	//   Example: For nine instances, deploy to one instance at a time. The overall
+	// deployment succeeds if the first eight instances are successfully deployed
+	// to, but it fails if deployment to any of the first eight instances fails.
+	//
+	//   For deployment groups that contain only one instance, the overall deployment
+	// is of course successful only if deployment to the single instance succeeds.
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string"`
 
-	// The name of an existing deployment group for the specified application.
+	// The name of a new deployment group for the specified application.
 	DeploymentGroupName *string `locationName:"deploymentGroupName" min:"1" type:"string" required:"true"`
 
 	// The Amazon EC2 tags to filter on.
@@ -1327,6 +1494,9 @@ type CreateDeploymentGroupInput struct {
 	// A service role ARN that allows AWS CodeDeploy to act on the user's behalf
 	// when interacting with AWS services.
 	ServiceRoleArn *string `locationName:"serviceRoleArn" type:"string" required:"true"`
+
+	// Information about triggers to create when the deployment group is created.
+	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
 // String returns the string representation
@@ -1592,6 +1762,9 @@ type DeploymentGroupInfo struct {
 	// Information about the deployment group's target revision, including the revision's
 	// type and its location.
 	TargetRevision *RevisionLocation `locationName:"targetRevision" type:"structure"`
+
+	// A list of associated triggers.
+	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
 // String returns the string representation
@@ -1755,6 +1928,9 @@ type Diagnostics struct {
 	ErrorCode *string `locationName:"errorCode" type:"string" enum:"LifecycleErrorCode"`
 
 	// The last portion of the associated diagnostic log.
+	//
+	// If available, AWS CodeDeploy returns up to the last 4 KB of the associated
+	// diagnostic log.
 	LogTail *string `locationName:"logTail" type:"string"`
 
 	// The message associated with the error.
@@ -1845,7 +2021,7 @@ func (s ErrorInformation) GoString() string {
 type GenericRevisionInfo struct {
 	_ struct{} `type:"structure"`
 
-	// A list of deployment groups that use this revision.
+	// The deployment groups where this is the current target revision.
 	DeploymentGroups []*string `locationName:"deploymentGroups" type:"list"`
 
 	// A comment about the revision.
@@ -2149,8 +2325,8 @@ func (s GetOnPremisesInstanceOutput) GoString() string {
 type GitHubLocation struct {
 	_ struct{} `type:"structure"`
 
-	// The SHA1 commit ID of the GitHub commit that references the that represents
-	// the bundled artifacts for the application revision.
+	// The SHA1 commit ID of the GitHub commit that represents the bundled artifacts
+	// for the application revision.
 	CommitId *string `locationName:"commitId" type:"string"`
 
 	// The GitHub account and repository pair that stores a reference to the commit
@@ -2691,8 +2867,13 @@ type MinimumHealthyHosts struct {
 	//
 	// In a call to the get deployment configuration operation, CodeDeployDefault.OneAtATime
 	// will return a minimum healthy instances type of MOST_CONCURRENCY and a value
-	// of 1. This means a deployment to only one instances at a time. (You cannot
-	// set the type to MOST_CONCURRENCY, only to HOST_COUNT or FLEET_PERCENT.)
+	// of 1. This means a deployment to only one instance at a time. (You cannot
+	// set the type to MOST_CONCURRENCY, only to HOST_COUNT or FLEET_PERCENT.) In
+	// addition, with CodeDeployDefault.OneAtATime, AWS CodeDeploy will try to ensure
+	// that all but one instance are kept in healthy states during the deployment
+	// operation. While this allows one instance at a time to be taken offline for
+	// a new deployment, it also means that if the deployment to the last instance
+	// fails, the overall deployment still succeeds.
 	Type *string `locationName:"type" type:"string" enum:"MinimumHealthyHostsType"`
 
 	// The minimum healthy instances value.
@@ -2816,6 +2997,27 @@ func (s RemoveTagsFromOnPremisesInstancesOutput) String() string {
 
 // GoString returns the string representation
 func (s RemoveTagsFromOnPremisesInstancesOutput) GoString() string {
+	return s.String()
+}
+
+// Information about an application revision.
+type RevisionInfo struct {
+	_ struct{} `type:"structure"`
+
+	// Information about an application revision.
+	GenericRevisionInfo *GenericRevisionInfo `locationName:"genericRevisionInfo" type:"structure"`
+
+	// Information about an application revision's location.
+	RevisionLocation *RevisionLocation `locationName:"revisionLocation" type:"structure"`
+}
+
+// String returns the string representation
+func (s RevisionInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RevisionInfo) GoString() string {
 	return s.String()
 }
 
@@ -3004,6 +3206,36 @@ func (s TimeRange) GoString() string {
 	return s.String()
 }
 
+// Information about notification triggers for the deployment group.
+type TriggerConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The event type or types for which notifications are triggered.
+	//
+	// The following event type values are supported:
+	//
+	//  DEPLOYMENT_START DEPLOYMENT_SUCCESS DEPLOYMENT_FAILURE DEPLOYMENT_STOP
+	// INSTANCE_START INSTANCE_SUCCESS INSTANCE_FAILURE
+	TriggerEvents []*string `locationName:"triggerEvents" type:"list"`
+
+	// The name of the notification trigger.
+	TriggerName *string `locationName:"triggerName" type:"string"`
+
+	// The arn of the Amazon Simple Notification Service topic through which notifications
+	// about deployment or instance events are sent.
+	TriggerTargetArn *string `locationName:"triggerTargetArn" type:"string"`
+}
+
+// String returns the string representation
+func (s TriggerConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TriggerConfig) GoString() string {
+	return s.String()
+}
+
 // Represents the input of an update application operation.
 type UpdateApplicationInput struct {
 	_ struct{} `type:"structure"`
@@ -3047,7 +3279,9 @@ type UpdateDeploymentGroupInput struct {
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// The replacement list of Auto Scaling groups to be included in the deployment
-	// group, if you want to change them.
+	// group, if you want to change them. To keep the existing Auto Scaling groups,
+	// enter their names. To remove Auto Scaling groups, do not enter any Auto Scaling
+	// group names.
 	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
 
 	// The current name of the existing deployment group.
@@ -3058,18 +3292,23 @@ type UpdateDeploymentGroupInput struct {
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string"`
 
 	// The replacement set of Amazon EC2 tags to filter on, if you want to change
-	// them.
+	// them. To keep the existing tags, enter their names. To remove tags, do not
+	// enter any tag names.
 	Ec2TagFilters []*EC2TagFilter `locationName:"ec2TagFilters" type:"list"`
 
 	// The new name of the deployment group, if you want to change it.
 	NewDeploymentGroupName *string `locationName:"newDeploymentGroupName" min:"1" type:"string"`
 
 	// The replacement set of on-premises instance tags for filter on, if you want
-	// to change them.
+	// to change them. To keep the existing tags, enter their names. To remove tags,
+	// do not enter any tag names.
 	OnPremisesInstanceTagFilters []*TagFilter `locationName:"onPremisesInstanceTagFilters" type:"list"`
 
 	// A replacement service role's ARN, if you want to change it.
 	ServiceRoleArn *string `locationName:"serviceRoleArn" type:"string"`
+
+	// Information about triggers to change when the deployment group is updated.
+	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
 // String returns the string representation
@@ -3278,4 +3517,21 @@ const (
 	TagFilterTypeValueOnly = "VALUE_ONLY"
 	// @enum TagFilterType
 	TagFilterTypeKeyAndValue = "KEY_AND_VALUE"
+)
+
+const (
+	// @enum TriggerEventType
+	TriggerEventTypeDeploymentStart = "DeploymentStart"
+	// @enum TriggerEventType
+	TriggerEventTypeDeploymentSuccess = "DeploymentSuccess"
+	// @enum TriggerEventType
+	TriggerEventTypeDeploymentFailure = "DeploymentFailure"
+	// @enum TriggerEventType
+	TriggerEventTypeDeploymentStop = "DeploymentStop"
+	// @enum TriggerEventType
+	TriggerEventTypeInstanceStart = "InstanceStart"
+	// @enum TriggerEventType
+	TriggerEventTypeInstanceSuccess = "InstanceSuccess"
+	// @enum TriggerEventType
+	TriggerEventTypeInstanceFailure = "InstanceFailure"
 )

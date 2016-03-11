@@ -32,12 +32,12 @@ func (c *Route53) AssociateVPCWithHostedZoneRequest(input *AssociateVPCWithHoste
 
 // This action associates a VPC with an hosted zone.
 //
-// To associate a VPC with an hosted zone, send a POST request to the 2013-04-01/hostedzone/hosted
-// zone ID/associatevpc resource. The request body must include an XML document
-// with a AssociateVPCWithHostedZoneRequest element. The response returns the
-// AssociateVPCWithHostedZoneResponse element that contains ChangeInfo for you
-// to track the progress of the AssociateVPCWithHostedZoneRequest you made.
-// See GetChange operation for how to track the progress of your change.
+// To associate a VPC with an hosted zone, send a POST request to the /Route
+// 53 API version/hostedzone/hosted zone ID/associatevpc resource. The request
+// body must include a document with a AssociateVPCWithHostedZoneRequest element.
+// The response returns the AssociateVPCWithHostedZoneResponse element that
+// contains ChangeInfo for you to track the progress of the AssociateVPCWithHostedZoneRequest
+// you made. See GetChange operation for how to track the progress of your change.
 func (c *Route53) AssociateVPCWithHostedZone(input *AssociateVPCWithHostedZoneInput) (*AssociateVPCWithHostedZoneOutput, error) {
 	req, out := c.AssociateVPCWithHostedZoneRequest(input)
 	err := req.Send()
@@ -65,13 +65,13 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 }
 
 // Use this action to create or change your authoritative DNS information. To
-// use this action, send a POST request to the 2013-04-01/hostedzone/hosted
-// Zone ID/rrset resource. The request body must include an XML document with
-// a ChangeResourceRecordSetsRequest element.
+// use this action, send a POST request to the /Route 53 API version/hostedzone/hosted
+// Zone ID/rrset resource. The request body must include a document with a ChangeResourceRecordSetsRequest
+// element.
 //
 // Changes are a list of change items and are considered transactional. For
 // more information on transactional changes, also known as change batches,
-// see POST ChangeResourceRecordSets (http://docs.aws.amazon.com/Route53/latest/APIReference/)
+// see POST ChangeResourceRecordSets (http://docs.aws.amazon.com/Route53/latest/APIReference/API_ChangeResourceRecordSets.html)
 // in the Amazon Route 53 API Reference.
 //
 // Due to the nature of transactional changes, you cannot delete the same resource
@@ -143,8 +143,8 @@ func (c *Route53) CreateHealthCheckRequest(input *CreateHealthCheckInput) (req *
 
 // This action creates a new health check.
 //
-// To create a new health check, send a POST request to the 2013-04-01/healthcheck
-// resource. The request body must include an XML document with a CreateHealthCheckRequest
+// To create a new health check, send a POST request to the /Route 53 API version/healthcheck
+// resource. The request body must include a document with a CreateHealthCheckRequest
 // element. The response returns the CreateHealthCheckResponse element that
 // contains metadata about the health check.
 func (c *Route53) CreateHealthCheck(input *CreateHealthCheckInput) (*CreateHealthCheckOutput, error) {
@@ -175,8 +175,8 @@ func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *re
 
 // This action creates a new hosted zone.
 //
-// To create a new hosted zone, send a POST request to the 2013-04-01/hostedzone
-// resource. The request body must include an XML document with a CreateHostedZoneRequest
+// To create a new hosted zone, send a POST request to the /Route 53 API version/hostedzone
+// resource. The request body must include a document with a CreateHostedZoneRequest
 // element. The response returns the CreateHostedZoneResponse element that contains
 // metadata about the hosted zone.
 //
@@ -223,10 +223,11 @@ func (c *Route53) CreateReusableDelegationSetRequest(input *CreateReusableDelega
 
 // This action creates a reusable delegationSet.
 //
-// To create a new reusable delegationSet, send a POST request to the 2013-04-01/delegationset
-// resource. The request body must include an XML document with a CreateReusableDelegationSetRequest
-// element. The response returns the CreateReusableDelegationSetResponse element
-// that contains metadata about the delegationSet.
+// To create a new reusable delegationSet, send a POST request to the /Route
+// 53 API version/delegationset resource. The request body must include a document
+// with a CreateReusableDelegationSetRequest element. The response returns the
+// CreateReusableDelegationSetResponse element that contains metadata about
+// the delegationSet.
 //
 // If the optional parameter HostedZoneId is specified, it marks the delegationSet
 // associated with that particular hosted zone as reusable.
@@ -260,8 +261,8 @@ func (c *Route53) CreateTrafficPolicyRequest(input *CreateTrafficPolicyInput) (r
 // sets for one domain name (such as example.com) or one subdomain name (such
 // as www.example.com).
 //
-// To create a traffic policy, send a POST request to the 2013-04-01/trafficpolicy
-// resource. The request body must include an XML document with a CreateTrafficPolicyRequest
+// To create a traffic policy, send a POST request to the /Route 53 API version/trafficpolicy
+// resource. The request body must include a document with a CreateTrafficPolicyRequest
 // element. The response includes the CreateTrafficPolicyResponse element, which
 // contains information about the new traffic policy.
 func (c *Route53) CreateTrafficPolicy(input *CreateTrafficPolicyInput) (*CreateTrafficPolicyOutput, error) {
@@ -297,10 +298,11 @@ func (c *Route53) CreateTrafficPolicyInstanceRequest(input *CreateTrafficPolicyI
 // responds to DNS queries for the domain or subdomain name by using the resource
 // record sets that CreateTrafficPolicyInstance created.
 //
-// To create a traffic policy instance, send a POST request to the 2013-04-01/trafficpolicyinstance
-// resource. The request body must include an XML document with a CreateTrafficPolicyRequest
-// element. The response returns the CreateTrafficPolicyInstanceResponse element,
-// which contains information about the traffic policy instance.
+// To create a traffic policy instance, send a POST request to the /Route 53
+// API version/trafficpolicyinstance resource. The request body must include
+// a document with a CreateTrafficPolicyRequest element. The response returns
+// the CreateTrafficPolicyInstanceResponse element, which contains information
+// about the traffic policy instance.
 func (c *Route53) CreateTrafficPolicyInstance(input *CreateTrafficPolicyInstanceInput) (*CreateTrafficPolicyInstanceOutput, error) {
 	req, out := c.CreateTrafficPolicyInstanceRequest(input)
 	err := req.Send()
@@ -334,8 +336,8 @@ func (c *Route53) CreateTrafficPolicyVersionRequest(input *CreateTrafficPolicyVe
 // You use traffic policies to create multiple DNS resource record sets for
 // one domain name (such as example.com) or one subdomain name (such as www.example.com).
 //
-// To create a new version, send a POST request to the 2013-04-01/trafficpolicy/
-// resource. The request body includes an XML document with a CreateTrafficPolicyVersionRequest
+// To create a new version, send a POST request to the /Route 53 API version/trafficpolicy/
+// resource. The request body includes a document with a CreateTrafficPolicyVersionRequest
 // element. The response returns the CreateTrafficPolicyVersionResponse element,
 // which contains information about the new version of the traffic policy.
 func (c *Route53) CreateTrafficPolicyVersion(input *CreateTrafficPolicyVersionInput) (*CreateTrafficPolicyVersionOutput, error) {
@@ -365,7 +367,7 @@ func (c *Route53) DeleteHealthCheckRequest(input *DeleteHealthCheckInput) (req *
 }
 
 // This action deletes a health check. To delete a health check, send a DELETE
-// request to the 2013-04-01/healthcheck/health check ID resource.
+// request to the /Route 53 API version/healthcheck/health check ID resource.
 //
 //  You can delete a health check only if there are no resource record sets
 // associated with this health check. If resource record sets are associated
@@ -401,7 +403,7 @@ func (c *Route53) DeleteHostedZoneRequest(input *DeleteHostedZoneInput) (req *re
 }
 
 // This action deletes a hosted zone. To delete a hosted zone, send a DELETE
-// request to the 2013-04-01/hostedzone/hosted zone ID resource.
+// request to the /Route 53 API version/hostedzone/hosted zone ID resource.
 //
 // For more information about deleting a hosted zone, see Deleting a Hosted
 // Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DeleteHostedZone.html)
@@ -441,8 +443,8 @@ func (c *Route53) DeleteReusableDelegationSetRequest(input *DeleteReusableDelega
 }
 
 // This action deletes a reusable delegation set. To delete a reusable delegation
-// set, send a DELETE request to the 2013-04-01/delegationset/delegation set
-// ID resource.
+// set, send a DELETE request to the /Route 53 API version/delegationset/delegation
+// set ID resource.
 //
 //  You can delete a reusable delegation set only if there are no associated
 // hosted zones. If your reusable delegation set contains associated hosted
@@ -477,7 +479,7 @@ func (c *Route53) DeleteTrafficPolicyRequest(input *DeleteTrafficPolicyInput) (r
 }
 
 // Deletes a traffic policy. To delete a traffic policy, send a DELETE request
-// to the 2013-04-01/trafficpolicy resource.
+// to the /Route 53 API version/trafficpolicy resource.
 func (c *Route53) DeleteTrafficPolicy(input *DeleteTrafficPolicyInput) (*DeleteTrafficPolicyOutput, error) {
 	req, out := c.DeleteTrafficPolicyRequest(input)
 	err := req.Send()
@@ -507,8 +509,8 @@ func (c *Route53) DeleteTrafficPolicyInstanceRequest(input *DeleteTrafficPolicyI
 // Deletes a traffic policy instance and all of the resource record sets that
 // Amazon Route 53 created when you created the instance.
 //
-// To delete a traffic policy instance, send a DELETE request to the 2013-04-01/trafficpolicy/traffic
-// policy instance ID resource.
+// To delete a traffic policy instance, send a DELETE request to the /Route
+// 53 API version/trafficpolicy/traffic policy instance ID resource.
 //
 // When you delete a traffic policy instance, Amazon Route 53 also deletes
 // all of the resource record sets that were created when you created the traffic
@@ -541,11 +543,11 @@ func (c *Route53) DisassociateVPCFromHostedZoneRequest(input *DisassociateVPCFro
 
 // This action disassociates a VPC from an hosted zone.
 //
-// To disassociate a VPC to a hosted zone, send a POST request to the 2013-04-01/hostedzone/hosted
-// zone ID/disassociatevpc resource. The request body must include an XML document
-// with a DisassociateVPCFromHostedZoneRequest element. The response returns
-// the DisassociateVPCFromHostedZoneResponse element that contains ChangeInfo
-// for you to track the progress of the DisassociateVPCFromHostedZoneRequest
+// To disassociate a VPC to a hosted zone, send a POST request to the /Route
+// 53 API version/hostedzone/hosted zone ID/disassociatevpc resource. The request
+// body must include a document with a DisassociateVPCFromHostedZoneRequest
+// element. The response returns the DisassociateVPCFromHostedZoneResponse element
+// that contains ChangeInfo for you to track the progress of the DisassociateVPCFromHostedZoneRequest
 // you made. See GetChange operation for how to track the progress of your change.
 func (c *Route53) DisassociateVPCFromHostedZone(input *DisassociateVPCFromHostedZoneInput) (*DisassociateVPCFromHostedZoneOutput, error) {
 	req, out := c.DisassociateVPCFromHostedZoneRequest(input)
@@ -592,6 +594,9 @@ const opGetChangeDetails = "GetChangeDetails"
 
 // GetChangeDetailsRequest generates a request for the GetChangeDetails operation.
 func (c *Route53) GetChangeDetailsRequest(input *GetChangeDetailsInput) (req *request.Request, output *GetChangeDetailsOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, GetChangeDetails, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opGetChangeDetails,
 		HTTPMethod: "GET",
@@ -636,9 +641,10 @@ func (c *Route53) GetCheckerIpRangesRequest(input *GetCheckerIpRangesInput) (req
 }
 
 // To retrieve a list of the IP ranges used by Amazon Route 53 health checkers
-// to check the health of your resources, send a GET request to the 2013-04-01/checkeripranges
-// resource. You can use these IP addresses to configure router and firewall
-// rules to allow health checkers to check the health of your resources.
+// to check the health of your resources, send a GET request to the /Route 53
+// API version/checkeripranges resource. You can use these IP addresses to configure
+// router and firewall rules to allow health checkers to check the health of
+// your resources.
 func (c *Route53) GetCheckerIpRanges(input *GetCheckerIpRangesInput) (*GetCheckerIpRangesOutput, error) {
 	req, out := c.GetCheckerIpRangesRequest(input)
 	err := req.Send()
@@ -665,9 +671,9 @@ func (c *Route53) GetGeoLocationRequest(input *GetGeoLocationInput) (req *reques
 	return
 }
 
-// To retrieve a single geo location, send a GET request to the 2013-04-01/geolocation
-// resource with one of these options: continentcode | countrycode | countrycode
-// and subdivisioncode.
+// To retrieve a single geo location, send a GET request to the /Route 53 API
+// version/geolocation resource with one of these options: continentcode | countrycode
+// | countrycode and subdivisioncode.
 func (c *Route53) GetGeoLocation(input *GetGeoLocationInput) (*GetGeoLocationOutput, error) {
 	req, out := c.GetGeoLocationRequest(input)
 	err := req.Send()
@@ -694,7 +700,7 @@ func (c *Route53) GetHealthCheckRequest(input *GetHealthCheckInput) (req *reques
 	return
 }
 
-// To retrieve the health check, send a GET request to the 2013-04-01/healthcheck/health
+// To retrieve the health check, send a GET request to the /Route 53 API version/healthcheck/health
 // check ID resource.
 func (c *Route53) GetHealthCheck(input *GetHealthCheckInput) (*GetHealthCheckOutput, error) {
 	req, out := c.GetHealthCheckRequest(input)
@@ -723,7 +729,7 @@ func (c *Route53) GetHealthCheckCountRequest(input *GetHealthCheckCountInput) (r
 }
 
 // To retrieve a count of all your health checks, send a GET request to the
-// 2013-04-01/healthcheckcount resource.
+// /Route 53 API version/healthcheckcount resource.
 func (c *Route53) GetHealthCheckCount(input *GetHealthCheckCountInput) (*GetHealthCheckCountOutput, error) {
 	req, out := c.GetHealthCheckCountRequest(input)
 	err := req.Send()
@@ -752,8 +758,8 @@ func (c *Route53) GetHealthCheckLastFailureReasonRequest(input *GetHealthCheckLa
 
 // If you want to learn why a health check is currently failing or why it failed
 // most recently (if at all), you can get the failure reason for the most recent
-// failure. Send a GET request to the 2013-04-01/healthcheck/health check ID/lastfailurereason
-// resource.
+// failure. Send a GET request to the /Route 53 API version/healthcheck/health
+// check ID/lastfailurereason resource.
 func (c *Route53) GetHealthCheckLastFailureReason(input *GetHealthCheckLastFailureReasonInput) (*GetHealthCheckLastFailureReasonOutput, error) {
 	req, out := c.GetHealthCheckLastFailureReasonRequest(input)
 	err := req.Send()
@@ -780,9 +786,9 @@ func (c *Route53) GetHealthCheckStatusRequest(input *GetHealthCheckStatusInput) 
 	return
 }
 
-// To retrieve the health check status, send a GET request to the 2013-04-01/healthcheck/health
-// check ID/status resource. You can use this call to get a health check's current
-// status.
+// To retrieve the health check status, send a GET request to the /Route 53
+// API version/healthcheck/health check ID/status resource. You can use this
+// call to get a health check's current status.
 func (c *Route53) GetHealthCheckStatus(input *GetHealthCheckStatusInput) (*GetHealthCheckStatusOutput, error) {
 	req, out := c.GetHealthCheckStatusRequest(input)
 	err := req.Send()
@@ -810,9 +816,9 @@ func (c *Route53) GetHostedZoneRequest(input *GetHostedZoneInput) (req *request.
 }
 
 // To retrieve the delegation set for a hosted zone, send a GET request to the
-// 2013-04-01/hostedzone/hosted zone ID resource. The delegation set is the
-// four Amazon Route 53 name servers that were assigned to the hosted zone when
-// you created it.
+// /Route 53 API version/hostedzone/hosted zone ID resource. The delegation
+// set is the four Amazon Route 53 name servers that were assigned to the hosted
+// zone when you created it.
 func (c *Route53) GetHostedZone(input *GetHostedZoneInput) (*GetHostedZoneOutput, error) {
 	req, out := c.GetHostedZoneRequest(input)
 	err := req.Send()
@@ -839,8 +845,8 @@ func (c *Route53) GetHostedZoneCountRequest(input *GetHostedZoneCountInput) (req
 	return
 }
 
-// To retrieve a count of all your hosted zones, send a GET request to the 2013-04-01/hostedzonecount
-// resource.
+// To retrieve a count of all your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzonecount resource.
 func (c *Route53) GetHostedZoneCount(input *GetHostedZoneCountInput) (*GetHostedZoneCountOutput, error) {
 	req, out := c.GetHostedZoneCountRequest(input)
 	err := req.Send()
@@ -867,8 +873,8 @@ func (c *Route53) GetReusableDelegationSetRequest(input *GetReusableDelegationSe
 	return
 }
 
-// To retrieve the reusable delegation set, send a GET request to the 2013-04-01/delegationset/delegation
-// set ID resource.
+// To retrieve the reusable delegation set, send a GET request to the /Route
+// 53 API version/delegationset/delegation set ID resource.
 func (c *Route53) GetReusableDelegationSet(input *GetReusableDelegationSetInput) (*GetReusableDelegationSetOutput, error) {
 	req, out := c.GetReusableDelegationSetRequest(input)
 	err := req.Send()
@@ -896,7 +902,7 @@ func (c *Route53) GetTrafficPolicyRequest(input *GetTrafficPolicyInput) (req *re
 }
 
 // Gets information about a specific traffic policy version. To get the information,
-// send a GET request to the 2013-04-01/trafficpolicy resource.
+// send a GET request to the /Route 53 API version/trafficpolicy resource.
 func (c *Route53) GetTrafficPolicy(input *GetTrafficPolicyInput) (*GetTrafficPolicyOutput, error) {
 	req, out := c.GetTrafficPolicyRequest(input)
 	err := req.Send()
@@ -926,7 +932,7 @@ func (c *Route53) GetTrafficPolicyInstanceRequest(input *GetTrafficPolicyInstanc
 // Gets information about a specified traffic policy instance.
 //
 // To get information about the traffic policy instance, send a GET request
-// to the 2013-04-01/trafficpolicyinstance resource.
+// to the /Route 53 API version/trafficpolicyinstance resource.
 //
 // After you submit a CreateTrafficPolicyInstance or an UpdateTrafficPolicyInstance
 // request, there's a brief delay while Amazon Route 53 creates the resource
@@ -962,7 +968,7 @@ func (c *Route53) GetTrafficPolicyInstanceCountRequest(input *GetTrafficPolicyIn
 // current AWS account.
 //
 // To get the number of traffic policy instances, send a GET request to the
-// 2013-04-01/trafficpolicyinstancecount resource.
+// /Route 53 API version/trafficpolicyinstancecount resource.
 func (c *Route53) GetTrafficPolicyInstanceCount(input *GetTrafficPolicyInstanceCountInput) (*GetTrafficPolicyInstanceCountOutput, error) {
 	req, out := c.GetTrafficPolicyInstanceCountRequest(input)
 	err := req.Send()
@@ -973,6 +979,9 @@ const opListChangeBatchesByHostedZone = "ListChangeBatchesByHostedZone"
 
 // ListChangeBatchesByHostedZoneRequest generates a request for the ListChangeBatchesByHostedZone operation.
 func (c *Route53) ListChangeBatchesByHostedZoneRequest(input *ListChangeBatchesByHostedZoneInput) (req *request.Request, output *ListChangeBatchesByHostedZoneOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, ListChangeBatchesByHostedZone, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opListChangeBatchesByHostedZone,
 		HTTPMethod: "GET",
@@ -1001,6 +1010,9 @@ const opListChangeBatchesByRRSet = "ListChangeBatchesByRRSet"
 
 // ListChangeBatchesByRRSetRequest generates a request for the ListChangeBatchesByRRSet operation.
 func (c *Route53) ListChangeBatchesByRRSetRequest(input *ListChangeBatchesByRRSetInput) (req *request.Request, output *ListChangeBatchesByRRSetOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, ListChangeBatchesByRRSet, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opListChangeBatchesByRRSet,
 		HTTPMethod: "GET",
@@ -1046,8 +1058,8 @@ func (c *Route53) ListGeoLocationsRequest(input *ListGeoLocationsInput) (req *re
 }
 
 // To retrieve a list of supported geo locations, send a GET request to the
-// 2013-04-01/geolocations resource. The response to this request includes a
-// GeoLocationDetailsList element with zero, one, or multiple GeoLocationDetails
+// /Route 53 API version/geolocations resource. The response to this request
+// includes a GeoLocationDetailsList element with zero, one, or multiple GeoLocationDetails
 // child elements. The list is sorted by country code, and then subdivision
 // code, followed by continents at the end of the list.
 //
@@ -1090,12 +1102,13 @@ func (c *Route53) ListHealthChecksRequest(input *ListHealthChecksInput) (req *re
 	return
 }
 
-// To retrieve a list of your health checks, send a GET request to the 2013-04-01/healthcheck
-// resource. The response to this request includes a HealthChecks element with
-// zero, one, or multiple HealthCheck child elements. By default, the list of
-// health checks is displayed on a single page. You can control the length of
-// the page that is displayed by using the MaxItems parameter. You can use the
-// Marker parameter to control the health check that the list begins with.
+// To retrieve a list of your health checks, send a GET request to the /Route
+// 53 API version/healthcheck resource. The response to this request includes
+// a HealthChecks element with zero, one, or multiple HealthCheck child elements.
+// By default, the list of health checks is displayed on a single page. You
+// can control the length of the page that is displayed by using the MaxItems
+// parameter. You can use the Marker parameter to control the health check that
+// the list begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1139,12 +1152,13 @@ func (c *Route53) ListHostedZonesRequest(input *ListHostedZonesInput) (req *requ
 	return
 }
 
-// To retrieve a list of your hosted zones, send a GET request to the 2013-04-01/hostedzone
-// resource. The response to this request includes a HostedZones element with
-// zero, one, or multiple HostedZone child elements. By default, the list of
-// hosted zones is displayed on a single page. You can control the length of
-// the page that is displayed by using the MaxItems parameter. You can use the
-// Marker parameter to control the hosted zone that the list begins with.
+// To retrieve a list of your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzone resource. The response to this request includes
+// a HostedZones element with zero, one, or multiple HostedZone child elements.
+// By default, the list of hosted zones is displayed on a single page. You can
+// control the length of the page that is displayed by using the MaxItems parameter.
+// You can use the Marker parameter to control the hosted zone that the list
+// begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1183,13 +1197,13 @@ func (c *Route53) ListHostedZonesByNameRequest(input *ListHostedZonesByNameInput
 }
 
 // To retrieve a list of your hosted zones in lexicographic order, send a GET
-// request to the 2013-04-01/hostedzonesbyname resource. The response to this
-// request includes a HostedZones element with zero or more HostedZone child
-// elements lexicographically ordered by DNS name. By default, the list of hosted
-// zones is displayed on a single page. You can control the length of the page
-// that is displayed by using the MaxItems parameter. You can use the DNSName
-// and HostedZoneId parameters to control the hosted zone that the list begins
-// with.
+// request to the /Route 53 API version/hostedzonesbyname resource. The response
+// to this request includes a HostedZones element with zero or more HostedZone
+// child elements lexicographically ordered by DNS name. By default, the list
+// of hosted zones is displayed on a single page. You can control the length
+// of the page that is displayed by using the MaxItems parameter. You can use
+// the DNSName and HostedZoneId parameters to control the hosted zone that the
+// list begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1298,12 +1312,12 @@ func (c *Route53) ListReusableDelegationSetsRequest(input *ListReusableDelegatio
 }
 
 // To retrieve a list of your reusable delegation sets, send a GET request to
-// the 2013-04-01/delegationset resource. The response to this request includes
-// a DelegationSets element with zero, one, or multiple DelegationSet child
-// elements. By default, the list of delegation sets is displayed on a single
-// page. You can control the length of the page that is displayed by using the
-// MaxItems parameter. You can use the Marker parameter to control the delegation
-// set that the list begins with.
+// the /Route 53 API version/delegationset resource. The response to this request
+// includes a DelegationSets element with zero, one, or multiple DelegationSet
+// child elements. By default, the list of delegation sets is displayed on a
+// single page. You can control the length of the page that is displayed by
+// using the MaxItems parameter. You can use the Marker parameter to control
+// the delegation set that the list begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1387,7 +1401,7 @@ func (c *Route53) ListTrafficPoliciesRequest(input *ListTrafficPoliciesInput) (r
 
 // Gets information about the latest version for every traffic policy that is
 // associated with the current AWS account. To get the information, send a GET
-// request to the 2013-04-01/trafficpolicy resource.
+// request to the /Route 53 API version/trafficpolicy resource.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
 // have a lot of traffic policies, you can use the maxitems parameter to list
@@ -1446,7 +1460,7 @@ func (c *Route53) ListTrafficPolicyInstancesRequest(input *ListTrafficPolicyInst
 // delay while Amazon Route 53 creates the resource record sets that are specified
 // in the traffic policy definition. For more information, see the State response
 // element. To get information about the traffic policy instances that are associated
-// with the current AWS account, send a GET request to the 2013-04-01/trafficpolicyinstance
+// with the current AWS account, send a GET request to the /Route 53 API version/trafficpolicyinstance
 // resource.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
@@ -1505,7 +1519,7 @@ func (c *Route53) ListTrafficPolicyInstancesByHostedZoneRequest(input *ListTraff
 // delay while Amazon Route 53 creates the resource record sets that are specified
 // in the traffic policy definition. For more information, see the State response
 // element. To get information about the traffic policy instances that you created
-// in a specified hosted zone, send a GET request to the 2013-04-01/trafficpolicyinstance
+// in a specified hosted zone, send a GET request to the /Route 53 API version/trafficpolicyinstance
 // resource and include the ID of the hosted zone.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
@@ -1565,8 +1579,8 @@ func (c *Route53) ListTrafficPolicyInstancesByPolicyRequest(input *ListTrafficPo
 // record sets that are specified in the traffic policy definition. For more
 // information, see the State response element. To get information about the
 // traffic policy instances that you created by using a specify traffic policy
-// version, send a GET request to the 2013-04-01/trafficpolicyinstance resource
-// and include the ID and version of the traffic policy.
+// version, send a GET request to the /Route 53 API version/trafficpolicyinstance
+// resource and include the ID and version of the traffic policy.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
 // have a lot of traffic policy instances, you can use the MaxItems parameter
@@ -1672,10 +1686,10 @@ func (c *Route53) UpdateHealthCheckRequest(input *UpdateHealthCheckInput) (req *
 
 // This action updates an existing health check.
 //
-// To update a health check, send a POST request to the 2013-04-01/healthcheck/health
-// check ID resource. The request body must include an XML document with an
-// UpdateHealthCheckRequest element. The response returns an UpdateHealthCheckResponse
-// element, which contains metadata about the health check.
+// To update a health check, send a POST request to the /Route 53 API version/healthcheck/health
+// check ID resource. The request body must include a document with an UpdateHealthCheckRequest
+// element. The response returns an UpdateHealthCheckResponse element, which
+// contains metadata about the health check.
 func (c *Route53) UpdateHealthCheck(input *UpdateHealthCheckInput) (*UpdateHealthCheckOutput, error) {
 	req, out := c.UpdateHealthCheckRequest(input)
 	err := req.Send()
@@ -1702,9 +1716,10 @@ func (c *Route53) UpdateHostedZoneCommentRequest(input *UpdateHostedZoneCommentI
 	return
 }
 
-// To update the hosted zone comment, send a POST request to the 2013-04-01/hostedzone/hosted
-// zone ID resource. The request body must include an XML document with a UpdateHostedZoneCommentRequest
-// element. The response to this request includes the modified HostedZone element.
+// To update the hosted zone comment, send a POST request to the /Route 53 API
+// version/hostedzone/hosted zone ID resource. The request body must include
+// a document with a UpdateHostedZoneCommentRequest element. The response to
+// this request includes the modified HostedZone element.
 //
 //  The comment can have a maximum length of 256 characters.
 func (c *Route53) UpdateHostedZoneComment(input *UpdateHostedZoneCommentInput) (*UpdateHostedZoneCommentOutput, error) {
@@ -1735,10 +1750,10 @@ func (c *Route53) UpdateTrafficPolicyCommentRequest(input *UpdateTrafficPolicyCo
 
 // Updates the comment for a specified traffic policy version.
 //
-// To update the comment, send a POST request to the /2013-04-01/trafficpolicy/
+// To update the comment, send a POST request to the /Route 53 API version/trafficpolicy/
 // resource.
 //
-// The request body must include an XML document with an UpdateTrafficPolicyCommentRequest
+// The request body must include a document with an UpdateTrafficPolicyCommentRequest
 // element.
 func (c *Route53) UpdateTrafficPolicyComment(input *UpdateTrafficPolicyCommentInput) (*UpdateTrafficPolicyCommentOutput, error) {
 	req, out := c.UpdateTrafficPolicyCommentRequest(input)
@@ -1785,8 +1800,8 @@ func (c *Route53) UpdateTrafficPolicyInstanceRequest(input *UpdateTrafficPolicyI
 // set name (such as example.com) by using the new resource record sets. Amazon
 // Route 53 deletes the old group of resource record sets that are associated
 // with the root resource record set name.  To update a traffic policy instance,
-// send a POST request to the /2013-04-01/trafficpolicyinstance/traffic policy
-// ID resource. The request body must include an XML document with an UpdateTrafficPolicyInstanceRequest
+// send a POST request to the /Route 53 API version/trafficpolicyinstance/traffic
+// policy ID resource. The request body must include a document with an UpdateTrafficPolicyInstanceRequest
 // element.
 func (c *Route53) UpdateTrafficPolicyInstance(input *UpdateTrafficPolicyInstanceInput) (*UpdateTrafficPolicyInstanceOutput, error) {
 	req, out := c.UpdateTrafficPolicyInstanceRequest(input)
@@ -1828,16 +1843,20 @@ type AliasTarget struct {
 	// the AWS Management Console, the ELB API, or the AWS CLI. Use the same method
 	// to get values for HostedZoneId and DNSName. If you get one value from the
 	// console and the other value from the API or the CLI, creating the resource
-	// record set will fail. An Amazon S3 bucket that is configured as a static
-	// website: Specify the domain name of the Amazon S3 website endpoint in which
-	// you created the bucket; for example, s3-website-us-east-1.amazonaws.com.
-	// For more information about valid values, see the table Amazon Simple Storage
-	// Service (S3) Website Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region)
+	// record set will fail. An Elastic Beanstalk environment: Specify the CNAME
+	// attribute for the environment. (The environment must have a regionalized
+	// domain name.)  An Amazon S3 bucket that is configured as a static website:
+	// Specify the domain name of the Amazon S3 website endpoint in which you created
+	// the bucket; for example, s3-website-us-east-1.amazonaws.com. For more information
+	// about valid values, see the table Amazon Simple Storage Service (S3) Website
+	// Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region)
 	// in the Amazon Web Services General Reference. For more information about
 	// using Amazon S3 buckets for websites, see Hosting a Static Website on Amazon
 	// S3 (http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html) in
-	// the Amazon Simple Storage Service Developer Guide.   For more information
-	// and an example, see Example: Creating Alias Resource Record Sets (http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html)
+	// the Amazon Simple Storage Service Developer Guide. Another Amazon Route 53
+	// resource record set: Specify the value of the Name element for a resource
+	// record set in the current hosted zone.  For more information and an example,
+	// see Example: Creating Alias Resource Record Sets (http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html)
 	// in the Amazon Route 53 API Reference.
 	DNSName *string `type:"string" required:"true"`
 
@@ -2031,7 +2050,7 @@ func (s ChangeBatch) GoString() string {
 
 // A complex type that lists the changes and information for a ChangeBatch.
 type ChangeBatchRecord struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// A list of changes made in the ChangeBatch.
 	Changes []*Change `locationNameList:"Change" min:"1" type:"list"`
@@ -2869,7 +2888,7 @@ func (s GeoLocationDetails) GoString() string {
 
 // The input for a GetChangeDetails request.
 type GetChangeDetailsInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The ID of the change batch request. The value that you specify here is the
 	// value that ChangeResourceRecordSets returned in the Id element when you submitted
@@ -2889,12 +2908,12 @@ func (s GetChangeDetailsInput) GoString() string {
 
 // A complex type that contains the ChangeBatchRecord element.
 type GetChangeDetailsOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// A complex type that contains information about the specified change batch,
 	// including the change batch ID, the status of the change, and the contained
 	// changes.
-	ChangeBatchRecord *ChangeBatchRecord `type:"structure" required:"true"`
+	ChangeBatchRecord *ChangeBatchRecord `deprecated:"true" type:"structure" required:"true"`
 }
 
 // String returns the string representation
@@ -3038,7 +3057,7 @@ func (s GetGeoLocationOutput) GoString() string {
 }
 
 // To retrieve a count of all your health checks, send a GET request to the
-// 2013-04-01/healthcheckcount resource.
+// /Route 53 API version/healthcheckcount resource.
 type GetHealthCheckCountInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3242,8 +3261,8 @@ func (s GetHealthCheckStatusOutput) GoString() string {
 	return s.String()
 }
 
-// To retrieve a count of all your hosted zones, send a GET request to the 2013-04-01/hostedzonecount
-// resource.
+// To retrieve a count of all your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzonecount resource.
 type GetHostedZoneCountInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3362,8 +3381,8 @@ func (s GetReusableDelegationSetOutput) GoString() string {
 }
 
 // Gets information about a specific traffic policy version. To get the information,
-// send a GET request to the 2013-04-01/trafficpolicy resource, and specify
-// the ID and the version of the traffic policy.
+// send a GET request to the /Route 53 API version/trafficpolicy resource, and
+// specify the ID and the version of the traffic policy.
 type GetTrafficPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3386,7 +3405,7 @@ func (s GetTrafficPolicyInput) GoString() string {
 }
 
 // To retrieve a count of all your traffic policy instances, send a GET request
-// to the 2013-04-01/trafficpolicyinstancecount resource.
+// to the /Route 53 API version/trafficpolicyinstancecount resource.
 type GetTrafficPolicyInstanceCountInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3424,7 +3443,7 @@ func (s GetTrafficPolicyInstanceCountOutput) GoString() string {
 // Gets information about a specified traffic policy instance.
 //
 // To get information about a traffic policy instance, send a GET request to
-// the 2013-04-01/trafficpolicyinstance/Id resource.
+// the /Route 53 API version/trafficpolicyinstance/Id resource.
 type GetTrafficPolicyInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3516,6 +3535,13 @@ type HealthCheckConfig struct {
 	// associated child health checks.
 	ChildHealthChecks []*string `locationNameList:"ChildHealthCheck" type:"list"`
 
+	// Specify whether you want Amazon Route 53 to send the value of FullyQualifiedDomainName
+	// to the endpoint in the client_hello message during TLS negotiation. If you
+	// don't specify a value for EnableSNI, Amazon Route 53 defaults to true when
+	// Type is HTTPS or HTTPS_STR_MATCH and defaults to false when Type is any other
+	// value.
+	EnableSNI *bool `type:"boolean"`
+
 	// The number of consecutive health checks that an endpoint must pass or fail
 	// for Amazon Route 53 to change the current status of the endpoint from unhealthy
 	// to healthy or vice versa.
@@ -3564,7 +3590,8 @@ type HealthCheckConfig struct {
 	ResourcePath *string `type:"string"`
 
 	// A string to search for in the body of a health check response. Required for
-	// HTTP_STR_MATCH and HTTPS_STR_MATCH health checks.
+	// HTTP_STR_MATCH and HTTPS_STR_MATCH health checks. Amazon Route 53 considers
+	// case when searching for SearchString in the response body.
 	SearchString *string `type:"string"`
 
 	// The type of health check to be performed. Currently supported types are TCP,
@@ -3670,10 +3697,10 @@ func (s HostedZoneConfig) GoString() string {
 
 // The input for a ListChangeBatchesByHostedZone request.
 type ListChangeBatchesByHostedZoneInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The end of the time period you want to see changes for.
-	EndDate *string `location:"querystring" locationName:"endDate" type:"string" required:"true"`
+	EndDate *string `location:"querystring" locationName:"endDate" deprecated:"true" type:"string" required:"true"`
 
 	// The ID of the hosted zone that you want to see changes for.
 	HostedZoneId *string `location:"uri" locationName:"Id" type:"string" required:"true"`
@@ -3685,7 +3712,7 @@ type ListChangeBatchesByHostedZoneInput struct {
 	MaxItems *string `location:"querystring" locationName:"maxItems" type:"string"`
 
 	// The start of the time period you want to see changes for.
-	StartDate *string `location:"querystring" locationName:"startDate" type:"string" required:"true"`
+	StartDate *string `location:"querystring" locationName:"startDate" deprecated:"true" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -3700,10 +3727,10 @@ func (s ListChangeBatchesByHostedZoneInput) GoString() string {
 
 // The input for a ListChangeBatchesByHostedZone request.
 type ListChangeBatchesByHostedZoneOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The change batches within the given hosted zone and time period.
-	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" type:"list" required:"true"`
+	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" deprecated:"true" type:"list" required:"true"`
 
 	// A flag that indicates if there are more change batches to list.
 	IsTruncated *bool `type:"boolean"`
@@ -3730,10 +3757,10 @@ func (s ListChangeBatchesByHostedZoneOutput) GoString() string {
 
 // The input for a ListChangeBatchesByRRSet request.
 type ListChangeBatchesByRRSetInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The end of the time period you want to see changes for.
-	EndDate *string `location:"querystring" locationName:"endDate" type:"string" required:"true"`
+	EndDate *string `location:"querystring" locationName:"endDate" deprecated:"true" type:"string" required:"true"`
 
 	// The ID of the hosted zone that you want to see changes for.
 	HostedZoneId *string `location:"uri" locationName:"Id" type:"string" required:"true"`
@@ -3751,7 +3778,7 @@ type ListChangeBatchesByRRSetInput struct {
 	SetIdentifier *string `location:"querystring" locationName:"identifier" min:"1" type:"string"`
 
 	// The start of the time period you want to see changes for.
-	StartDate *string `location:"querystring" locationName:"startDate" type:"string" required:"true"`
+	StartDate *string `location:"querystring" locationName:"startDate" deprecated:"true" type:"string" required:"true"`
 
 	// The type of the RRSet that you want to see changes for.
 	Type *string `location:"querystring" locationName:"type" type:"string" required:"true" enum:"RRType"`
@@ -3769,10 +3796,10 @@ func (s ListChangeBatchesByRRSetInput) GoString() string {
 
 // The input for a ListChangeBatchesByRRSet request.
 type ListChangeBatchesByRRSetOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The change batches within the given hosted zone and time period.
-	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" type:"list" required:"true"`
+	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" deprecated:"true" type:"list" required:"true"`
 
 	// A flag that indicates if there are more change batches to list.
 	IsTruncated *bool `type:"boolean"`
@@ -3887,12 +3914,13 @@ func (s ListGeoLocationsOutput) GoString() string {
 	return s.String()
 }
 
-// To retrieve a list of your health checks, send a GET request to the 2013-04-01/healthcheck
-// resource. The response to this request includes a HealthChecks element with
-// zero or more HealthCheck child elements. By default, the list of health checks
-// is displayed on a single page. You can control the length of the page that
-// is displayed by using the MaxItems parameter. You can use the Marker parameter
-// to control the health check that the list begins with.
+// To retrieve a list of your health checks, send a GET request to the /Route
+// 53 API version/healthcheck resource. The response to this request includes
+// a HealthChecks element with zero or more HealthCheck child elements. By default,
+// the list of health checks is displayed on a single page. You can control
+// the length of the page that is displayed by using the MaxItems parameter.
+// You can use the Marker parameter to control the health check that the list
+// begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -3962,13 +3990,13 @@ func (s ListHealthChecksOutput) GoString() string {
 }
 
 // To retrieve a list of your hosted zones in lexicographic order, send a GET
-// request to the 2013-04-01/hostedzonesbyname resource. The response to this
-// request includes a HostedZones element with zero or more HostedZone child
-// elements lexicographically ordered by DNS name. By default, the list of hosted
-// zones is displayed on a single page. You can control the length of the page
-// that is displayed by using the MaxItems parameter. You can use the DNSName
-// and HostedZoneId parameters to control the hosted zone that the list begins
-// with.
+// request to the /Route 53 API version/hostedzonesbyname resource. The response
+// to this request includes a HostedZones element with zero or more HostedZone
+// child elements lexicographically ordered by DNS name. By default, the list
+// of hosted zones is displayed on a single page. You can control the length
+// of the page that is displayed by using the MaxItems parameter. You can use
+// the DNSName and HostedZoneId parameters to control the hosted zone that the
+// list begins with.
 //
 // For more information about listing hosted zones, see Listing the Hosted
 // Zones for an AWS Account (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
@@ -4057,14 +4085,14 @@ func (s ListHostedZonesByNameOutput) GoString() string {
 	return s.String()
 }
 
-// To retrieve a list of your hosted zones, send a GET request to the 2013-04-01/hostedzone
-// resource. The response to this request includes a HostedZones element with
-// zero or more HostedZone child elements. By default, the list of hosted zones
-// is displayed on a single page. You can control the length of the page that
-// is displayed by using the MaxItems parameter. You can use the Marker parameter
-// to control the hosted zone that the list begins with. For more information
-// about listing hosted zones, see Listing the Hosted Zones for an AWS Account
-// (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
+// To retrieve a list of your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzone resource. The response to this request includes
+// a HostedZones element with zero or more HostedZone child elements. By default,
+// the list of hosted zones is displayed on a single page. You can control the
+// length of the page that is displayed by using the MaxItems parameter. You
+// can use the Marker parameter to control the hosted zone that the list begins
+// with. For more information about listing hosted zones, see Listing the Hosted
+// Zones for an AWS Account (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
 // in the Amazon Route 53 Developer Guide.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
@@ -4230,8 +4258,8 @@ func (s ListResourceRecordSetsOutput) GoString() string {
 }
 
 // To retrieve a list of your reusable delegation sets, send a GET request to
-// the 2013-04-01/delegationset resource. The response to this request includes
-// a DelegationSets element with zero or more DelegationSet child elements.
+// the /Route 53 API version/delegationset resource. The response to this request
+// includes a DelegationSets element with zero or more DelegationSet child elements.
 // By default, the list of reusable delegation sets is displayed on a single
 // page. You can control the length of the page that is displayed by using the
 // MaxItems parameter. You can use the Marker parameter to control the delegation
@@ -5283,6 +5311,15 @@ type UpdateHealthCheckInput struct {
 	// Specify this value only if you want to change it.
 	ChildHealthChecks []*string `locationNameList:"ChildHealthCheck" type:"list"`
 
+	// Specify whether you want Amazon Route 53 to send the value of FullyQualifiedDomainName
+	// to the endpoint in the client_hello message during TLS negotiation. If you
+	// don't specify a value for EnableSNI, Amazon Route 53 defaults to true when
+	// Type is HTTPS or HTTPS_STR_MATCH and defaults to false when Type is any other
+	// value.
+	//
+	// Specify this value only if you want to change it.
+	EnableSNI *bool `type:"boolean"`
+
 	// The number of consecutive health checks that an endpoint must pass or fail
 	// for Amazon Route 53 to change the current status of the endpoint from unhealthy
 	// to healthy or vice versa.
@@ -5344,7 +5381,8 @@ type UpdateHealthCheckInput struct {
 	// If the value of Type is HTTP_STR_MATCH or HTTP_STR_MATCH, the string that
 	// you want Amazon Route 53 to search for in the response body from the specified
 	// resource. If the string appears in the response body, Amazon Route 53 considers
-	// the resource healthy.
+	// the resource healthy. Amazon Route 53 considers case when searching for SearchString
+	// in the response body.
 	//
 	// Specify this value only if you want to change it.
 	SearchString *string `type:"string"`
@@ -5610,6 +5648,8 @@ const (
 	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionApNortheast1 = "ap-northeast-1"
 	// @enum ResourceRecordSetRegion
+	ResourceRecordSetRegionApNortheast2 = "ap-northeast-2"
+	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionSaEast1 = "sa-east-1"
 	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionCnNorth1 = "cn-north-1"
@@ -5639,6 +5679,8 @@ const (
 	VPCRegionApSoutheast2 = "ap-southeast-2"
 	// @enum VPCRegion
 	VPCRegionApNortheast1 = "ap-northeast-1"
+	// @enum VPCRegion
+	VPCRegionApNortheast2 = "ap-northeast-2"
 	// @enum VPCRegion
 	VPCRegionSaEast1 = "sa-east-1"
 	// @enum VPCRegion

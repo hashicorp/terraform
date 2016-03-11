@@ -65,6 +65,8 @@ func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (
 //  This is an asynchronous call. If all the required information is provided,
 // this API will initiate an export task and respond with the task Id. Once
 // started, DescribeExportTasks can be used to get the status of an export task.
+// You can only have one active (RUNNING or PENDING) export task at a time,
+// per account.
 //
 //  You can export logs from multiple log groups or multiple time ranges to
 // the same Amazon S3 bucket. To separate out log data for each export task,
@@ -805,6 +807,8 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 // log events in the batch can be older than 14 days or the retention period
 // of the log group. The log events in the batch must be in chronological ordered
 // by their timestamp. The maximum number of log events in a batch is 10,000.
+// A batch of log events in a single PutLogEvents request cannot span more than
+// 24 hours. Otherwise, the PutLogEvents operation will fail.
 func (c *CloudWatchLogs) PutLogEvents(input *PutLogEventsInput) (*PutLogEventsOutput, error) {
 	req, out := c.PutLogEventsRequest(input)
 	err := req.Send()
@@ -901,10 +905,14 @@ func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilt
 // Creates or updates a subscription filter and associates it with the specified
 // log group. Subscription filters allow you to subscribe to a real-time stream
 // of log events ingested through PutLogEvents requests and have them delivered
-// to a specific destination. Currently, the supported destinations are:   A
+// to a specific destination. Currently, the supported destinations are:   An
 // Amazon Kinesis stream belonging to the same account as the subscription filter,
 // for same-account delivery.   A logical destination (used via an ARN of Destination)
-// belonging to a different account, for cross-account delivery.
+// belonging to a different account, for cross-account delivery.   An Amazon
+// Kinesis Firehose stream belonging to the same account as the subscription
+// filter, for same-account delivery.   An AWS Lambda function belonging to
+// the same account as the subscription filter, for same-account delivery.
+//
 //
 //  Currently there can only be one subscription filter associated with a log
 // group.
@@ -979,7 +987,7 @@ type CreateExportTaskInput struct {
 
 	// Name of Amazon S3 bucket to which the log data will be exported.
 	//
-	// NOTE: Only buckets in the same AWS region are supported
+	// Note: Only buckets in the same AWS region are supported.
 	Destination *string `locationName:"destination" min:"1" type:"string" required:"true"`
 
 	// Prefix that will be used as the start of Amazon S3 key for every object exported.
@@ -1909,9 +1917,9 @@ func (s GetLogEventsOutput) GoString() string {
 }
 
 // A log event is a record of some activity that was recorded by the application
-// or resource being monitored. The log event record that Amazon CloudWatch
-// Logs understands contains two properties: the timestamp of when the event
-// occurred, and the raw event message.
+// or resource being monitored. The log event record that CloudWatch Logs understands
+// contains two properties: the timestamp of when the event occurred, and the
+// raw event message.
 type InputLogEvent struct {
 	_ struct{} `type:"structure"`
 
@@ -2006,9 +2014,9 @@ func (s LogStream) GoString() string {
 	return s.String()
 }
 
-// Metric filters can be used to express how Amazon CloudWatch Logs would extract
-// metric observations from ingested log events and transform them to metric
-// data in a CloudWatch metric.
+// Metric filters can be used to express how CloudWatch Logs would extract metric
+// observations from ingested log events and transform them to metric data in
+// a CloudWatch metric.
 type MetricFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -2019,10 +2027,10 @@ type MetricFilter struct {
 	// A name for a metric or subscription filter.
 	FilterName *string `locationName:"filterName" min:"1" type:"string"`
 
-	// A symbolic description of how Amazon CloudWatch Logs should interpret the
-	// data in each log event. For example, a log event may contain timestamps,
-	// IP addresses, strings, and so on. You use the filter pattern to specify what
-	// to look for in the log event message.
+	// A symbolic description of how CloudWatch Logs should interpret the data in
+	// each log event. For example, a log event may contain timestamps, IP addresses,
+	// strings, and so on. You use the filter pattern to specify what to look for
+	// in the log event message.
 	FilterPattern *string `locationName:"filterPattern" type:"string"`
 
 	MetricTransformations []*MetricTransformation `locationName:"metricTransformations" min:"1" type:"list"`
@@ -2115,8 +2123,8 @@ type PutDestinationInput struct {
 	// A name for the destination.
 	DestinationName *string `locationName:"destinationName" min:"1" type:"string" required:"true"`
 
-	// The ARN of an IAM role that grants Amazon CloudWatch Logs permissions to
-	// do Amazon Kinesis PutRecord requests on the desitnation stream.
+	// The ARN of an IAM role that grants CloudWatch Logs permissions to do Amazon
+	// Kinesis PutRecord requests on the desitnation stream.
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string" required:"true"`
 
 	// The ARN of an Amazon Kinesis stream to deliver matching log events to.
@@ -2314,10 +2322,13 @@ type PutSubscriptionFilterInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the destination to deliver matching log events to. Currently,
-	// the supported destinations are:   A Amazon Kinesis stream belonging to the
+	// the supported destinations are:   An Amazon Kinesis stream belonging to the
 	// same account as the subscription filter, for same-account delivery.   A logical
 	// destination (used via an ARN of Destination) belonging to a different account,
-	// for cross-account delivery.
+	// for cross-account delivery.   An Amazon Kinesis Firehose stream belonging
+	// to the same account as the subscription filter, for same-account delivery.
+	//   An AWS Lambda function belonging to the same account as the subscription
+	// filter, for same-account delivery.
 	DestinationArn *string `locationName:"destinationArn" min:"1" type:"string" required:"true"`
 
 	// A name for the subscription filter.
@@ -2330,10 +2341,10 @@ type PutSubscriptionFilterInput struct {
 	// The name of the log group to associate the subscription filter with.
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
-	// The ARN of an IAM role that grants Amazon CloudWatch Logs permissions to
-	// deliver ingested log events to the destination stream. You don't need to
-	// provide the ARN when you are working with a logical destination (used via
-	// an ARN of Destination) for cross-account delivery.
+	// The ARN of an IAM role that grants CloudWatch Logs permissions to deliver
+	// ingested log events to the destination stream. You don't need to provide
+	// the ARN when you are working with a logical destination (used via an ARN
+	// of Destination) for cross-account delivery.
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string"`
 }
 
@@ -2416,10 +2427,10 @@ type SubscriptionFilter struct {
 	// A name for a metric or subscription filter.
 	FilterName *string `locationName:"filterName" min:"1" type:"string"`
 
-	// A symbolic description of how Amazon CloudWatch Logs should interpret the
-	// data in each log event. For example, a log event may contain timestamps,
-	// IP addresses, strings, and so on. You use the filter pattern to specify what
-	// to look for in the log event message.
+	// A symbolic description of how CloudWatch Logs should interpret the data in
+	// each log event. For example, a log event may contain timestamps, IP addresses,
+	// strings, and so on. You use the filter pattern to specify what to look for
+	// in the log event message.
 	FilterPattern *string `locationName:"filterPattern" type:"string"`
 
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string"`
@@ -2440,10 +2451,10 @@ func (s SubscriptionFilter) GoString() string {
 type TestMetricFilterInput struct {
 	_ struct{} `type:"structure"`
 
-	// A symbolic description of how Amazon CloudWatch Logs should interpret the
-	// data in each log event. For example, a log event may contain timestamps,
-	// IP addresses, strings, and so on. You use the filter pattern to specify what
-	// to look for in the log event message.
+	// A symbolic description of how CloudWatch Logs should interpret the data in
+	// each log event. For example, a log event may contain timestamps, IP addresses,
+	// strings, and so on. You use the filter pattern to specify what to look for
+	// in the log event message.
 	FilterPattern *string `locationName:"filterPattern" type:"string" required:"true"`
 
 	// A list of log event messages to test.
