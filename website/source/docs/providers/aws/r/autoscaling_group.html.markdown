@@ -108,7 +108,7 @@ The following attributes are exported:
 * `health_check_type` - "EC2" or "ELB". Controls how health checking is done.
 * `desired_capacity` -The number of Amazon EC2 instances that should be running in the group.
 * `launch_configuration` - The launch configuration of the autoscale group
-* `vpc_zone_identifier` - The VPC zone identifier
+* `vpc_zone_identifier` (Optional) - The VPC zone identifier
 * `load_balancers` (Optional) The load balancer names associated with the
    autoscaling group.
 
