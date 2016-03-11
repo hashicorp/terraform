@@ -5,6 +5,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
   * provider/aws: `aws_s3_bucket_object` field `etag` is now trimming off quotes (returns raw MD5 hash) [GH-5305]
   * provider/consul: `consul_keys` `key` blocks now respect `delete` flag for removing individual blocks. Previously keys would be deleted only when the entire resource was removed.
   * provider/google: `next_hop_network` on `google_compute_route` is now read-only, to mirror the behavior in the official docs [GH-5564]
+  * state/remote/http: PUT requests for this backend will now have `Content-Type: application/json` instead of `application/octet-stream` [GH-5499]
+
 
 FEATURES:
 
@@ -47,6 +49,8 @@ IMPROVEMENTS:
   * provider/openstack: Re-Add server.AccessIPv4 and server.AccessIPv6 [GH-5366]
   * provider/vsphere: Add support for disk init types [GH-4284]
   * provider/google: Mark `next_hop_network` as read-only on `google_compute_route` [GH-5564]
+  * state/remote/http: Change content type of PUT requests to the more appropriate `application/json` [GH-5499]
+
 
 BUG FIXES:
 
