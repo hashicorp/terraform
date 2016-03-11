@@ -46,6 +46,9 @@ var endpointsMap = endpointStruct{
 			Endpoint:      "route53.amazonaws.com",
 			SigningRegion: "us-east-1",
 		},
+		"*/s3": {
+			Endpoint: "s3-{region}.amazonaws.com",
+		},
 		"*/sts": {
 			Endpoint:      "sts.amazonaws.com",
 			SigningRegion: "us-east-1",
@@ -54,29 +57,11 @@ var endpointsMap = endpointStruct{
 			Endpoint:      "waf.amazonaws.com",
 			SigningRegion: "us-east-1",
 		},
-		"ap-northeast-1/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
-		},
-		"ap-northeast-2/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
-		},
-		"ap-southeast-1/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
-		},
-		"ap-southeast-2/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
-		},
 		"cn-north-1/*": {
 			Endpoint: "{service}.{region}.amazonaws.com.cn",
 		},
 		"eu-central-1/s3": {
 			Endpoint: "{service}.{region}.amazonaws.com",
-		},
-		"eu-west-1/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
-		},
-		"sa-east-1/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
 		},
 		"us-east-1/s3": {
 			Endpoint: "s3.amazonaws.com",
@@ -93,12 +78,6 @@ var endpointsMap = endpointStruct{
 		},
 		"us-gov-west-1/sts": {
 			Endpoint: "sts.us-gov-west-1.amazonaws.com",
-		},
-		"us-west-1/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
-		},
-		"us-west-2/s3": {
-			Endpoint: "s3-{region}.amazonaws.com",
 		},
 	},
 }

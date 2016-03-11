@@ -661,6 +661,35 @@ func (c *APIGateway) DeleteStage(input *DeleteStageInput) (*DeleteStageOutput, e
 	return out, err
 }
 
+const opFlushStageAuthorizersCache = "FlushStageAuthorizersCache"
+
+// FlushStageAuthorizersCacheRequest generates a request for the FlushStageAuthorizersCache operation.
+func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthorizersCacheInput) (req *request.Request, output *FlushStageAuthorizersCacheOutput) {
+	op := &request.Operation{
+		Name:       opFlushStageAuthorizersCache,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/restapis/{restapi_id}/stages/{stage_name}/cache/authorizers",
+	}
+
+	if input == nil {
+		input = &FlushStageAuthorizersCacheInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &FlushStageAuthorizersCacheOutput{}
+	req.Data = output
+	return
+}
+
+// Flushes all authorizer cache entries on a stage.
+func (c *APIGateway) FlushStageAuthorizersCache(input *FlushStageAuthorizersCacheInput) (*FlushStageAuthorizersCacheOutput, error) {
+	req, out := c.FlushStageAuthorizersCacheRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opFlushStageCache = "FlushStageCache"
 
 // FlushStageCacheRequest generates a request for the FlushStageCache operation.
@@ -1686,6 +1715,32 @@ func (c *APIGateway) PutMethodResponseRequest(input *PutMethodResponseInput) (re
 // Adds a MethodResponse to an existing Method resource.
 func (c *APIGateway) PutMethodResponse(input *PutMethodResponseInput) (*MethodResponse, error) {
 	req, out := c.PutMethodResponseRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opTestInvokeAuthorizer = "TestInvokeAuthorizer"
+
+// TestInvokeAuthorizerRequest generates a request for the TestInvokeAuthorizer operation.
+func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInput) (req *request.Request, output *TestInvokeAuthorizerOutput) {
+	op := &request.Operation{
+		Name:       opTestInvokeAuthorizer,
+		HTTPMethod: "POST",
+		HTTPPath:   "/restapis/{restapi_id}/authorizers/{authorizer_id}",
+	}
+
+	if input == nil {
+		input = &TestInvokeAuthorizerInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &TestInvokeAuthorizerOutput{}
+	req.Data = output
+	return
+}
+
+func (c *APIGateway) TestInvokeAuthorizer(input *TestInvokeAuthorizerInput) (*TestInvokeAuthorizerOutput, error) {
+	req, out := c.TestInvokeAuthorizerRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -3132,6 +3187,41 @@ func (s DomainName) GoString() string {
 	return s.String()
 }
 
+// Request to flush authorizer cache entries on a specified stage.
+type FlushStageAuthorizersCacheInput struct {
+	_ struct{} `type:"structure"`
+
+	// The API identifier of the stage to flush.
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+
+	// The name of the stage to flush.
+	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s FlushStageAuthorizersCacheInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FlushStageAuthorizersCacheInput) GoString() string {
+	return s.String()
+}
+
+type FlushStageAuthorizersCacheOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s FlushStageAuthorizersCacheOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FlushStageAuthorizersCacheOutput) GoString() string {
+	return s.String()
+}
+
 // Requests Amazon API Gateway to flush a stage's cache.
 type FlushStageCacheInput struct {
 	_ struct{} `type:"structure"`
@@ -4292,6 +4382,11 @@ type MethodSetting struct {
 	// and the value is a Boolean.
 	MetricsEnabled *bool `locationName:"metricsEnabled" type:"boolean"`
 
+	// Specifies whether authorization is required for a cache invalidation request.
+	// The PATCH path for this setting is /{method_setting_key}/caching/requireAuthorizationForCacheControl,
+	// and the value is a Boolean.
+	RequireAuthorizationForCacheControl *bool `locationName:"requireAuthorizationForCacheControl" type:"boolean"`
+
 	// Specifies the throttling burst limit. The PATCH path for this setting is
 	// /{method_setting_key}/throttling/burstLimit, and the value is an integer.
 	ThrottlingBurstLimit *int64 `locationName:"throttlingBurstLimit" type:"integer"`
@@ -4299,6 +4394,12 @@ type MethodSetting struct {
 	// Specifies the throttling rate limit. The PATCH path for this setting is /{method_setting_key}/throttling/rateLimit,
 	// and the value is a double.
 	ThrottlingRateLimit *float64 `locationName:"throttlingRateLimit" type:"double"`
+
+	// Specifies the strategy on how to handle the unauthorized requests for cache
+	// invalidation. The PATCH path for this setting is /{method_setting_key}/caching/unauthorizedCacheControlHeaderStrategy,
+	// and the available values are FAIL_WITH_403, SUCCEED_WITH_RESPONSE_HEADER,
+	// SUCCEED_WITHOUT_RESPONSE_HEADER.
+	UnauthorizedCacheControlHeaderStrategy *string `locationName:"unauthorizedCacheControlHeaderStrategy" type:"string" enum:"UnauthorizedCacheControlHeaderStrategy"`
 }
 
 // String returns the string representation
@@ -4415,7 +4516,8 @@ type PutIntegrationInput struct {
 	// Specifies a put integration request's HTTP method.
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// Specifies a put integration HTTP method.
+	// Specifies a put integration HTTP method. When the integration type is HTTP
+	// or AWS, this field is required.
 	IntegrationHttpMethod *string `locationName:"httpMethod" type:"string"`
 
 	// Represents request parameters that are sent with the backend request. Request
@@ -4442,7 +4544,8 @@ type PutIntegrationInput struct {
 	// Specifies a put integration input's type.
 	Type *string `locationName:"type" type:"string" required:"true" enum:"IntegrationType"`
 
-	// Specifies a put integration input's Uniform Resource Identifier (URI).
+	// Specifies a put integration input's Uniform Resource Identifier (URI). When
+	// the integration type is HTTP or AWS, this field is required.
 	Uri *string `locationName:"uri" type:"string"`
 }
 
@@ -4721,6 +4824,67 @@ func (s StageKey) String() string {
 
 // GoString returns the string representation
 func (s StageKey) GoString() string {
+	return s.String()
+}
+
+type TestInvokeAuthorizerInput struct {
+	_ struct{} `type:"structure"`
+
+	AdditionalContext map[string]*string `locationName:"additionalContext" type:"map"`
+
+	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
+
+	Body *string `locationName:"body" type:"string"`
+
+	Headers map[string]*string `locationName:"headers" type:"map"`
+
+	PathWithQueryString *string `locationName:"pathWithQueryString" type:"string"`
+
+	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
+
+	StageVariables map[string]*string `locationName:"stageVariables" type:"map"`
+}
+
+// String returns the string representation
+func (s TestInvokeAuthorizerInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestInvokeAuthorizerInput) GoString() string {
+	return s.String()
+}
+
+// Represents the response of the test invoke request in for a custom Authorizer
+type TestInvokeAuthorizerOutput struct {
+	_ struct{} `type:"structure"`
+
+	Authorization map[string][]*string `locationName:"authorization" type:"map"`
+
+	// The HTTP status code that the client would have received. Value is 0 if the
+	// authorizer succeeded.
+	ClientStatus *int64 `locationName:"clientStatus" type:"integer"`
+
+	// The execution latency of the test authorizer request
+	Latency *int64 `locationName:"latency" type:"long"`
+
+	// The Amazon API Gateway execution log for the test authorizer request.
+	Log *string `locationName:"log" type:"string"`
+
+	// The policy JSON document returned by the Authorizer
+	Policy *string `locationName:"policy" type:"string"`
+
+	// The principal identity returned by the Authorizer
+	PrincipalId *string `locationName:"principalId" type:"string"`
+}
+
+// String returns the string representation
+func (s TestInvokeAuthorizerOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestInvokeAuthorizerOutput) GoString() string {
 	return s.String()
 }
 
@@ -5229,6 +5393,15 @@ const (
 	IntegrationTypeAws = "AWS"
 	// @enum IntegrationType
 	IntegrationTypeMock = "MOCK"
+)
+
+const (
+	// @enum UnauthorizedCacheControlHeaderStrategy
+	UnauthorizedCacheControlHeaderStrategyFailWith403 = "FAIL_WITH_403"
+	// @enum UnauthorizedCacheControlHeaderStrategy
+	UnauthorizedCacheControlHeaderStrategySucceedWithResponseHeader = "SUCCEED_WITH_RESPONSE_HEADER"
+	// @enum UnauthorizedCacheControlHeaderStrategy
+	UnauthorizedCacheControlHeaderStrategySucceedWithoutResponseHeader = "SUCCEED_WITHOUT_RESPONSE_HEADER"
 )
 
 const (
