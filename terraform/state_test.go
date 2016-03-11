@@ -1068,7 +1068,7 @@ func TestReadStateTFVersion(t *testing.T) {
 		},
 		{
 			"",
-			"0.0.0",
+			"",
 			false,
 		},
 		{

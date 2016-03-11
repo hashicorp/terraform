@@ -1237,23 +1237,17 @@ func ReadState(src io.Reader) (*State, error) {
 			state.Version)
 	}
 
-	// If the version is empty, set it to "0.0.0". This scenario is
-	// only reasonably possible if it is a state file from before we
-	// introduced the TFVersion field. Otherwise, the state file might
-	// be getting tampered.
-	if state.TFVersion == "" {
-		state.TFVersion = "0.0.0"
-	}
-
 	// Make sure the version is semantic
-	if _, err := version.NewVersion(state.TFVersion); err != nil {
-		return nil, fmt.Errorf(
-			"State contains invalid version: %s\n\n"+
-				"Terraform validates the version format prior to writing it. This\n"+
-				"means that this is invalid of the state becoming corrupted through\n"+
-				"some external means. Please manually modify the Terraform version\n"+
-				"field to be a proper semantic version.",
-			state.TFVersion)
+	if state.TFVersion != "" {
+		if _, err := version.NewVersion(state.TFVersion); err != nil {
+			return nil, fmt.Errorf(
+				"State contains invalid version: %s\n\n"+
+					"Terraform validates the version format prior to writing it. This\n"+
+					"means that this is invalid of the state becoming corrupted through\n"+
+					"some external means. Please manually modify the Terraform version\n"+
+					"field to be a proper semantic version.",
+				state.TFVersion)
+		}
 	}
 
 	// Sort it
@@ -1276,6 +1270,10 @@ func WriteState(d *State, dst io.Writer) error {
 	// to modify that.
 	if d.TFVersion == "" {
 		d.TFVersion = Version
+
+		// If we're changing the version we force increment the serial.
+		// This is to avoid any remote state thinking this is a conflict.
+		d.Serial++
 	}
 	if _, err := version.NewVersion(d.TFVersion); err != nil {
 		return fmt.Errorf(
