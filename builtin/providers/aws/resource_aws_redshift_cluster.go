@@ -317,7 +317,13 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("encrypted", rsc.Encrypted)
 	d.Set("automated_snapshot_retention_period", rsc.AutomatedSnapshotRetentionPeriod)
 	d.Set("preferred_maintenance_window", rsc.PreferredMaintenanceWindow)
-	d.Set("endpoint", aws.String(fmt.Sprintf("%s:%d", *rsc.Endpoint.Address, *rsc.Endpoint.Port)))
+	if rsc.Endpoint != nil && rsc.Endpoint.Address != nil {
+		endpoint := *rsc.Endpoint.Address
+		if rsc.Endpoint.Port != nil {
+			endpoint = fmt.Sprintf("%s:%d", endpoint, *rsc.Endpoint.Port)
+		}
+		d.Set("endpoint", endpoint)
+	}
 	d.Set("cluster_parameter_group_name", rsc.ClusterParameterGroups[0].ParameterGroupName)
 	if len(rsc.ClusterNodes) > 1 {
 		d.Set("cluster_type", "multi-node")
