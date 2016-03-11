@@ -207,6 +207,35 @@ func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
 	}
 }
 
+func TestStateDeepCopy(t *testing.T) {
+	cases := []struct {
+		One, Two *State
+		F        func(*State) interface{}
+	}{
+		// Version
+		{
+			&State{Version: 5},
+			&State{Version: 5},
+			func(s *State) interface{} { return s.Version },
+		},
+
+		// TFVersion
+		{
+			&State{TFVersion: "5"},
+			&State{TFVersion: "5"},
+			func(s *State) interface{} { return s.TFVersion },
+		},
+	}
+
+	for i, tc := range cases {
+		actual := tc.F(tc.One.DeepCopy())
+		expected := tc.F(tc.Two)
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, actual, expected)
+		}
+	}
+}
+
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool

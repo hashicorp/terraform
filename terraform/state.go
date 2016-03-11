@@ -250,9 +250,10 @@ func (s *State) DeepCopy() *State {
 		return nil
 	}
 	n := &State{
-		Version: s.Version,
-		Serial:  s.Serial,
-		Modules: make([]*ModuleState, 0, len(s.Modules)),
+		Version:   s.Version,
+		TFVersion: s.TFVersion,
+		Serial:    s.Serial,
+		Modules:   make([]*ModuleState, 0, len(s.Modules)),
 	}
 	for _, mod := range s.Modules {
 		n.Modules = append(n.Modules, mod.deepcopy())
