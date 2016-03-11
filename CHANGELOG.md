@@ -58,6 +58,7 @@ BUG FIXES:
   * core: Fix several issues with retry logic causing spurious "timeout while waiting for state to become ..." errors and unnecessary retry loops [GH-5460], [GH-5538], [GH-5543], [GH-5553]
   * core: Includes upstream HCL fix to properly detect unbalanced braces and throw an error [GH-5400]
   * core: Fix issue that caused tainted resource destroys to be improperly filtered out when using -target and a plan file [GH-5516]
+  * provider/aws: `aws_lambda_function` can be properly updated, either via `s3_object_version` or via `filename` & `source_code_hash` as described in docs [GH-5239]
   * provider/aws: Allow recovering from failed CloudWatch Event Target creation [GH-5395]
   * provider/aws: Fix a bug where AWS Kinesis Stream includes closed shards in the shard_count [GH-5401]
   * provider/aws: Fix a bug where ElasticSearch Domain tags were not being set correctly [GH-5361]
