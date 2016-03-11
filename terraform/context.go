@@ -35,16 +35,17 @@ const (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Destroy      bool
-	Diff         *Diff
-	Hooks        []Hook
-	Module       *module.Tree
-	Parallelism  int
-	State        *State
-	Providers    map[string]ResourceProviderFactory
-	Provisioners map[string]ResourceProvisionerFactory
-	Targets      []string
-	Variables    map[string]string
+	Destroy            bool
+	Diff               *Diff
+	Hooks              []Hook
+	Module             *module.Tree
+	Parallelism        int
+	State              *State
+	StateFutureAllowed bool
+	Providers          map[string]ResourceProviderFactory
+	Provisioners       map[string]ResourceProvisionerFactory
+	Targets            []string
+	Variables          map[string]string
 
 	UIInput UIInput
 }
@@ -91,6 +92,24 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		state = new(State)
 		state.init()
 	}
+
+	// If our state is from the future, then error. Callers can avoid
+	// this error by explicitly setting `StateFutureAllowed`.
+	if !opts.StateFutureAllowed && state.FromFutureTerraform() {
+		return nil, fmt.Errorf(
+			"Terraform doesn't allow running any operations against a state\n"+
+				"that was written by a future Terraform version. The state is\n"+
+				"reporting it is written by Terraform '%s'.\n\n"+
+				"Please run at least that version of Terraform to continue. Many\n"+
+				"command line operations also provide a flag to override this\n"+
+				"protection",
+			state.TFVersion)
+	}
+
+	// Explicitly reset our state version to our current version so that
+	// any operations we do will write out that our latest version
+	// has run.
+	state.TFVersion = Version
 
 	// Determine parallelism, default to 10. We do this both to limit
 	// CPU pressure but also to have an extra guard against rate throttling

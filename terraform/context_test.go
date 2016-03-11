@@ -7,6 +7,56 @@ import (
 	"time"
 )
 
+func TestNewContext(t *testing.T) {
+	cases := map[string]struct {
+		Input *ContextOpts
+		Err   bool
+	}{
+		"empty TFVersion": {
+			&ContextOpts{
+				State: &State{},
+			},
+			false,
+		},
+
+		"past TFVersion": {
+			&ContextOpts{
+				State: &State{TFVersion: "0.1.2"},
+			},
+			false,
+		},
+
+		"equal TFVersion": {
+			&ContextOpts{
+				State: &State{TFVersion: Version},
+			},
+			false,
+		},
+
+		"future TFVersion": {
+			&ContextOpts{
+				State: &State{TFVersion: "99.99.99"},
+			},
+			true,
+		},
+
+		"future TFVersion, allowed": {
+			&ContextOpts{
+				State:              &State{TFVersion: "99.99.99"},
+				StateFutureAllowed: true,
+			},
+			false,
+		},
+	}
+
+	for k, tc := range cases {
+		_, err := NewContext(tc.Input)
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", k, err)
+		}
+	}
+}
+
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
 	ctx, err := NewContext(opts)
 	if err != nil {
