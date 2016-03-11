@@ -8,7 +8,12 @@ import (
 )
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
-	return NewContext(opts)
+	ctx, err := NewContext(opts)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return ctx
 }
 
 func testApplyFn(

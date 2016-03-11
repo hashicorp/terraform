@@ -78,7 +78,7 @@ type Context struct {
 // Once a Context is creator, the pointer values within ContextOpts
 // should not be mutated in any way, since the pointers are copied, not
 // the values themselves.
-func NewContext(opts *ContextOpts) *Context {
+func NewContext(opts *ContextOpts) (*Context, error) {
 	// Copy all the hooks and add our stop hook. We don't append directly
 	// to the Config so that we're not modifying that in-place.
 	sh := new(stopHook)
@@ -135,7 +135,7 @@ func NewContext(opts *ContextOpts) *Context {
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
 		sh:                  sh,
-	}
+	}, nil
 }
 
 type ContextGraphOpts struct {
