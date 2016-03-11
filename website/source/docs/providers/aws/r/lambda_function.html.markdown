@@ -39,6 +39,7 @@ resource "aws_lambda_function" "test_lambda" {
     function_name = "lambda_function_name"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.test"
+    source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
 }
 ```
 
@@ -56,6 +57,8 @@ resource "aws_lambda_function" "test_lambda" {
 * `runtime` - (Optional) Defaults to `nodejs`. See [Runtimes][6] for valid values.
 * `timeout` - (Optional) The amount of time your Lambda Function has to run in seconds. Defaults to `3`. See [Limits][5]
 * `vpc_config` - (Optional) Provide this to allow your function to access your VPC. Fields documented below. See [Lambda in VPC][7]
+* `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjuction with `filename`.
+  The only useful value is `${base64sha256(file("file.zip"))}`.
 
 **vpc\_config** requires the following:
 
@@ -66,6 +69,8 @@ resource "aws_lambda_function" "test_lambda" {
 
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
 * `last_modified` - The date this resource was last modified.
+* `source_code_hash` - Base64-encoded representation of raw SHA-256 sum of the zip file
+  provided either via `filename` or `s3_*` parameters
 
 [1]: https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 [2]: https://docs.aws.amazon.com/lambda/latest/dg/walkthrough-s3-events-adminuser-create-test-function-create-function.html
