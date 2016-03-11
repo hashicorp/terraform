@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -29,6 +30,9 @@ var rootModulePath = []string{"root"}
 type State struct {
 	// Version is the protocol version. Currently only "1".
 	Version int `json:"version"`
+
+	// TFVersion is the version of Terraform that wrote this state.
+	TFVersion string `json:"terraform_version"`
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -1218,6 +1222,25 @@ func ReadState(src io.Reader) (*State, error) {
 	if state.Version > StateVersion {
 		return nil, fmt.Errorf("State version %d not supported, please update.",
 			state.Version)
+	}
+
+	// If the version is empty, set it to "0.0.0". This scenario is
+	// only reasonably possible if it is a state file from before we
+	// introduced the TFVersion field. Otherwise, the state file might
+	// be getting tampered.
+	if state.TFVersion == "" {
+		state.TFVersion = "0.0.0"
+	}
+
+	// Make sure the version is semantic
+	if _, err := version.NewVersion(state.TFVersion); err != nil {
+		return nil, fmt.Errorf(
+			"State contains invalid version: %s\n\n"+
+				"Terraform validates the version format prior to writing it. This\n"+
+				"means that this is invalid of the state becoming corrupted through\n"+
+				"some external means. Please manually modify the Terraform version\n"+
+				"field to be a proper semantic version.",
+			state.TFVersion)
 	}
 
 	// Sort it

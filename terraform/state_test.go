@@ -994,6 +994,53 @@ func TestReadStateNewVersion(t *testing.T) {
 	}
 }
 
+func TestReadStateTFVersion(t *testing.T) {
+	type tfVersion struct {
+		TFVersion string `json:"terraform_version"`
+	}
+
+	cases := []struct {
+		Written string
+		Read    string
+		Err     bool
+	}{
+		{
+			"0.0.0",
+			"0.0.0",
+			false,
+		},
+		{
+			"",
+			"0.0.0",
+			false,
+		},
+		{
+			"bad",
+			"",
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		buf, err := json.Marshal(&tfVersion{tc.Written})
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		s, err := ReadState(bytes.NewReader(buf))
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", tc.Written, err)
+		}
+		if err != nil {
+			continue
+		}
+
+		if s.TFVersion != tc.Read {
+			t.Fatalf("%s: bad: %s", tc.Written, s.TFVersion)
+		}
+	}
+}
+
 func TestUpgradeV0State(t *testing.T) {
 	old := &StateV0{
 		Outputs: map[string]string{
