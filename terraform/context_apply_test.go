@@ -4115,11 +4115,14 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ctx = planFromFile.Context(&ContextOpts{
+	ctx, err = planFromFile.Context(&ContextOpts{
 		Providers: map[string]ResourceProviderFactory{
 			"template": testProviderFuncFixed(p),
 		},
 	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	state, err = ctx.Apply()
 	if err != nil {
@@ -4189,12 +4192,15 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ctx = planFromFile.Context(&ContextOpts{
+	ctx, err = planFromFile.Context(&ContextOpts{
 		Module: testModule(t, "apply-tainted-targets"),
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
 	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	state, err := ctx.Apply()
 	if err != nil {

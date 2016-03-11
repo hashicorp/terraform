@@ -175,6 +175,35 @@ func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
 	}
 }
 
+func TestStateDeepCopy(t *testing.T) {
+	cases := []struct {
+		One, Two *State
+		F        func(*State) interface{}
+	}{
+		// Version
+		{
+			&State{Version: 5},
+			&State{Version: 5},
+			func(s *State) interface{} { return s.Version },
+		},
+
+		// TFVersion
+		{
+			&State{TFVersion: "5"},
+			&State{TFVersion: "5"},
+			func(s *State) interface{} { return s.TFVersion },
+		},
+	}
+
+	for i, tc := range cases {
+		actual := tc.F(tc.One.DeepCopy())
+		expected := tc.F(tc.Two)
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, actual, expected)
+		}
+	}
+}
+
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool
@@ -347,6 +376,11 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 				},
 			},
 			5,
+		},
+		"S2 has a different TFVersion": {
+			&State{TFVersion: "0.1"},
+			&State{TFVersion: "0.2"},
+			1,
 		},
 	}
 
@@ -987,6 +1021,34 @@ func TestStateEmpty(t *testing.T) {
 	}
 }
 
+func TestStateFromFutureTerraform(t *testing.T) {
+	cases := []struct {
+		In     string
+		Result bool
+	}{
+		{
+			"",
+			false,
+		},
+		{
+			"0.1",
+			false,
+		},
+		{
+			"999.15.1",
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		state := &State{TFVersion: tc.In}
+		actual := state.FromFutureTerraform()
+		if actual != tc.Result {
+			t.Fatalf("%s: bad: %v", tc.In, actual)
+		}
+	}
+}
+
 func TestStateIsRemote(t *testing.T) {
 	cases := []struct {
 		In     *State
@@ -1203,6 +1265,97 @@ func TestReadStateNewVersion(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not supported") {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestReadStateTFVersion(t *testing.T) {
+	type tfVersion struct {
+		TFVersion string `json:"terraform_version"`
+	}
+
+	cases := []struct {
+		Written string
+		Read    string
+		Err     bool
+	}{
+		{
+			"0.0.0",
+			"0.0.0",
+			false,
+		},
+		{
+			"",
+			"",
+			false,
+		},
+		{
+			"bad",
+			"",
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		buf, err := json.Marshal(&tfVersion{tc.Written})
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		s, err := ReadState(bytes.NewReader(buf))
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", tc.Written, err)
+		}
+		if err != nil {
+			continue
+		}
+
+		if s.TFVersion != tc.Read {
+			t.Fatalf("%s: bad: %s", tc.Written, s.TFVersion)
+		}
+	}
+}
+
+func TestWriteStateTFVersion(t *testing.T) {
+	cases := []struct {
+		Write string
+		Read  string
+		Err   bool
+	}{
+		{
+			"0.0.0",
+			"0.0.0",
+			false,
+		},
+		{
+			"",
+			"",
+			false,
+		},
+		{
+			"bad",
+			"",
+			true,
+		},
+	}
+
+	for _, tc := range cases {
+		var buf bytes.Buffer
+		err := WriteState(&State{TFVersion: tc.Write}, &buf)
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", tc.Write, err)
+		}
+		if err != nil {
+			continue
+		}
+
+		s, err := ReadState(&buf)
+		if err != nil {
+			t.Fatalf("%s: err: %s", tc.Write, err)
+		}
+
+		if s.TFVersion != tc.Read {
+			t.Fatalf("%s: bad: %s", tc.Write, s.TFVersion)
+		}
 	}
 }
 

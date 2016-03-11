@@ -126,7 +126,8 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 						"variable values, create a new plan file.")
 			}
 
-			return plan.Context(opts), true, nil
+			ctx, err := plan.Context(opts)
+			return ctx, true, err
 		}
 	}
 
@@ -158,8 +159,8 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	opts.Module = mod
 	opts.Parallelism = copts.Parallelism
 	opts.State = state.State()
-	ctx := terraform.NewContext(opts)
-	return ctx, false, nil
+	ctx, err := terraform.NewContext(opts)
+	return ctx, false, err
 }
 
 // DataDir returns the directory where local data will be stored.

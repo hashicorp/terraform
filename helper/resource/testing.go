@@ -284,7 +284,10 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 	// Initialize the context
 	opts.Module = mod
 	opts.State = state
-	ctx := terraform.NewContext(&opts)
+	ctx, err := terraform.NewContext(&opts)
+	if err != nil {
+		return err
+	}
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		if len(es) > 0 {
 			estrs := make([]string, len(es))
@@ -362,7 +365,10 @@ func testStep(
 	opts.Module = mod
 	opts.State = state
 	opts.Destroy = step.Destroy
-	ctx := terraform.NewContext(&opts)
+	ctx, err := terraform.NewContext(&opts)
+	if err != nil {
+		return state, fmt.Errorf("Error initializing context: %s", err)
+	}
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		if len(es) > 0 {
 			estrs := make([]string, len(es))
