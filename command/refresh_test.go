@@ -221,6 +221,109 @@ func TestRefresh_defaultState(t *testing.T) {
 	}
 }
 
+func TestRefresh_futureState(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("refresh")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	state := testState()
+	state.TFVersion = "99.99.99"
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("should fail")
+	}
+
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	newState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(newState.String())
+	expected := strings.TrimSpace(state.String())
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestRefresh_pastState(t *testing.T) {
+	state := testState()
+	state.TFVersion = "0.1.0"
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	newState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(newState.String())
+	expected := strings.TrimSpace(testRefreshStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+
+	if newState.TFVersion != terraform.Version {
+		t.Fatalf("bad:\n\n%s", newState.TFVersion)
+	}
+}
+
 func TestRefresh_outPath(t *testing.T) {
 	state := testState()
 	statePath := testStateFile(t, state)
