@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
 const opAbortEnvironmentUpdate = "AbortEnvironmentUpdate"
@@ -25,6 +27,8 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironment
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AbortEnvironmentUpdateOutput{}
 	req.Data = output
 	return
@@ -263,6 +267,8 @@ func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInpu
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteApplicationOutput{}
 	req.Data = output
 	return
@@ -294,6 +300,8 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteApplicationVersionOutput{}
 	req.Data = output
 	return
@@ -324,6 +332,8 @@ func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfi
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteConfigurationTemplateOutput{}
 	req.Data = output
 	return
@@ -355,6 +365,8 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEn
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteEnvironmentConfigurationOutput{}
 	req.Data = output
 	return
@@ -696,6 +708,8 @@ func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentIn
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RebuildEnvironmentOutput{}
 	req.Data = output
 	return
@@ -724,6 +738,8 @@ func (c *ElasticBeanstalk) RequestEnvironmentInfoRequest(input *RequestEnvironme
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RequestEnvironmentInfoOutput{}
 	req.Data = output
 	return
@@ -765,6 +781,8 @@ func (c *ElasticBeanstalk) RestartAppServerRequest(input *RestartAppServerInput)
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RestartAppServerOutput{}
 	req.Data = output
 	return
@@ -824,6 +842,8 @@ func (c *ElasticBeanstalk) SwapEnvironmentCNAMEsRequest(input *SwapEnvironmentCN
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SwapEnvironmentCNAMEsOutput{}
 	req.Data = output
 	return
