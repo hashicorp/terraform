@@ -39,6 +39,7 @@ IMPROVEMENTS:
   * provider/aws: Enable updates & versioning for `aws_s3_bucket_object` [GH-5305]
   * provider/aws: Lambda S3 object version defaults to `$LATEST` if unspecified [GH-5370]
   * provider/aws: Retry DB Creation on IAM propigation error [GH-5515]
+  * provider/aws: Guard against Nil Reference in Redshift Endpoints [GH-5593]
   * provider/aws: `aws_instance` now allows changes to security groups without force new resource [GH-5193]
   * provider/aws: Support KMS encryption of S3 objects [GH-5453]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
