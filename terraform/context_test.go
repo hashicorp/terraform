@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestNewContext(t *testing.T) {
+func TestNewContextState(t *testing.T) {
 	cases := map[string]struct {
 		Input *ContextOpts
 		Err   bool
@@ -50,9 +50,17 @@ func TestNewContext(t *testing.T) {
 	}
 
 	for k, tc := range cases {
-		_, err := NewContext(tc.Input)
+		ctx, err := NewContext(tc.Input)
 		if (err != nil) != tc.Err {
 			t.Fatalf("%s: err: %s", k, err)
+		}
+		if err != nil {
+			continue
+		}
+
+		// Version should always be set to our current
+		if ctx.state.TFVersion != Version {
+			t.Fatalf("%s: state not set to current version", k)
 		}
 	}
 }
