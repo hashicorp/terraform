@@ -68,7 +68,7 @@ func resourceAwsKmsAliasCreate(d *schema.ResourceData, meta interface{}) error {
 	} else if v, ok := d.GetOk("name_prefix"); ok {
 		name = resource.PrefixedUniqueId(v.(string))
 	} else {
-		name = resource.UniqueId()
+		name = resource.PrefixedUniqueId("alias/")
 	}
 
 	targetKeyId := d.Get("target_key_id").(string)
