@@ -22,7 +22,8 @@ func resourceCloudStackInstance() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -128,14 +129,18 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	p := cs.VirtualMachine.NewDeployVirtualMachineParams(serviceofferingid, templateid, zone.Id)
 
 	// Set the name
-	name := d.Get("name").(string)
-	p.SetName(name)
+	name, hasName := d.GetOk("name")
+	if hasName {
+		p.SetName(name.(string))
+	}
 
 	// Set the display name
 	if displayname, ok := d.GetOk("display_name"); ok {
 		p.SetDisplayname(displayname.(string))
 	} else {
-		p.SetDisplayname(name)
+		if hasName {
+			p.SetDisplayname(name.(string))
+		}
 	}
 
 	if zone.Networktype == "Advanced" {
@@ -243,6 +248,25 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	d.Partial(true)
 
 	name := d.Get("name").(string)
+
+	if d.HasChange("name") {
+		log.Printf("[DEBUG] Name for %s changed to %s, starting update", d.Id(), name)
+
+		// Create a new parameter struct
+		p := cs.VirtualMachine.NewUpdateVirtualMachineParams(d.Id())
+
+		// Set the new name
+		p.SetName(d.Get("name").(string))
+
+		// Update the display name
+		_, err := cs.VirtualMachine.UpdateVirtualMachine(p)
+		if err != nil {
+			return fmt.Errorf(
+				"Error updating the name for instance %s: %s", name, err)
+		}
+
+		d.SetPartial("name")
+	}
 
 	// Check if the display name is changed and if so, update the virtual machine
 	if d.HasChange("display_name") {
