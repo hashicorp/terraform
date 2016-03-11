@@ -32,7 +32,7 @@ func (c *CodeCommit) BatchGetRepositoriesRequest(input *BatchGetRepositoriesInpu
 	return
 }
 
-// Gets information about one or more repositories.
+// Returns information about one or more repositories.
 //
 // The description field for a repository accepts all HTML characters and all
 // valid Unicode characters. Applications that do not HTML-encode the description
@@ -156,10 +156,38 @@ func (c *CodeCommit) GetBranchRequest(input *GetBranchInput) (req *request.Reque
 	return
 }
 
-// Retrieves information about a repository branch, including its name and the
+// Returns information about a repository branch, including its name and the
 // last commit ID.
 func (c *CodeCommit) GetBranch(input *GetBranchInput) (*GetBranchOutput, error) {
 	req, out := c.GetBranchRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetCommit = "GetCommit"
+
+// GetCommitRequest generates a request for the GetCommit operation.
+func (c *CodeCommit) GetCommitRequest(input *GetCommitInput) (req *request.Request, output *GetCommitOutput) {
+	op := &request.Operation{
+		Name:       opGetCommit,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetCommitInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetCommitOutput{}
+	req.Data = output
+	return
+}
+
+// Returns information about a commit, including commit message and committer
+// information.
+func (c *CodeCommit) GetCommit(input *GetCommitInput) (*GetCommitOutput, error) {
+	req, out := c.GetCommitRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -184,7 +212,7 @@ func (c *CodeCommit) GetRepositoryRequest(input *GetRepositoryInput) (req *reque
 	return
 }
 
-// Gets information about a repository.
+// Returns information about a repository.
 //
 // The description field for a repository accepts all HTML characters and all
 // valid Unicode characters. Applications that do not HTML-encode the description
@@ -197,6 +225,33 @@ func (c *CodeCommit) GetRepository(input *GetRepositoryInput) (*GetRepositoryOut
 	return out, err
 }
 
+const opGetRepositoryTriggers = "GetRepositoryTriggers"
+
+// GetRepositoryTriggersRequest generates a request for the GetRepositoryTriggers operation.
+func (c *CodeCommit) GetRepositoryTriggersRequest(input *GetRepositoryTriggersInput) (req *request.Request, output *GetRepositoryTriggersOutput) {
+	op := &request.Operation{
+		Name:       opGetRepositoryTriggers,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetRepositoryTriggersInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetRepositoryTriggersOutput{}
+	req.Data = output
+	return
+}
+
+// Gets information about triggers configured for a repository.
+func (c *CodeCommit) GetRepositoryTriggers(input *GetRepositoryTriggersInput) (*GetRepositoryTriggersOutput, error) {
+	req, out := c.GetRepositoryTriggersRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListBranches = "ListBranches"
 
 // ListBranchesRequest generates a request for the ListBranches operation.
@@ -205,6 +260,12 @@ func (c *CodeCommit) ListBranchesRequest(input *ListBranchesInput) (req *request
 		Name:       opListBranches,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -224,6 +285,14 @@ func (c *CodeCommit) ListBranches(input *ListBranchesInput) (*ListBranchesOutput
 	return out, err
 }
 
+func (c *CodeCommit) ListBranchesPages(input *ListBranchesInput, fn func(p *ListBranchesOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListBranchesRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListBranchesOutput), lastPage)
+	})
+}
+
 const opListRepositories = "ListRepositories"
 
 // ListRepositoriesRequest generates a request for the ListRepositories operation.
@@ -232,6 +301,12 @@ func (c *CodeCommit) ListRepositoriesRequest(input *ListRepositoriesInput) (req 
 		Name:       opListRepositories,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -247,6 +322,72 @@ func (c *CodeCommit) ListRepositoriesRequest(input *ListRepositoriesInput) (req 
 // Gets information about one or more repositories.
 func (c *CodeCommit) ListRepositories(input *ListRepositoriesInput) (*ListRepositoriesOutput, error) {
 	req, out := c.ListRepositoriesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+func (c *CodeCommit) ListRepositoriesPages(input *ListRepositoriesInput, fn func(p *ListRepositoriesOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListRepositoriesRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListRepositoriesOutput), lastPage)
+	})
+}
+
+const opPutRepositoryTriggers = "PutRepositoryTriggers"
+
+// PutRepositoryTriggersRequest generates a request for the PutRepositoryTriggers operation.
+func (c *CodeCommit) PutRepositoryTriggersRequest(input *PutRepositoryTriggersInput) (req *request.Request, output *PutRepositoryTriggersOutput) {
+	op := &request.Operation{
+		Name:       opPutRepositoryTriggers,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutRepositoryTriggersInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &PutRepositoryTriggersOutput{}
+	req.Data = output
+	return
+}
+
+// Replaces all triggers for a repository. This can be used to create or delete
+// triggers.
+func (c *CodeCommit) PutRepositoryTriggers(input *PutRepositoryTriggersInput) (*PutRepositoryTriggersOutput, error) {
+	req, out := c.PutRepositoryTriggersRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opTestRepositoryTriggers = "TestRepositoryTriggers"
+
+// TestRepositoryTriggersRequest generates a request for the TestRepositoryTriggers operation.
+func (c *CodeCommit) TestRepositoryTriggersRequest(input *TestRepositoryTriggersInput) (req *request.Request, output *TestRepositoryTriggersOutput) {
+	op := &request.Operation{
+		Name:       opTestRepositoryTriggers,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TestRepositoryTriggersInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &TestRepositoryTriggersOutput{}
+	req.Data = output
+	return
+}
+
+// Tests the functionality of repository triggers by sending information to
+// the trigger target. If real data is available in the repository, the test
+// will send data from the last commit. If no data is available, sample data
+// will be generated.
+func (c *CodeCommit) TestRepositoryTriggers(input *TestRepositoryTriggersInput) (*TestRepositoryTriggersOutput, error) {
+	req, out := c.TestRepositoryTriggersRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -341,7 +482,12 @@ func (c *CodeCommit) UpdateRepositoryNameRequest(input *UpdateRepositoryNameInpu
 	return
 }
 
-// Renames a repository.
+// Renames a repository. The repository name must be unique across the calling
+// AWS account. In addition, repository names are limited to 100 alphanumeric,
+// dash, and underscore characters, and cannot include certain characters. The
+// suffix ".git" is prohibited. For a full description of the limits on repository
+// names, see Limits (http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html)
+// in the AWS CodeCommit User Guide.
 func (c *CodeCommit) UpdateRepositoryName(input *UpdateRepositoryNameInput) (*UpdateRepositoryNameOutput, error) {
 	req, out := c.UpdateRepositoryNameRequest(input)
 	err := req.Send()
@@ -408,6 +554,42 @@ func (s BranchInfo) GoString() string {
 	return s.String()
 }
 
+// Returns information about a specific commit.
+type Commit struct {
+	_ struct{} `type:"structure"`
+
+	// Any additional data associated with the specified commit.
+	AdditionalData *string `locationName:"additionalData" type:"string"`
+
+	// Information about the author of the specified commit.
+	Author *UserInfo `locationName:"author" type:"structure"`
+
+	// Information about the person who committed the specified commit, also known
+	// as the committer. For more information about the difference between an author
+	// and a committer in Git, see Viewing the Commit History (http://git-scm.com/book/ch2-3.html)
+	// in Pro Git by Scott Chacon and Ben Straub.
+	Committer *UserInfo `locationName:"committer" type:"structure"`
+
+	// The message associated with the specified commit.
+	Message *string `locationName:"message" type:"string"`
+
+	// The parent list for the specified commit.
+	Parents []*string `locationName:"parents" type:"list"`
+
+	// Tree information for the specified commit.
+	TreeId *string `locationName:"treeId" type:"string"`
+}
+
+// String returns the string representation
+func (s Commit) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Commit) GoString() string {
+	return s.String()
+}
+
 // Represents the input of a create branch operation.
 type CreateBranchInput struct {
 	_ struct{} `type:"structure"`
@@ -416,9 +598,6 @@ type CreateBranchInput struct {
 	BranchName *string `locationName:"branchName" min:"1" type:"string" required:"true"`
 
 	// The ID of the commit to point the new branch to.
-	//
-	// If this commit ID is not specified, the new branch will point to the commit
-	// that is pointed to by the repository's default branch.
 	CommitId *string `locationName:"commitId" type:"string" required:"true"`
 
 	// The name of the repository in which you want to create the new branch.
@@ -454,13 +633,21 @@ type CreateRepositoryInput struct {
 	_ struct{} `type:"structure"`
 
 	// A comment or description about the new repository.
+	//
+	// The description field for a repository accepts all HTML characters and all
+	// valid Unicode characters. Applications that do not HTML-encode the description
+	// and display it in a web page could expose users to potentially malicious
+	// code. Make sure that you HTML-encode the description field in any application
+	// that uses this API to display the repository description on a web page.
 	RepositoryDescription *string `locationName:"repositoryDescription" type:"string"`
 
 	// The name of the new repository to be created.
 	//
 	// The repository name must be unique across the calling AWS account. In addition,
-	// repository names are restricted to alphanumeric characters. The suffix ".git"
-	// is prohibited.
+	// repository names are limited to 100 alphanumeric, dash, and underscore characters,
+	// and cannot include certain characters. For a full description of the limits
+	// on repository names, see Limits (http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html)
+	// in the AWS CodeCommit User Guide. The suffix ".git" is prohibited.
 	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
 }
 
@@ -535,9 +722,8 @@ type GetBranchInput struct {
 	// The name of the branch for which you want to retrieve information.
 	BranchName *string `locationName:"branchName" min:"1" type:"string"`
 
-	// Repository name is restricted to alphanumeric characters (a-z, A-Z, 0-9),
-	// ".", "_", and "-". Additionally, the suffix ".git" is prohibited in a repository
-	// name.
+	// The name of the repository that contains the branch for which you want to
+	// retrieve information.
 	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
 }
 
@@ -566,6 +752,45 @@ func (s GetBranchOutput) String() string {
 
 // GoString returns the string representation
 func (s GetBranchOutput) GoString() string {
+	return s.String()
+}
+
+// Represents the input of a get commit operation.
+type GetCommitInput struct {
+	_ struct{} `type:"structure"`
+
+	// The commit ID.
+	CommitId *string `locationName:"commitId" type:"string" required:"true"`
+
+	// The name of the repository to which the commit was made.
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetCommitInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetCommitInput) GoString() string {
+	return s.String()
+}
+
+// Represents the output of a get commit operation.
+type GetCommitOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the specified commit.
+	Commit *Commit `locationName:"commit" type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s GetCommitOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetCommitOutput) GoString() string {
 	return s.String()
 }
 
@@ -602,6 +827,45 @@ func (s GetRepositoryOutput) String() string {
 
 // GoString returns the string representation
 func (s GetRepositoryOutput) GoString() string {
+	return s.String()
+}
+
+// Represents the input of a get repository triggers operation.
+type GetRepositoryTriggersInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the repository for which the trigger is configured.
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s GetRepositoryTriggersInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetRepositoryTriggersInput) GoString() string {
+	return s.String()
+}
+
+// Represents the output of a get repository triggers operation.
+type GetRepositoryTriggersOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The system-generated unique ID for the trigger.
+	ConfigurationId *string `locationName:"configurationId" type:"string"`
+
+	// The JSON block of configuration information for each trigger.
+	Triggers []*RepositoryTrigger `locationName:"triggers" type:"list"`
+}
+
+// String returns the string representation
+func (s GetRepositoryTriggersOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetRepositoryTriggersOutput) GoString() string {
 	return s.String()
 }
 
@@ -698,6 +962,45 @@ func (s ListRepositoriesOutput) GoString() string {
 	return s.String()
 }
 
+// Represents the input ofa put repository triggers operation.
+type PutRepositoryTriggersInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the repository where you want to create or update the trigger.
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
+
+	// The JSON block of configuration information for each trigger.
+	Triggers []*RepositoryTrigger `locationName:"triggers" type:"list"`
+}
+
+// String returns the string representation
+func (s PutRepositoryTriggersInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRepositoryTriggersInput) GoString() string {
+	return s.String()
+}
+
+// Represents the output of a put repository triggers operation.
+type PutRepositoryTriggersOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The system-generated unique ID for the create or update operation.
+	ConfigurationId *string `locationName:"configurationId" type:"string"`
+}
+
+// String returns the string representation
+func (s PutRepositoryTriggersOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutRepositoryTriggersOutput) GoString() string {
+	return s.String()
+}
+
 // Information about a repository.
 type RepositoryMetadata struct {
 	_ struct{} `type:"structure"`
@@ -747,12 +1050,10 @@ func (s RepositoryMetadata) GoString() string {
 type RepositoryNameIdPair struct {
 	_ struct{} `type:"structure"`
 
-	// The ID associated with the repository name.
+	// The ID associated with the repository.
 	RepositoryId *string `locationName:"repositoryId" type:"string"`
 
-	// Repository name is restricted to alphanumeric characters (a-z, A-Z, 0-9),
-	// ".", "_", and "-". Additionally, the suffix ".git" is prohibited in a repository
-	// name.
+	// The name associated with the repository.
 	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
 }
 
@@ -763,6 +1064,107 @@ func (s RepositoryNameIdPair) String() string {
 
 // GoString returns the string representation
 func (s RepositoryNameIdPair) GoString() string {
+	return s.String()
+}
+
+// Information about a trigger for a repository.
+type RepositoryTrigger struct {
+	_ struct{} `type:"structure"`
+
+	// The branches that will be included in the trigger configuration. If no branches
+	// are specified, the trigger will apply to all branches.
+	Branches []*string `locationName:"branches" type:"list"`
+
+	// Any custom data associated with the trigger that will be included in the
+	// information sent to the target of the trigger.
+	CustomData *string `locationName:"customData" type:"string"`
+
+	// The ARN of the resource that is the target for a trigger. For example, the
+	// ARN of a topic in Amazon Simple Notification Service (SNS).
+	DestinationArn *string `locationName:"destinationArn" type:"string"`
+
+	// The repository events that will cause the trigger to run actions in another
+	// service, such as sending a notification through Amazon Simple Notification
+	// Service (SNS). If no events are specified, the trigger will run for all repository
+	// events.
+	Events []*string `locationName:"events" type:"list"`
+
+	// The name of the trigger.
+	Name *string `locationName:"name" type:"string"`
+}
+
+// String returns the string representation
+func (s RepositoryTrigger) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RepositoryTrigger) GoString() string {
+	return s.String()
+}
+
+// A trigger failed to run.
+type RepositoryTriggerExecutionFailure struct {
+	_ struct{} `type:"structure"`
+
+	// Additional message information about the trigger that did not run.
+	FailureMessage *string `locationName:"failureMessage" type:"string"`
+
+	// The name of the trigger that did not run.
+	Trigger *string `locationName:"trigger" type:"string"`
+}
+
+// String returns the string representation
+func (s RepositoryTriggerExecutionFailure) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RepositoryTriggerExecutionFailure) GoString() string {
+	return s.String()
+}
+
+// Represents the input of a test repository triggers operation.
+type TestRepositoryTriggersInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the repository in which to test the triggers.
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
+
+	// The list of triggers to test.
+	Triggers []*RepositoryTrigger `locationName:"triggers" type:"list"`
+}
+
+// String returns the string representation
+func (s TestRepositoryTriggersInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestRepositoryTriggersInput) GoString() string {
+	return s.String()
+}
+
+// Represents the output of a test repository triggers operation.
+type TestRepositoryTriggersOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of triggers that were not able to be tested. This list provides
+	// the names of the triggers that could not be tested, separated by commas.
+	FailedExecutions []*RepositoryTriggerExecutionFailure `locationName:"failedExecutions" type:"list"`
+
+	// The list of triggers that were successfully tested. This list provides the
+	// names of the triggers that were successfully tested, separated by commas.
+	SuccessfulExecutions []*string `locationName:"successfulExecutions" type:"list"`
+}
+
+// String returns the string representation
+func (s TestRepositoryTriggersOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestRepositoryTriggersOutput) GoString() string {
 	return s.String()
 }
 
@@ -805,7 +1207,8 @@ func (s UpdateDefaultBranchOutput) GoString() string {
 type UpdateRepositoryDescriptionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The new comment or description for the specified repository.
+	// The new comment or description for the specified repository. Repository descriptions
+	// are limited to 1,000 characters.
 	RepositoryDescription *string `locationName:"repositoryDescription" type:"string"`
 
 	// The name of the repository to set or change the comment or description for.
@@ -840,14 +1243,10 @@ func (s UpdateRepositoryDescriptionOutput) GoString() string {
 type UpdateRepositoryNameInput struct {
 	_ struct{} `type:"structure"`
 
-	// Repository name is restricted to alphanumeric characters (a-z, A-Z, 0-9),
-	// ".", "_", and "-". Additionally, the suffix ".git" is prohibited in a repository
-	// name.
+	// The new name for the repository.
 	NewName *string `locationName:"newName" min:"1" type:"string" required:"true"`
 
-	// Repository name is restricted to alphanumeric characters (a-z, A-Z, 0-9),
-	// ".", "_", and "-". Additionally, the suffix ".git" is prohibited in a repository
-	// name.
+	// The existing name of the repository.
 	OldName *string `locationName:"oldName" min:"1" type:"string" required:"true"`
 }
 
@@ -875,11 +1274,46 @@ func (s UpdateRepositoryNameOutput) GoString() string {
 	return s.String()
 }
 
+// Information about the user who made a specified commit.
+type UserInfo struct {
+	_ struct{} `type:"structure"`
+
+	// The date when the specified commit was pushed to the repository.
+	Date *string `locationName:"date" type:"string"`
+
+	// The email address associated with the user who made the commit, if any.
+	Email *string `locationName:"email" type:"string"`
+
+	// The name of the user who made the specified commit.
+	Name *string `locationName:"name" type:"string"`
+}
+
+// String returns the string representation
+func (s UserInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UserInfo) GoString() string {
+	return s.String()
+}
+
 const (
 	// @enum OrderEnum
 	OrderEnumAscending = "ascending"
 	// @enum OrderEnum
 	OrderEnumDescending = "descending"
+)
+
+const (
+	// @enum RepositoryTriggerEventEnum
+	RepositoryTriggerEventEnumAll = "all"
+	// @enum RepositoryTriggerEventEnum
+	RepositoryTriggerEventEnumUpdateReference = "updateReference"
+	// @enum RepositoryTriggerEventEnum
+	RepositoryTriggerEventEnumCreateReference = "createReference"
+	// @enum RepositoryTriggerEventEnum
+	RepositoryTriggerEventEnumDeleteReference = "deleteReference"
 )
 
 const (
