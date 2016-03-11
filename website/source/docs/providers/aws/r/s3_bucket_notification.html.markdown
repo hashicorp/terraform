@@ -24,7 +24,7 @@ resource "aws_sns_topic" "topic" {
         "Effect": "Allow",
         "Principal": {"AWS":"*"},
         "Action": "SNS:Publish",
-        "Resource": "arn:aws:sns:*:*:terraform-test-topic",
+        "Resource": "arn:aws:sns:*:*:s3-event-notification-topic",
         "Condition":{
             "ArnLike":{"aws:SourceArn":"${aws_s3_bucket.bucket.arn}"}
         }
