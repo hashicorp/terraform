@@ -41,7 +41,8 @@ func Eval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
 			ast.TypeString: "__builtin_IntToString",
 		},
 		ast.TypeString: {
-			ast.TypeInt: "__builtin_StringToInt",
+			ast.TypeInt:   "__builtin_StringToInt",
+			ast.TypeFloat: "__builtin_StringToFloat",
 		},
 	}
 
