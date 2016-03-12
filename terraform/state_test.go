@@ -805,7 +805,7 @@ func TestStateFromFutureTerraform(t *testing.T) {
 		state := &State{TFVersion: tc.In}
 		actual := state.FromFutureTerraform()
 		if actual != tc.Result {
-			t.Fatalf("%s: bad: %s", tc.In, actual)
+			t.Fatalf("%s: bad: %v", tc.In, actual)
 		}
 	}
 }
