@@ -1,12 +1,10 @@
 package aws
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -57,13 +55,6 @@ func resourceAwsS3BucketNotification() *schema.Resource {
 						},
 					},
 				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%t-", m["filter_prefix"].(string)))
-					buf.WriteString(fmt.Sprintf("%t-", m["filter_suffix"].(string)))
-					return hashcode.String(buf.String())
-				},
 			},
 
 			"queue": &schema.Schema{
@@ -95,13 +86,6 @@ func resourceAwsS3BucketNotification() *schema.Resource {
 						},
 					},
 				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%t-", m["filter_prefix"].(string)))
-					buf.WriteString(fmt.Sprintf("%t-", m["filter_suffix"].(string)))
-					return hashcode.String(buf.String())
-				},
 			},
 
 			"lambda_function": &schema.Schema{
@@ -132,13 +116,6 @@ func resourceAwsS3BucketNotification() *schema.Resource {
 							Set:      schema.HashString,
 						},
 					},
-				},
-				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%t-", m["filter_prefix"].(string)))
-					buf.WriteString(fmt.Sprintf("%t-", m["filter_suffix"].(string)))
-					return hashcode.String(buf.String())
 				},
 			},
 		},
