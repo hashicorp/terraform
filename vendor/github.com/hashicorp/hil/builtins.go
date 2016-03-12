@@ -22,6 +22,7 @@ func registerBuiltins(scope *ast.BasicScope) *ast.BasicScope {
 	scope.FuncMap["__builtin_IntToFloat"] = builtinIntToFloat()
 	scope.FuncMap["__builtin_IntToString"] = builtinIntToString()
 	scope.FuncMap["__builtin_StringToInt"] = builtinStringToInt()
+	scope.FuncMap["__builtin_StringToFloat"] = builtinStringToFloat()
 
 	// Math operations
 	scope.FuncMap["__builtin_IntMath"] = builtinIntMath()
@@ -139,6 +140,21 @@ func builtinStringToInt() ast.Function {
 			}
 
 			return int(v), nil
+		},
+	}
+}
+
+func builtinStringToFloat() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			v, err := strconv.ParseFloat(args[0].(string), 64)
+			if err != nil {
+				return nil, err
+			}
+
+			return v, nil
 		},
 	}
 }

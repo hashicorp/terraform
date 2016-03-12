@@ -251,7 +251,7 @@ func (tc *typeCheckConcat) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			}
 
 			return nil, fmt.Errorf(
-				"argument %d must be a string", i+1)
+				"output of an HIL expression must be a string (argument %d is %s)", i+1, t)
 		}
 	}
 
