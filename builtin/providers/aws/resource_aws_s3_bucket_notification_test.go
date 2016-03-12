@@ -109,6 +109,29 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_NotificationWithoutFilter(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketNotificationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithTopicNotificationWithoutFilter(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketTopicNotification(
+						"aws_s3_bucket.bucket",
+						"notification-sns1",
+						"aws_sns_topic.topic",
+						[]string{"s3:ObjectCreated:*", "s3:ObjectRemoved:Delete"},
+						nil,
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSS3BucketNotificationDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).s3conn
 
@@ -164,8 +187,15 @@ func testAccCheckAWSS3BucketTopicNotification(n, i, t string, events []string, f
 				if *outputTopic.TopicArn != topicArn {
 					return fmt.Errorf("bad topic arn, expected: %s, got %#v", topicArn, *outputTopic.TopicArn)
 				}
-				if !reflect.DeepEqual(filters, outputTopic.Filter.Key) {
-					return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputTopic.Filter.Key)
+
+				if filters != nil {
+					if !reflect.DeepEqual(filters, outputTopic.Filter.Key) {
+						return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputTopic.Filter.Key)
+					}
+				} else {
+					if outputTopic.Filter != nil {
+						return fmt.Errorf("bad notification filters, expected: nil, got %#v", outputTopic.Filter)
+					}
 				}
 
 				outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputTopic.Events))
@@ -210,8 +240,15 @@ func testAccCheckAWSS3BucketQueueNotification(n, i, t string, events []string, f
 				if *outputQueue.QueueArn != queueArn {
 					return fmt.Errorf("bad queue arn, expected: %s, got %#v", queueArn, *outputQueue.QueueArn)
 				}
-				if !reflect.DeepEqual(filters, outputQueue.Filter.Key) {
-					return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputQueue.Filter.Key)
+
+				if filters != nil {
+					if !reflect.DeepEqual(filters, outputQueue.Filter.Key) {
+						return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputQueue.Filter.Key)
+					}
+				} else {
+					if outputQueue.Filter != nil {
+						return fmt.Errorf("bad notification filters, expected: nil, got %#v", outputQueue.Filter)
+					}
 				}
 
 				outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputQueue.Events))
@@ -256,8 +293,15 @@ func testAccCheckAWSS3BucketLambdaFunctionConfiguration(n, i, t string, events [
 				if *outputFunc.LambdaFunctionArn != funcArn {
 					return fmt.Errorf("bad lambda function arn, expected: %s, got %#v", funcArn, *outputFunc.LambdaFunctionArn)
 				}
-				if !reflect.DeepEqual(filters, outputFunc.Filter.Key) {
-					return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputFunc.Filter.Key)
+
+				if filters != nil {
+					if !reflect.DeepEqual(filters, outputFunc.Filter.Key) {
+						return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputFunc.Filter.Key)
+					}
+				} else {
+					if outputFunc.Filter != nil {
+						return fmt.Errorf("bad notification filters, expected: nil, got %#v", outputFunc.Filter)
+					}
 				}
 
 				outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputFunc.Events))
@@ -411,4 +455,44 @@ resource "aws_s3_bucket_notification" "notification" {
 	}
 }
 `, randInt, randInt)
+}
+
+func testAccAWSS3BucketConfigWithTopicNotificationWithoutFilter(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_sns_topic" "topic" {
+    name = "terraform-test-topic"
+	policy = <<POLICY
+{
+	"Version":"2012-10-17",
+	"Statement":[{
+		"Sid": "",
+		"Effect": "Allow",
+		"Principal": {"AWS":"*"},
+		"Action": "SNS:Publish",
+		"Resource": "arn:aws:sns:*:*:terraform-test-topic",
+		"Condition":{
+			"ArnLike":{"aws:SourceArn":"${aws_s3_bucket.bucket.arn}"}
+		}
+	}]
+}
+POLICY
+}
+
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+}
+
+resource "aws_s3_bucket_notification" "notification" {
+	bucket = "${aws_s3_bucket.bucket.id}"
+	topic {
+		id = "notification-sns1"
+		topic = "${aws_sns_topic.topic.arn}"
+		events = [
+		  "s3:ObjectCreated:*",
+		  "s3:ObjectRemoved:Delete",
+		]
+	}
+}
+`, randInt)
 }

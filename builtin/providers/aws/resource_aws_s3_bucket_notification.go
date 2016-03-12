@@ -168,10 +168,12 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 			}
 			filterRules = append(filterRules, filterRule)
 		}
-		tc.Filter = &s3.NotificationConfigurationFilter{
-			Key: &s3.KeyFilter{
-				FilterRules: filterRules,
-			},
+		if len(filterRules) > 0 {
+			tc.Filter = &s3.NotificationConfigurationFilter{
+				Key: &s3.KeyFilter{
+					FilterRules: filterRules,
+				},
+			}
 		}
 		topicConfigs = append(topicConfigs, tc)
 	}
@@ -218,10 +220,12 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 			}
 			filterRules = append(filterRules, filterRule)
 		}
-		lc.Filter = &s3.NotificationConfigurationFilter{
-			Key: &s3.KeyFilter{
-				FilterRules: filterRules,
-			},
+		if len(filterRules) > 0 {
+			lc.Filter = &s3.NotificationConfigurationFilter{
+				Key: &s3.KeyFilter{
+					FilterRules: filterRules,
+				},
+			}
 		}
 		lambdaConfigs = append(lambdaConfigs, lc)
 	}
@@ -268,10 +272,12 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 			}
 			filterRules = append(filterRules, filterRule)
 		}
-		qc.Filter = &s3.NotificationConfigurationFilter{
-			Key: &s3.KeyFilter{
-				FilterRules: filterRules,
-			},
+		if len(filterRules) > 0 {
+			qc.Filter = &s3.NotificationConfigurationFilter{
+				Key: &s3.KeyFilter{
+					FilterRules: filterRules,
+				},
+			}
 		}
 		queueConfigs = append(queueConfigs, qc)
 	}
@@ -357,12 +363,14 @@ func resourceAwsS3BucketNotificationRead(d *schema.ResourceData, meta interface{
 			conf["id"] = *notification.Id
 		}
 
-		for _, f := range notification.Filter.Key.FilterRules {
-			if strings.ToLower(*f.Name) == "prefix" {
-				conf["filter_prefix"] = *f.Value
-			}
-			if strings.ToLower(*f.Name) == "suffix" {
-				conf["filter_suffix"] = *f.Value
+		if filter := notification.Filter; filter != nil {
+			for _, f := range filter.Key.FilterRules {
+				if strings.ToLower(*f.Name) == "prefix" {
+					conf["filter_prefix"] = *f.Value
+				}
+				if strings.ToLower(*f.Name) == "suffix" {
+					conf["filter_suffix"] = *f.Value
+				}
 			}
 		}
 
@@ -383,12 +391,14 @@ func resourceAwsS3BucketNotificationRead(d *schema.ResourceData, meta interface{
 			conf["id"] = *notification.Id
 		}
 
-		for _, f := range notification.Filter.Key.FilterRules {
-			if strings.ToLower(*f.Name) == "prefix" {
-				conf["filter_prefix"] = *f.Value
-			}
-			if strings.ToLower(*f.Name) == "suffix" {
-				conf["filter_suffix"] = *f.Value
+		if filter := notification.Filter; filter != nil {
+			for _, f := range filter.Key.FilterRules {
+				if strings.ToLower(*f.Name) == "prefix" {
+					conf["filter_prefix"] = *f.Value
+				}
+				if strings.ToLower(*f.Name) == "suffix" {
+					conf["filter_suffix"] = *f.Value
+				}
 			}
 		}
 
@@ -409,12 +419,14 @@ func resourceAwsS3BucketNotificationRead(d *schema.ResourceData, meta interface{
 			conf["id"] = *notification.Id
 		}
 
-		for _, f := range notification.Filter.Key.FilterRules {
-			if strings.ToLower(*f.Name) == "prefix" {
-				conf["filter_prefix"] = *f.Value
-			}
-			if strings.ToLower(*f.Name) == "suffix" {
-				conf["filter_suffix"] = *f.Value
+		if filter := notification.Filter; filter != nil {
+			for _, f := range filter.Key.FilterRules {
+				if strings.ToLower(*f.Name) == "prefix" {
+					conf["filter_prefix"] = *f.Value
+				}
+				if strings.ToLower(*f.Name) == "suffix" {
+					conf["filter_suffix"] = *f.Value
+				}
 			}
 		}
 
