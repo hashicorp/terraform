@@ -67,6 +67,7 @@ BUG FIXES:
   * provider/aws: Fix a bug where `publicly_assessible` wasn't being set to state in `aws_db_instance` [GH-5535]
   * provider/aws: Fix a bug where listener protocol on `aws_elb` resources was case insensitive [GH-5376]
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic [GH-5329]
+  * provider/aws: Fix `aws_cloudformation_stack` update for `parameters` & `capabilities` if unmodified [GH-5603]
   * provider/aws: Fix crash when `aws_lambda_function` VpcId is nil [GH-5182]
   * provider/aws: Fix error with parsing JSON in `aws_s3_bucket` policy attribute [GH-5474]  
   * provider/aws: Fix EC2 Classic SG Rule issue when referencing rules by name [GH-5533]
