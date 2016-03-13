@@ -46,6 +46,8 @@ The following arguments are supported:
 * `deployment_minimum_healthy_percent` - (Optional) The lower limit (as a percentage of the service's desiredCount) of the number of running tasks that must remain running and healthy in a service during a deployment.
 * `load_balancer` - (Optional) A load balancer block. Load balancers documented below.
 
+-> **Note:** As a result of AWS limitation a single `load_balancer` can be attached to the ECS service at most. See [related docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html#load-balancing-concepts).
+
 Load balancers support the following:
 
 * `elb_name` - (Required) The name of the load balancer.
