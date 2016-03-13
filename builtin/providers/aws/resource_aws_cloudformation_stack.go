@@ -191,12 +191,20 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 	}
 	resp, err := conn.DescribeStacks(input)
 	if err != nil {
+		awsErr, ok := err.(awserr.Error)
+		// ValidationError: Stack with id % does not exist
+		if ok && awsErr.Code() == "ValidationError" {
+			log.Printf("[WARN] Removing CloudFormation stack %s as it's already gone", d.Id())
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
 	stacks := resp.Stacks
 	if len(stacks) < 1 {
-		log.Printf("[DEBUG] Removing CloudFormation stack %s as it's already gone", d.Id())
+		log.Printf("[WARN] Removing CloudFormation stack %s as it's already gone", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -406,6 +414,7 @@ func resourceAwsCloudFormationStackDelete(d *schema.ResourceData, meta interface
 				log.Printf("[DEBUG] Error when deleting CloudFormation stack: %s: %s",
 					awsErr.Code(), awsErr.Message())
 
+				// ValidationError: Stack with id % does not exist
 				if awsErr.Code() == "ValidationError" {
 					return resp, "DELETE_COMPLETE", nil
 				}
