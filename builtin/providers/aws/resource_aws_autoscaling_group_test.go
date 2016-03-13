@@ -240,7 +240,36 @@ func TestAccAWSAutoScalingGroup_withPlacementGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "placement_group", "test"),
+						"aws_autoscaling_group.bar", "placement_group", "tf_placement_test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAutoScalingGroup_withMetrics(t *testing.T) {
+	var group autoscaling.Group
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoscalingMetricsCollectionConfig_allMetricsCollected,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "enabled_metrics.#", "7"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoscalingMetricsCollectionConfig_updatingMetricsCollected,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "enabled_metrics.#", "5"),
 				),
 			},
 		},
@@ -722,11 +751,11 @@ resource "aws_autoscaling_group" "bar" {
 const testAccAWSAutoScalingGroupConfig_withPlacementGroup = `
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
-  instance_type = "t2.micro"
+  instance_type = "c3.large"
 }
 
 resource "aws_placement_group" "test" {
-  name = "test"
+  name = "tf_placement_test"
   strategy = "cluster"
 }
 
@@ -749,5 +778,59 @@ resource "aws_autoscaling_group" "bar" {
     value = "foo-bar"
     propagate_at_launch = true
   }
+}
+`
+
+const testAccAWSAutoscalingMetricsCollectionConfig_allMetricsCollected = `
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  max_size = 1
+  min_size = 0
+  health_check_grace_period = 300
+  health_check_type = "EC2"
+  desired_capacity = 0
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+  enabled_metrics = ["GroupTotalInstances",
+  	     "GroupPendingInstances",
+  	     "GroupTerminatingInstances",
+  	     "GroupDesiredCapacity",
+  	     "GroupInServiceInstances",
+  	     "GroupMinSize",
+  	     "GroupMaxSize"
+  ]
+  metrics_granularity = "1Minute"
+}
+`
+
+const testAccAWSAutoscalingMetricsCollectionConfig_updatingMetricsCollected = `
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  max_size = 1
+  min_size = 0
+  health_check_grace_period = 300
+  health_check_type = "EC2"
+  desired_capacity = 0
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+  enabled_metrics = ["GroupTotalInstances",
+  	     "GroupPendingInstances",
+  	     "GroupTerminatingInstances",
+  	     "GroupDesiredCapacity",
+  	     "GroupMaxSize"
+  ]
+  metrics_granularity = "1Minute"
 }
 `

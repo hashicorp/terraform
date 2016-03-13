@@ -180,7 +180,7 @@ func resourceAwsVpcDhcpOptionsUpdate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	return resource.Retry(3*time.Minute, func() error {
+	return resource.Retry(3*time.Minute, func() *resource.RetryError {
 		log.Printf("[INFO] Deleting DHCP Options ID %s...", d.Id())
 		_, err := conn.DeleteDhcpOptions(&ec2.DeleteDhcpOptionsInput{
 			DhcpOptionsId: aws.String(d.Id()),
@@ -194,7 +194,7 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return err
+			return resource.RetryableError(err)
 		}
 
 		switch ec2err.Code() {
@@ -206,7 +206,7 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 			vpcs, err2 := findVPCsByDHCPOptionsID(conn, d.Id())
 			if err2 != nil {
 				log.Printf("[ERROR] %s", err2)
-				return err2
+				return resource.RetryableError(err2)
 			}
 
 			for _, vpc := range vpcs {
@@ -215,13 +215,12 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 					DhcpOptionsId: aws.String("default"),
 					VpcId:         vpc.VpcId,
 				}); err != nil {
-					return err
+					return resource.RetryableError(err)
 				}
 			}
-			return err //retry
+			return resource.RetryableError(err)
 		default:
-			// Any other error, we want to quit the retry loop immediately
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 	})
 }

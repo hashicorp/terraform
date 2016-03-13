@@ -71,11 +71,17 @@ $ make core-dev
 
 Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`godep`](https://github.com/tools/godep) to manage the vendored dependencies.
 
+Generally speaking, `godep` operations follow this pattern:
+
+ 1. Get current state of dependencies into your `$GOPATH` with `godep restore`.
+ 2. Make changes to the packages in `$GOPATH`.
+ 3. Tell `godep` to capture those changes in the Terraform repo.
+
 If you're developing Terraform, there are a few tasks you might need to perform.
 
 #### Adding a dependency
 
-If you're adding a dependency. You'll need to vendor it in the same Pull Request as the code that depends on it. You should do this in a separate commit from your code, as makes PR review easier and Git history simpler to read in the future.
+If you're adding a dependency, you'll need to vendor it in the same Pull Request as the code that depends on it. You should do this in a separate commit from your code, as makes PR review easier and Git history simpler to read in the future.
 
 Because godep captures new dependencies from the local `$GOPATH`, you first need to `godep restore` from the master branch to ensure that the only diff is your new dependency.
 
@@ -85,7 +91,7 @@ Assuming your work is on a branch called `my-feature-branch`, the steps look lik
 # Get latest master branch's dependencies staged in local $GOPATH
 git checkout master
 git pull
-godep restore -v # flag is optional, enables verbose output
+godep restore -v
 
 # Capture the new dependency referenced from my-feature-branch
 git checkout my-feature-branch
@@ -108,7 +114,19 @@ git push origin my-feature-branch
 If you're updating an existing dependency, godep provides a specific command to snag the newer version from your `$GOPATH`.
 
 ```bash
-# Update the dependncy to the version currently in your $GOPATH
+# Get latest master branch's dependencies staged in local $GOPATH
+git checkout master
+git pull
+godep restore -v
+
+# Make your way to the dependency in question and checkout the target ref
+pushd $GOPATH/src/github.com/some/dependency
+git checkout v-1.next
+
+# Head back to Terraform on a feature branch and update the dependncy to the
+# version currently in your $GOPATH
+popd
+git checkout my-feature-branch
 godep update github.com/some/dependency/...
 
 # There should now be a diff in `vendor/` with changed files for your dependency,
@@ -124,28 +142,10 @@ git push origin my-feature-branch
 
 ### Acceptance Tests
 
-Terraform also has a comprehensive [acceptance test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering most of the major features of the built-in providers.
+Terraform has a comprehensive [acceptance
+test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering the
+built-in providers. Our [Contributing Guide](https://github.com/hashicorp/terraform/blob/master/CONTRIBUTING.md) includes details about how and when to write and run acceptance tests in order to help contributions get accepted quickly.
 
-If you're working on a feature of a provider and want to verify it is functioning (and hasn't broken anything else), we recommend running the acceptance tests. Note that we *do not require* that you run or write acceptance tests to have a PR accepted. The acceptance tests are just here for your convenience.
-
-**Warning:** The acceptance tests create/destroy/modify *real resources*, which may incur real costs. In the presence of a bug, it is technically possible that broken providers could corrupt existing infrastructure as well. Therefore, please run the acceptance providers at your own risk. At the very least, we recommend running them in their own private account for whatever provider you're testing.
-
-To run the acceptance tests, invoke `make testacc`:
-
-```sh
-$ make testacc TEST=./builtin/providers/aws TESTARGS='-run=Vpc'
-go generate ./...
-TF_ACC=1 go test ./builtin/providers/aws -v -run=Vpc -timeout 90m
-=== RUN TestAccVpc_basic
-2015/02/10 14:11:17 [INFO] Test: Using us-west-2 as test region
-[...]
-[...]
-...
-```
-
-The `TEST` variable is required, and you should specify the folder where the provider is. The `TESTARGS` variable is recommended to filter down to a specific resource to test, since testing all of them at once can take a very long time.
-
-Acceptance tests typically require other environment variables to be set for things such as access keys. The provider itself should error early and tell you what to set, so it is not documented here.
 
 ### Cross Compilation and Building for Distribution
 

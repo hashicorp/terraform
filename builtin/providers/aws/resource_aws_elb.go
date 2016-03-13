@@ -253,17 +253,18 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
-	err = resource.Retry(1*time.Minute, func() error {
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := elbconn.CreateLoadBalancer(elbOpts)
 
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				// Check for IAM SSL Cert error, eventual consistancy issue
 				if awsErr.Code() == "CertificateNotFound" {
-					return fmt.Errorf("[WARN] Error creating ELB Listener with SSL Cert, retrying: %s", err)
+					return resource.RetryableError(
+						fmt.Errorf("[WARN] Error creating ELB Listener with SSL Cert, retrying: %s", err))
 				}
 			}
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -340,7 +341,11 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
 	d.Set("security_groups", flattenStringList(lb.SecurityGroups))
 	if lb.SourceSecurityGroup != nil {
-		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
+		group := lb.SourceSecurityGroup.GroupName
+		if lb.SourceSecurityGroup.OwnerAlias != nil && *lb.SourceSecurityGroup.OwnerAlias != "" {
+			group = aws.String(*lb.SourceSecurityGroup.OwnerAlias + "/" + *lb.SourceSecurityGroup.GroupName)
+		}
+		d.Set("source_security_group", group)
 
 		// Manually look up the ELB Security Group ID, since it's not provided
 		var elbVpc string
@@ -422,22 +427,22 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			// Occasionally AWS will error with a 'duplicate listener', without any
 			// other listeners on the ELB. Retry here to eliminate that.
-			err := resource.Retry(1*time.Minute, func() error {
+			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 				log.Printf("[DEBUG] ELB Create Listeners opts: %s", createListenersOpts)
 				if _, err := elbconn.CreateLoadBalancerListeners(createListenersOpts); err != nil {
 					if awsErr, ok := err.(awserr.Error); ok {
 						if awsErr.Code() == "DuplicateListener" {
 							log.Printf("[DEBUG] Duplicate listener found for ELB (%s), retrying", d.Id())
-							return awsErr
+							return resource.RetryableError(awsErr)
 						}
 						if awsErr.Code() == "CertificateNotFound" && strings.Contains(awsErr.Message(), "Server Certificate not found for the key: arn") {
 							log.Printf("[DEBUG] SSL Cert not found for given ARN, retrying")
-							return awsErr
+							return resource.RetryableError(awsErr)
 						}
 					}
 
 					// Didn't recognize the error, so shouldn't retry.
-					return resource.RetryError{Err: err}
+					return resource.NonRetryableError(err)
 				}
 				// Successful creation
 				return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -273,12 +274,8 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	sg := sgRaw.(*ec2.SecurityGroup)
 
-	remoteIngressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissions)
-	remoteEgressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissionsEgress)
-
-	//
-	// TODO enforce the seperation of ips and security_groups in a rule block
-	//
+	remoteIngressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissions, sg.OwnerId)
+	remoteEgressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissionsEgress, sg.OwnerId)
 
 	localIngressRules := d.Get("ingress").(*schema.Set).List()
 	localEgressRules := d.Get("egress").(*schema.Set).List()
@@ -345,14 +342,14 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
 			GroupId: aws.String(d.Id()),
 		})
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
 			if !ok {
-				return err
+				return resource.RetryableError(err)
 			}
 
 			switch ec2err.Code() {
@@ -360,10 +357,10 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 				return nil
 			case "DependencyViolation":
 				// If it is a dependency violation, we want to retry
-				return err
+				return resource.RetryableError(err)
 			default:
 				// Any other error, we want to quit the retry loop immediately
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 		}
 
@@ -409,7 +406,7 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpPermission) []map[string]interface{} {
+func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpPermission, ownerId *string) []map[string]interface{} {
 	ruleMap := make(map[string]map[string]interface{})
 	for _, perm := range permissions {
 		var fromPort, toPort int64
@@ -445,12 +442,9 @@ func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpP
 			m["cidr_blocks"] = list
 		}
 
-		var groups []string
-		if len(perm.UserIdGroupPairs) > 0 {
-			groups = flattenSecurityGroups(perm.UserIdGroupPairs)
-		}
-		for i, id := range groups {
-			if id == groupId {
+		groups := flattenSecurityGroups(perm.UserIdGroupPairs, ownerId)
+		for i, g := range groups {
+			if *g.GroupId == groupId {
 				groups[i], groups = groups[len(groups)-1], groups[:len(groups)-1]
 				m["self"] = true
 			}
@@ -464,7 +458,11 @@ func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpP
 			list := raw.(*schema.Set)
 
 			for _, g := range groups {
-				list.Add(g)
+				if g.GroupName != nil {
+					list.Add(*g.GroupName)
+				} else {
+					list.Add(*g.GroupId)
+				}
 			}
 
 			m["security_groups"] = list
@@ -531,12 +529,16 @@ func resourceAwsSecurityGroupUpdateRules(
 						GroupId:       group.GroupId,
 						IpPermissions: remove,
 					}
+					if group.VpcId == nil || *group.VpcId == "" {
+						req.GroupId = nil
+						req.GroupName = group.GroupName
+					}
 					_, err = conn.RevokeSecurityGroupIngress(req)
 				}
 
 				if err != nil {
 					return fmt.Errorf(
-						"Error authorizing security group %s rules: %s",
+						"Error revoking security group %s rules: %s",
 						ruleset, err)
 				}
 			}
@@ -817,7 +819,7 @@ func idHash(rType, protocol string, toPort, fromPort int64, self bool) string {
 	buf.WriteString(fmt.Sprintf("%s-", rType))
 	buf.WriteString(fmt.Sprintf("%d-", toPort))
 	buf.WriteString(fmt.Sprintf("%d-", fromPort))
-	buf.WriteString(fmt.Sprintf("%s-", protocol))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(protocol)))
 	buf.WriteString(fmt.Sprintf("%t-", self))
 
 	return fmt.Sprintf("rule-%d", hashcode.String(buf.String()))

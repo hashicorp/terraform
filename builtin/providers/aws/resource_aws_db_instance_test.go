@@ -404,7 +404,7 @@ func testAccReplicaInstanceConfig(val int) string {
 	}
 	
 	resource "aws_db_instance" "replica" {
-	  identifier = "tf-replica-db-%d"
+		identifier = "tf-replica-db-%d"
 		backup_retention_period = 0
 		replicate_source_db = "${aws_db_instance.bar.identifier}"
 		allocated_storage = "${aws_db_instance.bar.allocated_storage}"
@@ -514,7 +514,7 @@ resource "aws_db_instance" "enhanced_monitoring" {
 	allocated_storage = 5
 	engine = "mysql"
 	engine_version = "5.6.21"
-	instance_class = "db.t2.small"
+	instance_class = "db.m3.medium"
 	name = "baz"
 	password = "barbarbarbar"
 	username = "foo"

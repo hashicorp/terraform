@@ -15,7 +15,7 @@ Provides a CloudWatch Event Target resource.
 ```
 resource "aws_cloudwatch_event_target" "yada" {
   target_id = "Yada"
-  rule = "${aws_cloudwatch_event_rule.console.arn}"
+  rule = "${aws_cloudwatch_event_rule.console.name}"
   arn = "${aws_kinesis_stream.test_stream.arn}"
 }
 
