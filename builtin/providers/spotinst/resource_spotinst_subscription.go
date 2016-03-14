@@ -94,13 +94,13 @@ func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceSpotinstSubscriptionDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*spotinst.Client)
 	log.Printf("[INFO] Deleting subscription: %s\n", d.Id())
-	subscription := &spotinst.Subscription{ID: d.Id()}
-	_, err := client.Subscription.Delete(subscription)
-	if err != nil {
-		return fmt.Errorf("[ERROR] Error deleting subscription: %s", err)
-	}
+	//client := meta.(*spotinst.Client)
+	//subscription := &spotinst.Subscription{ID: d.Id()}
+	//_, err := client.Subscription.Delete(subscription)
+	//if err != nil {
+	//	return fmt.Errorf("[ERROR] Error deleting subscription: %s", err)
+	//}
 	return nil
 }
 
