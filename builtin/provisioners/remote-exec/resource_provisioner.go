@@ -192,6 +192,13 @@ func (p *ResourceProvisioner) runScripts(
 				return fmt.Errorf("Error starting script: %v", err)
 			}
 
+			// Upload a blank follow up file in the same path to prevent residual
+			// script contents from remaining on remote machine
+			empty := bytes.NewReader([]byte(""))
+			if err := comm.Upload(remotePath, empty); err != nil {
+				return fmt.Errorf("Failed to upload empty follow up script: %v", err)
+			}
+
 			return nil
 		})
 		if err == nil {
