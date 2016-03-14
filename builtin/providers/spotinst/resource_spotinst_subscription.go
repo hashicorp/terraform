@@ -39,6 +39,13 @@ func resourceSpotinstSubscription() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"format": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -86,6 +93,7 @@ func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) 
 		d.Set("event_type", strings.ToLower(s.EventType))
 		d.Set("protocol", s.Protocol)
 		d.Set("endpoint", s.Endpoint)
+		d.Set("format", s.Format)
 	} else {
 		d.SetId("")
 		return nil
@@ -111,6 +119,7 @@ func buildSubscriptionOpts(d *schema.ResourceData, meta interface{}) (*spotinst.
 		EventType:  strings.ToUpper(d.Get("event_type").(string)),
 		Protocol:   d.Get("protocol").(string),
 		Endpoint:   d.Get("endpoint").(string),
+		Format:     d.Get("format").(map[string]interface{}),
 	}
 
 	return subscription, nil
