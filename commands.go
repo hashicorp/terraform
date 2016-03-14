@@ -125,6 +125,12 @@ func init() {
 				CheckFunc:         commandVersionCheck,
 			}, nil
 		},
+
+		"untaint": func() (cli.Command, error) {
+			return &command.UntaintCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 }
 
