@@ -47,6 +47,7 @@ IMPROVEMENTS:
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
   * provider/consul: `consul_keys` now detects drift and supports deletion of individual `key` blocks [GH-5210]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
+  * provider/digitalocean: Guard against Nil reference in `digitalocean_droplet` [GH-5588]
   * provider/google: Validate VPN tunnel peer_ip at plan time [GH-5501]
   * provider/openstack: Add Support for Domain ID and Domain Name environment variables [GH-5355]
   * provider/openstack: Add support for instances to have multiple ephemeral disks. [GH-5131]
