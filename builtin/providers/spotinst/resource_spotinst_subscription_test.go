@@ -147,4 +147,8 @@ resource "spotinst_subscription" "foo" {
 	event_type = "aws_ec2_instance_launch"
 	protocol = "https"
 	endpoint = "https://endpoint.com"
+	format = {
+		instance_id = "%instance-id%"
+		tags = "foo,baz,baz"
+	}
 }`

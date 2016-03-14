@@ -12,6 +12,7 @@ import (
 func resourceSpotinstSubscription() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceSpotinstSubscriptionCreate,
+		Update: resourceSpotinstSubscriptionUpdate,
 		Read:   resourceSpotinstSubscriptionRead,
 		Delete: resourceSpotinstSubscriptionDelete,
 
@@ -19,31 +20,31 @@ func resourceSpotinstSubscription() *schema.Resource {
 			"resource_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
+				ForceNew: false,
 			},
 
 			"event_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
+				ForceNew: false,
 			},
 
 			"protocol": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
+				ForceNew: false,
 			},
 
 			"endpoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
+				ForceNew: false,
 			},
 
 			"format": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
+				ForceNew: false,
 			},
 		},
 	}
@@ -98,6 +99,47 @@ func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) 
 		return nil
 	}
 	return nil
+}
+
+func resourceSpotinstSubscriptionUpdate(d *schema.ResourceData, meta interface{}) error {
+	hasChange := false
+	client := meta.(*spotinst.Client)
+	update := &spotinst.Subscription{ID: d.Id()}
+
+	if d.HasChange("resource_id") {
+		update.ResourceID = d.Get("resource_id").(string)
+		hasChange = true
+	}
+
+	if d.HasChange("event_type") {
+		update.EventType = strings.ToUpper(d.Get("event_type").(string))
+		hasChange = true
+	}
+
+	if d.HasChange("protocol") {
+		update.Protocol = d.Get("protocol").(string)
+		hasChange = true
+	}
+
+	if d.HasChange("endpoint") {
+		update.Endpoint = d.Get("endpoint").(string)
+		hasChange = true
+	}
+
+	if d.HasChange("format") {
+		update.Format = d.Get("format").(map[string]interface{})
+		hasChange = true
+	}
+
+	if hasChange {
+		log.Printf("[DEBUG] Subscription update configuration: %#v\n", update)
+		_, _, err := client.Subscription.Update(update)
+		if err != nil {
+			return fmt.Errorf("[ERROR] Error updating subscription: %s", err)
+		}
+	}
+
+	return resourceSpotinstSubscriptionRead(d, meta)
 }
 
 func resourceSpotinstSubscriptionDelete(d *schema.ResourceData, meta interface{}) error {
