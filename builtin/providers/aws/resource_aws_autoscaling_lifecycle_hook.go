@@ -49,11 +49,11 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 			},
 			"notification_target_arn": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"role_arn": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 		},
 	}
