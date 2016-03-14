@@ -57,21 +57,26 @@ func testAccCheckLifecycleHookExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
-		params := &autoscaling.DescribeLifecycleHooksInput{
-			AutoScalingGroupName: aws.String(rs.Primary.Attributes["autoscaling_group_name"]),
-			LifecycleHookNames:   []*string{aws.String(rs.Primary.ID)},
-		}
-		resp, err := conn.DescribeLifecycleHooks(params)
-		if err != nil {
-			return err
-		}
-		if len(resp.LifecycleHooks) == 0 {
-			return fmt.Errorf("LifecycleHook not found")
-		}
-
-		return nil
+		return checkLifecycleHookExistsByName(
+			rs.Primary.Attributes["autoscaling_group_name"], rs.Primary.ID)
 	}
+}
+
+func checkLifecycleHookExistsByName(asgName, hookName string) error {
+	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
+	params := &autoscaling.DescribeLifecycleHooksInput{
+		AutoScalingGroupName: aws.String(asgName),
+		LifecycleHookNames:   []*string{aws.String(hookName)},
+	}
+	resp, err := conn.DescribeLifecycleHooks(params)
+	if err != nil {
+		return err
+	}
+	if len(resp.LifecycleHooks) == 0 {
+		return fmt.Errorf("LifecycleHook not found")
+	}
+
+	return nil
 }
 
 func testAccCheckAWSAutoscalingLifecycleHookDestroy(s *terraform.State) error {
