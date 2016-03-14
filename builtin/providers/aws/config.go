@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/terraform"
 
 	"crypto/tls"
 
@@ -18,6 +19,7 @@ import (
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -156,9 +158,11 @@ func (c *Config) Client() (interface{}, error) {
 			}
 		}
 
-		log.Println("[INFO] Initializing IAM Connection")
+		// Set up base session
 		sess := session.New(awsConfig)
+		sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
+		log.Println("[INFO] Initializing IAM Connection")
 		awsIamSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)})
 		client.iamconn = iam.New(awsIamSess)
 
@@ -420,4 +424,12 @@ func getCreds(key, secret, token, profile, credsfile string) *awsCredentials.Cre
 		log.Printf("[DEBUG] EC2 Metadata service not found, not adding EC2 Role Credential Provider")
 	}
 	return awsCredentials.NewChainCredentials(providers)
+}
+
+// addTerraformVersionToUserAgent is a named handler that will add Terraform's
+// version information to requests made by the AWS SDK.
+var addTerraformVersionToUserAgent = request.NamedHandler{
+	Name: "terraform.TerraformVersionUserAgentHandler",
+	Fn: request.MakeAddToUserAgentHandler(
+		"terraform", terraform.Version, terraform.VersionPrerelease),
 }
