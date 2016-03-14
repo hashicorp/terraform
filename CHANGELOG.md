@@ -43,6 +43,7 @@ IMPROVEMENTS:
   * provider/aws: Retry DB Creation on IAM propigation error [GH-5515]
   * provider/aws: Guard against Nil Reference in Redshift Endpoints [GH-5593]
   * provider/aws: Support KMS encryption of S3 objects [GH-5453]
+  * provider/aws: `aws_autoscaling_lifecycle_hook` now have `notification_target_arn` and `role_arn` as optional [GH-5616]
   * provider/cloudflare: Change `cloudflare_record` type to ForceNew [GH-5353]
   * provider/consul: `consul_keys` now detects drift and supports deletion of individual `key` blocks [GH-5210]
   * provider/docker: Add support for `unless-stopped` to docker container `restart_policy` [GH-5337]
