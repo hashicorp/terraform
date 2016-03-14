@@ -164,3 +164,50 @@ func capacitySatisfiedUpdate(d *schema.ResourceData, haveASG, haveELB int) (bool
 	}
 	return true, ""
 }
+
+// waitForASGScaleDown gathers the current numbers of instances in the ASG and
+// loops for up to wait_for_capacity_timeout.
+//
+// Unlike waitForASGCapacity, it doesn't care about ELBs, and it also doesn't
+// care about health. Specifically, it considers a terminating instance to still
+// exist, which is what you want when you're scaling down: just starting a
+// termination hook shouldn't be enough to count as scaled down.
+func waitForASGScaleDown(
+	d *schema.ResourceData,
+	meta interface{},
+	wantASG int) error {
+	wait, err := time.ParseDuration(d.Get("wait_for_capacity_timeout").(string))
+	if err != nil {
+		return err
+	}
+
+	if wait == 0 {
+		log.Printf("[DEBUG] Capacity timeout set to 0, skipping capacity waiting.")
+		return nil
+	}
+
+	log.Printf("[DEBUG] Waiting on %s to scale down...", d.Id())
+
+	return resource.Retry(wait, func() *resource.RetryError {
+		g, err := getAwsAutoscalingGroup(d.Id(), meta.(*AWSClient).autoscalingconn)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		if g == nil {
+			log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
+			d.SetId("")
+			return nil
+		}
+
+		haveASG := len(g.Instances)
+
+		if haveASG == wantASG {
+			log.Printf("[DEBUG] %q Capacity %d achieved", d.Id(), wantASG)
+			return nil
+		}
+
+		log.Printf("[DEBUG] %q Capacity: %d desired, %d got, waiting", d.Id(), wantASG, haveASG)
+
+		return resource.RetryableError(fmt.Errorf("%q: Waiting up to %s", d.Id(), wait))
+	})
+}
