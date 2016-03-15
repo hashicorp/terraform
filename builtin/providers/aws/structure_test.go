@@ -1034,7 +1034,7 @@ func TestExpandPolicyAttributes(t *testing.T) {
 	}
 
 	if len(attributes) != 3 {
-		t.Fatalf("expected number of attributes to be 3, but got %s", len(attributes))
+		t.Fatalf("expected number of attributes to be 3, but got %d", len(attributes))
 	}
 
 	expected := &elb.PolicyAttribute{
@@ -1084,7 +1084,7 @@ func TestExpandPolicyAttributes_empty(t *testing.T) {
 	}
 
 	if len(attributes) != 0 {
-		t.Fatalf("expected number of attributes to be 0, but got %s", len(attributes))
+		t.Fatalf("expected number of attributes to be 0, but got %d", len(attributes))
 	}
 }
 
