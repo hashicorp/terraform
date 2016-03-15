@@ -80,8 +80,12 @@ func resourceAwsLBSSLNegotiationPolicyCreate(d *schema.ResourceData, meta interf
 
 	// Check for Policy Attributes
 	if v, ok := d.GetOk("attribute"); ok {
+		var err error
 		// Expand the "attribute" set to aws-sdk-go compat []*elb.PolicyAttribute
-		lbspOpts.PolicyAttributes = expandPolicyAttributes(v.(*schema.Set).List())
+		lbspOpts.PolicyAttributes, err = expandPolicyAttributes(v.(*schema.Set).List())
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Printf("[DEBUG] Load Balancer Policy opts: %#v", lbspOpts)

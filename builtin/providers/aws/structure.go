@@ -927,7 +927,7 @@ func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.Pa
 
 // Takes the result of flatmap.Expand for an array of policy attributes and
 // returns ELB API compatible objects
-func expandPolicyAttributes(configured []interface{}) []*elb.PolicyAttribute {
+func expandPolicyAttributes(configured []interface{}) ([]*elb.PolicyAttribute, error) {
 	attributes := make([]*elb.PolicyAttribute, 0, len(configured))
 
 	// Loop over our configured attributes and create
@@ -944,7 +944,7 @@ func expandPolicyAttributes(configured []interface{}) []*elb.PolicyAttribute {
 
 	}
 
-	return attributes
+	return attributes, nil
 }
 
 // Flattens an array of PolicyAttributes into a []interface{}
