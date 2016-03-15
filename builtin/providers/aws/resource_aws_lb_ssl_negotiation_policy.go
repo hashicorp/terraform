@@ -42,7 +42,7 @@ func resourceAwsLBSSLNegotiationPolicy() *schema.Resource {
 
 			"attribute": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
