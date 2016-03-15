@@ -70,11 +70,11 @@ The following arguments are supported:
 * `lb_port` - (Required) The load balancer port to which the policy
   should be applied. This must be an active listener on the load
 balancer.
-* `attribute` - (At least one Required) An SSL Negotiation policy attribute. Each has two properties:
+* `attribute` - (Optional) An SSL Negotiation policy attribute. Each has two properties:
 	* `name` - The name of the attribute
 	* `value` - The value of the attribute
 
-To set your attributes, please see the [AWS Elastic Load Balancer Developer Guide](http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-security-policy-table.html) for a listing of the supported SSL protocols, SSL options, and SSL ciphers.
+To set your attributes, please see the [AWS Elastic Load Balancing Developer Guide](http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/elb-security-policy-table.html) for a listing of the supported SSL protocols, SSL options, and SSL ciphers.
 
 ## Attributes Reference
 
