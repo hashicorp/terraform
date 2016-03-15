@@ -26,6 +26,21 @@ func testResource() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"optional_computed_map": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				Computed: true,
+			},
+			"computed_read_only": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				ForceNew: true,
+			},
+			"computed_read_only_force_new": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -37,10 +52,15 @@ func testResourceCreate(d *schema.ResourceData, meta interface{}) error {
 	if _, ok := d.GetOk("required"); !ok {
 		return fmt.Errorf("Missing attribute 'required', but it's required!")
 	}
-	return nil
+	return testResourceRead(d, meta)
 }
 
 func testResourceRead(d *schema.ResourceData, meta interface{}) error {
+	d.Set("computed_read_only", "value_from_api")
+	d.Set("computed_read_only_force_new", "value_from_api")
+	if _, ok := d.GetOk("optional_computed_map"); !ok {
+		d.Set("optional_computed_map", map[string]string{})
+	}
 	return nil
 }
 
