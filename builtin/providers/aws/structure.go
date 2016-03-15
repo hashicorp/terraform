@@ -924,3 +924,41 @@ func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.Pa
 
 	return operations
 }
+
+// Takes the result of flatmap.Expand for an array of policy attributes and
+// returns ELB API compatible objects
+func expandPolicyAttributes(configured []interface{}) []*elb.PolicyAttribute {
+	attributes := make([]*elb.PolicyAttribute, 0, len(configured))
+
+	// Loop over our configured attributes and create
+	// an array of aws-sdk-go compatible objects
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
+
+		a := &elb.PolicyAttribute{
+			AttributeName:  aws.String(data["name"].(string)),
+			AttributeValue: aws.String(data["value"].(string)),
+		}
+
+		attributes = append(attributes, a)
+
+	}
+
+	return attributes
+}
+
+// Flattens an array of PolicyAttributes into a []interface{}
+func flattenPolicyAttributes(list []*elb.PolicyAttributeDescription) []interface{} {
+	attributes := []interface{}{}
+	for _, attrdef := range list {
+		attribute := map[string]string{
+			"name":  *attrdef.AttributeName,
+			"value": *attrdef.AttributeValue,
+		}
+
+		attributes = append(attributes, attribute)
+
+	}
+
+	return attributes
+}
