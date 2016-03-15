@@ -19,6 +19,10 @@ import (
 
 const TestEnvVar = "TF_ACC"
 
+// UnitTestOverride is a value that when set in TestEnvVar indicates that this
+// is a unit test borrowing the acceptance testing framework.
+const UnitTestOverride = "UnitTestOverride"
+
 // TestCheckFunc is the callback type used with acceptance tests to check
 // the state of a resource. The state passed in is the latest state known,
 // or in the case of being after a destroy, it is the last known state when
@@ -108,6 +112,8 @@ func Test(t TestT, c TestCase) {
 		return
 	}
 
+	isUnitTest := (os.Getenv(TestEnvVar) == UnitTestOverride)
+
 	logWriter, err := logging.LogOutput()
 	if err != nil {
 		t.Error(fmt.Errorf("error setting up logging: %s", err))
@@ -115,7 +121,7 @@ func Test(t TestT, c TestCase) {
 	log.SetOutput(logWriter)
 
 	// We require verbose mode so that the user knows what is going on.
-	if !testTesting && !testing.Verbose() {
+	if !testTesting && !testing.Verbose() && !isUnitTest {
 		t.Fatal("Acceptance tests must be run with the -v flag on tests")
 		return
 	}
@@ -171,6 +177,22 @@ func Test(t TestT, c TestCase) {
 	} else {
 		log.Printf("[WARN] Skipping destroy test since there is no state.")
 	}
+}
+
+// UnitTest is a helper to force the acceptance testing harness to run in the
+// normal unit test suite. This should only be used for resource that don't
+// have any external dependencies.
+func UnitTest(t TestT, c TestCase) {
+	oldEnv := os.Getenv(TestEnvVar)
+	if err := os.Setenv(TestEnvVar, UnitTestOverride); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := os.Setenv(TestEnvVar, oldEnv); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	Test(t, c)
 }
 
 func testStep(
