@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 
 	"crypto/tls"
@@ -149,6 +150,11 @@ func (c *Config) Client() (interface{}, error) {
 			Region:      aws.String(c.Region),
 			MaxRetries:  aws.Int(c.MaxRetries),
 			HTTPClient:  cleanhttp.DefaultClient(),
+		}
+
+		if logging.IsDebugOrHigher() {
+			awsConfig.LogLevel = aws.LogLevel(aws.LogDebugWithHTTPBody)
+			awsConfig.Logger = awsLogger{}
 		}
 
 		if c.Insecure {
@@ -432,4 +438,16 @@ var addTerraformVersionToUserAgent = request.NamedHandler{
 	Name: "terraform.TerraformVersionUserAgentHandler",
 	Fn: request.MakeAddToUserAgentHandler(
 		"terraform", terraform.Version, terraform.VersionPrerelease),
+}
+
+type awsLogger struct{}
+
+func (l awsLogger) Log(args ...interface{}) {
+	tokens := make([]string, 0, len(args))
+	for _, arg := range args {
+		if token, ok := arg.(string); ok {
+			tokens = append(tokens, token)
+		}
+	}
+	log.Printf("[DEBUG] [aws-sdk-go] %s", strings.Join(tokens, " "))
 }
