@@ -167,7 +167,6 @@ func TestAccAWSLambdaFunction_s3Update(t *testing.T) {
 					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3"),
 					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3"),
 					testAccCheckAwsLambdaSourceCodeHash(&conf, "Y5Jf4Si63UDy1wKNfPs+U56ZL0NxsieKPt9EwRl4GQM="),
->>>>>>> 406f16beac1e6452cdced4a309fe42ce5069e39e
 				),
 			},
 		},
@@ -251,8 +250,6 @@ func testAccCheckAwsLambdaFunctionArnHasSuffix(function *lambda.GetFunctionOutpu
 		c := function.Configuration
 		if !strings.HasSuffix(*c.FunctionArn, arnSuffix) {
 			return fmt.Errorf("Expected function ARN %s to have suffix %s", *c.FunctionArn, arnSuffix)
-<<<<<<< HEAD
-=======
 		}
 
 		return nil
@@ -264,7 +261,6 @@ func testAccCheckAwsLambdaSourceCodeHash(function *lambda.GetFunctionOutput, exp
 		c := function.Configuration
 		if *c.CodeSha256 != expectedHash {
 			return fmt.Errorf("Expected code hash %s, got %s", expectedHash, *c.CodeSha256)
->>>>>>> 406f16beac1e6452cdced4a309fe42ce5069e39e
 		}
 
 		return nil
@@ -577,9 +573,8 @@ resource "aws_lambda_function" "lambda_function_s3test" {
     handler = "exports.example"
 }
 `, acctest.RandInt())
-=======
+
 func genAWSLambdaFunctionConfig_s3(bucket, key, path string) string {
 	return fmt.Sprintf(testAccAWSLambdaFunctionConfig_s3_tpl,
 		bucket, key, path, path)
 }
->>>>>>> 406f16beac1e6452cdced4a309fe42ce5069e39e
