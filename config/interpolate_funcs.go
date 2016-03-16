@@ -477,7 +477,7 @@ func interpolationFuncElement() ast.Function {
 			list := StringList(args[0].(string))
 
 			index, err := strconv.Atoi(args[1].(string))
-			if err != nil {
+			if err != nil || index < 0 {
 				return "", fmt.Errorf(
 					"invalid number for index, got %s", args[1])
 			}
