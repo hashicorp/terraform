@@ -533,14 +533,6 @@ resource "aws_lambda_function" "lambda_function_s3" {
     handler = "exports.example"
 }
 `
-resource "aws_lambda_function" "lambda_function_s3test" {
-    s3_bucket = "${aws_s3_bucket.lambda_bucket.id}"
-    s3_key = "${aws_s3_bucket_object.lambda_code.id}"
-    function_name = "example_lambda_name_s3"
-    role = "${aws_iam_role.iam_for_lambda.arn}"
-    handler = "exports.example"
-}
-`, acctest.RandInt())
 
 func genAWSLambdaFunctionConfig_s3(bucket, key, path string) string {
 	return fmt.Sprintf(testAccAWSLambdaFunctionConfig_s3_tpl,
