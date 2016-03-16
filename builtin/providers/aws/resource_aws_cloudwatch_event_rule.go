@@ -70,7 +70,7 @@ func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface
 
 	// IAM Roles take some time to propagate
 	var out *events.PutRuleOutput
-	err := resource.Retry(30*time.Second, func() error {
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
 		out, err = conn.PutRule(input)
 		pattern := regexp.MustCompile("cannot be assumed by principal '[a-z]+\\.amazonaws\\.com'\\.$")
@@ -78,12 +78,10 @@ func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ValidationException" && pattern.MatchString(awsErr.Message()) {
 					log.Printf("[DEBUG] Retrying creation of CloudWatch Event Rule %q", *input.Name)
-					return err
+					return resource.RetryableError(err)
 				}
 			}
-			return &resource.RetryError{
-				Err: err,
-			}
+			return resource.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -157,7 +155,7 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 
 	// IAM Roles take some time to propagate
 	var out *events.PutRuleOutput
-	err := resource.Retry(30*time.Second, func() error {
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
 		out, err = conn.PutRule(input)
 		pattern := regexp.MustCompile("cannot be assumed by principal '[a-z]+\\.amazonaws\\.com'\\.$")
@@ -165,12 +163,10 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ValidationException" && pattern.MatchString(awsErr.Message()) {
 					log.Printf("[DEBUG] Retrying update of CloudWatch Event Rule %q", *input.Name)
-					return err
+					return resource.RetryableError(err)
 				}
 			}
-			return &resource.RetryError{
-				Err: err,
-			}
+			return resource.NonRetryableError(err)
 		}
 		return nil
 	})

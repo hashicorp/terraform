@@ -40,16 +40,19 @@ func resourceAwsRoute() *schema.Resource {
 			"gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"nat_gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"instance_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"instance_owner_id": &schema.Schema{
@@ -60,6 +63,7 @@ func resourceAwsRoute() *schema.Resource {
 			"network_interface_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"origin": &schema.Schema{

@@ -442,6 +442,9 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		instanceProperties.Scheduling.OnHostMaintenance = v.(string)
 	}
 
+	forceSendFieldsScheduling := make([]string, 0, 3)
+	var hasSendMaintenance bool
+	hasSendMaintenance = false
 	if v, ok := d.GetOk("scheduling"); ok {
 		_schedulings := v.([]interface{})
 		if len(_schedulings) > 1 {
@@ -451,16 +454,25 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 
 		if vp, okp := _scheduling["automatic_restart"]; okp {
 			instanceProperties.Scheduling.AutomaticRestart = vp.(bool)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "AutomaticRestart")
 		}
 
 		if vp, okp := _scheduling["on_host_maintenance"]; okp {
 			instanceProperties.Scheduling.OnHostMaintenance = vp.(string)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "OnHostMaintenance")
+			hasSendMaintenance = true
 		}
 
 		if vp, okp := _scheduling["preemptible"]; okp {
 			instanceProperties.Scheduling.Preemptible = vp.(bool)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "Preemptible")
+			if vp.(bool) && !hasSendMaintenance {
+				instanceProperties.Scheduling.OnHostMaintenance = "TERMINATE"
+				forceSendFieldsScheduling = append(forceSendFieldsScheduling, "OnHostMaintenance")
+			}
 		}
 	}
+	instanceProperties.Scheduling.ForceSendFields = forceSendFieldsScheduling
 
 	serviceAccountsCount := d.Get("service_account.#").(int)
 	serviceAccounts := make([]*compute.ServiceAccount, 0, serviceAccountsCount)

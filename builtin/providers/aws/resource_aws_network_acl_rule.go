@@ -124,10 +124,10 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 	// It appears it might be a while until the newly created rule is visible via the
 	// API (see issue GH-4721). Retry the `findNetworkAclRule` function until it is
 	// visible (which in most cases is likely immediately).
-	err = resource.Retry(3*time.Minute, func() error {
+	err = resource.Retry(3*time.Minute, func() *resource.RetryError {
 		_, findErr := findNetworkAclRule(d, meta)
 		if findErr != nil {
-			return findErr
+			return resource.RetryableError(findErr)
 		}
 
 		return nil

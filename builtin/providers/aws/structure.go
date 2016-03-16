@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -49,7 +51,7 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 		if l.SSLCertificateId != nil && *l.SSLCertificateId != "" {
 			// validate the protocol is correct
 			for _, p := range []string{"https", "ssl"} {
-				if (*l.InstanceProtocol == p) || (*l.Protocol == p) {
+				if (strings.ToLower(*l.InstanceProtocol) == p) || (strings.ToLower(*l.Protocol) == p) {
 					valid = true
 				}
 			}
@@ -135,7 +137,7 @@ func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
 // to_port or from_port set to a non-zero value.
 func expandIPPerms(
 	group *ec2.SecurityGroup, configured []interface{}) ([]*ec2.IpPermission, error) {
-	vpc := group.VpcId != nil
+	vpc := group.VpcId != nil && *group.VpcId != ""
 
 	perms := make([]*ec2.IpPermission, len(configured))
 	for i, mRaw := range configured {
@@ -319,11 +321,41 @@ func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 	return result
 }
 
-// Flattens an array of UserSecurityGroups into a []string
-func flattenSecurityGroups(list []*ec2.UserIdGroupPair) []string {
-	result := make([]string, 0, len(list))
+// Flattens an array of UserSecurityGroups into a []*ec2.GroupIdentifier
+func flattenSecurityGroups(list []*ec2.UserIdGroupPair, ownerId *string) []*ec2.GroupIdentifier {
+	result := make([]*ec2.GroupIdentifier, 0, len(list))
 	for _, g := range list {
-		result = append(result, *g.GroupId)
+		var userId *string
+		if g.UserId != nil && *g.UserId != "" && (ownerId == nil || *ownerId != *g.UserId) {
+			userId = g.UserId
+		}
+		// userid nil here for same vpc groups
+
+		vpc := g.GroupName == nil || *g.GroupName == ""
+		var id *string
+		if vpc {
+			id = g.GroupId
+		} else {
+			id = g.GroupName
+		}
+
+		// id is groupid for vpcs
+		// id is groupname for non vpc (classic)
+
+		if userId != nil {
+			id = aws.String(*userId + "/" + *id)
+		}
+
+		if vpc {
+			result = append(result, &ec2.GroupIdentifier{
+				GroupId: id,
+			})
+		} else {
+			result = append(result, &ec2.GroupIdentifier{
+				GroupId:   g.GroupId,
+				GroupName: id,
+			})
+		}
 	}
 	return result
 }
@@ -688,9 +720,15 @@ func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]in
 		return nil
 	}
 
+	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && s.VpcId == nil {
+		return nil
+	}
+
 	settings["subnet_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SubnetIds))
 	settings["security_group_ids"] = schema.NewSet(schema.HashString, flattenStringList(s.SecurityGroupIds))
-	settings["vpc_id"] = *s.VpcId
+	if s.VpcId != nil {
+		settings["vpc_id"] = *s.VpcId
+	}
 
 	return []map[string]interface{}{settings}
 }
@@ -765,4 +803,124 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 		outputs[*o.OutputKey] = *o.OutputValue
 	}
 	return outputs
+}
+
+func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Metric != nil {
+			strs = append(strs, *r.Metric)
+		}
+	}
+	return strs
+}
+
+func expandApiGatewayStageKeys(d *schema.ResourceData) []*apigateway.StageKey {
+	var stageKeys []*apigateway.StageKey
+
+	if stageKeyData, ok := d.GetOk("stage_key"); ok {
+		params := stageKeyData.(*schema.Set).List()
+		for k := range params {
+			data := params[k].(map[string]interface{})
+			stageKeys = append(stageKeys, &apigateway.StageKey{
+				RestApiId: aws.String(data["rest_api_id"].(string)),
+				StageName: aws.String(data["stage_name"].(string)),
+			})
+		}
+	}
+
+	return stageKeys
+}
+
+func expandApiGatewayRequestResponseModelOperations(d *schema.ResourceData, key string, prefix string) []*apigateway.PatchOperation {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	oldModels, newModels := d.GetChange(key)
+	oldModelMap := oldModels.(map[string]interface{})
+	newModelMap := newModels.(map[string]interface{})
+
+	for k, _ := range oldModelMap {
+		operation := apigateway.PatchOperation{
+			Op:   aws.String("remove"),
+			Path: aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(k, "/", "~1", -1))),
+		}
+
+		for nK, nV := range newModelMap {
+			if nK == k {
+				operation.Op = aws.String("replace")
+				operation.Value = aws.String(nV.(string))
+			}
+		}
+
+		operations = append(operations, &operation)
+	}
+
+	for nK, nV := range newModelMap {
+		exists := false
+		for k, _ := range oldModelMap {
+			if k == nK {
+				exists = true
+			}
+		}
+		if !exists {
+			operation := apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String(fmt.Sprintf("/%s/%s", prefix, strings.Replace(nK, "/", "~1", -1))),
+				Value: aws.String(nV.(string)),
+			}
+			operations = append(operations, &operation)
+		}
+	}
+
+	return operations
+}
+
+func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.PatchOperation {
+	operations := make([]*apigateway.PatchOperation, 0)
+
+	prev, curr := d.GetChange("stage_key")
+	prevList := prev.(*schema.Set).List()
+	currList := curr.(*schema.Set).List()
+
+	for i := range prevList {
+		p := prevList[i].(map[string]interface{})
+		exists := false
+
+		for j := range currList {
+			c := currList[j].(map[string]interface{})
+			if c["rest_api_id"].(string) == p["rest_api_id"].(string) && c["stage_name"].(string) == p["stage_name"].(string) {
+				exists = true
+			}
+		}
+
+		if !exists {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("remove"),
+				Path:  aws.String("/stages"),
+				Value: aws.String(fmt.Sprintf("%s/%s", p["rest_api_id"].(string), p["stage_name"].(string))),
+			})
+		}
+	}
+
+	for i := range currList {
+		c := currList[i].(map[string]interface{})
+		exists := false
+
+		for j := range prevList {
+			p := prevList[j].(map[string]interface{})
+			if c["rest_api_id"].(string) == p["rest_api_id"].(string) && c["stage_name"].(string) == p["stage_name"].(string) {
+				exists = true
+			}
+		}
+
+		if !exists {
+			operations = append(operations, &apigateway.PatchOperation{
+				Op:    aws.String("add"),
+				Path:  aws.String("/stages"),
+				Value: aws.String(fmt.Sprintf("%s/%s", c["rest_api_id"].(string), c["stage_name"].(string))),
+			})
+		}
+	}
+
+	return operations
 }

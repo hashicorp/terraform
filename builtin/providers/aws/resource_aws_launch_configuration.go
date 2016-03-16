@@ -428,17 +428,15 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-	err := resource.Retry(30*time.Second, func() error {
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
 		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Message() == "Invalid IamInstanceProfile" {
-					return err
+					return resource.RetryableError(err)
 				}
 			}
-			return &resource.RetryError{
-				Err: err,
-			}
+			return resource.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -452,8 +450,12 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	// We put a Retry here since sometimes eventual consistency bites
 	// us and we need to retry a few times to get the LC to load properly
-	return resource.Retry(30*time.Second, func() error {
-		return resourceAwsLaunchConfigurationRead(d, meta)
+	return resource.Retry(30*time.Second, func() *resource.RetryError {
+		err := resourceAwsLaunchConfigurationRead(d, meta)
+		if err != nil {
+			return resource.RetryableError(err)
+		}
+		return nil
 	})
 }
 

@@ -61,7 +61,8 @@ The following arguments are supported:
 
 * `description` - (Optional) A brief description of this resource.
 
-* `machine_type` - (Required) The machine type to create.
+* `machine_type` - (Required) The machine type to create.To create a custom machine type, value should be 
+    set as specified [here](https://cloud.google.com/compute/docs/reference/latest/instances#machineType)
 
 * `zone` - (Required) The zone that the machine should be created in.
 

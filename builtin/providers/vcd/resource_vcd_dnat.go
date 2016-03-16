@@ -3,6 +3,7 @@ package vcd
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -60,15 +61,16 @@ func resourceVcdDNATCreate(d *schema.ResourceData, meta interface{}) error {
 	// constrained by out lock. If the edge gateway reurns with a busy error, wait
 	// 3 seconds and then try again. Continue until a non-busy error or success
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 		task, err := edgeGateway.AddNATMapping("DNAT", d.Get("external_ip").(string),
 			d.Get("internal_ip").(string),
 			portString)
 		if err != nil {
-			return fmt.Errorf("Error setting DNAT rules: %#v", err)
+			return resource.RetryableError(
+				fmt.Errorf("Error setting DNAT rules: %#v", err))
 		}
 
-		return task.WaitTaskCompletion()
+		return resource.RetryableError(task.WaitTaskCompletion())
 	})
 
 	if err != nil {
@@ -119,15 +121,16 @@ func resourceVcdDNATDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Unable to find edge gateway: %#v", err)
 	}
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 		task, err := edgeGateway.RemoveNATMapping("DNAT", d.Get("external_ip").(string),
 			d.Get("internal_ip").(string),
 			portString)
 		if err != nil {
-			return fmt.Errorf("Error setting DNAT rules: %#v", err)
+			return resource.RetryableError(
+				fmt.Errorf("Error setting DNAT rules: %#v", err))
 		}
 
-		return task.WaitTaskCompletion()
+		return resource.RetryableError(task.WaitTaskCompletion())
 	})
 	if err != nil {
 		return fmt.Errorf("Error completing tasks: %#v", err)

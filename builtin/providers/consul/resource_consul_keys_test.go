@@ -21,6 +21,7 @@ func TestAccConsulKeys_basic(t *testing.T) {
 					testAccCheckConsulKeysExists(),
 					testAccCheckConsulKeysValue("consul_keys.app", "enabled", "true"),
 					testAccCheckConsulKeysValue("consul_keys.app", "set", "acceptance"),
+					testAccCheckConsulKeysValue("consul_keys.app", "remove_one", "hello"),
 				),
 			},
 			resource.TestStep{
@@ -29,6 +30,7 @@ func TestAccConsulKeys_basic(t *testing.T) {
 					testAccCheckConsulKeysExists(),
 					testAccCheckConsulKeysValue("consul_keys.app", "enabled", "true"),
 					testAccCheckConsulKeysValue("consul_keys.app", "set", "acceptanceUpdated"),
+					testAccCheckConsulKeysRemoved("consul_keys.app", "remove_one"),
 				),
 			},
 		},
@@ -83,6 +85,20 @@ func testAccCheckConsulKeysValue(n, attr, val string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckConsulKeysRemoved(n, attr string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rn, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Resource not found")
+		}
+		_, ok = rn.Primary.Attributes["var."+attr]
+		if ok {
+			return fmt.Errorf("Attribute '%s' still present: %#v", attr, rn.Primary.Attributes)
+		}
+		return nil
+	}
+}
+
 const testAccConsulKeysConfig = `
 resource "consul_keys" "app" {
 	datacenter = "dc1"
@@ -95,6 +111,12 @@ resource "consul_keys" "app" {
 		name = "set"
 		path = "test/set"
 		value = "acceptance"
+		delete = true
+	}
+	key {
+		name = "remove_one"
+		path = "test/remove_one"
+		value = "hello"
 		delete = true
 	}
 }

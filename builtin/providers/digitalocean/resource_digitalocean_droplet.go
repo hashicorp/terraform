@@ -189,7 +189,7 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	droplet, resp, err := client.Droplets.Get(id)
 	if err != nil {
 		// check if the droplet no longer exists.
-		if resp.StatusCode == 404 {
+		if resp != nil && resp.StatusCode == 404 {
 			log.Printf("[WARN] DigitalOcean Droplet (%s) not found", d.Id())
 			d.SetId("")
 			return nil

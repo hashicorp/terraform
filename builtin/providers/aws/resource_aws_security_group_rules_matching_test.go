@@ -186,6 +186,30 @@ func TestRulesMixedMatching(t *testing.T) {
 				},
 			},
 		},
+		// test lower/ uppercase handling
+		{
+			local: []interface{}{
+				map[string]interface{}{
+					"from_port": 80,
+					"to_port":   8000,
+					"protocol":  "TCP",
+				},
+			},
+			remote: []map[string]interface{}{
+				map[string]interface{}{
+					"from_port": int64(80),
+					"to_port":   int64(8000),
+					"protocol":  "tcp",
+				},
+			},
+			saves: []map[string]interface{}{
+				map[string]interface{}{
+					"from_port": 80,
+					"to_port":   8000,
+					"protocol":  "tcp",
+				},
+			},
+		},
 		// local and remote differ
 		{
 			local: []interface{}{
@@ -565,9 +589,6 @@ func TestRulesMixedMatching(t *testing.T) {
 	for i, c := range cases {
 		saves := matchRules("ingress", c.local, c.remote)
 		log.Printf("\n======\n\nSaves:\n%#v\n\nCS Saves:\n%#v\n\n======\n", saves, c.saves)
-		if err != nil {
-			t.Fatal(err)
-		}
 		log.Printf("\n\tTest %d:\n", i)
 
 		if len(saves) != len(c.saves) {

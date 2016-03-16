@@ -35,6 +35,41 @@ func TestAccAWSKinesisStream_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSKinesisStream_shardCount(t *testing.T) {
+	var stream kinesis.StreamDescription
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	config := fmt.Sprintf(testAccKinesisStreamConfig, ri)
+	updateConfig := fmt.Sprintf(testAccKinesisStreamConfigUpdateShardCount, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckKinesisStreamDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckKinesisStreamExists("aws_kinesis_stream.test_stream", &stream),
+					testAccCheckAWSKinesisStreamAttributes(&stream),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_stream.test_stream", "shard_count", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: updateConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckKinesisStreamExists("aws_kinesis_stream.test_stream", &stream),
+					testAccCheckAWSKinesisStreamAttributes(&stream),
+					resource.TestCheckResourceAttr(
+						"aws_kinesis_stream.test_stream", "shard_count", "4"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSKinesisStream_retentionPeriod(t *testing.T) {
 	var stream kinesis.StreamDescription
 
@@ -155,6 +190,16 @@ var testAccKinesisStreamConfig = `
 resource "aws_kinesis_stream" "test_stream" {
 	name = "terraform-kinesis-test-%d"
 	shard_count = 2
+	tags {
+		Name = "tf-test"
+	}
+}
+`
+
+var testAccKinesisStreamConfigUpdateShardCount = `
+resource "aws_kinesis_stream" "test_stream" {
+	name = "terraform-kinesis-test-%d"
+	shard_count = 4
 	tags {
 		Name = "tf-test"
 	}

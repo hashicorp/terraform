@@ -61,6 +61,8 @@ The following arguments are supported:
 * `attribute` - Define an attribute, has two properties:
   * `name` - The name of the attribute
   * `type` - One of: S, N, or B for (S)tring, (N)umber or (B)inary data
+* `stream_enabled` - (Optional) Indicates whether Streams are to be enabled (true) or disabled (false).
+* `stream_view_type` - (Optional) When an item in the table is modified, StreamViewType determines what information is written to the table's stream. Valid values are KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES.
 * `local_secondary_index` - (Optional) Describe an LSI on the table;
   these can only be allocated *at creation* so you cannot change this
 definition after you have created the resource.
@@ -84,8 +86,6 @@ parameter.
 * `non_key_attributes` - (Optional) Only required with *INCLUDE* as a
   projection type; a list of attributes to project into the index. These
 do not need to be defined as attributes on the table.
-* `stream_enabled` - (Optional) Indicates whether Streams are to be enabled (true) or disabled (false).
-* `stream_view_type` - (Optional) When an item in the table is modified, StreamViewType determines what information is written to the table's stream. Valid values are KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES.
 
 For `global_secondary_index` objects only, you need to specify
 `write_capacity` and `read_capacity` in the same way you would for the
