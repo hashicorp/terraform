@@ -956,7 +956,7 @@ func readPasswordData(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.
 			if err := d.Set("password_data", passwordData); err != nil {
 				return err
 			}
-			
+
 			log.Printf("[INFO] Password data read for instance %s", d.Id())
 			return nil
 		}

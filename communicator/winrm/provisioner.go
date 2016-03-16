@@ -138,11 +138,11 @@ func readPrivateKey(pk string) ([]byte, error) {
 				"not supported. Please decrypt the key prior to use.", pk)
 	}
 
-	return block.Bytes, nil;
+	return block.Bytes, nil
 }
 
 func decryptPassword(connInfo *connectionInfo) (string, error) {
-	if (connInfo.Password == "" || connInfo.PasswordPrivateKey == "") {
+	if connInfo.Password == "" || connInfo.PasswordPrivateKey == "" {
 		return connInfo.Password, nil
 	}
 
@@ -154,7 +154,7 @@ func decryptPassword(connInfo *connectionInfo) (string, error) {
 	asn1Bytes, err := readPrivateKey(connInfo.PasswordPrivateKey)
 	if err != nil {
 		return "", err
-	}	
+	}
 
 	key, err := x509.ParsePKCS1PrivateKey(asn1Bytes)
 	if err != nil {

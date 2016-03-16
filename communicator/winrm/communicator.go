@@ -55,8 +55,8 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 		return nil
 	}
 
-	password, err := decryptPassword(c.connInfo);
-	if (err != nil) {
+	password, err := decryptPassword(c.connInfo)
+	if err != nil {
 		return err
 	}
 
@@ -199,7 +199,7 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 	addr := fmt.Sprintf("%s:%d", c.endpoint.Host, c.endpoint.Port)
 
-	password, err := decryptPassword(c.connInfo);
+	password, err := decryptPassword(c.connInfo)
 	if err != nil {
 		return nil, err
 	}
