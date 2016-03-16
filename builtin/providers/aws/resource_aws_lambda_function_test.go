@@ -72,8 +72,6 @@ func TestAccAWSLambdaFunction_s3(t *testing.T) {
 					testAccCheckAwsLambdaFunctionName(&conf, "example_lambda_name_s3"),
 					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":example_lambda_name_s3"),
 					testAccCheckAWSLambdaFunctionVersion(&conf, "$LATEST"),
-<<<<<<< HEAD
-=======
 				),
 			},
 		},
