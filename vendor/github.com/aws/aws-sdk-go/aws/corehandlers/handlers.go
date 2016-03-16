@@ -64,6 +64,11 @@ var SendHandler = request.NamedHandler{Name: "core.SendHandler", Fn: func(r *req
 	var err error
 	r.HTTPResponse, err = r.Config.HTTPClient.Do(r.HTTPRequest)
 	if err != nil {
+		// Prevent leaking if an HTTPResponse was returned. Clean up
+		// the body.
+		if r.HTTPResponse != nil {
+			r.HTTPResponse.Body.Close()
+		}
 		// Capture the case where url.Error is returned for error processing
 		// response. e.g. 301 without location header comes back as string
 		// error and r.HTTPResponse is nil. Other url redirect errors will

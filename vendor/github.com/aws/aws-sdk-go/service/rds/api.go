@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
 const opAddSourceIdentifierToSubscription = "AddSourceIdentifierToSubscription"
@@ -52,6 +54,8 @@ func (c *RDS) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AddTagsToResourceOutput{}
 	req.Data = output
 	return
@@ -674,6 +678,8 @@ func (c *RDS) DeleteDBClusterParameterGroupRequest(input *DeleteDBClusterParamet
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBClusterParameterGroupOutput{}
 	req.Data = output
 	return
@@ -777,6 +783,8 @@ func (c *RDS) DeleteDBParameterGroupRequest(input *DeleteDBParameterGroupInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBParameterGroupOutput{}
 	req.Data = output
 	return
@@ -805,6 +813,8 @@ func (c *RDS) DeleteDBSecurityGroupRequest(input *DeleteDBSecurityGroupInput) (r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBSecurityGroupOutput{}
 	req.Data = output
 	return
@@ -864,6 +874,8 @@ func (c *RDS) DeleteDBSubnetGroupRequest(input *DeleteDBSubnetGroupInput) (req *
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBSubnetGroupOutput{}
 	req.Data = output
 	return
@@ -920,6 +932,8 @@ func (c *RDS) DeleteOptionGroupRequest(input *DeleteOptionGroupInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteOptionGroupOutput{}
 	req.Data = output
 	return
@@ -2454,6 +2468,8 @@ func (c *RDS) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RemoveTagsFromResourceOutput{}
 	req.Data = output
 	return
@@ -2629,9 +2645,8 @@ func (c *RDS) RestoreDBInstanceFromDBSnapshotRequest(input *RestoreDBInstanceFro
 }
 
 // Creates a new DB instance from a DB snapshot. The target database is created
-// from the source database restore point with the most of original configuration,
-// but in a system chosen availability zone with the default security group,
-// the default subnet group, and the default DB parameter group. By default,
+// from the source database restore point with the most of original configuration
+// with the default security group and the default DB parameter group. By default,
 // the new DB instance is created as a single-AZ deployment except when the
 // instance is a SQL Server instance that has an option group that is associated
 // with mirroring; in this case, the instance becomes a mirrored AZ deployment
@@ -2674,10 +2689,13 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 	return
 }
 
-// Restores a DB instance to an arbitrary point-in-time. Users can restore to
-// any point in time before the LatestRestorableTime for up to BackupRetentionPeriod
-// days. The target database is created with the most of original configuration,
-// but in a system chosen availability zone with the default security group,
+// Restores a DB instance to an arbitrary point in time. You can restore to
+// any point in time before the time identified by the LatestRestorableTime
+// property. You can restore to a point up to the number of days specified by
+// the BackupRetentionPeriod property.
+//
+//  The target database is created with most of the original configuration,
+// but in a system-selected availability zone, with the default security group,
 // the default subnet group, and the default DB parameter group. By default,
 // the new DB instance is created as a single-AZ deployment except when the
 // instance is a SQL Server instance that has an option group that is associated
@@ -3133,6 +3151,23 @@ type CopyDBSnapshotInput struct {
 	// True to copy all tags from the source DB snapshot to the target DB snapshot;
 	// otherwise false. The default is false.
 	CopyTags *bool `type:"boolean"`
+
+	// The AWS Key Management Service (AWS KMS) key identifier for an encrypted
+	// DB snapshot. The KMS key identifier is the Amazon Resource Name (ARN) or
+	// the KMS key alias for the KMS encryption key.
+	//
+	// If you copy an unencrypted DB snapshot and specify a value for the KmsKeyId
+	// parameter, Amazon RDS encrypts the target DB snapshot using the specified
+	// KMS encryption key.
+	//
+	// If you copy an encrypted DB snapshot from your AWS account, you can specify
+	// a value for KmsKeyId to encrypt the copy with a new KMS encryption key. If
+	// you don't specify a value for KmsKeyId then the copy of the DB snapshot is
+	// encrypted with the same KMS key as the source DB snapshot.
+	//
+	// If you copy an encrypted DB snapshot that is shared from another AWS account,
+	// then you must specify a value for KmsKeyId.
+	KmsKeyId *string `type:"string"`
 
 	// The identifier for the source DB snapshot.
 	//
@@ -3786,7 +3821,10 @@ type CreateDBInstanceInput struct {
 	// The amount of Provisioned IOPS (input/output operations per second) to be
 	// initially allocated for the DB instance.
 	//
-	//  Constraints: To use PIOPS, this value must be an integer greater than 1000.
+	// Constraints: Must be a multiple between 3 and 10 of the storage amount for
+	// the DB instance. Must also be an integer multiple of 1000. For example, if
+	// the size of your DB instance is 500 GB, then your Iops value can be 2000,
+	// 3000, 4000, or 5000.
 	Iops *int64 `type:"integer"`
 
 	// The KMS key identifier for an encrypted DB instance.
@@ -4606,9 +4644,9 @@ type DBCluster struct {
 	// same name is returned for the life of the DB cluster.
 	DatabaseName *string `type:"string"`
 
-	// If StorageEncrypted is true, the region-unique, immutable identifier for
-	// the encrypted DB cluster. This identifier is found in AWS CloudTrail log
-	// entries whenever the KMS key for the DB cluster is accessed.
+	// The region-unique, immutable identifier for the DB cluster. This identifier
+	// is found in AWS CloudTrail log entries whenever the KMS key for the DB cluster
+	// is accessed.
 	DbClusterResourceId *string `type:"string"`
 
 	// Specifies the earliest time to which a database can be restored with point-in-time
@@ -4968,9 +5006,9 @@ type DBInstance struct {
 	// part of a DB cluster, this can be a different port than the DB cluster port.
 	DbInstancePort *int64 `type:"integer"`
 
-	// If StorageEncrypted is true, the region-unique, immutable identifier for
-	// the encrypted DB instance. This identifier is found in AWS CloudTrail log
-	// entries whenever the KMS key for the DB instance is accessed.
+	// The region-unique, immutable identifier for the DB instance. This identifier
+	// is found in AWS CloudTrail log entries whenever the KMS key for the DB instance
+	// is accessed.
 	DbiResourceId *string `type:"string"`
 
 	// Specifies the connection endpoint.
@@ -8974,8 +9012,9 @@ type OptionGroupMembership struct {
 	// The name of the option group that the instance belongs to.
 	OptionGroupName *string `type:"string"`
 
-	// The status of the DB instance's option group membership (e.g. in-sync, pending,
-	// pending-maintenance, applying).
+	// The status of the DB instance's option group membership. Valid values are:
+	// in-sync, pending-apply, pending-removal, pending-maintenance-apply, pending-maintenance-removal,
+	// applying, removing, and failed.
 	Status *string `type:"string"`
 }
 

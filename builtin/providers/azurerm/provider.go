@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	riviera "github.com/jen20/riviera/azure"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -60,6 +63,18 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_container":      resourceArmStorageContainer(),
 			"azurerm_storage_blob":           resourceArmStorageBlob(),
 			"azurerm_storage_queue":          resourceArmStorageQueue(),
+			"azurerm_dns_zone":               resourceArmDnsZone(),
+			"azurerm_dns_a_record":           resourceArmDnsARecord(),
+			"azurerm_dns_aaaa_record":        resourceArmDnsAAAARecord(),
+			"azurerm_dns_cname_record":       resourceArmDnsCNameRecord(),
+			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
+			"azurerm_dns_ns_record":          resourceArmDnsNsRecord(),
+			"azurerm_dns_mx_record":          resourceArmDnsMxRecord(),
+			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
+			"azurerm_sql_server":             resourceArmSqlServer(),
+			"azurerm_sql_database":           resourceArmSqlDatabase(),
+			"azurerm_sql_firewall_rule":      resourceArmSqlFirewallRule(),
+			"azurerm_search_service":         resourceArmSearchService(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -127,7 +142,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)
@@ -187,3 +202,32 @@ func pollIndefinitelyAsNeeded(client autorest.Client, response *http.Response, a
 
 // armMutexKV is the instance of MutexKV for ARM resources
 var armMutexKV = mutexkv.NewMutexKV()
+
+func azureStateRefreshFunc(resourceURI string, client *ArmClient, command riviera.APICall) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		req := client.rivieraClient.NewRequestForURI(resourceURI)
+		req.Command = command
+
+		res, err := req.Execute()
+		if err != nil {
+			return nil, "", fmt.Errorf("Error executing %T command in azureStateRefreshFunc", req.Command)
+		}
+
+		var value reflect.Value
+		if reflect.ValueOf(res.Parsed).Kind() == reflect.Ptr {
+			value = reflect.ValueOf(res.Parsed).Elem()
+		} else {
+			value = reflect.ValueOf(res.Parsed)
+		}
+
+		for i := 0; i < value.NumField(); i++ { // iterates through every struct type field
+			tag := value.Type().Field(i).Tag // returns the tag string
+			tagValue := tag.Get("mapstructure")
+			if tagValue == "provisioningState" {
+				return res.Parsed, value.Field(i).Elem().String(), nil
+			}
+		}
+
+		panic(fmt.Errorf("azureStateRefreshFunc called on structure %T with no mapstructure:provisioningState tag. This is a bug", res.Parsed))
+	}
+}

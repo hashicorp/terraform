@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -61,8 +60,7 @@ func resourceComputeRoute() *schema.Resource {
 
 			"next_hop_network": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Computed: true,
 			},
 
 			"next_hop_vpn_tunnel": &schema.Schema{
@@ -82,9 +80,7 @@ func resourceComputeRoute() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"self_link": &schema.Schema{
@@ -106,7 +102,7 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	// Next hop data
-	var nextHopInstance, nextHopIp, nextHopNetwork, nextHopGateway,
+	var nextHopInstance, nextHopIp, nextHopGateway,
 		nextHopVpnTunnel string
 	if v, ok := d.GetOk("next_hop_ip"); ok {
 		nextHopIp = v.(string)
@@ -128,15 +124,6 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 
 		nextHopInstance = nextInstance.SelfLink
 	}
-	if v, ok := d.GetOk("next_hop_network"); ok {
-		nextNetwork, err := config.clientCompute.Networks.Get(
-			config.Project, v.(string)).Do()
-		if err != nil {
-			return fmt.Errorf("Error reading network: %s", err)
-		}
-
-		nextHopNetwork = nextNetwork.SelfLink
-	}
 
 	// Tags
 	var tags []string
@@ -155,7 +142,6 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 		NextHopInstance:  nextHopInstance,
 		NextHopVpnTunnel: nextHopVpnTunnel,
 		NextHopIp:        nextHopIp,
-		NextHopNetwork:   nextHopNetwork,
 		NextHopGateway:   nextHopGateway,
 		Priority:         int64(d.Get("priority").(int)),
 		Tags:             tags,
@@ -195,6 +181,7 @@ func resourceComputeRouteRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading route: %#v", err)
 	}
 
+	d.Set("next_hop_network", route.NextHopNetwork)
 	d.Set("self_link", route.SelfLink)
 
 	return nil

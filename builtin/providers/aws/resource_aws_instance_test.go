@@ -944,7 +944,7 @@ resource "aws_subnet" "foo" {
 resource "aws_instance" "foo_instance" {
   ami = "ami-21f78e11"
   instance_type = "t1.micro"
-  security_groups = ["${aws_security_group.tf_test_foo.id}"]
+  vpc_security_group_ids = ["${aws_security_group.tf_test_foo.id}"]
   subnet_id = "${aws_subnet.foo.id}"
   associate_public_ip_address = true
 	depends_on = ["aws_internet_gateway.gw"]

@@ -69,7 +69,7 @@ provider "aws" {}
 Usage:
 
 ```
-$ exoprt AWS_ACCESS_KEY_ID="anaccesskey" 
+$ export AWS_ACCESS_KEY_ID="anaccesskey" 
 $ export AWS_SECRET_ACCESS_KEY="asecretkey"
 $ export AWS_DEFAULT_REGION="us-west-2"
 $ terraform plan
@@ -133,9 +133,27 @@ The following arguments are supported in the `provider` block:
   to prevent you mistakenly using a wrong one (and end up destroying live environment).
   Conflicts with `allowed_account_ids`.
 
+* `insecure` - (Optional) Optional) Explicitly allow the provider to
+  perform "insecure" SSL requests. If omitted, default value is `false`
+
 * `dynamodb_endpoint` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to
   dynamodb-local.
 
-* `kinesis_endpoint` - (Optional) Use this to override the default endpoint URL
-  constructed from the `region`. It's typically used to connect to kinesalite.
+* `kinesis_endpoint` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  kinesalite.
+
+Nested `endpoints` block supports the followings:
+
+* `iam` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom iam endpoints.
+
+* `ec2` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom ec2 endpoints.
+
+* `elb` - (Optional) Use this to override the default endpoint
+  URL constructed from the `region`. It's typically used to connect to
+  custom elb endpoints.

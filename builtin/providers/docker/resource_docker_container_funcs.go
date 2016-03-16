@@ -171,7 +171,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	creationTime = time.Now()
-	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
+	if err := client.StartContainer(retContainer.ID, nil); err != nil {
 		return fmt.Errorf("Unable to start container: %s", err)
 	}
 

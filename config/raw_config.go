@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 	"sync"
 
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 )
@@ -53,7 +53,12 @@ func (r *RawConfig) Copy() *RawConfig {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	result, err := NewRawConfig(r.Raw)
+	newRaw := make(map[string]interface{})
+	for k, v := range r.Raw {
+		newRaw[k] = v
+	}
+
+	result, err := NewRawConfig(newRaw)
 	if err != nil {
 		panic("copy failed: " + err.Error())
 	}
@@ -127,7 +132,7 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 
 		// None of the variables we need are computed, meaning we should
 		// be able to properly evaluate.
-		out, _, err := lang.Eval(root, config)
+		out, _, err := hil.Eval(root, config)
 		if err != nil {
 			return "", err
 		}
@@ -298,7 +303,7 @@ type gobRawConfig struct {
 }
 
 // langEvalConfig returns the evaluation configuration we use to execute.
-func langEvalConfig(vs map[string]ast.Variable) *lang.EvalConfig {
+func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
 	funcMap := make(map[string]ast.Function)
 	for k, v := range Funcs() {
 		funcMap[k] = v
@@ -307,7 +312,7 @@ func langEvalConfig(vs map[string]ast.Variable) *lang.EvalConfig {
 	funcMap["keys"] = interpolationFuncKeys(vs)
 	funcMap["values"] = interpolationFuncValues(vs)
 
-	return &lang.EvalConfig{
+	return &hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
 			VarMap:  vs,
 			FuncMap: funcMap,

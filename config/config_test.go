@@ -10,6 +10,52 @@ import (
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
 
+func TestConfigCopy(t *testing.T) {
+	c := testConfig(t, "copy-basic")
+	rOrig := c.Resources[0]
+	rCopy := rOrig.Copy()
+
+	if rCopy.Name != rOrig.Name {
+		t.Fatalf("Expected names to equal: %q <=> %q", rCopy.Name, rOrig.Name)
+	}
+
+	if rCopy.Type != rOrig.Type {
+		t.Fatalf("Expected types to equal: %q <=> %q", rCopy.Type, rOrig.Type)
+	}
+
+	origCount := rOrig.RawCount.Config()["count"]
+	rCopy.RawCount.Config()["count"] = "5"
+	if rOrig.RawCount.Config()["count"] != origCount {
+		t.Fatalf("Expected RawCount to be copied, but it behaves like a ref!")
+	}
+
+	rCopy.RawConfig.Config()["newfield"] = "hello"
+	if rOrig.RawConfig.Config()["newfield"] == "hello" {
+		t.Fatalf("Expected RawConfig to be copied, but it behaves like a ref!")
+	}
+
+	rCopy.Provisioners = append(rCopy.Provisioners, &Provisioner{})
+	if len(rOrig.Provisioners) == len(rCopy.Provisioners) {
+		t.Fatalf("Expected Provisioners to be copied, but it behaves like a ref!")
+	}
+
+	if rCopy.Provider != rOrig.Provider {
+		t.Fatalf("Expected providers to equal: %q <=> %q",
+			rCopy.Provider, rOrig.Provider)
+	}
+
+	rCopy.DependsOn[0] = "gotchya"
+	if rOrig.DependsOn[0] == rCopy.DependsOn[0] {
+		t.Fatalf("Expected DependsOn to be copied, but it behaves like a ref!")
+	}
+
+	rCopy.Lifecycle.IgnoreChanges[0] = "gotchya"
+	if rOrig.Lifecycle.IgnoreChanges[0] == rCopy.Lifecycle.IgnoreChanges[0] {
+		t.Fatalf("Expected Lifecycle to be copied, but it behaves like a ref!")
+	}
+
+}
+
 func TestConfigCount(t *testing.T) {
 	c := testConfig(t, "count-int")
 	actual, err := c.Resources[0].Count()

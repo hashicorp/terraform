@@ -3,11 +3,9 @@ package azure
 import (
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -152,10 +150,6 @@ func TestAzure_providerConfigure(t *testing.T) {
 	if meta == nil {
 		t.Fatalf("Expected metadata, got nil: err: %s", err)
 	}
-}
-
-func genRandInt() int {
-	return rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 100000
 }
 
 // testAzurePublishSettingsStr is a revoked publishsettings file

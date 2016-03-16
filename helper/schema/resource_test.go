@@ -312,6 +312,87 @@ func TestResourceApply_updateNoCallback(t *testing.T) {
 	}
 }
 
+func TestResourceApply_isNewResource(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeString,
+				Optional: true,
+			},
+		},
+	}
+
+	updateFunc := func(d *ResourceData, m interface{}) error {
+		d.Set("foo", "updated")
+		if d.IsNewResource() {
+			d.Set("foo", "new-resource")
+		}
+		return nil
+	}
+	r.Create = func(d *ResourceData, m interface{}) error {
+		d.SetId("foo")
+		d.Set("foo", "created")
+		return updateFunc(d, m)
+	}
+	r.Update = updateFunc
+
+	d := &terraform.InstanceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"foo": &terraform.ResourceAttrDiff{
+				New: "bla-blah",
+			},
+		},
+	}
+
+	// positive test
+	var s *terraform.InstanceState = nil
+
+	actual, err := r.Apply(s, d, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &terraform.InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"id":  "foo",
+			"foo": "new-resource",
+		},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("actual: %#v\nexpected: %#v",
+			actual, expected)
+	}
+
+	// negative test
+	s = &terraform.InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"id":  "foo",
+			"foo": "new-resource",
+		},
+	}
+
+	actual, err = r.Apply(s, d, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected = &terraform.InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"id":  "foo",
+			"foo": "updated",
+		},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("actual: %#v\nexpected: %#v",
+			actual, expected)
+	}
+}
+
 func TestResourceInternalValidate(t *testing.T) {
 	cases := []struct {
 		In  *Resource

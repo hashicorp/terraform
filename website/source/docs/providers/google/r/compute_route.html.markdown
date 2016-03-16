@@ -45,14 +45,11 @@ The following arguments are supported:
 * `next_hop_instance` - (Optional) The name of the VM instance to route to
     if this route is matched.
 
-* `next_hop_instance_zone` - (Optional) The zone of the instance specified
+* `next_hop_instance_zone` - (Required when `next_hop_instance` is specified) The zone of the instance specified
     in `next_hop_instance`.
 
 * `next_hop_gateway` - (Optional) The name of the internet gateway to route
     to if this route is matched.
-
-* `next_hop_network` - (Optional) The name of the network to route to if this
-    route is matched.
 
 * `next_hop_vpn_gateway` - (Optional) The name of the VPN to route to if this
     route is matched.

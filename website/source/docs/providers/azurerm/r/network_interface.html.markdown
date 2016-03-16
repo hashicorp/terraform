@@ -1,43 +1,51 @@
 ---
 layout: "azurerm"
-page_title: "Azure Resource Manager: azure_virtual_network"
-sidebar_current: "docs-azurerm-resource-virtual-network"
+page_title: "Azure Resource Manager: azure_network_interface"
+sidebar_current: "docs-azurerm-resource-network-interface"
 description: |-
-  Creates a new virtual network including any configured subnets. Each subnet can optionally be configured with a security group to be associated with the subnet.
+  Manages the Network Interface cards that link the Virtual Machines and Virtual Network.
 ---
 
-# azurerm\_virtual\_network
+# azurerm\_network\_interface
 
-Creates a new virtual network including any configured subnets. Each subnet can
-optionally be configured with a security group to be associated with the subnet.
+Network interface cards are virtual network cards that form the link between virtual machines and the virtual network
 
 ## Example Usage
 
 ```
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
 resource "azurerm_virtual_network" "test" {
-  name                = "virtualNetwork1"
-  resource_group_name = "${azurerm_resource_group.test.name}"
-  address_space       = ["10.0.0.0/16"]
-  location            = "West US"
+    name = "acceptanceTestVirtualNetwork1"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
 
-  subnet {
-    name           = "subnet1"
-    address_prefix = "10.0.1.0/24"
-  }
-
-  subnet {
-    name           = "subnet2"
+resource "azurerm_subnet" "test" {
+    name = "testsubnet"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
     address_prefix = "10.0.2.0/24"
-  }
+}
 
-  subnet {
-    name           = "subnet3"
-    address_prefix = "10.0.3.0/24"
-  }
-  
-  tags {
-    environment = "Production"
-  }
+resource "azurerm_network_interface" "test" {
+    name = "acceptanceTestNetworkInterface1"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+
+    tags {
+	    environment = "staging"
+    }
 }
 ```
 
@@ -86,7 +94,7 @@ The `ip_configuration` block supports:
 The following attributes are exported:
 
 * `id` - The virtual NetworkConfiguration ID.
-* `mac_address` - 
-* `virtual_machine_id` - 
-* `applied_dns_servers` - 
-* `internal_fqdn` - 
+* `mac_address` - The media access control (MAC) address of the network interface.
+* `virtual_machine_id` - Reference to a VM with which this NIC has been associated.
+* `applied_dns_servers` - If the VM that uses this NIC is part of an Availability Set, then this list will have the union of all DNS servers from all NICs that are part of the Availability Set
+* `internal_fqdn` - Fully qualified DNS name supporting internal communications between VMs in the same VNet
