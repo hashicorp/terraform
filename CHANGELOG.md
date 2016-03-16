@@ -13,6 +13,7 @@ BUG FIXES:
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
   * provider/aws: `aws_s3_bucket_object` field `etag` is now trimming off quotes (returns raw MD5 hash) ([#5305](https://github.com/hashicorp/terraform/issues/5305))
+  * provider/aws: `aws_autoscaling_group` now supports metrics collection, so a diff installing the default value of `1Minute` for the `metrics_granularity` field is expected. This diff should resolve in the next `terraform apply` w/ no AWS API calls ([#4688](https://github.com/hashicorp/terraform/issues/4688))
   * provider/consul: `consul_keys` `key` blocks now respect `delete` flag for removing individual blocks. Previously keys would be deleted only when the entire resource was removed.
   * provider/google: `next_hop_network` on `google_compute_route` is now read-only, to mirror the behavior in the official docs ([#5564](https://github.com/hashicorp/terraform/issues/5564))
   * state/remote/http: PUT requests for this backend will now have `Content-Type: application/json` instead of `application/octet-stream` ([#5499](https://github.com/hashicorp/terraform/issues/5499))
