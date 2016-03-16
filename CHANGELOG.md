@@ -6,6 +6,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
+
 ## 0.6.13 (March 16, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
