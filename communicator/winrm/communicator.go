@@ -55,11 +55,16 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 		return nil
 	}
 
+	password, err := decryptPassword(c.connInfo);
+	if (err != nil) {
+		return err
+	}
+
 	params := winrm.DefaultParameters()
 	params.Timeout = formatDuration(c.Timeout())
 
 	client, err := winrm.NewClientWithParameters(
-		c.endpoint, c.connInfo.User, c.connInfo.Password, params)
+		c.endpoint, c.connInfo.User, password, params)
 	if err != nil {
 		return err
 	}
@@ -77,7 +82,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 			c.connInfo.Host,
 			c.connInfo.Port,
 			c.connInfo.User,
-			c.connInfo.Password != "",
+			password != "",
 			c.connInfo.HTTPS,
 			c.connInfo.Insecure,
 			c.connInfo.CACert != nil,
@@ -193,10 +198,16 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 
 func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 	addr := fmt.Sprintf("%s:%d", c.endpoint.Host, c.endpoint.Port)
+
+	password, err := decryptPassword(c.connInfo);
+	if err != nil {
+		return nil, err
+	}
+
 	return winrmcp.New(addr, &winrmcp.Config{
 		Auth: winrmcp.Auth{
 			User:     c.connInfo.User,
-			Password: c.connInfo.Password,
+			Password: password,
 		},
 		OperationTimeout:      c.Timeout(),
 		MaxOperationsPerShell: 15, // lowest common denominator
