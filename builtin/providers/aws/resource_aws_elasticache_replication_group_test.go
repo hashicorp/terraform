@@ -72,6 +72,10 @@ func testAccCheckAWSEcacheReplicationGroupExists(n string) resource.TestCheckFun
 	}
 }
 
+func genRandInt() int {
+	return rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 1000
+}
+
 var testAccAWSEcacheReplicationGroupConfig = fmt.Sprintf(`
 resource "aws_elasticache_replication_group" "bar" {
     replication_group_id = "tf-repgrp-%03d"
