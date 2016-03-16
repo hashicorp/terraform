@@ -38,6 +38,6 @@ func testAccPreCheck(t *testing.T) {
 	}
 
 	if v := os.Getenv("CLOUDFLARE_DOMAIN"); v == "" {
-		t.Fatal("CLOUDFLARE_DOMAIN must be set for acceptance tests. The domain is used to ` and destroy record against.")
+		t.Fatal("CLOUDFLARE_DOMAIN must be set for acceptance tests. The domain is used to create and destroy record against.")
 	}
 }
