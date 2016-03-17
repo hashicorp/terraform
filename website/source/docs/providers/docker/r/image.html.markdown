@@ -33,6 +33,10 @@ The following arguments are supported:
   always be updated on the host to the latest. If this is false, as long as an
   image is downloaded with the correct tag, it won't be redownloaded if
   there is a newer image.
+* `username` - (Optional, string) The username to use for the repo this image 
+  is in. password is required if this argument is used.
+* `password` - (Optional, string) The password to use for the repo this image 
+  is in. username is required if this argument is used.
 
 ## Attributes Reference
 
