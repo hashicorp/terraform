@@ -2,6 +2,8 @@
 
 FEATURES:
 
+  * **New resource:** `azurerm_virtual_machine` [GH-5514]
+
 IMPROVEMENTS:
 
 BUG FIXES:
