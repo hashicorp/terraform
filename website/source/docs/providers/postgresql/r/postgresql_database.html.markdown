@@ -17,7 +17,7 @@ server.
 ```
 resource "postgresql_database" "my_db" {
    name = "my_db"
-   owner = "my_role
+   owner = "my_role"
 }
 
 ```

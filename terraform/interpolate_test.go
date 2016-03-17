@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 func TestInterpolater_countIndex(t *testing.T) {
@@ -384,6 +384,24 @@ func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
 		Value: config.UnknownVariableValue,
 		Type:  ast.TypeString,
 	})
+}
+
+func TestInterpolater_selfVarWithoutResource(t *testing.T) {
+	i := &Interpolater{}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	v, err := config.NewInterpolatedVariable("self.name")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	_, err = i.Values(scope, map[string]config.InterpolatedVariable{"foo": v})
+	if err == nil {
+		t.Fatalf("expected err, got none")
+	}
 }
 
 func getInterpolaterFixture(t *testing.T) *Interpolater {

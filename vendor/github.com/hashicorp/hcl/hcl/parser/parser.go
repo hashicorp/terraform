@@ -246,6 +246,11 @@ func (p *Parser) objectType() (*ast.ObjectType, error) {
 		return nil, err
 	}
 
+	// If there is no error, we should be at a RBRACE to end the object
+	if p.tok.Type != token.RBRACE {
+		return nil, fmt.Errorf("object expected closing RBRACE got: %s", p.tok.Type)
+	}
+
 	o.List = l
 	o.Rbrace = p.tok.Pos // advanced via parseObjectList
 	return o, nil

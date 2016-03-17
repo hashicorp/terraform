@@ -61,7 +61,8 @@ The following arguments are supported:
 
 * `description` - (Optional) A brief description of this resource.
 
-* `machine_type` - (Required) The machine type to create.
+* `machine_type` - (Required) The machine type to create.To create a custom machine type, value should be 
+    set as specified [here](https://cloud.google.com/compute/docs/reference/latest/instances#machineType)
 
 * `zone` - (Required) The zone that the machine should be created in.
 
@@ -120,7 +121,12 @@ the type is "local-ssd", in which case scratch must be true).
 
 The `network_interface` block supports:
 
-* `network` - (Required) The name of the network to attach this interface to.
+* `network` - (Optional) The name of the network to attach this interface to. Either
+    `network` or `subnetwork` must be provided.
+    
+*  `subnetwork` - (Optional) the name of the subnetwork to attach this interface to. The subnetwork
+     must exist in the same region this instance will be created in. Either `network`
+     or `subnetwork` must be provided.
 
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this instance can be
   accessed via the Internet.  Omit to ensure that the instance is not accessible from the Internet

@@ -18,15 +18,11 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
 
-# Use vendored dependencies
-export GO15VENDOREXPERIMENT=1
-
 # Delete the old dir
 echo "==> Removing old directory..."
 rm -f bin/*
 rm -rf pkg/*
 mkdir -p bin/
-
 
 # If its dev mode, only build for ourself
 if [ "${TF_DEV}x" != "x" ]; then
@@ -34,12 +30,17 @@ if [ "${TF_DEV}x" != "x" ]; then
     XC_ARCH=$(go env GOARCH)
 fi
 
+if ! which gox > /dev/null; then
+    echo "==> Installing gox..."
+    go get -u github.com/mitchellh/gox
+fi
+
 # Build!
 echo "==> Building..."
 gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
-    -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
+    -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" \
     -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
     $(go list ./... | grep -v /vendor/)
 

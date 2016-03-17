@@ -45,4 +45,5 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The record ID
+* `fqdn` - The FQDN of the record
 

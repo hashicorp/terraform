@@ -2,11 +2,13 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,32 +16,41 @@ import (
 func TestAccAWSGroupMembership_basic(t *testing.T) {
 	var group iam.GetGroupOutput
 
+	rString := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
+	configBase := fmt.Sprintf(testAccAWSGroupMemberConfig, rString, rString, rString)
+	configUpdate := fmt.Sprintf(testAccAWSGroupMemberConfigUpdate, rString, rString, rString, rString, rString)
+	configUpdateDown := fmt.Sprintf(testAccAWSGroupMemberConfigUpdateDown, rString, rString, rString)
+
+	testUser := fmt.Sprintf("test-user-%s", rString)
+	testUserTwo := fmt.Sprintf("test-user-two-%s", rString)
+	testUserThree := fmt.Sprintf("test-user-three-%s", rString)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSGroupMembershipDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSGroupMemberConfig,
+				Config: configBase,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
-					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user"}),
+					testAccCheckAWSGroupMembershipAttributes(&group, []string{testUser}),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAWSGroupMemberConfigUpdate,
+				Config: configUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
-					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user-two", "test-user-three"}),
+					testAccCheckAWSGroupMembershipAttributes(&group, []string{testUserTwo, testUserThree}),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAWSGroupMemberConfigUpdateDown,
+				Config: configUpdateDown,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
-					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user-three"}),
+					testAccCheckAWSGroupMembershipAttributes(&group, []string{testUserThree}),
 				),
 			},
 		},
@@ -103,7 +114,7 @@ func testAccCheckAWSGroupMembershipExists(n string, g *iam.GetGroupOutput) resou
 
 func testAccCheckAWSGroupMembershipAttributes(group *iam.GetGroupOutput, users []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *group.Group.GroupName != "test-group" {
+		if !strings.Contains(*group.Group.GroupName, "test-group") {
 			return fmt.Errorf("Bad group membership: expected %s, got %s", "test-group", *group.Group.GroupName)
 		}
 
@@ -125,17 +136,17 @@ func testAccCheckAWSGroupMembershipAttributes(group *iam.GetGroupOutput, users [
 
 const testAccAWSGroupMemberConfig = `
 resource "aws_iam_group" "group" {
-	name = "test-group"
+	name = "test-group-%s"
 	path = "/"
 }
 
 resource "aws_iam_user" "user" {
-	name = "test-user"
+	name = "test-user-%s"
 	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
-	name = "tf-testing-group-membership"
+	name = "tf-testing-group-membership-%s"
 	users = ["${aws_iam_user.user.name}"]
 	group = "${aws_iam_group.group.name}"
 }
@@ -143,27 +154,27 @@ resource "aws_iam_group_membership" "team" {
 
 const testAccAWSGroupMemberConfigUpdate = `
 resource "aws_iam_group" "group" {
-	name = "test-group"
+	name = "test-group-%s"
 	path = "/"
 }
 
 resource "aws_iam_user" "user" {
-	name = "test-user"
+	name = "test-user-%s"
 	path = "/"
 }
 
 resource "aws_iam_user" "user_two" {
-	name = "test-user-two"
+	name = "test-user-two-%s"
 	path = "/"
 }
 
 resource "aws_iam_user" "user_three" {
-	name = "test-user-three"
+	name = "test-user-three-%s"
 	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
-	name = "tf-testing-group-membership"
+	name = "tf-testing-group-membership-%s"
 	users = [
 		"${aws_iam_user.user_two.name}",
 		"${aws_iam_user.user_three.name}",
@@ -174,17 +185,17 @@ resource "aws_iam_group_membership" "team" {
 
 const testAccAWSGroupMemberConfigUpdateDown = `
 resource "aws_iam_group" "group" {
-	name = "test-group"
+	name = "test-group-%s"
 	path = "/"
 }
 
 resource "aws_iam_user" "user_three" {
-	name = "test-user-three"
+	name = "test-user-three-%s"
 	path = "/"
 }
 
 resource "aws_iam_group_membership" "team" {
-	name = "tf-testing-group-membership"
+	name = "tf-testing-group-membership-%s"
 	users = [
 		"${aws_iam_user.user_three.name}",
 	]

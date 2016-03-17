@@ -3,7 +3,7 @@ sudo: false
 language: go
 
 go:
-  - 1.5
+  - 1.6
 
 # Need to ensure at least something remains in the install stanza to opt out of
 # Travis's built-in 'godep restore', which will fail Travis
@@ -12,7 +12,7 @@ install:
   - echo noop
 
 script:
-  - make test
+  - make test vet
 
 branches:
   only:

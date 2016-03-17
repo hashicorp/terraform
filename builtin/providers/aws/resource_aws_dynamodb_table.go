@@ -175,6 +175,10 @@ func resourceAwsDynamoDbTable() *schema.Resource {
 				},
 				ValidateFunc: validateStreamViewType,
 			},
+			"stream_arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -583,6 +587,11 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	result, err := dynamodbconn.DescribeTable(req)
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+			log.Printf("[WARN] Dynamodb Table (%s) not found, error code (404)", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -636,6 +645,7 @@ func resourceAwsDynamoDbTableRead(d *schema.ResourceData, meta interface{}) erro
 	if table.StreamSpecification != nil {
 		d.Set("stream_view_type", table.StreamSpecification.StreamViewType)
 		d.Set("stream_enabled", table.StreamSpecification.StreamEnabled)
+		d.Set("stream_arn", table.LatestStreamArn)
 	}
 
 	err = d.Set("global_secondary_index", gsiList)
@@ -666,25 +676,25 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 		TableName: aws.String(d.Id()),
 	}
 
-	err = resource.Retry(10*time.Minute, func() error {
+	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
 		t, err := dynamodbconn.DescribeTable(params)
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
 				return nil
 			}
 			// Didn't recognize the error, so shouldn't retry.
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		if t != nil {
 			if t.Table.TableStatus != nil && strings.ToLower(*t.Table.TableStatus) == "deleting" {
 				log.Printf("[DEBUG] AWS Dynamo DB table (%s) is still deleting", d.Id())
-				return fmt.Errorf("still deleting")
+				return resource.RetryableError(fmt.Errorf("still deleting"))
 			}
 		}
 
 		// we should be not found or deleting, so error here
-		return resource.RetryError{Err: fmt.Errorf("[ERR] Error deleting Dynamo DB table, unexpected state: %s", t)}
+		return resource.NonRetryableError(err)
 	})
 
 	// check error from retry

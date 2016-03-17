@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/acctest"
+
 )
 
 func TestAccAWSEcacheReplicationGroup(t *testing.T) {
@@ -79,4 +81,4 @@ resource "aws_elasticache_replication_group" "bar" {
     num_cache_clusters = 2
     description = "tf-test-replication-group-descr"
 }
-`, genRandInt())
+`, acctest.RandInt())

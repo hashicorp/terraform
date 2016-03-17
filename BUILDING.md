@@ -41,15 +41,12 @@ vagrant ssh
 # The current "terraform" directory is then sync'd into the gopath
 cd /opt/gopath/src/github.com/hashicorp/terraform/
 
-# Fetch dependencies
-make updatedeps
-
 # Verify unit tests pass
 make test
 
 # Build the release
 # This generates binaries for each platform and places them in the pkg folder
-make release
+make bin
 ```
 
 After running these commands, you should have binaries for all supported

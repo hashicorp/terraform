@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -138,7 +137,13 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"network": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"subnetwork": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 
@@ -172,6 +177,12 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				Optional:   true,
 				ForceNew:   true,
 				Deprecated: "Please use `scheduling.on_host_maintenance` instead",
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"scheduling": &schema.Schema{
@@ -234,9 +245,7 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"metadata_fingerprint": &schema.Schema{
@@ -330,19 +339,58 @@ func buildDisks(d *schema.ResourceData, meta interface{}) ([]*compute.AttachedDi
 
 func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.NetworkInterface) {
 	// Build up the list of networks
+	config := meta.(*Config)
+
 	networksCount := d.Get("network_interface.#").(int)
 	networkInterfaces := make([]*compute.NetworkInterface, 0, networksCount)
 	for i := 0; i < networksCount; i++ {
 		prefix := fmt.Sprintf("network_interface.%d", i)
 
-		source := "global/networks/"
+		var networkName, subnetworkName string
 		if v, ok := d.GetOk(prefix + ".network"); ok {
-			source += v.(string)
+			networkName = v.(string)
+		}
+		if v, ok := d.GetOk(prefix + ".subnetwork"); ok {
+			subnetworkName = v.(string)
+		}
+
+		if networkName == "" && subnetworkName == "" {
+			return fmt.Errorf("network or subnetwork must be provided"), nil
+		}
+		if networkName != "" && subnetworkName != "" {
+			return fmt.Errorf("network or subnetwork must not both be provided"), nil
+		}
+
+		var networkLink, subnetworkLink string
+		if networkName != "" {
+			network, err := config.clientCompute.Networks.Get(
+				config.Project, networkName).Do()
+			if err != nil {
+				return fmt.Errorf(
+					"Error referencing network '%s': %s",
+					networkName, err), nil
+			}
+			networkLink = network.SelfLink
+		} else {
+			// lookup subnetwork link using region and subnetwork name
+			region := d.Get("region").(string)
+			if region == "" {
+				region = config.Region
+			}
+			subnetwork, err := config.clientCompute.Subnetworks.Get(
+				config.Project, region, subnetworkName).Do()
+			if err != nil {
+				return fmt.Errorf(
+					"Error referencing subnetwork '%s' in region '%s': %s",
+					subnetworkName, region, err), nil
+			}
+			subnetworkLink = subnetwork.SelfLink
 		}
 
 		// Build the networkInterface
 		var iface compute.NetworkInterface
-		iface.Network = source
+		iface.Network = networkLink
+		iface.Subnetwork = subnetworkLink
 
 		accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
 		iface.AccessConfigs = make([]*compute.AccessConfig, accessConfigsCount)
@@ -394,6 +442,9 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		instanceProperties.Scheduling.OnHostMaintenance = v.(string)
 	}
 
+	forceSendFieldsScheduling := make([]string, 0, 3)
+	var hasSendMaintenance bool
+	hasSendMaintenance = false
 	if v, ok := d.GetOk("scheduling"); ok {
 		_schedulings := v.([]interface{})
 		if len(_schedulings) > 1 {
@@ -403,16 +454,25 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 
 		if vp, okp := _scheduling["automatic_restart"]; okp {
 			instanceProperties.Scheduling.AutomaticRestart = vp.(bool)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "AutomaticRestart")
 		}
 
 		if vp, okp := _scheduling["on_host_maintenance"]; okp {
 			instanceProperties.Scheduling.OnHostMaintenance = vp.(string)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "OnHostMaintenance")
+			hasSendMaintenance = true
 		}
 
 		if vp, okp := _scheduling["preemptible"]; okp {
 			instanceProperties.Scheduling.Preemptible = vp.(bool)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "Preemptible")
+			if vp.(bool) && !hasSendMaintenance {
+				instanceProperties.Scheduling.OnHostMaintenance = "TERMINATE"
+				forceSendFieldsScheduling = append(forceSendFieldsScheduling, "OnHostMaintenance")
+			}
 		}
 	}
+	instanceProperties.Scheduling.ForceSendFields = forceSendFieldsScheduling
 
 	serviceAccountsCount := d.Get("service_account.#").(int)
 	serviceAccounts := make([]*compute.ServiceAccount, 0, serviceAccountsCount)

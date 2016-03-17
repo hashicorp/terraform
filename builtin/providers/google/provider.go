@@ -53,12 +53,14 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
 			"google_compute_https_health_check":     resourceComputeHttpsHealthCheck(),
 			"google_compute_instance":               resourceComputeInstance(),
+			"google_compute_instance_group":         resourceComputeInstanceGroup(),
 			"google_compute_instance_group_manager": resourceComputeInstanceGroupManager(),
 			"google_compute_instance_template":      resourceComputeInstanceTemplate(),
 			"google_compute_network":                resourceComputeNetwork(),
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
 			"google_compute_route":                  resourceComputeRoute(),
 			"google_compute_ssl_certificate":        resourceComputeSslCertificate(),
+			"google_compute_subnetwork":             resourceComputeSubnetwork(),
 			"google_compute_target_http_proxy":      resourceComputeTargetHttpProxy(),
 			"google_compute_target_https_proxy":     resourceComputeTargetHttpsProxy(),
 			"google_compute_target_pool":            resourceComputeTargetPool(),
@@ -143,4 +145,13 @@ func validateCredentials(v interface{}, k string) (warnings []string, errors []e
 	}
 
 	return
+}
+
+// getRegionFromZone returns the region from a zone for Google cloud.
+func getRegionFromZone(zone string) string {
+	if zone != "" && len(zone) > 2 {
+		region := zone[:len(zone)-2]
+		return region
+	}
+	return ""
 }
