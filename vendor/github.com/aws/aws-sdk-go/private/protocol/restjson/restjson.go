@@ -53,6 +53,7 @@ func UnmarshalMeta(r *request.Request) {
 
 // UnmarshalError unmarshals a response error for the REST JSON protocol.
 func UnmarshalError(r *request.Request) {
+	defer r.HTTPResponse.Body.Close()
 	code := r.HTTPResponse.Header.Get("X-Amzn-Errortype")
 	bodyBytes, err := ioutil.ReadAll(r.HTTPResponse.Body)
 	if err != nil {
