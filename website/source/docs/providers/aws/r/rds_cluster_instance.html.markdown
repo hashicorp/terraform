@@ -26,7 +26,7 @@ For more information on Amazon Aurora, see [Aurora on Amazon RDS][2] in the Amaz
 ```
 resource "aws_rds_cluster_instance" "cluster_instances" {
   count = 2
-  identifier = "aurora-cluster-demo"
+  identifier = "aurora-cluster-demo-${count.index}"
   cluster_identifier = "${aws_rds_cluster.default.id}"
   instance_class = "db.r3.large"
 }
@@ -36,7 +36,7 @@ resource "aws_rds_cluster" "default" {
   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
   database_name = "mydb"
   master_username = "foo"
-  master_password = "bar"
+  master_password = "barbut8chars"
 }
 ```
 
