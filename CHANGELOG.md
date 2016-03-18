@@ -7,6 +7,7 @@ FEATURES:
 
 IMPROVEMENTS:
   * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
+  * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted [GH-5723]
 
 BUG FIXES:
 
