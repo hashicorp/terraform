@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * core: Color output is now shown correctly when running Terraform on Windows [GH-5718]
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]
 
