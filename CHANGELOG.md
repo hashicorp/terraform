@@ -6,6 +6,7 @@ FEATURES:
   * **New resource:** `azurerm_virtual_machine` [GH-5514]
 
 IMPROVEMENTS:
+  * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
 
 BUG FIXES:
 
