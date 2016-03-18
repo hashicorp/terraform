@@ -2928,6 +2928,12 @@ func (c *IAM) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *re
 		Name:       opListPolicyVersions,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"Marker"},
+			OutputTokens:    []string{"Marker"},
+			LimitToken:      "MaxItems",
+			TruncationToken: "IsTruncated",
+		},
 	}
 
 	if input == nil {
@@ -2950,6 +2956,14 @@ func (c *IAM) ListPolicyVersions(input *ListPolicyVersionsInput) (*ListPolicyVer
 	req, out := c.ListPolicyVersionsRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+func (c *IAM) ListPolicyVersionsPages(input *ListPolicyVersionsInput, fn func(p *ListPolicyVersionsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListPolicyVersionsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListPolicyVersionsOutput), lastPage)
+	})
 }
 
 const opListRolePolicies = "ListRolePolicies"
@@ -4157,7 +4171,8 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 // Updates the name and/or the path of the specified user.
 //
 //  You should understand the implications of changing a user's path or name.
-// For more information, see Renaming Users and Groups (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_WorkingWithGroupsAndUsers.html)
+// For more information, see Renaming an IAM User (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_manage.html#id_users_renaming)
+// and Renaming an IAM Group (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups_manage_rename.html)
 // in the IAM User Guide.   To change a user name the requester must have appropriate
 // permissions on both the source object and the target object. For example,
 // to change Bob to Robert, the entity making the request must have permission
@@ -6141,9 +6156,12 @@ type EvaluationResult struct {
 	MatchedStatements []*Statement `type:"list"`
 
 	// A list of context keys that are required by the included input policies but
-	// that were not provided by one of the input parameters. To discover the context
-	// keys used by a set of policies, you can call GetContextKeysForCustomPolicy
-	// or GetContextKeysForPrincipalPolicy.
+	// that were not provided by one of the input parameters. This list is used
+	// when the resource in a simulation is "*", either explicitly, or when the
+	// ResourceArns parameter blank. If you include a list of resources, then any
+	// missing context values are instead included under the ResourceSpecificResults
+	// section. To discover the context keys used by a set of policies, you can
+	// call GetContextKeysForCustomPolicy or GetContextKeysForPrincipalPolicy.
 	//
 	//  If the response includes any keys in this list, then the reported results
 	// might be untrustworthy because the simulation could not completely evaluate
@@ -6609,6 +6627,8 @@ type GetCredentialReportOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Contains the credential report. The report is Base64-encoded.
+	//
+	// Content is automatically base64 encoded/decoded by the SDK.
 	Content []byte `type:"blob"`
 
 	// The date and time when the credential report was created, in ISO 8601 date-time
@@ -9235,6 +9255,11 @@ func (s PolicyDetail) GoString() string {
 type PolicyGroup struct {
 	_ struct{} `type:"structure"`
 
+	// The stable and unique string identifying the group. For more information
+	// about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
+	// in the IAM User Guide.
+	GroupId *string `min:"16" type:"string"`
+
 	// The name (friendly name, not ARN) identifying the group.
 	GroupName *string `min:"1" type:"string"`
 }
@@ -9260,6 +9285,11 @@ func (s PolicyGroup) GoString() string {
 type PolicyRole struct {
 	_ struct{} `type:"structure"`
 
+	// The stable and unique string identifying the role. For more information about
+	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
+	// in the IAM User Guide.
+	RoleId *string `min:"16" type:"string"`
+
 	// The name (friendly name, not ARN) identifying the role.
 	RoleName *string `min:"1" type:"string"`
 }
@@ -9284,6 +9314,11 @@ func (s PolicyRole) GoString() string {
 // in the Using IAM guide.
 type PolicyUser struct {
 	_ struct{} `type:"structure"`
+
+	// The stable and unique string identifying the user. For more information about
+	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
+	// in the IAM User Guide.
+	UserId *string `min:"16" type:"string"`
 
 	// The name (friendly name, not ARN) identifying the user.
 	UserName *string `min:"1" type:"string"`
@@ -9611,8 +9646,12 @@ type ResourceSpecificResult struct {
 	MatchedStatements []*Statement `type:"list"`
 
 	// A list of context keys that are required by the included input policies but
-	// that were not provided by one of the input parameters. To discover the context
-	// keys used by a set of policies, you can call GetContextKeysForCustomPolicy
+	// that were not provided by one of the input parameters. This list is used
+	// when a list of ARNs is included in the ResourceArns parameter instead of
+	// "*". If you do not specify individual resources, by setting ResourceArns
+	// to "*" or by not including the ResourceArns parameter, then any missing context
+	// values are instead included under the EvaluationResults section. To discover
+	// the context keys used by a set of policies, you can call GetContextKeysForCustomPolicy
 	// or GetContextKeysForPrincipalPolicy.
 	MissingContextValues []*string `type:"list"`
 }
@@ -11068,6 +11107,8 @@ type VirtualMFADevice struct {
 
 	// The Base32 seed defined as specified in RFC3548 (http://www.ietf.org/rfc/rfc3548.txt).
 	// The Base32StringSeed is Base64-encoded.
+	//
+	// Base32StringSeed is automatically base64 encoded/decoded by the SDK.
 	Base32StringSeed []byte `type:"blob"`
 
 	// The date and time on which the virtual MFA device was enabled.
@@ -11077,6 +11118,8 @@ type VirtualMFADevice struct {
 	// where $virtualMFADeviceName is one of the create call arguments, AccountName
 	// is the user name if set (otherwise, the account ID otherwise), and Base32String
 	// is the seed in Base32 format. The Base32String value is Base64-encoded.
+	//
+	// QRCodePNG is automatically base64 encoded/decoded by the SDK.
 	QRCodePNG []byte `type:"blob"`
 
 	// The serial number associated with VirtualMFADevice.

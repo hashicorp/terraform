@@ -1333,6 +1333,8 @@ type PutRecordInput struct {
 	// is serialized. When the data blob (the payload before base64-encoding) is
 	// added to the partition key size, the total size must not exceed the maximum
 	// record size (1 MB).
+	//
+	// Data is automatically base64 encoded/decoded by the SDK.
 	Data []byte `type:"blob" required:"true"`
 
 	// The hash value used to explicitly determine the shard the data record is
@@ -1448,6 +1450,8 @@ type PutRecordsRequestEntry struct {
 	// is serialized. When the data blob (the payload before base64-encoding) is
 	// added to the partition key size, the total size must not exceed the maximum
 	// record size (1 MB).
+	//
+	// Data is automatically base64 encoded/decoded by the SDK.
 	Data []byte `type:"blob" required:"true"`
 
 	// The hash value used to determine explicitly the shard that the data record
@@ -1523,6 +1527,8 @@ type Record struct {
 	// the blob in any way. When the data blob (the payload before base64-encoding)
 	// is added to the partition key size, the total size must not exceed the maximum
 	// record size (1 MB).
+	//
+	// Data is automatically base64 encoded/decoded by the SDK.
 	Data []byte `type:"blob" required:"true"`
 
 	// Identifies which shard in the stream the data record is assigned to.
