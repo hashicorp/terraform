@@ -1268,6 +1268,8 @@ type DecryptInput struct {
 	_ struct{} `type:"structure"`
 
 	// Ciphertext to be decrypted. The blob includes metadata.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob" required:"true"`
 
 	// The encryption context. If this was specified in the Encrypt function, it
@@ -1301,6 +1303,8 @@ type DecryptOutput struct {
 
 	// Decrypted plaintext data. This value may not be returned if the customer
 	// master key is not available or if you didn't have permission to use it.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob"`
 }
 
@@ -1551,6 +1555,8 @@ type EncryptInput struct {
 	KeyId *string `min:"1" type:"string" required:"true"`
 
 	// Data to be encrypted.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob" required:"true"`
 }
 
@@ -1569,6 +1575,8 @@ type EncryptOutput struct {
 
 	// The encrypted plaintext. If you are using the CLI, the value is Base64 encoded.
 	// Otherwise, it is not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// The ID of the key used during encryption.
@@ -1638,6 +1646,8 @@ type GenerateDataKeyOutput struct {
 	//
 	// If you are using the CLI, the value is Base64 encoded. Otherwise, it is
 	// not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// System generated unique identifier of the key to be used to decrypt the encrypted
@@ -1646,6 +1656,8 @@ type GenerateDataKeyOutput struct {
 
 	// Plaintext that contains the data key. Use this for encryption and decryption
 	// and then remove it from memory as soon as possible.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob"`
 }
 
@@ -1708,6 +1720,8 @@ type GenerateDataKeyWithoutPlaintextOutput struct {
 	//
 	// If you are using the CLI, the value is Base64 encoded. Otherwise, it is
 	// not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// System generated unique identifier of the key to be used to decrypt the encrypted
@@ -1747,6 +1761,8 @@ type GenerateRandomOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Plaintext that contains the unpredictable byte string.
+	//
+	// Plaintext is automatically base64 encoded/decoded by the SDK.
 	Plaintext []byte `min:"1" type:"blob"`
 }
 
@@ -2307,6 +2323,8 @@ type ReEncryptInput struct {
 	_ struct{} `type:"structure"`
 
 	// Ciphertext of the data to re-encrypt.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob" required:"true"`
 
 	// Encryption context to be used when the data is re-encrypted.
@@ -2347,6 +2365,8 @@ type ReEncryptOutput struct {
 
 	// The re-encrypted data. If you are using the CLI, the value is Base64 encoded.
 	// Otherwise, it is not encoded.
+	//
+	// CiphertextBlob is automatically base64 encoded/decoded by the SDK.
 	CiphertextBlob []byte `min:"1" type:"blob"`
 
 	// Unique identifier of the key used to re-encrypt the data.
