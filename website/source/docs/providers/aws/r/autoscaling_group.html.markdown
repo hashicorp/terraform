@@ -70,7 +70,7 @@ The following arguments are supported:
 * `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated.
 * `tag` (Optional) A list of tag blocks. Tags documented below.
 * `placement_group` (Optional) The name of the placement group into which you'll launch your instances, if any.
-* `metrics_granularity` - (Required) The granularity to associate with the metrics to collect. The only valid value is `1Minute`.
+* `metrics_granularity` - (Optional) The granularity to associate with the metrics to collect. The only valid value is `1Minute`. Default is `1Minute`.
 * `enabled_metrics` - (Required) A list of metrics to collect. The allowed values are `GroupMinSize`, `GroupMaxSize`, `GroupDesiredCapacity`, `GroupInServiceInstances`, `GroupPendingInstances`, `GroupStandbyInstances`, `GroupTerminatingInstances`, `GroupTotalInstances`.
 * `wait_for_capacity_timeout` (Default: "10m") A maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
