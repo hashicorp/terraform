@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -28,6 +29,28 @@ func TestAccAWSRDSClusterInstance_basic(t *testing.T) {
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
 					testAccCheckAWSDBClusterInstanceAttributes(&v),
 				),
+			},
+		},
+	})
+}
+
+// https://github.com/hashicorp/terraform/issues/5350
+func TestAccAWSRDSClusterInstance_disappears(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSClusterInstanceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
+					testAccAWSClusterInstanceDisappears(&v),
+				),
+				// A non-empty plan is what we want. A crash is what we don't want. :)
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -80,6 +103,34 @@ func testAccCheckAWSDBClusterInstanceAttributes(v *rds.DBInstance) resource.Test
 		}
 
 		return nil
+	}
+}
+
+func testAccAWSClusterInstanceDisappears(v *rds.DBInstance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
+		opts := &rds.DeleteDBInstanceInput{
+			DBInstanceIdentifier: v.DBInstanceIdentifier,
+		}
+		if _, err := conn.DeleteDBInstance(opts); err != nil {
+			return err
+		}
+		return resource.Retry(40*time.Minute, func() *resource.RetryError {
+			opts := &rds.DescribeDBInstancesInput{
+				DBInstanceIdentifier: v.DBInstanceIdentifier,
+			}
+			_, err := conn.DescribeDBInstances(opts)
+			if err != nil {
+				dbinstanceerr, ok := err.(awserr.Error)
+				if ok && dbinstanceerr.Code() == "DBInstanceNotFound" {
+					return nil
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error retrieving DB Instances: %s", err))
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for instance to be deleted: %v", v.DBInstanceIdentifier))
+		})
 	}
 }
 

@@ -899,6 +899,10 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	return resourceAwsDbInstanceRead(d, meta)
 }
 
+// resourceAwsDbInstanceRetrieve fetches DBInstance information from the AWS
+// API. It returns an error if there is a communication problem or unexpected
+// error with AWS. When the DBInstance is not found, it returns no error and a
+// nil pointer.
 func resourceAwsDbInstanceRetrieve(
 	d *schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
 	conn := meta.(*AWSClient).rdsconn
