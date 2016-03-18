@@ -2,116 +2,123 @@ package udnssdk
 
 import (
 	"fmt"
+	"log"
+	"time"
 )
 
-// ZonesService handles communication with the Zone related blah blah
+// TasksService provides access to the tasks resources
 type TasksService struct {
 	client *Client
 }
 
+// Task wraps a task response
 type Task struct {
-	TaskId         string `json:"taskId"`
+	TaskID         string `json:"taskId"`
 	TaskStatusCode string `json:"taskStatusCode"`
 	Message        string `json:"message"`
-	ResultUri      string `json:"resultUri"`
+	ResultURI      string `json:"resultUri"`
 }
 
+// TaskListDTO wraps a list of Task resources, from an HTTP response
 type TaskListDTO struct {
-	Tasks                   []Task `json:"tasks"`
-	Queryinfoq              string `json:"queryinfo/q"`
-	Queryinfosort           string `json:"queryinfo/reverse"`
-	Queryinfolimit          string `json:"queryinfo/limit"`
-	ResultinfototalCount    string `json:"resultinfo/totalCount"`
-	Resultinfooffset        string `json:"resultinfo/offset"`
-	ResultinforeturnedCount string `json:"resultinfo/returnedCount"`
+	Tasks      []Task     `json:"tasks"`
+	Queryinfo  QueryInfo  `json:"queryInfo"`
+	Resultinfo ResultInfo `json:"resultInfo"`
 }
+
 type taskWrapper struct {
 	Task Task `json:"task"`
 }
 
-// taskPath links to the task url.
-func taskResultPath(tid string) string {
-	path := fmt.Sprintf("tasks/%s/result", tid)
-	/*
-		if tasktype != nil {
-			path += fmt.Sprintf("/%v", tasktype)
-			if task != nil {
-				path += fmt.Sprintf("/%v", task)
+// TaskID represents the string identifier of a task
+type TaskID string
+
+// ResultURI generates URI for the task result
+func (t TaskID) ResultURI() string {
+	return fmt.Sprintf("%s/result", t.URI())
+}
+
+// URI generates the URI for a task
+func (t TaskID) URI() string {
+	return fmt.Sprintf("tasks/%s", t)
+}
+
+// TasksQueryURI generates the query URI for the tasks collection given a query and offset
+func TasksQueryURI(query string, offset int) string {
+	if query != "" {
+		return fmt.Sprintf("tasks?sort=NAME&query=%s&offset=%d", query, offset)
+	}
+	return fmt.Sprintf("tasks?offset=%d", offset)
+}
+
+// Select requests all tasks, with pagination
+func (s *TasksService) Select(query string) ([]Task, error) {
+	// TODO: Sane Configuration for timeouts / retries
+	maxerrs := 5
+	waittime := 5 * time.Second
+
+	// init accumulators
+	dtos := []Task{}
+	offset := 0
+	errcnt := 0
+
+	for {
+		reqDtos, ri, res, err := s.SelectWithOffset(query, offset)
+		if err != nil {
+			if res.StatusCode >= 500 {
+				errcnt = errcnt + 1
+				if errcnt < maxerrs {
+					time.Sleep(waittime)
+					continue
+				}
 			}
+			return dtos, err
 		}
-	*/
-	return path
-}
-func taskPath(tid string) string {
-	return fmt.Sprintf("tasks/%s", tid)
-}
 
-// Get the status of a task.
-func (s *TasksService) GetTaskStatus(tid string) (Task, *Response, error) {
-	reqStr := taskPath(tid)
-	var t Task
-	res, err := s.client.get(reqStr, &t)
-	if err != nil {
-		return t, res, err
+		log.Printf("[DEBUG] ResultInfo: %+v\n", ri)
+		for _, d := range reqDtos {
+			dtos = append(dtos, d)
+		}
+		if ri.ReturnedCount+ri.Offset >= ri.TotalCount {
+			return dtos, nil
+		}
+		offset = ri.ReturnedCount + ri.Offset
+		continue
 	}
-	return t, res, err
 }
 
-// HTTP BS to dance around bad program structure
-func (s *TasksService) GetTaskResultByURI(uri string) (*Response, error) {
-	req, err := s.client.NewRequest("GET", uri, nil)
-	if err != nil {
-		return nil, err
-	}
-	res, err := s.client.HttpClient.Do(req)
-
-	if err != nil {
-		return &Response{Response: res}, err
-	}
-	return &Response{Response: res}, err
-}
-
-func (s *TasksService) GetTaskResult(tid string) (*Response, error) {
-	uri := taskResultPath(tid)
-
-	req, err := s.client.NewRequest("GET", uri, nil)
-	if err != nil {
-		return nil, err
-	}
-	res, err := s.client.HttpClient.Do(req)
-
-	if err != nil {
-		return &Response{Response: res}, err
-	}
-	return &Response{Response: res}, err
-}
-
-// List tasks
-//
-func (s *TasksService) ListTasks(query string, offset, limit int) ([]Task, *Response, error) {
-	// TODO: Soooo... This function does not handle pagination of Tasks....
-	//v := url.Values{}
-
-	reqStr := "tasks"
+// SelectWithOffset request tasks by query & offset, list them also returning list metadata, the actual response, or an error
+func (s *TasksService) SelectWithOffset(query string, offset int) ([]Task, ResultInfo, *Response, error) {
 	var tld TaskListDTO
-	//wrappedTasks := []Task{}
 
-	res, err := s.client.get(reqStr, &tld)
-	if err != nil {
-		return []Task{}, res, err
-	}
+	uri := TasksQueryURI(query, offset)
+	res, err := s.client.get(uri, &tld)
 
-	tasks := []Task{}
+	ts := []Task{}
 	for _, t := range tld.Tasks {
-		tasks = append(tasks, t)
+		ts = append(ts, t)
 	}
-
-	return tasks, res, nil
+	return ts, tld.Resultinfo, res, err
 }
 
-// DeleteTask deletes a task.
-//
-func (s *TasksService) DeleteTask(tid string) (*Response, error) {
-	path := taskPath(tid)
-	return s.client.delete(path, nil)
+// Find Get the status of a task.
+func (s *TasksService) Find(t TaskID) (Task, *Response, error) {
+	var tv Task
+	res, err := s.client.get(t.URI(), &tv)
+	return tv, res, err
+}
+
+// FindResult requests
+func (s *TasksService) FindResult(t TaskID) (*Response, error) {
+	return s.client.GetResultByURI(t.ResultURI())
+}
+
+// FindResultByTask  requests a task by the provided task's result uri
+func (s *TasksService) FindResultByTask(t Task) (*Response, error) {
+	return s.client.GetResultByURI(t.ResultURI)
+}
+
+// Delete requests deletions
+func (s *TasksService) Delete(t TaskID) (*Response, error) {
+	return s.client.delete(t.URI(), nil)
 }
