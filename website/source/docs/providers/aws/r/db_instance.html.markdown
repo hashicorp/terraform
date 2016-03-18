@@ -28,16 +28,15 @@ for more information.
 
 ```
 resource "aws_db_instance" "default" {
-	identifier = "mydb-rds"
-	allocated_storage = 10
-	engine = "mysql"
-	engine_version = "5.6.17"
-	instance_class = "db.t1.micro"
-	name = "mydb"
-	username = "foo"
-	password = "bar"
-	db_subnet_group_name = "my_database_subnet_group"
-	parameter_group_name = "default.mysql5.6"
+  allocated_storage    = 10
+  engine               = "mysql"
+  engine_version       = "5.6.17"
+  instance_class       = "db.t1.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "bar"
+  db_subnet_group_name = "my_database_subnet_group"
+  parameter_group_name = "default.mysql5.6"
 }
 ```
 
@@ -51,7 +50,7 @@ The following arguments are supported:
 * `allocated_storage` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) The allocated storage in gigabytes.
 * `engine` - (Required unless a `snapshot_identifier` or `replicate_source_db` is provided) The database engine to use.
 * `engine_version` - (Optional) The engine version to use.
-* `identifier` - (Required) The name of the RDS instance
+* `identifier` - (Optional) The name of the RDS instance, if omitted, Terraform will assign a random, unique name
 * `instance_class` - (Required) The instance type of the RDS instance.
 * `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general
 	purpose SSD), or "io1" (provisioned IOPS SSD). The default is "io1" if
