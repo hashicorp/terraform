@@ -137,12 +137,16 @@ func resourceCLCGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Failed updating group %v: %v", id, err)
 	}
-	return resource.Retry(1*time.Minute, func() error {
+	return resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := client.Group.Get(id)
-		if err == nil {
-			return resourceCLCGroupRead(d, meta)
+		if err != nil {
+			return resource.RetryableError(err)
 		}
-		return &resource.RetryError{Err: err}
+		err = resourceCLCGroupRead(d, meta)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		return nil
 	})
 }
 

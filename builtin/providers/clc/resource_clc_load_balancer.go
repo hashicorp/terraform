@@ -62,12 +62,16 @@ func resourceCLCLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Failed creating load balancer under %v/%v: %v", dc, name, err)
 	}
 	d.SetId(l.ID)
-	return resource.Retry(1*time.Minute, func() error {
+	return resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := client.LB.Get(dc, l.ID)
-		if err == nil {
-			return resourceCLCLoadBalancerRead(d, meta)
+		if err != nil {
+			return resource.RetryableError(err)
 		}
-		return &resource.RetryError{Err: err}
+		err = resourceCLCLoadBalancerRead(d, meta)
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		return nil
 	})
 }
 

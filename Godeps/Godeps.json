@@ -151,6 +151,51 @@
 			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
 		},
 		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/aa",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/alert",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/api",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/dc",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/group",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/lb",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/server",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
+			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk/status",
+			"Comment": "0.0.2-17-gb0c6106",
+			"Rev": "b0c610652394ae6cac087e1e5d6de187c5f3f258"
+		},
+		{
 			"ImportPath": "github.com/DreamItGetIT/statuscake",
 			"Rev": "8cbe86575f00210a6df2c19cb2f59b00cd181de3"
 		},
@@ -813,6 +858,10 @@
 		{
 			"ImportPath": "github.com/mattn/go-isatty",
 			"Rev": "56b76bdf51f7708750eac80fa38b952bb9f32639"
+		},
+		{
+			"ImportPath": "github.com/mikebeyer/env",
+			"Rev": "b6ce30ccdcad3ed9d5ca80329829f5aeaa856e99"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/cli",
