@@ -20,7 +20,7 @@ func TestAccUltraDNSRecord_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckUltraDNSRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfig_basic, domain),
+				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
 					testAccCheckUltraDNSRecordAttributes(&record),
@@ -46,7 +46,7 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 		CheckDestroy: testAccCheckUltraDNSRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfig_basic, domain),
+				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
 					testAccCheckUltraDNSRecordAttributes(&record),
@@ -59,7 +59,7 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfig_new_value, domain),
+				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigNewValue, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
 					testAccCheckUltraDNSRecordAttributesUpdated(&record),
@@ -83,7 +83,13 @@ func testAccCheckUltraDNSRecordDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, _, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
+		k := udnssdk.RRSetKey{
+			Zone: rs.Primary.Attributes["zone"],
+			Name: rs.Primary.Attributes["name"],
+			Type: rs.Primary.Attributes["type"],
+		}
+
+		_, err := client.RRSets.Select(k)
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -128,7 +134,13 @@ func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.
 		}
 
 		client := testAccProvider.Meta().(*udnssdk.Client)
-		foundRecord, _, err := client.RRSets.GetRRSets(rs.Primary.Attributes["zone"], rs.Primary.Attributes["name"], rs.Primary.Attributes["type"])
+		k := udnssdk.RRSetKey{
+			Zone: rs.Primary.Attributes["zone"],
+			Name: rs.Primary.Attributes["name"],
+			Type: rs.Primary.Attributes["type"],
+		}
+
+		foundRecord, err := client.RRSets.Select(k)
 
 		if err != nil {
 			return err
@@ -144,7 +156,7 @@ func testAccCheckUltraDNSRecordExists(n string, record *udnssdk.RRSet) resource.
 	}
 }
 
-const testAccCheckUltraDNSRecordConfig_basic = `
+const testAccCheckUltraDNSRecordConfigBasic = `
 resource "ultradns_record" "foobar" {
 	zone = "%s"
 
@@ -154,7 +166,7 @@ resource "ultradns_record" "foobar" {
 	ttl = 3600
 }`
 
-const testAccCheckUltraDNSRecordConfig_new_value = `
+const testAccCheckUltraDNSRecordConfigNewValue = `
 resource "ultradns_record" "foobar" {
 	zone = "%s"
 

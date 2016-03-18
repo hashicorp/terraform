@@ -2,12 +2,95 @@ package ultradns
 
 import (
 	"fmt"
-	"github.com/Ensighten/udnssdk"
-	"github.com/hashicorp/terraform/helper/schema"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/Ensighten/udnssdk"
+	"github.com/hashicorp/terraform/helper/schema"
 )
+
+type rRSetResource struct {
+	OwnerName string
+	RRType    string
+	RData     []string
+	TTL       int
+	Profile   *udnssdk.StringProfile
+	Zone      string
+}
+
+func newRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
+	r := rRSetResource{}
+
+	if attr, ok := d.GetOk("name"); ok {
+		r.OwnerName = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("type"); ok {
+		r.RRType = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("zone"); ok {
+		r.Zone = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("rdata"); ok {
+		rdata := attr.([]interface{})
+		r.RData = make([]string, len(rdata))
+		for i, j := range rdata {
+			r.RData[i] = j.(string)
+		}
+	}
+
+	if attr, ok := d.GetOk("ttl"); ok {
+		r.TTL, _ = strconv.Atoi(attr.(string))
+	}
+
+	return r, nil
+}
+
+func (r rRSetResource) RRSetKey() udnssdk.RRSetKey {
+	return udnssdk.RRSetKey{
+		Zone: r.Zone,
+		Type: r.RRType,
+		Name: r.OwnerName,
+	}
+}
+
+func (r rRSetResource) RRSet() udnssdk.RRSet {
+	return udnssdk.RRSet{
+		OwnerName: r.OwnerName,
+		RRType:    r.RRType,
+		RData:     r.RData,
+		TTL:       r.TTL,
+	}
+}
+
+func (r rRSetResource) ID() string {
+	return fmt.Sprintf("%s.%s", r.OwnerName, r.Zone)
+}
+
+func populateResourceDataFromRRSet(r udnssdk.RRSet, d *schema.ResourceData) error {
+	zone := d.Get("zone")
+	// ttl
+	d.Set("ttl", r.TTL)
+	// rdata
+	err := d.Set("rdata", r.RData)
+	if err != nil {
+		return fmt.Errorf("ultradns_record.rdata set failed: %#v", err)
+	}
+	// hostname
+	if r.OwnerName == "" {
+		d.Set("hostname", zone)
+	} else {
+		if strings.HasSuffix(r.OwnerName, ".") {
+			d.Set("hostname", r.OwnerName)
+		} else {
+			d.Set("hostname", fmt.Sprintf("%s.%s", r.OwnerName, zone))
+		}
+	}
+	return nil
+}
 
 func resourceUltraDNSRecord() *schema.Resource {
 	return &schema.Resource{
@@ -17,23 +100,17 @@ func resourceUltraDNSRecord() *schema.Resource {
 		Delete: resourceUltraDNSRecordDelete,
 
 		Schema: map[string]*schema.Schema{
+			// Required
 			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
-			"hostname": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -44,11 +121,16 @@ func resourceUltraDNSRecord() *schema.Resource {
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-
+			// Optional
 			"ttl": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "3600",
+			},
+			// Computed
+			"hostname": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -56,29 +138,20 @@ func resourceUltraDNSRecord() *schema.Resource {
 
 func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*udnssdk.Client)
-	newRecord := &udnssdk.RRSet{
-		OwnerName: d.Get("name").(string),
-		RRType:    d.Get("type").(string),
-	}
-	rdata := d.Get("rdata").([]interface{})
-	rdatas := make([]string, len(rdata))
-	for i, j := range rdata {
-		rdatas[i] = j.(string)
-	}
-	newRecord.RData = rdatas
-	ttl := d.Get("ttl").(string)
-	newRecord.TTL, _ = strconv.Atoi(ttl)
 
-	log.Printf("[DEBUG] UltraDNS RRSet create configuration: %#v", newRecord)
+	r, err := newRRSetResource(d)
+	if err != nil {
+		return err
+	}
 
-	_, err := client.RRSets.CreateRRSet(d.Get("zone").(string), *newRecord)
-	recId := fmt.Sprintf("%s.%s", d.Get("name").(string), d.Get("zone").(string))
+	log.Printf("[INFO] ultradns_record create: %#v", r.RRSet())
+	_, err = client.RRSets.Create(r.RRSetKey(), r.RRSet())
 	if err != nil {
 		return fmt.Errorf("Failed to create UltraDNS RRSet: %s", err)
 	}
 
-	d.SetId(recId)
-	log.Printf("[INFO] record ID: %s", d.Id())
+	d.SetId(r.ID())
+	log.Printf("[INFO] ultradns_record.id: %s", d.Id())
 
 	return resourceUltraDNSRecordRead(d, meta)
 }
@@ -86,7 +159,12 @@ func resourceUltraDNSRecordCreate(d *schema.ResourceData, meta interface{}) erro
 func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*udnssdk.Client)
 
-	rrsets, _, err := client.RRSets.GetRRSets(d.Get("zone").(string), d.Get("name").(string), d.Get("type").(string))
+	r, err := newRRSetResource(d)
+	if err != nil {
+		return err
+	}
+
+	rrsets, err := client.RRSets.Select(r.RRSetKey())
 	if err != nil {
 		uderr, ok := err.(*udnssdk.ErrorResponseList)
 		if ok {
@@ -95,64 +173,28 @@ func resourceUltraDNSRecordRead(d *schema.ResourceData, meta interface{}) error 
 				if r.ErrorCode == 70002 {
 					d.SetId("")
 					return nil
-				} else {
-					return fmt.Errorf("Couldn't find UltraDNS RRSet: %s", err)
 				}
+				return fmt.Errorf("ultradns_record not found: %s", err)
 			}
-		} else {
-			return fmt.Errorf("Couldn't find UltraDNS RRSet: %s", err)
 		}
+		return fmt.Errorf("ultradns_record not found: %s", err)
 	}
 	rec := rrsets[0]
-	err = d.Set("rdata", rec.RData)
-	if err != nil {
-		return fmt.Errorf("[DEBUG] Error setting records: %#v", err)
-	}
-	d.Set("ttl", rec.TTL)
-
-	if rec.OwnerName == "" {
-		d.Set("hostname", d.Get("zone").(string))
-	} else {
-		if strings.HasSuffix(rec.OwnerName, ".") {
-			d.Set("hostname", rec.OwnerName)
-		} else {
-			d.Set("hostname", fmt.Sprintf("%s.%s", rec.OwnerName, d.Get("zone").(string)))
-		}
-	}
-	return nil
+	return populateResourceDataFromRRSet(rec, d)
 }
 
 func resourceUltraDNSRecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*udnssdk.Client)
 
-	updateRecord := &udnssdk.RRSet{}
-
-	if attr, ok := d.GetOk("name"); ok {
-		updateRecord.OwnerName = attr.(string)
-	}
-
-	if attr, ok := d.GetOk("type"); ok {
-		updateRecord.RRType = attr.(string)
-	}
-
-	if attr, ok := d.GetOk("rdata"); ok {
-		rdata := attr.([]interface{})
-		rdatas := make([]string, len(rdata))
-		for i, j := range rdata {
-			rdatas[i] = j.(string)
-		}
-		updateRecord.RData = rdatas
-	}
-
-	if attr, ok := d.GetOk("ttl"); ok {
-		updateRecord.TTL, _ = strconv.Atoi(attr.(string))
-	}
-
-	log.Printf("[DEBUG] UltraDNS RRSet update configuration: %#v", updateRecord)
-
-	_, err := client.RRSets.UpdateRRSet(d.Get("zone").(string), *updateRecord)
+	r, err := newRRSetResource(d)
 	if err != nil {
-		return fmt.Errorf("Failed to update UltraDNS RRSet: %s", err)
+		return err
+	}
+
+	log.Printf("[INFO] ultradns_record update: %#v", r.RRSet())
+	_, err = client.RRSets.Update(r.RRSetKey(), r.RRSet())
+	if err != nil {
+		return fmt.Errorf("ultradns_record update failed: %s", err)
 	}
 
 	return resourceUltraDNSRecordRead(d, meta)
@@ -161,21 +203,15 @@ func resourceUltraDNSRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceUltraDNSRecordDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*udnssdk.Client)
 
-	log.Printf("[INFO] Deleting UltraDNS RRSet: %s, %s", d.Get("zone").(string), d.Id())
-	deleteRecord := &udnssdk.RRSet{}
-
-	if attr, ok := d.GetOk("name"); ok {
-		deleteRecord.OwnerName = attr.(string)
-	}
-
-	if attr, ok := d.GetOk("type"); ok {
-		deleteRecord.RRType = attr.(string)
-	}
-
-	_, err := client.RRSets.DeleteRRSet(d.Get("zone").(string), *deleteRecord)
-
+	r, err := newRRSetResource(d)
 	if err != nil {
-		return fmt.Errorf("Error deleting UltraDNS RRSet: %s", err)
+		return err
+	}
+
+	log.Printf("[INFO] ultradns_record delete: %#v", r.RRSet())
+	_, err = client.RRSets.Delete(r.RRSetKey())
+	if err != nil {
+		return fmt.Errorf("ultradns_record delete failed: %s", err)
 	}
 
 	return nil

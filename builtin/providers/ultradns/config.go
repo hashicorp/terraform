@@ -7,13 +7,14 @@ import (
 	"github.com/Ensighten/udnssdk"
 )
 
+// Config collects the connection service-endpoint and credentials
 type Config struct {
 	Username string
 	Password string
 	BaseURL  string
 }
 
-// Client() returns a new client for accessing UltraDNS.
+// Client returns a new client for accessing UltraDNS.
 func (c *Config) Client() (*udnssdk.Client, error) {
 	client, err := udnssdk.NewClient(c.Username, c.Password, c.BaseURL)
 
