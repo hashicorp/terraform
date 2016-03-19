@@ -29,7 +29,7 @@ The following arguments are supported:
 
 * `dns_name` - (Required) The DNS name of this zone, e.g. "terraform.io".
 
-* `description` - (Optional) A textual description field.
+* `description` - (Optional) A textual description field. Defaults to 'Managed by Terraform'.
 
 ## Attributes Reference
 
