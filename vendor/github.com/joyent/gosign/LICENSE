@@ -1,0 +1,15 @@
+GoSign - Go HTTP signing library for the Joyent Public Cloud
+
+Copyright (c) 2013, Joyent Inc.
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+
+See both COPYING and COPYING.LESSER for the full terms of the GNU Lesser
+General Public License.
