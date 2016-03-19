@@ -7,10 +7,48 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"os"
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
+
+	testUser := os.Getenv("GITHUB_TEST_USER")
+	testAccGithubTeamMembershipConfig := fmt.Sprintf(`
+		resource "github_membership" "test_org_membership" {
+			username = "%s"
+			role = "member"
+		}
+
+		resource "github_team" "test_team" {
+			name = "foo"
+			description = "Terraform acc test group"
+		}
+
+		resource "github_team_membership" "test_team_membership" {
+			team_id = "${github_team.test_team.id}"
+			username = "%s"
+			role = "member"
+		}
+	`, testUser, testUser)
+
+	testAccGithubTeamMembershipUpdateConfig := fmt.Sprintf(`
+		resource "github_membership" "test_org_membership" {
+			username = "%s"
+			role = "member"
+		}
+
+		resource "github_team" "test_team" {
+			name = "foo"
+			description = "Terraform acc test group"
+		}
+
+		resource "github_team_membership" "test_team_membership" {
+			team_id = "${github_team.test_team.id}"
+			username = "%s"
+			role = "maintainer"
+		}
+	`, testUser, testUser)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -114,39 +152,3 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		return nil
 	}
 }
-
-const testAccGithubTeamMembershipConfig = `
-resource "github_membership" "test_org_membership" {
-	username = "TerraformDummyUser"
-	role = "member"
-}
-
-resource "github_team" "test_team" {
-	name = "foo"
-	description = "Terraform acc test group"
-}
-
-resource "github_team_membership" "test_team_membership" {
-	team_id = "${github_team.test_team.id}"
-	username = "TerraformDummyUser"
-	role = "member"
-}
-`
-
-const testAccGithubTeamMembershipUpdateConfig = `
-resource "github_membership" "test_org_membership" {
-	username = "TerraformDummyUser"
-	role = "member"
-}
-
-resource "github_team" "test_team" {
-	name = "foo"
-	description = "Terraform acc test group"
-}
-
-resource "github_team_membership" "test_team_membership" {
-	team_id = "${github_team.test_team.id}"
-	username = "TerraformDummyUser"
-	role = "maintainer"
-}
-`
