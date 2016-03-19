@@ -741,22 +741,6 @@
 			"Rev": "c01cf91b011868172fdcd9f41838e80c9d716264"
 		},
 		{
-			"ImportPath": "github.com/joyent/gocommon",
-			"Rev": "40c7818502f7c1ebbb13dab185a26e77b746ff40"
-		},
-		{
-			"ImportPath": "github.com/joyent/gosdc/cloudapi",
-			"Rev": "e5af42dc255d490169eaea98c610cf7660913844"
-		},
-		{
-			"ImportPath": "github.com/joyent/gosign/auth",
-			"Rev": "0da0d5f1342065321c97812b1f4ac0c2b0bab56c"
-		},
-		{
-			"ImportPath": "github.com/juju/loggo",
-			"Rev": "8477fc936adf0e382d680310047ca27e128a309a"
-		},
-		{
 			"ImportPath": "github.com/kardianos/osext",
 			"Rev": "29ae4ffbc9a6fe9fb2bc5029050ce6996ea1d3bc"
 		},
