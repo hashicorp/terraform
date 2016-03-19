@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -139,23 +140,31 @@ func testAccCheckAWSS3BucketNotificationDestroy(s *terraform.State) error {
 		if rs.Type != "aws_s3_bucket_notification" {
 			continue
 		}
-		out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
-			Bucket: aws.String(rs.Primary.ID),
-		})
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoSuchBucket" {
-				return nil
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
+				Bucket: aws.String(rs.Primary.ID),
+			})
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoSuchBucket" {
+					return nil
+				}
+				return resource.NonRetryableError(err)
 			}
+			if len(out.TopicConfigurations) > 0 {
+				return resource.RetryableError(fmt.Errorf("TopicConfigurations is exists: %v", out))
+			}
+			if len(out.LambdaFunctionConfigurations) > 0 {
+				return resource.RetryableError(fmt.Errorf("LambdaFunctionConfigurations is exists: %v", out))
+			}
+			if len(out.QueueConfigurations) > 0 {
+				return resource.RetryableError(fmt.Errorf("QueueConfigurations is exists: %v", out))
+			}
+
+			return nil
+		})
+
+		if err != nil {
 			return err
-		}
-		if len(out.TopicConfigurations) > 0 {
-			return fmt.Errorf("TopicConfigurations is exists: %v", out)
-		}
-		if len(out.LambdaFunctionConfigurations) > 0 {
-			return fmt.Errorf("LambdaFunctionConfigurations is exists: %v", out)
-		}
-		if len(out.QueueConfigurations) > 0 {
-			return fmt.Errorf("QueueConfigurations is exists: %v", out)
 		}
 	}
 	return nil
@@ -167,50 +176,54 @@ func testAccCheckAWSS3BucketTopicNotification(n, i, t string, events []string, f
 		topicArn := s.RootModule().Resources[t].Primary.ID
 		conn := testAccProvider.Meta().(*AWSClient).s3conn
 
-		out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
-			Bucket: aws.String(rs.Primary.ID),
-		})
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
+				Bucket: aws.String(rs.Primary.ID),
+			})
 
-		if err != nil {
-			return fmt.Errorf("GetBucketNotification error: %v", err)
-		}
+			if err != nil {
+				return resource.NonRetryableError(fmt.Errorf("GetBucketNotification error: %v", err))
+			}
 
-		eventSlice := sort.StringSlice(events)
-		eventSlice.Sort()
+			eventSlice := sort.StringSlice(events)
+			eventSlice.Sort()
 
-		outputTopics := out.TopicConfigurations
-		matched := false
-		for _, outputTopic := range outputTopics {
-			if *outputTopic.Id == i {
-				matched = true
+			outputTopics := out.TopicConfigurations
+			matched := false
+			for _, outputTopic := range outputTopics {
+				if *outputTopic.Id == i {
+					matched = true
 
-				if *outputTopic.TopicArn != topicArn {
-					return fmt.Errorf("bad topic arn, expected: %s, got %#v", topicArn, *outputTopic.TopicArn)
-				}
-
-				if filters != nil {
-					if !reflect.DeepEqual(filters, outputTopic.Filter.Key) {
-						return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputTopic.Filter.Key)
+					if *outputTopic.TopicArn != topicArn {
+						return resource.RetryableError(fmt.Errorf("bad topic arn, expected: %s, got %#v", topicArn, *outputTopic.TopicArn))
 					}
-				} else {
-					if outputTopic.Filter != nil {
-						return fmt.Errorf("bad notification filters, expected: nil, got %#v", outputTopic.Filter)
-					}
-				}
 
-				outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputTopic.Events))
-				outputEventSlice.Sort()
-				if !reflect.DeepEqual(eventSlice, outputEventSlice) {
-					return fmt.Errorf("bad notification events, expected: %#v, got %#v", events, outputEventSlice)
+					if filters != nil {
+						if !reflect.DeepEqual(filters, outputTopic.Filter.Key) {
+							return resource.RetryableError(fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputTopic.Filter.Key))
+						}
+					} else {
+						if outputTopic.Filter != nil {
+							return resource.RetryableError(fmt.Errorf("bad notification filters, expected: nil, got %#v", outputTopic.Filter))
+						}
+					}
+
+					outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputTopic.Events))
+					outputEventSlice.Sort()
+					if !reflect.DeepEqual(eventSlice, outputEventSlice) {
+						return resource.RetryableError(fmt.Errorf("bad notification events, expected: %#v, got %#v", events, outputEventSlice))
+					}
 				}
 			}
-		}
 
-		if !matched {
-			return fmt.Errorf("No match topic configurations: %#v", out)
-		}
+			if !matched {
+				return resource.RetryableError(fmt.Errorf("No match topic configurations: %#v", out))
+			}
 
-		return nil
+			return nil
+		})
+
+		return err
 	}
 }
 
@@ -220,50 +233,54 @@ func testAccCheckAWSS3BucketQueueNotification(n, i, t string, events []string, f
 		queueArn := s.RootModule().Resources[t].Primary.Attributes["arn"]
 		conn := testAccProvider.Meta().(*AWSClient).s3conn
 
-		out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
-			Bucket: aws.String(rs.Primary.ID),
-		})
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
+				Bucket: aws.String(rs.Primary.ID),
+			})
 
-		if err != nil {
-			return fmt.Errorf("GetBucketNotification error: %v", err)
-		}
+			if err != nil {
+				return resource.NonRetryableError(fmt.Errorf("GetBucketNotification error: %v", err))
+			}
 
-		eventSlice := sort.StringSlice(events)
-		eventSlice.Sort()
+			eventSlice := sort.StringSlice(events)
+			eventSlice.Sort()
 
-		outputQueues := out.QueueConfigurations
-		matched := false
-		for _, outputQueue := range outputQueues {
-			if *outputQueue.Id == i {
-				matched = true
+			outputQueues := out.QueueConfigurations
+			matched := false
+			for _, outputQueue := range outputQueues {
+				if *outputQueue.Id == i {
+					matched = true
 
-				if *outputQueue.QueueArn != queueArn {
-					return fmt.Errorf("bad queue arn, expected: %s, got %#v", queueArn, *outputQueue.QueueArn)
-				}
-
-				if filters != nil {
-					if !reflect.DeepEqual(filters, outputQueue.Filter.Key) {
-						return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputQueue.Filter.Key)
+					if *outputQueue.QueueArn != queueArn {
+						return resource.RetryableError(fmt.Errorf("bad queue arn, expected: %s, got %#v", queueArn, *outputQueue.QueueArn))
 					}
-				} else {
-					if outputQueue.Filter != nil {
-						return fmt.Errorf("bad notification filters, expected: nil, got %#v", outputQueue.Filter)
-					}
-				}
 
-				outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputQueue.Events))
-				outputEventSlice.Sort()
-				if !reflect.DeepEqual(eventSlice, outputEventSlice) {
-					return fmt.Errorf("bad notification events, expected: %#v, got %#v", events, outputEventSlice)
+					if filters != nil {
+						if !reflect.DeepEqual(filters, outputQueue.Filter.Key) {
+							return resource.RetryableError(fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputQueue.Filter.Key))
+						}
+					} else {
+						if outputQueue.Filter != nil {
+							return resource.RetryableError(fmt.Errorf("bad notification filters, expected: nil, got %#v", outputQueue.Filter))
+						}
+					}
+
+					outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputQueue.Events))
+					outputEventSlice.Sort()
+					if !reflect.DeepEqual(eventSlice, outputEventSlice) {
+						return resource.RetryableError(fmt.Errorf("bad notification events, expected: %#v, got %#v", events, outputEventSlice))
+					}
 				}
 			}
-		}
 
-		if !matched {
-			return fmt.Errorf("No match queue configurations: %#v", out)
-		}
+			if !matched {
+				return resource.RetryableError(fmt.Errorf("No match queue configurations: %#v", out))
+			}
 
-		return nil
+			return nil
+		})
+
+		return err
 	}
 }
 
@@ -273,50 +290,54 @@ func testAccCheckAWSS3BucketLambdaFunctionConfiguration(n, i, t string, events [
 		funcArn := s.RootModule().Resources[t].Primary.Attributes["arn"]
 		conn := testAccProvider.Meta().(*AWSClient).s3conn
 
-		out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
-			Bucket: aws.String(rs.Primary.ID),
-		})
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			out, err := conn.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
+				Bucket: aws.String(rs.Primary.ID),
+			})
 
-		if err != nil {
-			return fmt.Errorf("GetBucketNotification error: %v", err)
-		}
+			if err != nil {
+				return resource.NonRetryableError(fmt.Errorf("GetBucketNotification error: %v", err))
+			}
 
-		eventSlice := sort.StringSlice(events)
-		eventSlice.Sort()
+			eventSlice := sort.StringSlice(events)
+			eventSlice.Sort()
 
-		outputFunctions := out.LambdaFunctionConfigurations
-		matched := false
-		for _, outputFunc := range outputFunctions {
-			if *outputFunc.Id == i {
-				matched = true
+			outputFunctions := out.LambdaFunctionConfigurations
+			matched := false
+			for _, outputFunc := range outputFunctions {
+				if *outputFunc.Id == i {
+					matched = true
 
-				if *outputFunc.LambdaFunctionArn != funcArn {
-					return fmt.Errorf("bad lambda function arn, expected: %s, got %#v", funcArn, *outputFunc.LambdaFunctionArn)
-				}
-
-				if filters != nil {
-					if !reflect.DeepEqual(filters, outputFunc.Filter.Key) {
-						return fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputFunc.Filter.Key)
+					if *outputFunc.LambdaFunctionArn != funcArn {
+						return resource.RetryableError(fmt.Errorf("bad lambda function arn, expected: %s, got %#v", funcArn, *outputFunc.LambdaFunctionArn))
 					}
-				} else {
-					if outputFunc.Filter != nil {
-						return fmt.Errorf("bad notification filters, expected: nil, got %#v", outputFunc.Filter)
-					}
-				}
 
-				outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputFunc.Events))
-				outputEventSlice.Sort()
-				if !reflect.DeepEqual(eventSlice, outputEventSlice) {
-					return fmt.Errorf("bad notification events, expected: %#v, got %#v", events, outputEventSlice)
+					if filters != nil {
+						if !reflect.DeepEqual(filters, outputFunc.Filter.Key) {
+							return resource.RetryableError(fmt.Errorf("bad notification filters, expected: %#v, got %#v", filters, outputFunc.Filter.Key))
+						}
+					} else {
+						if outputFunc.Filter != nil {
+							return resource.RetryableError(fmt.Errorf("bad notification filters, expected: nil, got %#v", outputFunc.Filter))
+						}
+					}
+
+					outputEventSlice := sort.StringSlice(aws.StringValueSlice(outputFunc.Events))
+					outputEventSlice.Sort()
+					if !reflect.DeepEqual(eventSlice, outputEventSlice) {
+						return resource.RetryableError(fmt.Errorf("bad notification events, expected: %#v, got %#v", events, outputEventSlice))
+					}
 				}
 			}
-		}
 
-		if !matched {
-			return fmt.Errorf("No match lambda function configurations: %#v", out)
-		}
+			if !matched {
+				return resource.RetryableError(fmt.Errorf("No match lambda function configurations: %#v", out))
+			}
 
-		return nil
+			return nil
+		})
+
+		return err
 	}
 }
 
