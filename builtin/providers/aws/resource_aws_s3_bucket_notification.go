@@ -46,7 +46,7 @@ func resourceAwsS3BucketNotification() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"topic": &schema.Schema{
+						"topic_arn": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -78,7 +78,7 @@ func resourceAwsS3BucketNotification() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"queue": &schema.Schema{
+						"queue_arn": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -110,7 +110,7 @@ func resourceAwsS3BucketNotification() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"lambda_function": &schema.Schema{
+						"lambda_function_arn": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -147,7 +147,7 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 		}
 
 		// TopicArn
-		if val, ok := c["topic"].(string); ok {
+		if val, ok := c["topic_arn"].(string); ok {
 			tc.TopicArn = aws.String(val)
 		}
 
@@ -199,7 +199,7 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 		}
 
 		// LambdaFunctionArn
-		if val, ok := c["lambda_function"].(string); ok {
+		if val, ok := c["lambda_function_arn"].(string); ok {
 			lc.LambdaFunctionArn = aws.String(val)
 		}
 
@@ -251,7 +251,7 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 		}
 
 		// QueueArn
-		if val, ok := c["queue"].(string); ok {
+		if val, ok := c["queue_arn"].(string); ok {
 			qc.QueueArn = aws.String(val)
 		}
 
@@ -415,7 +415,7 @@ func flattenTopicConfigurations(configs []*s3.TopicConfiguration) []map[string]i
 
 		conf["id"] = *notification.Id
 		conf["events"] = schema.NewSet(schema.HashString, flattenStringList(notification.Events))
-		conf["topic"] = *notification.TopicArn
+		conf["topic_arn"] = *notification.TopicArn
 		topicNotifications = append(topicNotifications, conf)
 	}
 
@@ -434,7 +434,7 @@ func flattenQueueConfigurations(configs []*s3.QueueConfiguration) []map[string]i
 
 		conf["id"] = *notification.Id
 		conf["events"] = schema.NewSet(schema.HashString, flattenStringList(notification.Events))
-		conf["queue"] = *notification.QueueArn
+		conf["queue_arn"] = *notification.QueueArn
 		queueNotifications = append(queueNotifications, conf)
 	}
 
@@ -453,7 +453,7 @@ func flattenLambdaFunctionConfigurations(configs []*s3.LambdaFunctionConfigurati
 
 		conf["id"] = *notification.Id
 		conf["events"] = schema.NewSet(schema.HashString, flattenStringList(notification.Events))
-		conf["lambda_function"] = *notification.LambdaFunctionArn
+		conf["lambda_function_arn"] = *notification.LambdaFunctionArn
 		lambdaFunctionNotifications = append(lambdaFunctionNotifications, conf)
 	}
 

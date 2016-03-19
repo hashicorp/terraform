@@ -40,7 +40,7 @@ resource "aws_s3_bucket" "bucket" {
 resource "aws_s3_bucket_notification" "bucket_notification" {
 	bucket = "${aws_s3_bucket.bucket.id}"
 	topic {
-		topic = "${aws_sns_topic.topic.arn}"
+		topic_arn = "${aws_sns_topic.topic.arn}"
 		events = ["s3:ObjectCreated:*"]
 		filter_suffix = ".log"
 	}
@@ -77,7 +77,7 @@ resource "aws_s3_bucket" "bucket" {
 resource "aws_s3_bucket_notification" "bucket_notification" {
 	bucket = "${aws_s3_bucket.bucket.id}"
 	queue {
-		queue = "${aws_sqs_queue.queue.arn}"
+		queue_arn = "${aws_sqs_queue.queue.arn}"
 		events = ["s3:ObjectCreated:*"]
 		filter_suffix = ".log"
 	}
@@ -127,7 +127,7 @@ resource "aws_s3_bucket" "bucket" {
 resource "aws_s3_bucket_notification" "bucket_notification" {
 	bucket = "${aws_s3_bucket.bucket.id}"
 	lambda_function {
-		lambda_function = "${aws_lambda_function.func.arn}"
+		lambda_function_arn = "${aws_lambda_function.func.arn}"
 		events = ["s3:ObjectCreated:*"]
 		filter_prefix = "AWSLogs/"
 		filter_suffix = ".log"
@@ -147,7 +147,7 @@ The following arguments are supported:
 The `topic` notification configuration supports the following:
 
 * `id` - (Optional) Specifies unique identifier for each of the notification configurations.
-* `topic` - (Required) Specifies Amazon SNS topic ARN.
+* `topic_arn` - (Required) Specifies Amazon SNS topic ARN.
 * `events` - (Required) Specifies [event](http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html#notification-how-to-event-types-and-destinations) for which to send notifications.
 * `filter_prefix` - (Optional) Specifies object key name prefix.
 * `filter_suffix` - (Optional) Specifies object key name suffix.
@@ -155,7 +155,7 @@ The `topic` notification configuration supports the following:
 The `queue` notification configuration supports the following:
 
 * `id` - (Optional) Specifies unique identifier for each of the notification configurations.
-* `queue` - (Required) Specifies Amazon SQS queue ARN.
+* `queue_arn` - (Required) Specifies Amazon SQS queue ARN.
 * `events` - (Required) Specifies [event](http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html#notification-how-to-event-types-and-destinations) for which to send notifications.
 * `filter_prefix` - (Optional) Specifies object key name prefix.
 * `filter_suffix` - (Optional) Specifies object key name suffix.
@@ -163,7 +163,7 @@ The `queue` notification configuration supports the following:
 The `lambda_function` notification configuration supports the following:
 
 * `id` - (Optional) Specifies unique identifier for each of the notification configurations.
-* `lambda_function` - (Required) Specifies Amazon Lambda function ARN.
+* `lambda_function_arn` - (Required) Specifies Amazon Lambda function ARN.
 * `events` - (Required) Specifies [event](http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html#notification-how-to-event-types-and-destinations) for which to send notifications.
 * `filter_prefix` - (Optional) Specifies object key name prefix.
 * `filter_suffix` - (Optional) Specifies object key name suffix.

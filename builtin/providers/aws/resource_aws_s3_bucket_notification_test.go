@@ -371,7 +371,7 @@ resource "aws_s3_bucket_notification" "notification" {
 	bucket = "${aws_s3_bucket.bucket.id}"
 	topic {
 		id = "notification-sns1"
-		topic = "${aws_sns_topic.topic.arn}"
+		topic_arn = "${aws_sns_topic.topic.arn}"
 		events = [
 		  "s3:ObjectCreated:*",
 		  "s3:ObjectRemoved:Delete",
@@ -381,7 +381,7 @@ resource "aws_s3_bucket_notification" "notification" {
 	}
 	topic {
 		id = "notification-sns2"
-		topic = "${aws_sns_topic.topic.arn}"
+		topic_arn = "${aws_sns_topic.topic.arn}"
 		events = [
 		  "s3:ObjectCreated:*",
 		  "s3:ObjectRemoved:Delete",
@@ -408,7 +408,7 @@ resource "aws_s3_bucket_notification" "notification" {
 	bucket = "${aws_s3_bucket.bucket.id}"
 	queue {
 		id = "notification-sqs"
-		queue = "${aws_sqs_queue.queue.arn}"
+		queue_arn = "${aws_sqs_queue.queue.arn}"
 		events = [
 		  "s3:ObjectCreated:*",
 		  "s3:ObjectRemoved:Delete",
@@ -466,7 +466,7 @@ resource "aws_s3_bucket_notification" "notification" {
 	bucket = "${aws_s3_bucket.bucket.id}"
 	lambda_function {
 		id = "notification-lambda"
-		lambda_function = "${aws_lambda_function.func.arn}"
+		lambda_function_arn = "${aws_lambda_function.func.arn}"
 		events = [
 		  "s3:ObjectCreated:*",
 		  "s3:ObjectRemoved:Delete",
@@ -508,7 +508,7 @@ resource "aws_s3_bucket_notification" "notification" {
 	bucket = "${aws_s3_bucket.bucket.id}"
 	topic {
 		id = "notification-sns1"
-		topic = "${aws_sns_topic.topic.arn}"
+		topic_arn = "${aws_sns_topic.topic.arn}"
 		events = [
 		  "s3:ObjectCreated:*",
 		  "s3:ObjectRemoved:Delete",
