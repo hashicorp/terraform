@@ -7,10 +7,19 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"os"
 )
 
 func TestAccGithubMembership_basic(t *testing.T) {
 	var membership github.Membership
+
+	testUser := os.Getenv("GITHUB_TEST_USER")
+	testAccGithubMembershipConfig := fmt.Sprintf(`
+		resource "github_membership" "test_org_membership" {
+			username = "%s"
+			role = "member"
+		}
+	`, testUser)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -104,10 +113,3 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		return nil
 	}
 }
-
-const testAccGithubMembershipConfig = `
-resource "github_membership" "test_org_membership" {
-	username = "TerraformDummyUser"
-	role = "member"
-}
-`
