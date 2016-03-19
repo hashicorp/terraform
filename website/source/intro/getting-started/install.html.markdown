@@ -34,6 +34,14 @@ Example for Linux/Mac - Type the following into your terminal:
 Example for Windows - Type the following into Powershell:
 >`set PATH=%PATH%;C:\terraform`
 
+### OS X
+
+If you are using [homebrew](http://brew.sh/#install) as a package manager,
+you can install Terraform with:
+
+```
+$ brew install terraform
+```
 
 ## Verifying the Installation
 
