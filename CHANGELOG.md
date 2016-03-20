@@ -3,21 +3,23 @@
 FEATURES:
 
   * **New provider:** `github` - Manage GitHub Organization permissions with Terraform config [GH-5194]
-  * **New provider:** `ultradns` - Manage UltraDNS records [GH-5716]
   * **New provider:** `influxdb` - Manage InfluxDB databases [GH-3478]
+  * **New provider:** `ultradns` - Manage UltraDNS records [GH-5716]
+  * **New provider:** `triton` - Manage Joyent Triton public cloud or on-premise installations [GH-5738]
   * **New resource:** `azurerm_virtual_machine` [GH-5514]
 
 IMPROVEMENTS:
-  * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
+
   * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted [GH-5723]
+  * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
 
 BUG FIXES:
 
   * core: Color output is now shown correctly when running Terraform on Windows [GH-5718]
-  * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/aws: Fix crash when an `aws_rds_cluster_instance` is removed outside of Terraform [GH-5717]
-  * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]
+  * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" [GH-5428]
+  * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]
 
 ## 0.6.13 (March 16, 2016)
 
