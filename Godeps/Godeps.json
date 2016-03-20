@@ -745,6 +745,34 @@
 			"Rev": "c01cf91b011868172fdcd9f41838e80c9d716264"
 		},
 		{
+			"ImportPath": "github.com/joyent/gocommon",
+			"Rev": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
+		},
+		{
+			"ImportPath": "github.com/joyent/gocommon/client",
+			"Rev": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
+		},
+		{
+			"ImportPath": "github.com/joyent/gocommon/errors",
+			"Rev": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
+		},
+		{
+			"ImportPath": "github.com/joyent/gocommon/http",
+			"Rev": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
+		},
+		{
+			"ImportPath": "github.com/joyent/gocommon/jpc",
+			"Rev": "ade826b8b54e81a779ccb29d358a45ba24b7809c"
+		},
+		{
+			"ImportPath": "github.com/joyent/gosdc/cloudapi",
+			"Rev": "d0f3bf74903550b93aa817695001d4607cc632f3"
+		},
+		{
+			"ImportPath": "github.com/joyent/gosign/auth",
+			"Rev": "a1f3aa7d52213987117e47d721bcc9a499994d5f"
+		},
+		{
 			"ImportPath": "github.com/kardianos/osext",
 			"Rev": "29ae4ffbc9a6fe9fb2bc5029050ce6996ea1d3bc"
 		},
