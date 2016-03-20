@@ -16,6 +16,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: Color output is now shown correctly when running Terraform on Windows [GH-5718]
+  * core: Local directory-based modules now use junctions instead of symbolic links on Windows [GH-5739]
   * provider/aws: Fix crash when an `aws_rds_cluster_instance` is removed outside of Terraform [GH-5717]
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" [GH-5428]
