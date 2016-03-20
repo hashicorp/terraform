@@ -155,6 +155,10 @@
 			"Rev": "8cbe86575f00210a6df2c19cb2f59b00cd181de3"
 		},
 		{
+			"ImportPath": "github.com/HX-Rd/namecheap",
+			"Rev": "bef9b5a1b9600a43cae68941e8da54a231dbc840"
+		},
+		{
 			"ImportPath": "github.com/apparentlymart/go-cidr/cidr",
 			"Rev": "a3ebdb999b831ecb6ab8a226e31b07b2b9061c47"
 		},
