@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/influxdb/influxdb/client"
+	"github.com/influxdata/influxdb/client"
 )
 
 var quoteReplacer = strings.NewReplacer(`"`, `\"`)
