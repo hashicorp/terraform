@@ -4,6 +4,7 @@ FEATURES:
 
   * **New provider:** `github` - Manage GitHub Organization permissions with Terraform config [GH-5194]
   * **New provider:** `ultradns` - Manage UltraDNS records [GH-5716]
+  * **New provider:** `influxdb` - Manage InfluxDB databases [GH-3478]
   * **New resource:** `azurerm_virtual_machine` [GH-5514]
 
 IMPROVEMENTS:
