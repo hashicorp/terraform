@@ -92,6 +92,11 @@ func testListDir(t *testing.T, path string) []string {
 		}
 		sub = sub[1:] // Trim the leading path sep.
 
+		// If it is a dir, add trailing sep
+		if info.IsDir() {
+			sub += "/"
+		}
+
 		result = append(result, sub)
 		return nil
 	})

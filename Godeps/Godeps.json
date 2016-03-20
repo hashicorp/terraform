@@ -633,11 +633,11 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-getter",
-			"Rev": "848242c76c346ef0aeb34787753b068f5f6f92fe"
+			"Rev": "2822987a64e0df1236ac29dd277ddf79f4871f9a"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-getter/helper/url",
-			"Rev": "848242c76c346ef0aeb34787753b068f5f6f92fe"
+			"Rev": "2822987a64e0df1236ac29dd277ddf79f4871f9a"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-multierror",
