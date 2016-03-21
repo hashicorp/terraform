@@ -27,6 +27,7 @@ BUG FIXES:
   * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" [GH-5428]
   * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]
   * provider/vsphere: provide `host` to provisioner connections [GH-5558]
+  * provisioner/remote-exec: Address race condition introduced with script cleanup step introduced in 0.6.13 [GH-5751]
 
 ## 0.6.13 (March 16, 2016)
 
