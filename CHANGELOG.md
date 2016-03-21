@@ -22,6 +22,7 @@ BUG FIXES:
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" [GH-5428]
   * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]
+  * provider/vsphere: provide `host` to provisioner connections [GH-5558]
 
 ## 0.6.13 (March 16, 2016)
 
