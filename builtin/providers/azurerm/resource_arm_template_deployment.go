@@ -143,9 +143,8 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 	}
 	var outputs map[string]string
 	if resp.Properties.Outputs != nil && len(*resp.Properties.Outputs) > 0 {
+		outputs = make(map[string]string)
 		for key, output := range *resp.Properties.Outputs {
-			log.Printf("[INFO] Found Key %s", key)
-
 			outputMap := output.(map[string]interface{})
 			outputValue, ok := outputMap["value"]
 			if !ok {
@@ -156,6 +155,7 @@ func resourceArmTemplateDeploymentRead(d *schema.ResourceData, meta interface{})
 			outputs[key] = outputValue.(string)
 		}
 	}
+
 	d.Set("outputs", outputs)
 
 	return nil
