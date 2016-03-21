@@ -11,9 +11,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * provider/aws: `aws_cloudwatch_log_group` now performs validation on `name` [GH-5444]
   * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted [GH-5723]
   * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
-  * provider/aws: `aws_cloudwatch_log_group` now performs validation on `name` [GH-5444]
 
 BUG FIXES:
 
@@ -23,6 +23,7 @@ BUG FIXES:
   * core: Local directory-based modules now use junctions instead of symbolic links on Windows [GH-5739]
   * core: Modules sourced from a Mercurial repository now work correctly on Windows [GH-5739]
   * provider/aws: Fix crash when an `aws_rds_cluster_instance` is removed outside of Terraform [GH-5717]
+  * provider/aws: `aws_cloudformation_stack` use `timeout_in_minutes` for retry timeout to prevent unecessary timeouts [GH-5712]
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/aws: `aws_vpn_connection` resources deleted via the console on longer cause a crash [GH-5747]
   * provider/digitalocean: `digitalocean_ssh_key` resources no longer cause a panic if there is no network connectivity [GH-5748]
