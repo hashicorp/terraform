@@ -242,13 +242,6 @@ func TestConfigValidate_outputBadField(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_outputMissingEquals(t *testing.T) {
-	c := testConfig(t, "validate-output-missing-equals")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
 func TestConfigValidate_pathVar(t *testing.T) {
 	c := testConfig(t, "validate-path-var")
 	if err := c.Validate(); err != nil {
