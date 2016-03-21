@@ -74,6 +74,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_container":      resourceArmStorageContainer(),
 			"azurerm_storage_queue":          resourceArmStorageQueue(),
 			"azurerm_subnet":                 resourceArmSubnet(),
+			"azurerm_template_deployment":    resourceArmTemplateDeployment(),
 			"azurerm_virtual_machine":        resourceArmVirtualMachine(),
 			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
 		},
@@ -143,7 +144,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)
