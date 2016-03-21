@@ -1,44 +1,44 @@
-## 0.6.14 (Unreleased)
+## 0.6.14 (March 21, 2016)
 
 FEATURES:
 
-  * **New provider:** `triton` - Manage Joyent Triton public cloud or on-premise installations [GH-5738]
-  * **New provider:** `clc` - Manage CenturyLink Cloud resources [GH-4893]
-  * **New provider:** `github` - Manage GitHub Organization permissions with Terraform config [GH-5194]
-  * **New provider:** `influxdb` - Manage InfluxDB databases [GH-3478]
-  * **New provider:** `ultradns` - Manage UltraDNS records [GH-5716]
-  * **New resource:** `aws_cloudwatch_log_metric_filter` [GH-5444]
-  * **New resource:** `azurerm_virtual_machine` [GH-5514]
-  * **New resource:** `azurerm_template_deployment` [GH-5758]
-  * **New interpolation function:** `uuid` [GH-5575]
+  * **New provider:** `triton` - Manage Joyent Triton public cloud or on-premise installations ([#5738](https://github.com/hashicorp/terraform/issues/5738))
+  * **New provider:** `clc` - Manage CenturyLink Cloud resources ([#4893](https://github.com/hashicorp/terraform/issues/4893))
+  * **New provider:** `github` - Manage GitHub Organization permissions with Terraform config ([#5194](https://github.com/hashicorp/terraform/issues/5194))
+  * **New provider:** `influxdb` - Manage InfluxDB databases ([#3478](https://github.com/hashicorp/terraform/issues/3478))
+  * **New provider:** `ultradns` - Manage UltraDNS records ([#5716](https://github.com/hashicorp/terraform/issues/5716))
+  * **New resource:** `aws_cloudwatch_log_metric_filter` ([#5444](https://github.com/hashicorp/terraform/issues/5444))
+  * **New resource:** `azurerm_virtual_machine` ([#5514](https://github.com/hashicorp/terraform/issues/5514))
+  * **New resource:** `azurerm_template_deployment` ([#5758](https://github.com/hashicorp/terraform/issues/5758))
+  * **New interpolation function:** `uuid` ([#5575](https://github.com/hashicorp/terraform/issues/5575))
 
 IMPROVEMENTS:
 
-  * core: provisioners connecting via WinRM now respect HTTPS settings  [GH-5761]
-  * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted [GH-5723]
-  * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
-  * provider/aws: `aws_kms_alias` now allows name to be auto-generated with a `name_prefix` [GH-5594]
+  * core: provisioners connecting via WinRM now respect HTTPS settings  ([#5761](https://github.com/hashicorp/terraform/issues/5761))
+  * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted ([#5723](https://github.com/hashicorp/terraform/issues/5723))
+  * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified ([#5721](https://github.com/hashicorp/terraform/issues/5721))
+  * provider/aws: `aws_kms_alias` now allows name to be auto-generated with a `name_prefix` ([#5594](https://github.com/hashicorp/terraform/issues/5594))
 
 BUG FIXES:
 
-  * core: Color output is now shown correctly when running Terraform on Windows [GH-5718]
-  * core: HEREDOCs can now be indented in line with configuration using `<<-` and hanging indent is removed [GH-5740]
-  * core: Invalid HCL syntax of nested object blocks no longer causes a crash [GH-5740]
-  * core: Local directory-based modules now use junctions instead of symbolic links on Windows [GH-5739]
-  * core: Modules sourced from a Mercurial repository now work correctly on Windows [GH-5739]
-  * core: Address some issues with ignore_changes [GH-5635]
-  * core: Add a lock to fix an interpolation issue caught by the Go 1.6 concurrent map access detector [GH-5772]
-  * provider/aws: Fix crash when an `aws_rds_cluster_instance` is removed outside of Terraform [GH-5717]
-  * provider/aws: `aws_cloudformation_stack` use `timeout_in_minutes` for retry timeout to prevent unecessary timeouts [GH-5712]
-  * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
-  * provider/aws: `aws_vpn_connection` resources deleted via the console on longer cause a crash [GH-5747]
-  * provider/aws: Fix crasher in Elastic Beanstalk Configuration when using options [GH-5756]
-  * provider/aws: Fix issue preventing `aws_opsworks_stck` from working with Windows set as the OS [GH-5724]
-  * provider/digitalocean: `digitalocean_ssh_key` resources no longer cause a panic if there is no network connectivity [GH-5748]
-  * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" [GH-5428]
-  * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]
-  * provider/vsphere: provide `host` to provisioner connections [GH-5558]
-  * provisioner/remote-exec: Address race condition introduced with script cleanup step introduced in 0.6.13 [GH-5751]
+  * core: Color output is now shown correctly when running Terraform on Windows ([#5718](https://github.com/hashicorp/terraform/issues/5718))
+  * core: HEREDOCs can now be indented in line with configuration using `<<-` and hanging indent is removed ([#5740](https://github.com/hashicorp/terraform/issues/5740))
+  * core: Invalid HCL syntax of nested object blocks no longer causes a crash ([#5740](https://github.com/hashicorp/terraform/issues/5740))
+  * core: Local directory-based modules now use junctions instead of symbolic links on Windows ([#5739](https://github.com/hashicorp/terraform/issues/5739))
+  * core: Modules sourced from a Mercurial repository now work correctly on Windows ([#5739](https://github.com/hashicorp/terraform/issues/5739))
+  * core: Address some issues with ignore_changes ([#5635](https://github.com/hashicorp/terraform/issues/5635))
+  * core: Add a lock to fix an interpolation issue caught by the Go 1.6 concurrent map access detector ([#5772](https://github.com/hashicorp/terraform/issues/5772))
+  * provider/aws: Fix crash when an `aws_rds_cluster_instance` is removed outside of Terraform ([#5717](https://github.com/hashicorp/terraform/issues/5717))
+  * provider/aws: `aws_cloudformation_stack` use `timeout_in_minutes` for retry timeout to prevent unecessary timeouts ([#5712](https://github.com/hashicorp/terraform/issues/5712))
+  * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform ([#5668](https://github.com/hashicorp/terraform/issues/5668))
+  * provider/aws: `aws_vpn_connection` resources deleted via the console on longer cause a crash ([#5747](https://github.com/hashicorp/terraform/issues/5747))
+  * provider/aws: Fix crasher in Elastic Beanstalk Configuration when using options ([#5756](https://github.com/hashicorp/terraform/issues/5756))
+  * provider/aws: Fix issue preventing `aws_opsworks_stck` from working with Windows set as the OS ([#5724](https://github.com/hashicorp/terraform/issues/5724))
+  * provider/digitalocean: `digitalocean_ssh_key` resources no longer cause a panic if there is no network connectivity ([#5748](https://github.com/hashicorp/terraform/issues/5748))
+  * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" ([#5428](https://github.com/hashicorp/terraform/issues/5428))
+  * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` ([#5715](https://github.com/hashicorp/terraform/issues/5715))
+  * provider/vsphere: provide `host` to provisioner connections ([#5558](https://github.com/hashicorp/terraform/issues/5558))
+  * provisioner/remote-exec: Address race condition introduced with script cleanup step introduced in 0.6.13 ([#5751](https://github.com/hashicorp/terraform/issues/5751))
 
 ## 0.6.13 (March 16, 2016)
 
