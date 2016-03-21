@@ -2,12 +2,13 @@
 
 FEATURES:
 
+  * **New provider:** `triton` - Manage Joyent Triton public cloud or on-premise installations [GH-5738]
   * **New provider:** `github` - Manage GitHub Organization permissions with Terraform config [GH-5194]
   * **New provider:** `influxdb` - Manage InfluxDB databases [GH-3478]
   * **New provider:** `ultradns` - Manage UltraDNS records [GH-5716]
-  * **New provider:** `triton` - Manage Joyent Triton public cloud or on-premise installations [GH-5738]
   * **New resource:** `aws_cloudwatch_log_metric_filter` [GH-5444]
   * **New resource:** `azurerm_virtual_machine` [GH-5514]
+  * **New resource:** `azurerm_template_deployment` [GH-5758]
 
 IMPROVEMENTS:
 
