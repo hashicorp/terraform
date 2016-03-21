@@ -418,6 +418,27 @@ func TestCheckResourceAttrPtr(name string, key string, value *string) TestCheckF
 	}
 }
 
+// TestCheckOutput checks an output in the Terraform configuration
+func TestCheckOutput(name, value string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Outputs[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if rs != value {
+			return fmt.Errorf(
+				"Output '%s': expected %#v, got %#v",
+				name,
+				value,
+				rs)
+		}
+
+		return nil
+	}
+}
+
 // TestT is the interface used to handle the test lifecycle of a test.
 //
 // Users should just use a *testing.T object, which implements this.
