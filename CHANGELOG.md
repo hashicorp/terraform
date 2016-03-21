@@ -13,6 +13,7 @@ IMPROVEMENTS:
 
   * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted [GH-5723]
   * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
+  * provider/aws: `aws_cloudwatch_log_group` now performs validation on `name` [GH-5444]
 
 BUG FIXES:
 
