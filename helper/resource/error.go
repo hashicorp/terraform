@@ -15,7 +15,3 @@ func (e *NotFoundError) Error() string {
 
 	return "couldn't find resource"
 }
-
-func NewNotFoundError(err string) *NotFoundError {
-	return &NotFoundError{Message: err}
-}
