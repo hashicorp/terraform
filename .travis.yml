@@ -1,31 +1,28 @@
 sudo: false
-
 language: go
-
 go:
-  - 1.6
-
-# Need to ensure at least something remains in the install stanza to opt out of
-# Travis's built-in 'godep restore', which will fail Travis
-# See https://docs.travis-ci.com/user/languages/go#godep-support
+- 1.6
+before_install:
+- openssl aes-256-cbc -K $encrypted_409871ff96c7_key -iv $encrypted_409871ff96c7_iv
+  -in scripts/gogetcookie.sh.enc -out scripts/gogetcookie.sh -d
 install:
-  - echo noop
-
+# This script is used by the Travis build to install a cookie for
+# go.googlesource.com so rate limits are higher when using `go get` to fetch
+# packages that live there.
+# See: https://github.com/golang/go/issues/12933
+- bash scripts/gogetcookie.sh
 script:
-  - make test vet
-
+- make test vet
 branches:
   only:
-    - master
-
+  - master
 notifications:
   irc:
     channels:
-      - "irc.freenode.org#terraform-tool"
+    - irc.freenode.org#terraform-tool
     skip_join: true
     use_notice: true
-
 matrix:
   fast_finish: true
   allow_failures:
-    - go: tip
+  - go: tip
