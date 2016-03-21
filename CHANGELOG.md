@@ -24,6 +24,7 @@ BUG FIXES:
   * core: Invalid HCL syntax of nested object blocks no longer causes a crash [GH-5740]
   * core: Local directory-based modules now use junctions instead of symbolic links on Windows [GH-5739]
   * core: Modules sourced from a Mercurial repository now work correctly on Windows [GH-5739]
+  * core: Address some issues with ignore_changes [GH-5635]
   * provider/aws: Fix crash when an `aws_rds_cluster_instance` is removed outside of Terraform [GH-5717]
   * provider/aws: `aws_cloudformation_stack` use `timeout_in_minutes` for retry timeout to prevent unecessary timeouts [GH-5712]
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
