@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New provider:** `triton` - Manage Joyent Triton public cloud or on-premise installations [GH-5738]
+  * **New provider:** `clc` - Manage CenturyLink Cloud resources [GH-4893]
   * **New provider:** `github` - Manage GitHub Organization permissions with Terraform config [GH-5194]
   * **New provider:** `influxdb` - Manage InfluxDB databases [GH-3478]
   * **New provider:** `ultradns` - Manage UltraDNS records [GH-5716]
