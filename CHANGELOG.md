@@ -11,7 +11,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-  * provider/aws: `aws_cloudwatch_log_group` now performs validation on `name` [GH-5444]
+  * core: provisioners connecting via WinRM now respect HTTPS settings  [GH-5761]
   * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted [GH-5723]
   * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
 
@@ -26,6 +26,7 @@ BUG FIXES:
   * provider/aws: `aws_cloudformation_stack` use `timeout_in_minutes` for retry timeout to prevent unecessary timeouts [GH-5712]
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/aws: `aws_vpn_connection` resources deleted via the console on longer cause a crash [GH-5747]
+  * provider/aws: Fix crasher in Elastic Beanstalk Configuration when using options [GH-5756]
   * provider/digitalocean: `digitalocean_ssh_key` resources no longer cause a panic if there is no network connectivity [GH-5748]
   * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" [GH-5428]
   * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]

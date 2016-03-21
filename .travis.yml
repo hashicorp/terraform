@@ -2,9 +2,6 @@ sudo: false
 language: go
 go:
 - 1.6
-before_install:
-- openssl aes-256-cbc -K $encrypted_409871ff96c7_key -iv $encrypted_409871ff96c7_iv
-  -in scripts/gogetcookie.sh.enc -out scripts/gogetcookie.sh -d
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
