@@ -30,7 +30,7 @@ func TestAccGroupBasic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"clc_group.acc_test_group", "name", "okcomputer"),
 					resource.TestCheckResourceAttr(
-						"clc_group.acc_test_group", "location_id", "WA1"),
+						"clc_group.acc_test_group", "location_id", testAccDC),
 				),
 			},
 			resource.TestStep{
@@ -41,7 +41,7 @@ func TestAccGroupBasic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"clc_group.acc_test_group", "name", "foobar"),
 					resource.TestCheckResourceAttr(
-						"clc_group.acc_test_group", "location_id", "WA1"),
+						"clc_group.acc_test_group", "location_id", testAccDC),
 				),
 			},
 			resource.TestStep{
@@ -52,7 +52,7 @@ func TestAccGroupBasic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"clc_group.acc_test_group", "name", "foobar"),
 					resource.TestCheckResourceAttr(
-						"clc_group.acc_test_group", "location_id", "WA1"),
+						"clc_group.acc_test_group", "location_id", testAccDC),
 				),
 			},
 		},
@@ -117,30 +117,37 @@ func testAccCheckGroupExists(n string, resp *group.Response) resource.TestCheckF
 }
 
 const testAccCheckGroupConfigBasic = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "okcomputer"
   description	= "mishaps happening"
   parent	= "Default Group"
 }`
 
 const testAccCheckGroupConfigUpdate = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "foobar"
   description	= "update test"
   parent	= "Default Group"
 }`
 
 const testAccCheckGroupConfigReparent = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group_reparent" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "reparent"
   description	= "introduce a parent group in place"
   parent	= "Default Group"
 }
+
 resource "clc_group" "acc_test_group" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "foobar"
   description	= "update test"
   parent	= "${clc_group.acc_test_group_reparent.id}"

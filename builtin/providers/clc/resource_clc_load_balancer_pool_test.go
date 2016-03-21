@@ -40,8 +40,10 @@ func testAccCheckLBPDestroy(s *terraform.State) error {
 			continue
 		}
 		lbid := rs.Primary.Attributes["load_balancer"]
-		_, err := client.LB.GetPool(testAccDC, lbid, rs.Primary.ID)
-		if err == nil {
+		if _, err := client.LB.Get(testAccDC, rs.Primary.ID); err != nil {
+			return nil // parent LB already gone
+		}
+		if _, err := client.LB.GetPool(testAccDC, lbid, rs.Primary.ID); err == nil {
 			return fmt.Errorf("LB still exists")
 		}
 	}
@@ -72,9 +74,10 @@ func testAccCheckLBPExists(n string, resp *lb.Pool) resource.TestCheckFunc {
 }
 
 const testAccCheckLBPConfigBasic = `
+variable "dc" { default = "IL1" }
 
 resource "clc_group" "acc_test_lbp_group" {
-  location_id		= "WA1"
+  location_id		= "${var.dc}"
   name			= "acc_test_lbp_group"
   parent		= "Default Group"
 }
@@ -82,7 +85,7 @@ resource "clc_group" "acc_test_lbp_group" {
 # need a server here because we need to reference an ip owned by this account
 resource "clc_server" "acc_test_lbp_server" {
   name_template		= "node"
-  description		= "load balanced node"
+  description		= "load balanced in ${clc_load_balancer.acc_test_lbp.id}"
   source_server_id	= "UBUNTU-14-64-TEMPLATE"
   type			= "standard"
   group_id		= "${clc_group.acc_test_lbp_group.id}"
@@ -90,10 +93,11 @@ resource "clc_server" "acc_test_lbp_server" {
   memory_mb		= 1024
   password		= "Green123$"
   power_state		= "started"
+
 }
 
 resource "clc_load_balancer" "acc_test_lbp" {
-  data_center		= "WA1"
+  data_center		= "${var.dc}"
   name			= "acc_test_lb"
   description		= "load balancer test"
   status		= "enabled"
@@ -101,7 +105,7 @@ resource "clc_load_balancer" "acc_test_lbp" {
 
 resource "clc_load_balancer_pool" "acc_test_pool" {
   port			= 80
-  data_center		= "WA1"
+  data_center		= "${var.dc}"
   load_balancer		= "${clc_load_balancer.acc_test_lbp.id}"
   nodes
     {

@@ -15,8 +15,6 @@ import (
 //   toggles status
 //   created w/o pool
 
-const testAccDC = "WA1"
-
 func TestAccLoadBalancerBasic(t *testing.T) {
 	var resp lb.LoadBalancer
 	resource.Test(t, resource.TestCase{
@@ -53,8 +51,7 @@ func testAccCheckLBDestroy(s *terraform.State) error {
 		if rs.Type != "clc_load_balancer" {
 			continue
 		}
-		_, err := client.LB.Get(testAccDC, rs.Primary.ID)
-		if err == nil {
+		if _, err := client.LB.Get(testAccDC, rs.Primary.ID); err == nil {
 			return fmt.Errorf("LB still exists")
 		}
 	}
@@ -84,16 +81,20 @@ func testAccCheckLBExists(n string, resp *lb.LoadBalancer) resource.TestCheckFun
 }
 
 const testAccCheckLBConfigBasic = `
+variable "dc" { default = "IL1" }
+
 resource "clc_load_balancer" "acc_test_lb" {
-  data_center	= "WA1"
+  data_center	= "${var.dc}"
   name		= "acc_test_lb"
   description	= "load balancer test"
   status	= "enabled"
 }`
 
 const testAccCheckLBConfigNameDesc = `
+variable "dc" { default = "IL1" }
+
 resource "clc_load_balancer" "acc_test_lb" {
-  data_center	= "WA1"
+  data_center	= "${var.dc}"
   name		= "foobar"
   description	= "foobar"
   status	= "disabled"

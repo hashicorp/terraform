@@ -177,8 +177,10 @@ func testAccCheckServerUpdatedDisks(n string, resp *server.Response) resource.Te
 }
 
 const testAccCheckServerConfigBasic = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group_server" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "acc_test_group_server"
   parent	= "Default Group"
 }
@@ -194,8 +196,10 @@ resource "clc_server" "acc_test_server" {
 `
 
 const testAccCheckServerConfigCPUMEM = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group_server" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "acc_test_group_server"
   parent	= "Default Group"
 }
@@ -212,8 +216,10 @@ resource "clc_server" "acc_test_server" {
 `
 
 const testAccCheckServerConfigPower = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group_server" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "acc_test_group_server"
   parent	= "Default Group"
 }
@@ -230,8 +236,10 @@ resource "clc_server" "acc_test_server" {
 `
 
 const testAccCheckServerConfigDisks = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group_server" {
-  location_id	= "WA1"
+  location_id	= "${var.dc}"
   name		= "acc_test_group_server"
   parent	= "Default Group"
 }
