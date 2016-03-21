@@ -184,59 +184,6 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 		topicConfigs = append(topicConfigs, tc)
 	}
 
-	// Lambda
-	lambdaFunctionNotifications := d.Get("lambda_function").([]interface{})
-	lambdaConfigs := make([]*s3.LambdaFunctionConfiguration, 0, len(lambdaFunctionNotifications))
-	for i, c := range lambdaFunctionNotifications {
-		lc := &s3.LambdaFunctionConfiguration{}
-
-		c := c.(map[string]interface{})
-
-		// Id
-		if val, ok := c["id"].(string); ok && val != "" {
-			lc.Id = aws.String(val)
-		} else {
-			lc.Id = aws.String(resource.PrefixedUniqueId("tf-s3-lambda-"))
-		}
-
-		// LambdaFunctionArn
-		if val, ok := c["lambda_function_arn"].(string); ok {
-			lc.LambdaFunctionArn = aws.String(val)
-		}
-
-		// Events
-		events := d.Get(fmt.Sprintf("lambda_function.%d.events", i)).(*schema.Set).List()
-		lc.Events = make([]*string, 0, len(events))
-		for _, e := range events {
-			lc.Events = append(lc.Events, aws.String(e.(string)))
-		}
-
-		// Filter
-		filterRules := make([]*s3.FilterRule, 0, 2)
-		if val, ok := c["filter_prefix"].(string); ok && val != "" {
-			filterRule := &s3.FilterRule{
-				Name:  aws.String("prefix"),
-				Value: aws.String(val),
-			}
-			filterRules = append(filterRules, filterRule)
-		}
-		if val, ok := c["filter_suffix"].(string); ok && val != "" {
-			filterRule := &s3.FilterRule{
-				Name:  aws.String("suffix"),
-				Value: aws.String(val),
-			}
-			filterRules = append(filterRules, filterRule)
-		}
-		if len(filterRules) > 0 {
-			lc.Filter = &s3.NotificationConfigurationFilter{
-				Key: &s3.KeyFilter{
-					FilterRules: filterRules,
-				},
-			}
-		}
-		lambdaConfigs = append(lambdaConfigs, lc)
-	}
-
 	// SQS
 	queueNotifications := d.Get("queue").([]interface{})
 	queueConfigs := make([]*s3.QueueConfiguration, 0, len(queueNotifications))
@@ -288,6 +235,59 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 			}
 		}
 		queueConfigs = append(queueConfigs, qc)
+	}
+
+	// Lambda
+	lambdaFunctionNotifications := d.Get("lambda_function").([]interface{})
+	lambdaConfigs := make([]*s3.LambdaFunctionConfiguration, 0, len(lambdaFunctionNotifications))
+	for i, c := range lambdaFunctionNotifications {
+		lc := &s3.LambdaFunctionConfiguration{}
+
+		c := c.(map[string]interface{})
+
+		// Id
+		if val, ok := c["id"].(string); ok && val != "" {
+			lc.Id = aws.String(val)
+		} else {
+			lc.Id = aws.String(resource.PrefixedUniqueId("tf-s3-lambda-"))
+		}
+
+		// LambdaFunctionArn
+		if val, ok := c["lambda_function_arn"].(string); ok {
+			lc.LambdaFunctionArn = aws.String(val)
+		}
+
+		// Events
+		events := d.Get(fmt.Sprintf("lambda_function.%d.events", i)).(*schema.Set).List()
+		lc.Events = make([]*string, 0, len(events))
+		for _, e := range events {
+			lc.Events = append(lc.Events, aws.String(e.(string)))
+		}
+
+		// Filter
+		filterRules := make([]*s3.FilterRule, 0, 2)
+		if val, ok := c["filter_prefix"].(string); ok && val != "" {
+			filterRule := &s3.FilterRule{
+				Name:  aws.String("prefix"),
+				Value: aws.String(val),
+			}
+			filterRules = append(filterRules, filterRule)
+		}
+		if val, ok := c["filter_suffix"].(string); ok && val != "" {
+			filterRule := &s3.FilterRule{
+				Name:  aws.String("suffix"),
+				Value: aws.String(val),
+			}
+			filterRules = append(filterRules, filterRule)
+		}
+		if len(filterRules) > 0 {
+			lc.Filter = &s3.NotificationConfigurationFilter{
+				Key: &s3.KeyFilter{
+					FilterRules: filterRules,
+				},
+			}
+		}
+		lambdaConfigs = append(lambdaConfigs, lc)
 	}
 
 	notificationConfiguration := &s3.NotificationConfiguration{}
