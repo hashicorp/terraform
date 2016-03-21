@@ -11,8 +11,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-
-	"github.com/mikebeyer/env"
 )
 
 var debug = os.Getenv("DEBUG") != ""
@@ -182,8 +180,14 @@ func EnvConfig() (Config, error) {
 // Defaults for Alias, BaseURL, and UserAgent will be taken from respective env vars.
 func NewConfig(username, password string) (Config, error) {
 	alias := os.Getenv("CLC_ALIAS")
-	agent := env.String("CLC_USER_AGENT", userAgentDefault)
-	base := env.String("CLC_BASE_URL", baseUriDefault)
+	agent := userAgentDefault
+	if v := os.Getenv("CLC_USER_AGENT"); v != "" {
+		agent = v
+	}
+	base := baseUriDefault
+	if v := os.Getenv("CLC_BASE_URL"); v != "" {
+		base = v
+	}
 	uri, err := url.Parse(base)
 	return Config{
 		User: User{

@@ -3,7 +3,6 @@ package clc
 import (
 	"fmt"
 	"log"
-	"net/url"
 	"strconv"
 
 	clc "github.com/CenturyLinkCloud/clc-sdk"
@@ -31,18 +30,6 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("CLC_PASSWORD", nil),
 				Description: "Your CLC password",
 			},
-			"account": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLC_ACCOUNT", nil),
-				Description: "Your CLC account alias",
-			},
-			"url": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Base CLC API url",
-				DefaultFunc: schema.EnvDefaultFunc("CLC_BASE_URL", nil),
-			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -64,12 +51,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config, err := api.NewConfig(un, pw)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create CLC config with provided details: %v", err)
-	}
-	if urlStr := d.Get("url").(string); urlStr != "" {
-		uri, err := url.Parse(urlStr)
-		if err == nil {
-			config.BaseURL = uri
-		}
 	}
 	config.UserAgent = fmt.Sprintf("terraform-clc terraform/%s", terraform.Version)
 
