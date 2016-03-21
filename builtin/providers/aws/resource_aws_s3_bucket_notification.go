@@ -134,7 +134,7 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 	// TopicNotifications
 	topicNotifications := d.Get("topic").([]interface{})
 	topicConfigs := make([]*s3.TopicConfiguration, 0, len(topicNotifications))
-	for _, c := range topicNotifications {
+	for i, c := range topicNotifications {
 		tc := &s3.TopicConfiguration{}
 
 		c := c.(map[string]interface{})
@@ -152,8 +152,9 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 		}
 
 		// Events
-		tc.Events = make([]*string, 0, len(c["events"].(*schema.Set).List()))
-		for _, e := range c["events"].(*schema.Set).List() {
+		events := d.Get(fmt.Sprintf("topic.%d.events", i)).(*schema.Set).List()
+		tc.Events = make([]*string, 0, len(events))
+		for _, e := range events {
 			tc.Events = append(tc.Events, aws.String(e.(string)))
 		}
 
@@ -186,7 +187,7 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 	// Lambda
 	lambdaFunctionNotifications := d.Get("lambda_function").([]interface{})
 	lambdaConfigs := make([]*s3.LambdaFunctionConfiguration, 0, len(lambdaFunctionNotifications))
-	for _, c := range lambdaFunctionNotifications {
+	for i, c := range lambdaFunctionNotifications {
 		lc := &s3.LambdaFunctionConfiguration{}
 
 		c := c.(map[string]interface{})
@@ -204,8 +205,9 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 		}
 
 		// Events
-		lc.Events = make([]*string, 0, len(c["events"].(*schema.Set).List()))
-		for _, e := range c["events"].(*schema.Set).List() {
+		events := d.Get(fmt.Sprintf("lambda_function.%d.events", i)).(*schema.Set).List()
+		lc.Events = make([]*string, 0, len(events))
+		for _, e := range events {
 			lc.Events = append(lc.Events, aws.String(e.(string)))
 		}
 
@@ -238,7 +240,7 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 	// SQS
 	queueNotifications := d.Get("queue").([]interface{})
 	queueConfigs := make([]*s3.QueueConfiguration, 0, len(queueNotifications))
-	for _, c := range queueNotifications {
+	for i, c := range queueNotifications {
 		qc := &s3.QueueConfiguration{}
 
 		c := c.(map[string]interface{})
@@ -256,8 +258,9 @@ func resourceAwsS3BucketNotificationPut(d *schema.ResourceData, meta interface{}
 		}
 
 		// Events
-		qc.Events = make([]*string, 0, len(c["events"].(*schema.Set).List()))
-		for _, e := range c["events"].(*schema.Set).List() {
+		events := d.Get(fmt.Sprintf("queue.%d.events", i)).(*schema.Set).List()
+		qc.Events = make([]*string, 0, len(events))
+		for _, e := range events {
 			qc.Events = append(qc.Events, aws.String(e.(string)))
 		}
 
