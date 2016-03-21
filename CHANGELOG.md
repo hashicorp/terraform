@@ -14,6 +14,7 @@ IMPROVEMENTS:
   * core: provisioners connecting via WinRM now respect HTTPS settings  [GH-5761]
   * provider/aws: `aws_db_instance` now makes `identifier` optional and generates a unique ID when it is omitted [GH-5723]
   * provider/aws: `aws_redshift_cluster` now allows`publicly_accessible` to be modified [GH-5721]
+  * provider/aws: `aws_kms_alias` now allows name to be auto-generated with a `name_prefix` [GH-5594]
 
 BUG FIXES:
 
