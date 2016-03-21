@@ -307,6 +307,7 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 		Name:                      aws.String(d.Get("name").(string)),
 		Region:                    aws.String(d.Get("region").(string)),
 		ServiceRoleArn:            aws.String(d.Get("service_role_arn").(string)),
+		DefaultOs:                 aws.String(d.Get("default_os").(string)),
 		UseOpsworksSecurityGroups: aws.Bool(d.Get("use_opsworks_security_groups").(bool)),
 	}
 	inVpc := false
