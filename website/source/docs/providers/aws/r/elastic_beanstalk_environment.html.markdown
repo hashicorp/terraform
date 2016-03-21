@@ -8,11 +8,11 @@ description: |-
 
 # aws\_elastic\_beanstalk\_<wbr>environment
 
-Provides an Elastic Beanstalk Environment Resource. Elastic Beanstalk allows
-you to deploy and manage applications in the AWS cloud without worrying about
+Provides an Elastic Beanstalk Environment Resource. Elastic Beanstalk allows 
+you to deploy and manage applications in the AWS cloud without worrying about 
 the infrastructure that runs those applications.
 
-Environments are often things such as `development`, `integration`, or
+Environments are often things such as `development`, `integration`, or 
 `production`.
 
 ## Example Usage
@@ -35,21 +35,21 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 
 The following arguments are supported:
 
-* `name` - (Required) A unique name for this Environment. This name is used
+* `name` - (Required) A unique name for this Environment. This name is used 
   in the application URL
-* `application` – (Required) Name of the application that contains the version
+* `application` – (Required) Name of the application that contains the version 
   to be deployed
 * `cname_prefix` - (Optional) Prefix to use for the fully qualified DNS name of
   the Environment.
-* `description` - (Optional) Short description of the Environment
-* `tier` - (Optional) Elastic Beanstalk Environment tier. Valid values are `Worker`
+* `description` - (Optional) Short description of the Environment 
+* `tier` - (Optional) Elastic Beanstalk Environment tier. Valid values are `Worker` 
   or `WebServer`. If tier is left blank `WebServer` will be used.
 * `setting` – (Optional) Option settings to configure the new Environment. These
   override specific values that are set as defaults. The format is detailed
   below in [Option Settings](#option-settings)
 * `solution_stack_name` – (Optional) A solution stack to base your environment
 off of. Example stacks can be found in the [Amazon API documentation][1]
-* `template_name` – (Optional) The name of the Elastic Beanstalk Configuration
+* `template_name` – (Optional) The name of the Elastic Beanstalk Configuration 
   template to use in deployment
 * `wait_for_ready_timeout` - (Default: `10m`) The maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
@@ -59,6 +59,8 @@ off of. Example stacks can be found in the [Amazon API documentation][1]
 check if changes have been applied. Use this to adjust the rate of API calls
 for any `create` or `update` action. Minimum `10s`, maximum `180s`. Omit this to
 use the default behavior, which is an exponential backoff
+* `version_label` - (Optional) The name of the Elastic Beanstalk Application Version
+to use in deployment.
 * `tags` – (Optional) A set of tags to apply to the Environment. **Note:** at
 this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application
