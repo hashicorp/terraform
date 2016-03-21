@@ -11,6 +11,8 @@ import (
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
 
+const testAccDC = "IL1"
+
 func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
@@ -34,8 +36,5 @@ func testAccPreCheck(t *testing.T) {
 	}
 	if v := os.Getenv("CLC_PASSWORD"); v == "" {
 		t.Fatal("CLC_PASSWORD must be set for acceptance tests")
-	}
-	if v := os.Getenv("CLC_ACCOUNT"); v == "" {
-		t.Fatal("CLC_ACCOUNT must be set for acceptance tests")
 	}
 }

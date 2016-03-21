@@ -123,8 +123,10 @@ func testAccCheckPublicIPNIC(n string, resp *server.PublicIP) resource.TestCheck
 }
 
 var testAccCheckPublicIPConfigBasic = `
+variable "dc" { default = "IL1" }
+
 resource "clc_group" "acc_test_group_ip" {
-  location_id		= "CA1"
+  location_id		= "${var.dc}"
   name			= "acc_test_group_ip"
   parent		= "Default Group"
 }
