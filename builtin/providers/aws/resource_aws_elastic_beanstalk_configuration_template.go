@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -38,26 +37,12 @@ func resourceAwsElasticBeanstalkConfigurationTemplate() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"option_settings": &schema.Schema{
+			"setting": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"namespace": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"option_name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"value": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
-				},
-				Set: optionSettingHash,
+				Computed: true,
+				Elem:     resourceAwsElasticBeanstalkOptionSetting(),
+				Set:      optionSettingValueHash,
 			},
 			"solution_stack_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -223,13 +208,6 @@ func resourceAwsElasticBeanstalkConfigurationTemplateDelete(d *schema.ResourceDa
 	})
 
 	return err
-}
-
-func optionSettingHash(v interface{}) int {
-	rd := v.(*schema.ResourceData)
-	namespace := rd.Get("namespace").(string)
-	optionName := rd.Get("option_name").(string)
-	return hashcode.String(fmt.Sprintf("%s.%s", namespace, optionName))
 }
 
 func gatherOptionSettings(d *schema.ResourceData) []*elasticbeanstalk.ConfigurationOptionSetting {

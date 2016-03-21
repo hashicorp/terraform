@@ -36,12 +36,22 @@ The following arguments are supported:
 * `application` – (Required) name of the application to associate with this configuration template
 * `description` - (Optional) Short description of the Template 
 * `environment_id` – (Optional) The ID of the environment used with this configuration template
-* `option_settings` – (Optional) Option settings to configure the new Environment. These
+* `setting` – (Optional) Option settings to configure the new Environment. These
   override specific values that are set as defaults. The format is detailed
   below in [Option Settings](#option-settings)
 * `solution_stack_name` – (Optional) A solution stack to base your Template 
 off of. Example stacks can be found in the [Amazon API documentation][1]
 
+
+<a id="option-settings"></a>
+## Option Settings
+
+The `setting` field supports the following format:
+
+* `namespace` - (Optional) unique namespace identifying the option's 
+  associated AWS resource
+* `name` - (Optional) name of the configuration option
+* `value` - (Optional) value for the configuration option
 
 ## Attributes Reference
 
