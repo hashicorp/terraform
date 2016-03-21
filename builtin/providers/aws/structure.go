@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -923,4 +924,24 @@ func expandApiGatewayStageKeyOperations(d *schema.ResourceData) []*apigateway.Pa
 	}
 
 	return operations
+}
+
+func expandCloudWachLogMetricTransformations(m map[string]interface{}) []*cloudwatchlogs.MetricTransformation {
+	transformation := cloudwatchlogs.MetricTransformation{
+		MetricName:      aws.String(m["name"].(string)),
+		MetricNamespace: aws.String(m["namespace"].(string)),
+		MetricValue:     aws.String(m["value"].(string)),
+	}
+
+	return []*cloudwatchlogs.MetricTransformation{&transformation}
+}
+
+func flattenCloudWachLogMetricTransformations(ts []*cloudwatchlogs.MetricTransformation) map[string]string {
+	m := make(map[string]string, 0)
+
+	m["name"] = *ts[0].MetricName
+	m["namespace"] = *ts[0].MetricNamespace
+	m["value"] = *ts[0].MetricValue
+
+	return m
 }
