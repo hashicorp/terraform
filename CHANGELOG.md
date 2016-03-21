@@ -9,6 +9,7 @@ FEATURES:
   * **New resource:** `aws_cloudwatch_log_metric_filter` [GH-5444]
   * **New resource:** `azurerm_virtual_machine` [GH-5514]
   * **New resource:** `azurerm_template_deployment` [GH-5758]
+  * **New interpolation function:** `uuid` [GH-5575]
 
 IMPROVEMENTS:
 
