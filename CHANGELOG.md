@@ -30,6 +30,7 @@ BUG FIXES:
   * provider/aws: `aws_lambda_function` resources no longer error on refresh if deleted externally to Terraform [GH-5668]
   * provider/aws: `aws_vpn_connection` resources deleted via the console on longer cause a crash [GH-5747]
   * provider/aws: Fix crasher in Elastic Beanstalk Configuration when using options [GH-5756]
+  * provider/aws: Fix issue preventing `aws_opsworks_stck` from working with Windows set as the OS [GH-5724]
   * provider/digitalocean: `digitalocean_ssh_key` resources no longer cause a panic if there is no network connectivity [GH-5748]
   * provider/google: Default description `google_dns_managed_zone` resources to "Managed By Terraform" [GH-5428]
   * provider/google: Fix error message on invalid instance URL for `google_compute_instance_group` [GH-5715]
