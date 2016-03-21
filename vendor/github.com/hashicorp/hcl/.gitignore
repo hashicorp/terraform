@@ -5,3 +5,5 @@ y.output
 *.iml
 *.ipr
 *.iws
+
+*.test
