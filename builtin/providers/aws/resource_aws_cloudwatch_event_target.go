@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,7 +30,7 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 
 			"target_id": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCloudWatchEventTargetId,
 			},
@@ -60,7 +61,13 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 	conn := meta.(*AWSClient).cloudwatcheventsconn
 
 	rule := d.Get("rule").(string)
-	targetId := d.Get("target_id").(string)
+
+	var targetId string
+	if v, ok := d.GetOk("target_id"); ok {
+		targetId = v.(string)
+	} else {
+		targetId = resource.UniqueId()
+	}
 
 	input := buildPutTargetInputStruct(d)
 	log.Printf("[DEBUG] Creating CloudWatch Event Target: %s", input)
