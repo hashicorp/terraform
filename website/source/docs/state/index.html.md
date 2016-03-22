@@ -25,6 +25,23 @@ state file with the real infrastructure if the file didn't exist. But currently,
 Terraform state is a mixture of both a cache and required configuration and
 isn't optional.
 
+## Inspection and Modification
+
+While the format of the state files are just JSON, direct file editing
+of the state is discouraged. Terraform provides the
+[terraform state](/docs/commands/state/index.html) command to perform
+basic modifications of the state using the CLI.
+
+The CLI usage and output of the state commands is structured to be
+friendly for Unix tools such as grep, awk, etc. Additionally, the CLI
+insulates users from any format changes within the state itself. The Terraform
+project will keep the CLI working while the state format underneath it may
+shift.
+
+Finally, the CLI manages backups for you automatically. If you make a mistake
+modifying your state, the state CLI will always have a backup available for
+you that you can restore.
+
 ## Format
 
 The state is in JSON format and Terraform will promise backwards compatibility
