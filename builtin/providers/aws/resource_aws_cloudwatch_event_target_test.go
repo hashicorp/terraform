@@ -43,8 +43,6 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 }
 
 func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
-	var target events.Target
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -53,9 +51,6 @@ func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSCloudWatchEventTargetConfigMissingTargetId,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
-					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.moobar", "rule", "tf-acc-cw-event-rule-basic"),
-					resource.TestMatchResourceAttr("aws_cloudwatch_event_target.moobar", "arn", regexp.MustCompile(":tf-acc-moon$")),
 					testAccCheckTargetIdExists("aws_cloudwatch_event_target.target_id"),
 				),
 			},
