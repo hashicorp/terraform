@@ -30,12 +30,12 @@ func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
 			},
 			"bucket": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 			"key": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 			"name": &schema.Schema{
