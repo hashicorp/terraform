@@ -1,0 +1,30 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+					<a href="/docs/commands/index.html">&laquo; Documentation Home</a>
+				</li>
+
+				<li<%= sidebar_current("docs-state-index") %>>
+					<a href="/docs/commands/state/index.html">State Command</a>
+				</li>
+
+				<li<%= sidebar_current("docs-state-address") %>>
+					<a href="/docs/commands/state/addressing.html">Resource Addressing</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-state-sub/) %>>
+					<a href="#">Subcommands</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-state-sub-list") %>>
+							<a href="/docs/commands/state/list.html">list</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>
