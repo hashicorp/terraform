@@ -1,7 +1,12 @@
 ## 0.6.15 (Unreleased)
 
 FEATURES:
+
  * **New resource:** `aws_iam_user_ssh_key` [GH-5774]
+
+BUG FIXES:
+
+ * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
 
 ## 0.6.14 (March 21, 2016)
 
