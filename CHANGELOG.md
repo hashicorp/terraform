@@ -1,5 +1,8 @@
 ## 0.6.15 (Unreleased)
 
+FEATURES:
+ * **New resource:** `aws_iam_user_ssh_key` [GH-5774]
+
 ## 0.6.14 (March 21, 2016)
 
 FEATURES:
