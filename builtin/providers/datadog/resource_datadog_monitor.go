@@ -27,14 +27,23 @@ func resourceDatadogMonitor() *schema.Resource {
 			"message": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				StateFunc: func(val interface{}) string {
+					return strings.TrimSpace(val.(string))
+				},
 			},
 			"escalation_message": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				StateFunc: func(val interface{}) string {
+					return strings.TrimSpace(val.(string))
+				},
 			},
 			"query": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				StateFunc: func(val interface{}) string {
+					return strings.TrimSpace(val.(string))
+				},
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
@@ -296,7 +305,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	m.Options = o
 
 	if err = client.UpdateMonitor(m); err != nil {
-		return fmt.Errorf("error updating montor: %s", err.Error())
+		return fmt.Errorf("error updating monitor: %s", err.Error())
 	}
 
 	return resourceDatadogMonitorRead(d, meta)
