@@ -72,6 +72,21 @@ func Get(dst, src string) error {
 	}).Get()
 }
 
+// GetAny downloads a URL into the given destination. Unlike Get or
+// GetFile, both directories and files are supported.
+//
+// dst must be a directory. If src is a file, it will be downloaded
+// into dst with the basename of the URL. If src is a directory or
+// archive, it will be unpacked directly into dst.
+func GetAny(dst, src string) error {
+	return (&Client{
+		Src:     src,
+		Dst:     dst,
+		Mode:    ClientModeAny,
+		Getters: Getters,
+	}).Get()
+}
+
 // GetFile downloads the file specified by src into the path specified by
 // dst.
 func GetFile(dst, src string) error {

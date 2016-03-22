@@ -362,10 +362,8 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 // Database names cannot collide, and deletion takes so long, that making the
 // name a bit random helps so able we can kill a test that's just waiting for a
 // delete and not be blocked on kicking off another one.
-var testAccAWSDBInstanceConfig = fmt.Sprintf(`
+var testAccAWSDBInstanceConfig = `
 resource "aws_db_instance" "bar" {
-	identifier = "foobarbaz-test-terraform-%d"
-
 	allocated_storage = 10
 	engine = "MySQL"
 	engine_version = "5.6.21"
@@ -383,7 +381,7 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
-}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+}`
 
 func testAccReplicaInstanceConfig(val int) string {
 	return fmt.Sprintf(`
