@@ -76,6 +76,38 @@ func TestStateAddModule(t *testing.T) {
 	}
 }
 
+func TestStateOutputTypeRoundTrip(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Outputs: map[string]interface{}{
+					"string_output": "String Value",
+					"list_output":   []interface{}{"List", "Value"},
+					"map_output": map[string]interface{}{
+						"key1": "Map",
+						"key2": "Value",
+					},
+				},
+			},
+		},
+	}
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	roundTripped, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(state, roundTripped) {
+		t.Fatalf("bad: %#v", roundTripped)
+	}
+}
+
 func TestStateModuleOrphans(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
@@ -1162,6 +1194,33 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 	}
 }
 
+func TestReadUpgradeStateV1toV2(t *testing.T) {
+	// ReadState should transparently detect the old version but will upgrade
+	// it on Write.
+	actual, err := ReadState(strings.NewReader(testV1State))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(actual, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual.Version != 2 {
+		t.Fatalf("bad: State version not incremented; is %d", actual.Version)
+	}
+
+	roundTripped, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, roundTripped) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestReadUpgradeState(t *testing.T) {
 	state := &StateV0{
 		Resources: map[string]*ResourceStateV0{
@@ -1486,3 +1545,34 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 	}
 }
+
+const testV1State = `{
+    "version": 1,
+    "serial": 9,
+    "remote": {
+        "type": "http",
+        "config": {
+            "url": "http://my-cool-server.com/"
+        }
+    },
+    "modules": [
+        {
+            "path": [
+                "root"
+            ],
+            "outputs": null,
+            "resources": {
+                "foo": {
+                    "type": "",
+                    "primary": {
+                        "id": "bar"
+                    }
+                }
+            },
+            "depends_on": [
+                "aws_instance.bar"
+            ]
+        }
+    ]
+}
+`
