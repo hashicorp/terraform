@@ -29,10 +29,9 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 			},
 
 			"target_id": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateCloudWatchEventTargetId,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"arn": &schema.Schema{
@@ -62,14 +61,7 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 
 	rule := d.Get("rule").(string)
 
-	var targetId string
-	if v, ok := d.GetOk("target_id"); ok {
-		targetId = v.(string)
-	} else {
-		targetId = resource.UniqueId()
-	}
-
-	input := buildPutTargetInputStruct(d)
+	input, targetId := buildPutTargetInputStruct(d)
 	log.Printf("[DEBUG] Creating CloudWatch Event Target: %s", input)
 	out, err := conn.PutTargets(input)
 	if err != nil {
@@ -152,7 +144,7 @@ func findEventTargetById(id, rule string, nextToken *string, conn *events.CloudW
 func resourceAwsCloudWatchEventTargetUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatcheventsconn
 
-	input := buildPutTargetInputStruct(d)
+	input, _ := buildPutTargetInputStruct(d)
 	log.Printf("[DEBUG] Updating CloudWatch Event Target: %s", input)
 	_, err := conn.PutTargets(input)
 	if err != nil {
@@ -181,10 +173,17 @@ func resourceAwsCloudWatchEventTargetDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func buildPutTargetInputStruct(d *schema.ResourceData) *events.PutTargetsInput {
+func buildPutTargetInputStruct(d *schema.ResourceData) (*events.PutTargetsInput, string) {
+	var targetId string
+	if v, ok := d.GetOk("target_id"); ok {
+		targetId = v.(string)
+	} else {
+		targetId = resource.UniqueId()
+	}
+
 	e := &events.Target{
 		Arn: aws.String(d.Get("arn").(string)),
-		Id:  aws.String(d.Get("target_id").(string)),
+		Id:  aws.String(targetId),
 	}
 
 	if v, ok := d.GetOk("input"); ok {
@@ -199,5 +198,5 @@ func buildPutTargetInputStruct(d *schema.ResourceData) *events.PutTargetsInput {
 		Targets: []*events.Target{e},
 	}
 
-	return &input
+	return &input, targetId
 }

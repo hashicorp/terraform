@@ -43,6 +43,8 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 }
 
 func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
+	var target events.Target
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -51,7 +53,10 @@ func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSCloudWatchEventTargetConfigMissingTargetId,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckTargetIdExists("aws_cloudwatch_event_target.target_id"),
+					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
+					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.moobar", "rule", "tf-acc-cw-event-rule-missing-target-id"),
+					resource.TestMatchResourceAttr("aws_cloudwatch_event_target.moobar", "arn",
+						regexp.MustCompile(":tf-acc-moon$")),
 				),
 			},
 		},
@@ -151,7 +156,7 @@ resource "aws_sns_topic" "moon" {
 
 var testAccAWSCloudWatchEventTargetConfigMissingTargetId = `
 resource "aws_cloudwatch_event_rule" "foo" {
-	name = "tf-acc-cw-event-rule-basic"
+	name = "tf-acc-cw-event-rule-missing-target-id"
 	schedule_expression = "rate(1 hour)"
 }
 
@@ -161,7 +166,7 @@ resource "aws_cloudwatch_event_target" "moobar" {
 }
 
 resource "aws_sns_topic" "moon" {
-	name = "tf-acc-moon"
+	name = "tf-acc-moon-1"
 }
 `
 
