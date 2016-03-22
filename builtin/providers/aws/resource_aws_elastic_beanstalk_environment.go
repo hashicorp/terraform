@@ -70,6 +70,7 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 			"version_label": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"cname": &schema.Schema{
 				Type:     schema.TypeString,
