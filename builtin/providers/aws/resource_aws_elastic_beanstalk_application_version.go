@@ -83,10 +83,8 @@ func resourceAwsElasticBeanstalkApplicationVersionCreate(d *schema.ResourceData,
 func resourceAwsElasticBeanstalkApplicationVersionRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
-	name := d.Id()
-
 	resp, err := conn.DescribeApplicationVersions(&elasticbeanstalk.DescribeApplicationVersionsInput{
-		VersionLabels: []*string{aws.String(name)},
+		VersionLabels: []*string{aws.String(d.Id())},
 	})
 
 	if err != nil {
