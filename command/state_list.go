@@ -23,13 +23,7 @@ func (c *StateListCommand) Run(args []string) int {
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
-
 	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error(
-			"At most one argument expected: the pattern to list\n")
-		return cli.RunResultHelp
-	}
 
 	state, err := c.State()
 	if err != nil {
@@ -38,14 +32,24 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	filter := &terraform.StateFilter{State: state.State()}
-	println(filter)
+	results, err := filter.Filter(args...)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
+		return cli.RunResultHelp
+	}
+
+	for _, result := range results {
+		if _, ok := result.Value.(*terraform.InstanceState); ok {
+			c.Ui.Output(result.Address)
+		}
+	}
 
 	return 0
 }
 
 func (c *StateListCommand) Help() string {
 	helpText := `
-Usage: terraform state list [options] [pattern]
+Usage: terraform state list [options] [pattern...]
 
   List resources in the Terraform state.
 
@@ -79,6 +83,10 @@ Options:
 func (c *StateListCommand) Synopsis() string {
 	return "List resources in the state"
 }
+
+const errStateFilter = `Error filtering state: %[1]s
+
+Please ensure that all your addresses are formatted properly.`
 
 const errStateLoadingState = `Error loading the state: %[1]s
 
