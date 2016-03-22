@@ -969,7 +969,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]string{
+				Outputs: map[string]interface{}{
 					"a_output": "a",
 				},
 			},
@@ -1438,7 +1438,7 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
-				Outputs: map[string]string{
+				Outputs: map[string]interface{}{
 					"foo": "bar",
 					"bar": "baz",
 				},
