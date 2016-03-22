@@ -122,20 +122,11 @@ func (c *CLI) Run() (int, error) {
 		return 1, nil
 	}
 
-	// If there is an invalid flag, then error
-	if len(c.topFlags) > 0 {
-		c.HelpWriter.Write([]byte(
-			"Invalid flags before the subcommand. If these flags are for\n" +
-				"the subcommand, please put them after the subcommand.\n\n"))
-		c.HelpWriter.Write([]byte(c.HelpFunc(c.Commands) + "\n"))
-		return 1, nil
-	}
-
 	// Attempt to get the factory function for creating the command
 	// implementation. If the command is invalid or blank, it is an error.
 	raw, ok := c.commandTree.Get(c.Subcommand())
 	if !ok {
-		c.HelpWriter.Write([]byte(c.HelpFunc(c.Commands) + "\n"))
+		c.HelpWriter.Write([]byte(c.HelpFunc(c.helpCommands(c.subcommandParent())) + "\n"))
 		return 1, nil
 	}
 
@@ -146,6 +137,15 @@ func (c *CLI) Run() (int, error) {
 
 	// If we've been instructed to just print the help, then print it
 	if c.IsHelp() {
+		c.commandHelp(command)
+		return 1, nil
+	}
+
+	// If there is an invalid flag, then error
+	if len(c.topFlags) > 0 {
+		c.HelpWriter.Write([]byte(
+			"Invalid flags before the subcommand. If these flags are for\n" +
+				"the subcommand, please put them after the subcommand.\n\n"))
 		c.commandHelp(command)
 		return 1, nil
 	}
@@ -173,6 +173,27 @@ func (c *CLI) Subcommand() string {
 func (c *CLI) SubcommandArgs() []string {
 	c.once.Do(c.init)
 	return c.subcommandArgs
+}
+
+// subcommandParent returns the parent of this subcommand, if there is one.
+// If there isn't on, "" is returned.
+func (c *CLI) subcommandParent() string {
+	// Get the subcommand, if it is "" alread just return
+	sub := c.Subcommand()
+	if sub == "" {
+		return sub
+	}
+
+	// Clear any trailing spaces and find the last space
+	sub = strings.TrimRight(sub, " ")
+	idx := strings.LastIndex(sub, " ")
+
+	if idx == -1 {
+		// No space means our parent is root
+		return ""
+	}
+
+	return sub[:idx]
 }
 
 func (c *CLI) init() {
@@ -268,15 +289,14 @@ func (c *CLI) commandHelp(command Command) {
 	}
 
 	// Build subcommand list if we have it
-	var subcommands []map[string]interface{}
+	var subcommandsTpl []map[string]interface{}
 	if c.commandNested {
 		// Get the matching keys
-		var keys []string
-		prefix := c.Subcommand() + " "
-		c.commandTree.WalkPrefix(prefix, func(k string, raw interface{}) bool {
+		subcommands := c.helpCommands(c.Subcommand())
+		keys := make([]string, 0, len(subcommands))
+		for k, _ := range subcommands {
 			keys = append(keys, k)
-			return false
-		})
+		}
 
 		// Sort the keys
 		sort.Strings(keys)
@@ -290,34 +310,30 @@ func (c *CLI) commandHelp(command Command) {
 		}
 
 		// Go through and create their structures
-		subcommands = make([]map[string]interface{}, len(keys))
-		for i, k := range keys {
-			raw, ok := c.commandTree.Get(k)
-			if !ok {
-				// We just checked that it should be here above. If it is
-				// isn't, there are serious problems.
-				panic("value is missing")
-			}
-
+		subcommandsTpl = make([]map[string]interface{}, 0, len(subcommands))
+		for k, raw := range subcommands {
 			// Get the command
-			sub, err := raw.(CommandFactory)()
+			sub, err := raw()
 			if err != nil {
 				c.HelpWriter.Write([]byte(fmt.Sprintf(
 					"Error instantiating %q: %s", k, err)))
 			}
 
-			// Determine some info
-			name := strings.TrimPrefix(k, prefix)
+			// Find the last space and make sure we only include that last part
+			name := k
+			if idx := strings.LastIndex(k, " "); idx > -1 {
+				name = name[idx+1:]
+			}
 
-			subcommands[i] = map[string]interface{}{
+			subcommandsTpl = append(subcommandsTpl, map[string]interface{}{
 				"Name":        name,
 				"NameAligned": name + strings.Repeat(" ", longest-len(k)),
 				"Help":        sub.Help(),
 				"Synopsis":    sub.Synopsis(),
-			}
+			})
 		}
 	}
-	data["Subcommands"] = subcommands
+	data["Subcommands"] = subcommandsTpl
 
 	// Write
 	err = t.Execute(c.HelpWriter, data)
@@ -328,6 +344,40 @@ func (c *CLI) commandHelp(command Command) {
 	// An error, just output...
 	c.HelpWriter.Write([]byte(fmt.Sprintf(
 		"Internal error rendering help: %s", err)))
+}
+
+// helpCommands returns the subcommands for the HelpFunc argument.
+// This will only contain immediate subcommands.
+func (c *CLI) helpCommands(prefix string) map[string]CommandFactory {
+	// If our prefix isn't empty, make sure it ends in ' '
+	if prefix != "" && prefix[len(prefix)-1] != ' ' {
+		prefix += " "
+	}
+
+	// Get all the subkeys of this command
+	var keys []string
+	c.commandTree.WalkPrefix(prefix, func(k string, raw interface{}) bool {
+		// Ignore any sub-sub keys, i.e. "foo bar baz" when we want "foo bar"
+		if !strings.Contains(k[len(prefix):], " ") {
+			keys = append(keys, k)
+		}
+
+		return false
+	})
+
+	// For each of the keys return that in the map
+	result := make(map[string]CommandFactory, len(keys))
+	for _, k := range keys {
+		raw, ok := c.commandTree.Get(k)
+		if !ok {
+			// We just got it via WalkPrefix above, so we just panic
+			panic("not found: " + k)
+		}
+
+		result[k] = raw.(CommandFactory)
+	}
+
+	return result
 }
 
 func (c *CLI) processArgs() {

@@ -10,6 +10,7 @@ import (
 
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
+var PlumbingCommands map[string]struct{}
 
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
@@ -32,6 +33,10 @@ func init() {
 		Color:       true,
 		ContextOpts: &ContextOpts,
 		Ui:          Ui,
+	}
+
+	PlumbingCommands = map[string]struct{}{
+		"state": struct{}{}, // includes all subcommands
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -134,6 +139,22 @@ func init() {
 
 		"untaint": func() (cli.Command, error) {
 			return &command.UntaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		//-----------------------------------------------------------
+		// Plumbing
+		//-----------------------------------------------------------
+
+		"state": func() (cli.Command, error) {
+			return &command.StateCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state list": func() (cli.Command, error) {
+			return &command.StateListCommand{
 				Meta: meta,
 			}, nil
 		},
