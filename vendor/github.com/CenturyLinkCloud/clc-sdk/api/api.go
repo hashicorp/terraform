@@ -78,7 +78,7 @@ func (c *Client) Auth() error {
 	}
 
 	err = c.Do(req, &c.Token)
-	if err == nil {
+	if err == nil && c.config.Alias == "" {
 		// set Alias from returned token
 		c.config.Alias = c.Token.Alias
 	}
