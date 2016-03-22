@@ -141,6 +141,12 @@ func init() {
 		// Plumbing
 		//-----------------------------------------------------------
 
+		"state": func() (cli.Command, error) {
+			return &command.StateCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state list": func() (cli.Command, error) {
 			return &command.StateListCommand{
 				Meta: meta,
