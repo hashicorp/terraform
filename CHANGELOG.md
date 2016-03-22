@@ -3,6 +3,9 @@
 FEATURES:
 
  * **New resource:** `aws_iam_user_ssh_key` [GH-5774]
+ 
+IMPROVEMENTS:
+ * provider/aws: Change `aws_elb` access_logs to list type [GH-5065]
 
 BUG FIXES:
 
