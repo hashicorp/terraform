@@ -145,7 +145,6 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			"publicly_accessible": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: true,
 				Default:  true,
 			},
 
@@ -410,6 +409,10 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		req.AllowVersionUpgrade = aws.Bool(d.Get("allow_version_upgrade").(bool))
 	}
 
+	if d.HasChange("publicly_accessible") {
+		req.PubliclyAccessible = aws.Bool(d.Get("publicly_accessible").(bool))
+	}
+
 	log.Printf("[INFO] Modifying Redshift Cluster: %s", d.Id())
 	log.Printf("[DEBUG] Redshift Cluster Modify options: %s", req)
 	_, err := conn.ModifyCluster(req)
@@ -418,7 +421,7 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming"},
+		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
 		Timeout:    10 * time.Minute,

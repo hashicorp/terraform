@@ -34,13 +34,18 @@ func (c *Redshift) AuthorizeClusterSecurityGroupIngressRequest(input *AuthorizeC
 
 // Adds an inbound (ingress) rule to an Amazon Redshift security group. Depending
 // on whether the application accessing your cluster is running on the Internet
-// or an EC2 instance, you can authorize inbound access to either a Classless
-// Interdomain Routing (CIDR) IP address range or an EC2 security group. You
-// can add as many as 20 ingress rules to an Amazon Redshift security group.
+// or an Amazon EC2 instance, you can authorize inbound access to either a Classless
+// Interdomain Routing (CIDR)/Internet Protocol (IP) range or to an Amazon EC2
+// security group. You can add as many as 20 ingress rules to an Amazon Redshift
+// security group.
 //
-//  The EC2 security group must be defined in the AWS region where the cluster
-// resides.  For an overview of CIDR blocks, see the Wikipedia article on Classless
-// Inter-Domain Routing (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+// If you authorize access to an Amazon EC2 security group, specify EC2SecurityGroupName
+// and EC2SecurityGroupOwnerId. The Amazon EC2 security group and Amazon Redshift
+// cluster must be in the same AWS region.
+//
+//  If you authorize access to a CIDR/IP address range, specify CIDRIP. For
+// an overview of CIDR blocks, see the Wikipedia article on Classless Inter-Domain
+// Routing (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
 //
 //  You must also associate the security group with a cluster so that clients
 // running on these IP addresses or the EC2 instance are authorized to connect
@@ -1669,6 +1674,37 @@ func (c *Redshift) DescribeSnapshotCopyGrants(input *DescribeSnapshotCopyGrantsI
 	return out, err
 }
 
+const opDescribeTableRestoreStatus = "DescribeTableRestoreStatus"
+
+// DescribeTableRestoreStatusRequest generates a request for the DescribeTableRestoreStatus operation.
+func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestoreStatusInput) (req *request.Request, output *DescribeTableRestoreStatusOutput) {
+	op := &request.Operation{
+		Name:       opDescribeTableRestoreStatus,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeTableRestoreStatusInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeTableRestoreStatusOutput{}
+	req.Data = output
+	return
+}
+
+// Lists the status of one or more table restore requests made using the RestoreTableFromClusterSnapshot
+// API action. If you don't specify a value for the TableRestoreRequestId parameter,
+// then DescribeTableRestoreStatus returns the status of all in-progress table
+// restore requests. Otherwise DescribeTableRestoreStatus returns the status
+// of the table specified by TableRestoreRequestId.
+func (c *Redshift) DescribeTableRestoreStatus(input *DescribeTableRestoreStatusInput) (*DescribeTableRestoreStatusOutput, error) {
+	req, out := c.DescribeTableRestoreStatusRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeTags = "DescribeTags"
 
 // DescribeTagsRequest generates a request for the DescribeTags operation.
@@ -2121,6 +2157,45 @@ func (c *Redshift) RestoreFromClusterSnapshot(input *RestoreFromClusterSnapshotI
 	return out, err
 }
 
+const opRestoreTableFromClusterSnapshot = "RestoreTableFromClusterSnapshot"
+
+// RestoreTableFromClusterSnapshotRequest generates a request for the RestoreTableFromClusterSnapshot operation.
+func (c *Redshift) RestoreTableFromClusterSnapshotRequest(input *RestoreTableFromClusterSnapshotInput) (req *request.Request, output *RestoreTableFromClusterSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opRestoreTableFromClusterSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RestoreTableFromClusterSnapshotInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RestoreTableFromClusterSnapshotOutput{}
+	req.Data = output
+	return
+}
+
+// Creates a new table from a table in an Amazon Redshift cluster snapshot.
+// You must create the new table within the Amazon Redshift cluster that the
+// snapshot was taken from.
+//
+// You cannot use RestoreTableFromClusterSnapshot to restore a table with the
+// same name as an existing table in an Amazon Redshift cluster. That is, you
+// cannot overwrite an existing table in a cluster with a restored table. If
+// you want to replace your original table with a new, restored table, then
+// rename or drop your original table before you call RestoreTableFromClusterSnapshot.
+// When you have renamed your original table, then you can pass the original
+// name of the table as the NewTableName parameter value in the call to RestoreTableFromClusterSnapshot.
+// This way, you can replace the original table with the table created from
+// the snapshot.
+func (c *Redshift) RestoreTableFromClusterSnapshot(input *RestoreTableFromClusterSnapshotInput) (*RestoreTableFromClusterSnapshotOutput, error) {
+	req, out := c.RestoreTableFromClusterSnapshotRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opRevokeClusterSecurityGroupIngress = "RevokeClusterSecurityGroupIngress"
 
 // RevokeClusterSecurityGroupIngressRequest generates a request for the RevokeClusterSecurityGroupIngress operation.
@@ -2230,7 +2305,6 @@ func (s AccountWithRestoreAccess) GoString() string {
 	return s.String()
 }
 
-// ???
 type AuthorizeClusterSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2385,8 +2459,10 @@ type Cluster struct {
 	// cross-region snapshot copy.
 	ClusterSnapshotCopyStatus *ClusterSnapshotCopyStatus `type:"structure"`
 
-	// The current state of this cluster. Possible values include available, creating,
-	// deleting, rebooting, renaming, and resizing.
+	// The current state of the cluster. Possible values are:  available creating
+	// deleting final-snapshot hardware-failure incompatible-hsm incompatible-network
+	// incompatible-parameters incompatible-restore modifying rebooting renaming
+	// resizing rotating-keys storage-full updating-hsm
 	ClusterStatus *string `type:"string"`
 
 	// The name of the subnet group that is associated with the cluster. This parameter
@@ -2401,7 +2477,7 @@ type Cluster struct {
 	// was not specified, a database named "dev" was created by default.
 	DBName *string `type:"string"`
 
-	// Describes the status of the elastic IP (EIP) address.
+	// The status of the elastic IP (EIP) address.
 	ElasticIpStatus *ElasticIpStatus `type:"structure"`
 
 	// If true, data in the cluster is encrypted at rest.
@@ -2521,9 +2597,6 @@ func (s ClusterParameterGroup) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the ModifyClusterParameterGroup and ResetClusterParameterGroup
-// actions and indicate the parameter group involved and the status of the operation
-// on the parameter group.
 type ClusterParameterGroupNameMessage struct {
 	_ struct{} `type:"structure"`
 
@@ -2585,14 +2658,14 @@ type ClusterParameterStatus struct {
 	// with the database, waiting for a cluster reboot, or encountered an error
 	// when being applied.
 	//
-	// The following are possible statuses and descriptions.  in-sync: The parameter
-	// value is in sync with the database.  pending-reboot: The parameter value
-	// will be applied after the cluster reboots.  applying: The parameter value
-	// is being applied to the database.  invalid-parameter: Cannot apply the parameter
-	// value because it has an invalid value or syntax.  apply-deferred: The parameter
+	// The following are possible statuses and descriptions. in-sync: The parameter
+	// value is in sync with the database. pending-reboot: The parameter value will
+	// be applied after the cluster reboots. applying: The parameter value is being
+	// applied to the database. invalid-parameter: Cannot apply the parameter value
+	// because it has an invalid value or syntax. apply-deferred: The parameter
 	// contains static property changes. The changes are deferred until the cluster
-	// reboots.  apply-error: Cannot connect to the cluster. The parameter change
-	// will be applied after the cluster reboots.  unknown-error: Cannot apply the
+	// reboots. apply-error: Cannot connect to the cluster. The parameter change
+	// will be applied after the cluster reboots. unknown-error: Cannot apply the
 	// parameter change right now. The change will be applied after the cluster
 	// reboots.
 	ParameterApplyStatus *string `type:"string"`
@@ -2643,7 +2716,7 @@ func (s ClusterSecurityGroup) GoString() string {
 	return s.String()
 }
 
-// Describes a security group.
+// Describes a cluster security group.
 type ClusterSecurityGroupMembership struct {
 	_ struct{} `type:"structure"`
 
@@ -2810,6 +2883,9 @@ func (s CopyClusterSnapshotOutput) GoString() string {
 type CreateClusterInput struct {
 	_ struct{} `type:"structure"`
 
+	// Reserved.
+	AdditionalInfo *string `type:"string"`
+
 	// If true, major version upgrades can be applied during the maintenance window
 	// to the Amazon Redshift engine that is running on the cluster.
 	//
@@ -2878,8 +2954,8 @@ type CreateClusterInput struct {
 	// outside virtual private cloud (VPC).
 	ClusterSubnetGroupName *string `type:"string"`
 
-	// The type of the cluster. When cluster type is specified as   single-node,
-	// the NumberOfNodes parameter is not required.  multi-node, the NumberOfNodes
+	// The type of the cluster. When cluster type is specified as  single-node,
+	// the NumberOfNodes parameter is not required. multi-node, the NumberOfNodes
 	// parameter is required.
 	//
 	//  Valid Values: multi-node | single-node
@@ -3109,7 +3185,6 @@ func (s CreateClusterParameterGroupOutput) GoString() string {
 	return s.String()
 }
 
-// ???
 type CreateClusterSecurityGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3326,6 +3401,7 @@ func (s CreateEventSubscriptionInput) GoString() string {
 type CreateEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
+	// Describes event subscriptions.
 	EventSubscription *EventSubscription `type:"structure"`
 }
 
@@ -4069,7 +4145,6 @@ func (s DescribeClusterParametersOutput) GoString() string {
 	return s.String()
 }
 
-// ???
 type DescribeClusterSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4128,7 +4203,6 @@ func (s DescribeClusterSecurityGroupsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeClusterSecurityGroups action.
 type DescribeClusterSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4542,7 +4616,7 @@ type DescribeEventCategoriesInput struct {
 	// The source type, such as cluster or parameter group, to which the described
 	// event categories apply.
 	//
-	//  Valid values: cluster, snapshot, parameter group, and security group.
+	//  Valid values: cluster, cluster-snapshot, cluster-parameter-group, and cluster-security-group.
 	SourceType *string `type:"string"`
 }
 
@@ -4711,7 +4785,6 @@ func (s DescribeEventsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeEvents action.
 type DescribeEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4871,7 +4944,7 @@ func (s DescribeHsmConfigurationsInput) GoString() string {
 type DescribeHsmConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of Amazon Redshift HSM configurations.
+	// A list of HsmConfiguration objects.
 	HsmConfigurations []*HsmConfiguration `locationNameList:"HsmConfiguration" type:"list"`
 
 	// A value that indicates the starting point for the next set of response records
@@ -4895,7 +4968,7 @@ func (s DescribeHsmConfigurationsOutput) GoString() string {
 type DescribeLoggingStatusInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier of the cluster to get the logging status from.
+	// The identifier of the cluster from which to get the logging status.
 	//
 	// Example: examplecluster
 	ClusterIdentifier *string `type:"string" required:"true"`
@@ -4967,7 +5040,7 @@ type DescribeOrderableClusterOptionsOutput struct {
 	Marker *string `type:"string"`
 
 	// An OrderableClusterOption structure containing information about orderable
-	// options for the Cluster.
+	// options for the cluster.
 	OrderableClusterOptions []*OrderableClusterOption `locationNameList:"OrderableClusterOption" type:"list"`
 }
 
@@ -5016,7 +5089,6 @@ func (s DescribeReservedNodeOfferingsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeReservedNodeOfferings action.
 type DescribeReservedNodeOfferingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5027,7 +5099,7 @@ type DescribeReservedNodeOfferingsOutput struct {
 	// records have been retrieved for the request.
 	Marker *string `type:"string"`
 
-	// A list of reserved node offerings.
+	// A list of ReservedNodeOffering objects.
 	ReservedNodeOfferings []*ReservedNodeOffering `locationNameList:"ReservedNodeOffering" type:"list"`
 }
 
@@ -5075,7 +5147,6 @@ func (s DescribeReservedNodesInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeReservedNodes action.
 type DescribeReservedNodesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5086,7 +5157,7 @@ type DescribeReservedNodesOutput struct {
 	// records have been retrieved for the request.
 	Marker *string `type:"string"`
 
-	// The list of reserved nodes.
+	// The list of ReservedNode objects.
 	ReservedNodes []*ReservedNode `locationNameList:"ReservedNode" type:"list"`
 }
 
@@ -5250,7 +5321,6 @@ func (s DescribeSnapshotCopyGrantsInput) GoString() string {
 	return s.String()
 }
 
-// The result of the snapshot copy grant.
 type DescribeSnapshotCopyGrantsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5265,7 +5335,7 @@ type DescribeSnapshotCopyGrantsOutput struct {
 	// or the Marker parameter, but not both.
 	Marker *string `type:"string"`
 
-	// The list of snapshot copy grants.
+	// The list of SnapshotCopyGrant objects.
 	SnapshotCopyGrants []*SnapshotCopyGrant `locationNameList:"SnapshotCopyGrant" type:"list"`
 }
 
@@ -5279,7 +5349,59 @@ func (s DescribeSnapshotCopyGrantsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeTags action.
+type DescribeTableRestoreStatusInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Redshift cluster that the table is being restored to.
+	ClusterIdentifier *string `type:"string"`
+
+	// An optional pagination token provided by a previous DescribeTableRestoreStatus
+	// request. If this parameter is specified, the response includes only records
+	// beyond the marker, up to the value specified by the MaxRecords parameter.
+	Marker *string `type:"string"`
+
+	// The maximum number of records to include in the response. If more records
+	// exist than the specified MaxRecords value, a pagination token called a marker
+	// is included in the response so that the remaining results can be retrieved.
+	MaxRecords *int64 `type:"integer"`
+
+	// The identifier of the table restore request to return status for. If you
+	// don't specify a TableRestoreRequestId value, then DescribeTableRestoreStatus
+	// returns the status of all in-progress table restore requests.
+	TableRestoreRequestId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeTableRestoreStatusInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTableRestoreStatusInput) GoString() string {
+	return s.String()
+}
+
+type DescribeTableRestoreStatusOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A pagination token that can be used in a subsequent DescribeTableRestoreStatus
+	// request.
+	Marker *string `type:"string"`
+
+	// A list of status details for one or more table restore requests.
+	TableRestoreStatusDetails []*TableRestoreStatus `locationNameList:"TableRestoreStatus" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeTableRestoreStatusOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeTableRestoreStatusOutput) GoString() string {
+	return s.String()
+}
+
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5337,7 +5459,6 @@ func (s DescribeTagsInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output from the DescribeTags action.
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5454,7 +5575,7 @@ type ElasticIpStatus struct {
 	// The elastic IP (EIP) address for the cluster.
 	ElasticIp *string `type:"string"`
 
-	// Describes the status of the elastic IP (EIP) address.
+	// The status of the elastic IP (EIP) address.
 	Status *string `type:"string"`
 }
 
@@ -5621,14 +5742,15 @@ func (s Event) GoString() string {
 	return s.String()
 }
 
+// Describes event categories.
 type EventCategoriesMap struct {
 	_ struct{} `type:"structure"`
 
 	// The events in the event category.
 	Events []*EventInfoMap `locationNameList:"EventInfoMap" type:"list"`
 
-	// The Amazon Redshift source type, such as cluster or cluster-snapshot, that
-	// the returned categories belong to.
+	// The source type, such as cluster or cluster-snapshot, that the returned categories
+	// belong to.
 	SourceType *string `type:"string"`
 }
 
@@ -5642,6 +5764,7 @@ func (s EventCategoriesMap) GoString() string {
 	return s.String()
 }
 
+// Describes event information.
 type EventInfoMap struct {
 	_ struct{} `type:"structure"`
 
@@ -5670,6 +5793,7 @@ func (s EventInfoMap) GoString() string {
 	return s.String()
 }
 
+// Describes event subscriptions.
 type EventSubscription struct {
 	_ struct{} `type:"structure"`
 
@@ -5795,6 +5919,7 @@ func (s HsmConfiguration) GoString() string {
 	return s.String()
 }
 
+// Describes the status of changes to HSM settings.
 type HsmStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -5860,7 +5985,7 @@ type LoggingStatus struct {
 	// The last time when logs failed to be delivered.
 	LastFailureTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
-	// The last time when logs were delivered.
+	// The last time that logs were delivered.
 	LastSuccessfulDeliveryTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
 	// true if logging is on, false if logging is off.
@@ -5952,6 +6077,14 @@ type ModifyClusterInput struct {
 	// Example: 1.0
 	ClusterVersion *string `type:"string"`
 
+	// The Elastic IP (EIP) address for the cluster.
+	//
+	// Constraints: The cluster must be provisioned in EC2-VPC and publicly-accessible
+	// through an Internet gateway. For more information about provisioning clusters
+	// in EC2-VPC, go to Supported Platforms to Launch Your Cluster (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#cluster-platforms)
+	// in the Amazon Redshift Cluster Management Guide.
+	ElasticIp *string `type:"string"`
+
 	// Specifies the name of the HSM client certificate the Amazon Redshift cluster
 	// uses to retrieve the data encryption keys stored in an HSM.
 	HsmClientCertificateIdentifier *string `type:"string"`
@@ -6033,6 +6166,10 @@ type ModifyClusterInput struct {
 	//
 	// Constraints: Must be at least 30 minutes.
 	PreferredMaintenanceWindow *string `type:"string"`
+
+	// If true, the cluster can be accessed from a public network. Only clusters
+	// in VPCs can be set to be publicly available.
+	PubliclyAccessible *bool `type:"boolean"`
 
 	// A list of virtual private cloud (VPC) security groups to be associated with
 	// the cluster.
@@ -6195,6 +6332,7 @@ func (s ModifyEventSubscriptionInput) GoString() string {
 type ModifyEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
+	// Describes event subscriptions.
 	EventSubscription *EventSubscription `type:"structure"`
 }
 
@@ -6291,7 +6429,12 @@ type Parameter struct {
 	// The valid range of values for the parameter.
 	AllowedValues *string `type:"string"`
 
-	// Specifies how to apply the parameter. Supported value: static.
+	// Specifies how to apply the WLM configuration parameter. Some properties can
+	// be applied dynamically, while other properties require that any associated
+	// clusters be rebooted for the configuration changes to be applied. For more
+	// information about parameters and parameter groups, go to Amazon Redshift
+	// Parameter Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-parameter-groups.html)
+	// in the Amazon Redshift Cluster Management Guide.
 	ApplyType *string `type:"string" enum:"ParameterApplyType"`
 
 	// The data type of the parameter.
@@ -6352,6 +6495,10 @@ type PendingModifiedValues struct {
 
 	// The pending or in-progress change of the number of nodes in the cluster.
 	NumberOfNodes *int64 `type:"integer"`
+
+	// The pending or in-progress change of the ability to connect to the cluster
+	// from the public network.
+	PubliclyAccessible *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -6367,7 +6514,7 @@ func (s PendingModifiedValues) GoString() string {
 type PurchaseReservedNodeOfferingInput struct {
 	_ struct{} `type:"structure"`
 
-	// The number of reserved nodes you want to purchase.
+	// The number of reserved nodes that you want to purchase.
 	//
 	// Default: 1
 	NodeCount *int64 `type:"integer"`
@@ -6597,6 +6744,9 @@ func (s ResetClusterParameterGroupInput) GoString() string {
 type RestoreFromClusterSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
+	// Reserved.
+	AdditionalInfo *string `type:"string"`
+
 	// If true, major version upgrades can be applied during the maintenance window
 	// to the Amazon Redshift engine that is running on the cluster.
 	//
@@ -6798,7 +6948,63 @@ func (s RestoreStatus) GoString() string {
 	return s.String()
 }
 
-// ???
+type RestoreTableFromClusterSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Redshift cluster to restore the table to.
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// The name of the table to create as a result of the current request.
+	NewTableName *string `type:"string" required:"true"`
+
+	// The identifier of the snapshot to restore the table from. This snapshot must
+	// have been created from the Amazon Redshift cluster specified by the ClusterIdentifier
+	// parameter.
+	SnapshotIdentifier *string `type:"string" required:"true"`
+
+	// The name of the source database that contains the table to restore from.
+	SourceDatabaseName *string `type:"string" required:"true"`
+
+	// The name of the source schema that contains the table to restore from.
+	SourceSchemaName *string `type:"string"`
+
+	// The name of the source table to restore from.
+	SourceTableName *string `type:"string" required:"true"`
+
+	// The name of the database to restore the table to.
+	TargetDatabaseName *string `type:"string"`
+
+	// The name of the schema to restore the table to.
+	TargetSchemaName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s RestoreTableFromClusterSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RestoreTableFromClusterSnapshotInput) GoString() string {
+	return s.String()
+}
+
+type RestoreTableFromClusterSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the status of a RestoreTableFromClusterSnapshot operation.
+	TableRestoreStatus *TableRestoreStatus `type:"structure"`
+}
+
+// String returns the string representation
+func (s RestoreTableFromClusterSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RestoreTableFromClusterSnapshotOutput) GoString() string {
+	return s.String()
+}
+
 type RevokeClusterSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7019,9 +7225,9 @@ type Snapshot struct {
 	SourceRegion *string `type:"string"`
 
 	// The snapshot status. The value of the status depends on the API operation
-	// used.   CreateClusterSnapshot and CopyClusterSnapshot returns status as "creating".
-	//   DescribeClusterSnapshots returns status as "creating", "available", "final
-	// snapshot", or "failed".  DeleteClusterSnapshot returns status as "deleted".
+	// used.  CreateClusterSnapshot and CopyClusterSnapshot returns status as "creating".
+	//  DescribeClusterSnapshots returns status as "creating", "available", "final
+	// snapshot", or "failed". DeleteClusterSnapshot returns status as "deleted".
 	Status *string `type:"string"`
 
 	// The list of tags for the cluster snapshot.
@@ -7101,6 +7307,68 @@ func (s Subnet) GoString() string {
 	return s.String()
 }
 
+// Describes the status of a RestoreTableFromClusterSnapshot operation.
+type TableRestoreStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Amazon Redshift cluster that the table is being restored
+	// to.
+	ClusterIdentifier *string `type:"string"`
+
+	// A description of the status of the table restore request. Status values include
+	// SUCCEEDED, FAILED, CANCELLED, PENDING, IN_PROGRESS.
+	Message *string `type:"string"`
+
+	// The name of the table to create as a result of the table restore request.
+	NewTableName *string `type:"string"`
+
+	// The amount of data restored to the new table so far, in megabytes (MB).
+	ProgressInMegaBytes *int64 `type:"long"`
+
+	// The time that the table restore request was made, in Universal Coordinated
+	// Time (UTC).
+	RequestTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The identifier of the snapshot that the table is being restored from.
+	SnapshotIdentifier *string `type:"string"`
+
+	// The name of the source database that contains the table being restored.
+	SourceDatabaseName *string `type:"string"`
+
+	// The name of the source schema that contains the table being restored.
+	SourceSchemaName *string `type:"string"`
+
+	// The name of the source table being restored.
+	SourceTableName *string `type:"string"`
+
+	// A value that describes the current state of the table restore request.
+	//
+	// Valid Values: SUCCEEDED, FAILED, CANCELLED, PENDING, IN_PROGRESS
+	Status *string `type:"string" enum:"TableRestoreStatusType"`
+
+	// The unique identifier for the table restore request.
+	TableRestoreRequestId *string `type:"string"`
+
+	// The name of the database to restore the table to.
+	TargetDatabaseName *string `type:"string"`
+
+	// The name of the schema to restore the table to.
+	TargetSchemaName *string `type:"string"`
+
+	// The total amount of data to restore to the new table, in megabytes (MB).
+	TotalDataInMegaBytes *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s TableRestoreStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TableRestoreStatus) GoString() string {
+	return s.String()
+}
+
 // A tag consisting of a name/value pair for a resource.
 type Tag struct {
 	_ struct{} `type:"structure"`
@@ -7157,8 +7425,10 @@ func (s TaggedResource) GoString() string {
 type VpcSecurityGroupMembership struct {
 	_ struct{} `type:"structure"`
 
+	// The status of the VPC security group.
 	Status *string `type:"string"`
 
+	// The identifier of the VPC security group.
 	VpcSecurityGroupId *string `type:"string"`
 }
 
@@ -7188,4 +7458,17 @@ const (
 	SourceTypeClusterSecurityGroup = "cluster-security-group"
 	// @enum SourceType
 	SourceTypeClusterSnapshot = "cluster-snapshot"
+)
+
+const (
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypePending = "PENDING"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeInProgress = "IN_PROGRESS"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeSucceeded = "SUCCEEDED"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeFailed = "FAILED"
+	// @enum TableRestoreStatusType
+	TableRestoreStatusTypeCanceled = "CANCELED"
 )

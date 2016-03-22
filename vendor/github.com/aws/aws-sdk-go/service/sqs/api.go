@@ -1393,6 +1393,8 @@ type MessageAttributeValue struct {
 
 	// Binary type attributes can store any binary data, for example, compressed
 	// data, encrypted data, or images.
+	//
+	// BinaryValue is automatically base64 encoded/decoded by the SDK.
 	BinaryValue []byte `type:"blob"`
 
 	// Amazon SQS supports the following logical data types: String, Number, and

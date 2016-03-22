@@ -439,6 +439,15 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 		}
 	}
+
+	if ip, ok := d.GetOk("network_interface.0.ipv4_address"); ok {
+		d.SetConnInfo(map[string]string{
+			"host": ip.(string),
+		})
+	} else {
+		log.Printf("[DEBUG] Could not get IP address for %s", d.Id())
+	}
+
 	d.SetId(vm.Path())
 	log.Printf("[INFO] Created virtual machine: %s", d.Id())
 

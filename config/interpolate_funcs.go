@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-cidr/cidr"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
 )
@@ -42,6 +43,7 @@ func Funcs() map[string]ast.Function {
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
 		"md5":          interpolationFuncMd5(),
+		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
@@ -679,6 +681,16 @@ func interpolationFuncBase64Sha256() ast.Function {
 			shaSum := h.Sum(nil)
 			encoded := base64.StdEncoding.EncodeToString(shaSum[:])
 			return encoded, nil
+		},
+	}
+}
+
+func interpolationFuncUUID() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return uuid.GenerateUUID()
 		},
 	}
 }

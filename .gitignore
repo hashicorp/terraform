@@ -20,5 +20,6 @@ website/node_modules
 *~
 .*.swp
 .idea
+*.iml
 *.test
 *.iml

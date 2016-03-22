@@ -204,12 +204,21 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		return nil, err
 	}
 
-	return winrmcp.New(addr, &winrmcp.Config{
+
+	config := winrmcp.Config{
 		Auth: winrmcp.Auth{
 			User:     c.connInfo.User,
 			Password: password,
 		},
+		Https:                 c.connInfo.HTTPS,
+		Insecure:              c.connInfo.Insecure,
 		OperationTimeout:      c.Timeout(),
 		MaxOperationsPerShell: 15, // lowest common denominator
-	})
+	}
+
+	if c.connInfo.CACert != nil {
+		config.CACertBytes = *c.connInfo.CACert
+	}
+
+	return winrmcp.New(addr, &config)
 }

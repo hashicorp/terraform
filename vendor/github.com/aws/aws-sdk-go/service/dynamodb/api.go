@@ -796,6 +796,8 @@ type AttributeValue struct {
 	_ struct{} `type:"structure"`
 
 	// A Binary data type.
+	//
+	// B is automatically base64 encoded/decoded by the SDK.
 	B []byte `type:"blob"`
 
 	// A Boolean data type.

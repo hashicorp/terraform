@@ -23,11 +23,12 @@ const (
 // Interpolater is the structure responsible for determining the values
 // for interpolations such as `aws_instance.foo.bar`.
 type Interpolater struct {
-	Operation walkOperation
-	Module    *module.Tree
-	State     *State
-	StateLock *sync.RWMutex
-	Variables map[string]string
+	Operation     walkOperation
+	Module        *module.Tree
+	State         *State
+	StateLock     *sync.RWMutex
+	Variables     map[string]string
+	VariablesLock *sync.Mutex
 }
 
 // InterpolationScope is the current scope of execution. This is required
@@ -273,6 +274,8 @@ func (i *Interpolater) valueUserVar(
 	n string,
 	v *config.UserVariable,
 	result map[string]ast.Variable) error {
+	i.VariablesLock.Lock()
+	defer i.VariablesLock.Unlock()
 	val, ok := i.Variables[v.Name]
 	if ok {
 		result[n] = ast.Variable{

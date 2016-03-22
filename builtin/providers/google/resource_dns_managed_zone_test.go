@@ -80,5 +80,4 @@ var testAccDnsManagedZone_basic = fmt.Sprintf(`
 resource "google_dns_managed_zone" "foobar" {
 	name = "mzone-test-%s"
 	dns_name = "terraform.test."
-	description = "Test Description"
 }`, acctest.RandString(10))

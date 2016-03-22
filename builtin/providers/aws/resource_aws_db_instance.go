@@ -85,7 +85,8 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"identifier": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateRdsId,
 			},
@@ -291,12 +292,25 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
+	identifier := d.Get("identifier").(string)
+	// Generate a unique ID for the user
+	if identifier == "" {
+		identifier = resource.PrefixedUniqueId("tf-")
+		// SQL Server identifier size is max 15 chars, so truncate
+		if engine := d.Get("engine").(string); engine != "" {
+			if strings.Contains(strings.ToLower(engine), "sqlserver") {
+				identifier = identifier[:15]
+			}
+		}
+		d.Set("identifier", identifier)
+	}
+
 	if v, ok := d.GetOk("replicate_source_db"); ok {
 		opts := rds.CreateDBInstanceReadReplicaInput{
 			SourceDBInstanceIdentifier: aws.String(v.(string)),
 			CopyTagsToSnapshot:         aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 			DBInstanceClass:            aws.String(d.Get("instance_class").(string)),
-			DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
+			DBInstanceIdentifier:       aws.String(identifier),
 			Tags:                       tags,
 		}
 		if attr, ok := d.GetOk("iops"); ok {
@@ -899,6 +913,10 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	return resourceAwsDbInstanceRead(d, meta)
 }
 
+// resourceAwsDbInstanceRetrieve fetches DBInstance information from the AWS
+// API. It returns an error if there is a communication problem or unexpected
+// error with AWS. When the DBInstance is not found, it returns no error and a
+// nil pointer.
 func resourceAwsDbInstanceRetrieve(
 	d *schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
 	conn := meta.(*AWSClient).rdsconn
