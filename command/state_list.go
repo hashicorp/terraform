@@ -19,7 +19,6 @@ func (c *StateListCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.flagSet("state list")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -66,11 +65,6 @@ Usage: terraform state list [options] [pattern...]
   information.
 
 Options:
-
-  -backup=path        Path to backup the existing state file before
-                      modifying. Defaults to the the input state path
-                      plus a timestamp with the ".backup" extension.
-                      Backups cannot be disabled for state management commands.
 
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
