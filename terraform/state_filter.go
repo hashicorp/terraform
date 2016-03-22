@@ -34,6 +34,11 @@ func (f *StateFilter) Filter(fs ...string) ([]*StateFilterResult, error) {
 		as[i] = a
 	}
 
+	// If we werent given any filters, then we list all
+	if len(fs) == 0 {
+		as = append(as, &ResourceAddress{})
+	}
+
 	// Filter each of the address. We keep track of this in a map to
 	// strip duplicates.
 	resultSet := make(map[string]*StateFilterResult)
@@ -64,8 +69,9 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 		if f.relevant(a, m) {
 			modules = append(modules, m)
 
-			// Only add the module to the results if we haven't specified a type
-			if a.Type == "" {
+			// Only add the module to the results if we haven't specified a type.
+			// We also ignore the root module.
+			if a.Type == "" && len(m.Path) > 1 {
 				results = append(results, &StateFilterResult{
 					Path:    m.Path[1:],
 					Address: (&ResourceAddress{Path: m.Path[1:]}).String(),

@@ -13,6 +13,22 @@ func TestStateFilterFilter(t *testing.T) {
 		Filters  []string
 		Expected []string
 	}{
+		"all": {
+			"small.tfstate",
+			[]string{},
+			[]string{
+				"*terraform.ResourceState: aws_key_pair.onprem",
+				"*terraform.InstanceState: aws_key_pair.onprem",
+				"*terraform.ModuleState: module.bootstrap",
+				"*terraform.ResourceState: module.bootstrap.aws_route53_record.oasis-consul-bootstrap-a",
+				"*terraform.InstanceState: module.bootstrap.aws_route53_record.oasis-consul-bootstrap-a",
+				"*terraform.ResourceState: module.bootstrap.aws_route53_record.oasis-consul-bootstrap-ns",
+				"*terraform.InstanceState: module.bootstrap.aws_route53_record.oasis-consul-bootstrap-ns",
+				"*terraform.ResourceState: module.bootstrap.aws_route53_zone.oasis-consul-bootstrap",
+				"*terraform.InstanceState: module.bootstrap.aws_route53_zone.oasis-consul-bootstrap",
+			},
+		},
+
 		"module filter": {
 			"complete.tfstate",
 			[]string{"module.bootstrap"},
