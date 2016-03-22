@@ -109,6 +109,7 @@ func resourceCLCLoadBalancerUpdate(d *schema.ResourceData, meta interface{}) err
 		update.Status = d.Get("status").(string)
 	}
 	if update.Name != "" || update.Description != "" || update.Status != "" {
+		update.Name = d.Get("name").(string) // required on every PUT
 		err := client.LB.Update(dc, id, update)
 		if err != nil {
 			return fmt.Errorf("Failed updating load balancer under %v/%v: %v", dc, id, err)
