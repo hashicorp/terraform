@@ -5,7 +5,7 @@ and orchestration. The Key/Value store it provides is often used to store
 application configuration and information about the infrastructure necessary
 to process requests.
 
-Terraform provides a [Consul provider](/docs/providers/consul/index.html) which
+Terraform provides a [Consul provider](https://www.terraform.io/docs/providers/consul/index.html) which
 can be used to interface with Consul from inside a Terraform configuration.
 
 For our example, we use the [Consul demo cluster](http://demo.consul.io)
@@ -27,7 +27,7 @@ that the "tf\_test/id" and "tf\_test/public\_dns" values have been
 set.
 
 We can now teardown the infrastructure following the
-[instructions here](/intro/getting-started/destroy.html). Because
+[instructions here](https://www.terraform.io/intro/getting-started/destroy.html). Because
 we set the 'delete' property of two of the Consul keys, Terraform
 will cleanup those keys on destroy. We can verify this by using
 the Web UI.
