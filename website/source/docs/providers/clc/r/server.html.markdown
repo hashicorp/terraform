@@ -67,6 +67,7 @@ The following arguments are supported:
   One of "standard", "premium"
 * `additional_disks` - (Optional) See [Disks](#disks) below for details. 
 * `custom_fields` - (Optional) See [CustomFields](#custom_fields) below for details.
+* `metadata` - (Optional) Misc state storage for non-CLC metadata. 
 
 
 
