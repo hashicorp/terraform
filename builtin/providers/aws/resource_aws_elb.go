@@ -106,7 +106,7 @@ func resourceAwsElb() *schema.Resource {
 			},
 
 			"access_logs": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -125,7 +125,6 @@ func resourceAwsElb() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceAwsElbAccessLogsHash,
 			},
 
 			"listener": &schema.Schema{
@@ -504,7 +503,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			},
 		}
 
-		logs := d.Get("access_logs").(*schema.Set).List()
+		logs := d.Get("access_logs").([]interface{})
 		if len(logs) > 1 {
 			return fmt.Errorf("Only one access logs config per ELB is supported")
 		} else if len(logs) == 1 {
@@ -722,19 +721,6 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func resourceAwsElbAccessLogsHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["bucket"].(string))))
-	if v, ok := m["bucket_prefix"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(v.(string))))
-	}
-
-	return hashcode.String(buf.String())
 }
 
 func resourceAwsElbListenerHash(v interface{}) int {
