@@ -11,7 +11,7 @@ func TestAddOutputOrphanTransformer(t *testing.T) {
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: RootModulePath,
-				Outputs: map[string]string{
+				Outputs: map[string]interface{}{
 					"foo": "bar",
 					"bar": "baz",
 				},

@@ -110,6 +110,25 @@ func (i *Interpolater) valueCountVar(
 	}
 }
 
+func interfaceToHILVariable(input interface{}) ast.Variable {
+	switch v := input.(type) {
+	case string:
+		return ast.Variable{
+			Type:  ast.TypeString,
+			Value: v,
+		}
+	default:
+		panic(fmt.Errorf("Unknown interface type %T in interfaceToHILVariable", v))
+	}
+}
+
+func unknownVariable() ast.Variable {
+	return ast.Variable{
+		Type:  ast.TypeString,
+		Value: config.UnknownVariableValue,
+	}
+}
+
 func (i *Interpolater) valueModuleVar(
 	scope *InterpolationScope,
 	n string,
@@ -136,7 +155,6 @@ func (i *Interpolater) valueModuleVar(
 	defer i.StateLock.RUnlock()
 
 	// Get the module where we're looking for the value
-	var value string
 	mod := i.State.ModuleByPath(path)
 	if mod == nil {
 		// If the module doesn't exist, then we can return an empty string.
@@ -145,21 +163,18 @@ func (i *Interpolater) valueModuleVar(
 		// modules reference other modules, and graph ordering should
 		// ensure that the module is in the state, so if we reach this
 		// point otherwise it really is a panic.
-		value = config.UnknownVariableValue
+		result[n] = unknownVariable()
 	} else {
 		// Get the value from the outputs
-		var ok bool
-		value, ok = mod.Outputs[v.Field]
-		if !ok {
+		if value, ok := mod.Outputs[v.Field]; ok {
+			result[n] = interfaceToHILVariable(value)
+		} else {
 			// Same reasons as the comment above.
-			value = config.UnknownVariableValue
+			result[n] = unknownVariable()
+
 		}
 	}
 
-	result[n] = ast.Variable{
-		Value: value,
-		Type:  ast.TypeString,
-	}
 	return nil
 }
 
