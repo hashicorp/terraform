@@ -158,6 +158,11 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.SetId(retContainer.ID)
+	d.SetConnInfo(map[string]string{
+		"type":       "docker",
+		"host":       client.Endpoint(),
+		"InstanceId": retContainer.ID,
+	})
 
 	if v, ok := d.GetOk("networks"); ok {
 		connectionOpts := dc.NetworkConnectionOptions{Container: retContainer.ID}
@@ -210,7 +215,8 @@ func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error
 			break
 		}
 
-		if creationTime.IsZero() { // We didn't just create it, so don't wait around
+		if creationTime.IsZero() {
+			// We didn't just create it, so don't wait around
 			return resourceDockerContainerDelete(d, meta)
 		}
 

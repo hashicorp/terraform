@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/hashicorp/terraform/communicator/docker"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/communicator/ssh"
 	"github.com/hashicorp/terraform/communicator/winrm"
@@ -47,6 +48,8 @@ func New(s *terraform.InstanceState) (Communicator, error) {
 		return ssh.New(s)
 	case "winrm":
 		return winrm.New(s)
+	case "docker":
+		return docker.New(s)
 	default:
 		return nil, fmt.Errorf("connection type '%s' not supported", connType)
 	}
