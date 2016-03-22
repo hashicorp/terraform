@@ -24,7 +24,7 @@ configuration are listed first, and resources that are more deeply nested
 within modules are listed last.
 
 For complex infrastructures, the state can contain thousands of resources.
-To filter these, provide one or more addresses to the command. Addresses are
+To filter these, provide one or more patterns to the command. Patterns are
 in [resource addressing format](/docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
