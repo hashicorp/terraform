@@ -60,7 +60,7 @@ func resourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	var outputs map[string]string
+	var outputs map[string]interface{}
 	if !state.State().Empty() {
 		outputs = state.State().RootModule().Outputs
 	}
