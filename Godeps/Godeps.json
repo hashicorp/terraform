@@ -919,7 +919,7 @@
 		},
 		{
 			"ImportPath": "github.com/mitchellh/cli",
-			"Rev": "cb6853d606ea4a12a15ac83cc43503df99fd28fb"
+			"Rev": "83f97d41cf100ee5f33944a8815c167d5e4aa272"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/colorstring",
