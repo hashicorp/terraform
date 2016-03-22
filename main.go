@@ -113,7 +113,7 @@ func wrappedMain() int {
 	cli := &cli.CLI{
 		Args:       args,
 		Commands:   Commands,
-		HelpFunc:   cli.BasicHelpFunc("terraform"),
+		HelpFunc:   helpFunc,
 		HelpWriter: os.Stdout,
 	}
 
