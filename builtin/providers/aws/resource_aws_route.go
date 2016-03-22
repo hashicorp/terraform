@@ -294,7 +294,7 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 	cidr := d.Get("destination_cidr_block").(string)
 	for _, route := range (*res.RouteTables[0]).Routes {
-		if *route.DestinationCidrBlock == cidr {
+		if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == cidr {
 			return true, nil
 		}
 	}
