@@ -1,0 +1,38 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+				<li<%= sidebar_current("docs-cobbler-index") %>>
+				<a href="/docs/providers/cobbler/index.html">Cobbler Provider</a>
+                </li>
+
+				<li<%= sidebar_current(/^docs-cobbler-resource/) %>>
+				<a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-cobbler-resource-distro") %>>
+					<a href="/docs/providers/cobbler/r/distro.html">cobbler_distro</a>
+                    </li>
+                    <li<%= sidebar_current("docs-cobbler-resource-kickstart_file") %>>
+					<a href="/docs/providers/cobbler/r/kickstart_file.html">cobbler_kickstart_file</a>
+                    </li>
+                    <li<%= sidebar_current("docs-cobbler-resource-profile") %>>
+					<a href="/docs/providers/cobbler/r/profile.html">cobbler_profile</a>
+                    </li>
+                    <li<%= sidebar_current("docs-cobbler-resource-snippet") %>>
+					<a href="/docs/providers/cobbler/r/snippet.html">cobbler_snippet</a>
+                    </li>
+                    <li<%= sidebar_current("docs-cobbler-resource-system") %>>
+					<a href="/docs/providers/cobbler/r/system.html">cobbler_system</a>
+                    </li>
+				</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>
