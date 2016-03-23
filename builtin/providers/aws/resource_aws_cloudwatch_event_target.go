@@ -29,10 +29,10 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 			},
 
 			"target_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
 				ValidateFunc: validateCloudWatchEventTargetId,
 			},
 
