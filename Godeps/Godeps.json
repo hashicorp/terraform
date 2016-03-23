@@ -707,6 +707,10 @@
 			"Rev": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/go-plugin",
+			"Rev": "cccb4a1328abbb89898f3ecf4311a05bddc4de6d"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/go-retryablehttp",
 			"Rev": "24fda80b7c713c52649e57ce20100d453f7bdb24"
 		},

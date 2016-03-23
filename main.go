@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/plugin"
 	"github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
