@@ -166,7 +166,7 @@ resource "aws_cloudwatch_event_target" "moobar" {
 }
 
 resource "aws_sns_topic" "moon" {
-	name = "tf-acc-moon-1"
+	name = "tf-acc-moon"
 }
 `
 
