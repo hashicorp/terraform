@@ -34,33 +34,39 @@ func (n *Index) Type(s Scope) (Type, error) {
 	if !ok {
 		return TypeInvalid, fmt.Errorf("unknown variable accessed: %s", variableAccess.Name)
 	}
-	if variable.Type != TypeList {
+
+	switch variable.Type {
+	case TypeList:
+		return n.typeList(variable, variableAccess.Name)
+	case TypeMap:
+		return n.typeMap(variable, variableAccess.Name)
+	default:
 		return TypeInvalid, fmt.Errorf("invalid index operation into non-indexable type: %s", variable.Type)
 	}
+}
 
+func (n *Index) typeList(variable Variable, variableName string) (Type, error) {
+	// We assume type checking has already determined that this is a list
 	list := variable.Value.([]Variable)
 
-	// Ensure that the types of the list elements are homogenous
-	listTypes := make(map[Type]struct{})
-	for _, v := range list {
-		if _, ok := listTypes[v.Type]; ok {
-			continue
-		}
-		listTypes[v.Type] = struct{}{}
-	}
+	return VariableListElementTypesAreHomogenous(variableName, list)
+}
 
-	if len(listTypes) != 1 {
-		typesFound := make([]string, len(listTypes))
-		i := 0
-		for k, _ := range listTypes {
-			typesFound[0] = k.String()
-			i++
-		}
-		types := strings.Join(typesFound, ", ")
-		return TypeInvalid, fmt.Errorf("list %q does not have homogenous types. found %s", variableAccess.Name, types)
-	}
+func (n *Index) typeMap(variable Variable, variableName string) (Type, error) {
+	// We assume type checking has already determined that this is a map
+	vmap := variable.Value.(map[string]Variable)
 
-	return list[0].Type, nil
+	return VariableMapValueTypesAreHomogenous(variableName, vmap)
+}
+
+func reportTypes(typesFound map[Type]struct{}) string {
+	stringTypes := make([]string, len(typesFound))
+	i := 0
+	for k, _ := range typesFound {
+		stringTypes[0] = k.String()
+		i++
+	}
+	return strings.Join(stringTypes, ", ")
 }
 
 func (n *Index) GoString() string {

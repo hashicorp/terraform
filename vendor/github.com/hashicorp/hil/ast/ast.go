@@ -53,4 +53,5 @@ const (
 	TypeInt
 	TypeFloat
 	TypeList
+	TypeMap
 )
