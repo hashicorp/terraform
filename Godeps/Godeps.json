@@ -773,6 +773,21 @@
 			"Rev": "b1859b199a7171589445bdea9fa8c19362613f80"
 		},
 		{
+			"ImportPath": "github.com/influxdata/influxdb/client",
+			"Comment": "v0.10.0-617-gf233a8b",
+			"Rev": "f233a8bac88d1f2dc282a98186f5a3363b806181"
+		},
+		{
+			"ImportPath": "github.com/influxdata/influxdb/models",
+			"Comment": "v0.10.0-617-gf233a8b",
+			"Rev": "f233a8bac88d1f2dc282a98186f5a3363b806181"
+		},
+		{
+			"ImportPath": "github.com/influxdata/influxdb/pkg/escape",
+			"Comment": "v0.10.0-617-gf233a8b",
+			"Rev": "f233a8bac88d1f2dc282a98186f5a3363b806181"
+		},
+		{
 			"ImportPath": "github.com/jen20/riviera/azure",
 			"Rev": "64de55fa8cdd0c52f7d59494c1b03c1b583c52b4"
 		},
