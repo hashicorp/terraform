@@ -204,6 +204,10 @@
 			"Rev": "0290933f5e8afd933f2823fce32bf2847e6ea603"
 		},
 		{
+			"ImportPath": "github.com/ajg/form",
+			"Rev": "c9e1c3ae1f869d211cdaa085d23c6af2f5f83866"
+		},
+		{
 			"ImportPath": "github.com/apparentlymart/go-cidr/cidr",
 			"Rev": "a3ebdb999b831ecb6ab8a226e31b07b2b9061c47"
 		},
@@ -1126,6 +1130,11 @@
 			"Rev": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
 		},
 		{
+		{
+			"ImportPath": "github.com/sethvargo/go-fastly",
+			"Rev": "382fee1e5e1adf3cc112fadf4f0a8a98e269ea3c"
+		},
+		{
 			"ImportPath": "github.com/soniah/dnsmadeeasy",
 			"Comment": "v1.1-2-g5578a8c",
 			"Rev": "5578a8c15e33958c61cf7db720b6181af65f4a9e"
@@ -1363,3 +1372,5 @@
 		}
 	]
 }
+
+
