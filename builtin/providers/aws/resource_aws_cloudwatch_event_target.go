@@ -31,7 +31,9 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 			"target_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
+				ValidateFunc: validateCloudWatchEventTargetId,
 			},
 
 			"arn": &schema.Schema{
@@ -61,7 +63,15 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 
 	rule := d.Get("rule").(string)
 
-	input, targetId := buildPutTargetInputStruct(d)
+	var targetId string
+	if v, ok := d.GetOk("target_id"); ok {
+		targetId = v.(string)
+	} else {
+		targetId = resource.UniqueId()
+		d.Set("target_id", targetId)
+	}
+
+	input := buildPutTargetInputStruct(d)
 	log.Printf("[DEBUG] Creating CloudWatch Event Target: %s", input)
 	out, err := conn.PutTargets(input)
 	if err != nil {
@@ -144,7 +154,7 @@ func findEventTargetById(id, rule string, nextToken *string, conn *events.CloudW
 func resourceAwsCloudWatchEventTargetUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatcheventsconn
 
-	input, _ := buildPutTargetInputStruct(d)
+	input := buildPutTargetInputStruct(d)
 	log.Printf("[DEBUG] Updating CloudWatch Event Target: %s", input)
 	_, err := conn.PutTargets(input)
 	if err != nil {
@@ -173,17 +183,10 @@ func resourceAwsCloudWatchEventTargetDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func buildPutTargetInputStruct(d *schema.ResourceData) (*events.PutTargetsInput, string) {
-	var targetId string
-	if v, ok := d.GetOk("target_id"); ok {
-		targetId = v.(string)
-	} else {
-		targetId = resource.UniqueId()
-	}
-
+func buildPutTargetInputStruct(d *schema.ResourceData) *events.PutTargetsInput {
 	e := &events.Target{
 		Arn: aws.String(d.Get("arn").(string)),
-		Id:  aws.String(targetId),
+		Id:  aws.String(d.Get("target_id").(string)),
 	}
 
 	if v, ok := d.GetOk("input"); ok {
@@ -198,5 +201,5 @@ func buildPutTargetInputStruct(d *schema.ResourceData) (*events.PutTargetsInput,
 		Targets: []*events.Target{e},
 	}
 
-	return &input, targetId
+	return &input
 }
