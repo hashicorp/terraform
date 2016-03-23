@@ -80,7 +80,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"health_check_grace_period": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  300,
 			},
 
 			"health_check_type": &schema.Schema{
