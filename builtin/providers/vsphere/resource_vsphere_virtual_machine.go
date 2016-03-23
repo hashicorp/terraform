@@ -44,25 +44,35 @@ type hardDisk struct {
 	initType string
 }
 
+//Additional options Vsphere can use clones of windows machines
+type windowsOptConfig struct {
+	productKey         string
+	adminPassword      string
+	domainUser         string
+	domain             string
+	domainUserPassword string
+}
+
 type virtualMachine struct {
-	name                 string
-	folder               string
-	datacenter           string
-	cluster              string
-	resourcePool         string
-	datastore            string
-	linkedClone          bool
-	vcpu                 int
-	memoryMb             int64
-	template             string
-	networkInterfaces    []networkInterface
-	hardDisks            []hardDisk
-	gateway              string
-	domain               string
-	timeZone             string
-	dnsSuffixes          []string
-	dnsServers           []string
-	customConfigurations map[string](types.AnyType)
+	name                  string
+	folder                string
+	datacenter            string
+	cluster               string
+	resourcePool          string
+	datastore             string
+	linkedClone           bool
+	vcpu                  int
+	memoryMb              int64
+	template              string
+	networkInterfaces     []networkInterface
+	hardDisks             []hardDisk
+	gateway               string
+	domain                string
+	timeZone              string
+	dnsSuffixes           []string
+	dnsServers            []string
+	windowsOptionalConfig windowsOptConfig
+	customConfigurations  map[string](types.AnyType)
 }
 
 func (v virtualMachine) Path() string {
@@ -170,6 +180,44 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
+			},
+			"windows_opt_config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"product_key": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"admin_password": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"domain_user": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"domain": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"domain_user_password": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
 			},
 
 			"network_interface": &schema.Schema{
@@ -384,6 +432,28 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 		vm.networkInterfaces = networks
 		log.Printf("[DEBUG] network_interface init: %v", networks)
+	}
+
+	if vL, ok := d.GetOk("windows_opt_config"); ok {
+		var winOpt windowsOptConfig
+		custom_configs := (vL.([]interface{}))[0].(map[string]interface{})
+		if v, ok := custom_configs["admin_password"].(string); ok && v != "" {
+			winOpt.adminPassword = v
+		}
+		if v, ok := custom_configs["domain"].(string); ok && v != "" {
+			winOpt.domain = v
+		}
+		if v, ok := custom_configs["domain_user"].(string); ok && v != "" {
+			winOpt.domainUser = v
+		}
+		if v, ok := custom_configs["product_key"].(string); ok && v != "" {
+			winOpt.productKey = v
+		}
+		if v, ok := custom_configs["domain_user_password"].(string); ok && v != "" {
+			winOpt.domainUserPassword = v
+		}
+		vm.windowsOptionalConfig = winOpt
+		log.Printf("[DEBUG] windows config init: %v", winOpt)
 	}
 
 	if vL, ok := d.GetOk("disk"); ok {
@@ -1207,27 +1277,46 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		var timeZone int
 		timeZone, err := strconv.Atoi(vm.timeZone)
 		if err != nil {
-			return fmt.Errorf("Error reading base VM properties: %s", err)
+			return fmt.Errorf("Error converting TimeZone: %s", err)
 		}
+
+		guiUnattended := types.CustomizationGuiUnattended{
+			AutoLogon:      false,
+			AutoLogonCount: 1,
+			TimeZone:       timeZone,
+		}
+
+		customIdentification := types.CustomizationIdentification{}
+
+		userData := types.CustomizationUserData{
+			ComputerName: &types.CustomizationFixedName{
+				Name: strings.Split(vm.name, ".")[0],
+			},
+			ProductId: vm.windowsOptionalConfig.productKey,
+			FullName:  "terraform",
+			OrgName:   "terraform",
+		}
+
+		if vm.windowsOptionalConfig.domainUserPassword != "" && vm.windowsOptionalConfig.domainUser != "" && vm.windowsOptionalConfig.domain != "" {
+			customIdentification.DomainAdminPassword = &types.CustomizationPassword{
+				PlainText: true,
+				Value:     vm.windowsOptionalConfig.domainUserPassword,
+			}
+			customIdentification.DomainAdmin = vm.windowsOptionalConfig.domainUser
+			customIdentification.JoinDomain = vm.windowsOptionalConfig.domain
+		}
+
+		if vm.windowsOptionalConfig.adminPassword != "" {
+			guiUnattended.Password = &types.CustomizationPassword{
+				PlainText: true,
+				Value:     vm.windowsOptionalConfig.adminPassword,
+			}
+		}
+
 		identity_options = &types.CustomizationSysprep{
-			GuiUnattended: types.CustomizationGuiUnattended{
-				AutoLogon:      false,
-				AutoLogonCount: 1,
-				Password: &types.CustomizationPassword{
-					PlainText: true,
-					Value:     "NULL",
-				},
-				TimeZone: timeZone,
-			},
-			Identification: types.CustomizationIdentification{},
-			UserData: types.CustomizationUserData{
-				ComputerName: &types.CustomizationFixedName{
-					Name: strings.Split(vm.name, ".")[0],
-				},
-				FullName:  "LSTTE",
-				OrgName:   "LSTTE",
-				ProductId: "ruh roh",
-			},
+			GuiUnattended:  guiUnattended,
+			Identification: customIdentification,
+			UserData:       userData,
 		}
 	} else {
 		identity_options = &types.CustomizationLinuxPrep{
