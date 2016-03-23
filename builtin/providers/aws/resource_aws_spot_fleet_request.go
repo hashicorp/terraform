@@ -837,8 +837,7 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
 	_, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
 		SpotFleetRequestIds: []*string{aws.String(d.Id())},
-		// TODO: Make this optional
-		TerminateInstances: aws.Bool(true),
+		TerminateInstances:  aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
 	})
 
 	if err != nil {
