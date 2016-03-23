@@ -55,7 +55,7 @@ var parserStatenames = [...]string{}
 
 const parserEofCode = 1
 const parserErrCode = 2
-const parserMaxDepth = 200
+const parserInitialStackSize = 16
 
 //line lang.y:196
 
@@ -157,18 +157,17 @@ type parserParser interface {
 }
 
 type parserParserImpl struct {
-	lookahead func() int
+	lval  parserSymType
+	stack [parserInitialStackSize]parserSymType
+	char  int
 }
 
 func (p *parserParserImpl) Lookahead() int {
-	return p.lookahead()
+	return p.char
 }
 
 func parserNewParser() parserParser {
-	p := &parserParserImpl{
-		lookahead: func() int { return -1 },
-	}
-	return p
+	return &parserParserImpl{}
 }
 
 const parserFlag = -1000
@@ -296,22 +295,20 @@ func parserParse(parserlex parserLexer) int {
 
 func (parserrcvr *parserParserImpl) Parse(parserlex parserLexer) int {
 	var parsern int
-	var parserlval parserSymType
 	var parserVAL parserSymType
 	var parserDollar []parserSymType
 	_ = parserDollar // silence set and not used
-	parserS := make([]parserSymType, parserMaxDepth)
+	parserS := parserrcvr.stack[:]
 
 	Nerrs := 0   /* number of errors */
 	Errflag := 0 /* error recovery flag */
 	parserstate := 0
-	parserchar := -1
-	parsertoken := -1 // parserchar translated into internal numbering
-	parserrcvr.lookahead = func() int { return parserchar }
+	parserrcvr.char = -1
+	parsertoken := -1 // parserrcvr.char translated into internal numbering
 	defer func() {
 		// Make sure we report no lookahead when not parsing.
 		parserstate = -1
-		parserchar = -1
+		parserrcvr.char = -1
 		parsertoken = -1
 	}()
 	parserp := -1
@@ -343,8 +340,8 @@ parsernewstate:
 	if parsern <= parserFlag {
 		goto parserdefault /* simple state */
 	}
-	if parserchar < 0 {
-		parserchar, parsertoken = parserlex1(parserlex, &parserlval)
+	if parserrcvr.char < 0 {
+		parserrcvr.char, parsertoken = parserlex1(parserlex, &parserrcvr.lval)
 	}
 	parsern += parsertoken
 	if parsern < 0 || parsern >= parserLast {
@@ -352,9 +349,9 @@ parsernewstate:
 	}
 	parsern = parserAct[parsern]
 	if parserChk[parsern] == parsertoken { /* valid shift */
-		parserchar = -1
+		parserrcvr.char = -1
 		parsertoken = -1
-		parserVAL = parserlval
+		parserVAL = parserrcvr.lval
 		parserstate = parsern
 		if Errflag > 0 {
 			Errflag--
@@ -366,8 +363,8 @@ parserdefault:
 	/* default state action */
 	parsern = parserDef[parserstate]
 	if parsern == -2 {
-		if parserchar < 0 {
-			parserchar, parsertoken = parserlex1(parserlex, &parserlval)
+		if parserrcvr.char < 0 {
+			parserrcvr.char, parsertoken = parserlex1(parserlex, &parserrcvr.lval)
 		}
 
 		/* look through exception table */
@@ -430,7 +427,7 @@ parserdefault:
 			if parsertoken == parserEofCode {
 				goto ret1
 			}
-			parserchar = -1
+			parserrcvr.char = -1
 			parsertoken = -1
 			goto parsernewstate /* try again in the same state */
 		}
