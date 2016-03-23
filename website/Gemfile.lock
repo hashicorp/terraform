@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/hashicorp/middleman-hashicorp
-  revision: 953baf8762b915cf57553bcc82bc946ad777056f
+  revision: 4de731a2eb809f0ccbaddf18043b267806123465
   specs:
     middleman-hashicorp (0.2.0)
       bootstrap-sass (~> 3.3)
@@ -21,15 +21,14 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (4.2.5)
+    activesupport (4.2.6)
       i18n (~> 0.7)
       json (~> 1.7, >= 1.7.7)
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
-    autoprefixer-rails (6.3.0)
+    autoprefixer-rails (6.3.4)
       execjs
-      json
     bootstrap-sass (3.3.6)
       autoprefixer-rails (>= 5.2.1)
       sass (>= 3.3.4)
@@ -63,7 +62,7 @@ GEM
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0.6.0)
     erubis (2.7.0)
-    eventmachine (1.0.9.1)
+    eventmachine (1.2.0.1)
     execjs (2.6.0)
     ffi (1.9.10)
     git-version-bump (0.15.1)
@@ -76,13 +75,13 @@ GEM
     http_parser.rb (0.6.0)
     i18n (0.7.0)
     json (1.8.3)
-    kramdown (1.9.0)
+    kramdown (1.10.0)
     less (2.6.0)
       commonjs (~> 0.2.7)
     libv8 (3.16.14.13)
-    listen (3.0.5)
+    listen (3.0.6)
       rb-fsevent (>= 0.9.3)
-      rb-inotify (>= 0.9)
+      rb-inotify (>= 0.9.7)
     middleman (3.4.1)
       coffee-script (~> 2.2)
       compass (>= 1.0.0, < 2.0.0)
@@ -123,11 +122,11 @@ GEM
       rouge (~> 1.0)
     mime-types (3.0)
       mime-types-data (~> 3.2015)
-    mime-types-data (3.2015.1120)
+    mime-types-data (3.2016.0221)
     mini_portile2 (2.0.0)
-    minitest (5.8.3)
+    minitest (5.8.4)
     multi_json (1.11.2)
-    nokogiri (1.6.7.1)
+    nokogiri (1.6.7.2)
       mini_portile2 (~> 2.0.0.rc2)
     padrino-helpers (0.12.5)
       i18n (~> 0.6, >= 0.6.7)
@@ -148,7 +147,7 @@ GEM
     rack-test (0.6.3)
       rack (>= 1.0)
     rb-fsevent (0.9.7)
-    rb-inotify (0.9.5)
+    rb-inotify (0.9.7)
       ffi (>= 0.5.0)
     redcarpet (3.3.4)
     ref (2.0.0)
@@ -190,4 +189,4 @@ DEPENDENCIES
   middleman-hashicorp!
 
 BUNDLED WITH
-   1.10.6
+   1.11.2
