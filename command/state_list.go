@@ -96,6 +96,6 @@ Terraform at another state file.`
 
 const errStateNotFound = `No state file was found!
 
-State management cmomands require a state file. Run this command
+State management commands require a state file. Run this command
 in a directory where Terraform has been run or use the -state flag
 to point the command to a specific state location.`
