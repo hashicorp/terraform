@@ -204,6 +204,55 @@ func TestAccFastlyServiceV1_basic(t *testing.T) {
 	})
 }
 
+// ServiceV1_disappears – test that a non-empty plan is returned when a Fastly
+// Service is destroyed outside of Terraform, and can no longer be found,
+// correctly clearing the ID field and generating a new plan
+func TestAccFastlyServiceV1_disappears(t *testing.T) {
+	var service gofastly.ServiceDetail
+	name := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	domainName := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
+
+	testDestroy := func(*terraform.State) error {
+		// reach out and DELETE the service
+		conn := testAccProvider.Meta().(*FastlyClient).conn
+		// deactivate active version to destoy
+		_, err := conn.DeactivateVersion(&gofastly.DeactivateVersionInput{
+			Service: service.ID,
+			Version: service.ActiveVersion.Number,
+		})
+		if err != nil {
+			return err
+		}
+
+		// delete service
+		err = conn.DeleteService(&gofastly.DeleteServiceInput{
+			ID: service.ID,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckServiceV1Destroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccServiceV1Config(name, domainName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
+					testDestroy,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckServiceV1Exists(n string, service *gofastly.ServiceDetail) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]

@@ -223,6 +223,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			// New versions are not immediately found in the API, or are not
 			// immediately mutable, so we need to sleep a few and let Fastly ready
 			// itself. Typically, 7 seconds is enough
+			log.Printf("[DEBUG] Sleeping 7 seconds to allow Fastly Version to be available")
 			time.Sleep(7 * time.Second)
 		}
 
@@ -380,7 +381,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if !valid {
-			return fmt.Errorf("[WARN] Invalid configuration for Fastly Service (%s): %s", d.Id(), msg)
+			return fmt.Errorf("[ERR] Invalid configuration for Fastly Service (%s): %s", d.Id(), msg)
 		}
 
 		log.Printf("[DEBUG] Activating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
