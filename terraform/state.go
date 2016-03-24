@@ -1324,18 +1324,18 @@ func (e *EphemeralState) deepcopy() *EphemeralState {
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
 
-	// Check if this is a V1 format
+	// Check if this is a V0 format
 	start, err := buf.Peek(len(stateFormatMagic))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
 	}
 	if string(start) == stateFormatMagic {
 		// Read the old state
-		old, err := ReadStateV1(buf)
+		old, err := ReadStateV0(buf)
 		if err != nil {
 			return nil, err
 		}
-		return upgradeV1State(old)
+		return upgradeV0State(old)
 	}
 
 	// Otherwise, must be V2
@@ -1409,9 +1409,9 @@ func WriteState(d *State, dst io.Writer) error {
 	return nil
 }
 
-// upgradeV1State is used to upgrade a V1 state representation
+// upgradeV0State is used to upgrade a V0 state representation
 // into a proper State representation.
-func upgradeV1State(old *StateV1) (*State, error) {
+func upgradeV0State(old *StateV0) (*State, error) {
 	s := &State{}
 	s.init()
 
