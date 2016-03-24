@@ -8,12 +8,12 @@ description: |-
 
 # fastly\_service\_v1
 
-Provides an Fastly Service, representing the configuration for a website, app,
+Provides a Fastly Service, representing the configuration for a website, app,
 api, or anything else to be served through Fastly. A Service encompasses Domains
 and Backends.
 
-The Service resource requires a domain name that is correctly setup to direct
-traffic to the Fastly service. See Fastly's guide on [Adding CNAME Records][2]
+The Service resource requires a domain name that is correctly set up to direct
+traffic to the Fastly service. See Fastly's guide on [Adding CNAME Records][fastly-cname]
 on their documentation site for guidance. 
 
 ## Example Usage
@@ -76,7 +76,7 @@ resource "aws_s3_bucket" "website" {
 **Note:** For an AWS S3 Bucket, the Backend address is
 `<domain>.s3-website-<region>.amazonaws.com`. The `default_host` attribute
 should be set to `<bucket_name>.s3-website-<region>.amazonaws.com`. See the
-Fastly documentation on [Amazon S3][1]
+Fastly documentation on [Amazon S3][fastly-s3]
 
 ## Argument Reference
 
@@ -131,6 +131,6 @@ The following attributes are exported:
 * `force_destroy` - Force the destruction of the Service on delete
 
 
-[1]: https://docs.fastly.com/guides/integrations/amazon-s3
-[2]: https://docs.fastly.com/guides/basic-setup/adding-cname-records
+[fastly-s3]: https://docs.fastly.com/guides/integrations/amazon-s3
+[fastly-cname]: https://docs.fastly.com/guides/basic-setup/adding-cname-records
 
