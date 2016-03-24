@@ -12,11 +12,9 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// These tests assume the existence of predefined Opsworks IAM roles named `aws-opsworks-ec2-role`
-// and `aws-opsworks-service-role`.
-
 func TestAccAWSOpsworksInstance(t *testing.T) {
 	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
+	var opsinst opsworks.Instance
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,6 +23,9 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAwsOpsworksInstanceConfigCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksInstanceExists(
+						"aws_opsworks_instance.tf-acc", &opsinst),
+					testAccCheckAWSOpsworksInstanceAttributes(&opsinst),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_instance.tf-acc", "hostname", "tf-acc1",
 					),
@@ -57,6 +58,9 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAwsOpsworksInstanceConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksInstanceExists(
+						"aws_opsworks_instance.tf-acc", &opsinst),
+					testAccCheckAWSOpsworksInstanceAttributes(&opsinst),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_instance.tf-acc", "hostname", "tf-acc1",
 					),
@@ -73,6 +77,65 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckAWSOpsworksInstanceExists(
+	n string, opsinst *opsworks.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Opsworks Instance is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).opsworksconn
+
+		params := &opsworks.DescribeInstancesInput{
+			InstanceIds: []*string{&rs.Primary.ID},
+		}
+		resp, err := conn.DescribeInstances(params)
+
+		if err != nil {
+			return err
+		}
+
+		if v := len(resp.Instances); v != 1 {
+			return fmt.Errorf("Expected 1 request returned, got %d", v)
+		}
+
+		*opsinst = *resp.Instances[0]
+
+		return nil
+	}
+}
+
+func testAccCheckAWSOpsworksInstanceAttributes(
+	opsinst *opsworks.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Depending on the timing, the state could be requested or stopped
+		if *opsinst.Status != "stopped" && *opsinst.Status != "requested" {
+			return fmt.Errorf("Unexpected request status: %s", *opsinst.Status)
+		}
+		if *opsinst.AvailabilityZone != "us-west-2a" {
+			return fmt.Errorf("Unexpected availability zone: %s", *opsinst.AvailabilityZone)
+		}
+		if *opsinst.Architecture != "x86_64" {
+			return fmt.Errorf("Unexpected architecture: %s", *opsinst.Architecture)
+		}
+		if *opsinst.InfrastructureClass != "ec2" {
+			return fmt.Errorf("Unexpected infrastructure class: %s", *opsinst.InfrastructureClass)
+		}
+		if *opsinst.RootDeviceType != "ebs" {
+			return fmt.Errorf("Unexpected root device type: %s", *opsinst.RootDeviceType)
+		}
+		if *opsinst.VirtualizationType != "hvm" {
+			return fmt.Errorf("Unexpected virtualization type: %s", *opsinst.VirtualizationType)
+		}
+		return nil
+	}
 }
 
 func testAccCheckAwsOpsworksInstanceDestroy(s *terraform.State) error {
