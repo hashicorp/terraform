@@ -44,13 +44,17 @@ explained below:
 ### Static API Key ###
 
 Static credentials can be provided by adding a `api_key` in-line in the
-fastly provider block:
+Fastly provider block:
 
 Usage:
 
 ```
 provider "fastly" {
   api_key = "test"
+}
+
+resource "fastly_service_v1" "myservice" {
+  ...
 }
 ```
 
@@ -59,10 +63,13 @@ The API key for an account can be found on the Account page: https://app.fastly.
 ###Environment variables
 
 You can provide your API key via `FASTLY_API_KEY` environment variable, 
-representing your Fastly API key.
+representing your Fastly API key. When using this method, you may omit the
+Fastly `provider` block entirely:
 
 ```
-provider "fastly" {}
+resource "fastly_service_v1" "myservice" {
+  ...
+}
 ```
 
 Usage:
