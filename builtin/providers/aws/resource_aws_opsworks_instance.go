@@ -510,8 +510,19 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	// If nothing was found, then return no state
+	if len(resp.Instances) == 0 {
+		d.SetId("")
+		return nil
+	}
 	instance := resp.Instances[0]
+
+	if instance.InstanceId == nil {
+		d.SetId("")
+		return nil
+	}
 	instanceId := *instance.InstanceId
+
 	d.SetId(instanceId)
 	d.Set("agent_version", instance.AgentVersion)
 	d.Set("ami_id", instance.AmiId)
@@ -724,6 +735,10 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 	resp, err = client.CreateInstance(req)
 	if err != nil {
 		return err
+	}
+
+	if resp.InstanceId == nil {
+		return fmt.Errorf("Error launching instance: no instance returned in response")
 	}
 
 	instanceId := *resp.InstanceId

@@ -13,14 +13,17 @@ Provides an OpsWorks instance resource.
 ## Example Usage
 
 ```
-resource "aws_opsworks_instance" "my-instance" {
+aws_opsworks_instance" "my-instance" {
   stack_id = "${aws_opsworks_stack.my-stack.id}"
+
   layer_ids = [
     "${aws_opsworks_custom_layer.my-layer.id}",
   ]
+
   instance_type = "t2.micro"
-  os = "Amazon Linux 2015.09"
-  state = "stopped"
+  os            = "Amazon Linux 2015.09"
+  state         = "stopped"
+}
 ```
 
 ## Argument Reference
