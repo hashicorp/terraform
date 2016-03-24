@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New resource:** `aws_iam_user_ssh_key` [GH-5774]
+ * **New Provider:** `Fastly` [GH-5814]
  
 IMPROVEMENTS:
  * provider/aws: Change `aws_elb` access_logs to list type [GH-5065]
