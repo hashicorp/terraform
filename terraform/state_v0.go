@@ -21,21 +21,21 @@ const (
 	stateFormatVersion byte = 1
 )
 
-// StateV1 is used to represent the state of Terraform files before
+// StateV0 is used to represent the state of Terraform files before
 // 0.3. It is automatically upgraded to a modern State representation
 // on start.
-type StateV1 struct {
+type StateV0 struct {
 	Outputs   map[string]string
-	Resources map[string]*ResourceStateV1
+	Resources map[string]*ResourceStateV0
 	Tainted   map[string]struct{}
 
 	once sync.Once
 }
 
-func (s *StateV1) init() {
+func (s *StateV0) init() {
 	s.once.Do(func() {
 		if s.Resources == nil {
-			s.Resources = make(map[string]*ResourceStateV1)
+			s.Resources = make(map[string]*ResourceStateV0)
 		}
 
 		if s.Tainted == nil {
@@ -44,8 +44,8 @@ func (s *StateV1) init() {
 	})
 }
 
-func (s *StateV1) deepcopy() *StateV1 {
-	result := new(StateV1)
+func (s *StateV0) deepcopy() *StateV0 {
+	result := new(StateV0)
 	result.init()
 	if s != nil {
 		for k, v := range s.Resources {
@@ -61,7 +61,7 @@ func (s *StateV1) deepcopy() *StateV1 {
 
 // prune is a helper that removes any empty IDs from the state
 // and cleans it up in general.
-func (s *StateV1) prune() {
+func (s *StateV0) prune() {
 	for k, v := range s.Resources {
 		if v.ID == "" {
 			delete(s.Resources, k)
@@ -72,7 +72,7 @@ func (s *StateV1) prune() {
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
-func (s *StateV1) Orphans(c *config.Config) []string {
+func (s *StateV0) Orphans(c *config.Config) []string {
 	keys := make(map[string]struct{})
 	for k, _ := range s.Resources {
 		keys[k] = struct{}{}
@@ -96,7 +96,7 @@ func (s *StateV1) Orphans(c *config.Config) []string {
 	return result
 }
 
-func (s *StateV1) String() string {
+func (s *StateV0) String() string {
 	if len(s.Resources) == 0 {
 		return "<no state>"
 	}
@@ -175,7 +175,7 @@ func (s *StateV1) String() string {
 //
 // Extra is just extra data that a provider can return that we store
 // for later, but is not exposed in any way to the user.
-type ResourceStateV1 struct {
+type ResourceStateV0 struct {
 	// This is filled in and managed by Terraform, and is the resource
 	// type itself such as "mycloud_instance". If a resource provider sets
 	// this value, it won't be persisted.
@@ -228,8 +228,8 @@ type ResourceStateV1 struct {
 // If the diff attribute requires computing the value, and hence
 // won't be available until apply, the value is replaced with the
 // computeID.
-func (s *ResourceStateV1) MergeDiff(d *InstanceDiff) *ResourceStateV1 {
-	var result ResourceStateV1
+func (s *ResourceStateV0) MergeDiff(d *InstanceDiff) *ResourceStateV0 {
+	var result ResourceStateV0
 	if s != nil {
 		result = *s
 	}
@@ -258,7 +258,7 @@ func (s *ResourceStateV1) MergeDiff(d *InstanceDiff) *ResourceStateV1 {
 	return &result
 }
 
-func (s *ResourceStateV1) GoString() string {
+func (s *ResourceStateV0) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
 }
 
@@ -270,10 +270,10 @@ type ResourceDependency struct {
 	ID string
 }
 
-// ReadStateV1 reads a state structure out of a reader in the format that
+// ReadStateV0 reads a state structure out of a reader in the format that
 // was written by WriteState.
-func ReadStateV1(src io.Reader) (*StateV1, error) {
-	var result *StateV1
+func ReadStateV0(src io.Reader) (*StateV0, error) {
+	var result *StateV0
 	var err error
 	n := 0
 
