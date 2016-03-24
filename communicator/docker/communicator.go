@@ -98,7 +98,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	log.Printf("Starting new docker command.")
 	createOptions := dc.CreateExecOptions{
 		AttachStdin:  false,
-		AttachStderr: false,
+		AttachStderr: true,
 		AttachStdout: true,
 		Container:    c.connInfo.ContainerId,
 		Cmd:          strings.Fields(cmd.Command),
@@ -112,12 +112,14 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	log.Printf("Execution planned with id %q", exec.ID)
 	log.Printf("starting remote command: %s", cmd.Command)
 	startOptions := dc.StartExecOptions{
-		Detach: true,
-		Tty:    true,
-		//InputStream:  cmd.Stdin,
+		Detach:       false,
+		Tty:          true,
+		InputStream:  cmd.Stdin,
 		OutputStream: cmd.Stdout,
-		//ErrorStream:  cmd.Stderr,
-		RawTerminal: false,
+		ErrorStream:  cmd.Stderr,
+		// If RawTerminal is set to false, then Tty should be set to false in both
+		// create and start exec otherwise it results in a docker 'Unrecognized input header' error
+		RawTerminal: true,
 	}
 	if err = c.client.StartExec(exec.ID, startOptions); err != nil {
 		return err
