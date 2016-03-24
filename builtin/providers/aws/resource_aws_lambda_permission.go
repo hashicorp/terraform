@@ -121,7 +121,11 @@ func resourceAwsLambdaPermissionCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	log.Printf("[DEBUG] Created new Lambda permission: %s", *out.Statement)
+	if out != nil && out.Statement != nil {
+		log.Printf("[DEBUG] Created new Lambda permission: %s", *out.Statement)
+	} else {
+		log.Printf("[DEBUG] Created new Lambda permission, but no Statement was included")
+	}
 
 	d.SetId(d.Get("statement_id").(string))
 
