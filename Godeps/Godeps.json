@@ -1145,7 +1145,6 @@
 			"Rev": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
 		},
 		{
-		{
 			"ImportPath": "github.com/sethvargo/go-fastly",
 			"Rev": "382fee1e5e1adf3cc112fadf4f0a8a98e269ea3c"
 		},
