@@ -56,6 +56,36 @@ func TestCapacitySatisfied(t *testing.T) {
 			HaveASG:         5,
 			ExpectSatisfied: true,
 		},
+		"max_size, have less": {
+			Data: map[string]interface{}{
+				"max_size": 5,
+			},
+			HaveASG:         2,
+			ExpectSatisfied: true,
+		},
+		"max_size, have more": {
+			Data: map[string]interface{}{
+				"max_size": 5,
+			},
+			HaveASG:         10,
+			ExpectSatisfied: false,
+			ExpectReason:    "Need at most 5 healthy instances in ASG, have 10",
+		},
+		"max_size, got it": {
+			Data: map[string]interface{}{
+				"max_size": 5,
+			},
+			HaveASG:         5,
+			ExpectSatisfied: true,
+		},
+		"min_size, max_size, between": {
+			Data: map[string]interface{}{
+				"min_size": 1,
+				"max_size": 5,
+			},
+			HaveASG:         2,
+			ExpectSatisfied: true,
+		},
 		"min_elb_capacity, have less": {
 			Data: map[string]interface{}{
 				"min_elb_capacity": 5,

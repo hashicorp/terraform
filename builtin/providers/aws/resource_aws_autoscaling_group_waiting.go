@@ -100,6 +100,11 @@ func checkCapacitySatisfied(d *schema.ResourceData, haveASG, haveELB int) (bool,
 			"Need at least %d healthy instances in ASG, have %d", minASG.(int), haveASG)
 	}
 
+	if maxASG, ok := d.GetOk("max_size"); ok && maxASG.(int) < haveASG {
+		return false, fmt.Sprintf(
+			"Need at most %d healthy instances in ASG, have %d", maxASG.(int), haveASG)
+	}
+
 	if desiredELB, ok := d.GetOk("wait_for_elb_capacity"); ok && desiredELB.(int) != haveELB {
 		return false, fmt.Sprintf(
 			"Need exactly %d healthy instances in ELB, have %d", desiredELB.(int), haveELB)
