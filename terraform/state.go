@@ -17,7 +17,7 @@ import (
 
 const (
 	// StateVersion is the current version for our state file
-	StateVersion = 1
+	StateVersion = 2
 )
 
 // rootModulePath is the path of the root module
@@ -407,7 +407,7 @@ type ModuleState struct {
 	// Outputs declared by the module and maintained for each module
 	// even though only the root module technically needs to be kept.
 	// This allows operators to inspect values at the boundaries.
-	Outputs map[string]string `json:"outputs"`
+	Outputs map[string]interface{} `json:"outputs"`
 
 	// Resources is a mapping of the logically named resource to
 	// the state of the resource. Each resource may actually have
@@ -532,7 +532,7 @@ func (m *ModuleState) View(id string) *ModuleState {
 
 func (m *ModuleState) init() {
 	if m.Outputs == nil {
-		m.Outputs = make(map[string]string)
+		m.Outputs = make(map[string]interface{})
 	}
 	if m.Resources == nil {
 		m.Resources = make(map[string]*ResourceState)
@@ -545,7 +545,7 @@ func (m *ModuleState) deepcopy() *ModuleState {
 	}
 	n := &ModuleState{
 		Path:      make([]string, len(m.Path)),
-		Outputs:   make(map[string]string, len(m.Outputs)),
+		Outputs:   make(map[string]interface{}, len(m.Outputs)),
 		Resources: make(map[string]*ResourceState, len(m.Resources)),
 	}
 	copy(n.Path, m.Path)
@@ -1205,7 +1205,8 @@ func ReadState(src io.Reader) (*State, error) {
 		return upgradeV0State(old)
 	}
 
-	// Otherwise, must be V2
+	// Otherwise, must be V2 or V3 - V2 reads as V3 however so we need take
+	// no special action here - new state will be written as V3.
 	dec := json.NewDecoder(buf)
 	state := &State{}
 	if err := dec.Decode(state); err != nil {
@@ -1260,8 +1261,12 @@ func upgradeV0State(old *StateV0) (*State, error) {
 	// directly into the root module.
 	root := s.RootModule()
 
-	// Copy the outputs
-	root.Outputs = old.Outputs
+	// Copy the outputs, first converting them to map[string]interface{}
+	oldOutputs := make(map[string]interface{}, len(old.Outputs))
+	for key, value := range old.Outputs {
+		oldOutputs[key] = value
+	}
+	root.Outputs = oldOutputs
 
 	// Upgrade the resources
 	for id, rs := range old.Resources {
