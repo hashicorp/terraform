@@ -30,7 +30,13 @@ func (c *StateListCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	filter := &terraform.StateFilter{State: state.State()}
+	stateReal := state.State()
+	if stateReal == nil {
+		c.Ui.Error(fmt.Sprintf(errStateNotFound))
+		return 1
+	}
+
+	filter := &terraform.StateFilter{State: stateReal}
 	results, err := filter.Filter(args...)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
@@ -87,3 +93,9 @@ const errStateLoadingState = `Error loading the state: %[1]s
 Please ensure that your Terraform state exists and that you've
 configured it properly. You can use the "-state" flag to point
 Terraform at another state file.`
+
+const errStateNotFound = `No state file was found!
+
+State management cmomands require a state file. Run this command
+in a directory where Terraform has been run or use the -state flag
+to point the command to a specific state location.`
