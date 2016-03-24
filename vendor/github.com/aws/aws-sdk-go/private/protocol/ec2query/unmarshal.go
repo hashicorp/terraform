@@ -42,7 +42,7 @@ type xmlErrorResponse struct {
 	XMLName   xml.Name `xml:"Response"`
 	Code      string   `xml:"Errors>Error>Code"`
 	Message   string   `xml:"Errors>Error>Message"`
-	RequestID string   `xml:"RequestId"`
+	RequestID string   `xml:"RequestID"`
 }
 
 // UnmarshalError unmarshals a response error for the EC2 protocol.
