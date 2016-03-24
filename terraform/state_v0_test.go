@@ -12,10 +12,10 @@ import (
 	"github.com/mitchellh/hashstructure"
 )
 
-func TestReadWriteStateV1(t *testing.T) {
-	state := &StateV1{
-		Resources: map[string]*ResourceStateV1{
-			"foo": &ResourceStateV1{
+func TestReadWriteStateV0(t *testing.T) {
+	state := &StateV0{
+		Resources: map[string]*ResourceStateV0{
+			"foo": &ResourceStateV0{
 				ID: "bar",
 				ConnInfo: map[string]string{
 					"type":     "ssh",
@@ -33,7 +33,7 @@ func TestReadWriteStateV1(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	if err := testWriteStateV1(state, buf); err != nil {
+	if err := testWriteStateV0(state, buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -47,7 +47,7 @@ func TestReadWriteStateV1(t *testing.T) {
 		t.Fatalf("structure changed during serialization!")
 	}
 
-	actual, err := ReadStateV1(buf)
+	actual, err := ReadStateV0(buf)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -75,9 +75,9 @@ func (s *sensitiveState) init() {
 	})
 }
 
-// testWriteStateV1 writes a state somewhere in a binary format.
+// testWriteStateV0 writes a state somewhere in a binary format.
 // Only for testing now
-func testWriteStateV1(d *StateV1, dst io.Writer) error {
+func testWriteStateV0(d *StateV0, dst io.Writer) error {
 	// Write the magic bytes so we can determine the file format later
 	n, err := dst.Write([]byte(stateFormatMagic))
 	if err != nil {
