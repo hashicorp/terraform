@@ -1163,15 +1163,15 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 }
 
 func TestReadUpgradeState(t *testing.T) {
-	state := &StateV1{
-		Resources: map[string]*ResourceStateV1{
-			"foo": &ResourceStateV1{
+	state := &StateV0{
+		Resources: map[string]*ResourceStateV0{
+			"foo": &ResourceStateV0{
 				ID: "bar",
 			},
 		},
 	}
 	buf := new(bytes.Buffer)
-	if err := testWriteStateV1(state, buf); err != nil {
+	if err := testWriteStateV0(state, buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1182,7 +1182,7 @@ func TestReadUpgradeState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	upgraded, err := upgradeV1State(state)
+	upgraded, err := upgradeV0State(state)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1359,20 +1359,20 @@ func TestWriteStateTFVersion(t *testing.T) {
 	}
 }
 
-func TestUpgradeV1State(t *testing.T) {
-	old := &StateV1{
+func TestUpgradeV0State(t *testing.T) {
+	old := &StateV0{
 		Outputs: map[string]string{
 			"ip": "127.0.0.1",
 		},
-		Resources: map[string]*ResourceStateV1{
-			"foo": &ResourceStateV1{
+		Resources: map[string]*ResourceStateV0{
+			"foo": &ResourceStateV0{
 				Type: "test_resource",
 				ID:   "bar",
 				Attributes: map[string]string{
 					"key": "val",
 				},
 			},
-			"bar": &ResourceStateV1{
+			"bar": &ResourceStateV0{
 				Type: "test_resource",
 				ID:   "1234",
 				Attributes: map[string]string{
@@ -1384,7 +1384,7 @@ func TestUpgradeV1State(t *testing.T) {
 			"bar": struct{}{},
 		},
 	}
-	state, err := upgradeV1State(old)
+	state, err := upgradeV0State(old)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
