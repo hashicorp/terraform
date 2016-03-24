@@ -90,27 +90,50 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 
 // checkCapacitySatisfied determines if required ASG and ELB targets are met.
 func checkCapacitySatisfied(d *schema.ResourceData, haveASG, haveELB int) (bool, string) {
-	if desiredASG, ok := d.GetOk("desired_capacity"); ok && desiredASG.(int) != haveASG {
+	isLaunchSuspended := false
+	isTerminateSuspended := false
+	if procs, ok := d.GetOk("suspended_processes"); ok {
+		for _, p := range procs.(*schema.Set).List() {
+			switch p.(string) {
+			case "Launch":
+				isLaunchSuspended = true
+			case "Terminate":
+				isTerminateSuspended = true
+			}
+		}
+	}
+
+	if desiredASG, ok := d.GetOk("desired_capacity"); ok && desiredASG.(int) > haveASG && !isLaunchSuspended {
 		return false, fmt.Sprintf(
 			"Need exactly %d healthy instances in ASG, have %d", desiredASG.(int), haveASG)
 	}
 
-	if minASG, ok := d.GetOk("min_size"); ok && minASG.(int) > haveASG {
+	if desiredASG, ok := d.GetOk("desired_capacity"); ok && desiredASG.(int) < haveASG && !isTerminateSuspended {
+		return false, fmt.Sprintf(
+			"Need exactly %d healthy instances in ASG, have %d", desiredASG.(int), haveASG)
+	}
+
+	if minASG, ok := d.GetOk("min_size"); ok && minASG.(int) > haveASG && !isLaunchSuspended {
 		return false, fmt.Sprintf(
 			"Need at least %d healthy instances in ASG, have %d", minASG.(int), haveASG)
 	}
 
-	if maxASG, ok := d.GetOk("max_size"); ok && maxASG.(int) < haveASG {
+	if maxASG, ok := d.GetOk("max_size"); ok && maxASG.(int) < haveASG && !isTerminateSuspended {
 		return false, fmt.Sprintf(
 			"Need at most %d healthy instances in ASG, have %d", maxASG.(int), haveASG)
 	}
 
-	if desiredELB, ok := d.GetOk("wait_for_elb_capacity"); ok && desiredELB.(int) != haveELB {
+	if desiredELB, ok := d.GetOk("wait_for_elb_capacity"); ok && desiredELB.(int) > haveELB && !isLaunchSuspended {
 		return false, fmt.Sprintf(
 			"Need exactly %d healthy instances in ELB, have %d", desiredELB.(int), haveELB)
 	}
 
-	if minELB, ok := d.GetOk("min_elb_capacity"); ok && minELB.(int) > haveELB {
+	if desiredELB, ok := d.GetOk("wait_for_elb_capacity"); ok && desiredELB.(int) < haveELB && !isTerminateSuspended {
+		return false, fmt.Sprintf(
+			"Need exactly %d healthy instances in ELB, have %d", desiredELB.(int), haveELB)
+	}
+
+	if minELB, ok := d.GetOk("min_elb_capacity"); ok && minELB.(int) > haveELB && !isLaunchSuspended {
 		return false, fmt.Sprintf(
 			"Need at least %d healthy instances in ELB, have %d", minELB.(int), haveELB)
 	}
