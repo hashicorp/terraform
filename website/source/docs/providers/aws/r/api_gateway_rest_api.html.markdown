@@ -23,11 +23,12 @@ resource "aws_api_gateway_rest_api" "MyDemoAPI" {
 
 The following arguments are supported:
 
-* `name` - (Required) Name of the API Gateway
-* `description` - (Optional) The API Gateway description
+* `name` - (Required) The name of the REST API
+* `description` - (Optional) The description of the REST API
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `root_resource_id` - The resource ID of the APIs root
+* `id` - The ID of the REST API
+* `root_resource_id` - The resource ID of the REST API's root
