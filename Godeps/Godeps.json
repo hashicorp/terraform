@@ -204,6 +204,10 @@
 			"Rev": "0290933f5e8afd933f2823fce32bf2847e6ea603"
 		},
 		{
+			"ImportPath": "github.com/HX-Rd/namecheap",
+			"Rev": "bef9b5a1b9600a43cae68941e8da54a231dbc840"
+		},
+		{
 			"ImportPath": "github.com/ajg/form",
 			"Rev": "c9e1c3ae1f869d211cdaa085d23c6af2f5f83866"
 		},
