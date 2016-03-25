@@ -8,7 +8,7 @@ description: |-
 
 # aws\_api\_gateway\_resource
 
-Provides an API Gateway REST API Resource.
+Provides an API Gateway Resource.
 
 ## Example Usage
 
@@ -29,12 +29,13 @@ resource "aws_api_gateway_resource" "MyDemoResource" {
 
 The following arguments are supported:
 
-* `rest_api_id` - (Required) API Gateway ID
-* `parent_id` - (Required) Parent resource ID
-* `path_part` - (Required) The resource path
+* `rest_api_id` - (Required) The ID of the associated REST API
+* `parent_id` - (Required) The ID of the parent API resource
+* `path_part` - (Required) The last path segment of this API resource.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `path` - The complete path for this resource, including all parent paths
+* `id` - The ID of the API resource
+* `path` - The complete path for this API resource, including all parent paths
