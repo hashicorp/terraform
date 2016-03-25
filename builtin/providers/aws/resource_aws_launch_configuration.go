@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -432,7 +433,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Message() == "Invalid IamInstanceProfile" {
+				if strings.Contains(awsErr.Message(), "Invalid IamInstanceProfile") {
 					return resource.RetryableError(err)
 				}
 			}
