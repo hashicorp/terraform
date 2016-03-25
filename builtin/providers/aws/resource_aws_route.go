@@ -289,7 +289,13 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 	res, err := conn.DescribeRouteTables(findOpts)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("Error while checking if route exists: %s", err)
+	}
+
+	if len(res.RouteTables) < 1 || res.RouteTables[0] == nil {
+		log.Printf("[WARN] Route table %s is gone, so route does not exist.",
+			routeTableId)
+		return false, nil
 	}
 
 	cidr := d.Get("destination_cidr_block").(string)
@@ -318,6 +324,11 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 	resp, err := conn.DescribeRouteTables(findOpts)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(resp.RouteTables) < 1 || resp.RouteTables[0] == nil {
+		return nil, fmt.Errorf("Route table %s is gone, so route does not exist.",
+			routeTableID)
 	}
 
 	for _, route := range (*resp.RouteTables[0]).Routes {
