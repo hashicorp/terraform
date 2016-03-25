@@ -27,8 +27,7 @@ resource "cloudstack_instance" "web" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the instance. Changing this forces a new
-    resource to be created.
+* `name` - (Required) The name of the instance.
 
 * `display_name` - (Optional) The display name of the instance.
 
