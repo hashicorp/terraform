@@ -3,7 +3,7 @@ layout: "commands-state"
 page_title: "Command: state list"
 sidebar_current: "docs-state-sub-list"
 description: |-
-  The `terraform init` command is used to initialize a Terraform configuration using another module as a skeleton.
+  The terraform state list command is used to list resources within a Terraform state.
 ---
 
 # Command: state list

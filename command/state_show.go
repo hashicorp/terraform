@@ -63,7 +63,9 @@ func (c *StateShowCommand) Run(args []string) int {
 	output := make([]string, 0, len(is.Attributes)+1)
 	output = append(output, fmt.Sprintf("id | %s", is.ID))
 	for _, k := range keys {
-		output = append(output, fmt.Sprintf("%s | %s", k, is.Attributes[k]))
+		if k != "id" {
+			output = append(output, fmt.Sprintf("%s | %s", k, is.Attributes[k]))
+		}
 	}
 
 	// Output
