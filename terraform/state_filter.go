@@ -36,7 +36,7 @@ func (f *StateFilter) Filter(fs ...string) ([]*StateFilterResult, error) {
 
 	// If we werent given any filters, then we list all
 	if len(fs) == 0 {
-		as = append(as, &ResourceAddress{})
+		as = append(as, &ResourceAddress{Index: -1})
 	}
 
 	// Filter each of the address. We keep track of this in a map to
@@ -94,6 +94,11 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 					continue
 				}
 
+				if a.Index >= 0 && key.Index != a.Index {
+					// Index doesn't match
+					continue
+				}
+
 				// Build the address for this resource
 				addr := &ResourceAddress{
 					Path:  m.Path[1:],
@@ -103,11 +108,12 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 				}
 
 				// Add the resource level result
-				results = append(results, &StateFilterResult{
+				resourceResult := &StateFilterResult{
 					Path:    addr.Path,
 					Address: addr.String(),
 					Value:   r,
-				})
+				}
+				results = append(results, resourceResult)
 
 				// Add the instances
 				if r.Primary != nil {
@@ -115,6 +121,7 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 					results = append(results, &StateFilterResult{
 						Path:    addr.Path,
 						Address: addr.String(),
+						Parent:  resourceResult,
 						Value:   r.Primary,
 					})
 				}
@@ -125,6 +132,7 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 						results = append(results, &StateFilterResult{
 							Path:    addr.Path,
 							Address: addr.String(),
+							Parent:  resourceResult,
 							Value:   instance,
 						})
 					}
@@ -136,6 +144,7 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 						results = append(results, &StateFilterResult{
 							Path:    addr.Path,
 							Address: addr.String(),
+							Parent:  resourceResult,
 							Value:   instance,
 						})
 					}
@@ -194,6 +203,11 @@ type StateFilterResult struct {
 
 	// Address is the address that can be used to reference this exact result.
 	Address string
+
+	// Parent, if non-nil, is a parent of this result. For instances, the
+	// parent would be a resource. For resources, the parent would be
+	// a module. For modules, this is currently nil.
+	Parent *StateFilterResult
 
 	// Value is the actual value. This must be type switched on. It can be
 	// any data structures that `State` can hold: `ModuleState`,
