@@ -55,4 +55,3 @@ Usage: terraform graph [options] PATH
   read this format is GraphViz, but many web services are also available
   to read this format.
 ```
-
