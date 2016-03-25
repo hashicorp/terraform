@@ -51,6 +51,15 @@ func TestStateFilterFilter(t *testing.T) {
 				"*terraform.InstanceState: module.bootstrap.aws_route53_zone.oasis-consul-bootstrap",
 			},
 		},
+
+		"single count index": {
+			"complete.tfstate",
+			[]string{"module.consul.aws_instance.consul-green[0]"},
+			[]string{
+				"*terraform.ResourceState: module.consul.aws_instance.consul-green[0]",
+				"*terraform.InstanceState: module.consul.aws_instance.consul-green[0]",
+			},
+		},
 	}
 
 	for n, tc := range cases {

@@ -36,7 +36,7 @@ func (f *StateFilter) Filter(fs ...string) ([]*StateFilterResult, error) {
 
 	// If we werent given any filters, then we list all
 	if len(fs) == 0 {
-		as = append(as, &ResourceAddress{})
+		as = append(as, &ResourceAddress{Index: -1})
 	}
 
 	// Filter each of the address. We keep track of this in a map to
@@ -91,6 +91,11 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 				if err != nil {
 					// If we get an error parsing, then just ignore it
 					// out of the state.
+					continue
+				}
+
+				if a.Index >= 0 && key.Index != a.Index {
+					// Index doesn't match
 					continue
 				}
 
