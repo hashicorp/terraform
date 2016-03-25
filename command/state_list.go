@@ -54,19 +54,19 @@ func (c *StateListCommand) Run(args []string) int {
 
 func (c *StateListCommand) Help() string {
 	helpText := `
-Usage: terraform state list [options] [pattern...]
+Usage: terraform state list [options] [address...]
 
   List resources in the Terraform state.
 
-  This command lists resources in the Terraform state. The pattern argument
-  can be used to filter the resources by resource or module. If no pattern
+  This command lists resources in the Terraform state. The address argument
+  can be used to filter the resources by resource or module. If no address
   is given, all resources are listed.
 
-  The pattern argument is meant to provide very simple filtering. For
+  The address argument is meant to provide very simple filtering. For
   advanced filtering, please use tools such as "grep". The output of this
   command is designed to be friendly for this usage.
 
-  The pattern argument accepts any resource targeting syntax. Please
+  The address argument accepts any resource targeting syntax. Please
   refer to the documentation on resource targeting syntax for more
   information.
 
