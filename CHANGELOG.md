@@ -3,7 +3,7 @@
 FEATURES:
 
  * **New resource:** `aws_iam_user_ssh_key` [GH-5774]
- * **New Provider:** `Fastly` [GH-5814]
+ * **New Provider:** `fastly` [GH-5814]
  
 IMPROVEMENTS:
  * provider/aws: Change `aws_elb` access_logs to list type [GH-5065]
@@ -14,6 +14,7 @@ BUG FIXES:
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
  * provider/aws: Fix `aws_route panic` when destination CIDR block is nil [GH-5781]
  * provider/aws: Fix issue with changing iops when also changing storage type to io1 on RDS [GH-5676]
+ * provider/aws: Guard against empty responses from Lambda Permissions [GH-5838]
 
 ## 0.6.14 (March 21, 2016)
 
