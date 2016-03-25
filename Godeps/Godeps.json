@@ -1176,6 +1176,11 @@
 			"Rev": "a09b5b4eb58195b6fb3898496586b8d6aeb558e0"
 		},
 		{
+			"ImportPath": "github.com/ryanuber/columnize",
+			"Comment": "v2.0.1-8-g983d3a5",
+			"Rev": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
+		},
+		{
 			"ImportPath": "github.com/satori/go.uuid",
 			"Rev": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
 		},
