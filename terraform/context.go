@@ -100,9 +100,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 			"Terraform doesn't allow running any operations against a state\n"+
 				"that was written by a future Terraform version. The state is\n"+
 				"reporting it is written by Terraform '%s'.\n\n"+
-				"Please run at least that version of Terraform to continue. Many\n"+
-				"command line operations also provide a flag to override this\n"+
-				"protection",
+				"Please run at least that version of Terraform to continue.",
 			state.TFVersion)
 	}
 
