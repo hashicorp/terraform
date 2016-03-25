@@ -13,10 +13,10 @@ The `terraform state list` command is used to list resources within a
 
 ## Usage
 
-Usage: `terraform state list [options] [pattern...]`
+Usage: `terraform state list [options] [address...]`
 
 The command will list all resources in the state file matching the given
-patterns (if any). If no patterns are given, all resources are listed.
+addresses (if any). If no addresses are given, all resources are listed.
 
 The resources listed are sorted according to module depth order followed
 by alphabetical. This means that resources that are in your immediate
@@ -24,7 +24,7 @@ configuration are listed first, and resources that are more deeply nested
 within modules are listed last.
 
 For complex infrastructures, the state can contain thousands of resources.
-To filter these, provide one or more patterns to the command. Patterns are
+To filter these, provide one or more addresses to the command. Addresses are
 in [resource addressing format](/docs/commands/state/addressing.html).
 
 The command-line flags are all optional. The list of available flags are:

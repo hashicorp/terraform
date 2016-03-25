@@ -77,12 +77,12 @@ func (c *StateShowCommand) Run(args []string) int {
 
 func (c *StateShowCommand) Help() string {
 	helpText := `
-Usage: terraform state show [options] PATTERN
+Usage: terraform state show [options] ADDRESS
 
   Shows the attributes of a resource in the Terraform state.
 
   This command shows the attributes of a single resource in the Terraform
-  state. The pattern argument must be used to specify a single resource.
+  state. The address argument must be used to specify a single resource.
   You can view the list of available resources with "terraform state list".
 
 Options:
