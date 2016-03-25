@@ -2,6 +2,8 @@ package aws
 
 import "testing"
 
+import "github.com/hashicorp/terraform/helper/schema"
+
 func TestCapacitySatisfied(t *testing.T) {
 	cases := map[string]struct {
 		Data            map[string]interface{}
@@ -17,6 +19,14 @@ func TestCapacitySatisfied(t *testing.T) {
 			HaveASG:         2,
 			ExpectSatisfied: false,
 			ExpectReason:    "Need at least 5 healthy instances in ASG, have 2",
+		},
+		"min_size, have less, launch suspended": {
+			Data: map[string]interface{}{
+				"min_size":            5,
+				"suspended_processes": schema.NewSet(schema.HashString, []interface{}{"Launch"}),
+			},
+			HaveASG:         2,
+			ExpectSatisfied: true,
 		},
 		"min_size, got it": {
 			Data: map[string]interface{}{
@@ -35,6 +45,23 @@ func TestCapacitySatisfied(t *testing.T) {
 		"desired_capacity, have less": {
 			Data: map[string]interface{}{
 				"desired_capacity": 5,
+			},
+			HaveASG:         2,
+			ExpectSatisfied: false,
+			ExpectReason:    "Need exactly 5 healthy instances in ASG, have 2",
+		},
+		"desired_capacity, have less, launch suspended": {
+			Data: map[string]interface{}{
+				"desired_capacity":    5,
+				"suspended_processes": schema.NewSet(schema.HashString, []interface{}{"Launch"}),
+			},
+			HaveASG:         2,
+			ExpectSatisfied: true,
+		},
+		"desired_capacity, have less, terminate suspended": {
+			Data: map[string]interface{}{
+				"desired_capacity":    5,
+				"suspended_processes": schema.NewSet(schema.HashString, []interface{}{"Terminate"}),
 			},
 			HaveASG:         2,
 			ExpectSatisfied: false,
@@ -71,6 +98,14 @@ func TestCapacitySatisfied(t *testing.T) {
 			ExpectSatisfied: false,
 			ExpectReason:    "Need at most 5 healthy instances in ASG, have 10",
 		},
+		"max_size, have more, terminate suspended": {
+			Data: map[string]interface{}{
+				"max_size":            5,
+				"suspended_processes": schema.NewSet(schema.HashString, []interface{}{"Terminate"}),
+			},
+			HaveASG:         10,
+			ExpectSatisfied: true,
+		},
 		"max_size, got it": {
 			Data: map[string]interface{}{
 				"max_size": 5,
@@ -94,6 +129,14 @@ func TestCapacitySatisfied(t *testing.T) {
 			ExpectSatisfied: false,
 			ExpectReason:    "Need at least 5 healthy instances in ELB, have 2",
 		},
+		"min_elb_capacity, have less, launch suspended": {
+			Data: map[string]interface{}{
+				"min_elb_capacity":    5,
+				"suspended_processes": schema.NewSet(schema.HashString, []interface{}{"Launch"}),
+			},
+			HaveELB:         2,
+			ExpectSatisfied: true,
+		},
 		"min_elb_capacity, got it": {
 			Data: map[string]interface{}{
 				"min_elb_capacity": 5,
@@ -115,6 +158,22 @@ func TestCapacitySatisfied(t *testing.T) {
 			HaveELB:         2,
 			ExpectSatisfied: false,
 			ExpectReason:    "Need exactly 5 healthy instances in ELB, have 2",
+		},
+		"wait_for_elb_capacity, have less, launch suspended": {
+			Data: map[string]interface{}{
+				"wait_for_elb_capacity": 5,
+				"suspended_processes":   schema.NewSet(schema.HashString, []interface{}{"Launch"}),
+			},
+			HaveELB:         2,
+			ExpectSatisfied: true,
+		},
+		"wait_for_elb_capacity, have more, terminate suspended": {
+			Data: map[string]interface{}{
+				"wait_for_elb_capacity": 5,
+				"suspended_processes":   schema.NewSet(schema.HashString, []interface{}{"Terminate"}),
+			},
+			HaveELB:         10,
+			ExpectSatisfied: true,
 		},
 		"wait_for_elb_capacity, got it": {
 			Data: map[string]interface{}{
