@@ -56,6 +56,57 @@ func TestStateShow(t *testing.T) {
 	}
 }
 
+func TestStateShow_multi(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo.0": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+					"test_instance.foo.1": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateShowCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestStateShow_noState(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
