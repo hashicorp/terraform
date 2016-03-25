@@ -50,10 +50,8 @@ resource "aws_api_gateway_method_response" "200" {
 
 The following arguments are supported:
 
-* `rest_api_id` - (Required) API Gateway ID
-* `resource_id` - (Required) API Gateway Resource ID
-* `http_method` - (Required) HTTP Method (GET, POST, PUT, DELETE, HEAD, OPTION)
-* `status_code` - (Required) Specify the HTTP status code.
-* `response_models` - (Optional) Specifies the  Model resources used for the response's content type
-* `response_parameters` - (Optional) Represents response parameters that can be sent back to the caller
-
+* `rest_api_id` - (Required) The ID of the associated REST API
+* `resource_id` - (Required) The API resource ID
+* `http_method` - (Required) The HTTP Method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`)
+* `status_code` - (Required) The HTTP status code
+* `response_models` - (Optional) A map of the API models used for the response's content type
