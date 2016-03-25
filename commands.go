@@ -158,6 +158,12 @@ func init() {
 				Meta: meta,
 			}, nil
 		},
+
+		"state show": func() (cli.Command, error) {
+			return &command.StateShowCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 }
 
