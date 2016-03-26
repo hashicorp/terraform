@@ -210,7 +210,7 @@ func testAccInstanceGroupManager_basic(template, target, igm1, igm2 string) stri
 		tags = ["foo", "bar"]
 
 		disk {
-			source_image = "debian-cloud/debian-7-wheezy-v20140814"
+			source_image = "debian-cloud/debian-7-wheezy-v20160301"
 			auto_delete = true
 			boot = true
 		}
@@ -264,7 +264,7 @@ func testAccInstanceGroupManager_update(template, target, igm string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			source_image = "debian-cloud/debian-7-wheezy-v20140814"
+			source_image = "debian-cloud/debian-7-wheezy-v20160301"
 			auto_delete = true
 			boot = true
 		}
@@ -313,7 +313,7 @@ func testAccInstanceGroupManager_update2(template1, target, template2, igm strin
 		tags = ["foo", "bar"]
 
 		disk {
-			source_image = "debian-cloud/debian-7-wheezy-v20140814"
+			source_image = "debian-cloud/debian-7-wheezy-v20160301"
 			auto_delete = true
 			boot = true
 		}
@@ -344,7 +344,7 @@ func testAccInstanceGroupManager_update2(template1, target, template2, igm strin
 		tags = ["foo", "bar"]
 
 		disk {
-			source_image = "debian-cloud/debian-7-wheezy-v20140814"
+			source_image = "debian-cloud/debian-7-wheezy-v20160301"
 			auto_delete = true
 			boot = true
 		}
