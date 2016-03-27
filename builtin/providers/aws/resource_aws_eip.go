@@ -243,7 +243,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	domain := resourceAwsEipDomain(d)
-	return resource.Retry(3*time.Minute, func() error {
+	return resource.Retry(3*time.Minute, func() *resource.RetryError {
 		var err error
 		switch domain {
 		case "vpc":
@@ -264,10 +264,10 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 		if _, ok := err.(awserr.Error); !ok {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
-		return err
+		return resource.RetryableError(err)
 	})
 }
 

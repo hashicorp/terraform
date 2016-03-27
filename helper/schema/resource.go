@@ -142,6 +142,7 @@ func (r *Resource) Apply(
 	err = nil
 	if data.Id() == "" {
 		// We're creating, it is a new resource.
+		data.MarkNewResource()
 		err = r.Create(data, meta)
 	} else {
 		if r.Update == nil {
@@ -262,6 +263,13 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
 	}
 
 	return schemaMap(r.Schema).InternalValidate(tsm)
+}
+
+// TestResourceData Yields a ResourceData filled with this resource's schema for use in unit testing
+func (r *Resource) TestResourceData() *ResourceData {
+	return &ResourceData{
+		schema: r.Schema,
+	}
 }
 
 // Returns true if the resource is "top level" i.e. not a sub-resource.

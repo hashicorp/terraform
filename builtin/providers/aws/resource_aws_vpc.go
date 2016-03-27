@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"net"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,19 +21,10 @@ func resourceAwsVpc() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"cidr_block": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					_, ipnet, err := net.ParseCIDR(value)
-
-					if err != nil || ipnet == nil || value != ipnet.String() {
-						errors = append(errors, fmt.Errorf(
-							"%q must contain a valid CIDR", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateCIDRNetworkAddress,
 			},
 
 			"instance_tenancy": &schema.Schema{
@@ -58,7 +48,7 @@ func resourceAwsVpc() *schema.Resource {
 			"enable_classiclink": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Computed: true,
 			},
 
 			"main_route_table_id": &schema.Schema{
@@ -179,18 +169,27 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	DescribeClassiclinkOpts := &ec2.DescribeVpcClassicLinkInput{
 		VpcIds: []*string{&vpcid},
 	}
+
+	// Classic Link is only available in regions that support EC2 Classic
 	respClassiclink, err := conn.DescribeVpcClassicLink(DescribeClassiclinkOpts)
 	if err != nil {
-		return err
-	}
-	classiclink_enabled := false
-	for _, v := range respClassiclink.Vpcs {
-		if *v.VpcId == vpcid {
-			classiclink_enabled = *v.ClassicLinkEnabled
-			break
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "UnsupportedOperation" {
+			log.Printf("[WARN] VPC Classic Link is not supported in this region")
+		} else {
+			return err
 		}
+	} else {
+		classiclink_enabled := false
+		for _, v := range respClassiclink.Vpcs {
+			if *v.VpcId == vpcid {
+				if v.ClassicLinkEnabled != nil {
+					classiclink_enabled = *v.ClassicLinkEnabled
+				}
+				break
+			}
+		}
+		d.Set("enable_classiclink", classiclink_enabled)
 	}
-	d.Set("enable_classiclink", classiclink_enabled)
 
 	// Get the main routing table for this VPC
 	// Really Ugly need to make this better - rmenn
@@ -309,7 +308,7 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteVpc(DeleteVpcOpts)
 		if err == nil {
 			return nil
@@ -317,19 +316,17 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		switch ec2err.Code() {
 		case "InvalidVpcID.NotFound":
 			return nil
 		case "DependencyViolation":
-			return err
+			return resource.RetryableError(err)
 		}
 
-		return &resource.RetryError{
-			Err: fmt.Errorf("Error deleting VPC: %s", err),
-		}
+		return resource.NonRetryableError(fmt.Errorf("Error deleting VPC: %s", err))
 	})
 }
 

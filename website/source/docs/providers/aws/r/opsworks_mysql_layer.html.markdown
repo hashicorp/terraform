@@ -31,6 +31,7 @@ The following arguments are supported:
 * `auto_healing` - (Optional) Whether to enable auto-healing for the layer.
 * `install_updates_on_boot` - (Optional) Whether to install OS and package updates on each instance when it boots.
 * `instance_shutdown_timeout` - (Optional) The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+* `elastic_load_balancer` - (Optional) Name of an Elastic Load Balancer to attach to this layer
 * `drain_elb_on_shutdown` - (Optional) Whether to enable Elastic Load Balancing connection draining.
 * `root_password` - (Optional) Root password to use for MySQL.
 * `root_password_on_all_instances` - (Optional) Whether to set the root user password to all instances in the stack so they can access the instances in this layer.

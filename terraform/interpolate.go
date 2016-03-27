@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/config/module"
 )
 
@@ -23,11 +23,12 @@ const (
 // Interpolater is the structure responsible for determining the values
 // for interpolations such as `aws_instance.foo.bar`.
 type Interpolater struct {
-	Operation walkOperation
-	Module    *module.Tree
-	State     *State
-	StateLock *sync.RWMutex
-	Variables map[string]string
+	Operation     walkOperation
+	Module        *module.Tree
+	State         *State
+	StateLock     *sync.RWMutex
+	Variables     map[string]string
+	VariablesLock *sync.Mutex
 }
 
 // InterpolationScope is the current scope of execution. This is required
@@ -238,6 +239,10 @@ func (i *Interpolater) valueSelfVar(
 	n string,
 	v *config.SelfVariable,
 	result map[string]ast.Variable) error {
+	if scope == nil || scope.Resource == nil {
+		return fmt.Errorf(
+			"%s: invalid scope, self variables are only valid on resources", n)
+	}
 	rv, err := config.NewResourceVariable(fmt.Sprintf(
 		"%s.%s.%d.%s",
 		scope.Resource.Type,
@@ -269,6 +274,8 @@ func (i *Interpolater) valueUserVar(
 	n string,
 	v *config.UserVariable,
 	result map[string]ast.Variable) error {
+	i.VariablesLock.Lock()
+	defer i.VariablesLock.Unlock()
 	val, ok := i.Variables[v.Name]
 	if ok {
 		result[n] = ast.Variable{
@@ -519,6 +526,16 @@ func (i *Interpolater) interpolateListAttribute(
 	log.Printf("[DEBUG] Interpolating computed list attribute %s (%s)",
 		resourceID, attr)
 
+	// In Terraform's internal dotted representation of list-like attributes, the
+	// ".#" count field is marked as unknown to indicate "this whole list is
+	// unknown". We must honor that meaning here so computed references can be
+	// treated properly during the plan phase.
+	if attr == config.UnknownVariableValue {
+		return attr, nil
+	}
+
+	// Otherwise we gather the values from the list-like attribute and return
+	// them.
 	var members []string
 	numberedListMember := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
 	for id, value := range attributes {

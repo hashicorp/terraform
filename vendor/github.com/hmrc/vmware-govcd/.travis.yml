@@ -1,0 +1,16 @@
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y figlet cowsay
+sudo: required
+language: go
+install:
+- go get -t ./...
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/mattn/goveralls
+script:
+- PATH="$HOME/gopath/bin:$PATH"
+- script/coverage --coveralls
+after_success:
+- figlet "Build Successful!" | /usr/games/cowsay -n -e "^^"
+after_failure:
+- figlet "Build Failed!" | /usr/games/cowsay -n -s

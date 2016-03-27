@@ -71,6 +71,13 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"storage_encrypted": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
 			"final_snapshot_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -167,6 +174,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		Engine:              aws.String("aurora"),
 		MasterUserPassword:  aws.String(d.Get("master_password").(string)),
 		MasterUsername:      aws.String(d.Get("master_username").(string)),
+		StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
 	}
 
 	if v := d.Get("database_name"); v.(string) != "" {
@@ -262,12 +270,21 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	if err := d.Set("availability_zones", aws.StringValueSlice(dbc.AvailabilityZones)); err != nil {
 		return fmt.Errorf("[DEBUG] Error saving AvailabilityZones to state for RDS Cluster (%s): %s", d.Id(), err)
 	}
-	d.Set("database_name", dbc.DatabaseName)
+
+	// Only set the DatabaseName if it is not nil. There is a known API bug where
+	// RDS accepts a DatabaseName but does not return it, causing a perpetual
+	// diff.
+	//	See https://github.com/hashicorp/terraform/issues/4671 for backstory
+	if dbc.DatabaseName != nil {
+		d.Set("database_name", dbc.DatabaseName)
+	}
+
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
 	d.Set("endpoint", dbc.Endpoint)
 	d.Set("engine", dbc.Engine)
 	d.Set("master_username", dbc.MasterUsername)
 	d.Set("port", dbc.Port)
+	d.Set("storage_encrypted", dbc.StorageEncrypted)
 	d.Set("backup_retention_period", dbc.BackupRetentionPeriod)
 	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)

@@ -12,7 +12,7 @@ Provides an ElastiCache Cluster resource.
 
 Changes to a Cache Cluster can occur when you manually change a
 parameter, such as `node_type`, and are reflected in the next maintenance
-window. Because of this, Terraform may report a difference in it's planning
+window. Because of this, Terraform may report a difference in its planning
 phase because a modification has not yet taken place. You can use the
 `apply_immediately` flag to instruct the service to apply the change immediately
 (see documentation below).
@@ -38,7 +38,7 @@ resource "aws_elasticache_cluster" "bar" {
 
 The following arguments are supported:
 
-* `cluster_id` – (Required) Group identifier. Elasticache converts
+* `cluster_id` – (Required) Group identifier. ElastiCache converts
   this name to lowercase
 
 * `engine` – (Required) Name of the cache engine to be used for this cache cluster.
@@ -48,7 +48,7 @@ The following arguments are supported:
 See [Selecting a Cache Engine and Version](https://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html)
 in the AWS Documentation center for supported versions
 
-* `maintenance_window` – (Optional) Specifies the weekly time range which maintenance
+* `maintenance_window` – (Optional) Specifies the weekly time range for when maintenance
 on the cache cluster is performed. The format is `ddd:hh24:mi-ddd:hh24:mi` (24H Clock UTC).
 The minimum maintenance window is a 60 minute period. Example: `sun:05:00-sun:09:00`
 
@@ -85,26 +85,25 @@ names to associate with this cache cluster
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3.
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 
-* `snapshot_window` - (Optional) The daily time range (in UTC) during which ElastiCache will
-begin taking a daily snapshot of your cache cluster. Can only be used for the Redis engine. Example: 05:00-09:00
+* `snapshot_window` - (Optional, Redis only) The daily time range (in UTC) during which ElastiCache will
+begin taking a daily snapshot of your cache cluster. Example: 05:00-09:00
 
-* `snapshot_retention_limit` - (Optional) The number of days for which ElastiCache will
+* `snapshot_retention_limit` - (Optional, Redis only) The number of days for which ElastiCache will
 retain automatic cache cluster snapshots before deleting them. For example, if you set
 SnapshotRetentionLimit to 5, then a snapshot that was taken today will be retained for 5 days
-before being deleted. If the value of SnapshotRetentionLimit is set to zero (0), backups are turned off.
-Can only be used for the Redis engine.
+before being deleted. If the value of SnapshotRetentionLimit is set to zero (0), backups are turned off
 
 * `notification_topic_arn` – (Optional) An Amazon Resource Name (ARN) of an
 SNS topic to send ElastiCache notifications to. Example:
 `arn:aws:sns:us-east-1:012345678999:my_sns_topic`
 
-* `az_mode` - (Optional, Memcached only) Specifies whether the nodes in this Memcached node group are created in a single Availability Zone or created across multiple Availability Zones in the cluster's region. Valid values for this parameter are `single-az` or `cross-az`, default is `single-az`. If you want to choose `cross-az`, `num_cache_nodes` must be greater than `1`.
+* `az_mode` - (Optional, Memcached only) Specifies whether the nodes in this Memcached node group are created in a single Availability Zone or created across multiple Availability Zones in the cluster's region. Valid values for this parameter are `single-az` or `cross-az`, default is `single-az`. If you want to choose `cross-az`, `num_cache_nodes` must be greater than `1`
 
-* `availability_zone` - (Optional) The AZ for the cache cluster. If you want to create cache nodes in multi-az, use `availability_zones`.
+* `availability_zone` - (Optional) The Availability Zone for the cache cluster. If you want to create cache nodes in multi-az, use `availability_zones`
 
-* `availability_zones` - (Optional, Memcached only) List of AZ in which the cache nodes will be created. If you want to create cache nodes in single-az, use `availability_zone`.
+* `availability_zones` - (Optional, Memcached only) List of Availability Zones in which the cache nodes will be created. If you want to create cache nodes in single-az, use `availability_zone`
 
-* `tags` - (Optional) A mapping of tags to assign to the resource.
+* `tags` - (Optional) A mapping of tags to assign to the resource
 
 ~> **NOTE:** Snapshotting functionality is not compatible with t2 instance types.
 

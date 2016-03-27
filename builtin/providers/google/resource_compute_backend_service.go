@@ -300,7 +300,7 @@ func expandBackends(configured []interface{}) []*compute.Backend {
 		if v, ok := data["max_rate_per_instance"]; ok {
 			b.MaxRatePerInstance = v.(float64)
 		}
-		if v, ok := data["max_rate_per_instance"]; ok {
+		if v, ok := data["max_utilization"]; ok {
 			b.MaxUtilization = v.(float64)
 		}
 

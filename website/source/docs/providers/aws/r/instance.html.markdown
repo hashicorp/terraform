@@ -52,7 +52,7 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
    If you are within a non-default VPC, you'll need to use `vpc_security_group_ids` instead.
 * `vpc_security_group_ids` - (Optional) A list of security group IDs to associate with.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
-* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
+* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.  Boolean value. 
 * `private_ip` - (Optional) Private IP address to associate with the
      instance in a VPC.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
@@ -109,6 +109,8 @@ Each `ebs_block_device` supports the following:
 
 Modifying any `ebs_block_device` currently requires resource replacement.
 
+~> **NOTE on EBS block devices:** If you use `ebs_block_device` on an `aws_instance`, Terraform will assume management over the full set of non-root EBS block devices for the instance, and treats additional block devices as drift. For this reason, `ebs_block_device` cannot be mixed with external `aws_ebs_volume` + `aws_ebs_volume_attachment` resources for a given instance.
+
 Each `ephemeral_block_device` supports the following:
 
 * `device_name` - The name of the block device to mount on the instance.
@@ -137,7 +139,7 @@ The following attributes are exported:
 * `key_name` - The key name of the instance
 * `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
   is only available if you've enabled DNS hostnames for your VPC
-* `public_ip` - The public IP address assigned to the instance, if applicable.
+* `public_ip` - The public IP address assigned to the instance, if applicable. **NOTE**: If you are using an [`aws_eip`](/docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
 * `private_dns` - The private DNS name assigned to the instance. Can only be 
   used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
   for your VPC

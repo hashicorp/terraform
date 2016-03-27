@@ -124,7 +124,7 @@ func resourceConsulCatalogEntryCreate(d *schema.ResourceData, meta interface{}) 
 		dc = v.(string)
 	} else {
 		var err error
-		if dc, err = getDC(client); err != nil {
+		if dc, err = getDC(d, client); err != nil {
 			return err
 		}
 	}
@@ -237,7 +237,7 @@ func resourceConsulCatalogEntryDelete(d *schema.ResourceData, meta interface{}) 
 		dc = v.(string)
 	} else {
 		var err error
-		if dc, err = getDC(client); err != nil {
+		if dc, err = getDC(d, client); err != nil {
 			return err
 		}
 	}

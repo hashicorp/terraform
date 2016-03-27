@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -19,7 +20,7 @@ func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSDynamoDbConfigInitialState,
+				Config: testAccAWSDynamoDbConfigInitialState(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
 				),
@@ -41,7 +42,7 @@ func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSDynamoDbConfigStreamSpecification,
+				Config: testAccAWSDynamoDbConfigStreamSpecification(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
 					resource.TestCheckResourceAttr(
@@ -280,9 +281,10 @@ func dynamoDbAttributesToMap(attributes *[]*dynamodb.AttributeDefinition) map[st
 	return attrmap
 }
 
-const testAccAWSDynamoDbConfigInitialState = `
+func testAccAWSDynamoDbConfigInitialState() string {
+	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-    name = "TerraformTestTable"
+    name = "TerraformTestTable-%d"
 		read_capacity = 10
 		write_capacity = 20
 		hash_key = "TestTableHashKey"
@@ -317,7 +319,8 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 			projection_type = "KEYS_ONLY"
 		}
 }
-`
+`, acctest.RandInt())
+}
 
 const testAccAWSDynamoDbConfigAddSecondaryGSI = `
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
@@ -359,9 +362,10 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 }
 `
 
-const testAccAWSDynamoDbConfigStreamSpecification = `
+func testAccAWSDynamoDbConfigStreamSpecification() string {
+	return fmt.Sprintf(`
 resource "aws_dynamodb_table" "basic-dynamodb-table" {
-    name = "TerraformTestStreamTable"
+    name = "TerraformTestStreamTable-%d"
 	read_capacity = 10
 	write_capacity = 20
 	hash_key = "TestTableHashKey"
@@ -398,4 +402,5 @@ resource "aws_dynamodb_table" "basic-dynamodb-table" {
 	stream_enabled = true
 	stream_view_type = "KEYS_ONLY"
 }
-`
+`, acctest.RandInt())
+}

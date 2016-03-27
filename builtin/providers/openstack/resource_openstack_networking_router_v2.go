@@ -37,6 +37,12 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				ForceNew: false,
 				Computed: true,
 			},
+			"distributed": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
 			"external_gateway": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -67,6 +73,11 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	if asuRaw, ok := d.GetOk("admin_state_up"); ok {
 		asu := asuRaw.(bool)
 		createOpts.AdminStateUp = &asu
+	}
+
+	if dRaw, ok := d.GetOk("distributed"); ok {
+		d := dRaw.(bool)
+		createOpts.Distributed = &d
 	}
 
 	externalGateway := d.Get("external_gateway").(string)
@@ -126,6 +137,7 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", n.AdminStateUp)
+	d.Set("distributed", n.Distributed)
 	d.Set("tenant_id", n.TenantID)
 	d.Set("external_gateway", n.GatewayInfo.NetworkID)
 

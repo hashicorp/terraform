@@ -11,7 +11,7 @@ import (
 
 func TestAccConsulKeys_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() {},
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckConsulKeysDestroy,
 		Steps: []resource.TestStep{
@@ -19,9 +19,18 @@ func TestAccConsulKeys_basic(t *testing.T) {
 				Config: testAccConsulKeysConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeysExists(),
-					testAccCheckConsulKeysValue("consul_keys.app", "time", "<any>"),
 					testAccCheckConsulKeysValue("consul_keys.app", "enabled", "true"),
 					testAccCheckConsulKeysValue("consul_keys.app", "set", "acceptance"),
+					testAccCheckConsulKeysValue("consul_keys.app", "remove_one", "hello"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccConsulKeysConfig_Update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckConsulKeysExists(),
+					testAccCheckConsulKeysValue("consul_keys.app", "enabled", "true"),
+					testAccCheckConsulKeysValue("consul_keys.app", "set", "acceptanceUpdated"),
+					testAccCheckConsulKeysRemoved("consul_keys.app", "remove_one"),
 				),
 			},
 		},
@@ -30,7 +39,7 @@ func TestAccConsulKeys_basic(t *testing.T) {
 
 func testAccCheckConsulKeysDestroy(s *terraform.State) error {
 	kv := testAccProvider.Meta().(*consulapi.Client).KV()
-	opts := &consulapi.QueryOptions{Datacenter: "nyc3"}
+	opts := &consulapi.QueryOptions{Datacenter: "dc1"}
 	pair, _, err := kv.Get("test/set", opts)
 	if err != nil {
 		return err
@@ -44,7 +53,7 @@ func testAccCheckConsulKeysDestroy(s *terraform.State) error {
 func testAccCheckConsulKeysExists() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		kv := testAccProvider.Meta().(*consulapi.Client).KV()
-		opts := &consulapi.QueryOptions{Datacenter: "nyc3"}
+		opts := &consulapi.QueryOptions{Datacenter: "dc1"}
 		pair, _, err := kv.Get("test/set", opts)
 		if err != nil {
 			return err
@@ -76,13 +85,23 @@ func testAccCheckConsulKeysValue(n, attr, val string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckConsulKeysRemoved(n, attr string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rn, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Resource not found")
+		}
+		_, ok = rn.Primary.Attributes["var."+attr]
+		if ok {
+			return fmt.Errorf("Attribute '%s' still present: %#v", attr, rn.Primary.Attributes)
+		}
+		return nil
+	}
+}
+
 const testAccConsulKeysConfig = `
 resource "consul_keys" "app" {
-	datacenter = "nyc3"
-	key {
-		name = "time"
-		path = "global/time"
-	}
+	datacenter = "dc1"
 	key {
 		name = "enabled"
 		path = "test/enabled"
@@ -92,6 +111,29 @@ resource "consul_keys" "app" {
 		name = "set"
 		path = "test/set"
 		value = "acceptance"
+		delete = true
+	}
+	key {
+		name = "remove_one"
+		path = "test/remove_one"
+		value = "hello"
+		delete = true
+	}
+}
+`
+
+const testAccConsulKeysConfig_Update = `
+resource "consul_keys" "app" {
+	datacenter = "dc1"
+	key {
+		name = "enabled"
+		path = "test/enabled"
+		default = "true"
+	}
+	key {
+		name = "set"
+		path = "test/set"
+		value = "acceptanceUpdated"
 		delete = true
 	}
 }

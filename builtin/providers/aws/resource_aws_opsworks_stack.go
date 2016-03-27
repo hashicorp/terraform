@@ -307,6 +307,7 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 		Name:                      aws.String(d.Get("name").(string)),
 		Region:                    aws.String(d.Get("region").(string)),
 		ServiceRoleArn:            aws.String(d.Get("service_role_arn").(string)),
+		DefaultOs:                 aws.String(d.Get("default_os").(string)),
 		UseOpsworksSecurityGroups: aws.Bool(d.Get("use_opsworks_security_groups").(bool)),
 	}
 	inVpc := false
@@ -324,7 +325,7 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Creating OpsWorks stack: %s", req)
 
 	var resp *opsworks.CreateStackOutput
-	err = resource.Retry(20*time.Minute, func() error {
+	err = resource.Retry(20*time.Minute, func() *resource.RetryError {
 		var cerr error
 		resp, cerr = client.CreateStack(req)
 		if cerr != nil {
@@ -342,10 +343,10 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 				trustErr := "not the necessary trust relationship"
 				if opserr.Code() == "ValidationException" && (strings.Contains(opserr.Message(), trustErr) || strings.Contains(opserr.Message(), propErr)) {
 					log.Printf("[INFO] Waiting for service IAM role to propagate")
-					return cerr
+					return resource.RetryableError(cerr)
 				}
 			}
-			return resource.RetryError{Err: cerr}
+			return resource.NonRetryableError(cerr)
 		}
 		return nil
 	})

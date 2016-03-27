@@ -58,5 +58,5 @@ The command-line flags are all optional. The list of available flags are:
 * `-var-file=foo` - Set variables in the Terraform configuration from
    a file. If "terraform.tfvars" is present, it will be automatically
    loaded first. Any files specified by `-var-file` override any values
-   in a "terraform.tfvars".
+   in a "terraform.tfvars". This flag can be used multiple times.
 

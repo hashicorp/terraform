@@ -89,6 +89,24 @@ func TestAccAWSLaunchConfiguration_withSpotPrice(t *testing.T) {
 	})
 }
 
+func TestAccAWSLaunchConfiguration_withIAMProfile(t *testing.T) {
+	var conf autoscaling.LaunchConfiguration
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSLaunchConfigurationConfig_withIAMProfile,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSLaunchConfigurationWithEncryption(conf *autoscaling.LaunchConfiguration) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Map out the block devices by name, which should be unique.
@@ -335,5 +353,37 @@ resource "aws_launch_configuration" "baz" {
 		volume_size = 9
 		encrypted = true
 	}
+}
+`
+
+const testAccAWSLaunchConfigurationConfig_withIAMProfile = `
+resource "aws_iam_role" "role" {
+	name  = "TestAccAWSLaunchConfiguration-withIAMProfile"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_instance_profile" "profile" {
+	name  = "TestAccAWSLaunchConfiguration-withIAMProfile"
+	roles = ["${aws_iam_role.role.name}"]
+}
+
+resource "aws_launch_configuration" "bar" {
+	image_id             = "ami-5189a661"
+	instance_type        = "t2.nano"
+	iam_instance_profile = "${aws_iam_instance_profile.profile.name}"
 }
 `

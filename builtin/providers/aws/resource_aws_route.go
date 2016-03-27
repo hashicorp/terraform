@@ -40,16 +40,19 @@ func resourceAwsRoute() *schema.Resource {
 			"gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"nat_gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"instance_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"instance_owner_id": &schema.Schema{
@@ -60,6 +63,7 @@ func resourceAwsRoute() *schema.Resource {
 			"network_interface_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"origin": &schema.Schema{
@@ -290,7 +294,7 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 	cidr := d.Get("destination_cidr_block").(string)
 	for _, route := range (*res.RouteTables[0]).Routes {
-		if *route.DestinationCidrBlock == cidr {
+		if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == cidr {
 			return true, nil
 		}
 	}
@@ -322,5 +326,7 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf(`
+error finding matching route for Route table (%s) and destination CIDR block (%s)`,
+		rtbid, cidr)
 }
