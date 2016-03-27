@@ -376,9 +376,9 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if err := setAutoscalingTags(conn, d); err != nil {
 		return err
-	} else {
-		d.SetPartial("tag")
 	}
+
+	d.SetPartial("tag")
 
 	log.Printf("[DEBUG] AutoScaling Group update configuration: %#v", opts)
 	_, err := conn.UpdateAutoScalingGroup(&opts)
