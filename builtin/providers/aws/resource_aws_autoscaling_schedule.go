@@ -97,17 +97,9 @@ func resourceAwsAutoscalingScheduleCreate(d *schema.ResourceData, meta interface
 		params.Recurrence = aws.String(attr.(string))
 	}
 
-	if attr, ok := d.GetOk("min_size"); ok {
-		params.MinSize = aws.Int64(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("max_size"); ok {
-		params.MaxSize = aws.Int64(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("desired_capacity"); ok {
-		params.DesiredCapacity = aws.Int64(int64(attr.(int)))
-	}
+	params.MinSize = aws.Int64(int64(d.Get("min_size").(int)))
+	params.MaxSize = aws.Int64(int64(d.Get("max_size").(int)))
+	params.DesiredCapacity = aws.Int64(int64(d.Get("desired_capacity").(int)))
 
 	log.Printf("[INFO] Creating Autoscaling Scheduled Action: %s", d.Get("scheduled_action_name").(string))
 	_, err := autoscalingconn.PutScheduledUpdateGroupAction(params)

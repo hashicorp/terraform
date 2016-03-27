@@ -150,6 +150,31 @@ func TestStateModuleOrphans_nilConfig(t *testing.T) {
 	}
 }
 
+func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "parent", "childfoo"},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "parent", "childbar"},
+			},
+		},
+	}
+
+	actual := state.ModuleOrphans(RootModulePath, nil)
+	expected := [][]string{
+		[]string{RootModuleName, "parent"},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool
@@ -477,6 +502,103 @@ func TestResourceStateTaint(t *testing.T) {
 	}
 }
 
+func TestResourceStateUntaint(t *testing.T) {
+	cases := map[string]struct {
+		Input          *ResourceState
+		Index          func() int
+		ExpectedOutput *ResourceState
+		ExpectedErrMsg string
+	}{
+		"no primary, no tainted, err": {
+			Input:          &ResourceState{},
+			ExpectedOutput: &ResourceState{},
+			ExpectedErrMsg: "Nothing to untaint",
+		},
+
+		"one tainted, no primary": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+			ExpectedOutput: &ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+				Tainted: []*InstanceState{},
+			},
+		},
+
+		"one tainted, existing primary error": {
+			Input: &ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+			ExpectedErrMsg: "Resource has a primary",
+		},
+
+		"multiple tainted, no index": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+					&InstanceState{ID: "foo"},
+				},
+			},
+			ExpectedErrMsg: "please specify an index",
+		},
+
+		"multiple tainted, with index": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+					&InstanceState{ID: "foo"},
+				},
+			},
+			Index: func() int { return 1 },
+			ExpectedOutput: &ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+				},
+			},
+		},
+
+		"index out of bounds error": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+					&InstanceState{ID: "foo"},
+				},
+			},
+			Index:          func() int { return 2 },
+			ExpectedErrMsg: "out of range",
+		},
+	}
+
+	for k, tc := range cases {
+		index := -1
+		if tc.Index != nil {
+			index = tc.Index()
+		}
+		err := tc.Input.Untaint(index)
+		if tc.ExpectedErrMsg == "" && err != nil {
+			t.Fatalf("[%s] unexpected err: %s", k, err)
+		}
+		if tc.ExpectedErrMsg != "" {
+			if strings.Contains(err.Error(), tc.ExpectedErrMsg) {
+				continue
+			}
+			t.Fatalf("[%s] expected err: %s to contain: %s",
+				k, err, tc.ExpectedErrMsg)
+		}
+		if !reflect.DeepEqual(tc.Input, tc.ExpectedOutput) {
+			t.Fatalf(
+				"Failure: %s\n\nExpected: %#v\n\nGot: %#v",
+				k, tc.ExpectedOutput, tc.Input)
+		}
+	}
+}
+
 func TestInstanceStateEmpty(t *testing.T) {
 	cases := map[string]struct {
 		In     *InstanceState
@@ -770,9 +892,6 @@ func TestReadWriteState(t *testing.T) {
 		},
 	}
 
-	// Checksum before the write
-	chksum := checksumStruct(t, state)
-
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
 		t.Fatalf("err: %s", err)
@@ -781,12 +900,6 @@ func TestReadWriteState(t *testing.T) {
 	// Verify that the version and serial are set
 	if state.Version != StateVersion {
 		t.Fatalf("bad version number: %d", state.Version)
-	}
-
-	// Checksum after the write
-	chksumAfter := checksumStruct(t, state)
-	if chksumAfter != chksum {
-		t.Fatalf("structure changed during serialization!")
 	}
 
 	actual, err := ReadState(buf)

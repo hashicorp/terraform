@@ -121,8 +121,8 @@ func resourceAwsVpcDhcpOptionsCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for DHCP Options (%s) to become available", d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  []string{},
-		Refresh: DHCPOptionsStateRefreshFunc(conn, d.Id()),
+		Target:  []string{"created"},
+		Refresh: resourceDHCPOptionsStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -180,7 +180,7 @@ func resourceAwsVpcDhcpOptionsUpdate(d *schema.ResourceData, meta interface{}) e
 func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	return resource.Retry(3*time.Minute, func() error {
+	return resource.Retry(3*time.Minute, func() *resource.RetryError {
 		log.Printf("[INFO] Deleting DHCP Options ID %s...", d.Id())
 		_, err := conn.DeleteDhcpOptions(&ec2.DeleteDhcpOptionsInput{
 			DhcpOptionsId: aws.String(d.Id()),
@@ -194,7 +194,7 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return err
+			return resource.RetryableError(err)
 		}
 
 		switch ec2err.Code() {
@@ -206,7 +206,7 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 			vpcs, err2 := findVPCsByDHCPOptionsID(conn, d.Id())
 			if err2 != nil {
 				log.Printf("[ERROR] %s", err2)
-				return err2
+				return resource.RetryableError(err2)
 			}
 
 			for _, vpc := range vpcs {
@@ -215,13 +215,12 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 					DhcpOptionsId: aws.String("default"),
 					VpcId:         vpc.VpcId,
 				}); err != nil {
-					return err
+					return resource.RetryableError(err)
 				}
 			}
-			return err //retry
+			return resource.RetryableError(err)
 		default:
-			// Any other error, we want to quit the retry loop immediately
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 	})
 }
@@ -249,7 +248,7 @@ func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.Vpc, error) {
 	return resp.Vpcs, nil
 }
 
-func DHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func resourceDHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		DescribeDhcpOpts := &ec2.DescribeDhcpOptionsInput{
 			DhcpOptionsIds: []*string{
@@ -274,6 +273,6 @@ func DHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefresh
 		}
 
 		dos := resp.DhcpOptions[0]
-		return dos, "", nil
+		return dos, "created", nil
 	}
 }

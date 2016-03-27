@@ -105,6 +105,9 @@ The following arguments are supported:
 * `ephemeral_block_device` - (Optional) Customize Ephemeral (also known as
   "Instance Store") volumes on the instance. See [Block Devices](#block-devices) below for details.
 * `spot_price` - (Optional) The price to use for reserving spot instances.
+* `placement_tenancy` - (Optional) The tenancy of the instance. Valid values are
+  `"default"` or `"dedicated"`, see [AWS's Create Launch Configuration](http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_CreateLaunchConfiguration.html)
+  for more details
 
 <a id="block-devices"></a>
 ## Block devices
@@ -140,7 +143,7 @@ Each `ebs_block_device` supports the following:
   This must be set with a `volume_type` of `"io1"`.
 * `delete_on_termination` - (Optional) Whether the volume should be destroyed
   on instance termination (Default: `true`).
-* `encryption` - (Optional) Whether the volume should be encrypted or not. Do not use this option if you are using `snapshot_id` as the encryption flag will be determined by the snapshot. (Default: `false`).
+* `encrypted` - (Optional) Whether the volume should be encrypted or not. Do not use this option if you are using `snapshot_id` as the encrypted flag will be determined by the snapshot. (Default: `false`).
 
 Modifying any `ebs_block_device` currently requires resource replacement.
 

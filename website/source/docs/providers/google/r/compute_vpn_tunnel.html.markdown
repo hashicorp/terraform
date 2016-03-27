@@ -102,6 +102,10 @@ The following arguments are supported:
 
 * `ike_version` - (Optional) Either version 1 or 2. Default is 2.
     Changing this forces a new resource to be created.
+    
+* `local_traffic_selector` - (Optional) Specifies which CIDR ranges are announced
+    to the VPN peer. Mandatory if the VPN gateway is attached to a custom subnetted
+    network. Refer to Google documentation for more information.
 
 ## Attributes Reference
 

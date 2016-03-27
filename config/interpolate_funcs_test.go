@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 )
 
 func TestInterpolateFuncCompact(t *testing.T) {
@@ -543,6 +543,42 @@ func TestInterpolateFuncLength(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSignum(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${signum()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${signum("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${signum(0)}`,
+				"0",
+				false,
+			},
+
+			{
+				`${signum(15)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${signum(-29)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncSplit(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -742,6 +778,14 @@ func TestInterpolateFuncElement(t *testing.T) {
 				false,
 			},
 
+			// Negative number should fail
+			{
+				fmt.Sprintf(`${element("%s", "-1")}`,
+					NewStringList([]string{"foo"}).String()),
+				nil,
+				true,
+			},
+
 			// Too many args
 			{
 				fmt.Sprintf(`${element("%s", "0", "2")}`,
@@ -849,13 +893,86 @@ func TestInterpolateFuncSha1(t *testing.T) {
 func TestInterpolateFuncSha256(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
-			{
+			{ // hexadecimal representation of sha256 sum
 				`${sha256("test")}`,
 				"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
 				false,
 			},
 		},
 	})
+}
+
+func TestInterpolateFuncTrimSpace(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${trimspace(" test ")}`,
+				"test",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncBase64Sha256(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${base64sha256("test")}`,
+				"n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg=",
+				false,
+			},
+			{ // This will differ because we're base64-encoding hex represantiation, not raw bytes
+				`${base64encode(sha256("test"))}`,
+				"OWY4NmQwODE4ODRjN2Q2NTlhMmZlYWEwYzU1YWQwMTVhM2JmNGYxYjJiMGI4MjJjZDE1ZDZjMTViMGYwMGEwOA==",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncMd5(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${md5("tada")}`,
+				"ce47d07243bb6eaf5e1322c81baf9bbf",
+				false,
+			},
+			{ // Confirm that we're not trimming any whitespaces
+				`${md5(" tada ")}`,
+				"aadf191a583e53062de2d02c008141c4",
+				false,
+			},
+			{ // We accept empty string too
+				`${md5("")}`,
+				"d41d8cd98f00b204e9800998ecf8427e",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncUUID(t *testing.T) {
+	results := make(map[string]bool)
+
+	for i := 0; i < 100; i++ {
+		ast, err := hil.Parse("${uuid()}")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		out, _, err := hil.Eval(ast, langEvalConfig(nil))
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if results[out.(string)] {
+			t.Fatalf("Got unexpected duplicate uuid: %s", out)
+		}
+
+		results[out.(string)] = true
+	}
 }
 
 type testFunctionConfig struct {
@@ -871,12 +988,12 @@ type testFunctionCase struct {
 
 func testFunction(t *testing.T, config testFunctionConfig) {
 	for i, tc := range config.Cases {
-		ast, err := lang.Parse(tc.Input)
+		ast, err := hil.Parse(tc.Input)
 		if err != nil {
 			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
 		}
 
-		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
+		out, _, err := hil.Eval(ast, langEvalConfig(config.Vars))
 		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}

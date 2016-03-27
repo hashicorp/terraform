@@ -149,7 +149,9 @@ information and instructions for recovery. Error message: %s`, awsErr.Message())
 			ruleType, autherr)
 	}
 
-	d.SetId(ipPermissionIDHash(sg_id, ruleType, perm))
+	id := ipPermissionIDHash(sg_id, ruleType, perm)
+	d.SetId(id)
+	log.Printf("[DEBUG] Security group rule ID set to %s", id)
 
 	return resourceAwsSecurityGroupRuleRead(d, meta)
 }
@@ -163,6 +165,8 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 		d.SetId("")
 		return nil
 	}
+
+	isVPC := sg.VpcId != nil && *sg.VpcId != ""
 
 	var rule *ec2.IpPermission
 	var rules []*ec2.IpPermission
@@ -215,8 +219,14 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 		remaining = len(p.UserIdGroupPairs)
 		for _, ip := range p.UserIdGroupPairs {
 			for _, rip := range r.UserIdGroupPairs {
-				if *ip.GroupId == *rip.GroupId {
-					remaining--
+				if isVPC {
+					if *ip.GroupId == *rip.GroupId {
+						remaining--
+					}
+				} else {
+					if *ip.GroupName == *rip.GroupName {
+						remaining--
+					}
 				}
 			}
 		}
@@ -250,7 +260,11 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 
 	if len(p.UserIdGroupPairs) > 0 {
 		s := p.UserIdGroupPairs[0]
-		d.Set("source_security_group_id", *s.GroupId)
+		if isVPC {
+			d.Set("source_security_group_id", *s.GroupId)
+		} else {
+			d.Set("source_security_group_id", *s.GroupName)
+		}
 	}
 
 	return nil
@@ -406,6 +420,7 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 	}
 
 	if v, ok := d.GetOk("self"); ok && v.(bool) {
+		// if sg.GroupId != nil {
 		if sg.VpcId != nil && *sg.VpcId != "" {
 			groups[*sg.GroupId] = true
 		} else {

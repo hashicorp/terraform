@@ -3,8 +3,11 @@ package heroku
 import (
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/cyberdelia/heroku-go/v3"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -35,6 +38,8 @@ func resourceHerokuDrain() *schema.Resource {
 	}
 }
 
+const retryableError = `App hasn't yet been assigned a log channel. Please try again momentarily.`
+
 func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
@@ -43,7 +48,18 @@ func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Drain create configuration: %#v, %#v", app, url)
 
-	dr, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{url})
+	var dr *heroku.LogDrain
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		d, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{URL: url})
+		if err != nil {
+			if strings.Contains(err.Error(), retryableError) {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		dr = d
+		return nil
+	})
 	if err != nil {
 		return err
 	}

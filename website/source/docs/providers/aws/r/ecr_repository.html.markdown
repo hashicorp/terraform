@@ -10,11 +10,9 @@ description: |-
 
 Provides an EC2 Container Registry Repository.
 
-~> **NOTE on ECR Availability**: The EC2 Container Registry has an [initial
-launch region of
-`us-east-1`](https://aws.amazon.com/blogs/aws/ec2-container-registry-now-generally-available/).
-As more regions become available, they will be listed [in the AWS
-Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#ecr_region)
+~> **NOTE on ECR Availability**: The EC2 Container Registry is not yet rolled out
+in all regions - available regions are listed  
+[the AWS Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#ecr_region).
 
 ## Example Usage
 
@@ -37,3 +35,4 @@ The following attributes are exported:
 * `arn` - Full ARN of the repository.
 * `name` - The name of the repository.
 * `registry_id` - The registry ID where the repository was created.
+* `repository_url` - The URL of the repository (in the form `https://aws_account_id.dkr.ecr.region.amazonaws.com/repositoryName`

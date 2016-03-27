@@ -163,7 +163,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 		}
 		if !ok {
 			return fmt.Errorf(
-				"module %s: not found, may need to be downloaded", m.Name)
+				"module %s: not found, may need to be downloaded using 'terraform get'", m.Name)
 		}
 
 		// If we have a subdirectory, then merge that in

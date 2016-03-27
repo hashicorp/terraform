@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	riviera "github.com/jen20/riviera/azure"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -42,20 +46,37 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"azurerm_resource_group":         resourceArmResourceGroup(),
-			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
-			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
 			"azurerm_availability_set":       resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":            resourceArmCdnProfile(),
+			"azurerm_dns_a_record":           resourceArmDnsARecord(),
+			"azurerm_dns_aaaa_record":        resourceArmDnsAAAARecord(),
+			"azurerm_dns_cname_record":       resourceArmDnsCNameRecord(),
+			"azurerm_dns_mx_record":          resourceArmDnsMxRecord(),
+			"azurerm_dns_ns_record":          resourceArmDnsNsRecord(),
+			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
+			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
+			"azurerm_dns_zone":               resourceArmDnsZone(),
+			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
+			"azurerm_network_interface":      resourceArmNetworkInterface(),
 			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
 			"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
 			"azurerm_public_ip":              resourceArmPublicIp(),
-			"azurerm_subnet":                 resourceArmSubnet(),
-			"azurerm_network_interface":      resourceArmNetworkInterface(),
-			"azurerm_route_table":            resourceArmRouteTable(),
+			"azurerm_resource_group":         resourceArmResourceGroup(),
 			"azurerm_route":                  resourceArmRoute(),
-			"azurerm_cdn_profile":            resourceArmCdnProfile(),
-			"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
+			"azurerm_route_table":            resourceArmRouteTable(),
+			"azurerm_search_service":         resourceArmSearchService(),
+			"azurerm_sql_database":           resourceArmSqlDatabase(),
+			"azurerm_sql_firewall_rule":      resourceArmSqlFirewallRule(),
+			"azurerm_sql_server":             resourceArmSqlServer(),
 			"azurerm_storage_account":        resourceArmStorageAccount(),
+			"azurerm_storage_blob":           resourceArmStorageBlob(),
+			"azurerm_storage_container":      resourceArmStorageContainer(),
+			"azurerm_storage_queue":          resourceArmStorageQueue(),
+			"azurerm_subnet":                 resourceArmSubnet(),
+			"azurerm_template_deployment":    resourceArmTemplateDeployment(),
+			"azurerm_virtual_machine":        resourceArmVirtualMachine(),
+			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -72,12 +93,35 @@ type Config struct {
 	TenantID       string
 }
 
+func (c Config) validate() error {
+	var err *multierror.Error
+
+	if c.SubscriptionID == "" {
+		err = multierror.Append(err, fmt.Errorf("Subscription ID must be configured for the AzureRM provider"))
+	}
+	if c.ClientID == "" {
+		err = multierror.Append(err, fmt.Errorf("Client ID must be configured for the AzureRM provider"))
+	}
+	if c.ClientSecret == "" {
+		err = multierror.Append(err, fmt.Errorf("Client Secret must be configured for the AzureRM provider"))
+	}
+	if c.TenantID == "" {
+		err = multierror.Append(err, fmt.Errorf("Tenant ID must be configured for the AzureRM provider"))
+	}
+
+	return err.ErrorOrNil()
+}
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		SubscriptionID: d.Get("subscription_id").(string),
 		ClientID:       d.Get("client_id").(string),
 		ClientSecret:   d.Get("client_secret").(string),
 		TenantID:       d.Get("tenant_id").(string),
+	}
+
+	if err := config.validate(); err != nil {
+		return nil, err
 	}
 
 	client, err := config.getArmClient()
@@ -100,7 +144,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)
@@ -160,3 +204,32 @@ func pollIndefinitelyAsNeeded(client autorest.Client, response *http.Response, a
 
 // armMutexKV is the instance of MutexKV for ARM resources
 var armMutexKV = mutexkv.NewMutexKV()
+
+func azureStateRefreshFunc(resourceURI string, client *ArmClient, command riviera.APICall) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		req := client.rivieraClient.NewRequestForURI(resourceURI)
+		req.Command = command
+
+		res, err := req.Execute()
+		if err != nil {
+			return nil, "", fmt.Errorf("Error executing %T command in azureStateRefreshFunc", req.Command)
+		}
+
+		var value reflect.Value
+		if reflect.ValueOf(res.Parsed).Kind() == reflect.Ptr {
+			value = reflect.ValueOf(res.Parsed).Elem()
+		} else {
+			value = reflect.ValueOf(res.Parsed)
+		}
+
+		for i := 0; i < value.NumField(); i++ { // iterates through every struct type field
+			tag := value.Type().Field(i).Tag // returns the tag string
+			tagValue := tag.Get("mapstructure")
+			if tagValue == "provisioningState" {
+				return res.Parsed, value.Field(i).Elem().String(), nil
+			}
+		}
+
+		panic(fmt.Errorf("azureStateRefreshFunc called on structure %T with no mapstructure:provisioningState tag. This is a bug", res.Parsed))
+	}
+}

@@ -14,12 +14,16 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
+	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/terraform"
+	riviera "github.com/jen20/riviera/azure"
 )
 
 // ArmClient contains the handles to all the specific Azure Resource Manager
 // resource classes' respective clients.
 type ArmClient struct {
+	rivieraClient *riviera.Client
+
 	availSetClient         compute.AvailabilitySetsClient
 	usageOpsClient         compute.UsageOperationsClient
 	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
@@ -54,6 +58,8 @@ type ArmClient struct {
 
 	storageServiceClient storage.AccountsClient
 	storageUsageClient   storage.UsageOperationsClient
+
+	deploymentsClient resources.DeploymentsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -108,6 +114,18 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 
 	// client declarations:
 	client := ArmClient{}
+
+	rivieraClient, err := riviera.NewClient(&riviera.AzureResourceManagerCredentials{
+		ClientID:       c.ClientID,
+		ClientSecret:   c.ClientSecret,
+		TenantID:       c.TenantID,
+		SubscriptionID: c.SubscriptionID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Error creating Riviera client: %s", err)
+	}
+
+	client.rivieraClient = rivieraClient
 
 	// NOTE: these declarations should be left separate for clarity should the
 	// clients be wished to be configured with custom Responders/PollingModess etc...
@@ -279,5 +297,53 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	cec.Sender = autorest.CreateSender(withRequestLogging())
 	client.cdnEndpointsClient = cec
 
+	dc := resources.NewDeploymentsClient(c.SubscriptionID)
+	setUserAgent(&dc.Client)
+	dc.Authorizer = spt
+	dc.Sender = autorest.CreateSender(withRequestLogging())
+	client.deploymentsClient = dc
+
 	return &client, nil
+}
+
+func (armClient *ArmClient) getKeyForStorageAccount(resourceGroupName, storageAccountName string) (string, error) {
+	keys, err := armClient.storageServiceClient.ListKeys(resourceGroupName, storageAccountName)
+	if err != nil {
+		return "", fmt.Errorf("Error retrieving keys for storage account %q: %s", storageAccountName, err)
+	}
+
+	if keys.Key1 == nil {
+		return "", fmt.Errorf("Nil key returned for storage account %q", storageAccountName)
+	}
+
+	return *keys.Key1, nil
+}
+
+func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.BlobStorageClient, error) {
+	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, err
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	blobClient := storageClient.GetBlobService()
+	return &blobClient, nil
+}
+func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.QueueServiceClient, error) {
+	key, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, err
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	queueClient := storageClient.GetQueueService()
+	return &queueClient, nil
 }

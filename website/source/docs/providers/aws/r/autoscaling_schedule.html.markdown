@@ -43,11 +43,13 @@ The following arguments are supported:
 * `start_time` - (Optional) The time for this action to start, in "YYYY-MM-DDThh:mm:ssZ" format in UTC/GMT only (for example, 2014-06-01T00:00:00Z ).
                             If you try to schedule your action in the past, Auto Scaling returns an error message.
 * `end_time` - (Optional) The time for this action to end, in "YYYY-MM-DDThh:mm:ssZ" format in UTC/GMT only (for example, 2014-06-01T00:00:00Z ).
-                          If you try to schedule your action in the past, Auto Scaling returns an error messag
+                          If you try to schedule your action in the past, Auto Scaling returns an error message.
 * `recurrence` - (Optional) The time when recurring future actions will start. Start time is specified by the user following the Unix cron syntax format. 
-* `min_size` - (Optional) The minimum size for the Auto Scaling group.
-* `max_size` - (Optional) The maximum size for the Auto Scaling group.
-* `desired_capacity` - (Optional) The number of EC2 instances that should be running in the group.
+* `min_size` - (Optional) The minimum size for the Auto Scaling group. Default
+0.
+* `max_size` - (Optional) The maximum size for the Auto Scaling group. Default
+0.
+* `desired_capacity` - (Optional) The number of EC2 instances that should be running in the group. Default 0.
 
 ~> **NOTE:** When `start_time` and `end_time` are specified with `recurrence` , they form the boundaries of when the recurring action will start and stop.
 

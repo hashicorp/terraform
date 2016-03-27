@@ -372,6 +372,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	var err error
 	var createNew, tainted bool
 	var createBeforeDestroyEnabled bool
+	var wasChangeType DiffChangeType
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
@@ -393,6 +394,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 							return true, EvalEarlyExitError{}
 						}
 
+						wasChangeType = diffApply.ChangeType()
 						diffApply.Destroy = false
 						return true, nil
 					},
@@ -437,6 +439,11 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Provider: &provider,
 					State:    &state,
 					Output:   &diffApply,
+				},
+				&EvalIgnoreChanges{
+					Resource:      n.Resource,
+					Diff:          &diffApply,
+					WasChangeType: &wasChangeType,
 				},
 
 				// Get the saved diff
