@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
@@ -123,12 +122,7 @@ func formatDuration(duration time.Duration) string {
 }
 
 func readPrivateKey(pk string) ([]byte, error) {
-	key, _, err := pathorcontents.Read(pk)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read private key %q: %s", pk, err)
-	}
-
-	block, _ := pem.Decode([]byte(key))
+	block, _ := pem.Decode([]byte(pk))
 	if block == nil {
 		return nil, fmt.Errorf("Failed to read key %q: no key found", pk)
 	}
