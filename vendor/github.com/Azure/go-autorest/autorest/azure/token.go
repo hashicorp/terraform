@@ -12,19 +12,22 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/dgrijalva/jwt-go"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/dgrijalva/jwt-go"
 )
 
 const (
 	defaultRefresh = 5 * time.Minute
-	oauthURL       = "https://login.microsoftonline.com/{tenantID}/oauth2/{requestType}?api-version=1.0"
 	tokenBaseDate  = "1970-01-01T00:00:00Z"
 
-	jwtAudienceTemplate = "https://login.microsoftonline.com/%s/oauth2/token"
+	// OAuthGrantTypeDeviceCode is the "grant_type" identifier used in device flow
+	OAuthGrantTypeDeviceCode = "device_code"
 
-	// AzureResourceManagerScope is the OAuth scope for the Azure Resource Manager.
-	AzureResourceManagerScope = "https://management.azure.com/"
+	// OAuthGrantTypeClientCredentials is the "grant_type" identifier used in credential flows
+	OAuthGrantTypeClientCredentials = "client_credentials"
+
+	// OAuthGrantTypeRefreshToken is the "grant_type" identifier used in refresh token flows
+	OAuthGrantTypeRefreshToken = "refresh_token"
 )
 
 var expirationBase time.Time
@@ -33,9 +36,14 @@ func init() {
 	expirationBase, _ = time.Parse(time.RFC3339, tokenBaseDate)
 }
 
+// TokenRefreshCallback is the type representing callbacks that will be called after
+// a successful token refresh
+type TokenRefreshCallback func(Token) error
+
 // Token encapsulates the access token used to authorize Azure requests.
 type Token struct {
-	AccessToken string `json:"access_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 
 	ExpiresIn string `json:"expires_in"`
 	ExpiresOn string `json:"expires_on"`
@@ -75,6 +83,17 @@ func (t *Token) WithAuthorization() autorest.PrepareDecorator {
 	}
 }
 
+// ServicePrincipalNoSecret represents a secret type that contains no secret
+// meaning it is not valid for fetching a fresh token. This is used by Manual
+type ServicePrincipalNoSecret struct {
+}
+
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret
+// It only returns an error for the ServicePrincipalNoSecret type
+func (noSecret *ServicePrincipalNoSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
+	return fmt.Errorf("Manually created ServicePrincipalToken does not contain secret material to retrieve a new access token.")
+}
+
 // ServicePrincipalSecret is an interface that allows various secret mechanism to fill the form
 // that is submitted when acquiring an oAuth token.
 type ServicePrincipalSecret interface {
@@ -86,7 +105,7 @@ type ServicePrincipalTokenSecret struct {
 	ClientSecret string
 }
 
-// SetAuthenticationValues is a method of the interface ServicePrincipalTokenSecret.
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
 // It will populate the form submitted during oAuth Token Acquisition using the client_secret.
 func (tokenSecret *ServicePrincipalTokenSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
 	v.Set("client_secret", tokenSecret.ClientSecret)
@@ -119,7 +138,7 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Header["x5t"] = thumbprint
 	token.Claims = map[string]interface{}{
-		"aud": fmt.Sprintf(jwtAudienceTemplate, spt.tenantID),
+		"aud": spt.oauthConfig.TokenEndpoint,
 		"iss": spt.clientID,
 		"sub": spt.clientID,
 		"jti": base64.URLEncoding.EncodeToString(jti),
@@ -131,7 +150,7 @@ func (secret *ServicePrincipalCertificateSecret) SignJwt(spt *ServicePrincipalTo
 	return signedString, nil
 }
 
-// SetAuthenticationValues is a method of the interface ServicePrincipalTokenSecret.
+// SetAuthenticationValues is a method of the interface ServicePrincipalSecret.
 // It will populate the form submitted during oAuth Token Acquisition using a JWT signed with a certificate.
 func (secret *ServicePrincipalCertificateSecret) SetAuthenticationValues(spt *ServicePrincipalToken, v *url.Values) error {
 	jwt, err := secret.SignJwt(spt)
@@ -149,51 +168,73 @@ type ServicePrincipalToken struct {
 	Token
 
 	secret        ServicePrincipalSecret
+	oauthConfig   OAuthConfig
 	clientID      string
-	tenantID      string
 	resource      string
 	autoRefresh   bool
 	refreshWithin time.Duration
 	sender        autorest.Sender
+
+	refreshCallbacks []TokenRefreshCallback
 }
 
 // NewServicePrincipalTokenWithSecret create a ServicePrincipalToken using the supplied ServicePrincipalSecret implementation.
-func NewServicePrincipalTokenWithSecret(id string, tenantID string, resource string, secret ServicePrincipalSecret) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenWithSecret(oauthConfig OAuthConfig, id string, resource string, secret ServicePrincipalSecret, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	spt := &ServicePrincipalToken{
-		secret:        secret,
-		clientID:      id,
-		resource:      resource,
-		tenantID:      tenantID,
-		autoRefresh:   true,
-		refreshWithin: defaultRefresh,
-		sender:        &http.Client{},
+		oauthConfig:      oauthConfig,
+		secret:           secret,
+		clientID:         id,
+		resource:         resource,
+		autoRefresh:      true,
+		refreshWithin:    defaultRefresh,
+		sender:           &http.Client{},
+		refreshCallbacks: callbacks,
 	}
+	return spt, nil
+}
+
+// NewServicePrincipalTokenFromManualToken creates a ServicePrincipalToken using the supplied token
+func NewServicePrincipalTokenFromManualToken(oauthConfig OAuthConfig, clientID string, resource string, token Token, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
+	spt, err := NewServicePrincipalTokenWithSecret(
+		oauthConfig,
+		clientID,
+		resource,
+		&ServicePrincipalNoSecret{},
+		callbacks...)
+	if err != nil {
+		return nil, err
+	}
+
+	spt.Token = token
+
 	return spt, nil
 }
 
 // NewServicePrincipalToken creates a ServicePrincipalToken from the supplied Service Principal
 // credentials scoped to the named resource.
-func NewServicePrincipalToken(id string, secret string, tenantID string, resource string) (*ServicePrincipalToken, error) {
+func NewServicePrincipalToken(oauthConfig OAuthConfig, clientID string, secret string, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return NewServicePrincipalTokenWithSecret(
-		id,
-		tenantID,
+		oauthConfig,
+		clientID,
 		resource,
 		&ServicePrincipalTokenSecret{
 			ClientSecret: secret,
 		},
+		callbacks...,
 	)
 }
 
 // NewServicePrincipalTokenFromCertificate create a ServicePrincipalToken from the supplied pkcs12 bytes.
-func NewServicePrincipalTokenFromCertificate(id string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, tenantID string, resource string) (*ServicePrincipalToken, error) {
+func NewServicePrincipalTokenFromCertificate(oauthConfig OAuthConfig, clientID string, certificate *x509.Certificate, privateKey *rsa.PrivateKey, resource string, callbacks ...TokenRefreshCallback) (*ServicePrincipalToken, error) {
 	return NewServicePrincipalTokenWithSecret(
-		id,
-		tenantID,
+		oauthConfig,
+		clientID,
 		resource,
 		&ServicePrincipalCertificateSecret{
 			PrivateKey:  privateKey,
 			Certificate: certificate,
 		},
+		callbacks...,
 	)
 }
 
@@ -206,53 +247,77 @@ func (spt *ServicePrincipalToken) EnsureFresh() error {
 	return nil
 }
 
+// InvokeRefreshCallbacks calls any TokenRefreshCallbacks that were added to the SPT during initialization
+func (spt *ServicePrincipalToken) InvokeRefreshCallbacks(token Token) error {
+	if spt.refreshCallbacks != nil {
+		for _, callback := range spt.refreshCallbacks {
+			err := callback(spt.Token)
+			if err != nil {
+				return autorest.NewErrorWithError(err,
+					"azure.ServicePrincipalToken", "InvokeRefreshCallbacks", nil, "A TokenRefreshCallback handler returned an error")
+			}
+		}
+	}
+	return nil
+}
+
 // Refresh obtains a fresh token for the Service Principal.
 func (spt *ServicePrincipalToken) Refresh() error {
-	p := map[string]interface{}{
-		"tenantID":    spt.tenantID,
-		"requestType": "token",
-	}
+	return spt.refreshInternal(spt.resource)
+}
 
+// RefreshExchange refreshes the token, but for a different resource.
+func (spt *ServicePrincipalToken) RefreshExchange(resource string) error {
+	return spt.refreshInternal(resource)
+}
+
+func (spt *ServicePrincipalToken) refreshInternal(resource string) error {
 	v := url.Values{}
 	v.Set("client_id", spt.clientID)
-	v.Set("grant_type", "client_credentials")
-	v.Set("resource", spt.resource)
+	v.Set("resource", resource)
 
-	err := spt.secret.SetAuthenticationValues(spt, &v)
-	if err != nil {
-		return err
+	if spt.RefreshToken != "" {
+		v.Set("grant_type", OAuthGrantTypeRefreshToken)
+		v.Set("refresh_token", spt.RefreshToken)
+	} else {
+		v.Set("grant_type", OAuthGrantTypeClientCredentials)
+		err := spt.secret.SetAuthenticationValues(spt, &v)
+		if err != nil {
+			return err
+		}
 	}
 
-	req, err := autorest.Prepare(&http.Request{},
+	req, _ := autorest.Prepare(&http.Request{},
 		autorest.AsPost(),
 		autorest.AsFormURLEncoded(),
-		autorest.WithBaseURL(oauthURL),
-		autorest.WithPathParameters(p),
+		autorest.WithBaseURL(spt.oauthConfig.TokenEndpoint.String()),
 		autorest.WithFormData(v))
-	if err != nil {
-		return err
-	}
 
 	resp, err := autorest.SendWithSender(spt.sender, req)
 	if err != nil {
 		return autorest.NewErrorWithError(err,
-			"azure.ServicePrincipalToken", "Refresh", resp.StatusCode, "Failure sending request for Service Principal %s",
+			"azure.ServicePrincipalToken", "Refresh", resp, "Failure sending request for Service Principal %s",
 			spt.clientID)
 	}
 
 	var newToken Token
-
 	err = autorest.Respond(resp,
 		autorest.WithErrorUnlessOK(),
 		autorest.ByUnmarshallingJSON(&newToken),
 		autorest.ByClosing())
 	if err != nil {
 		return autorest.NewErrorWithError(err,
-			"azure.ServicePrincipalToken", "Refresh", resp.StatusCode, "Failure handling response to Service Principal %s request",
+			"azure.ServicePrincipalToken", "Refresh", resp, "Failure handling response to Service Principal %s request",
 			spt.clientID)
 	}
 
 	spt.Token = newToken
+
+	err = spt.InvokeRefreshCallbacks(newToken)
+	if err != nil {
+		// its already wrapped inside InvokeRefreshCallbacks
+		return err
+	}
 
 	return nil
 }
@@ -288,7 +353,7 @@ func (spt *ServicePrincipalToken) WithAuthorization() autorest.PrepareDecorator 
 				err := spt.EnsureFresh()
 				if err != nil {
 					return r, autorest.NewErrorWithError(err,
-						"azure.ServicePrincipalToken", "WithAuthorization", autorest.UndefinedStatusCode, "Failed to refresh Service Principal Token for request to %s",
+						"azure.ServicePrincipalToken", "WithAuthorization", nil, "Failed to refresh Service Principal Token for request to %s",
 						r.URL)
 				}
 			}

@@ -78,8 +78,8 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
-	updateDomainCount := d.Get("platform_update_domain_count").(int)
-	faultDomainCount := d.Get("platform_fault_domain_count").(int)
+	updateDomainCount := int32(d.Get("platform_update_domain_count").(int))
+	faultDomainCount := int32(d.Get("platform_fault_domain_count").(int))
 	tags := d.Get("tags").(map[string]interface{})
 
 	availSet := compute.AvailabilitySet{

@@ -468,10 +468,19 @@ type StartRoleOperation struct {
 	OperationType string
 }
 
+type PostShutdownAction string
+
+// Enum values for PostShutdownAction
+const (
+	PostShutdownActionStopped            PostShutdownAction = "Stopped"
+	PostShutdownActionStoppedDeallocated PostShutdownAction = "StoppedDeallocated"
+)
+
 // ShutdownRoleOperation contains the information for shutting down a Role.
 type ShutdownRoleOperation struct {
-	XMLName       xml.Name `xml:"http://schemas.microsoft.com/windowsazure ShutdownRoleOperation"`
-	OperationType string
+	XMLName            xml.Name `xml:"http://schemas.microsoft.com/windowsazure ShutdownRoleOperation"`
+	OperationType      string
+	PostShutdownAction PostShutdownAction
 }
 
 // RestartRoleOperation contains the information for restarting a Role.

@@ -6,7 +6,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
+	"strconv"
 )
 
 // EncodedAs is a series of constants specifying various data encodings
@@ -44,6 +46,55 @@ func NewDecoder(encodedAs EncodedAs, r io.Reader) Decoder {
 func CopyAndDecode(encodedAs EncodedAs, r io.Reader, v interface{}) (bytes.Buffer, error) {
 	b := bytes.Buffer{}
 	return b, NewDecoder(encodedAs, io.TeeReader(r, &b)).Decode(v)
+}
+
+func readBool(r io.Reader) (bool, error) {
+	s, err := readString(r)
+	if err == nil {
+		return strconv.ParseBool(s)
+	}
+	return false, err
+}
+
+func readFloat32(r io.Reader) (float32, error) {
+	s, err := readString(r)
+	if err == nil {
+		v, err := strconv.ParseFloat(s, 32)
+		return float32(v), err
+	}
+	return float32(0), err
+}
+
+func readFloat64(r io.Reader) (float64, error) {
+	s, err := readString(r)
+	if err == nil {
+		v, err := strconv.ParseFloat(s, 64)
+		return v, err
+	}
+	return float64(0), err
+}
+
+func readInt32(r io.Reader) (int32, error) {
+	s, err := readString(r)
+	if err == nil {
+		v, err := strconv.ParseInt(s, 10, 32)
+		return int32(v), err
+	}
+	return int32(0), err
+}
+
+func readInt64(r io.Reader) (int64, error) {
+	s, err := readString(r)
+	if err == nil {
+		v, err := strconv.ParseInt(s, 10, 64)
+		return v, err
+	}
+	return int64(0), err
+}
+
+func readString(r io.Reader) (string, error) {
+	b, err := ioutil.ReadAll(r)
+	return string(b), err
 }
 
 func containsInt(ints []int, n int) bool {

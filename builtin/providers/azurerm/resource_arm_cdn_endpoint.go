@@ -400,13 +400,13 @@ func expandAzureRmCdnEndpointOrigins(d *schema.ResourceData) ([]cdn.DeepCreatedO
 		}
 
 		if v, ok := data["https_port"]; ok {
-			https_port := v.(int)
+			https_port := int32(v.(int))
 			properties.HTTPSPort = &https_port
 
 		}
 
 		if v, ok := data["http_port"]; ok {
-			http_port := v.(int)
+			http_port := int32(v.(int))
 			properties.HTTPPort = &http_port
 		}
 

@@ -271,7 +271,7 @@ func expandAzureRmSecurityRules(d *schema.ResourceData) ([]network.SecurityRule,
 		destination_port_range := data["destination_port_range"].(string)
 		source_address_prefix := data["source_address_prefix"].(string)
 		destination_address_prefix := data["destination_address_prefix"].(string)
-		priority := data["priority"].(int)
+		priority := int32(data["priority"].(int))
 
 		properties := network.SecurityRulePropertiesFormat{
 			SourcePortRange:          &source_port_range,

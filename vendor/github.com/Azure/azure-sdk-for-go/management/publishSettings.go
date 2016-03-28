@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/golang.org/x/crypto/pkcs12"
+	"golang.org/x/crypto/pkcs12"
 )
 
 // ClientFromPublishSettingsData unmarshalls the contents of a publish settings file

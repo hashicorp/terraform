@@ -167,8 +167,9 @@ type BlobType string
 
 // Types of page blobs
 const (
-	BlobTypeBlock BlobType = "BlockBlob"
-	BlobTypePage  BlobType = "PageBlob"
+	BlobTypeBlock  BlobType = "BlockBlob"
+	BlobTypePage   BlobType = "PageBlob"
+	BlobTypeAppend BlobType = "AppendBlob"
 )
 
 // PageWriteType defines the type updates that are going to be
@@ -330,7 +331,6 @@ func (b BlobStorageClient) createContainer(name string, access ContainerAccessTy
 	uri := b.client.getEndpoint(blobServiceName, pathForContainer(name), url.Values{"restype": {"container"}})
 
 	headers := b.client.getStandardHeaders()
-	headers["Content-Length"] = "0"
 	if access != "" {
 		headers["x-ms-blob-public-access"] = string(access)
 	}
@@ -556,7 +556,6 @@ func (b BlobStorageClient) SetBlobMetadata(container, name string, metadata map[
 	for k, v := range metadata {
 		headers[userDefinedMetadataHeaderPrefix+k] = v
 	}
-	headers["Content-Length"] = "0"
 
 	resp, err := b.client.exec("PUT", uri, headers, nil)
 	if err != nil {
@@ -731,7 +730,6 @@ func (b BlobStorageClient) PutPageBlob(container, name string, size int64, extra
 	headers := b.client.getStandardHeaders()
 	headers["x-ms-blob-type"] = string(BlobTypePage)
 	headers["x-ms-blob-content-length"] = fmt.Sprintf("%v", size)
-	headers["Content-Length"] = fmt.Sprintf("%v", 0)
 
 	for k, v := range extraHeaders {
 		headers[k] = v
@@ -751,14 +749,16 @@ func (b BlobStorageClient) PutPageBlob(container, name string, size int64, extra
 // with 512-byte boundaries and chunk must be of size multiplies by 512.
 //
 // See https://msdn.microsoft.com/en-us/library/ee691975.aspx
-func (b BlobStorageClient) PutPage(container, name string, startByte, endByte int64, writeType PageWriteType, chunk []byte) error {
+func (b BlobStorageClient) PutPage(container, name string, startByte, endByte int64, writeType PageWriteType, chunk []byte, extraHeaders map[string]string) error {
 	path := fmt.Sprintf("%s/%s", container, name)
 	uri := b.client.getEndpoint(blobServiceName, path, url.Values{"comp": {"page"}})
 	headers := b.client.getStandardHeaders()
 	headers["x-ms-blob-type"] = string(BlobTypePage)
 	headers["x-ms-page-write"] = string(writeType)
 	headers["x-ms-range"] = fmt.Sprintf("bytes=%v-%v", startByte, endByte)
-
+	for k, v := range extraHeaders {
+		headers[k] = v
+	}
 	var contentLength int64
 	var data io.Reader
 	if writeType == PageWriteTypeClear {
@@ -801,6 +801,52 @@ func (b BlobStorageClient) GetPageRanges(container, name string) (GetPageRangesR
 	return out, err
 }
 
+// PutAppendBlob initializes an empty append blob with specified name. An
+// append blob must be created using this method before appending blocks.
+//
+// See https://msdn.microsoft.com/en-us/library/azure/dd179451.aspx
+func (b BlobStorageClient) PutAppendBlob(container, name string, extraHeaders map[string]string) error {
+	path := fmt.Sprintf("%s/%s", container, name)
+	uri := b.client.getEndpoint(blobServiceName, path, url.Values{})
+	headers := b.client.getStandardHeaders()
+	headers["x-ms-blob-type"] = string(BlobTypeAppend)
+
+	for k, v := range extraHeaders {
+		headers[k] = v
+	}
+
+	resp, err := b.client.exec("PUT", uri, headers, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.body.Close()
+
+	return checkRespCode(resp.statusCode, []int{http.StatusCreated})
+}
+
+// AppendBlock appends a block to an append blob.
+//
+// See https://msdn.microsoft.com/en-us/library/azure/mt427365.aspx
+func (b BlobStorageClient) AppendBlock(container, name string, chunk []byte, extraHeaders map[string]string) error {
+	path := fmt.Sprintf("%s/%s", container, name)
+	uri := b.client.getEndpoint(blobServiceName, path, url.Values{"comp": {"appendblock"}})
+	headers := b.client.getStandardHeaders()
+	headers["x-ms-blob-type"] = string(BlobTypeAppend)
+	headers["Content-Length"] = fmt.Sprintf("%v", len(chunk))
+
+	for k, v := range extraHeaders {
+		headers[k] = v
+	}
+
+	resp, err := b.client.exec("PUT", uri, headers, bytes.NewReader(chunk))
+	if err != nil {
+		return err
+	}
+	defer resp.body.Close()
+
+	return checkRespCode(resp.statusCode, []int{http.StatusCreated})
+}
+
 // CopyBlob starts a blob copy operation and waits for the operation to
 // complete. sourceBlob parameter must be a canonical URL to the blob (can be
 // obtained using GetBlobURL method.) There is no SLA on blob copy and therefore
@@ -820,7 +866,6 @@ func (b BlobStorageClient) startBlobCopy(container, name, sourceBlob string) (st
 	uri := b.client.getEndpoint(blobServiceName, pathForBlob(container, name), url.Values{})
 
 	headers := b.client.getStandardHeaders()
-	headers["Content-Length"] = "0"
 	headers["x-ms-copy-source"] = sourceBlob
 
 	resp, err := b.client.exec("PUT", uri, headers, nil)
@@ -869,8 +914,8 @@ func (b BlobStorageClient) waitForBlobCopy(container, name, copyID string) error
 // DeleteBlob deletes the given blob from the specified container.
 // If the blob does not exists at the time of the Delete Blob operation, it
 // returns error. See https://msdn.microsoft.com/en-us/library/azure/dd179413.aspx
-func (b BlobStorageClient) DeleteBlob(container, name string) error {
-	resp, err := b.deleteBlob(container, name)
+func (b BlobStorageClient) DeleteBlob(container, name string, extraHeaders map[string]string) error {
+	resp, err := b.deleteBlob(container, name, extraHeaders)
 	if err != nil {
 		return err
 	}
@@ -882,8 +927,8 @@ func (b BlobStorageClient) DeleteBlob(container, name string) error {
 // blob is deleted with this call, returns true. Otherwise returns false.
 //
 // See https://msdn.microsoft.com/en-us/library/azure/dd179413.aspx
-func (b BlobStorageClient) DeleteBlobIfExists(container, name string) (bool, error) {
-	resp, err := b.deleteBlob(container, name)
+func (b BlobStorageClient) DeleteBlobIfExists(container, name string, extraHeaders map[string]string) (bool, error) {
+	resp, err := b.deleteBlob(container, name, extraHeaders)
 	if resp != nil && (resp.statusCode == http.StatusAccepted || resp.statusCode == http.StatusNotFound) {
 		return resp.statusCode == http.StatusAccepted, nil
 	}
@@ -891,10 +936,13 @@ func (b BlobStorageClient) DeleteBlobIfExists(container, name string) (bool, err
 	return false, err
 }
 
-func (b BlobStorageClient) deleteBlob(container, name string) (*storageResponse, error) {
+func (b BlobStorageClient) deleteBlob(container, name string, extraHeaders map[string]string) (*storageResponse, error) {
 	verb := "DELETE"
 	uri := b.client.getEndpoint(blobServiceName, pathForBlob(container, name), url.Values{})
 	headers := b.client.getStandardHeaders()
+	for k, v := range extraHeaders {
+		headers[k] = v
+	}
 
 	return b.client.exec(verb, uri, headers, nil)
 }
@@ -950,6 +998,10 @@ func (b BlobStorageClient) GetBlobSASURI(container, name string, expiry time.Tim
 
 func blobSASStringToSign(signedVersion, canonicalizedResource, signedExpiry, signedPermissions string) (string, error) {
 	var signedStart, signedIdentifier, rscc, rscd, rsce, rscl, rsct string
+
+	if signedVersion >= "2015-02-21" {
+		canonicalizedResource = "/blob" + canonicalizedResource
+	}
 
 	// reference: http://msdn.microsoft.com/en-us/library/azure/dn140255.aspx
 	if signedVersion >= "2013-08-15" {

@@ -10,12 +10,13 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"github.com/Azure/azure-sdk-for-go/core/tls"
 	"io"
 	"net/textproto"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/core/tls"
 )
 
 var respExcludeHeader = map[string]bool{

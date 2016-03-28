@@ -14,7 +14,6 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/core/tls"
 	"io"
 	"log"
 	"net"
@@ -23,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Azure/azure-sdk-for-go/core/tls"
 )
 
 // DefaultTransport is the default implementation of Transport and is
