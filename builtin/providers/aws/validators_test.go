@@ -460,3 +460,23 @@ func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateIntegerInRange(t *testing.T) {
+	validIntegers := []int{-259, 0, 1, 5, 999}
+	min := -259
+	max := 999
+	for _, v := range validIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be an integer in range (%d, %d): %q", v, min, max, errors)
+		}
+	}
+
+	invalidIntegers := []int{-260, -99999, 1000, 25678}
+	for _, v := range invalidIntegers {
+		_, errors := validateIntegerInRange(min, max)(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an integer outside range (%d, %d)", v, min, max)
+		}
+	}
+}
