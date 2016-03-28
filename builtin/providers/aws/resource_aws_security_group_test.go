@@ -44,6 +44,18 @@ func TestProtocolStateFunc(t *testing.T) {
 			input:    -1,
 			expected: "",
 		},
+		{
+			input:    "1",
+			expected: "icmp",
+		},
+		{
+			input:    "icmp",
+			expected: "icmp",
+		},
+		{
+			input:    1,
+			expected: "",
+		},
 	}
 	for _, c := range cases {
 		result := protocolStateFunc(c.input)
@@ -101,6 +113,14 @@ func TestProtocolForValue(t *testing.T) {
 		{
 			input:    "ALL",
 			expected: "-1",
+		},
+		{
+			input:    "icMp",
+			expected: "icmp",
+		},
+		{
+			input:    "1",
+			expected: "icmp",
 		},
 	}
 
