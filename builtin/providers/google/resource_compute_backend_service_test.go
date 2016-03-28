@@ -194,7 +194,7 @@ resource "google_compute_instance_template" "foobar" {
   }
 
   disk {
-    source_image = "debian-7-wheezy-v20140814"
+    source_image = "debian-7-wheezy-v20160301"
     auto_delete  = true
     boot         = true
   }
