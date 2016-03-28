@@ -592,9 +592,6 @@ resource "aws_vpc" "tftest" {
 }
 
 resource "aws_security_group" "web" {
-  name        = "terraform_acceptance_test_example"
-  description = "Used in the terraform acceptance tests"
-
   vpc_id = "${aws_vpc.tftest.id}"
 
   tags {
