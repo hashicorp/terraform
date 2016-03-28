@@ -204,7 +204,6 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		return nil, err
 	}
 
-
 	config := winrmcp.Config{
 		Auth: winrmcp.Auth{
 			User:     c.connInfo.User,
