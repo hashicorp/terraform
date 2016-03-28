@@ -620,15 +620,12 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*spotinst.Client)
 	groups, _, err := client.AwsGroup.Get(d.Id())
 	if err != nil {
-		serr, ok := err.(*spotinst.ErrorResponse)
-		if ok {
-			for _, r := range serr.Errors {
-				if r.Code == "400" {
-					d.SetId("")
-					return nil
-				} else {
-					return fmt.Errorf("[ERROR] Error retrieving group: %s", err)
-				}
+		if serr, ok := err.(*spotinst.ErrorResponse); ok {
+			if serr.Response.StatusCode == 400 {
+				d.SetId("")
+				return nil
+			} else {
+				return fmt.Errorf("[ERROR] Error retrieving group: %s", err)
 			}
 		} else {
 			return fmt.Errorf("[ERROR] Error retrieving group: %s", err)
