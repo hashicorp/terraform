@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -27,6 +28,22 @@ func TestAccAWSSQSQueue_basic(t *testing.T) {
 				Config: testAccAWSSQSConfigWithOverrides,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithOverrides("aws_sqs_queue.queue-with-overrides"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSQSQueue_redrivePolicy(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSQSConfigWithRedrive(acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.my_dead_letter_queue"),
 				),
 			},
 		},
@@ -168,11 +185,32 @@ resource "aws_sqs_queue" "queue-with-defaults" {
 
 const testAccAWSSQSConfigWithOverrides = `
 resource "aws_sqs_queue" "queue-with-overrides" {
-	name = "test-sqs-queue-with-overrides"
-	delay_seconds = 90
-  	max_message_size = 2048
-  	message_retention_seconds = 86400
-  	receive_wait_time_seconds = 10
-  	visibility_timeout_seconds = 60
+  name                       = "test-sqs-queue-with-overrides"
+  delay_seconds              = 90
+  max_message_size           = 2048
+  message_retention_seconds  = 86400
+  receive_wait_time_seconds  = 10
+  visibility_timeout_seconds = 60
 }
 `
+
+func testAccAWSSQSConfigWithRedrive(name string) string {
+	return fmt.Sprintf(`
+resource "aws_sqs_queue" "my_queue" {
+  name                       = "tftestqueuq-%s"
+  delay_seconds              = 0
+  visibility_timeout_seconds = 300
+
+  redrive_policy = <<EOF
+{
+    "maxReceiveCount": 3,
+    "deadLetterTargetArn": "${aws_sqs_queue.my_dead_letter_queue.arn}"
+}
+EOF
+}
+
+resource "aws_sqs_queue" "my_dead_letter_queue" {
+  name = "tfotherqueuq-%s"
+}
+`, name, name)
+}
