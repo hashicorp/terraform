@@ -15,6 +15,123 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestProtocolStateFunc(t *testing.T) {
+	cases := []struct {
+		input    interface{}
+		expected string
+	}{
+		{
+			input:    "tcp",
+			expected: "tcp",
+		},
+		{
+			input:    6,
+			expected: "",
+		},
+		{
+			input:    "17",
+			expected: "udp",
+		},
+		{
+			input:    "all",
+			expected: "-1",
+		},
+		{
+			input:    "-1",
+			expected: "-1",
+		},
+		{
+			input:    -1,
+			expected: "",
+		},
+		{
+			input:    "1",
+			expected: "icmp",
+		},
+		{
+			input:    "icmp",
+			expected: "icmp",
+		},
+		{
+			input:    1,
+			expected: "",
+		},
+	}
+	for _, c := range cases {
+		result := protocolStateFunc(c.input)
+		if result != c.expected {
+			t.Errorf("Error matching protocol, expected (%s), got (%s)", c.expected, result)
+		}
+	}
+}
+
+func TestProtocolForValue(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "tcp",
+			expected: "tcp",
+		},
+		{
+			input:    "6",
+			expected: "tcp",
+		},
+		{
+			input:    "udp",
+			expected: "udp",
+		},
+		{
+			input:    "17",
+			expected: "udp",
+		},
+		{
+			input:    "all",
+			expected: "-1",
+		},
+		{
+			input:    "-1",
+			expected: "-1",
+		},
+		{
+			input:    "tCp",
+			expected: "tcp",
+		},
+		{
+			input:    "6",
+			expected: "tcp",
+		},
+		{
+			input:    "UDp",
+			expected: "udp",
+		},
+		{
+			input:    "17",
+			expected: "udp",
+		},
+		{
+			input:    "ALL",
+			expected: "-1",
+		},
+		{
+			input:    "icMp",
+			expected: "icmp",
+		},
+		{
+			input:    "1",
+			expected: "icmp",
+		},
+	}
+
+	for _, c := range cases {
+		result := protocolForValue(c.input)
+		if result != c.expected {
+			t.Errorf("Error matching protocol, expected (%s), got (%s)", c.expected, result)
+		}
+	}
+}
+
 func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 	raw := []*ec2.IpPermission{
 		&ec2.IpPermission{
@@ -846,7 +963,7 @@ resource "aws_security_group" "web" {
   description = "Used in the terraform acceptance tests"
 
   ingress {
-    protocol = "tcp"
+    protocol = "6"
     from_port = 80
     to_port = 8000
     cidr_blocks = ["10.0.0.0/8"]
