@@ -38,7 +38,6 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"subnet_ids": &schema.Schema{
