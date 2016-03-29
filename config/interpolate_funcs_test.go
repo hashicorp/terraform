@@ -437,6 +437,48 @@ func TestInterpolateFuncJoin(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncJSONEncode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"easy": ast.Variable{
+				Value: "test",
+				Type:  ast.TypeString,
+			},
+			"hard": ast.Variable{
+				Value: " foo \\ \n \t \" bar ",
+				Type:  ast.TypeString,
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${jsonencode("test")}`,
+				`"test"`,
+				false,
+			},
+			{
+				`${jsonencode(easy)}`,
+				`"test"`,
+				false,
+			},
+			{
+				`${jsonencode(hard)}`,
+				`" foo \\ \n \t \" bar "`,
+				false,
+			},
+			{
+				`${jsonencode("")}`,
+				`""`,
+				false,
+			},
+			{
+				`${jsonencode()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncReplace(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{

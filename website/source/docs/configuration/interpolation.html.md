@@ -150,6 +150,9 @@ The supported built-in functions are:
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
 
+  * `jsonencode(string)` - Returns a JSON-encoded representation of the given
+    string (including double quotes).
+
   * `length(list)` - Returns a number of members in a given list
       or a number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
