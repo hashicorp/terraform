@@ -4,6 +4,7 @@ FEATURES:
 
  * **New resource:** `aws_iam_user_ssh_key` [GH-5774]
  * **New Provider:** `fastly` [GH-5814]
+ * **New interpolation function:** `jsonencode` [GH-5890]
  
 IMPROVEMENTS:
  * provider/aws: Change `aws_elb` access_logs to list type [GH-5065]
