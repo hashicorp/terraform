@@ -45,6 +45,9 @@ func testAccCheckAWSAPIGatewayIntegrationResponseAttributes(conf *apigateway.Int
 		if *conf.ResponseTemplates["application/xml"] != "#set($inputRoot = $input.path('$'))\n{ }" {
 			return fmt.Errorf("wrong ResponseTemplate for application/xml")
 		}
+		if conf.SelectionPattern == nil || *conf.SelectionPattern != ".*" {
+			return fmt.Errorf("wrong SelectionPattern (expected .*)")
+		}
 		return nil
 	}
 }
@@ -164,6 +167,7 @@ resource "aws_api_gateway_integration_response" "test" {
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
   status_code = "${aws_api_gateway_method_response.error.status_code}"
+  selection_pattern = ".*"
 
   response_templates = {
     "application/json" = ""
