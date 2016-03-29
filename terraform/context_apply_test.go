@@ -2937,7 +2937,7 @@ func TestContext2Apply_outputInvalid(t *testing.T) {
 	if err == nil {
 		t.Fatalf("err: %s", err)
 	}
-	if !strings.Contains(err.Error(), "is not a string") {
+	if !strings.Contains(err.Error(), "is not a valid type (int)") {
 		t.Fatalf("err: %s", err)
 	}
 }

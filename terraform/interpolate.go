@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/hilstructure"
 )
 
 const (
@@ -52,12 +54,38 @@ func (i *Interpolater) Values(
 			mod = i.Module.Child(scope.Path[1:])
 		}
 		for _, v := range mod.Config().Variables {
-			for k, val := range v.DefaultsMap() {
-				result[k] = ast.Variable{
-					Value: val,
+			name := fmt.Sprintf("var.%s", v.Name)
+			if v.Default == nil {
+				v.Default = ""
+			}
+
+			switch v.Type() {
+			case config.VariableTypeList:
+				elements := v.Default.([]string)
+				result[name] = hilstructure.MakeHILStringList(elements)
+			case config.VariableTypeMap:
+				components := flatmap.Flatten(map[string]interface{}{
+					name: v.Default.(map[string]string),
+				})
+
+				for k, val := range components {
+					result[k] = ast.Variable{
+						Value: val,
+						Type:  ast.TypeString,
+					}
+				}
+
+				result[name] = ast.Variable{
+					Type:  ast.TypeString,
+					Value: v.Name,
+				}
+			default:
+				result[name] = ast.Variable{
+					Value: v.Default.(string),
 					Type:  ast.TypeString,
 				}
 			}
+
 		}
 	}
 

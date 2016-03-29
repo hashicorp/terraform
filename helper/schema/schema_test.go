@@ -8,9 +8,11 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/hilstructure"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -128,7 +130,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		Schema          map[string]*Schema
 		State           *terraform.InstanceState
 		Config          map[string]interface{}
-		ConfigVariables map[string]string
+		ConfigVariables map[string]ast.Variable
 		Diff            *terraform.InstanceDiff
 		Err             bool
 	}{
@@ -396,8 +398,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"availability_zone": "${var.foo}",
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": "bar",
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": ast.Variable{Type: ast.TypeString, Value: "bar"},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -426,8 +428,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"availability_zone": "${var.foo}",
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": ast.Variable{Type: ast.TypeString, Value: config.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -576,8 +578,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"ports": []interface{}{1, "${var.foo}"},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.NewStringList([]string{"2", "5"}).String(),
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": hilstructure.MakeHILStringList([]string{"2", "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -619,9 +621,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"ports": []interface{}{1, "${var.foo}"},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.NewStringList([]string{
-					config.UnknownVariableValue, "5"}).String(),
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": hilstructure.MakeHILStringList([]string{config.UnknownVariableValue, "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -886,8 +887,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"ports": []interface{}{"${var.foo}", 1},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.NewStringList([]string{"2", "5"}).String(),
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": hilstructure.MakeHILStringList([]string{"2", "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -932,9 +933,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"ports": []interface{}{1, "${var.foo}"},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.NewStringList([]string{
-					config.UnknownVariableValue, "5"}).String(),
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": hilstructure.MakeHILStringList([]string{config.UnknownVariableValue, "5"}),
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1603,8 +1603,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"instances": []interface{}{"${var.foo}"},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": ast.Variable{Type: ast.TypeString, Value: config.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1654,8 +1654,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": ast.Variable{Type: ast.TypeString, Value: config.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1720,8 +1720,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": ast.Variable{Type: ast.TypeString, Value: config.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -1787,8 +1787,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": ast.Variable{Type: ast.TypeString, Value: config.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2134,8 +2134,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"ports": []interface{}{1, "${var.foo}32"},
 			},
 
-			ConfigVariables: map[string]string{
-				"var.foo": config.UnknownVariableValue,
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": ast.Variable{Type: ast.TypeString, Value: config.UnknownVariableValue},
 			},
 
 			Diff: &terraform.InstanceDiff{
@@ -2347,20 +2347,28 @@ func TestSchemaMap_Diff(t *testing.T) {
 	}
 
 	for tn, tc := range cases {
+		//if tn != "#24 Set" {
+		//continue
+		//}
+
+		fmt.Println(tn)
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("#%q err: %s", tn, err)
 		}
 
 		if len(tc.ConfigVariables) > 0 {
-			vars := make(map[string]ast.Variable)
-			for k, v := range tc.ConfigVariables {
-				vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
-			}
+			fmt.Println("----------------------a------------------")
+			spew.Dump(c)
+			fmt.Println("---------------------ea------------------")
 
-			if err := c.Interpolate(vars); err != nil {
+			if err := c.Interpolate(tc.ConfigVariables); err != nil {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
+
+			fmt.Println("----------------------b------------------")
+			spew.Dump(c)
+			fmt.Println("---------------------eb------------------")
 		}
 
 		d, err := schemaMap(tc.Schema).Diff(

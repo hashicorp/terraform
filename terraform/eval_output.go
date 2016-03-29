@@ -3,7 +3,9 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/hilstructure"
 )
 
 // EvalDeleteOutput is an EvalNode implementation that deletes an output
@@ -45,6 +47,7 @@ type EvalWriteOutput struct {
 func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	cfg, err := ctx.Interpolate(n.Value, nil)
 	if err != nil {
+		fmt.Println(err)
 		// Ignore it
 	}
 
@@ -76,16 +79,20 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	// If it is a list of values, get the first one
-	if list, ok := valueRaw.([]interface{}); ok {
-		valueRaw = list[0]
+	switch valueTyped := valueRaw.(type) {
+	case string:
+		mod.Outputs[n.Name] = valueTyped
+	case []interface{}:
+		mod.Outputs[n.Name] = valueTyped[0]
+	case []ast.Variable:
+		slice, err := hilstructure.HILStringListToSlice(valueTyped)
+		if err != nil {
+			return nil, err
+		}
+		mod.Outputs[n.Name] = slice
+	default:
+		return nil, fmt.Errorf("output %s is not a valid type (%T)\n", n.Name, valueTyped)
 	}
-	if _, ok := valueRaw.(string); !ok {
-		return nil, fmt.Errorf("output %s is not a string", n.Name)
-	}
-
-	// Write the output
-	mod.Outputs[n.Name] = valueRaw.(string)
 
 	return nil, nil
 }

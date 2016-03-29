@@ -275,11 +275,17 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 	}
 
 	for name, tc := range cases {
+
+		if name != "set, computed element" {
+			continue
+		}
+
 		r := &ConfigFieldReader{
 			Schema: schema,
 			Config: tc.Config,
 		}
 		out, err := r.ReadField(tc.Addr)
+
 		if err != nil != tc.Err {
 			t.Fatalf("%s: err: %s", name, err)
 		}
@@ -290,8 +296,9 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 				out.Value = nil
 			}
 		}
+
 		if !reflect.DeepEqual(tc.Result, out) {
-			t.Fatalf("%s: bad: %#v", name, out)
+			t.Fatalf("%s:\n     got: %#v\nexpected: %#v\n", name, out, tc.Result)
 		}
 	}
 }

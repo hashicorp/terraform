@@ -1,8 +1,6 @@
 package schema
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // MultiLevelFieldReader reads from other field readers,
 // merging their results along the way in a specific order. You can specify
@@ -22,6 +20,7 @@ func (r *MultiLevelFieldReader) ReadField(address []string) (FieldReadResult, er
 
 func (r *MultiLevelFieldReader) ReadFieldExact(
 	address []string, level string) (FieldReadResult, error) {
+
 	reader, ok := r.Readers[level]
 	if !ok {
 		return FieldReadResult{}, fmt.Errorf(
