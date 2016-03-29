@@ -39,6 +39,8 @@ The following arguments are supported:
   in the application URL
 * `application` – (Required) Name of the application that contains the version
   to be deployed
+* `cname_prefix` - (Optional) Prefix to use for the fully qualified DNS name of
+  the Environment.
 * `description` - (Optional) Short description of the Environment
 * `tier` - (Optional) Elastic Beanstalk Environment tier. Valid values are `Worker`
   or `WebServer`. If tier is left blank `WebServer` will be used.
@@ -52,7 +54,7 @@ off of. Example stacks can be found in the [Amazon API documentation][1]
 * `wait_for_ready_timeout` - (Default: "10m") The maximum
   [duration](https://golang.org/pkg/time/#ParseDuration) that Terraform should
   wait for an Elastic Beanstalk Environment to be in a ready state before timing
-  out. 
+  out.
 * `tags` – (Optional) A set of tags to apply to the Environment. **Note:** at
 this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application
@@ -80,6 +82,7 @@ The following attributes are exported:
 * `all_settings` – List of all option settings configured in the Environment. These
   are a combination of default settings and their overrides from `settings` in
   the configuration
+* `cname` - Fully qualified DNS name for the Environment.
 
 
 [1]: http://docs.aws.amazon.com/fr_fr/elasticbeanstalk/latest/dg/concepts.platforms.html

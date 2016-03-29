@@ -3,11 +3,13 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -42,6 +44,28 @@ func TestAccAWSBeanstalkEnv_tier(t *testing.T) {
 				Config: testAccBeanstalkWorkerEnvConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkEnvTier("aws_elastic_beanstalk_environment.tfenvtest", &app),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSBeanstalkEnv_cname_prefix(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+	cnamePrefix := acctest.RandString(8)
+	beanstalkCnameRegexp := regexp.MustCompile("^" + cnamePrefix + ".+?elasticbeanstalk.com$")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkEnvCnamePrefixConfig(cnamePrefix),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
+					resource.TestMatchResourceAttr(
+						"aws_elastic_beanstalk_environment.tfenvtest", "cname", beanstalkCnameRegexp),
 				),
 			},
 		},
@@ -183,3 +207,19 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.4 running Go 1.4"
 }
 `
+
+func testAccBeanstalkEnvCnamePrefixConfig(randString string) string {
+	return fmt.Sprintf(`
+resource "aws_elastic_beanstalk_application" "tftest" {
+name = "tf-test-name"
+description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+name = "tf-test-name"
+application = "${aws_elastic_beanstalk_application.tftest.name}"
+cname_prefix = "%s"
+solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.4 running Go 1.4"
+}
+`, randString)
+}
