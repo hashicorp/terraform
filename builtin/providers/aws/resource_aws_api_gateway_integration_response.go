@@ -86,7 +86,7 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 	log.Printf("[DEBUG] API Gateway Integration Response ID: %s", d.Id())
 
-	return nil
+	return resourceAwsApiGatewayIntegrationResponseRead(d, meta)
 }
 
 func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta interface{}) error {
@@ -107,7 +107,10 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 		return err
 	}
 	log.Printf("[DEBUG] Received API Gateway Integration Response: %s", integrationResponse)
+
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
+	d.Set("response_templates", integrationResponse.ResponseTemplates)
+	d.Set("selection_pattern", integrationResponse.SelectionPattern)
 
 	return nil
 }
