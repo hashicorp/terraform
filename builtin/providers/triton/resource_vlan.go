@@ -18,14 +18,14 @@ func resourceVLAN() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"vlan_id": {
-				Description: "number between 2-4095 indicating VLAN ID",
+				Description: "number between 0-4095 indicating VLAN ID",
 				Required:    true,
 				ForceNew:    true,
 				Type:        schema.TypeInt,
 				ValidateFunc: func(val interface{}, field string) (warn []string, err []error) {
 					value := val.(int)
 					if value < 0 || value > 4095 {
-						err = append(err, errors.New("id must be between 2 and 4095"))
+						err = append(err, errors.New("vlan_id must be between 0 and 4095"))
 					}
 					return
 				},
