@@ -104,9 +104,11 @@ func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interfac
 func resourceAwsCodeCommitRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codecommitconn
 
-	if d.HasChange("default_branch") {
-		if err := resourceAwsCodeCommitUpdateDefaultBranch(conn, d); err != nil {
-			return err
+	if _, ok := d.GetOk("default_branch"); ok {
+		if d.HasChange("default_branch") {
+			if err := resourceAwsCodeCommitUpdateDefaultBranch(conn, d); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -135,8 +137,11 @@ func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{
 	d.Set("arn", *out.RepositoryMetadata.Arn)
 	d.Set("clone_url_http", *out.RepositoryMetadata.CloneUrlHttp)
 	d.Set("clone_url_ssh", *out.RepositoryMetadata.CloneUrlSsh)
-	if out.RepositoryMetadata.DefaultBranch != nil {
-		d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+
+	if _, ok := d.GetOk("default_branch"); ok {
+		if out.RepositoryMetadata.DefaultBranch != nil {
+			d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+		}
 	}
 
 	return nil
