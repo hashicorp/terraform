@@ -16,7 +16,7 @@ Provides a Datadog monitor resource. This can be used to create and manage Datad
 # Create a new Datadog monitor
 resource "datadog_monitor" "foo" {
   name = "Name for monitor foo"
-  type = "Metric alert"
+  type = "metric alert"
   message = "Monitor triggered. Notify: @hipchat-channel"
   escalation_message = "Escalation message @pagerduty"
 
