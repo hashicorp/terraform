@@ -33,7 +33,7 @@ resource "aws_elb" "bar" {
 
   listener {
     instance_port = 8000
-    instance_protocol = "https"
+    instance_protocol = "http"
     lb_port = 443
     lb_protocol = "https"
     ssl_certificate_id = "arn:aws:iam::123456789012:server-certificate/certName"
@@ -97,8 +97,7 @@ Listeners support the following:
 * `lb_protocol` - (Required) The protocol to listen on. Valid values are `HTTP`,
   `HTTPS`, `TCP`, or `SSL`
 * `ssl_certificate_id` - (Optional) The id of an SSL certificate you have
-uploaded to AWS IAM. **Only valid when `instance_protocol` and
-  `lb_protocol` are either HTTPS or SSL**
+uploaded to AWS IAM. **Only valid when `lb_protocol` is either HTTPS or SSL**
 
 Health Check supports the following:
 
