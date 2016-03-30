@@ -252,7 +252,12 @@ func (s *State) Remove(addr ...string) error {
 }
 
 func (s *State) removeModule(path []string, v *ModuleState) {
-	println(fmt.Sprintf("%#v", path))
+	for i, m := range s.Modules {
+		if m == v {
+			s.Modules, s.Modules[len(s.Modules)-1] = append(s.Modules[:i], s.Modules[i+1:]...), nil
+			return
+		}
+	}
 }
 
 func (s *State) removeResource(path []string, v *ResourceState) {
