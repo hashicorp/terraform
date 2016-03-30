@@ -1,4 +1,4 @@
-package tutum
+package dockercloud
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
@@ -12,20 +12,26 @@ func Provider() terraform.ResourceProvider {
 			"user": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("TUTUM_USER", nil),
+				DefaultFunc: schema.EnvDefaultFunc("DOCKERCLOUD_USER", nil),
 				Description: "The user to authenticate as.",
 			},
 			"apikey": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("TUTUM_APIKEY", nil),
+				DefaultFunc: schema.EnvDefaultFunc("DOCKERCLOUD_APIKEY", nil),
+				Description: "API key used to authenticate the user.",
+			},
+			"baseurl": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKERCLOUD_REST_HOST", "https://cloud.docker.com"),
 				Description: "API key used to authenticate the user.",
 			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"tutum_node_cluster": resourceTutumNodeCluster(),
-			"tutum_service":      resourceTutumService(),
+			"dockercloud_node_cluster": resourceDockercloudNodeCluster(),
+			"dockercloud_service":      resourceDockercloudService(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -34,8 +40,9 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		User:   d.Get("user").(string),
-		ApiKey: d.Get("apikey").(string),
+		User:    d.Get("user").(string),
+		ApiKey:  d.Get("apikey").(string),
+		BaseUrl: d.Get("baseurl").(string),
 	}
 	return config, config.Load()
 }

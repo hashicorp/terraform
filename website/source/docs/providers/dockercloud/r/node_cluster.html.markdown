@@ -1,20 +1,20 @@
 ---
-layout: "tutum"
-page_title: "Tutum: tutum_node_cluster"
-sidebar_current: "docs-tutum-resource-node-cluster"
+layout: "dockercloud"
+page_title: "Docker Cloud: dockercloud_node_cluster"
+sidebar_current: "docs-dockercloud-resource-node-cluster"
 description: |-
-  Provides a Tutum node cluster resource.
+  Provides a Docker Cloud node cluster resource.
 ---
 
-# tutum\_node\_cluster
+# dockercloud\_node\_cluster
 
-Provides a Tutum node cluster resource.
+Provides a Docker Cloud node cluster resource.
 
 ## Example Usage
 
 ```
 # Create a new node cluster
-resource "tutum_node_cluster" "default" {
+resource "dockercloud_node_cluster" "default" {
     name = "dev"
     node_provider = "aws"
     region = "us-east-1"

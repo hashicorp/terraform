@@ -1,22 +1,22 @@
-package tutum
+package dockercloud
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/docker/go-dockercloud/dockercloud"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/tutumcloud/go-tutum/tutum"
 )
 
-func resourceTutumNodeCluster() *schema.Resource {
+func resourceDockercloudNodeCluster() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceTutumNodeClusterCreate,
-		Read:   resourceTutumNodeClusterRead,
-		Update: resourceTutumNodeClusterUpdate,
-		Delete: resourceTutumNodeClusterDelete,
-		Exists: resourceTutumNodeClusterExists,
+		Create: resourceDockercloudNodeClusterCreate,
+		Read:   resourceDockercloudNodeClusterRead,
+		Update: resourceDockercloudNodeClusterUpdate,
+		Delete: resourceDockercloudNodeClusterDelete,
+		Exists: resourceDockercloudNodeClusterExists,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -65,15 +65,15 @@ func resourceTutumNodeCluster() *schema.Resource {
 	}
 }
 
-func resourceTutumNodeClusterCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	provider := d.Get("node_provider").(string)
 	region := d.Get("region").(string)
 	size := d.Get("size").(string)
 
-	opts := &tutum.NodeCreateRequest{
+	opts := &dockercloud.NodeCreateRequest{
 		Name:     d.Get("name").(string),
-		Region:   fmt.Sprintf("/api/v1/region/%s/%s/", provider, region),
-		NodeType: fmt.Sprintf("/api/v1/nodetype/%s/%s/", provider, size),
+		Region:   fmt.Sprintf("/api/infra/v1/region/%s/%s/", provider, region),
+		NodeType: fmt.Sprintf("/api/infra/v1/nodetype/%s/%s/", provider, size),
 	}
 
 	if attr, ok := d.GetOk("disk"); ok {
@@ -86,14 +86,14 @@ func resourceTutumNodeClusterCreate(d *schema.ResourceData, meta interface{}) er
 
 	tags := d.Get("tags.#").(int)
 	if tags > 0 {
-		opts.Tags = make([]tutum.NodeTag, 0, tags)
+		opts.Tags = make([]dockercloud.NodeTag, 0, tags)
 		for i := 0; i < tags; i++ {
 			key := fmt.Sprintf("tags.%d", i)
-			opts.Tags = append(opts.Tags, tutum.NodeTag{Name: d.Get(key).(string)})
+			opts.Tags = append(opts.Tags, dockercloud.NodeTag{Name: d.Get(key).(string)})
 		}
 	}
 
-	nodeCluster, err := tutum.CreateNodeCluster(*opts)
+	nodeCluster, err := dockercloud.CreateNodeCluster(*opts)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func resourceTutumNodeClusterCreate(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:        []string{"Deploying"},
-		Target:         "Deployed",
+		Target:         []string{"Deployed"},
 		Refresh:        newNodeClusterStateRefreshFunc(d, meta),
 		Timeout:        60 * time.Minute,
 		Delay:          10 * time.Second,
@@ -120,14 +120,14 @@ func resourceTutumNodeClusterCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error waiting for node cluster (%s) to become ready: %s", d.Id(), err)
 	}
 
-	nodeCluster = nodeClusterRaw.(tutum.NodeCluster)
+	nodeCluster = nodeClusterRaw.(dockercloud.NodeCluster)
 	d.Set("state", nodeCluster.State)
 
-	return resourceTutumNodeClusterRead(d, meta)
+	return resourceDockercloudNodeClusterRead(d, meta)
 }
 
-func resourceTutumNodeClusterRead(d *schema.ResourceData, meta interface{}) error {
-	nodeCluster, err := tutum.GetNodeCluster(d.Id())
+func resourceDockercloudNodeClusterRead(d *schema.ResourceData, meta interface{}) error {
+	nodeCluster, err := dockercloud.GetNodeCluster(d.Id())
 	if err != nil {
 		if strings.Contains(err.Error(), "404 NOT FOUND") {
 			d.SetId("")
@@ -150,8 +150,8 @@ func resourceTutumNodeClusterRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceTutumNodeClusterUpdate(d *schema.ResourceData, meta interface{}) error {
-	opts := &tutum.NodeCreateRequest{}
+func resourceDockercloudNodeClusterUpdate(d *schema.ResourceData, meta interface{}) error {
+	opts := &dockercloud.NodeCreateRequest{}
 
 	if d.HasChange("node_count") {
 		_, newNum := d.GetChange("node_count")
@@ -161,14 +161,14 @@ func resourceTutumNodeClusterUpdate(d *schema.ResourceData, meta interface{}) er
 	if d.HasChange("tags") {
 		_, newTags := d.GetChange("tags")
 		tags := newTags.([]interface{})
-		opts.Tags = make([]tutum.NodeTag, 0, len(tags))
+		opts.Tags = make([]dockercloud.NodeTag, 0, len(tags))
 
 		for _, tag := range tags {
-			opts.Tags = append(opts.Tags, tutum.NodeTag{Name: tag.(string)})
+			opts.Tags = append(opts.Tags, dockercloud.NodeTag{Name: tag.(string)})
 		}
 	}
 
-	nodeCluster, err := tutum.GetNodeCluster(d.Id())
+	nodeCluster, err := dockercloud.GetNodeCluster(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving node cluster (%s): %s", d.Id(), err)
 	}
@@ -179,7 +179,7 @@ func resourceTutumNodeClusterUpdate(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:        []string{"Scaling"},
-		Target:         "Deployed",
+		Target:         []string{"Deployed"},
 		Refresh:        newNodeClusterStateRefreshFunc(d, meta),
 		Timeout:        60 * time.Minute,
 		Delay:          10 * time.Second,
@@ -195,8 +195,8 @@ func resourceTutumNodeClusterUpdate(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceTutumNodeClusterDelete(d *schema.ResourceData, meta interface{}) error {
-	nodeCluster, err := tutum.GetNodeCluster(d.Id())
+func resourceDockercloudNodeClusterDelete(d *schema.ResourceData, meta interface{}) error {
+	nodeCluster, err := dockercloud.GetNodeCluster(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving node cluster (%s): %s", d.Id(), err)
 	}
@@ -212,7 +212,7 @@ func resourceTutumNodeClusterDelete(d *schema.ResourceData, meta interface{}) er
 
 	stateConf := &resource.StateChangeConf{
 		Pending:        []string{"Terminating", "Empty cluster"},
-		Target:         "Terminated",
+		Target:         []string{"Terminated"},
 		Refresh:        newNodeClusterStateRefreshFunc(d, meta),
 		Timeout:        60 * time.Minute,
 		Delay:          10 * time.Second,
@@ -230,8 +230,8 @@ func resourceTutumNodeClusterDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceTutumNodeClusterExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	nodeCluster, err := tutum.GetNodeCluster(d.Id())
+func resourceDockercloudNodeClusterExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	nodeCluster, err := dockercloud.GetNodeCluster(d.Id())
 	if err != nil {
 		return false, err
 	}
@@ -245,7 +245,7 @@ func resourceTutumNodeClusterExists(d *schema.ResourceData, meta interface{}) (b
 
 func newNodeClusterStateRefreshFunc(d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		nodeCluster, err := tutum.GetNodeCluster(d.Id())
+		nodeCluster, err := dockercloud.GetNodeCluster(d.Id())
 		if err != nil {
 			return nil, "", err
 		}

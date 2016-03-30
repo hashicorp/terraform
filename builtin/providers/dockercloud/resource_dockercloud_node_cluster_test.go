@@ -1,48 +1,48 @@
-package tutum
+package dockercloud
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/docker/go-dockercloud/dockercloud"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/tutumcloud/go-tutum/tutum"
 )
 
-func TestAccCheckTutumNodeCluster_Basic(t *testing.T) {
-	var nodeCluster tutum.NodeCluster
+func TestAccCheckDockercloudNodeCluster_Basic(t *testing.T) {
+	var nodeCluster dockercloud.NodeCluster
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTutumNodeClusterDestroy,
+		CheckDestroy: testAccCheckDockercloudNodeClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckTutumNodeClusterConfig_basic,
+				Config: testAccCheckDockercloudNodeClusterConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckTutumNodeClusterExists("tutum_node_cluster.foobar", &nodeCluster),
-					testAccCheckTutumNodeClusterAttributes(&nodeCluster),
+					testAccCheckDockercloudNodeClusterExists("dockercloud_node_cluster.foobar", &nodeCluster),
+					testAccCheckDockercloudNodeClusterAttributes(&nodeCluster),
 					resource.TestCheckResourceAttr(
-						"tutum_node_cluster.foobar", "name", "foobar-test-terraform"),
+						"dockercloud_node_cluster.foobar", "name", "foobar-test-terraform"),
 					resource.TestCheckResourceAttr(
-						"tutum_node_cluster.foobar", "node_provider", "aws"),
+						"dockercloud_node_cluster.foobar", "node_provider", "aws"),
 					resource.TestCheckResourceAttr(
-						"tutum_node_cluster.foobar", "size", "t2.micro"),
+						"dockercloud_node_cluster.foobar", "size", "t2.micro"),
 					resource.TestCheckResourceAttr(
-						"tutum_node_cluster.foobar", "region", "us-east-1"),
+						"dockercloud_node_cluster.foobar", "region", "us-east-1"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckTutumNodeClusterDestroy(s *terraform.State) error {
+func testAccCheckDockercloudNodeClusterDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "tutum_node_cluster" {
+		if rs.Type != "dockercloud_node_cluster" {
 			continue
 		}
 
-		nodeCluster, err := tutum.GetNodeCluster(rs.Primary.ID)
+		nodeCluster, err := dockercloud.GetNodeCluster(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("Error retrieving Node Cluster: %s", err)
 		}
@@ -55,7 +55,7 @@ func testAccCheckTutumNodeClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckTutumNodeClusterExists(n string, nodeCluster *tutum.NodeCluster) resource.TestCheckFunc {
+func testAccCheckDockercloudNodeClusterExists(n string, nodeCluster *dockercloud.NodeCluster) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -67,7 +67,7 @@ func testAccCheckTutumNodeClusterExists(n string, nodeCluster *tutum.NodeCluster
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		retrieveNodeCluster, err := tutum.GetNodeCluster(rs.Primary.ID)
+		retrieveNodeCluster, err := dockercloud.GetNodeCluster(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("Error retrieving Node Cluster: %s", err)
 		}
@@ -82,18 +82,18 @@ func testAccCheckTutumNodeClusterExists(n string, nodeCluster *tutum.NodeCluster
 	}
 }
 
-func testAccCheckTutumNodeClusterAttributes(nodeCluster *tutum.NodeCluster) resource.TestCheckFunc {
+func testAccCheckDockercloudNodeClusterAttributes(nodeCluster *dockercloud.NodeCluster) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if nodeCluster.Name != "foobar-test-terraform" {
 			return fmt.Errorf("Bad name: %s", nodeCluster.Name)
 		}
 
-		if nodeCluster.Region != "/api/v1/region/aws/us-east-1/" {
+		if nodeCluster.Region != "/api/infra/v1/region/aws/us-east-1/" {
 			return fmt.Errorf("Bad region: %s", nodeCluster.Region)
 		}
 
-		if nodeCluster.NodeType != "/api/v1/nodetype/aws/t2.micro/" {
+		if nodeCluster.NodeType != "/api/infra/v1/nodetype/aws/t2.micro/" {
 			return fmt.Errorf("Bad nodetype: %s", nodeCluster.NodeType)
 		}
 
@@ -108,8 +108,8 @@ func testAccCheckTutumNodeClusterAttributes(nodeCluster *tutum.NodeCluster) reso
 	}
 }
 
-const testAccCheckTutumNodeClusterConfig_basic = `
-resource "tutum_node_cluster" "foobar" {
+const testAccCheckDockercloudNodeClusterConfig_basic = `
+resource "dockercloud_node_cluster" "foobar" {
     name = "foobar-test-terraform"
     node_provider = "aws"
     size = "t2.micro"

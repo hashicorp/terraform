@@ -1,4 +1,4 @@
-package tutum
+package dockercloud
 
 import (
 	"os"
@@ -14,7 +14,7 @@ var testAccProvider *schema.Provider
 func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
-		"tutum": testAccProvider,
+		"dockercloud": testAccProvider,
 	}
 }
 
@@ -29,10 +29,10 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if u := os.Getenv("TUTUM_USER"); u == "" {
-		t.Fatal("TUTUM_USER must be set for acceptance tests")
+	if u := os.Getenv("DOCKERCLOUD_USER"); u == "" {
+		t.Fatal("DOCKERCLOUD_USER must be set for acceptance tests")
 	}
-	if k := os.Getenv("TUTUM_APIKEY"); k == "" {
-		t.Fatal("TUTUM_APIKEY must be set for acceptance tests")
+	if k := os.Getenv("DOCKERCLOUD_APIKEY"); k == "" {
+		t.Fatal("DOCKERCLOUD_APIKEY must be set for acceptance tests")
 	}
 }

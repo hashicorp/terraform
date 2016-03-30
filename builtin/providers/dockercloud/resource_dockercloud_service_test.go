@@ -1,46 +1,46 @@
-package tutum
+package dockercloud
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/docker/go-dockercloud/dockercloud"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/tutumcloud/go-tutum/tutum"
 )
 
-func TestAccCheckTutumService_Basic(t *testing.T) {
-	var service tutum.Service
+func TestAccCheckDockercloudService_Basic(t *testing.T) {
+	var service dockercloud.Service
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckTutumServiceDestroy,
+		CheckDestroy: testAccCheckDockercloudServiceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckTutumServiceConfig_basic,
+				Config: testAccCheckDockercloudServiceConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckTutumServiceExists("tutum_service.foobar", &service),
-					testAccCheckTutumServiceAttributes(&service),
+					testAccCheckDockercloudServiceExists("dockercloud_service.foobar", &service),
+					testAccCheckDockercloudServiceAttributes(&service),
 					resource.TestCheckResourceAttr(
-						"tutum_service.foobar", "name", "foobar-test-terraform"),
+						"dockercloud_service.foobar", "name", "foobar-test-terraform"),
 					resource.TestCheckResourceAttr(
-						"tutum_service.foobar", "image", "python:3.2"),
+						"dockercloud_service.foobar", "image", "python:3.2"),
 					resource.TestCheckResourceAttr(
-						"tutum_service.foobar", "entrypoint", "python -m http.server"),
+						"dockercloud_service.foobar", "entrypoint", "python -m http.server"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckTutumServiceDestroy(s *terraform.State) error {
+func testAccCheckDockercloudServiceDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "tutum_service" {
+		if rs.Type != "dockercloud_service" {
 			continue
 		}
 
-		service, err := tutum.GetService(rs.Primary.ID)
+		service, err := dockercloud.GetService(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("Error retrieving service: %s", err)
 		}
@@ -53,7 +53,7 @@ func testAccCheckTutumServiceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckTutumServiceExists(n string, service *tutum.Service) resource.TestCheckFunc {
+func testAccCheckDockercloudServiceExists(n string, service *dockercloud.Service) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -65,7 +65,7 @@ func testAccCheckTutumServiceExists(n string, service *tutum.Service) resource.T
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		retrieveService, err := tutum.GetService(rs.Primary.ID)
+		retrieveService, err := dockercloud.GetService(rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("Error retrieving service: %s", err)
 		}
@@ -80,7 +80,7 @@ func testAccCheckTutumServiceExists(n string, service *tutum.Service) resource.T
 	}
 }
 
-func testAccCheckTutumServiceAttributes(service *tutum.Service) resource.TestCheckFunc {
+func testAccCheckDockercloudServiceAttributes(service *dockercloud.Service) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if service.Name != "foobar-test-terraform" {
@@ -99,18 +99,18 @@ func testAccCheckTutumServiceAttributes(service *tutum.Service) resource.TestChe
 	}
 }
 
-const testAccCheckTutumServiceConfig_basic = `
-resource "tutum_node_cluster" "foobar" {
+const testAccCheckDockercloudServiceConfig_basic = `
+resource "dockercloud_node_cluster" "foobar" {
     name = "foobar-test-terraform"
     node_provider = "aws"
     size = "t2.micro"
     region = "us-east-1"
 }
 
-resource "tutum_service" "foobar" {
+resource "dockercloud_service" "foobar" {
     name = "foobar-test-terraform"
     image = "python:3.2"
     entrypoint = "python -m http.server"
 
-    depends_on = ["tutum_node_cluster.foobar"]
+    depends_on = ["dockercloud_node_cluster.foobar"]
 }`
