@@ -421,6 +421,33 @@ func TestStateRemove(t *testing.T) {
 				},
 			},
 		},
+
+		"single instance": {
+			"test_instance.foo.primary",
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path:      rootModulePath,
+						Resources: map[string]*ResourceState{},
+					},
+				},
+			},
+		},
 	}
 
 	for k, tc := range cases {

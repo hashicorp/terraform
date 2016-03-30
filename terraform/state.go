@@ -245,6 +245,9 @@ func (s *State) Remove(addr ...string) error {
 		}
 	}
 
+	// Prune
+	s.prune()
+
 	return nil
 }
 
@@ -272,7 +275,28 @@ func (s *State) removeResource(path []string, v *ResourceState) {
 }
 
 func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState) {
-	println(fmt.Sprintf("%#v", path))
+	// Go through the resource and find the instance that matches this
+	// (if any) and remove it.
+
+	// Check primary
+	if r.Primary == v {
+		r.Primary = nil
+		return
+	}
+
+	// Check lists
+	lists := [][]*InstanceState{r.Tainted, r.Deposed}
+	for _, is := range lists {
+		for i, instance := range is {
+			if instance == v {
+				// Found it, remove it
+				is, is[len(is)-1] = append(is[:i], is[i+1:]...), nil
+
+				// Done
+				return
+			}
+		}
+	}
 }
 
 // RootModule returns the ModuleState for the root module
