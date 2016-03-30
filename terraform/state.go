@@ -212,6 +212,14 @@ func (s *State) Remove(addr ...string) error {
 		return err
 	}
 
+	// If we have no results, just exit early, we're not going to do anything.
+	// While what happens below is fairly fast, this is an important early
+	// exit since the prune below might modify the state more and we don't
+	// want to modify the state if we don't have to.
+	if len(results) == 0 {
+		return nil
+	}
+
 	// Go through each result and grab what we need
 	removed := make(map[interface{}]struct{})
 	for _, r := range results {
@@ -245,7 +253,9 @@ func (s *State) Remove(addr ...string) error {
 		}
 	}
 
-	// Prune
+	// Prune since the removal functions often do the bare minimum to
+	// remove a thing and may leave around dangling empty modules, resources,
+	// etc. Prune will clean that all up.
 	s.prune()
 
 	return nil
