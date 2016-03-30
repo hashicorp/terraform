@@ -19,8 +19,8 @@ func TestAccRecord_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecord_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("name", "terraform test"),
-					testAccCheckRecordExists("nsone_record.foobar", "nsone_zone.test", &record),
+					testAccCheckRecordState("domain", "test.terraform.io"),
+					testAccCheckRecordExists("nsone_record.foobar", &record),
 					testAccCheckRecordAttributes(&record),
 				),
 			},
@@ -38,16 +38,16 @@ func TestAccRecord_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecord_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("name", "terraform test"),
-					testAccCheckRecordExists("nsone_record.foobar", "nsone_zone.test", &record),
+					testAccCheckRecordState("domain", "test.terraform.io"),
+					testAccCheckRecordExists("nsone_record.foobar", &record),
 					testAccCheckRecordAttributes(&record),
 				),
 			},
 			resource.TestStep{
 				Config: testAccRecord_updated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("name", "terraform test"),
-					testAccCheckRecordExists("nsone_record.foobar", "nsone_zone.test", &record),
+					testAccCheckRecordState("domain", "test.terraform.io"),
+					testAccCheckRecordExists("nsone_record.foobar", &record),
 					testAccCheckRecordAttributesUpdated(&record),
 				),
 			},
@@ -55,11 +55,11 @@ func TestAccRecord_updated(t *testing.T) {
 	})
 }
 
-func testAccCheckDataFeedState(key, value string) resource.TestCheckFunc {
+func testAccCheckRecordState(key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["nsone_datafeed.foobar"]
+		rs, ok := s.RootModule().Resources["nsone_record.foobar"]
 		if !ok {
-			return fmt.Errorf("Not found: %s", "nsone_datafeed.foobar")
+			return fmt.Errorf("Not found: %s", "nsone_record.foobar")
 		}
 
 		if rs.Primary.ID == "" {
@@ -76,10 +76,9 @@ func testAccCheckDataFeedState(key, value string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckDataFeedExists(n string, dsrc string, dataFeed *nsone.DataFeed) resource.TestCheckFunc {
+func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
-		ds, ok := s.RootModule().Resources[dsrc]
 
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -89,75 +88,105 @@ func testAccCheckDataFeedExists(n string, dsrc string, dataFeed *nsone.DataFeed)
 			return fmt.Errorf("NoID is set")
 		}
 
-		if ds.Primary.ID == "" {
-			return fmt.Errorf("NoID is set for the datasource")
-		}
-
 		client := testAccProvider.Meta().(*nsone.APIClient)
-
-		foundFeed, err := client.GetDataFeed(ds.Primary.Attributes["id"], rs.Primary.Attributes["id"])
 
 		p := rs.Primary
 
+		foundRecord, err := client.GetRecord(p.Attributes["zone"], p.Attributes["domain"], p.Attributes["type"])
+
 		if err != nil {
-			return err
+			// return err
+			return fmt.Errorf("Record not found")
 		}
 
-		if foundFeed.Name != p.Attributes["name"] {
-			return fmt.Errorf("DataFeed not found")
+		if foundRecord.Domain != p.Attributes["domain"] {
+			return fmt.Errorf("Record not found")
 		}
 
-		*dataFeed = *foundFeed
+		*record = *foundRecord
 
 		return nil
 	}
 }
 
-func testAccCheckDataFeedDestroy(s *terraform.State) error {
+func testAccCheckRecordDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*nsone.APIClient)
 
-	var dataFeedId string
-	var dataSourceId string
+	var recordDomain string
+	var recordZone string
+	var recordType string
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "nsone_datasource" || rs.Type != "nsone_datafeed" {
+		if rs.Type != "nsone_record" {
 			continue
 		}
 
-		if rs.Type == "nsone_datasource" {
-			dataSourceId = rs.Primary.Attributes["id"]
-		}
-
-		if rs.Type == "nsone_datafeed" {
-			dataFeedId = rs.Primary.Attributes["id"]
+		if rs.Type == "nsone_record" {
+			recordType = rs.Primary.Attributes["type"]
+			recordDomain = rs.Primary.Attributes["domain"]
+			recordZone = rs.Primary.Attributes["zone"]
 		}
 	}
 
-	df, _ := client.GetDataFeed(dataSourceId, dataFeedId)
+	foundRecord, _ := client.GetRecord(recordDomain, recordZone, recordType)
 
-	if df.Id != "" {
-		return fmt.Errorf("DataFeed still exists")
+	if foundRecord.Id != "" {
+		return fmt.Errorf("Record still exists")
 	}
 
 	return nil
 }
 
-func testAccCheckDataFeedAttributes(dataFeed *nsone.DataFeed) resource.TestCheckFunc {
+func testAccCheckRecordAttributes(record *nsone.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if dataFeed.Config["label"] != "exampledc2" {
-			return fmt.Errorf("Bad value : %s", dataFeed.Config["label"])
+		if record.Ttl != 60 {
+			return fmt.Errorf("Bad value : %d", record.Ttl)
+		}
+
+		recordAnswer := record.Answers[0]
+		recordAnswerString := recordAnswer.Answer[0]
+
+		if recordAnswerString != "test1.terraform.io" {
+			return fmt.Errorf("Bad value : %s", record.Ttl)
+		}
+
+		if recordAnswer.Region != "cal" {
+			return fmt.Errorf("Bad value : %s", recordAnswer.Region)
+		}
+
+		recordMetas := recordAnswer.Meta
+
+		if recordMetas["weight"].(float64) != 10 {
+			return fmt.Errorf("Bad value : %b", recordMetas["weight"].(float64))
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckDataFeedAttributesUpdated(dataFeed *nsone.DataFeed) resource.TestCheckFunc {
+func testAccCheckRecordAttributesUpdated(record *nsone.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if dataFeed.Config["label"] != "exampledc3" {
-			return fmt.Errorf("Bad value : %s", dataFeed.Config["label"])
+		if record.Ttl != 120 {
+			return fmt.Errorf("Bad value : %s", record.Ttl)
+		}
+
+		recordAnswer := record.Answers[1]
+		recordAnswerString := recordAnswer.Answer[0]
+
+		if recordAnswerString != "test3.terraform.io" {
+			return fmt.Errorf("Bad value for updated record: %s", recordAnswerString)
+		}
+
+		if recordAnswer.Region != "wa" {
+			return fmt.Errorf("Bad value : %s", recordAnswer.Region)
+		}
+
+		recordMetas := recordAnswer.Meta
+
+		if recordMetas["weight"].(float64) != 5 {
+			return fmt.Errorf("Bad value : %b", recordMetas["weight"].(float64))
 		}
 
 		return nil
@@ -220,14 +249,14 @@ resource "nsone_record" "foobar" {
 	zone = "terraform.io"
 	domain = "test.terraform.io"
 	type = "CNAME"
-	ttl = 60
+	ttl = 120
 	use_client_subnet = false
 	answers {
-		answer = "test1.terraform.io"
-		region = "cal"
+		answer = "test3.terraform.io"
+		region = "wa"
 		meta {
 			field = "weight"
-			value = "10"
+			value = "5"
 		}
 		meta {
 			field = "up"
@@ -247,8 +276,8 @@ resource "nsone_record" "foobar" {
 		}
 	}
 	regions {
-		name = "cal"
-		us_state = "CA"
+		name = "wa"
+		us_state = "WA"
 	}
 	regions {
 		name = "ny"
@@ -263,5 +292,5 @@ resource "nsone_record" "foobar" {
 	}
 }
 resource "nsone_zone" "test" {
-	zone = "mycompany.co.uk"
+	zone = "terraform.io"
 }`
