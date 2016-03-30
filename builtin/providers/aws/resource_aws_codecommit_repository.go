@@ -176,12 +176,26 @@ func resourceAwsCodeCommitUpdateDescription(conn *codecommit.CodeCommit, d *sche
 }
 
 func resourceAwsCodeCommitUpdateDefaultBranch(conn *codecommit.CodeCommit, d *schema.ResourceData) error {
+	input := &codecommit.ListBranchesInput{
+		RepositoryName: aws.String(d.Id()),
+	}
+
+	out, err := conn.ListBranches(input)
+	if err != nil {
+		return fmt.Errorf("Error reading CodeCommit Repository branches: %s", err.Error())
+	}
+
+	if len(out.Branches) == 0 {
+		log.Printf("[WARN] Not setting Default Branch CodeCommit Repository that has no branches: %s", d.Id())
+		return nil
+	}
+
 	branchInput := &codecommit.UpdateDefaultBranchInput{
 		RepositoryName:    aws.String(d.Id()),
 		DefaultBranchName: aws.String(d.Get("default_branch").(string)),
 	}
 
-	_, err := conn.UpdateDefaultBranch(branchInput)
+	_, err = conn.UpdateDefaultBranch(branchInput)
 	if err != nil {
 		return fmt.Errorf("Error Updating Default Branch for CodeCommit Repository: %s", err.Error())
 	}
