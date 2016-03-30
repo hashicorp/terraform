@@ -198,6 +198,83 @@ func (s *State) IsRemote() bool {
 	return true
 }
 
+// Remove removes the item in the state at the given address, returning
+// any errors that may have occurred.
+//
+// If the address references a module state or resource, it will delete
+// all children as well. To check what will be deleted, use a StateFilter
+// first.
+func (s *State) Remove(addr ...string) error {
+	// Filter out what we need to delete
+	filter := &StateFilter{State: s}
+	results, err := filter.Filter(addr...)
+	if err != nil {
+		return err
+	}
+
+	// Go through each result and grab what we need
+	removed := make(map[interface{}]struct{})
+	for _, r := range results {
+		// Convert the path to our own type
+		path := append([]string{"root"}, r.Path...)
+
+		// If we removed this already, then ignore
+		if _, ok := removed[r.Value]; ok {
+			continue
+		}
+
+		// If we removed the parent already, then ignore
+		if r.Parent != nil {
+			if _, ok := removed[r.Parent.Value]; ok {
+				continue
+			}
+		}
+
+		// Add this to the removed list
+		removed[r.Value] = struct{}{}
+
+		switch v := r.Value.(type) {
+		case *ModuleState:
+			s.removeModule(path, v)
+		case *ResourceState:
+			s.removeResource(path, v)
+		case *InstanceState:
+			s.removeInstance(path, r.Parent.Value.(*ResourceState), v)
+		default:
+			return fmt.Errorf("unknown type to delete: %T", r.Value)
+		}
+	}
+
+	return nil
+}
+
+func (s *State) removeModule(path []string, v *ModuleState) {
+	println(fmt.Sprintf("%#v", path))
+}
+
+func (s *State) removeResource(path []string, v *ResourceState) {
+	// Get the module this resource lives in. If it doesn't exist, we're done.
+	mod := s.ModuleByPath(path)
+	if mod == nil {
+		return
+	}
+
+	// Find this resource. This is a O(N) lookup when if we had the key
+	// it could be O(1) but even with thousands of resources this shouldn't
+	// matter right now. We can easily up performance here when the time comes.
+	for k, r := range mod.Resources {
+		if r == v {
+			// Found it
+			delete(mod.Resources, k)
+			return
+		}
+	}
+}
+
+func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState) {
+	println(fmt.Sprintf("%#v", path))
+}
+
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
 	root := s.ModuleByPath(rootModulePath)
