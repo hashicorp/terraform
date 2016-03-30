@@ -165,8 +165,9 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		_, err := conn.ModifyDBSubnetGroup(&rds.ModifyDBSubnetGroupInput{
-			DBSubnetGroupName: aws.String(d.Id()),
-			SubnetIds:         sIds,
+			DBSubnetGroupName:        aws.String(d.Id()),
+			DBSubnetGroupDescription: aws.String(d.Get("description").(string)),
+			SubnetIds:                sIds,
 		})
 
 		if err != nil {
