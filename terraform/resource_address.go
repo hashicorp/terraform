@@ -18,9 +18,10 @@ type ResourceAddress struct {
 	// Addresses a specific resource that occurs in a list
 	Index int
 
-	InstanceType InstanceType
-	Name         string
-	Type         string
+	InstanceType    InstanceType
+	InstanceTypeSet bool
+	Name            string
+	Type            string
 }
 
 // Copy returns a copy of this ResourceAddress
@@ -83,11 +84,12 @@ func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	path := ParseResourcePath(matches["path"])
 
 	return &ResourceAddress{
-		Path:         path,
-		Index:        resourceIndex,
-		InstanceType: instanceType,
-		Name:         matches["name"],
-		Type:         matches["type"],
+		Path:            path,
+		Index:           resourceIndex,
+		InstanceType:    instanceType,
+		InstanceTypeSet: matches["instance_type"] != "",
+		Name:            matches["name"],
+		Type:            matches["type"],
 	}, nil
 }
 
