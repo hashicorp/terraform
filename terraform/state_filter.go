@@ -113,11 +113,14 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 					Address: addr.String(),
 					Value:   r,
 				}
-				results = append(results, resourceResult)
+				if !a.InstanceTypeSet {
+					results = append(results, resourceResult)
+				}
 
 				// Add the instances
 				if r.Primary != nil {
 					addr.InstanceType = TypePrimary
+					addr.InstanceTypeSet = true
 					results = append(results, &StateFilterResult{
 						Path:    addr.Path,
 						Address: addr.String(),
@@ -129,6 +132,7 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 				for _, instance := range r.Tainted {
 					if f.relevant(a, instance) {
 						addr.InstanceType = TypeTainted
+						addr.InstanceTypeSet = true
 						results = append(results, &StateFilterResult{
 							Path:    addr.Path,
 							Address: addr.String(),
@@ -141,6 +145,7 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 				for _, instance := range r.Deposed {
 					if f.relevant(a, instance) {
 						addr.InstanceType = TypeDeposed
+						addr.InstanceTypeSet = true
 						results = append(results, &StateFilterResult{
 							Path:    addr.Path,
 							Address: addr.String(),
