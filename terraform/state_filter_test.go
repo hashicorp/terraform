@@ -29,6 +29,23 @@ func TestStateFilterFilter(t *testing.T) {
 			},
 		},
 
+		"single resource": {
+			"small.tfstate",
+			[]string{"aws_key_pair.onprem"},
+			[]string{
+				"*terraform.ResourceState: aws_key_pair.onprem",
+				"*terraform.InstanceState: aws_key_pair.onprem",
+			},
+		},
+
+		"single instance": {
+			"small.tfstate",
+			[]string{"aws_key_pair.onprem.primary"},
+			[]string{
+				"*terraform.InstanceState: aws_key_pair.onprem",
+			},
+		},
+
 		"module filter": {
 			"complete.tfstate",
 			[]string{"module.bootstrap"},
