@@ -2,10 +2,9 @@ package aws
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -17,16 +16,13 @@ import (
 func TestAccAWSRDSCluster_basic(t *testing.T) {
 	var v rds.DBCluster
 
-	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	config := fmt.Sprintf(testAccAWSClusterConfig, ri)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: config,
+				Config: testAccAWSClusterConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
@@ -40,16 +36,13 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 func TestAccAWSRDSCluster_encrypted(t *testing.T) {
 	var v rds.DBCluster
 
-	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	encConfig := fmt.Sprintf(testAccAWSClusterConfig_encrypted, ri)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: encConfig,
+				Config: testAccAWSClusterConfig_encrypted(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
@@ -63,17 +56,14 @@ func TestAccAWSRDSCluster_encrypted(t *testing.T) {
 func TestAccAWSRDSCluster_backupsUpdate(t *testing.T) {
 	var v rds.DBCluster
 
-	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-	preConfig := fmt.Sprintf(testAccAWSClusterConfig_backups, ri)
-	postConfig := fmt.Sprintf(testAccAWSClusterConfig_backupsUpdate, ri)
-
+	ri := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: preConfig,
+				Config: testAccAWSClusterConfig_backups(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
@@ -86,7 +76,7 @@ func TestAccAWSRDSCluster_backupsUpdate(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: postConfig,
+				Config: testAccAWSClusterConfig_backupsUpdate(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 					resource.TestCheckResourceAttr(
@@ -166,16 +156,19 @@ func testAccCheckAWSClusterExists(n string, v *rds.DBCluster) resource.TestCheck
 	}
 }
 
-var testAccAWSClusterConfig = `
+func testAccAWSClusterConfig(n int) string {
+	return fmt.Sprintf(`
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "tf-aurora-cluster-%d"
   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
   database_name = "mydb"
   master_username = "foo"
   master_password = "mustbeeightcharaters"
-}`
+}`, n)
+}
 
-var testAccAWSClusterConfig_encrypted = `
+func testAccAWSClusterConfig_encrypted(n int) string {
+	return fmt.Sprintf(`
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "tf-aurora-cluster-%d"
   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
@@ -183,9 +176,11 @@ resource "aws_rds_cluster" "default" {
   master_username = "foo"
   master_password = "mustbeeightcharaters"
   storage_encrypted = true
-}`
+}`, n)
+}
 
-var testAccAWSClusterConfig_backups = `
+func testAccAWSClusterConfig_backups(n int) string {
+	return fmt.Sprintf(`
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "tf-aurora-cluster-%d"
   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
@@ -195,9 +190,11 @@ resource "aws_rds_cluster" "default" {
   backup_retention_period = 5
   preferred_backup_window = "07:00-09:00"
   preferred_maintenance_window = "tue:04:00-tue:04:30"
-}`
+}`, n)
+}
 
-var testAccAWSClusterConfig_backupsUpdate = `
+func testAccAWSClusterConfig_backupsUpdate(n int) string {
+	return fmt.Sprintf(`
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "tf-aurora-cluster-%d"
   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
@@ -208,4 +205,5 @@ resource "aws_rds_cluster" "default" {
   preferred_backup_window = "03:00-09:00"
   preferred_maintenance_window = "wed:01:00-wed:01:30"
   apply_immediately = true
-}`
+}`, n)
+}
