@@ -26,7 +26,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 	args = cmdFlags.Args()
 
-	state, err := c.State()
+	state, err := c.Meta.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return cli.RunResultHelp
