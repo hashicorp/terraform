@@ -6,6 +6,8 @@ BREAKING CHANGES:
 
 FEATURES:
 
+  * core: State manipulation commands are now exposed via `terraform state`
+
 IMPROVEMENTS:
 
 BUG FIXES:
