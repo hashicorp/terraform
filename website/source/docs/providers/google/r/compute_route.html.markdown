@@ -53,7 +53,7 @@ The following arguments are supported:
 
 * `next_hop_vpn_gateway` - (Optional) The name of the VPN to route to if this
     route is matched.
-    
+
 * `priority` - (Required) The priority of this route, used to break ties.
 
 * `tags` - (Optional) The tags that this route applies to.

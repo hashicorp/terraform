@@ -8,7 +8,7 @@ description: |-
 
 # google\_compute\_ssl\_certificate
 
-Creates an SSL certificate resource necessary for HTTPS load balancing in GCE.  
+Creates an SSL certificate resource necessary for HTTPS load balancing in GCE.
 For more information see
 [the official documentation](https://cloud.google.com/compute/docs/load-balancing/http/ssl-certificates) and
 [API](https://cloud.google.com/compute/docs/reference/latest/sslCertificates).

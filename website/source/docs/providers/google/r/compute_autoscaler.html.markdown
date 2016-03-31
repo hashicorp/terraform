@@ -114,7 +114,7 @@ The `metric` block contains (more documentation
 [here](https://cloud.google.com/monitoring/api/metrics)):
 
 * `name` - The name of the Google Cloud Monitoring metric to follow, e.g.
-  compute.googleapis.com/instance/network/received_bytes_count
+  `compute.googleapis.com/instance/network/received_bytes_count`
 
 * `type` - Either "cumulative", "delta", or "gauge".
 
