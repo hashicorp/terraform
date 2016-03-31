@@ -108,7 +108,7 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 	defer r.lock.Unlock()
 
 	config := langEvalConfig(vs)
-	return r.interpolate(func(root ast.Node) (string, error) {
+	return r.interpolate(func(root ast.Node) (interface{}, error) {
 		// We detect the variables again and check if the value of any
 		// of the variables is the computed value. If it is, then we
 		// treat this entire value as computed.
@@ -123,11 +123,24 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 		if err != nil {
 			return "", err
 		}
+
 		for _, v := range vars {
 			varVal, ok := vs[v.FullKey()]
-			if ok && varVal.Value == UnknownVariableValue {
-				return UnknownVariableValue, nil
+			if !ok {
+				continue
 			}
+
+			switch varVal.Type {
+			case ast.TypeList:
+				if hasUnknownValue(varVal) {
+					return UnknownVariableValue, nil
+				}
+			default:
+				if varVal.Value == UnknownVariableValue {
+					return UnknownVariableValue, nil
+				}
+			}
+
 		}
 
 		// None of the variables we need are computed, meaning we should
@@ -137,7 +150,7 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 			return "", err
 		}
 
-		return out.(string), nil
+		return out, nil
 	})
 }
 
@@ -194,7 +207,7 @@ func (r *RawConfig) init() error {
 	r.Interpolations = nil
 	r.Variables = nil
 
-	fn := func(node ast.Node) (string, error) {
+	fn := func(node ast.Node) (interface{}, error) {
 		r.Interpolations = append(r.Interpolations, node)
 		vars, err := DetectVariables(node)
 		if err != nil {

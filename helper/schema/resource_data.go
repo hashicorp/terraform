@@ -384,6 +384,7 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 	}
 
 	var result FieldReadResult
+
 	var err error
 	if exact {
 		result, err = d.multiReader.ReadFieldExact(addr, level)
