@@ -7,6 +7,13 @@ SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
 DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 
+# Fix for issue https://github.com/hashicorp/terraform/issues/3536 where dns only uses /etc/resolv.conf on Mac OS X
+case $(uname) in
+    Darwin*)
+        CGO_ENABLED=1
+        ;;
+esac
+
 # Change into that directory
 cd "$DIR"
 
@@ -17,6 +24,12 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd solaris}
+
+# Check to see if you are building for Darwin and set CGO_ENABLED
+if [[ "${XC_OS}" =~ 'darwin' ]]
+then
+   CGO_ENABLED=1
+fi
 
 # Delete the old dir
 echo "==> Removing old directory..."
