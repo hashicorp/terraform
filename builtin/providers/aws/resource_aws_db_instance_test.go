@@ -472,10 +472,6 @@ resource "aws_db_instance" "no_snapshot" {
 `
 
 var testAccSnapshotInstanceConfig_enhancedMonitoring = `
-provider "aws" {
-  region = "us-east-1"
-}
-
 resource "aws_iam_role" "enhanced_policy_role" {
     name = "enhanced-monitoring-role"
     assume_role_policy = <<EOF
