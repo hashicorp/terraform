@@ -16,7 +16,7 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh, detailed bool
+	var destroy, refresh, persist, detailed bool
 	var outPath string
 	var moduleDepth int
 
@@ -25,6 +25,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
+	cmdFlags.BoolVar(&persist, "persist", true, "persist")
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.IntVar(
@@ -87,7 +88,7 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 		c.Ui.Output("")
 
-		if state != nil {
+		if persist && state != nil {
 			log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 			if err := c.Meta.PersistState(state); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
@@ -189,6 +190,8 @@ Options:
                       input to the "apply" command.
 
   -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
+
+  -persist=true       Persist state after refreshing.
 
   -refresh=true       Update state prior to checking for differences.
 
