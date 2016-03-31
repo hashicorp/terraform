@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
@@ -47,8 +48,8 @@ type EvalWriteOutput struct {
 func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	cfg, err := ctx.Interpolate(n.Value, nil)
 	if err != nil {
-		fmt.Println(err)
-		// Ignore it
+		// Log, but continue anyway
+		log.Printf("[WARN] Output interpolation %q failed: %s", n.Name, err)
 	}
 
 	state, lock := ctx.State()

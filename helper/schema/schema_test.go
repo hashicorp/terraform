@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -2347,28 +2346,15 @@ func TestSchemaMap_Diff(t *testing.T) {
 	}
 
 	for tn, tc := range cases {
-		//if tn != "#24 Set" {
-		//continue
-		//}
-
-		fmt.Println(tn)
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("#%q err: %s", tn, err)
 		}
 
 		if len(tc.ConfigVariables) > 0 {
-			fmt.Println("----------------------a------------------")
-			spew.Dump(c)
-			fmt.Println("---------------------ea------------------")
-
 			if err := c.Interpolate(tc.ConfigVariables); err != nil {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
-
-			fmt.Println("----------------------b------------------")
-			spew.Dump(c)
-			fmt.Println("---------------------eb------------------")
 		}
 
 		d, err := schemaMap(tc.Schema).Diff(

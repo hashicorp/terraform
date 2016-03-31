@@ -275,11 +275,6 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-
-		if name != "set, computed element" {
-			continue
-		}
-
 		r := &ConfigFieldReader{
 			Schema: schema,
 			Config: tc.Config,
