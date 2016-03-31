@@ -281,7 +281,7 @@ resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster-%d"
   availability_zone = "us-west-2a"
   database_name = "mydb"
-  master_username = "foo"
+  master_username = "foo_test"
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
   automated_snapshot_retention_period = 7
