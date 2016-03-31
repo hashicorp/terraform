@@ -15,6 +15,7 @@ IMPROVEMENTS:
  * provider/aws: Allow `aws_db_subnet_group` description to be updated [GH-5921]
  * provider/aws: Making the Cloudwatch Event Rule Target `target_id` optional [GH-5787]
  * provider/aws: Timeouts for `elasticsearch_domain` are increased [GH-5910]
+ * provider/aws: `aws_redshift_cluster` allows usernames with underscore in it [GH-5935]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
 
