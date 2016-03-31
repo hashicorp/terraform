@@ -73,7 +73,7 @@ The following arguments are supported:
 * `tenant_id` - (Optional) The tenant ID to use. It can also be sourced from the
   `ARM_TENANT_ID` environment variable.
 
-## Testing:
+## Testing
 
 Credentials must be provided via the `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`,
 `ARM_CLIENT_SECRET` and `ARM_TENANT_ID` environment variables in order to run
