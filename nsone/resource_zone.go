@@ -1,6 +1,8 @@
 package nsone
 
 import (
+	"strings"
+
 	"github.com/bobtfish/go-nsone-api"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -52,6 +54,11 @@ func zoneResource() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"dns_servers": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"primary": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -73,6 +80,7 @@ func zoneToResourceData(d *schema.ResourceData, z *nsone.Zone) {
 	d.Set("refresh", z.Refresh)
 	d.Set("retry", z.Retry)
 	d.Set("expiry", z.Expiry)
+	d.Set("dns_servers", strings.Join(z.Dns_servers[:], ","))
 	if z.Secondary != nil && z.Secondary.Enabled {
 		d.Set("primary", z.Secondary.Primary_ip)
 	}
