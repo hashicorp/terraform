@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * provider/aws: Change `aws_elb` access_logs to list type [GH-5065]
  * provider/aws: `aws_codecommit_repository` set `default_branch` only if defined [GH-5904]
  * provider/aws: Allow `aws_db_subnet_group` description to be updated [GH-5921]
+ * provider/aws: Making the Cloudwatch Event Rule Target `target_id` optional [GH-5702]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
 
