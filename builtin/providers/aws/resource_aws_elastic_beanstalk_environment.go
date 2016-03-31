@@ -98,6 +98,24 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Optional:      true,
 				ConflictsWith: []string{"solution_stack_name"},
 			},
+			"wait_for_ready_timeout": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "10m",
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					duration, err := time.ParseDuration(value)
+					if err != nil {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be parsed as a duration: %s", k, err))
+					}
+					if duration < 0 {
+						errors = append(errors, fmt.Errorf(
+							"%q must be greater than zero", k))
+					}
+					return
+				},
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -116,6 +134,10 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	settings := d.Get("setting").(*schema.Set)
 	solutionStack := d.Get("solution_stack_name").(string)
 	templateName := d.Get("template_name").(string)
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
 
 	// TODO set tags
 	// Note: at time of writing, you cannot view or edit Tags after creation
@@ -172,7 +194,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		Pending:    []string{"Launching", "Updating"},
 		Target:     []string{"Ready"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -414,13 +436,18 @@ func resourceAwsElasticBeanstalkEnvironmentSettingsRead(d *schema.ResourceData, 
 func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
+
 	opts := elasticbeanstalk.TerminateEnvironmentInput{
 		EnvironmentId:      aws.String(d.Id()),
 		TerminateResources: aws.Bool(true),
 	}
 
 	log.Printf("[DEBUG] Elastic Beanstalk Environment terminate opts: %s", opts)
-	_, err := conn.TerminateEnvironment(&opts)
+	_, err = conn.TerminateEnvironment(&opts)
 
 	if err != nil {
 		return err
@@ -430,7 +457,7 @@ func resourceAwsElasticBeanstalkEnvironmentDelete(d *schema.ResourceData, meta i
 		Pending:    []string{"Terminating"},
 		Target:     []string{"Terminated"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
