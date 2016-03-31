@@ -17,7 +17,7 @@ Example creating a SQL Database.
 ```
 resource "google_sql_database_instance" "master" {
 	name = "master-instance"
-	
+
     settings {
         tier = "D0"
     }

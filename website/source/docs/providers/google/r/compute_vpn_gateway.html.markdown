@@ -8,7 +8,7 @@ description: |-
 
 # google\_compute\_vpn\_gateway
 
-Manages a VPN Gateway in the GCE network. For more info, read the 
+Manages a VPN Gateway in the GCE network. For more info, read the
 [documentation](https://cloud.google.com/compute/docs/vpn).
 
 
@@ -93,7 +93,7 @@ The following arguments are supported:
     Changing this forces a new resource to be created.
 
 * `region` - (Optional) The region this gateway should sit in. If not specified,
-    the project region will be used. Changing this forces a new resource to be 
+    the project region will be used. Changing this forces a new resource to be
     created.
 
 ## Attributes Reference

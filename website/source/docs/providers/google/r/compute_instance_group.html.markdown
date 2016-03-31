@@ -57,12 +57,12 @@ Supported characters include lowercase letters, numbers, and hyphens.
   group.
 
 * `instances` - (Optional) List of instances in the group. They should be given as
-  self_link URLs. When adding instances they must all be in the same network and 
+  self_link URLs. When adding instances they must all be in the same network and
   zone as the instance group.
 
-* `named_port` - (Optional) Named ports are key:value pairs that represent a 
-  service name and the port number that the service runs on. The key:value pairs 
-  are simple metadata that the Load Balancing service can use. This can specified 
+* `named_port` - (Optional) Named ports are key:value pairs that represent a
+  service name and the port number that the service runs on. The key:value pairs
+  are simple metadata that the Load Balancing service can use. This can specified
   multiple times
 
 * `zone` - (Required) The zone that this instance group should be created in.
