@@ -23,6 +23,7 @@ BUG FIXES:
  * provider/aws: Fix potential crash when receiving malformed `aws_route` API responses [GH-5867]
  * provider/aws: Guard against empty responses from Lambda Permissions [GH-5838]
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
+ * provider/aws: set ASG `health_check_grace_period` default to 300 [GH-5830]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
 
 ## 0.6.14 (March 21, 2016)
