@@ -579,7 +579,7 @@ func validateRedshiftClusterFinalSnapshotIdentifier(v interface{}, k string) (ws
 
 func validateRedshiftClusterMasterUsername(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^\w+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters in %q", k))
 	}
