@@ -257,6 +257,10 @@ func TestResourceAWSRedshiftClusterMasterUsernameValidation(t *testing.T) {
 			Value:    randomString(129),
 			ErrCount: 1,
 		},
+		{
+			Value:    "testing_testing123",
+			ErrCount: 0,
+		},
 	}
 
 	for _, tc := range cases {
