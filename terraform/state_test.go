@@ -590,6 +590,13 @@ func TestStateRemove(t *testing.T) {
 									ID: "foo",
 								},
 							},
+
+							"test_instance.bar": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
 						},
 					},
 				},
@@ -597,8 +604,15 @@ func TestStateRemove(t *testing.T) {
 			&State{
 				Modules: []*ModuleState{
 					&ModuleState{
-						Path:      rootModulePath,
-						Resources: map[string]*ResourceState{},
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.bar": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
 					},
 				},
 			},
