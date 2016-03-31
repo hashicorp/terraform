@@ -7,6 +7,7 @@ BREAKING CHANGES:
 FEATURES:
 
   * core: State manipulation commands are now exposed via `terraform state`
+  * core: Lists can now be specified as variables and outputs [GH-5936]
 
 IMPROVEMENTS:
 
