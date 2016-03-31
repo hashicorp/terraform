@@ -38,6 +38,15 @@ func TestStateFilterFilter(t *testing.T) {
 			},
 		},
 
+		"single resource with similar names": {
+			"small_test_instance.tfstate",
+			[]string{"test_instance.foo"},
+			[]string{
+				"*terraform.ResourceState: test_instance.foo",
+				"*terraform.InstanceState: test_instance.foo",
+			},
+		},
+
 		"single instance": {
 			"small.tfstate",
 			[]string{"aws_key_pair.onprem.primary"},

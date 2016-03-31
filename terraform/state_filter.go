@@ -94,6 +94,11 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 					continue
 				}
 
+				if a.Name != "" && a.Name != key.Name {
+					// Name doesn't match
+					continue
+				}
+
 				if a.Index >= 0 && key.Index != a.Index {
 					// Index doesn't match
 					continue
