@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -60,9 +61,16 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"cname_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				Optional: true,
+				ForceNew: true,
+			},
 			"tier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "WebServer",
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					switch value {
@@ -127,7 +135,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	// Get values from config
 	name := d.Get("name").(string)
-	cname := d.Get("cname").(string)
+	cnamePrefix := d.Get("cname_prefix").(string)
 	tier := d.Get("tier").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
@@ -153,8 +161,11 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 		createOpts.Description = aws.String(desc)
 	}
 
-	if cname != "" {
-		createOpts.CNAMEPrefix = aws.String(cname)
+	if cnamePrefix != "" {
+		if tier != "WebServer" {
+			return fmt.Errorf("Cannont set cname_prefix for tier: %s.", tier)
+		}
+		createOpts.CNAMEPrefix = aws.String(cnamePrefix)
 	}
 
 	if tier != "" {
@@ -300,6 +311,7 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 
 	app := d.Get("application").(string)
 	envId := d.Id()
+	tier := d.Get("tier").(string)
 
 	log.Printf("[DEBUG] Elastic Beanstalk environment read %s: id %s", d.Get("name").(string), d.Id())
 
@@ -336,6 +348,22 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 
 	if err := d.Set("cname", env.CNAME); err != nil {
 		return err
+	}
+
+	if tier == "WebServer" {
+		beanstalkCnamePrefixRegexp := regexp.MustCompile(`(^[^.]+).\w{2}-\w{4}-\d.elasticbeanstalk.com$`)
+		var cnamePrefix string
+		cnamePrefixMatch := beanstalkCnamePrefixRegexp.FindStringSubmatch(*env.CNAME)
+
+		if cnamePrefixMatch == nil {
+			cnamePrefix = ""
+		} else {
+			cnamePrefix = cnamePrefixMatch[1]
+		}
+
+		if err := d.Set("cname_prefix", cnamePrefix); err != nil {
+			return err
+		}
 	}
 
 	return resourceAwsElasticBeanstalkEnvironmentSettingsRead(d, meta)
