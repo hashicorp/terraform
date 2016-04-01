@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -1015,4 +1016,64 @@ func flattenCloudWachLogMetricTransformations(ts []*cloudwatchlogs.MetricTransfo
 	m["value"] = *ts[0].MetricValue
 
 	return m
+}
+
+func flattenBeanstalkAsg(list []*elasticbeanstalk.AutoScalingGroup) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkInstances(list []*elasticbeanstalk.Instance) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Id != nil {
+			strs = append(strs, *r.Id)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkLc(list []*elasticbeanstalk.LaunchConfiguration) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkElb(list []*elasticbeanstalk.LoadBalancer) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkSqs(list []*elasticbeanstalk.Queue) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.URL != nil {
+			strs = append(strs, *r.URL)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkTrigger(list []*elasticbeanstalk.Trigger) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
 }
