@@ -690,7 +690,7 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 				return nil, "", errors.New(*i.StateReason.Message)
 			}
 
-			return nil, "", fmt.Errorf("Instance state is 'terminated' for unknown reasons")
+			return nil, "", fmt.Errorf("Instance state is 'terminated'. Please check AWS Console for more information")
 		}
 		return i, *i.State.Name, nil
 	}
