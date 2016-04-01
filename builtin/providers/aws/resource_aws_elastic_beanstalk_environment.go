@@ -124,6 +124,36 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 					return
 				},
 			},
+			"autoscaling_groups": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"instances": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"launch_configurations": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"load_balancers": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"queues": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"triggers": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -342,6 +372,14 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		return nil
 	}
 
+	resources, err := conn.DescribeEnvironmentResources(&elasticbeanstalk.DescribeEnvironmentResourcesInput{
+		EnvironmentId: aws.String(envId),
+	})
+
+	if err != nil {
+		return err
+	}
+
 	if err := d.Set("description", env.Description); err != nil {
 		return err
 	}
@@ -364,6 +402,26 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 		if err := d.Set("cname_prefix", cnamePrefix); err != nil {
 			return err
 		}
+	}
+
+	if err := d.Set("autoscaling_groups", flattenBeanstalkAsg(resources.EnvironmentResources.AutoScalingGroups)); err != nil {
+		return err
+	}
+
+	if err := d.Set("instances", flattenBeanstalkInstances(resources.EnvironmentResources.Instances)); err != nil {
+		return err
+	}
+	if err := d.Set("launch_configurations", flattenBeanstalkLc(resources.EnvironmentResources.LaunchConfigurations)); err != nil {
+		return err
+	}
+	if err := d.Set("load_balancers", flattenBeanstalkElb(resources.EnvironmentResources.LoadBalancers)); err != nil {
+		return err
+	}
+	if err := d.Set("queues", flattenBeanstalkSqs(resources.EnvironmentResources.Queues)); err != nil {
+		return err
+	}
+	if err := d.Set("triggers", flattenBeanstalkTrigger(resources.EnvironmentResources.Triggers)); err != nil {
+		return err
 	}
 
 	return resourceAwsElasticBeanstalkEnvironmentSettingsRead(d, meta)
