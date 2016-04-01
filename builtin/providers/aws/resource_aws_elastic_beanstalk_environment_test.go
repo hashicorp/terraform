@@ -189,8 +189,7 @@ resource "aws_elastic_beanstalk_application" "tftest" {
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   name = "tf-test-name"
   application = "${aws_elastic_beanstalk_application.tftest.name}"
-  solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.8 running Go 1.4"
-  #solution_stack_name =
+  solution_stack_name = "64bit Amazon Linux running Python"
 }
 `
 
@@ -204,7 +203,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
   name = "tf-test-name"
   application = "${aws_elastic_beanstalk_application.tftest.name}"
   tier = "Worker"
-  solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.4 running Go 1.4"
+  solution_stack_name = "64bit Amazon Linux running Python"
 }
 `
 
@@ -219,7 +218,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 name = "tf-test-name"
 application = "${aws_elastic_beanstalk_application.tftest.name}"
 cname_prefix = "%s"
-solution_stack_name = "64bit Amazon Linux 2015.09 v2.0.4 running Go 1.4"
+solution_stack_name = "64bit Amazon Linux running Python"
 }
 `, randString)
 }
