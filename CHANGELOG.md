@@ -17,6 +17,7 @@ IMPROVEMENTS:
  * provider/aws: Timeouts for `elasticsearch_domain` are increased [GH-5910]
  * provider/aws: `aws_redshift_cluster` allows usernames with underscore in it [GH-5935]
  * provider/aws: Add support for Step Scaling in `aws_autoscaling_policy` [GH-4277]
+ * provider/aws: Add support for `cname_prefix` to `aws_elastic_beanstalk_environment` resource [GH-5966]
  * provider/aws: Adds `wait_for_ready_timeout` option to `aws_elastic_beanstalk_environment` [GH-5967]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
