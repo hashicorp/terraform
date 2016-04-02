@@ -2,6 +2,7 @@ package ec2metadata
 
 import (
 	"encoding/json"
+	"fmt"
 	"path"
 	"strings"
 	"time"
@@ -49,7 +50,7 @@ func (c *EC2Metadata) GetInstanceIdentityDocument() (EC2InstanceIdentityDocument
 	resp, err := c.GetDynamicData("instance-identity/document")
 	if err != nil {
 		return EC2InstanceIdentityDocument{},
-			awserr.New("EC2RoleRequestError",
+			awserr.New("EC2MetadataRequestError",
 				"failed to get EC2 instance identity document", err)
 	}
 
@@ -61,6 +62,31 @@ func (c *EC2Metadata) GetInstanceIdentityDocument() (EC2InstanceIdentityDocument
 	}
 
 	return doc, nil
+}
+
+// IAMInfo retrieves IAM info from the metadata API
+func (c *EC2Metadata) IAMInfo() (EC2IAMInfo, error) {
+	resp, err := c.GetMetadata("iam/info")
+	if err != nil {
+		return EC2IAMInfo{},
+			awserr.New("EC2MetadataRequestError",
+				"failed to get EC2 IAM info", err)
+	}
+
+	info := EC2IAMInfo{}
+	if err := json.NewDecoder(strings.NewReader(resp)).Decode(&info); err != nil {
+		return EC2IAMInfo{},
+			awserr.New("SerializationError",
+				"failed to decode EC2 IAM info", err)
+	}
+
+	if info.Code != "Success" {
+		errMsg := fmt.Sprintf("failed to get EC2 IAM Info (%s)", info.Code)
+		return EC2IAMInfo{},
+			awserr.New("EC2MetadataError", errMsg, nil)
+	}
+
+	return info, nil
 }
 
 // Region returns the region the instance is running in.
@@ -83,6 +109,15 @@ func (c *EC2Metadata) Available() bool {
 	}
 
 	return true
+}
+
+// An EC2IAMInfo provides the shape for unmarshalling
+// an IAM info from the metadata API
+type EC2IAMInfo struct {
+	Code               string
+	LastUpdated        time.Time
+	InstanceProfileArn string
+	InstanceProfileID  string
 }
 
 // An EC2InstanceIdentityDocument provides the shape for unmarshalling

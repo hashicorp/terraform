@@ -1696,9 +1696,9 @@ func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestore
 
 // Lists the status of one or more table restore requests made using the RestoreTableFromClusterSnapshot
 // API action. If you don't specify a value for the TableRestoreRequestId parameter,
-// then DescribeTableRestoreStatus returns the status of all in-progress table
-// restore requests. Otherwise DescribeTableRestoreStatus returns the status
-// of the table specified by TableRestoreRequestId.
+// then DescribeTableRestoreStatus returns the status of all table restore requests
+// ordered by the date and time of the request in ascending order. Otherwise
+// DescribeTableRestoreStatus returns the status of the table specified by TableRestoreRequestId.
 func (c *Redshift) DescribeTableRestoreStatus(input *DescribeTableRestoreStatusInput) (*DescribeTableRestoreStatusOutput, error) {
 	req, out := c.DescribeTableRestoreStatusRequest(input)
 	err := req.Send()
@@ -1899,6 +1899,36 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 // nodes and the node type even if one of the parameters does not change.
 func (c *Redshift) ModifyCluster(input *ModifyClusterInput) (*ModifyClusterOutput, error) {
 	req, out := c.ModifyClusterRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opModifyClusterIamRoles = "ModifyClusterIamRoles"
+
+// ModifyClusterIamRolesRequest generates a request for the ModifyClusterIamRoles operation.
+func (c *Redshift) ModifyClusterIamRolesRequest(input *ModifyClusterIamRolesInput) (req *request.Request, output *ModifyClusterIamRolesOutput) {
+	op := &request.Operation{
+		Name:       opModifyClusterIamRoles,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyClusterIamRolesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ModifyClusterIamRolesOutput{}
+	req.Data = output
+	return
+}
+
+// Modifies the list of AWS Identity and Access Management (IAM) roles that
+// can be used by the cluster to access other AWS services.
+//
+// A cluster can have up to 10 IAM roles associated at any time.
+func (c *Redshift) ModifyClusterIamRoles(input *ModifyClusterIamRolesInput) (*ModifyClusterIamRolesOutput, error) {
+	req, out := c.ModifyClusterIamRolesRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -2492,6 +2522,10 @@ type Cluster struct {
 	// Values: active, applying
 	HsmStatus *HsmStatus `type:"structure"`
 
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services.
+	IamRoles []*ClusterIamRole `locationNameList:"ClusterIamRole" type:"list"`
+
 	// The AWS Key Management Service (KMS) key ID of the encryption key used to
 	// encrypt data in the cluster.
 	KmsKeyId *string `type:"string"`
@@ -2542,6 +2576,34 @@ func (s Cluster) String() string {
 
 // GoString returns the string representation
 func (s Cluster) GoString() string {
+	return s.String()
+}
+
+// An AWS Identity and Access Management (IAM) role that can be used by the
+// associated Amazon Redshift cluster to access other AWS services.
+type ClusterIamRole struct {
+	_ struct{} `type:"structure"`
+
+	// Describes the status of the IAM role's association with an Amazon Redshift
+	// cluster.
+	//
+	// The following are possible statuses and descriptions. in-sync: The role
+	// is available for use by the cluster. adding: The role is in the process of
+	// being associated with the cluster. removing: The role is in the process of
+	// being disassociated with the cluster.
+	ApplyStatus *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the IAM role. For example, arn:aws:iam::123456789012:role/RedshiftCopyUnload.
+	IamRoleArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ClusterIamRole) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ClusterIamRole) GoString() string {
 	return s.String()
 }
 
@@ -3010,6 +3072,14 @@ type CreateClusterInput struct {
 	// Specifies the name of the HSM configuration that contains the information
 	// the Amazon Redshift cluster can use to retrieve and store keys in an HSM.
 	HsmConfigurationIdentifier *string `type:"string"`
+
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services. You must supply the IAM roles
+	// in their Amazon Resource Name (ARN) format. You can supply up to 10 IAM roles
+	// in a single request.
+	//
+	// A cluster can have up to 10 IAM roles associated at any time.
+	IamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
 
 	// The AWS Key Management Service (KMS) key ID of the encryption key that you
 	// want to use to encrypt data in the cluster.
@@ -6005,6 +6075,50 @@ func (s LoggingStatus) GoString() string {
 	return s.String()
 }
 
+type ModifyClusterIamRolesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Zero or more IAM roles (in their ARN format) to associate with the cluster.
+	// You can associate up to 10 IAM roles with a single cluster in a single request.
+	AddIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+
+	// The unique identifier of the cluster for which you want to associate or disassociate
+	// IAM roles.
+	ClusterIdentifier *string `type:"string" required:"true"`
+
+	// Zero or more IAM roles (in their ARN format) to disassociate from the cluster.
+	// You can disassociate up to 10 IAM roles from a single cluster in a single
+	// request.
+	RemoveIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+}
+
+// String returns the string representation
+func (s ModifyClusterIamRolesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterIamRolesInput) GoString() string {
+	return s.String()
+}
+
+type ModifyClusterIamRolesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Describes a cluster.
+	Cluster *Cluster `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyClusterIamRolesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyClusterIamRolesOutput) GoString() string {
+	return s.String()
+}
+
 type ModifyClusterInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6816,6 +6930,14 @@ type RestoreFromClusterSnapshotInput struct {
 	// the Amazon Redshift cluster can use to retrieve and store keys in an HSM.
 	HsmConfigurationIdentifier *string `type:"string"`
 
+	// A list of AWS Identity and Access Management (IAM) roles that can be used
+	// by the cluster to access other AWS services. You must supply the IAM roles
+	// in their Amazon Resource Name (ARN) format. You can supply up to 10 IAM roles
+	// in a single request.
+	//
+	// A cluster can have up to 10 IAM roles associated at any time.
+	IamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
+
 	// The AWS Key Management Service (KMS) key ID of the encryption key that you
 	// want to use to encrypt data in the cluster that you restore from a shared
 	// snapshot.
@@ -6965,7 +7087,8 @@ type RestoreTableFromClusterSnapshotInput struct {
 	// The name of the source database that contains the table to restore from.
 	SourceDatabaseName *string `type:"string" required:"true"`
 
-	// The name of the source schema that contains the table to restore from.
+	// The name of the source schema that contains the table to restore from. If
+	// you do not specify a SourceSchemaName value, the default is public.
 	SourceSchemaName *string `type:"string"`
 
 	// The name of the source table to restore from.
@@ -7316,7 +7439,7 @@ type TableRestoreStatus struct {
 	ClusterIdentifier *string `type:"string"`
 
 	// A description of the status of the table restore request. Status values include
-	// SUCCEEDED, FAILED, CANCELLED, PENDING, IN_PROGRESS.
+	// SUCCEEDED, FAILED, CANCELED, PENDING, IN_PROGRESS.
 	Message *string `type:"string"`
 
 	// The name of the table to create as a result of the table restore request.
@@ -7343,7 +7466,7 @@ type TableRestoreStatus struct {
 
 	// A value that describes the current state of the table restore request.
 	//
-	// Valid Values: SUCCEEDED, FAILED, CANCELLED, PENDING, IN_PROGRESS
+	// Valid Values: SUCCEEDED, FAILED, CANCELED, PENDING, IN_PROGRESS
 	Status *string `type:"string" enum:"TableRestoreStatusType"`
 
 	// The unique identifier for the table restore request.
