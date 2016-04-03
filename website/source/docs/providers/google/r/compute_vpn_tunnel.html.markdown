@@ -8,7 +8,7 @@ description: |-
 
 # google\_compute\_vpn\_tunnel
 
-Manages a VPN Tunnel to the GCE network. For more info, read the 
+Manages a VPN Tunnel to the GCE network. For more info, read the
 [documentation](https://cloud.google.com/compute/docs/vpn).
 
 ## Example Usage
@@ -91,7 +91,7 @@ The following arguments are supported:
     Changing this forces a new resource to be created.
 
 * `region` - (Optional) The region this tunnel should sit in. If not specified,
-    the project region will be used. Changing this forces a new resource to be 
+    the project region will be used. Changing this forces a new resource to be
     created.
 
 * `shared_secret` - (Required) A passphrase shared between the two VPN gateways.
@@ -102,7 +102,7 @@ The following arguments are supported:
 
 * `ike_version` - (Optional) Either version 1 or 2. Default is 2.
     Changing this forces a new resource to be created.
-    
+
 * `local_traffic_selector` - (Optional) Specifies which CIDR ranges are announced
     to the VPN peer. Mandatory if the VPN gateway is attached to a custom subnetted
     network. Refer to Google documentation for more information.
@@ -113,4 +113,4 @@ The following attributes are exported:
 
 * `self_link` - A GCE server assigned link to this resource.
 
-* `detailed_status` - Information about the status of the VPN tunnel. 
+* `detailed_status` - Information about the status of the VPN tunnel.

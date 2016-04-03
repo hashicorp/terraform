@@ -33,8 +33,8 @@ The following arguments are supported:
 
 * `ip_cidr_range` - (Required) The IP address range that machines in this
      network are assigned to, represented as a CIDR block.
-     
-* `region` - (Required) The region this subnetwork will be created in. 
+
+* `region` - (Required) The region this subnetwork will be created in.
 
 * `description` - (Optional) Description of this subnetwork.
 

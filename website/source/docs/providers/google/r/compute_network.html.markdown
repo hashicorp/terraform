@@ -31,8 +31,8 @@ The following arguments are supported:
      set, an auto or custom subnetted network will be created, depending
      on the value of `auto_create_subnetworks` attribute. This attribute
      may not be used if `auto_create_subnets` is specified.
-     
-* `auto_create_subnetworks` - (Optional) If set to true, this network 
+
+* `auto_create_subnetworks` - (Optional) If set to true, this network
      will be created in auto subnet mode, and Google will create a
      subnet for each region automatically.
      If set to false, and `ipv4_range` is not set, a custom subnetted
