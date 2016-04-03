@@ -42,6 +42,25 @@ func (c *keyClient) Get(path string) (string, error) {
 	return value, nil
 }
 
+func (c *keyClient) GetUnderPrefix(pathPrefix string) (map[string]string, error) {
+	log.Printf(
+		"[DEBUG] Listing keys under '%s' in %s",
+		pathPrefix, c.qOpts.Datacenter,
+	)
+	pairs, _, err := c.client.List(pathPrefix, c.qOpts)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Failed to list Consul keys under prefix '%s': %s", pathPrefix, err,
+		)
+	}
+	value := map[string]string{}
+	for _, pair := range pairs {
+		subKey := pair.Key[len(pathPrefix):]
+		value[subKey] = string(pair.Value)
+	}
+	return value, nil
+}
+
 func (c *keyClient) Put(path, value string) error {
 	log.Printf(
 		"[DEBUG] Setting key '%s' to '%v' in %s",
@@ -61,6 +80,17 @@ func (c *keyClient) Delete(path string) error {
 	)
 	if _, err := c.client.Delete(path, c.wOpts); err != nil {
 		return fmt.Errorf("Failed to delete Consul key '%s': %s", path, err)
+	}
+	return nil
+}
+
+func (c *keyClient) DeleteUnderPrefix(pathPrefix string) error {
+	log.Printf(
+		"[DEBUG] Deleting all keys under prefix '%s' in %s",
+		pathPrefix, c.wOpts.Datacenter,
+	)
+	if _, err := c.client.DeleteTree(pathPrefix, c.wOpts); err != nil {
+		return fmt.Errorf("Failed to delete Consul keys under '%s': %s", pathPrefix, err)
 	}
 	return nil
 }

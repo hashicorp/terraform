@@ -13,6 +13,13 @@ to both read keys from Consul, but also to set the value of keys
 in Consul. This is a powerful way dynamically set values in templates,
 and to expose infrastructure details to clients.
 
+This resource manages individual keys, and thus it can create, update and
+delete the keys explicitly given. Howver, It is not able to detect and remove
+additional keys that have been added by non-Terraform means. To manage
+*all* keys sharing a common prefix, and thus have Terraform remove errant keys
+not present in the configuration, consider using the `consul_key_prefix`
+resource instead.
+
 ## Example Usage
 
 ```
