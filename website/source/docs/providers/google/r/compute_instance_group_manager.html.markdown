@@ -48,11 +48,11 @@ instance name.
 group manager.
 
 * `instance_template` - (Required) The full URL to an instance template from
-which all new instances will be created. 
+which all new instances will be created.
 
 * `update_strategy` - (Optional, Default `"RESTART"`) If the `instance_template` resource is
 modified, a value of `"NONE"` will prevent any of the managed instances from
-being restarted by Terraform. A value of `"RESTART"` will restart all of the 
+being restarted by Terraform. A value of `"RESTART"` will restart all of the
 instances at once. In the future, as the GCE API matures we will support
 `"ROLLING_UPDATE"` as well.
 
@@ -69,7 +69,7 @@ affect existing instances.
 
 * `zone` - (Required) The zone that instances in this group should be created in.
 
-The `named_port` block supports: (Include a named_port block for each named-port required).
+The `named_port` block supports: (Include a `named_port` block for each named-port required).
 
 * `name` - (Required) The name of the port.
 
