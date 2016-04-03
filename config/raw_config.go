@@ -325,10 +325,12 @@ func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
 	funcMap["keys"] = interpolationFuncKeys(vs)
 	funcMap["values"] = interpolationFuncValues(vs)
 
+	scope := &ast.BasicScope{
+		VarMap:  vs,
+		FuncMap: funcMap,
+	}
+
 	return &hil.EvalConfig{
-		GlobalScope: &ast.BasicScope{
-			VarMap:  vs,
-			FuncMap: funcMap,
-		},
+		GlobalScope: scope,
 	}
 }

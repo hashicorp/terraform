@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/hilstructure"
 )
 
 func TestInterpolater_countIndex(t *testing.T) {
@@ -257,24 +258,23 @@ func TestInterpolator_resourceMultiAttributes(t *testing.T) {
 		"ns-498.awsdns-62.com",
 		"ns-601.awsdns-11.net",
 	}
-	expectedNameServers := config.NewStringList(name_servers).String()
 
 	// More than 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
-		Value: expectedNameServers,
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList(name_servers).Value,
+		Type:  ast.TypeList,
 	})
 
 	// Exactly 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.yada.listeners", ast.Variable{
-		Value: config.NewStringList([]string{"red"}).String(),
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList([]string{"red"}).Value,
+		Type:  ast.TypeList,
 	})
 
 	// Zero elements
 	testInterpolate(t, i, scope, "aws_route53_zone.yada.nothing", ast.Variable{
-		Value: config.NewStringList([]string{}).String(),
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList([]string{}).Value,
+		Type:  ast.TypeList,
 	})
 
 	// Maps still need to work
@@ -302,38 +302,37 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 	}
 
 	// More than 1 element
-	expectedNameServers := config.NewStringList(name_servers[0:4]).String()
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.name_servers", ast.Variable{
-		Value: expectedNameServers,
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList(name_servers[0:4]).Value,
+		Type:  ast.TypeList,
 	})
+
 	// More than 1 element in both
-	expectedNameServers = config.NewStringList(name_servers).String()
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.name_servers", ast.Variable{
-		Value: expectedNameServers,
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList(name_servers).Value,
+		Type:  ast.TypeList,
 	})
 
 	// Exactly 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.listeners", ast.Variable{
-		Value: config.NewStringList([]string{"red"}).String(),
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList([]string{"red"}).Value,
+		Type:  ast.TypeList,
 	})
 	// Exactly 1 element in both
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.listeners", ast.Variable{
-		Value: config.NewStringList([]string{"red", "blue"}).String(),
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList([]string{"red", "blue"}).Value,
+		Type:  ast.TypeList,
 	})
 
 	// Zero elements
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.nothing", ast.Variable{
-		Value: config.NewStringList([]string{}).String(),
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList([]string{}).Value,
+		Type:  ast.TypeList,
 	})
 	// Zero + 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.special", ast.Variable{
-		Value: config.NewStringList([]string{"extra"}).String(),
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList([]string{"extra"}).Value,
+		Type:  ast.TypeList,
 	})
 
 	// Maps still need to work
@@ -343,8 +342,8 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 	})
 	// Maps still need to work in both
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.tags.Name", ast.Variable{
-		Value: config.NewStringList([]string{"reindeer", "white-hart"}).String(),
-		Type:  ast.TypeString,
+		Value: hilstructure.MakeHILStringList([]string{"reindeer", "white-hart"}).Value,
+		Type:  ast.TypeList,
 	})
 }
 
@@ -483,6 +482,6 @@ func testInterpolate(
 		"foo": expectedVar,
 	}
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("%q: actual: %#v\nexpected: %#v", n, actual, expected)
+		t.Fatalf("%q:\n  actual: %#v\nexpected: %#v", n, actual, expected)
 	}
 }

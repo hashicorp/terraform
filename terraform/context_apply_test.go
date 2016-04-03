@@ -3015,7 +3015,7 @@ func TestContext2Apply_outputList(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputListStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("bad: \n%s\n\n%s", actual, expected)
 	}
 }
 
