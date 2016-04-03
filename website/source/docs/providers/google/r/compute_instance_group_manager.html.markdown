@@ -10,7 +10,7 @@ description: |-
 
 The Google Compute Engine Instance Group Manager API creates and manages pools
 of homogeneous Compute Engine virtual machine instances from a common instance
-template.  For more information, see [the official documentation](https://cloud.google.com/compute/docs/instance-groups/manager
+template.  For more information, see [the official documentation](https://cloud.google.com/compute/docs/instance-groups/manager)
 and [API](https://cloud.google.com/compute/docs/instance-groups/manager/v1beta2/instanceGroupManagers)
 
 ## Example Usage
