@@ -7,6 +7,7 @@ FEATURES:
  * **New resource:** `aws_iam_user_ssh_key` [GH-5774]
  * **New resource:** `triton_fabric` [GH-5920]
  * **New resource:** `triton_vlan` [GH-5920]
+ * **New resource:** `cloudstack_static_nat` [GH-6004]
  * New `terraform fmt` command to automatically normalize config file style [GH-4955]
 
 IMPROVEMENTS:
