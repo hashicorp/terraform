@@ -177,14 +177,14 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 		resource := *resourceAwsSnsTopic()
 		// iKey = internal struct key, oKey = AWS Attribute Map key
 		for iKey, oKey := range SNSAttributeMap {
-			log.Printf("[DEBUG] Updating %s => %s", iKey, oKey)
+			log.Printf("[DEBUG] Reading %s => %s", iKey, oKey)
 
 			if attrmap[oKey] != nil {
 				// Some of the fetched attributes are stateful properties such as
 				// the number of subscriptions, the owner, etc. skip those
 				if resource.Schema[iKey] != nil {
 					value := *attrmap[oKey]
-					log.Printf("[DEBUG] Updating %s => %s -> %s", iKey, oKey, value)
+					log.Printf("[DEBUG] Reading %s => %s -> %s", iKey, oKey, value)
 					d.Set(iKey, *attrmap[oKey])
 				}
 			}
