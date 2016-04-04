@@ -13,6 +13,7 @@ type Config struct {
 	Port     int
 	Username string
 	Password string
+	SslMode  string
 }
 
 // Client struct holding connection string
@@ -23,7 +24,7 @@ type Client struct {
 
 //NewClient returns new client config
 func (c *Config) NewClient() (*Client, error) {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres", c.Host, c.Port, c.Username, c.Password)
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s", c.Host, c.Port, c.Username, c.Password, c.SslMode)
 
 	client := Client{
 		connStr:  connStr,

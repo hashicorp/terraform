@@ -20,6 +20,7 @@ provider "postgresql" {
   port = 5432
   username = "postgres_user"
   password = "postgres_password"
+  ssl_mode = "require"
 }
 
 ```
@@ -61,3 +62,4 @@ The following arguments are supported:
 * `port` - (Optional) The port for the postgresql server connection. (Default 5432)
 * `username` - (Required) Username for the server connection.
 * `password` - (Optional) Password for the server connection.
+* `ssl_mode` - (Optional) Set connection mode for postgresql server (Default "require", more options [lib/pq documentations](https://godoc.org/github.com/lib/pq)).
