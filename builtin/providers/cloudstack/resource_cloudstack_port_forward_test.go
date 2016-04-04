@@ -21,7 +21,7 @@ func TestAccCloudStackPortForward_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackPortForwardsExist("cloudstack_port_forward.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "ipaddress", CLOUDSTACK_PUBLIC_IPADDRESS),
+						"cloudstack_port_forward.foo", "ip_address", CLOUDSTACK_PUBLIC_IPADDRESS),
 					resource.TestCheckResourceAttr(
 						"cloudstack_port_forward.foo", "forward.952396423.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
@@ -47,7 +47,7 @@ func TestAccCloudStackPortForward_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackPortForwardsExist("cloudstack_port_forward.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "ipaddress", CLOUDSTACK_PUBLIC_IPADDRESS),
+						"cloudstack_port_forward.foo", "ip_address", CLOUDSTACK_PUBLIC_IPADDRESS),
 					resource.TestCheckResourceAttr(
 						"cloudstack_port_forward.foo", "forward.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -66,7 +66,7 @@ func TestAccCloudStackPortForward_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackPortForwardsExist("cloudstack_port_forward.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_port_forward.foo", "ipaddress", CLOUDSTACK_PUBLIC_IPADDRESS),
+						"cloudstack_port_forward.foo", "ip_address", CLOUDSTACK_PUBLIC_IPADDRESS),
 					resource.TestCheckResourceAttr(
 						"cloudstack_port_forward.foo", "forward.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -161,7 +161,7 @@ resource "cloudstack_instance" "foobar" {
 }
 
 resource "cloudstack_port_forward" "foo" {
-  ipaddress = "%s"
+  ip_address = "%s"
 
   forward {
     protocol = "tcp"
@@ -187,7 +187,7 @@ resource "cloudstack_instance" "foobar" {
 }
 
 resource "cloudstack_port_forward" "foo" {
-  ipaddress = "%s"
+  ip_address = "%s"
 
   forward {
     protocol = "tcp"

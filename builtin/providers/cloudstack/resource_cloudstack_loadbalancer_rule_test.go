@@ -251,23 +251,11 @@ resource "cloudstack_instance" "foobar1" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb"
-  ipaddress = "%s"
-  # network omitted, inferred from IP
+  ip_address = "%s"
   algorithm = "roundrobin"
   public_port = 80
   private_port = 80
   members = ["${cloudstack_instance.foobar1.id}"]
-}
-
-# attempt to create dependent firewall rule
-# this will clash if cloudstack creates the implicit rule as it does by default
-resource "cloudstack_firewall" "foo" {
-  ipaddress = "${cloudstack_loadbalancer_rule.foo.ipaddress}"
-  rule {
-    source_cidr = "0.0.0.0/0"
-    protocol = "tcp"
-    ports = ["${cloudstack_loadbalancer_rule.foo.public_port}"]
-  }
 }
 `,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -289,23 +277,11 @@ resource "cloudstack_instance" "foobar1" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb-update"
-  ipaddress = "%s"
-  # network omitted, inferred from IP
+  ip_address = "%s"
   algorithm = "leastconn"
   public_port = 80
   private_port = 80
   members = ["${cloudstack_instance.foobar1.id}"]
-}
-
-# attempt to create dependent firewall rule
-# this will clash if cloudstack creates the implicit rule as it does by default
-resource "cloudstack_firewall" "foo" {
-  ipaddress = "${cloudstack_loadbalancer_rule.foo.ipaddress}"
-  rule {
-    source_cidr = "0.0.0.0/0"
-    protocol = "tcp"
-    ports = ["${cloudstack_loadbalancer_rule.foo.public_port}"]
-  }
 }
 `,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -327,23 +303,11 @@ resource "cloudstack_instance" "foobar1" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb-update"
-  ipaddress = "%s"
-  # network omitted, inferred from IP
+  ip_address = "%s"
   algorithm = "leastconn"
   public_port = 443
   private_port = 443
   members = ["${cloudstack_instance.foobar1.id}"]
-}
-
-# attempt to create dependent firewall rule
-# this will clash if cloudstack creates the implicit rule as it does by default
-resource "cloudstack_firewall" "foo" {
-  ipaddress = "${cloudstack_loadbalancer_rule.foo.ipaddress}"
-  rule {
-    source_cidr = "0.0.0.0/0"
-    protocol = "tcp"
-    ports = ["${cloudstack_loadbalancer_rule.foo.public_port}"]
-  }
 }
 `,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -379,13 +343,12 @@ resource "cloudstack_instance" "foobar1" {
   network = "${cloudstack_network.foo.name}"
   template = "%s"
   zone = "${cloudstack_network.foo.zone}"
-  user_data = "foobar\nfoo\nbar"
   expunge = true
 }
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb"
-  ipaddress = "${cloudstack_ipaddress.foo.ipaddress}"
+  ip_address = "${cloudstack_ipaddress.foo.ip_address}"
   algorithm = "roundrobin"
   network = "${cloudstack_network.foo.id}"
   public_port = 80
@@ -402,10 +365,10 @@ resource "cloudstack_loadbalancer_rule" "foo" {
 
 var testAccCloudStackLoadBalancerRule_vpc_update = fmt.Sprintf(`
 resource "cloudstack_vpc" "foobar" {
-    name = "terraform-vpc"
-    cidr = "%s"
-    vpc_offering = "%s"
-    zone = "%s"
+  name = "terraform-vpc"
+  cidr = "%s"
+  vpc_offering = "%s"
+  zone = "%s"
 }
 
 resource "cloudstack_network" "foo" {
@@ -427,7 +390,6 @@ resource "cloudstack_instance" "foobar1" {
   network = "${cloudstack_network.foo.name}"
   template = "%s"
   zone = "${cloudstack_network.foo.zone}"
-  user_data = "foobar\nfoo\nbar"
   expunge = true
 }
 
@@ -438,18 +400,17 @@ resource "cloudstack_instance" "foobar2" {
   network = "${cloudstack_network.foo.name}"
   template = "%s"
   zone = "${cloudstack_network.foo.zone}"
-  user_data = "foobar\nfoo\nbar"
   expunge = true
 }
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb-update"
-  ipaddress = "${cloudstack_ipaddress.foo.ipaddress}"
+  ip_address = "${cloudstack_ipaddress.foo.ip_address}"
   algorithm = "leastconn"
   network = "${cloudstack_network.foo.id}"
   public_port = 443
   private_port = 443
-  members = ["${cloudstack_instance.foobar2.id}", "${cloudstack_instance.foobar1.id}"]
+  members = ["${cloudstack_instance.foobar1.id}", "${cloudstack_instance.foobar2.id}"]
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
