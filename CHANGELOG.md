@@ -34,6 +34,7 @@ BUG FIXES:
  * provider/aws: Fix issue re-creating deleted VPC peering connections [GH-5959]
  * provider/aws: set ASG `health_check_grace_period` default to 300 [GH-5830]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
+ * provider/docker: Docker Image will be deleted on destroy [GH-5801]
 
 ## 0.6.14 (March 21, 2016)
 
