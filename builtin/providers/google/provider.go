@@ -22,9 +22,12 @@ func Provider() terraform.ResourceProvider {
 			},
 
 			"credentials": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_CREDENTIALS", nil),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_CREDENTIALS",
+					"GOOGLE_CLOUD_KEYFILE_JSON",
+				}, nil),
 				ValidateFunc: validateCredentials,
 			},
 
