@@ -26,39 +26,24 @@ type Request struct {
 	client *Client
 }
 
-func readLocation(req interface{}) (string, bool) {
+func readTaggedFields(command interface{}) map[string]interface{} {
 	var value reflect.Value
-	if reflect.ValueOf(req).Kind() == reflect.Ptr {
-		value = reflect.ValueOf(req).Elem()
+	if reflect.ValueOf(command).Kind() == reflect.Ptr {
+		value = reflect.ValueOf(command).Elem()
 	} else {
-		value = reflect.ValueOf(req)
+		value = reflect.ValueOf(command)
 	}
+
+	result := make(map[string]interface{})
 
 	for i := 0; i < value.NumField(); i++ { // iterates through every struct type field
 		tag := value.Type().Field(i).Tag // returns the tag string
-		if tag.Get("riviera") == "location" {
-			return value.Field(i).String(), true
+		tagValue := tag.Get("riviera")
+		if tagValue != "" {
+			result[tagValue] = value.Field(i).Interface()
 		}
 	}
-	return "", false
-}
-
-func readTags(req interface{}) (map[string]*string, bool) {
-	var value reflect.Value
-	if reflect.ValueOf(req).Kind() == reflect.Ptr {
-		value = reflect.ValueOf(req).Elem()
-	} else {
-		value = reflect.ValueOf(req)
-	}
-
-	for i := 0; i < value.NumField(); i++ { // iterates through every struct type field
-		tag := value.Type().Field(i).Tag // returns the tag string
-		if tag.Get("riviera") == "tags" {
-			tags := value.Field(i)
-			return tags.Interface().(map[string]*string), true
-		}
-	}
-	return make(map[string]*string), false
+	return result
 }
 
 func (request *Request) pollForAsynchronousResponse(acceptedResponse *http.Response) (*http.Response, error) {
@@ -108,24 +93,15 @@ func (request *Request) pollForAsynchronousResponse(acceptedResponse *http.Respo
 }
 
 func defaultARMRequestStruct(request *Request, properties interface{}) interface{} {
-	bodyStruct := struct {
-		Location   *string             `json:"location,omitempty"`
-		Tags       *map[string]*string `json:"tags,omitempty"`
-		Properties interface{}         `json:"properties"`
-	}{
-		Properties: properties,
+	body := make(map[string]interface{})
+
+	envelopeFields := readTaggedFields(properties)
+	for k, v := range envelopeFields {
+		body[k] = v
 	}
 
-	if location, hasLocation := readLocation(request.Command); hasLocation {
-		bodyStruct.Location = &location
-	}
-	if tags, hasTags := readTags(request.Command); hasTags {
-		if len(tags) > 0 {
-			bodyStruct.Tags = &tags
-		}
-	}
-
-	return bodyStruct
+	body["properties"] = properties
+	return body
 }
 
 func defaultARMRequestSerialize(body interface{}) (io.ReadSeeker, error) {
@@ -162,6 +138,7 @@ func (request *Request) Execute() (*Response, error) {
 		} else {
 			bodyStruct = defaultARMRequestStruct(request, request.Command)
 		}
+
 		serialized, err := defaultARMRequestSerialize(bodyStruct)
 		if err != nil {
 			return nil, err

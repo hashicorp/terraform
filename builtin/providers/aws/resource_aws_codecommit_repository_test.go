@@ -53,6 +53,50 @@ func TestAccAWSCodeCommitRepository_withChanges(t *testing.T) {
 	})
 }
 
+func TestAccAWSCodeCommitRepository_create_default_branch(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCodeCommitRepositoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCodeCommitRepository_with_default_branch,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
+					resource.TestCheckResourceAttr(
+						"aws_codecommit_repository.test", "default_branch", "master"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeCommitRepository_create_and_update_default_branch(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCodeCommitRepositoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCodeCommitRepository_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
+					resource.TestCheckResourceAttr(
+						"aws_codecommit_repository.test", "default_branch", ""),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCodeCommitRepository_with_default_branch,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
+					resource.TestCheckResourceAttr(
+						"aws_codecommit_repository.test", "default_branch", "master"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCodeCommitRepositoryExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
@@ -127,5 +171,16 @@ provider "aws" {
 resource "aws_codecommit_repository" "test" {
   repository_name = "my_test_repository"
   description = "This is a test description - with changes"
+}
+`
+
+const testAccCodeCommitRepository_with_default_branch = `
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_codecommit_repository" "test" {
+  repository_name = "my_test_repository"
+  description = "This is a test description"
+  default_branch = "master"
 }
 `

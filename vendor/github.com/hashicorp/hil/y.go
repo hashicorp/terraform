@@ -24,11 +24,13 @@ const PROGRAM_STRING_END = 57349
 const PAREN_LEFT = 57350
 const PAREN_RIGHT = 57351
 const COMMA = 57352
-const ARITH_OP = 57353
-const IDENTIFIER = 57354
-const INTEGER = 57355
-const FLOAT = 57356
-const STRING = 57357
+const SQUARE_BRACKET_LEFT = 57353
+const SQUARE_BRACKET_RIGHT = 57354
+const ARITH_OP = 57355
+const IDENTIFIER = 57356
+const INTEGER = 57357
+const FLOAT = 57358
+const STRING = 57359
 
 var parserToknames = [...]string{
 	"$end",
@@ -41,6 +43,8 @@ var parserToknames = [...]string{
 	"PAREN_LEFT",
 	"PAREN_RIGHT",
 	"COMMA",
+	"SQUARE_BRACKET_LEFT",
+	"SQUARE_BRACKET_RIGHT",
 	"ARITH_OP",
 	"IDENTIFIER",
 	"INTEGER",
@@ -51,9 +55,9 @@ var parserStatenames = [...]string{}
 
 const parserEofCode = 1
 const parserErrCode = 2
-const parserMaxDepth = 200
+const parserInitialStackSize = 16
 
-//line lang.y:165
+//line lang.y:196
 
 //line yacctab:1
 var parserExca = [...]int{
@@ -62,51 +66,57 @@ var parserExca = [...]int{
 	-2, 0,
 }
 
-const parserNprod = 19
+const parserNprod = 21
 const parserPrivate = 57344
 
 var parserTokenNames []string
 var parserStates []string
 
-const parserLast = 30
+const parserLast = 37
 
 var parserAct = [...]int{
 
-	9, 20, 16, 16, 7, 7, 3, 18, 10, 8,
-	1, 17, 14, 12, 13, 6, 6, 19, 8, 22,
-	15, 23, 24, 11, 2, 25, 16, 21, 4, 5,
+	9, 7, 29, 17, 23, 16, 17, 3, 17, 20,
+	8, 18, 21, 17, 6, 19, 27, 28, 22, 8,
+	1, 25, 26, 7, 11, 2, 24, 10, 4, 30,
+	5, 0, 14, 15, 12, 13, 6,
 }
 var parserPact = [...]int{
 
-	1, -1000, 1, -1000, -1000, -1000, -1000, 0, -1000, 15,
-	0, 1, -1000, -1000, -1, -1000, 0, -8, 0, -1000,
-	-1000, 12, -9, -1000, 0, -9,
+	-3, -1000, -3, -1000, -1000, -1000, -1000, 19, -1000, 0,
+	19, -3, -1000, -1000, 19, 1, -1000, 19, -5, -1000,
+	19, 19, -1000, -1000, 7, -7, -10, -1000, 19, -1000,
+	-7,
 }
 var parserPgo = [...]int{
 
-	0, 0, 29, 28, 23, 6, 27, 10,
+	0, 0, 30, 28, 24, 7, 26, 20,
 }
 var parserR1 = [...]int{
 
 	0, 7, 7, 4, 4, 5, 5, 2, 1, 1,
-	1, 1, 1, 1, 1, 6, 6, 6, 3,
+	1, 1, 1, 1, 1, 1, 1, 6, 6, 6,
+	3,
 }
 var parserR2 = [...]int{
 
 	0, 0, 1, 1, 2, 1, 1, 3, 3, 1,
-	1, 1, 3, 1, 4, 0, 3, 1, 1,
+	1, 1, 2, 3, 1, 4, 4, 0, 3, 1,
+	1,
 }
 var parserChk = [...]int{
 
-	-1000, -7, -4, -5, -3, -2, 15, 4, -5, -1,
-	8, -4, 13, 14, 12, 5, 11, -1, 8, -1,
-	9, -6, -1, 9, 10, -1,
+	-1000, -7, -4, -5, -3, -2, 17, 4, -5, -1,
+	8, -4, 15, 16, 13, 14, 5, 13, -1, -1,
+	8, 11, -1, 9, -6, -1, -1, 9, 10, 12,
+	-1,
 }
 var parserDef = [...]int{
 
-	1, -2, 2, 3, 5, 6, 18, 0, 4, 0,
-	0, 9, 10, 11, 13, 7, 0, 0, 15, 12,
-	8, 0, 17, 14, 0, 16,
+	1, -2, 2, 3, 5, 6, 20, 0, 4, 0,
+	0, 9, 10, 11, 0, 14, 7, 0, 0, 12,
+	17, 0, 13, 8, 0, 19, 0, 15, 0, 16,
+	18,
 }
 var parserTok1 = [...]int{
 
@@ -115,7 +125,7 @@ var parserTok1 = [...]int{
 var parserTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-	12, 13, 14, 15,
+	12, 13, 14, 15, 16, 17,
 }
 var parserTok3 = [...]int{
 	0,
@@ -147,18 +157,17 @@ type parserParser interface {
 }
 
 type parserParserImpl struct {
-	lookahead func() int
+	lval  parserSymType
+	stack [parserInitialStackSize]parserSymType
+	char  int
 }
 
 func (p *parserParserImpl) Lookahead() int {
-	return p.lookahead()
+	return p.char
 }
 
 func parserNewParser() parserParser {
-	p := &parserParserImpl{
-		lookahead: func() int { return -1 },
-	}
-	return p
+	return &parserParserImpl{}
 }
 
 const parserFlag = -1000
@@ -286,22 +295,20 @@ func parserParse(parserlex parserLexer) int {
 
 func (parserrcvr *parserParserImpl) Parse(parserlex parserLexer) int {
 	var parsern int
-	var parserlval parserSymType
 	var parserVAL parserSymType
 	var parserDollar []parserSymType
 	_ = parserDollar // silence set and not used
-	parserS := make([]parserSymType, parserMaxDepth)
+	parserS := parserrcvr.stack[:]
 
 	Nerrs := 0   /* number of errors */
 	Errflag := 0 /* error recovery flag */
 	parserstate := 0
-	parserchar := -1
-	parsertoken := -1 // parserchar translated into internal numbering
-	parserrcvr.lookahead = func() int { return parserchar }
+	parserrcvr.char = -1
+	parsertoken := -1 // parserrcvr.char translated into internal numbering
 	defer func() {
 		// Make sure we report no lookahead when not parsing.
 		parserstate = -1
-		parserchar = -1
+		parserrcvr.char = -1
 		parsertoken = -1
 	}()
 	parserp := -1
@@ -333,8 +340,8 @@ parsernewstate:
 	if parsern <= parserFlag {
 		goto parserdefault /* simple state */
 	}
-	if parserchar < 0 {
-		parserchar, parsertoken = parserlex1(parserlex, &parserlval)
+	if parserrcvr.char < 0 {
+		parserrcvr.char, parsertoken = parserlex1(parserlex, &parserrcvr.lval)
 	}
 	parsern += parsertoken
 	if parsern < 0 || parsern >= parserLast {
@@ -342,9 +349,9 @@ parsernewstate:
 	}
 	parsern = parserAct[parsern]
 	if parserChk[parsern] == parsertoken { /* valid shift */
-		parserchar = -1
+		parserrcvr.char = -1
 		parsertoken = -1
-		parserVAL = parserlval
+		parserVAL = parserrcvr.lval
 		parserstate = parsern
 		if Errflag > 0 {
 			Errflag--
@@ -356,8 +363,8 @@ parserdefault:
 	/* default state action */
 	parsern = parserDef[parserstate]
 	if parsern == -2 {
-		if parserchar < 0 {
-			parserchar, parsertoken = parserlex1(parserlex, &parserlval)
+		if parserrcvr.char < 0 {
+			parserrcvr.char, parsertoken = parserlex1(parserlex, &parserrcvr.lval)
 		}
 
 		/* look through exception table */
@@ -420,7 +427,7 @@ parserdefault:
 			if parsertoken == parserEofCode {
 				goto ret1
 			}
-			parserchar = -1
+			parserrcvr.char = -1
 			parsertoken = -1
 			goto parsernewstate /* try again in the same state */
 		}
@@ -463,7 +470,7 @@ parserdefault:
 
 	case 1:
 		parserDollar = parserS[parserpt-0 : parserpt+1]
-		//line lang.y:35
+		//line lang.y:36
 		{
 			parserResult = &ast.LiteralNode{
 				Value: "",
@@ -473,7 +480,7 @@ parserdefault:
 		}
 	case 2:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:43
+		//line lang.y:44
 		{
 			parserResult = parserDollar[1].node
 
@@ -496,13 +503,13 @@ parserdefault:
 		}
 	case 3:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:66
+		//line lang.y:67
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 4:
 		parserDollar = parserS[parserpt-2 : parserpt+1]
-		//line lang.y:70
+		//line lang.y:71
 		{
 			var result []ast.Node
 			if c, ok := parserDollar[1].node.(*ast.Concat); ok {
@@ -518,37 +525,37 @@ parserdefault:
 		}
 	case 5:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:86
+		//line lang.y:87
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 6:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:90
+		//line lang.y:91
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 7:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:96
+		//line lang.y:97
 		{
 			parserVAL.node = parserDollar[2].node
 		}
 	case 8:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:102
+		//line lang.y:103
 		{
 			parserVAL.node = parserDollar[2].node
 		}
 	case 9:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:106
+		//line lang.y:107
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 10:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:110
+		//line lang.y:111
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserDollar[1].token.Value.(int),
@@ -558,7 +565,7 @@ parserdefault:
 		}
 	case 11:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:118
+		//line lang.y:119
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserDollar[1].token.Value.(float64),
@@ -567,8 +574,29 @@ parserdefault:
 			}
 		}
 	case 12:
+		parserDollar = parserS[parserpt-2 : parserpt+1]
+		//line lang.y:127
+		{
+			// This is REALLY jank. We assume that a singular ARITH_OP
+			// means 0 ARITH_OP expr, which... is weird. We don't want to
+			// support *, /, etc., only -. We should fix this later with a pure
+			// Go scanner/parser.
+			if parserDollar[1].token.Value.(ast.ArithmeticOp) != ast.ArithmeticOpSub {
+				panic("Unary - is only allowed")
+			}
+
+			parserVAL.node = &ast.Arithmetic{
+				Op: parserDollar[1].token.Value.(ast.ArithmeticOp),
+				Exprs: []ast.Node{
+					&ast.LiteralNode{Value: 0, Typex: ast.TypeInt},
+					parserDollar[2].node,
+				},
+				Posx: parserDollar[2].node.Pos(),
+			}
+		}
+	case 13:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:126
+		//line lang.y:146
 		{
 			parserVAL.node = &ast.Arithmetic{
 				Op:    parserDollar[2].token.Value.(ast.ArithmeticOp),
@@ -576,39 +604,52 @@ parserdefault:
 				Posx:  parserDollar[1].node.Pos(),
 			}
 		}
-	case 13:
+	case 14:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:134
+		//line lang.y:154
 		{
 			parserVAL.node = &ast.VariableAccess{Name: parserDollar[1].token.Value.(string), Posx: parserDollar[1].token.Pos}
 		}
-	case 14:
+	case 15:
 		parserDollar = parserS[parserpt-4 : parserpt+1]
-		//line lang.y:138
+		//line lang.y:158
 		{
 			parserVAL.node = &ast.Call{Func: parserDollar[1].token.Value.(string), Args: parserDollar[3].nodeList, Posx: parserDollar[1].token.Pos}
 		}
-	case 15:
+	case 16:
+		parserDollar = parserS[parserpt-4 : parserpt+1]
+		//line lang.y:162
+		{
+			parserVAL.node = &ast.Index{
+				Target: &ast.VariableAccess{
+					Name: parserDollar[1].token.Value.(string),
+					Posx: parserDollar[1].token.Pos,
+				},
+				Key:  parserDollar[3].node,
+				Posx: parserDollar[1].token.Pos,
+			}
+		}
+	case 17:
 		parserDollar = parserS[parserpt-0 : parserpt+1]
-		//line lang.y:143
+		//line lang.y:174
 		{
 			parserVAL.nodeList = nil
 		}
-	case 16:
+	case 18:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:147
+		//line lang.y:178
 		{
 			parserVAL.nodeList = append(parserDollar[1].nodeList, parserDollar[3].node)
 		}
-	case 17:
+	case 19:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:151
+		//line lang.y:182
 		{
 			parserVAL.nodeList = append(parserVAL.nodeList, parserDollar[1].node)
 		}
-	case 18:
+	case 20:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:157
+		//line lang.y:188
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserDollar[1].token.Value.(string),

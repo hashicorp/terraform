@@ -45,7 +45,19 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[ERROR] %s: diff two: %#v", n.Info.Id, two)
 		return nil, fmt.Errorf(
 			"%s: diffs didn't match during apply. This is a bug with "+
-				"Terraform and should be reported.", n.Info.Id)
+				"Terraform and should be reported as a GitHub Issue.\n"+
+				"\n"+
+				"Please include the following information in your report:\n"+
+				"\n"+
+				"    Terraform Version: %s\n"+
+				"    Resource ID: %s\n"+
+				"    Mismatch reason: %s\n"+
+				"    Diff One (usually from plan): %#v\n"+
+				"    Diff Two (usually from apply): %#v\n"+
+				"\n"+
+				"Also include as much context as you can about your config, state, "+
+				"and the steps you performed to trigger this error.\n",
+			n.Info.Id, Version, n.Info.Id, reason, one, two)
 	}
 
 	return nil, nil

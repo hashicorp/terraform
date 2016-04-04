@@ -25,8 +25,12 @@ block until the new AMI is available for use on new instances.
 ```
 resource "aws_ami_copy" "example" {
     name = "terraform-example"
+    description = "A copy of ami-xxxxxxxx"
     source_ami_id = "ami-xxxxxxxx"
     source_ami_region = "us-west-1"
+    tags {
+        Name = "HelloWorld"
+    }
 }
 ```
 
@@ -40,6 +44,8 @@ The following arguments are supported:
 * `source_region` - (Required) The region from which the AMI will be copied. This may be the
   same as the AWS provider region in order to create a copy within the same region.
 
+This resource also exposes the full set of arguments from the [`aws_ami`](ami.html) resource.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -47,5 +53,5 @@ The following attributes are exported:
 * `id` - The ID of the created AMI.
 
 This resource also exports a full set of attributes corresponding to the arguments of the
-`aws_ami` resource, allowing the properties of the created AMI to be used elsewhere in the
+[`aws_ami`](ami.html) resource, allowing the properties of the created AMI to be used elsewhere in the
 configuration.

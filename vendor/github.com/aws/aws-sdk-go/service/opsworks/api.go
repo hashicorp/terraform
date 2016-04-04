@@ -6,6 +6,8 @@ package opsworks
 import (
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opAssignInstance = "AssignInstance"
@@ -23,6 +25,8 @@ func (c *OpsWorks) AssignInstanceRequest(input *AssignInstanceInput) (req *reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AssignInstanceOutput{}
 	req.Data = output
 	return
@@ -58,6 +62,8 @@ func (c *OpsWorks) AssignVolumeRequest(input *AssignVolumeInput) (req *request.R
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AssignVolumeOutput{}
 	req.Data = output
 	return
@@ -94,6 +100,8 @@ func (c *OpsWorks) AssociateElasticIpRequest(input *AssociateElasticIpInput) (re
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AssociateElasticIpOutput{}
 	req.Data = output
 	return
@@ -128,6 +136,8 @@ func (c *OpsWorks) AttachElasticLoadBalancerRequest(input *AttachElasticLoadBala
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AttachElasticLoadBalancerOutput{}
 	req.Data = output
 	return
@@ -399,6 +409,8 @@ func (c *OpsWorks) DeleteAppRequest(input *DeleteAppInput) (req *request.Request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteAppOutput{}
 	req.Data = output
 	return
@@ -431,6 +443,8 @@ func (c *OpsWorks) DeleteInstanceRequest(input *DeleteInstanceInput) (req *reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteInstanceOutput{}
 	req.Data = output
 	return
@@ -466,6 +480,8 @@ func (c *OpsWorks) DeleteLayerRequest(input *DeleteLayerInput) (req *request.Req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteLayerOutput{}
 	req.Data = output
 	return
@@ -500,6 +516,8 @@ func (c *OpsWorks) DeleteStackRequest(input *DeleteStackInput) (req *request.Req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteStackOutput{}
 	req.Data = output
 	return
@@ -534,6 +552,8 @@ func (c *OpsWorks) DeleteUserProfileRequest(input *DeleteUserProfileInput) (req 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteUserProfileOutput{}
 	req.Data = output
 	return
@@ -565,6 +585,8 @@ func (c *OpsWorks) DeregisterEcsClusterRequest(input *DeregisterEcsClusterInput)
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeregisterEcsClusterOutput{}
 	req.Data = output
 	return
@@ -597,6 +619,8 @@ func (c *OpsWorks) DeregisterElasticIpRequest(input *DeregisterElasticIpInput) (
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeregisterElasticIpOutput{}
 	req.Data = output
 	return
@@ -630,6 +654,8 @@ func (c *OpsWorks) DeregisterInstanceRequest(input *DeregisterInstanceInput) (re
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeregisterInstanceOutput{}
 	req.Data = output
 	return
@@ -664,6 +690,8 @@ func (c *OpsWorks) DeregisterRdsDbInstanceRequest(input *DeregisterRdsDbInstance
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeregisterRdsDbInstanceOutput{}
 	req.Data = output
 	return
@@ -696,6 +724,8 @@ func (c *OpsWorks) DeregisterVolumeRequest(input *DeregisterVolumeInput) (req *r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeregisterVolumeOutput{}
 	req.Data = output
 	return
@@ -1436,6 +1466,8 @@ func (c *OpsWorks) DetachElasticLoadBalancerRequest(input *DetachElasticLoadBala
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DetachElasticLoadBalancerOutput{}
 	req.Data = output
 	return
@@ -1468,6 +1500,8 @@ func (c *OpsWorks) DisassociateElasticIpRequest(input *DisassociateElasticIpInpu
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DisassociateElasticIpOutput{}
 	req.Data = output
 	return
@@ -1563,6 +1597,8 @@ func (c *OpsWorks) RebootInstanceRequest(input *RebootInstanceInput) (req *reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RebootInstanceOutput{}
 	req.Data = output
 	return
@@ -1704,6 +1740,8 @@ func (c *OpsWorks) RegisterRdsDbInstanceRequest(input *RegisterRdsDbInstanceInpu
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RegisterRdsDbInstanceOutput{}
 	req.Data = output
 	return
@@ -1771,6 +1809,8 @@ func (c *OpsWorks) SetLoadBasedAutoScalingRequest(input *SetLoadBasedAutoScaling
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetLoadBasedAutoScalingOutput{}
 	req.Data = output
 	return
@@ -1810,6 +1850,8 @@ func (c *OpsWorks) SetPermissionRequest(input *SetPermissionInput) (req *request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetPermissionOutput{}
 	req.Data = output
 	return
@@ -1843,6 +1885,8 @@ func (c *OpsWorks) SetTimeBasedAutoScalingRequest(input *SetTimeBasedAutoScaling
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetTimeBasedAutoScalingOutput{}
 	req.Data = output
 	return
@@ -1877,6 +1921,8 @@ func (c *OpsWorks) StartInstanceRequest(input *StartInstanceInput) (req *request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &StartInstanceOutput{}
 	req.Data = output
 	return
@@ -1910,6 +1956,8 @@ func (c *OpsWorks) StartStackRequest(input *StartStackInput) (req *request.Reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &StartStackOutput{}
 	req.Data = output
 	return
@@ -1942,6 +1990,8 @@ func (c *OpsWorks) StopInstanceRequest(input *StopInstanceInput) (req *request.R
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &StopInstanceOutput{}
 	req.Data = output
 	return
@@ -1977,6 +2027,8 @@ func (c *OpsWorks) StopStackRequest(input *StopStackInput) (req *request.Request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &StopStackOutput{}
 	req.Data = output
 	return
@@ -2009,6 +2061,8 @@ func (c *OpsWorks) UnassignInstanceRequest(input *UnassignInstanceInput) (req *r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UnassignInstanceOutput{}
 	req.Data = output
 	return
@@ -2044,6 +2098,8 @@ func (c *OpsWorks) UnassignVolumeRequest(input *UnassignVolumeInput) (req *reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UnassignVolumeOutput{}
 	req.Data = output
 	return
@@ -2077,6 +2133,8 @@ func (c *OpsWorks) UpdateAppRequest(input *UpdateAppInput) (req *request.Request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateAppOutput{}
 	req.Data = output
 	return
@@ -2109,6 +2167,8 @@ func (c *OpsWorks) UpdateElasticIpRequest(input *UpdateElasticIpInput) (req *req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateElasticIpOutput{}
 	req.Data = output
 	return
@@ -2142,6 +2202,8 @@ func (c *OpsWorks) UpdateInstanceRequest(input *UpdateInstanceInput) (req *reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateInstanceOutput{}
 	req.Data = output
 	return
@@ -2174,6 +2236,8 @@ func (c *OpsWorks) UpdateLayerRequest(input *UpdateLayerInput) (req *request.Req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateLayerOutput{}
 	req.Data = output
 	return
@@ -2206,6 +2270,8 @@ func (c *OpsWorks) UpdateMyUserProfileRequest(input *UpdateMyUserProfileInput) (
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateMyUserProfileOutput{}
 	req.Data = output
 	return
@@ -2237,6 +2303,8 @@ func (c *OpsWorks) UpdateRdsDbInstanceRequest(input *UpdateRdsDbInstanceInput) (
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateRdsDbInstanceOutput{}
 	req.Data = output
 	return
@@ -2269,6 +2337,8 @@ func (c *OpsWorks) UpdateStackRequest(input *UpdateStackInput) (req *request.Req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateStackOutput{}
 	req.Data = output
 	return
@@ -2301,6 +2371,8 @@ func (c *OpsWorks) UpdateUserProfileRequest(input *UpdateUserProfileInput) (req 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateUserProfileOutput{}
 	req.Data = output
 	return
@@ -2332,6 +2404,8 @@ func (c *OpsWorks) UpdateVolumeRequest(input *UpdateVolumeInput) (req *request.R
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UpdateVolumeOutput{}
 	req.Data = output
 	return

@@ -9,6 +9,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restxml"
 )
 
 const opAbortMultipartUpload = "AbortMultipartUpload"
@@ -171,6 +173,8 @@ func (c *S3) DeleteBucketRequest(input *DeleteBucketInput) (req *request.Request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteBucketOutput{}
 	req.Data = output
 	return
@@ -199,6 +203,8 @@ func (c *S3) DeleteBucketCorsRequest(input *DeleteBucketCorsInput) (req *request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteBucketCorsOutput{}
 	req.Data = output
 	return
@@ -226,6 +232,8 @@ func (c *S3) DeleteBucketLifecycleRequest(input *DeleteBucketLifecycleInput) (re
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteBucketLifecycleOutput{}
 	req.Data = output
 	return
@@ -253,6 +261,8 @@ func (c *S3) DeleteBucketPolicyRequest(input *DeleteBucketPolicyInput) (req *req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteBucketPolicyOutput{}
 	req.Data = output
 	return
@@ -280,11 +290,14 @@ func (c *S3) DeleteBucketReplicationRequest(input *DeleteBucketReplicationInput)
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteBucketReplicationOutput{}
 	req.Data = output
 	return
 }
 
+// Deletes the replication configuration from the bucket.
 func (c *S3) DeleteBucketReplication(input *DeleteBucketReplicationInput) (*DeleteBucketReplicationOutput, error) {
 	req, out := c.DeleteBucketReplicationRequest(input)
 	err := req.Send()
@@ -306,6 +319,8 @@ func (c *S3) DeleteBucketTaggingRequest(input *DeleteBucketTaggingInput) (req *r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteBucketTaggingOutput{}
 	req.Data = output
 	return
@@ -333,6 +348,8 @@ func (c *S3) DeleteBucketWebsiteRequest(input *DeleteBucketWebsiteInput) (req *r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteBucketWebsiteOutput{}
 	req.Data = output
 	return
@@ -460,6 +477,9 @@ const opGetBucketLifecycle = "GetBucketLifecycle"
 
 // GetBucketLifecycleRequest generates a request for the GetBucketLifecycle operation.
 func (c *S3) GetBucketLifecycleRequest(input *GetBucketLifecycleInput) (req *request.Request, output *GetBucketLifecycleOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, GetBucketLifecycle, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opGetBucketLifecycle,
 		HTTPMethod: "GET",
@@ -569,6 +589,9 @@ const opGetBucketNotification = "GetBucketNotification"
 
 // GetBucketNotificationRequest generates a request for the GetBucketNotification operation.
 func (c *S3) GetBucketNotificationRequest(input *GetBucketNotificationConfigurationRequest) (req *request.Request, output *NotificationConfigurationDeprecated) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, GetBucketNotification, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opGetBucketNotification,
 		HTTPMethod: "GET",
@@ -666,6 +689,7 @@ func (c *S3) GetBucketReplicationRequest(input *GetBucketReplicationInput) (req 
 	return
 }
 
+// Deprecated, see the GetBucketReplicationConfiguration operation.
 func (c *S3) GetBucketReplication(input *GetBucketReplicationInput) (*GetBucketReplicationOutput, error) {
 	req, out := c.GetBucketReplicationRequest(input)
 	err := req.Send()
@@ -876,6 +900,8 @@ func (c *S3) HeadBucketRequest(input *HeadBucketInput) (req *request.Request, ou
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &HeadBucketOutput{}
 	req.Data = output
 	return
@@ -1126,6 +1152,8 @@ func (c *S3) PutBucketAclRequest(input *PutBucketAclInput) (req *request.Request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketAclOutput{}
 	req.Data = output
 	return
@@ -1153,6 +1181,8 @@ func (c *S3) PutBucketCorsRequest(input *PutBucketCorsInput) (req *request.Reque
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketCorsOutput{}
 	req.Data = output
 	return
@@ -1169,6 +1199,9 @@ const opPutBucketLifecycle = "PutBucketLifecycle"
 
 // PutBucketLifecycleRequest generates a request for the PutBucketLifecycle operation.
 func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *request.Request, output *PutBucketLifecycleOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, PutBucketLifecycle, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opPutBucketLifecycle,
 		HTTPMethod: "PUT",
@@ -1180,6 +1213,8 @@ func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *req
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketLifecycleOutput{}
 	req.Data = output
 	return
@@ -1207,6 +1242,8 @@ func (c *S3) PutBucketLifecycleConfigurationRequest(input *PutBucketLifecycleCon
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketLifecycleConfigurationOutput{}
 	req.Data = output
 	return
@@ -1235,6 +1272,8 @@ func (c *S3) PutBucketLoggingRequest(input *PutBucketLoggingInput) (req *request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketLoggingOutput{}
 	req.Data = output
 	return
@@ -1253,6 +1292,9 @@ const opPutBucketNotification = "PutBucketNotification"
 
 // PutBucketNotificationRequest generates a request for the PutBucketNotification operation.
 func (c *S3) PutBucketNotificationRequest(input *PutBucketNotificationInput) (req *request.Request, output *PutBucketNotificationOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, PutBucketNotification, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opPutBucketNotification,
 		HTTPMethod: "PUT",
@@ -1264,6 +1306,8 @@ func (c *S3) PutBucketNotificationRequest(input *PutBucketNotificationInput) (re
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketNotificationOutput{}
 	req.Data = output
 	return
@@ -1291,6 +1335,8 @@ func (c *S3) PutBucketNotificationConfigurationRequest(input *PutBucketNotificat
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketNotificationConfigurationOutput{}
 	req.Data = output
 	return
@@ -1318,6 +1364,8 @@ func (c *S3) PutBucketPolicyRequest(input *PutBucketPolicyInput) (req *request.R
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketPolicyOutput{}
 	req.Data = output
 	return
@@ -1346,6 +1394,8 @@ func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketReplicationOutput{}
 	req.Data = output
 	return
@@ -1374,6 +1424,8 @@ func (c *S3) PutBucketRequestPaymentRequest(input *PutBucketRequestPaymentInput)
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketRequestPaymentOutput{}
 	req.Data = output
 	return
@@ -1405,6 +1457,8 @@ func (c *S3) PutBucketTaggingRequest(input *PutBucketTaggingInput) (req *request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketTaggingOutput{}
 	req.Data = output
 	return
@@ -1432,6 +1486,8 @@ func (c *S3) PutBucketVersioningRequest(input *PutBucketVersioningInput) (req *r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketVersioningOutput{}
 	req.Data = output
 	return
@@ -1460,6 +1516,8 @@ func (c *S3) PutBucketWebsiteRequest(input *PutBucketWebsiteInput) (req *request
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &PutBucketWebsiteOutput{}
 	req.Data = output
 	return
@@ -1612,6 +1670,26 @@ func (c *S3) UploadPartCopy(input *UploadPartCopyInput) (*UploadPartCopyOutput, 
 	req, out := c.UploadPartCopyRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// Specifies the days since the initiation of an Incomplete Multipart Upload
+// that Lifecycle will wait before permanently removing all parts of the upload.
+type AbortIncompleteMultipartUpload struct {
+	_ struct{} `type:"structure"`
+
+	// Indicates the number of days that must pass since initiation for Lifecycle
+	// to abort an Incomplete Multipart Upload.
+	DaysAfterInitiation *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s AbortIncompleteMultipartUpload) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AbortIncompleteMultipartUpload) GoString() string {
+	return s.String()
 }
 
 type AbortMultipartUploadInput struct {
@@ -1784,7 +1862,7 @@ type CloudFunctionConfiguration struct {
 	CloudFunction *string `type:"string"`
 
 	// Bucket event for which to send notifications.
-	Event *string `type:"string" enum:"Event"`
+	Event *string `deprecated:"true" type:"string" enum:"Event"`
 
 	Events []*string `locationName:"Event" type:"list" flattened:"true"`
 
@@ -2339,6 +2417,13 @@ func (s CreateMultipartUploadInput) GoString() string {
 
 type CreateMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
+
+	// Date when multipart upload will become eligible for abort operation by lifecycle.
+	AbortDate *time.Time `location:"header" locationName:"x-amz-abort-date" type:"timestamp" timestampFormat:"rfc822"`
+
+	// Id of the lifecycle rule that makes a multipart upload eligible for abort
+	// operation.
+	AbortRuleId *string `location:"header" locationName:"x-amz-abort-rule-id" type:"string"`
 
 	// Name of the bucket to which the multipart upload was initiated.
 	Bucket *string `locationName:"Bucket" type:"string"`
@@ -3052,7 +3137,7 @@ func (s GetBucketLoggingOutput) GoString() string {
 type GetBucketNotificationConfigurationRequest struct {
 	_ struct{} `type:"structure"`
 
-	// Name of the buket to get the notification configuration for.
+	// Name of the bucket to get the notification configuration for.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 }
 
@@ -3916,6 +4001,12 @@ type LifecycleExpiration struct {
 	// Indicates the lifetime, in days, of the objects that are subject to the rule.
 	// The value must be a non-zero positive integer.
 	Days *int64 `type:"integer"`
+
+	// Indicates whether Amazon S3 will remove a delete marker with no noncurrent
+	// versions. If set to true, the delete marker will be expired; if set to false
+	// the policy takes no action. This cannot be specified with Days or Date in
+	// a Lifecycle Expiration Policy.
+	ExpiredObjectDeleteMarker *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -3930,6 +4021,10 @@ func (s LifecycleExpiration) GoString() string {
 
 type LifecycleRule struct {
 	_ struct{} `type:"structure"`
+
+	// Specifies the days since the initiation of an Incomplete Multipart Upload
+	// that Lifecycle will wait before permanently removing all parts of the upload.
+	AbortIncompleteMultipartUpload *AbortIncompleteMultipartUpload `type:"structure"`
 
 	Expiration *LifecycleExpiration `type:"structure"`
 
@@ -4302,6 +4397,13 @@ func (s ListPartsInput) GoString() string {
 
 type ListPartsOutput struct {
 	_ struct{} `type:"structure"`
+
+	// Date when multipart upload will become eligible for abort operation by lifecycle.
+	AbortDate *time.Time `location:"header" locationName:"x-amz-abort-date" type:"timestamp" timestampFormat:"rfc822"`
+
+	// Id of the lifecycle rule that makes a multipart upload eligible for abort
+	// operation.
+	AbortRuleId *string `location:"header" locationName:"x-amz-abort-rule-id" type:"string"`
 
 	// Name of the bucket to which the multipart upload was initiated.
 	Bucket *string `type:"string"`
@@ -5172,6 +5274,7 @@ type PutObjectInput struct {
 	// Object data.
 	Body io.ReadSeeker `type:"blob"`
 
+	// Name of the bucket to which the PUT operation was initiated.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	// Specifies caching behavior along the request/reply chain.
@@ -5210,6 +5313,7 @@ type PutObjectInput struct {
 	// Allows grantee to write the ACL for the applicable object.
 	GrantWriteACP *string `location:"header" locationName:"x-amz-grant-write-acp" type:"string"`
 
+	// Object key for which the PUT operation was initiated.
 	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// A map of metadata to store with the object in S3.
@@ -5346,7 +5450,7 @@ type QueueConfigurationDeprecated struct {
 	_ struct{} `type:"structure"`
 
 	// Bucket event for which to send notifications.
-	Event *string `type:"string" enum:"Event"`
+	Event *string `deprecated:"true" type:"string" enum:"Event"`
 
 	Events []*string `locationName:"Event" type:"list" flattened:"true"`
 
@@ -5585,6 +5689,10 @@ func (s RoutingRule) GoString() string {
 type Rule struct {
 	_ struct{} `type:"structure"`
 
+	// Specifies the days since the initiation of an Incomplete Multipart Upload
+	// that Lifecycle will wait before permanently removing all parts of the upload.
+	AbortIncompleteMultipartUpload *AbortIncompleteMultipartUpload `type:"structure"`
+
 	Expiration *LifecycleExpiration `type:"structure"`
 
 	// Unique identifier for the rule. The value cannot be longer than 255 characters.
@@ -5714,7 +5822,7 @@ type TopicConfigurationDeprecated struct {
 	_ struct{} `type:"structure"`
 
 	// Bucket event for which to send notifications.
-	Event *string `type:"string" enum:"Event"`
+	Event *string `deprecated:"true" type:"string" enum:"Event"`
 
 	Events []*string `locationName:"Event" type:"list" flattened:"true"`
 
@@ -5891,14 +5999,17 @@ func (s UploadPartCopyOutput) GoString() string {
 type UploadPartInput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
+	// Object data.
 	Body io.ReadSeeker `type:"blob"`
 
+	// Name of the bucket to which the multipart upload was initiated.
 	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
 
 	// Size of the body in bytes. This parameter is useful when the size of the
 	// body cannot be determined automatically.
 	ContentLength *int64 `location:"header" locationName:"Content-Length" type:"integer"`
 
+	// Object key for which the multipart upload was initiated.
 	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
 	// Part number of part being uploaded. This is a positive integer between 1

@@ -22,8 +22,8 @@ func resourceCloudStackInstance() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Optional: true,
+				Computed: true,
 			},
 
 			"display_name": &schema.Schema{
@@ -128,14 +128,16 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	p := cs.VirtualMachine.NewDeployVirtualMachineParams(serviceofferingid, templateid, zone.Id)
 
 	// Set the name
-	name := d.Get("name").(string)
-	p.SetName(name)
+	name, hasName := d.GetOk("name")
+	if hasName {
+		p.SetName(name.(string))
+	}
 
 	// Set the display name
 	if displayname, ok := d.GetOk("display_name"); ok {
 		p.SetDisplayname(displayname.(string))
-	} else {
-		p.SetDisplayname(name)
+	} else if hasName {
+		p.SetDisplayname(name.(string))
 	}
 
 	if zone.Networktype == "Advanced" {
@@ -265,13 +267,33 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Attributes that require reboot to update
-	if d.HasChange("service_offering") || d.HasChange("keypair") {
+	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("keypair") {
 		// Before we can actually make these changes, the virtual machine must be stopped
 		_, err := cs.VirtualMachine.StopVirtualMachine(
 			cs.VirtualMachine.NewStopVirtualMachineParams(d.Id()))
 		if err != nil {
 			return fmt.Errorf(
 				"Error stopping instance %s before making changes: %s", name, err)
+		}
+
+		// Check if the name has changed and if so, update the name
+		if d.HasChange("name") {
+			log.Printf("[DEBUG] Name for %s changed to %s, starting update", d.Id(), name)
+
+			// Create a new parameter struct
+			p := cs.VirtualMachine.NewUpdateVirtualMachineParams(d.Id())
+
+			// Set the new name
+			p.SetName(name)
+
+			// Update the display name
+			_, err := cs.VirtualMachine.UpdateVirtualMachine(p)
+			if err != nil {
+				return fmt.Errorf(
+					"Error updating the name for instance %s: %s", name, err)
+			}
+
+			d.SetPartial("name")
 		}
 
 		// Check if the service offering is changed and if so, update the offering

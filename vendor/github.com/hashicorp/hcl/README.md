@@ -29,7 +29,7 @@ and some people wanted machine-friendly languages.
 JSON fits a nice balance in this, but is fairly verbose and most
 importantly doesn't support comments. With YAML, we found that beginners
 had a really hard time determining what the actual structure was, and
-ended up guessing more than not whether to use a hyphen, colon, etc.
+ended up guessing more often than not whether to use a hyphen, colon, etc.
 in order to represent some configuration key.
 
 Full programming languages such as Ruby enable complex behavior
@@ -63,6 +63,16 @@ of the syntax and grammar is listed here.
 
   * Strings are double-quoted and can contain any UTF-8 characters.
     Example: `"Hello, World"`
+
+  * Multi-line strings start with `<<EOF` at the end of a line, and end
+    with `EOF` on its own line ([here documents](https://en.wikipedia.org/wiki/Here_document)).
+    Any text may be used in place of `EOF`. Example:
+```
+<<FOO
+hello
+world
+FOO
+```
 
   * Numbers are assumed to be base 10. If you prefix a number with 0x,
     it is treated as a hexadecimal. If it is prefixed with 0, it is

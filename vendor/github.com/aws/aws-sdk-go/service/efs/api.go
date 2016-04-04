@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
 const opCreateFileSystem = "CreateFileSystem"
@@ -184,6 +186,8 @@ func (c *EFS) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &CreateTagsOutput{}
 	req.Data = output
 	return
@@ -218,6 +222,8 @@ func (c *EFS) DeleteFileSystemRequest(input *DeleteFileSystemInput) (req *reques
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteFileSystemOutput{}
 	req.Data = output
 	return
@@ -258,6 +264,8 @@ func (c *EFS) DeleteMountTargetRequest(input *DeleteMountTargetInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteMountTargetOutput{}
 	req.Data = output
 	return
@@ -306,6 +314,8 @@ func (c *EFS) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteTagsOutput{}
 	req.Data = output
 	return
@@ -493,6 +503,8 @@ func (c *EFS) ModifyMountTargetSecurityGroupsRequest(input *ModifyMountTargetSec
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &ModifyMountTargetSecurityGroupsOutput{}
 	req.Data = output
 	return

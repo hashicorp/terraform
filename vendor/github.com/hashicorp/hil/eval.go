@@ -41,7 +41,8 @@ func Eval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
 			ast.TypeString: "__builtin_IntToString",
 		},
 		ast.TypeString: {
-			ast.TypeInt: "__builtin_StringToInt",
+			ast.TypeInt:   "__builtin_StringToInt",
+			ast.TypeFloat: "__builtin_StringToFloat",
 		},
 	}
 
@@ -140,6 +141,8 @@ func (v *evalVisitor) visit(raw ast.Node) ast.Node {
 // types as well as any other EvalNode implementations.
 func evalNode(raw ast.Node) (EvalNode, error) {
 	switch n := raw.(type) {
+	case *ast.Index:
+		return &evalIndex{n}, nil
 	case *ast.Call:
 		return &evalCall{n}, nil
 	case *ast.Concat:
@@ -184,6 +187,97 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 	return result, function.ReturnType, nil
 }
 
+type evalIndex struct{ *ast.Index }
+
+func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
+	evalVarAccess, err := evalNode(v.Target)
+	if err != nil {
+		return nil, ast.TypeInvalid, err
+	}
+	target, targetType, err := evalVarAccess.Eval(scope, stack)
+
+	evalKey, err := evalNode(v.Key)
+	if err != nil {
+		return nil, ast.TypeInvalid, err
+	}
+
+	key, keyType, err := evalKey.Eval(scope, stack)
+	if err != nil {
+		return nil, ast.TypeInvalid, err
+	}
+
+	variableName := v.Index.Target.(*ast.VariableAccess).Name
+
+	switch targetType {
+	case ast.TypeList:
+		if keyType != ast.TypeInt {
+			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing list %q must be an int, is %s", variableName, keyType)
+		}
+
+		return v.evalListIndex(variableName, target, key)
+	case ast.TypeMap:
+		if keyType != ast.TypeString {
+			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing map %q must be a string, is %s", variableName, keyType)
+		}
+
+		return v.evalMapIndex(variableName, target, key)
+	default:
+		return nil, ast.TypeInvalid, fmt.Errorf("target %q for indexing must be ast.TypeList or ast.TypeMap, is %s", variableName, targetType)
+	}
+}
+
+func (v *evalIndex) evalListIndex(variableName string, target interface{}, key interface{}) (interface{}, ast.Type, error) {
+	// We assume type checking was already done and we can assume that target
+	// is a list and key is an int
+	list, ok := target.([]ast.Variable)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to []Variable")
+	}
+
+	keyInt, ok := key.(int)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to int")
+	}
+
+	if len(list) == 0 {
+		return nil, ast.TypeInvalid, fmt.Errorf("list is empty")
+	}
+
+	if keyInt < 0 || len(list) < keyInt+1 {
+		return nil, ast.TypeInvalid, fmt.Errorf("index %d out of range for list %s (max %d)", keyInt, variableName, len(list))
+	}
+
+	returnVal := list[keyInt].Value
+	returnType := list[keyInt].Type
+
+	return returnVal, returnType, nil
+}
+
+func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key interface{}) (interface{}, ast.Type, error) {
+	// We assume type checking was already done and we can assume that target
+	// is a map and key is a string
+	vmap, ok := target.(map[string]ast.Variable)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to map[string]Variable")
+	}
+
+	keyString, ok := key.(string)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to string")
+	}
+
+	if len(vmap) == 0 {
+		return nil, ast.TypeInvalid, fmt.Errorf("map is empty")
+	}
+
+	value, ok := vmap[keyString]
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("key %q does not exist in map %s", keyString, variableName)
+	}
+
+	return value.Value, value.Type, nil
+}
+
 type evalConcat struct{ *ast.Concat }
 
 func (v *evalConcat) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
@@ -194,6 +288,12 @@ func (v *evalConcat) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 		nodes = append(nodes, stack.Pop().(*ast.LiteralNode))
 	}
 
+	// Special case the single list
+	if len(nodes) == 1 && nodes[0].Typex == ast.TypeList {
+		return nodes[0].Value, ast.TypeList, nil
+	}
+
+	// Otherwise concatenate the strings
 	var buf bytes.Buffer
 	for i := len(nodes) - 1; i >= 0; i-- {
 		buf.WriteString(nodes[i].Value.(string))

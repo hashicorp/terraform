@@ -30,7 +30,7 @@ The following arguments are supported:
 
 * `name` - (Optional, Computed) The name of the instance. If the name is left
   blank, Terraform will randomly generate one when the instance is first
-  created. This is done because after a name is used, it cannot be reused 
+  created. This is done because after a name is used, it cannot be reused
   for up to [two months](https://cloud.google.com/sql/docs/delete-instance).
 
 * `region` - (Required) The region the instance will sit in. Note, this does
@@ -148,3 +148,11 @@ The following attributes are exported:
 The `settings` block exports:
 
 * `version` - Used to make sure changes to the `settings` block are atomic.
+
+The `ip_address` block exports a list of IPv4 addresses assigned to this
+instance, with the following properties:
+
+* `ip_address` - The IPv4 address assigned.
+
+* `time_to_retire` - The time this IP address will be retired, in RFC 3339
+  format.

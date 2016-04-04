@@ -53,7 +53,12 @@ func (r *RawConfig) Copy() *RawConfig {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	result, err := NewRawConfig(r.Raw)
+	newRaw := make(map[string]interface{})
+	for k, v := range r.Raw {
+		newRaw[k] = v
+	}
+
+	result, err := NewRawConfig(newRaw)
 	if err != nil {
 		panic("copy failed: " + err.Error())
 	}

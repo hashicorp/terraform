@@ -437,6 +437,48 @@ func TestInterpolateFuncJoin(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncJSONEncode(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"easy": ast.Variable{
+				Value: "test",
+				Type:  ast.TypeString,
+			},
+			"hard": ast.Variable{
+				Value: " foo \\ \n \t \" bar ",
+				Type:  ast.TypeString,
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${jsonencode("test")}`,
+				`"test"`,
+				false,
+			},
+			{
+				`${jsonencode(easy)}`,
+				`"test"`,
+				false,
+			},
+			{
+				`${jsonencode(hard)}`,
+				`" foo \\ \n \t \" bar "`,
+				false,
+			},
+			{
+				`${jsonencode("")}`,
+				`""`,
+				false,
+			},
+			{
+				`${jsonencode()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncReplace(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -537,6 +579,42 @@ func TestInterpolateFuncLength(t *testing.T) {
 			{
 				`${length(compact(split(",", "")))}`,
 				"0",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncSignum(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${signum()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${signum("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${signum(0)}`,
+				"0",
+				false,
+			},
+
+			{
+				`${signum(15)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${signum(-29)}`,
+				"-1",
 				false,
 			},
 		},
@@ -742,6 +820,14 @@ func TestInterpolateFuncElement(t *testing.T) {
 				false,
 			},
 
+			// Negative number should fail
+			{
+				fmt.Sprintf(`${element("%s", "-1")}`,
+					NewStringList([]string{"foo"}).String()),
+				nil,
+				true,
+			},
+
 			// Too many args
 			{
 				fmt.Sprintf(`${element("%s", "0", "2")}`,
@@ -885,6 +971,50 @@ func TestInterpolateFuncBase64Sha256(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestInterpolateFuncMd5(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${md5("tada")}`,
+				"ce47d07243bb6eaf5e1322c81baf9bbf",
+				false,
+			},
+			{ // Confirm that we're not trimming any whitespaces
+				`${md5(" tada ")}`,
+				"aadf191a583e53062de2d02c008141c4",
+				false,
+			},
+			{ // We accept empty string too
+				`${md5("")}`,
+				"d41d8cd98f00b204e9800998ecf8427e",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncUUID(t *testing.T) {
+	results := make(map[string]bool)
+
+	for i := 0; i < 100; i++ {
+		ast, err := hil.Parse("${uuid()}")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		out, _, err := hil.Eval(ast, langEvalConfig(nil))
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if results[out.(string)] {
+			t.Fatalf("Got unexpected duplicate uuid: %s", out)
+		}
+
+		results[out.(string)] = true
+	}
 }
 
 type testFunctionConfig struct {

@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -14,6 +15,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 )
+
+// UnmarshalHandler is a named request handler for unmarshaling rest protocol requests
+var UnmarshalHandler = request.NamedHandler{Name: "awssdk.rest.Unmarshal", Fn: Unmarshal}
+
+// UnmarshalMetaHandler is a named request handler for unmarshaling rest protocol request metadata
+var UnmarshalMetaHandler = request.NamedHandler{Name: "awssdk.rest.UnmarshalMeta", Fn: UnmarshalMeta}
 
 // Unmarshal unmarshals the REST component of a response in a REST service.
 func Unmarshal(r *request.Request) {
@@ -45,6 +52,7 @@ func unmarshalBody(r *request.Request, v reflect.Value) {
 				if payload.IsValid() {
 					switch payload.Interface().(type) {
 					case []byte:
+						defer r.HTTPResponse.Body.Close()
 						b, err := ioutil.ReadAll(r.HTTPResponse.Body)
 						if err != nil {
 							r.Error = awserr.New("SerializationError", "failed to decode REST response", err)
@@ -52,6 +60,7 @@ func unmarshalBody(r *request.Request, v reflect.Value) {
 							payload.Set(reflect.ValueOf(b))
 						}
 					case *string:
+						defer r.HTTPResponse.Body.Close()
 						b, err := ioutil.ReadAll(r.HTTPResponse.Body)
 						if err != nil {
 							r.Error = awserr.New("SerializationError", "failed to decode REST response", err)
@@ -66,6 +75,8 @@ func unmarshalBody(r *request.Request, v reflect.Value) {
 						case "aws.ReadSeekCloser", "io.ReadCloser":
 							payload.Set(reflect.ValueOf(r.HTTPResponse.Body))
 						default:
+							io.Copy(ioutil.Discard, r.HTTPResponse.Body)
+							defer r.HTTPResponse.Body.Close()
 							r.Error = awserr.New("SerializationError",
 								"failed to decode REST response",
 								fmt.Errorf("unknown payload type %s", payload.Type()))

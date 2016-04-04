@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/hil/ast"
 )
 
-var parserErrors []error
 var parserLock sync.Mutex
 var parserResult ast.Node
 
@@ -19,7 +18,6 @@ func Parse(v string) (ast.Node, error) {
 	defer parserLock.Unlock()
 
 	// Reset our globals
-	parserErrors = nil
 	parserResult = nil
 
 	// Create the lexer

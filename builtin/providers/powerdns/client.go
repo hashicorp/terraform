@@ -91,17 +91,19 @@ type errorResponse struct {
 	ErrorMsg string `json:"error"`
 }
 
+const idSeparator string = ":::"
+
 func (record *Record) Id() string {
-	return fmt.Sprintf("%s-%s", record.Name, record.Type)
+	return record.Name + idSeparator + record.Type
 }
 
 func (rrSet *ResourceRecordSet) Id() string {
-	return fmt.Sprintf("%s-%s", rrSet.Name, rrSet.Type)
+	return rrSet.Name + idSeparator + rrSet.Type
 }
 
 // Returns name and type of record or record set based on it's ID
 func parseId(recId string) (string, string, error) {
-	s := strings.Split(recId, "-")
+	s := strings.Split(recId, idSeparator)
 	if len(s) == 2 {
 		return s[0], s[1], nil
 	} else {

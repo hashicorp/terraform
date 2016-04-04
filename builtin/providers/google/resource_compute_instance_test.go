@@ -306,6 +306,48 @@ func TestAccComputeInstance_scheduling(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_subnet_auto(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_subnet_auto(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceHasSubnet(&instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_subnet_custom(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_subnet_custom(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceHasSubnet(&instance),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -451,6 +493,18 @@ func testAccCheckComputeInstanceServiceAccount(instance *compute.Instance, scope
 	}
 }
 
+func testAccCheckComputeInstanceHasSubnet(instance *compute.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, i := range instance.NetworkInterfaces {
+			if i.Subnetwork == "" {
+				return fmt.Errorf("no subnet")
+			}
+		}
+
+		return nil
+	}
+}
+
 func testAccComputeInstance_basic_deprecated_network(instance string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_instance" "foobar" {
@@ -461,7 +515,7 @@ func testAccComputeInstance_basic_deprecated_network(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network {
@@ -483,7 +537,7 @@ func testAccComputeInstance_update_deprecated_network(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network {
@@ -506,7 +560,7 @@ func testAccComputeInstance_basic(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -532,7 +586,7 @@ func testAccComputeInstance_basic2(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-cloud/debian-7-wheezy-v20140814"
+			image = "debian-cloud/debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -556,7 +610,7 @@ func testAccComputeInstance_basic3(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814"
+			image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -581,7 +635,7 @@ func testAccComputeInstance_forceNewAndChangeMetadata(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -605,7 +659,7 @@ func testAccComputeInstance_update(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -632,7 +686,7 @@ func testAccComputeInstance_ip(ip, instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -663,7 +717,7 @@ func testAccComputeInstance_disks(disk, instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		disk {
@@ -689,7 +743,7 @@ func testAccComputeInstance_local_ssd(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		disk {
@@ -712,7 +766,7 @@ func testAccComputeInstance_service_account(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -737,7 +791,7 @@ func testAccComputeInstance_scheduling(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -747,4 +801,59 @@ func testAccComputeInstance_scheduling(instance string) string {
 		scheduling {
 		}
 	}`, instance)
+}
+
+func testAccComputeInstance_subnet_auto(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "inst-test-network" {
+		name = "inst-test-network-%s"
+		auto_create_subnetworks = true
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-7-wheezy-v20160301"
+		}
+
+		network_interface {
+			network = "${google_compute_network.inst-test-network.name}"
+			access_config {	}
+		}
+
+	}`, acctest.RandString(10), instance)
+}
+
+func testAccComputeInstance_subnet_custom(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "inst-test-network" {
+		name = "inst-test-network-%s"
+		auto_create_subnetworks = false
+	}
+
+	resource "google_compute_subnetwork" "inst-test-subnetwork" {
+		name = "inst-test-subnetwork-%s"
+		ip_cidr_range = "10.0.0.0/16"
+		region = "us-central1"
+		network = "${google_compute_network.inst-test-network.self_link}"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-7-wheezy-v20160301"
+		}
+
+		network_interface {
+			subnetwork = "${google_compute_subnetwork.inst-test-subnetwork.name}"
+			access_config {	}
+		}
+
+	}`, acctest.RandString(10), acctest.RandString(10), instance)
 }

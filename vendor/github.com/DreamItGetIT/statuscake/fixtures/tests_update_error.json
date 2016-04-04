@@ -1,9 +1,0 @@
-{
-  "Issues": {
-    "WebsiteName": "issue a",
-    "WebsiteURL": "issue b",
-    "CheckRate": "issue c"
-  },
-  "Success": false,
-  "Message": "Required Data is Missing."
-}

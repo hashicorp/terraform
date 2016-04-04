@@ -21,6 +21,7 @@ import (
 %token  <str> PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
+%token  <str> SQUARE_BRACKET_LEFT SQUARE_BRACKET_RIGHT
 
 %token <token> ARITH_OP IDENTIFIER INTEGER FLOAT STRING
 
@@ -122,6 +123,25 @@ expr:
             Posx:  $1.Pos,
         }
     }
+|   ARITH_OP expr
+    {
+        // This is REALLY jank. We assume that a singular ARITH_OP
+        // means 0 ARITH_OP expr, which... is weird. We don't want to
+        // support *, /, etc., only -. We should fix this later with a pure
+        // Go scanner/parser.
+        if $1.Value.(ast.ArithmeticOp) != ast.ArithmeticOpSub {
+            panic("Unary - is only allowed")
+        }
+
+        $$ = &ast.Arithmetic{
+            Op:    $1.Value.(ast.ArithmeticOp),
+            Exprs: []ast.Node{
+                &ast.LiteralNode{Value: 0, Typex: ast.TypeInt},
+                $2,
+            },
+            Posx:  $2.Pos(),
+        }
+    }
 |   expr ARITH_OP expr
     {
         $$ = &ast.Arithmetic{
@@ -137,6 +157,17 @@ expr:
 |   IDENTIFIER PAREN_LEFT args PAREN_RIGHT
     {
         $$ = &ast.Call{Func: $1.Value.(string), Args: $3, Posx: $1.Pos}
+    }
+|   IDENTIFIER SQUARE_BRACKET_LEFT expr SQUARE_BRACKET_RIGHT
+    {
+        $$ = &ast.Index{
+                Target: &ast.VariableAccess{
+                    Name: $1.Value.(string),
+                    Posx: $1.Pos,
+                },
+                Key: $3,
+                Posx: $1.Pos,
+            }
     }
 
 args:

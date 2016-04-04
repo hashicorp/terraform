@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_sqs_queue"
-sidebar_current: "docs-aws-resource-sqs"
+sidebar_current: "docs-aws-resource-sqs-queue"
 description: |-
   Provides a SQS resource.
 ---

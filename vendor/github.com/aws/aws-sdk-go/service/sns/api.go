@@ -6,6 +6,8 @@ package sns
 import (
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
 const opAddPermission = "AddPermission"
@@ -23,6 +25,8 @@ func (c *SNS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AddPermissionOutput{}
 	req.Data = output
 	return
@@ -192,6 +196,8 @@ func (c *SNS) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Re
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteEndpointOutput{}
 	req.Data = output
 	return
@@ -220,6 +226,8 @@ func (c *SNS) DeletePlatformApplicationRequest(input *DeletePlatformApplicationI
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeletePlatformApplicationOutput{}
 	req.Data = output
 	return
@@ -249,6 +257,8 @@ func (c *SNS) DeleteTopicRequest(input *DeleteTopicInput) (req *request.Request,
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteTopicOutput{}
 	req.Data = output
 	return
@@ -655,6 +665,8 @@ func (c *SNS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RemovePermissionOutput{}
 	req.Data = output
 	return
@@ -682,6 +694,8 @@ func (c *SNS) SetEndpointAttributesRequest(input *SetEndpointAttributesInput) (r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetEndpointAttributesOutput{}
 	req.Data = output
 	return
@@ -711,6 +725,8 @@ func (c *SNS) SetPlatformApplicationAttributesRequest(input *SetPlatformApplicat
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetPlatformApplicationAttributesOutput{}
 	req.Data = output
 	return
@@ -740,6 +756,8 @@ func (c *SNS) SetSubscriptionAttributesRequest(input *SetSubscriptionAttributesI
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetSubscriptionAttributesOutput{}
 	req.Data = output
 	return
@@ -767,6 +785,8 @@ func (c *SNS) SetTopicAttributesRequest(input *SetTopicAttributesInput) (req *re
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &SetTopicAttributesOutput{}
 	req.Data = output
 	return
@@ -824,6 +844,8 @@ func (c *SNS) UnsubscribeRequest(input *UnsubscribeInput) (req *request.Request,
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &UnsubscribeOutput{}
 	req.Data = output
 	return
@@ -1586,6 +1608,8 @@ type MessageAttributeValue struct {
 
 	// Binary type attributes can store any binary data, for example, compressed
 	// data, encrypted data, or images.
+	//
+	// BinaryValue is automatically base64 encoded/decoded by the SDK.
 	BinaryValue []byte `type:"blob"`
 
 	// Amazon SNS supports the following logical data types: String, Number, and

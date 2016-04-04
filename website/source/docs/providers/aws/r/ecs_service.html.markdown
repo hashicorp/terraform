@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** To prevent race condition during service deletion, make sure to set `depends_on` to related `aws_iam_role_policy`, otherwise policy may be destroyed too soon and ECS service will then stuck in `DRAINING` state.
 
-Provides an ECS service - effectively a task that is expected to run until an error occures or user terminates it (typically a webserver or a database). 
+Provides an ECS service - effectively a task that is expected to run until an error occures or user terminates it (typically a webserver or a database).
 
 See [ECS Services section in AWS developer guide](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html).
 
@@ -26,7 +26,7 @@ resource "aws_ecs_service" "mongo" {
   depends_on = ["aws_iam_role_policy.foo"]
 
   load_balancer {
-    elb_name = "${aws_elb.foo.id}"
+    elb_name = "${aws_elb.foo.name}"
     container_name = "mongo"
     container_port = 8080
   }
@@ -42,7 +42,11 @@ The following arguments are supported:
 * `desired_count` - (Required) The number of instances of the task definition to place and keep running
 * `cluster` - (Optional) ARN of an ECS cluster
 * `iam_role` - (Optional) IAM role that allows your Amazon ECS container agent to make calls to your load balancer on your behalf. This parameter is only required if you are using a load balancer with your service.
+* `deployment_maximum_percent` - (Optional) The upper limit (as a percentage of the service's desiredCount) of the number of running tasks that can be running in a service during a deployment.
+* `deployment_minimum_healthy_percent` - (Optional) The lower limit (as a percentage of the service's desiredCount) of the number of running tasks that must remain running and healthy in a service during a deployment.
 * `load_balancer` - (Optional) A load balancer block. Load balancers documented below.
+
+-> **Note:** As a result of AWS limitation a single `load_balancer` can be attached to the ECS service at most. See [related docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html#load-balancing-concepts).
 
 Load balancers support the following:
 

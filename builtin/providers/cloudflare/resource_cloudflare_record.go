@@ -35,6 +35,7 @@ func resourceCloudFlareRecord() *schema.Resource {
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"value": &schema.Schema{
@@ -45,6 +46,7 @@ func resourceCloudFlareRecord() *schema.Resource {
 			"ttl": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"priority": &schema.Schema{

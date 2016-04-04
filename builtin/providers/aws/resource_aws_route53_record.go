@@ -355,7 +355,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	// Create the new records
+	// Change batch for deleting
 	changeBatch := &route53.ChangeBatch{
 		Comment: aws.String("Deleted by Terraform"),
 		Changes: []*route53.Change{
@@ -455,6 +455,9 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 	}
 
 	if v, ok := d.GetOk("failover"); ok {
+		if _, ok := d.GetOk("set_identifier"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "failover" is set`, d.Get("name").(string))
+		}
 		rec.Failover = aws.String(v.(string))
 	}
 
@@ -468,6 +471,9 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 
 	w := d.Get("weight").(int)
 	if w > -1 {
+		if _, ok := d.GetOk("set_identifier"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "set_identifier": required field is not set when "weight" is set`, d.Get("name").(string))
+		}
 		rec.Weight = aws.Int64(int64(w))
 	}
 
