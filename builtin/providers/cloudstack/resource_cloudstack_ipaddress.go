@@ -99,7 +99,7 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Get the network ACL list details
+	// Get the IP address details
 	f, count, err := cs.Address.GetPublicIpAddressByID(d.Id())
 	if err != nil {
 		if count == 0 {
