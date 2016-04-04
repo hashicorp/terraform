@@ -23,6 +23,7 @@ IMPROVEMENTS:
  * provider/aws: Adds `wait_for_ready_timeout` option to `aws_elastic_beanstalk_environment` [GH-5967]
  * provider/aws: Adding outputs for elastic_beanstalk_environment resource [GH-5915]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
+ * provider/google: Accept GOOGLE_CLOUD_KEYFILE_JSON env var for credentials [GH-6007]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
 
 BUG FIXES:
