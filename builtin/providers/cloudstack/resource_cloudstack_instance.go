@@ -94,11 +94,11 @@ func resourceCloudStackInstance() *schema.Resource {
 				Default:  false,
 			},
 
-                        "group": &schema.Schema{
-                                Type:     schema.TypeString,
-                                Optional: true,
-                                Computed: true,
-                        },
+			"group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -199,10 +199,10 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetUserdata(ud)
 	}
 
-        // If there is a group supplied, add it to the parameter struct
-        if group, ok := d.GetOk("group"); ok {
-                p.SetGroup(group.(string))
-        }
+	// If there is a group supplied, add it to the parameter struct
+	if group, ok := d.GetOk("group"); ok {
+		p.SetGroup(group.(string))
+	}
 
 	// Create the new instance
 	r, err := cs.VirtualMachine.DeployVirtualMachine(p)
