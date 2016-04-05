@@ -1,3 +1,4 @@
+//go:generate go run ./scripts/generate-plugins.go
 package main
 
 import (
@@ -11,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/hcl"
+	"github.com/hashicorp/terraform/command"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/kardianos/osext"
@@ -74,18 +76,22 @@ func LoadConfig(path string) (*Config, error) {
 	return &result, nil
 }
 
-// Discover discovers plugins.
+// Discover plugins located on disk, and fall back on plugins baked into the
+// Terraform binary.
 //
-// This looks in the directory of the executable and the CWD, in that
-// order for priority.
+// We look in the following places for plugins:
+//
+// 1. Terraform configuration path
+// 2. Path where Terraform is installed
+// 3. Path where Terraform is invoked
+//
+// Whichever file is discoverd LAST wins.
+//
+// Finally, we look at the list of plugins compiled into Terraform. If any of
+// them has not been found on disk we use the internal version. This allows
+// users to add / replace plugins without recompiling the main binary.
 func (c *Config) Discover() error {
-	// Look in the cwd.
-	if err := c.discover("."); err != nil {
-		return err
-	}
-
-	// Look in the plugins directory. This will override any found
-	// in the current directory.
+	// Look in ~/.terraform.d/plugins/
 	dir, err := ConfigDir()
 	if err != nil {
 		log.Printf("[ERR] Error loading config directory: %s", err)
@@ -95,14 +101,41 @@ func (c *Config) Discover() error {
 		}
 	}
 
-	// Next, look in the same directory as the executable. Any conflicts
-	// will overwrite those found in our current directory.
+	// Next, look in the same directory as the Terraform executable, usually
+	// /usr/local/bin. If found, this replaces what we found in the config path.
 	exePath, err := osext.Executable()
 	if err != nil {
 		log.Printf("[ERR] Error loading exe directory: %s", err)
 	} else {
 		if err := c.discover(filepath.Dir(exePath)); err != nil {
 			return err
+		}
+	}
+
+	// Finally look in the cwd (where we are invoke Terraform). If found, this
+	// replaces anything we found in the config / install paths.
+	if err := c.discover("."); err != nil {
+		return err
+	}
+
+	// Finally, if we have a plugin compiled into Terraform and we didn't find
+	// a replacement on disk, we'll just use the internal version.
+	for name, _ := range command.InternalProviders {
+		if _, found := c.Providers[name]; !found {
+			cmd, err := command.BuildPluginCommandString("provider", name)
+			if err != nil {
+				return err
+			}
+			c.Providers[name] = cmd
+		}
+	}
+	for name, _ := range command.InternalProvisioners {
+		if _, found := c.Provisioners[name]; !found {
+			cmd, err := command.BuildPluginCommandString("provisioner", name)
+			if err != nil {
+				return err
+			}
+			c.Provisioners[name] = cmd
 		}
 	}
 
@@ -283,6 +316,12 @@ func pluginCmd(path string) *exec.Cmd {
 		if v, err := exec.LookPath(path); err == nil {
 			cmdPath = v
 		}
+	}
+
+	// No plugin binary found, so try to use an internal plugin.
+	if strings.Contains(path, command.TFSPACE) {
+		parts := strings.Split(path, command.TFSPACE)
+		return exec.Command(parts[0], parts[1:]...)
 	}
 
 	// If we still don't have a path, then just set it to the original
