@@ -36,6 +36,7 @@ BUG FIXES:
  * provider/aws: Fix potential crash when receiving malformed `aws_route` API responses [GH-5867]
  * provider/aws: Guard against empty responses from Lambda Permissions [GH-5838]
  * provider/aws: Normalize and compact SQS Redrive, Policy JSON [GH-5888]
+ * provider/aws: Fix issue with retrying deletion of Network ACLs [GH-5954]
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
  * provider/aws: Fix issue re-creating deleted VPC peering connections [GH-5959]
  * provider/aws: set ASG `health_check_grace_period` default to 300 [GH-5830]
