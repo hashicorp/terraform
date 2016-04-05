@@ -8,6 +8,7 @@ FEATURES:
  * **New resource:** `triton_fabric` [GH-5920]
  * **New resource:** `triton_vlan` [GH-5920]
  * **New resource:** `cloudstack_static_nat` [GH-6004]
+ * **New resource:** `aws_s3_bucket_notification` [GH-5473]
  * New `terraform fmt` command to automatically normalize config file style [GH-4955]
 
 IMPROVEMENTS:
