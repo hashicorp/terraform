@@ -1,6 +1,7 @@
 package cloudstack
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -28,10 +29,19 @@ func resourceCloudStackLoadBalancerRule() *schema.Resource {
 				Computed: true,
 			},
 
+			"ip_address": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ipaddress"},
+			},
+
 			"ipaddress": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Please use the `ip_address` field instead",
+				ConflictsWith: []string{"ip_address"},
 			},
 
 			"network": &schema.Schema{
@@ -100,8 +110,16 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		p.SetNetworkid(networkid)
 	}
 
+	ipaddress, ok := d.GetOk("ip_address")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if !ok {
+		return errors.New("Either `ip_address` or [deprecated] `ipaddress` must be provided.")
+	}
+
 	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
+	ipaddressid, e := retrieveID(cs, "ip_address", ipaddress.(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -117,7 +135,7 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 	d.SetId(r.Id)
 	d.SetPartial("name")
 	d.SetPartial("description")
-	d.SetPartial("ipaddress")
+	d.SetPartial("ip_address")
 	d.SetPartial("network")
 	d.SetPartial("algorithm")
 	d.SetPartial("private_port")
@@ -163,7 +181,7 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	d.Set("public_port", lb.Publicport)
 	d.Set("private_port", lb.Privateport)
 
-	setValueOrID(d, "ipaddress", lb.Publicip, lb.Publicipid)
+	setValueOrID(d, "ip_address", lb.Publicip, lb.Publicipid)
 
 	// Only set network if user specified it to avoid spurious diffs
 	if _, ok := d.GetOk("network"); ok {

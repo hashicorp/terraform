@@ -43,11 +43,19 @@ func resourceCloudStackInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
+			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"ipaddress": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `ip_address` field instead",
 			},
 
 			"template": &schema.Schema{
@@ -151,8 +159,12 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// If there is a ipaddres supplied, add it to the parameter struct
-	if ipaddres, ok := d.GetOk("ipaddress"); ok {
-		p.SetIpaddress(ipaddres.(string))
+	ipaddress, ok := d.GetOk("ip_address")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if ok {
+		p.SetIpaddress(ipaddress.(string))
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
@@ -228,7 +240,7 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	// Update the config
 	d.Set("name", vm.Name)
 	d.Set("display_name", vm.Displayname)
-	d.Set("ipaddress", vm.Nic[0].Ipaddress)
+	d.Set("ip_address", vm.Nic[0].Ipaddress)
 	//NB cloudstack sometimes sends back the wrong keypair name, so dont update it
 
 	setValueOrID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
