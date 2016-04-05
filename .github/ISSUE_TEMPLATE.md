@@ -43,6 +43,10 @@ What actually happened?
 Please list the steps requires to reproduce the issue, for example:
 1. `terraform apply`
 
+### Important Factoids
+Are there anything atypical about your accounts that we should know? For
+example: Running in EC2 Classic? Custom version of OpenStack? Tight ACLs?
+
 ### References
 Are there any other GitHub issues (open or closed) or Pull Requests that should
 be linked here? For example:
