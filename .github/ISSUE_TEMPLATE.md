@@ -14,6 +14,9 @@ Please list the resources as a list, for example:
 - aws_instance
 - dnsimple_record
 
+If this issue appears to affect multiple resources, it may be an issue with
+Terraform's core, so please mention this.
+
 ### Terraform Configuration Files
 ```hcl
 # Copy-paste your Terraform configurations here - for large Terraform configs,
