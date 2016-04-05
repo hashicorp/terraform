@@ -444,9 +444,18 @@ func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
 
 func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if value != "DeploymentStart" && value != "DeploymentSuccess" && value != "DeploymentFailure" && value != "DeploymentStop" && value != "InstanceStart" && value != "InstanceSuccess" && value != "InstanceFailure" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be a valid event type value: %q", k, value))
+	triggerEvents := map[string]bool{
+		"DeploymentStart":   true,
+		"DeploymentStop":    true,
+		"DeploymentSuccess": true,
+		"DeploymentFailure": true,
+		"InstanceStart":     true,
+		"InstanceSuccess":   true,
+		"InstanceFailure":   true,
+	}
+
+	if !triggerEvents[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid event type value: %q", k, value))
 	}
 	return
 }

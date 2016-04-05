@@ -33,7 +33,7 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 	})
 }
 
-func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration(t *testing.T) {
+func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -78,34 +78,60 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_multiple(t *testin
 }
 
 func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
-	validEvents := []string{
-		"DeploymentStart",
-		"DeploymentSuccess",
-		"DeploymentFailure",
-		"DeploymentStop",
-		"InstanceStart",
-		"InstanceSuccess",
-		"InstanceFailure",
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "DeploymentStart",
+			ErrCount: 0,
+		},
+		{
+			Value:    "DeploymentStop",
+			ErrCount: 0,
+		},
+		{
+			Value:    "DeploymentSuccess",
+			ErrCount: 0,
+		},
+		{
+			Value:    "DeploymentFailure",
+			ErrCount: 0,
+		},
+		{
+			Value:    "InstanceStart",
+			ErrCount: 0,
+		},
+		{
+			Value:    "InstanceSuccess",
+			ErrCount: 0,
+		},
+		{
+			Value:    "InstanceFailure",
+			ErrCount: 0,
+		},
+		{
+			Value:    "DeploymentStarts",
+			ErrCount: 1,
+		},
+		{
+			Value:    "InstanceFail",
+			ErrCount: 1,
+		},
+		{
+			Value:    "Foo",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
 	}
 
-	for _, v := range validEvents {
-		_, errors := validateTriggerEvent(v, "trigger_event")
-		if len(errors) != 0 {
-			t.Fatalf("%q should be a valid trigger event type: %q", v, errors)
-		}
-	}
-
-	invalidEvents := []string{
-		"DeploymentStarts",
-		"InstanceFail",
-		"Foo",
-		"",
-	}
-
-	for _, v := range invalidEvents {
-		_, errors := validateTriggerEvent(v, "trigger_event")
-		if len(errors) == 0 {
-			t.Fatalf("%q should be an invalid trigger event type: %q", v, errors)
+	for _, tc := range cases {
+		_, errors := validateTriggerEvent(tc.Value, "trigger_event")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Trigger event validation failed for event type %q: %q", tc.Value, errors)
 		}
 	}
 }
