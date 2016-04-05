@@ -26,6 +26,7 @@ IMPROVEMENTS:
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/google: Accept GOOGLE_CLOUD_KEYFILE_JSON env var for credentials [GH-6007]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
+ * provider/docker: Add support for docker run --user option [GH-5298]
 
 BUG FIXES:
 
