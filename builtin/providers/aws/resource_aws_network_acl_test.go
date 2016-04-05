@@ -358,6 +358,9 @@ func testAccCheckSubnetIsNotAssociatedWithAcl(acl string, subnet string) resourc
 const testAccAWSNetworkAclIngressConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "TestAccAWSNetworkAcl_OnlyIngressRules"
+	}
 }
 resource "aws_subnet" "blob" {
 	cidr_block = "10.1.1.0/24"
@@ -388,6 +391,9 @@ resource "aws_network_acl" "foos" {
 const testAccAWSNetworkAclIngressConfigChange = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "TestAccAWSNetworkAcl_OnlyIngressRules"
+	}
 }
 resource "aws_subnet" "blob" {
 	cidr_block = "10.1.1.0/24"
@@ -411,6 +417,9 @@ resource "aws_network_acl" "foos" {
 const testAccAWSNetworkAclEgressConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.2.0.0/16"
+	tags {
+		Name = "TestAccAWSNetworkAcl_OnlyEgressRules"
+	}
 }
 resource "aws_subnet" "blob" {
 	cidr_block = "10.2.0.0/24"
@@ -464,6 +473,9 @@ resource "aws_network_acl" "bond" {
 const testAccAWSNetworkAclEgressNIngressConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.3.0.0/16"
+	tags {
+		Name = "TestAccAWSNetworkAcl_EgressAndIngressRules"
+	}
 }
 resource "aws_subnet" "blob" {
 	cidr_block = "10.3.0.0/24"
@@ -494,6 +506,9 @@ resource "aws_network_acl" "bar" {
 const testAccAWSNetworkAclSubnetConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "TestAccAWSNetworkAcl_SubnetChange"
+	}
 }
 resource "aws_subnet" "old" {
 	cidr_block = "10.1.111.0/24"
@@ -518,6 +533,9 @@ resource "aws_network_acl" "bar" {
 const testAccAWSNetworkAclSubnetConfigChange = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "TestAccAWSNetworkAcl_SubnetChange"
+	}
 }
 resource "aws_subnet" "old" {
 	cidr_block = "10.1.111.0/24"
@@ -539,20 +557,29 @@ const testAccAWSNetworkAclSubnet_SubnetIds = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 	tags {
-		Name = "acl-subnets-test"
+		Name = "TestAccAWSNetworkAcl_Subnets"
 	}
 }
 resource "aws_subnet" "one" {
 	cidr_block = "10.1.111.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 resource "aws_subnet" "two" {
 	cidr_block = "10.1.1.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
 	subnet_ids = ["${aws_subnet.one.id}", "${aws_subnet.two.id}"]
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 `
 
@@ -560,25 +587,37 @@ const testAccAWSNetworkAclSubnet_SubnetIdsUpdate = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 	tags {
-		Name = "acl-subnets-test"
+		Name = "TestAccAWSNetworkAcl_Subnets"
 	}
 }
 resource "aws_subnet" "one" {
 	cidr_block = "10.1.111.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 resource "aws_subnet" "two" {
 	cidr_block = "10.1.1.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 
 resource "aws_subnet" "three" {
 	cidr_block = "10.1.222.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 resource "aws_subnet" "four" {
 	cidr_block = "10.1.4.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
@@ -587,5 +626,8 @@ resource "aws_network_acl" "bar" {
 		"${aws_subnet.three.id}",
 		"${aws_subnet.four.id}",
 	]
+	tags {
+		Name = "acl-subnets-test"
+	}
 }
 `
