@@ -28,7 +28,7 @@ debug output in the issue; just paste a link to the Gist.
 
 ### Panic Output
 If Terraform produced a panic, please provide a link to a GitHub Gist containing
-the output of the `panic.log`.
+the output of the `crash.log`.
 
 ### Expected Behavior
 What should have happened?
