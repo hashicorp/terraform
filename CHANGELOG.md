@@ -24,6 +24,7 @@ IMPROVEMENTS:
  * provider/aws: Timeouts for `elasticsearch_domain` are increased [GH-5910]
  * provider/aws: `aws_codecommit_repository` set `default_branch` only if defined [GH-5904]
  * provider/aws: `aws_redshift_cluster` allows usernames with underscore in it [GH-5935]
+ * provider/aws: normalize json for `aws_cloudwatch_event_rule` [GH-6025]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
  * provider/docker: Add support for docker run --user option [GH-5300]
