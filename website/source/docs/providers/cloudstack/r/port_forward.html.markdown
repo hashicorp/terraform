@@ -14,7 +14,7 @@ Creates port forwards.
 
 ```
 resource "cloudstack_port_forward" "default" {
-  ipaddress = "192.168.0.1"
+  ip_address = "192.168.0.1"
 
   forward {
     protocol = "tcp"
@@ -29,8 +29,11 @@ resource "cloudstack_port_forward" "default" {
 
 The following arguments are supported:
 
-* `ipaddress` - (Required) The IP address for which to create the port forwards.
+* `ip_address` - (Required) The IP address for which to create the port forwards.
     Changing this forces a new resource to be created.
+
+* `ipaddress` - (Required, Deprecated) The IP address for which to create the port
+    forwards. Changing this forces a new resource to be created.
 
 * `managed` - (Optional) USE WITH CAUTION! If enabled all the port forwards for
     this IP address will be managed by this resource. This means it will delete
@@ -54,4 +57,4 @@ The `forward` block supports:
 
 The following attributes are exported:
 
-* `ipaddress` - The IP address for which the port forwards are created.
+* `ip_address` - The IP address for which the port forwards are created.

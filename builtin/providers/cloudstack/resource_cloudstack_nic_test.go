@@ -53,7 +53,7 @@ func TestAccCloudStackNIC_update(t *testing.T) {
 						"cloudstack_instance.foobar", "cloudstack_nic.foo", &nic),
 					testAccCheckCloudStackNICIPAddress(&nic),
 					resource.TestCheckResourceAttr(
-						"cloudstack_nic.foo", "ipaddress", CLOUDSTACK_2ND_NIC_IPADDRESS),
+						"cloudstack_nic.foo", "ip_address", CLOUDSTACK_2ND_NIC_IPADDRESS),
 				),
 			},
 		},
@@ -183,7 +183,7 @@ resource "cloudstack_instance" "foobar" {
 
 resource "cloudstack_nic" "foo" {
   network = "%s"
-  ipaddress = "%s"
+  ip_address = "%s"
   virtual_machine = "${cloudstack_instance.foobar.name}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,

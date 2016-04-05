@@ -43,7 +43,7 @@ func TestAccCloudStackSecondaryIPAddress_fixedIP(t *testing.T) {
 						"cloudstack_secondary_ipaddress.foo", &ip),
 					testAccCheckCloudStackSecondaryIPAddressAttributes(&ip),
 					resource.TestCheckResourceAttr(
-						"cloudstack_secondary_ipaddress.foo", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS1),
+						"cloudstack_secondary_ipaddress.foo", "ip_address", CLOUDSTACK_NETWORK_1_IPADDRESS1),
 				),
 			},
 		},
@@ -147,7 +147,7 @@ func testAccCheckCloudStackSecondaryIPAddressDestroy(s *terraform.State) error {
 		vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(virtualmachineid)
 		if err != nil {
 			if count == 0 {
-				return fmt.Errorf("Instance not found")
+				return nil
 			}
 			return err
 		}
@@ -215,7 +215,7 @@ resource "cloudstack_instance" "foobar" {
 }
 
 resource "cloudstack_secondary_ipaddress" "foo" {
-	ipaddress = "%s"
+	ip_address = "%s"
 	virtual_machine = "${cloudstack_instance.foobar.id}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
