@@ -400,7 +400,7 @@ func TestAccAzureRMPublicIpStatic_update(t *testing.T) {
 }
 ```
 
-When executing the test, the the following steps are taken for each `TestStep`:
+When executing the test, the following steps are taken for each `TestStep`:
 
 1. The Terraform configuration required for the test is applied. This is
    responsible for configuring the resource under test, and any dependencies it
