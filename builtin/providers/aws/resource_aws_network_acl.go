@@ -169,6 +169,13 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "InvalidNetworkAclID.NotFound" {
+				log.Printf("[DEBUG] Network ACL (%s) not found", d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 	if resp == nil {
