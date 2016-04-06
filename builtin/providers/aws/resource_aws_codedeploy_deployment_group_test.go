@@ -21,12 +21,42 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 				Config: testAccAWSCodeDeployDeploymentGroup,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "app_name", "foo_app"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "deployment_group_name", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2916377465.key", "filterkey"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2916377465.type", "KEY_AND_VALUE"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2916377465.value", "filtervalue"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSCodeDeployDeploymentGroupModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "app_name", "foo_app"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "deployment_group_name", "bar"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2369538975.key", "filterkey"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2369538975.type", "KEY_AND_VALUE"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2369538975.value", "anotherfiltervalue"),
 				),
 			},
 		},
@@ -43,12 +73,24 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_basic(t *testing.T
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_create,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "app_name", "foo-app"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_group_name", "foo-group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "app_name", "foo-app"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_group_name", "foo-group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
 				),
 			},
 		},
@@ -65,12 +107,24 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_multiple(t *testin
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_createMultiple,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "app_name", "foo-app"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_group_name", "foo-group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_updateMultiple,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "app_name", "foo-app"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_group_name", "foo-group"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
 				),
 			},
 		},
@@ -186,25 +240,25 @@ resource "aws_iam_role_policy" "foo_policy" {
 	role = "${aws_iam_role.foo_role.id}"
 	policy = <<EOF
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "autoscaling:CompleteLifecycleAction",
-                "autoscaling:DeleteLifecycleHook",
-                "autoscaling:DescribeAutoScalingGroups",
-                "autoscaling:DescribeLifecycleHooks",
-                "autoscaling:PutLifecycleHook",
-                "autoscaling:RecordLifecycleActionHeartbeat",
-                "ec2:DescribeInstances",
-                "ec2:DescribeInstanceStatus",
-                "tag:GetTags",
-                "tag:GetResources"
-            ],
-            "Resource": "*"
-        }
-    ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"autoscaling:CompleteLifecycleAction",
+				"autoscaling:DeleteLifecycleHook",
+				"autoscaling:DescribeAutoScalingGroups",
+				"autoscaling:DescribeLifecycleHooks",
+				"autoscaling:PutLifecycleHook",
+				"autoscaling:RecordLifecycleActionHeartbeat",
+				"ec2:DescribeInstances",
+				"ec2:DescribeInstanceStatus",
+				"tag:GetTags",
+				"tag:GetResources"
+			],
+			"Resource": "*"
+		}
+	]
 }
 EOF
 }
@@ -213,19 +267,19 @@ resource "aws_iam_role" "foo_role" {
 	name = "foo_role"
 	assume_role_policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "codedeploy.amazonaws.com"
-        ]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "",
+			"Effect": "Allow",
+			"Principal": {
+				"Service": [
+					"codedeploy.amazonaws.com"
+				]
+			},
+			"Action": "sts:AssumeRole"
+		}
+	]
 }
 EOF
 }
@@ -251,25 +305,25 @@ resource "aws_iam_role_policy" "foo_policy" {
 	role = "${aws_iam_role.foo_role.id}"
 	policy = <<EOF
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "autoscaling:CompleteLifecycleAction",
-                "autoscaling:DeleteLifecycleHook",
-                "autoscaling:DescribeAutoScalingGroups",
-                "autoscaling:DescribeLifecycleHooks",
-                "autoscaling:PutLifecycleHook",
-                "autoscaling:RecordLifecycleActionHeartbeat",
-                "ec2:DescribeInstances",
-                "ec2:DescribeInstanceStatus",
-                "tag:GetTags",
-                "tag:GetResources"
-            ],
-            "Resource": "*"
-        }
-    ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"autoscaling:CompleteLifecycleAction",
+				"autoscaling:DeleteLifecycleHook",
+				"autoscaling:DescribeAutoScalingGroups",
+				"autoscaling:DescribeLifecycleHooks",
+				"autoscaling:PutLifecycleHook",
+				"autoscaling:RecordLifecycleActionHeartbeat",
+				"ec2:DescribeInstances",
+				"ec2:DescribeInstanceStatus",
+				"tag:GetTags",
+				"tag:GetResources"
+			],
+			"Resource": "*"
+		}
+	]
 }
 EOF
 }
@@ -278,19 +332,19 @@ resource "aws_iam_role" "foo_role" {
 	name = "foo_role"
 	assume_role_policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": [
-          "codedeploy.amazonaws.com"
-        ]
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "",
+			"Effect": "Allow",
+			"Principal": {
+				"Service": [
+					"codedeploy.amazonaws.com"
+				]
+			},
+			"Action": "sts:AssumeRole"
+		}
+	]
 }
 EOF
 }
@@ -302,141 +356,141 @@ resource "aws_codedeploy_deployment_group" "foo" {
 	ec2_tag_filter {
 		key = "filterkey"
 		type = "KEY_AND_VALUE"
-		value = "filtervalue"
+		value = "anotherfiltervalue"
 	}
 }`
 
 const baseCodeDeployConfig = `
 resource "aws_codedeploy_app" "foo_app" {
-  name = "foo"
+	name = "foo-app"
 }
 
 resource "aws_iam_role_policy" "foo_policy" {
-  name = "foo"
-  role = "${aws_iam_role.foo_role.id}"
-  policy = <<EOF
+	name = "foo-policy"
+	role = "${aws_iam_role.foo_role.id}"
+	policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "autoscaling:CompleteLifecycleAction",
-        "autoscaling:DeleteLifecycleHook",
-        "autoscaling:DescribeAutoScalingGroups",
-        "autoscaling:DescribeLifecycleHooks",
-        "autoscaling:PutLifecycleHook",
-        "autoscaling:RecordLifecycleActionHeartbeat",
-        "ec2:DescribeInstances",
-        "ec2:DescribeInstanceStatus",
-        "tag:GetTags",
-        "tag:GetResources",
-        "sns:Publish"
-      ],
-      "Resource": "*"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"autoscaling:CompleteLifecycleAction",
+				"autoscaling:DeleteLifecycleHook",
+				"autoscaling:DescribeAutoScalingGroups",
+				"autoscaling:DescribeLifecycleHooks",
+				"autoscaling:PutLifecycleHook",
+				"autoscaling:RecordLifecycleActionHeartbeat",
+				"ec2:DescribeInstances",
+				"ec2:DescribeInstanceStatus",
+				"tag:GetTags",
+				"tag:GetResources",
+				"sns:Publish"
+			],
+			"Resource": "*"
+		}
+	]
 }
 EOF
 }
 
 resource "aws_iam_role" "foo_role" {
-  name = "foo"
-  assume_role_policy = <<EOF
+	name = "foo-role"
+	assume_role_policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "codedeploy.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "",
+			"Effect": "Allow",
+			"Principal": {
+				"Service": "codedeploy.amazonaws.com"
+			},
+			"Action": "sts:AssumeRole"
+		}
+	]
 }
 EOF
 }
 
 resource "aws_sns_topic" "foo_topic" {
-  name = "foo"
+	name = "foo-topic"
 }
 
 `
 
 const testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_create = baseCodeDeployConfig + `
 resource "aws_codedeploy_deployment_group" "foo_group" {
-  app_name = "${aws_codedeploy_app.foo_app.name}"
-  deployment_group_name = "foo"
-  service_role_arn = "${aws_iam_role.foo_role.arn}"
+	app_name = "${aws_codedeploy_app.foo_app.name}"
+	deployment_group_name = "foo-group"
+	service_role_arn = "${aws_iam_role.foo_role.arn}"
 
-  trigger_configuration {
-    trigger_events = ["DeploymentFailure"]
-    trigger_name = "foo-trigger"
-    trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
-  }
+	trigger_configuration {
+		trigger_events = ["DeploymentFailure"]
+		trigger_name = "foo-trigger"
+		trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
+	}
 }`
 
 const testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_update = baseCodeDeployConfig + `
 resource "aws_codedeploy_deployment_group" "foo_group" {
-  app_name = "${aws_codedeploy_app.foo_app.name}"
-  deployment_group_name = "foo"
-  service_role_arn = "${aws_iam_role.foo_role.arn}"
+	app_name = "${aws_codedeploy_app.foo_app.name}"
+	deployment_group_name = "foo-group"
+	service_role_arn = "${aws_iam_role.foo_role.arn}"
 
-  trigger_configuration {
-    trigger_events = ["DeploymentSuccess", "DeploymentFailure"]
-    trigger_name = "foo-trigger"
-    trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
-  }
+	trigger_configuration {
+		trigger_events = ["DeploymentSuccess", "DeploymentFailure"]
+		trigger_name = "foo-trigger"
+		trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
+	}
 }`
 
 const testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_createMultiple = baseCodeDeployConfig + `
 resource "aws_sns_topic" "bar_topic" {
-  name = "bar"
+	name = "bar-topic"
 }
 
 resource "aws_codedeploy_deployment_group" "foo_group" {
-  app_name = "${aws_codedeploy_app.foo_app.name}"
-  deployment_group_name = "foo"
-  service_role_arn = "${aws_iam_role.foo_role.arn}"
+	app_name = "${aws_codedeploy_app.foo_app.name}"
+	deployment_group_name = "foo-group"
+	service_role_arn = "${aws_iam_role.foo_role.arn}"
 
-  trigger_configuration {
-    trigger_events = ["DeploymentFailure"]
-    trigger_name = "foo-trigger"
-    trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
-  }
+	trigger_configuration {
+		trigger_events = ["DeploymentFailure"]
+		trigger_name = "foo-trigger"
+		trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
+	}
 
-  trigger_configuration {
-    trigger_events = ["InstanceFailure"]
-    trigger_name = "bar-trigger"
-    trigger_target_arn = "${aws_sns_topic.bar_topic.arn}"
-  }
+	trigger_configuration {
+		trigger_events = ["InstanceFailure"]
+		trigger_name = "bar-trigger"
+		trigger_target_arn = "${aws_sns_topic.bar_topic.arn}"
+	}
 }`
 
 const testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_updateMultiple = baseCodeDeployConfig + `
 resource "aws_sns_topic" "bar_topic" {
-  name = "bar"
+	name = "bar-topic"
 }
 
 resource "aws_sns_topic" "baz_topic" {
-  name = "baz"
+	name = "baz-topic"
 }
 
 resource "aws_codedeploy_deployment_group" "foo_group" {
-  app_name = "${aws_codedeploy_app.foo_app.name}"
-  deployment_group_name = "foo"
-  service_role_arn = "${aws_iam_role.foo_role.arn}"
+	app_name = "${aws_codedeploy_app.foo_app.name}"
+	deployment_group_name = "foo-group"
+	service_role_arn = "${aws_iam_role.foo_role.arn}"
 
-  trigger_configuration {
-    trigger_events = ["DeploymentStart", "DeploymentSuccess", "DeploymentFailure", "DeploymentStop"]
-    trigger_name = "foo-trigger"
-    trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
-  }
+	trigger_configuration {
+		trigger_events = ["DeploymentStart", "DeploymentSuccess", "DeploymentFailure", "DeploymentStop"]
+		trigger_name = "foo-trigger"
+		trigger_target_arn = "${aws_sns_topic.foo_topic.arn}"
+	}
 
-  trigger_configuration {
-    trigger_events = ["InstanceFailure"]
-    trigger_name = "bar-trigger"
-    trigger_target_arn = "${aws_sns_topic.baz_topic.arn}"
-  }
+	trigger_configuration {
+		trigger_events = ["InstanceFailure"]
+		trigger_name = "bar-trigger"
+		trigger_target_arn = "${aws_sns_topic.baz_topic.arn}"
+	}
 }`
