@@ -16,11 +16,19 @@ func resourceCloudStackSecondaryIPAddress() *schema.Resource {
 		Delete: resourceCloudStackSecondaryIPAddressDelete,
 
 		Schema: map[string]*schema.Schema{
-			"ipaddress": &schema.Schema{
+			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"ipaddress": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `ip_address` field instead",
 			},
 
 			"nicid": &schema.Schema{
@@ -67,8 +75,13 @@ func resourceCloudStackSecondaryIPAddressCreate(d *schema.ResourceData, meta int
 	// Create a new parameter struct
 	p := cs.Nic.NewAddIpToNicParams(nicid)
 
-	if addr := d.Get("ipaddress").(string); addr != "" {
-		p.SetIpaddress(addr)
+	// If there is a ipaddres supplied, add it to the parameter struct
+	ipaddress, ok := d.GetOk("ip_address")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if ok {
+		p.SetIpaddress(ipaddress.(string))
 	}
 
 	ip, err := cs.Nic.AddIpToNic(p)
@@ -126,13 +139,13 @@ func resourceCloudStackSecondaryIPAddressRead(d *schema.ResourceData, meta inter
 
 	for _, ip := range l.Nics[0].Secondaryip {
 		if ip.Id == d.Id() {
-			d.Set("ipaddress", ip.Ipaddress)
+			d.Set("ip_address", ip.Ipaddress)
 			d.Set("nicid", l.Nics[0].Id)
 			return nil
 		}
 	}
 
-	log.Printf("[DEBUG] IP %s no longer exist", d.Get("ipaddress").(string))
+	log.Printf("[DEBUG] IP %s no longer exist", d.Get("ip_address").(string))
 	d.SetId("")
 
 	return nil
@@ -144,7 +157,7 @@ func resourceCloudStackSecondaryIPAddressDelete(d *schema.ResourceData, meta int
 	// Create a new parameter struct
 	p := cs.Nic.NewRemoveIpFromNicParams(d.Id())
 
-	log.Printf("[INFO] Removing secondary IP address: %s", d.Get("ipaddress").(string))
+	log.Printf("[INFO] Removing secondary IP address: %s", d.Get("ip_address").(string))
 	if _, err := cs.Nic.RemoveIpFromNic(p); err != nil {
 		// This is a very poor way to be told the ID does no longer exist :(
 		if strings.Contains(err.Error(), fmt.Sprintf(

@@ -38,4 +38,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the acquired and associated IP address.
-* `ipaddress` - The IP address that was acquired and associated.
+* `ip_address` - The IP address that was acquired and associated.

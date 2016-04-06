@@ -1341,6 +1341,8 @@ type FunctionCode struct {
 	// AWS CLI, the SDKs or CLI will do the encoding for you). For more information
 	// about creating a .zip file, go to Execution Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html)
 	// in the AWS Lambda Developer Guide.
+	//
+	// ZipFile is automatically base64 encoded/decoded by the SDK.
 	ZipFile []byte `type:"blob"`
 }
 
@@ -2126,6 +2128,8 @@ type UpdateFunctionCodeInput struct {
 	S3ObjectVersion *string `min:"1" type:"string"`
 
 	// Based64-encoded .zip file containing your packaged source code.
+	//
+	// ZipFile is automatically base64 encoded/decoded by the SDK.
 	ZipFile []byte `type:"blob"`
 }
 

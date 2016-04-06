@@ -676,25 +676,25 @@ func resourceAwsDynamoDbTableDelete(d *schema.ResourceData, meta interface{}) er
 		TableName: aws.String(d.Id()),
 	}
 
-	err = resource.Retry(10*time.Minute, func() error {
+	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
 		t, err := dynamodbconn.DescribeTable(params)
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "ResourceNotFoundException" {
 				return nil
 			}
 			// Didn't recognize the error, so shouldn't retry.
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		if t != nil {
 			if t.Table.TableStatus != nil && strings.ToLower(*t.Table.TableStatus) == "deleting" {
 				log.Printf("[DEBUG] AWS Dynamo DB table (%s) is still deleting", d.Id())
-				return fmt.Errorf("still deleting")
+				return resource.RetryableError(fmt.Errorf("still deleting"))
 			}
 		}
 
 		// we should be not found or deleting, so error here
-		return resource.RetryError{Err: fmt.Errorf("[ERR] Error deleting Dynamo DB table, unexpected state: %s", t)}
+		return resource.NonRetryableError(err)
 	})
 
 	// check error from retry

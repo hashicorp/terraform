@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_elasticsearch_domain"
-sidebar_current: "docs-aws-elasticsearch-domain"
+sidebar_current: "docs-aws-resource-elasticsearch-domain"
 description: |-
   Provides an ElasticSearch Domain.
 ---
@@ -60,7 +60,8 @@ The following arguments are supported:
 
 * `ebs_enabled` - (Required) Whether EBS volumes are attached to data nodes in the domain
 * `volume_type` - (Optional) The type of EBS volumes attached to data nodes.
-* `volume_size` - (Optional) The size of EBS volumes attached to data nodes.
+* `volume_size` - The size of EBS volumes attached to data nodes.
+**Required** if `ebs_enabled` is set to `true`.
 * `iops` - (Optional) The baseline input/output (I/O) performance of EBS volumes
 	attached to data nodes. Applicable only for the Provisioned IOPS EBS volume type.
 

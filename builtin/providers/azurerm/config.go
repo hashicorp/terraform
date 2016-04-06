@@ -58,6 +58,8 @@ type ArmClient struct {
 
 	storageServiceClient storage.AccountsClient
 	storageUsageClient   storage.UsageOperationsClient
+
+	deploymentsClient resources.DeploymentsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -294,6 +296,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	cec.Authorizer = spt
 	cec.Sender = autorest.CreateSender(withRequestLogging())
 	client.cdnEndpointsClient = cec
+
+	dc := resources.NewDeploymentsClient(c.SubscriptionID)
+	setUserAgent(&dc.Client)
+	dc.Authorizer = spt
+	dc.Sender = autorest.CreateSender(withRequestLogging())
+	client.deploymentsClient = dc
 
 	return &client, nil
 }

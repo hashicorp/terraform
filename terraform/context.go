@@ -316,9 +316,10 @@ func (c *Context) Plan() (*Plan, error) {
 	defer c.releaseRun(v)
 
 	p := &Plan{
-		Module: c.module,
-		Vars:   c.variables,
-		State:  c.state,
+		Module:  c.module,
+		Vars:    c.variables,
+		State:   c.state,
+		Targets: c.targets,
 	}
 
 	var operation walkOperation

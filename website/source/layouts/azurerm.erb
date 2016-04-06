@@ -11,8 +11,13 @@
               <a href="/docs/providers/azurerm/index.html">Azure Resource Manager Provider</a>
             </li>
 
-            <li<%= sidebar_current("docs-azurerm-resource-resource-group") %>>
-              <a href="/docs/providers/azurerm/r/resource_group.html">azurerm_resource_group</a>
+            <li<%= sidebar_current(/^docs-azurerm-resource-resource/) %>>
+              <a href="#">Base Resources</a>
+              <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-azurerm-resource-resource-group") %>>
+                  <a href="/docs/providers/azurerm/r/resource_group.html">azurerm_resource_group</a>
+                </li>
+              </ul>
             </li>
 
             <li<%= sidebar_current(/^docs-azurerm-resource-cdn/) %>>
@@ -163,12 +168,27 @@
               </ul>
             </li>
 
+            <li<%= sidebar_current(/^docs-azurerm-resource-template/) %>>
+              <a href="#">Template Resources</a>
+              <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-azurerm-resource-template-deployment") %>>
+                  <a href="/docs/providers/azurerm/r/template_deployment.html">azurerm_template_deployment</a>
+                </li>
+              </ul>
+            </li>
+
+
+
             <li<%= sidebar_current(/^docs-azurerm-resource-virtualmachine/) %>>
               <a href="#">Virtual Machine Resources</a>
               <ul class="nav nav-visible">
 
                 <li<%= sidebar_current("docs-azurerm-resource-virtualmachine-availability-set") %>>
                   <a href="/docs/providers/azurerm/r/availability_set.html">azurerm_availability_set</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-virtualmachine") %>>
+                  <a href="/docs/providers/azurerm/r/virtual_machine.html">azurerm_virtual_machine</a>
                 </li>
 
               </ul>

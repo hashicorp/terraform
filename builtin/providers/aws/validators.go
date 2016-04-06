@@ -299,3 +299,71 @@ func validateCIDRNetworkAddress(v interface{}, k string) (ws []string, errors []
 
 	return
 }
+
+func validateHTTPMethod(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "GET" && value != "HEAD" && value != "OPTIONS" && value != "PUT" && value != "POST" && value != "PATCH" && value != "DELETE" {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of 'GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'", k))
+	}
+	return
+}
+
+func validateLogMetricFilterName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 512 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 512 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutMetricFilter.html
+	pattern := `^[^:*]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q isn't a valid log metric name (must not contain colon nor asterisk): %q",
+			k, value))
+	}
+
+	return
+}
+
+func validateLogMetricFilterTransformationName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_MetricTransformation.html
+	pattern := `^[^:*$]*$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q isn't a valid log metric transformation name (must not contain"+
+				" colon, asterisk nor dollar sign): %q",
+			k, value))
+	}
+
+	return
+}
+
+func validateLogGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) > 512 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 512 characters: %q", k, value))
+	}
+
+	// http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+	pattern := `^[\.\-_/#A-Za-z0-9]+$`
+	if !regexp.MustCompile(pattern).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q isn't a valid log group name (alphanumeric characters, underscores,"+
+				" hyphens, slashes, hash signs and dots are allowed): %q",
+			k, value))
+	}
+
+	return
+}

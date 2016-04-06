@@ -24,7 +24,7 @@ resource "google_compute_instance" "default" {
 	tags = ["foo", "bar"]
 
 	disk {
-		image = "debian-7-wheezy-v20140814"
+		image = "debian-7-wheezy-v20160301"
 	}
 
 	// Local SSD disk
@@ -61,7 +61,8 @@ The following arguments are supported:
 
 * `description` - (Optional) A brief description of this resource.
 
-* `machine_type` - (Required) The machine type to create.
+* `machine_type` - (Required) The machine type to create.To create a custom machine type, value should be
+    set as specified [here](https://cloud.google.com/compute/docs/reference/latest/instances#machineType)
 
 * `zone` - (Required) The zone that the machine should be created in.
 
@@ -122,7 +123,7 @@ The `network_interface` block supports:
 
 * `network` - (Optional) The name of the network to attach this interface to. Either
     `network` or `subnetwork` must be provided.
-    
+
 *  `subnetwork` - (Optional) the name of the subnetwork to attach this interface to. The subnetwork
      must exist in the same region this instance will be created in. Either `network`
      or `subnetwork` must be provided.
@@ -158,7 +159,7 @@ The `scheduling` block supports:
 
 * `preemptible` - (Optional) Is the instance preemptible.
 
-* `on_host_maintenance` - (Optional) Describes maintenance behavior for 
+* `on_host_maintenance` - (Optional) Describes maintenance behavior for
     the instance. Can be MIGRATE or TERMINATE, for more info, read
     [here](https://cloud.google.com/compute/docs/instances/setting-instance-scheduling-options)
 

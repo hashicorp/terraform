@@ -30,7 +30,7 @@ The following arguments are supported:
 
 * `name` - (Optional, Computed) The name of the instance. If the name is left
   blank, Terraform will randomly generate one when the instance is first
-  created. This is done because after a name is used, it cannot be reused 
+  created. This is done because after a name is used, it cannot be reused
   for up to [two months](https://cloud.google.com/sql/docs/delete-instance).
 
 * `region` - (Required) The region the instance will sit in. Note, this does

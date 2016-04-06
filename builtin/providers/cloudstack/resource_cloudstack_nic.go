@@ -22,11 +22,19 @@ func resourceCloudStackNIC() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
+			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"ipaddress": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `ip_address` field instead",
 			},
 
 			"virtual_machine": &schema.Schema{
@@ -57,7 +65,11 @@ func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error
 	p := cs.VirtualMachine.NewAddNicToVirtualMachineParams(networkid, virtualmachineid)
 
 	// If there is a ipaddres supplied, add it to the parameter struct
-	if ipaddress, ok := d.GetOk("ipaddress"); ok {
+	ipaddress, ok := d.GetOk("ip_address")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if ok {
 		p.SetIpaddress(ipaddress.(string))
 	}
 
@@ -93,16 +105,16 @@ func resourceCloudStackNICRead(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[DEBUG] Instance %s does no longer exist", d.Get("virtual_machine").(string))
 			d.SetId("")
 			return nil
-		} else {
-			return err
 		}
+
+		return err
 	}
 
 	// Read NIC info
 	found := false
 	for _, n := range vm.Nic {
 		if n.Id == d.Id() {
-			d.Set("ipaddress", n.Ipaddress)
+			d.Set("ip_address", n.Ipaddress)
 			setValueOrID(d, "network", n.Networkname, n.Networkid)
 			setValueOrID(d, "virtual_machine", vm.Name, vm.Id)
 			found = true

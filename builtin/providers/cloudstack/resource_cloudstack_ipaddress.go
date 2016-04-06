@@ -34,7 +34,7 @@ func resourceCloudStackIPAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
+			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -99,8 +99,8 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Get the network ACL list details
-	f, count, err := cs.Address.GetPublicIpAddressByID(d.Id())
+	// Get the IP address details
+	ip, count, err := cs.Address.GetPublicIpAddressByID(d.Id())
 	if err != nil {
 		if count == 0 {
 			log.Printf(
@@ -113,29 +113,29 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Updated the IP address
-	d.Set("ipaddress", f.Ipaddress)
+	d.Set("ip_address", ip.Ipaddress)
 
 	if _, ok := d.GetOk("network"); ok {
 		// Get the network details
-		n, _, err := cs.Network.GetNetworkByID(f.Associatednetworkid)
+		n, _, err := cs.Network.GetNetworkByID(ip.Associatednetworkid)
 		if err != nil {
 			return err
 		}
 
-		setValueOrID(d, "network", n.Name, f.Associatednetworkid)
+		setValueOrID(d, "network", n.Name, ip.Associatednetworkid)
 	}
 
 	if _, ok := d.GetOk("vpc"); ok {
 		// Get the VPC details
-		v, _, err := cs.VPC.GetVPCByID(f.Vpcid)
+		v, _, err := cs.VPC.GetVPCByID(ip.Vpcid)
 		if err != nil {
 			return err
 		}
 
-		setValueOrID(d, "vpc", v.Name, f.Vpcid)
+		setValueOrID(d, "vpc", v.Name, ip.Vpcid)
 	}
 
-	setValueOrID(d, "project", f.Project, f.Projectid)
+	setValueOrID(d, "project", ip.Project, ip.Projectid)
 
 	return nil
 }

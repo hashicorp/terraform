@@ -49,13 +49,13 @@ func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Drain create configuration: %#v, %#v", app, url)
 
 	var dr *heroku.LogDrain
-	err := resource.Retry(2*time.Minute, func() error {
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		d, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{URL: url})
 		if err != nil {
 			if strings.Contains(err.Error(), retryableError) {
-				return err
+				return resource.RetryableError(err)
 			}
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		dr = d
 		return nil

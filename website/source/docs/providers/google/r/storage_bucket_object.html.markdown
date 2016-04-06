@@ -38,7 +38,7 @@ if `content` is not.
 * `content` - (Optional) Data as `string` to be uploaded. Must be defined if
 `source` is not.
 
-* `predefined_acl` - (Optional, Deprecated) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) apply. Please switch 
+* `predefined_acl` - (Optional, Deprecated) The [canned GCS ACL](https://cloud.google.com/storage/docs/access-control#predefined-acl) apply. Please switch
 to `google_storage_object_acl.predefined_acl`.
 
 ## Attributes Reference

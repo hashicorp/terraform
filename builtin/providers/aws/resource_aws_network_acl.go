@@ -169,6 +169,13 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "InvalidNetworkAclID.NotFound" {
+				log.Printf("[DEBUG] Network ACL (%s) not found", d.Id())
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 	if resp == nil {
@@ -410,7 +417,7 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting Network Acl: %s", d.Id())
-	return resource.Retry(5*time.Minute, func() error {
+	retryErr := resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteNetworkAcl(&ec2.DeleteNetworkAclInput{
 			NetworkAclId: aws.String(d.Id()),
 		})
@@ -427,7 +434,7 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 
 					a, err := findNetworkAclAssociation(v.(string), conn)
 					if err != nil {
-						return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot find ACL %s: %s", d.Id(), err)}
+						return resource.NonRetryableError(err)
 					}
 					associations = append(associations, a)
 				} else if v, ok := d.GetOk("subnet_ids"); ok {
@@ -435,31 +442,42 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 					for _, i := range ids {
 						a, err := findNetworkAclAssociation(i.(string), conn)
 						if err != nil {
-							return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
+							return resource.NonRetryableError(err)
 						}
 						associations = append(associations, a)
 					}
 				}
+
+				log.Printf("[DEBUG] Replacing network associations for Network ACL (%s): %s", d.Id(), associations)
 				defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), conn)
 				if err != nil {
-					return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
+					return resource.NonRetryableError(err)
 				}
 
 				for _, a := range associations {
-					_, err = conn.ReplaceNetworkAclAssociation(&ec2.ReplaceNetworkAclAssociationInput{
+					_, replaceErr := conn.ReplaceNetworkAclAssociation(&ec2.ReplaceNetworkAclAssociationInput{
 						AssociationId: a.NetworkAclAssociationId,
 						NetworkAclId:  defaultAcl.NetworkAclId,
 					})
+					if replaceErr != nil {
+						log.Printf("[ERR] Non retryable error in replacing associtions for Network ACL (%s): %s", d.Id(), replaceErr)
+						return resource.NonRetryableError(replaceErr)
+					}
 				}
-				return resource.RetryError{Err: err}
+				return resource.RetryableError(fmt.Errorf("Dependencies found and cleaned up, retrying"))
 			default:
 				// Any other error, we want to quit the retry loop immediately
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 		}
 		log.Printf("[Info] Deleted network ACL %s successfully", d.Id())
 		return nil
 	})
+
+	if retryErr != nil {
+		return fmt.Errorf("[ERR] Error destroying Network ACL (%s): %s", d.Id(), retryErr)
+	}
+	return nil
 }
 
 func resourceAwsNetworkAclEntryHash(v interface{}) int {

@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 	"sync"
 
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/plugin"
+	"github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
 	"github.com/mitchellh/prefixedio"
@@ -200,19 +202,27 @@ func copyOutput(r io.Reader, doneCh chan<- struct{}) {
 		panic(err)
 	}
 
+	var stdout io.Writer = os.Stdout
+	var stderr io.Writer = os.Stderr
+
+	if runtime.GOOS == "windows" {
+		stdout = colorable.NewColorableStdout()
+		stderr = colorable.NewColorableStderr()
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		io.Copy(os.Stderr, stderrR)
+		io.Copy(stderr, stderrR)
 	}()
 	go func() {
 		defer wg.Done()
-		io.Copy(os.Stdout, stdoutR)
+		io.Copy(stdout, stdoutR)
 	}()
 	go func() {
 		defer wg.Done()
-		io.Copy(os.Stdout, defaultR)
+		io.Copy(stdout, defaultR)
 	}()
 
 	wg.Wait()

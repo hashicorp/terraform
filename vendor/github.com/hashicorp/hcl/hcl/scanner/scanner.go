@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"unicode"
 	"unicode/utf8"
 
@@ -376,7 +377,7 @@ func (s *Scanner) scanExponent(ch rune) rune {
 	return ch
 }
 
-// scanHeredoc scans a heredoc string.
+// scanHeredoc scans a heredoc string
 func (s *Scanner) scanHeredoc() {
 	// Scan the second '<' in example: '<<EOF'
 	if s.next() != '<' {
@@ -389,6 +390,12 @@ func (s *Scanner) scanHeredoc() {
 
 	// Scan the identifier
 	ch := s.next()
+
+	// Indented heredoc syntax
+	if ch == '-' {
+		ch = s.next()
+	}
+
 	for isLetter(ch) || isDigit(ch) {
 		ch = s.next()
 	}
@@ -414,6 +421,17 @@ func (s *Scanner) scanHeredoc() {
 
 	// Read the identifier
 	identBytes := s.src[offs : s.srcPos.Offset-s.lastCharLen]
+	if len(identBytes) == 0 {
+		s.err("zero-length heredoc anchor")
+		return
+	}
+
+	var identRegexp *regexp.Regexp
+	if identBytes[0] == '-' {
+		identRegexp = regexp.MustCompile(fmt.Sprintf(`[[:space:]]*%s\z`, identBytes[1:]))
+	} else {
+		identRegexp = regexp.MustCompile(fmt.Sprintf(`[[:space:]]*%s\z`, identBytes))
+	}
 
 	// Read the actual string value
 	lineStart := s.srcPos.Offset
@@ -422,12 +440,11 @@ func (s *Scanner) scanHeredoc() {
 
 		// Special newline handling.
 		if ch == '\n' {
-			// Math is fast, so we first compare the byte counts to
-			// see if we have a chance of seeing the same identifier. If those
-			// match, then we compare the string values directly.
+			// Math is fast, so we first compare the byte counts to see if we have a chance
+			// of seeing the same identifier - if the length is less than the number of bytes
+			// in the identifier, this cannot be a valid terminator.
 			lineBytesLen := s.srcPos.Offset - s.lastCharLen - lineStart
-			if lineBytesLen == len(identBytes) &&
-				bytes.Equal(identBytes, s.src[lineStart:s.srcPos.Offset-s.lastCharLen]) {
+			if lineBytesLen >= len(identBytes) && identRegexp.Match(s.src[lineStart:s.srcPos.Offset-s.lastCharLen]) {
 				break
 			}
 

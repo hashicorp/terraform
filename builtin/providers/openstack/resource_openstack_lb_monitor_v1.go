@@ -115,7 +115,7 @@ func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Waiting for OpenStack LB Monitor (%s) to become available.", m.ID)
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"PENDING"},
+		Pending:    []string{"PENDING_CREATE"},
 		Target:     []string{"ACTIVE"},
 		Refresh:    waitForLBMonitorActive(networkingClient, m.ID),
 		Timeout:    2 * time.Minute,
@@ -205,7 +205,7 @@ func resourceLBMonitorV1Delete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"ACTIVE", "PENDING"},
+		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForLBMonitorDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,

@@ -145,7 +145,6 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			"publicly_accessible": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: true,
 				Default:  true,
 			},
 
@@ -317,7 +316,13 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("encrypted", rsc.Encrypted)
 	d.Set("automated_snapshot_retention_period", rsc.AutomatedSnapshotRetentionPeriod)
 	d.Set("preferred_maintenance_window", rsc.PreferredMaintenanceWindow)
-	d.Set("endpoint", aws.String(fmt.Sprintf("%s:%d", *rsc.Endpoint.Address, *rsc.Endpoint.Port)))
+	if rsc.Endpoint != nil && rsc.Endpoint.Address != nil {
+		endpoint := *rsc.Endpoint.Address
+		if rsc.Endpoint.Port != nil {
+			endpoint = fmt.Sprintf("%s:%d", endpoint, *rsc.Endpoint.Port)
+		}
+		d.Set("endpoint", endpoint)
+	}
 	d.Set("cluster_parameter_group_name", rsc.ClusterParameterGroups[0].ParameterGroupName)
 	if len(rsc.ClusterNodes) > 1 {
 		d.Set("cluster_type", "multi-node")
@@ -404,6 +409,10 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		req.AllowVersionUpgrade = aws.Bool(d.Get("allow_version_upgrade").(bool))
 	}
 
+	if d.HasChange("publicly_accessible") {
+		req.PubliclyAccessible = aws.Bool(d.Get("publicly_accessible").(bool))
+	}
+
 	log.Printf("[INFO] Modifying Redshift Cluster: %s", d.Id())
 	log.Printf("[DEBUG] Redshift Cluster Modify options: %s", req)
 	_, err := conn.ModifyCluster(req)
@@ -412,7 +421,7 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming"},
+		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
 		Timeout:    10 * time.Minute,
@@ -570,7 +579,7 @@ func validateRedshiftClusterFinalSnapshotIdentifier(v interface{}, k string) (ws
 
 func validateRedshiftClusterMasterUsername(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^\w+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters in %q", k))
 	}

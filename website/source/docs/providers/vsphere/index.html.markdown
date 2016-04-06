@@ -37,7 +37,7 @@ resource "vsphere_folder" "frontend" {
 
 # Create a virtual machine within the folder
 resource "vsphere_virtual_machine" "web" {
-  name   = "terraform_web"
+  name   = "terraform-web"
   folder = "${vsphere_folder.frontend.path}"
   vcpu   = 2
   memory = 4096

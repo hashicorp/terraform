@@ -117,11 +117,12 @@ func testAccAzureDatabaseServerFirewallRuleExists(name string, servers []string)
 		for _, server := range servers {
 			var rules sql.ListFirewallRulesResponse
 
-			err := resource.Retry(15*time.Minute, func() error {
+			err := resource.Retry(15*time.Minute, func() *resource.RetryError {
 				var erri error
 				rules, erri = sqlClient.ListFirewallRules(server)
 				if erri != nil {
-					return fmt.Errorf("Error listing Azure Database Server Firewall Rules for Server %q: %s", server, erri)
+					return resource.RetryableError(
+						fmt.Errorf("Error listing Azure Database Server Firewall Rules for Server %q: %s", server, erri))
 				}
 
 				return nil

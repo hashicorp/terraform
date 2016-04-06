@@ -38,7 +38,6 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"subnet_ids": &schema.Schema{
@@ -153,7 +152,7 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
-	if d.HasChange("subnet_ids") {
+	if d.HasChange("subnet_ids") || d.HasChange("description") {
 		_, n := d.GetChange("subnet_ids")
 		if n == nil {
 			n = new(schema.Set)
@@ -166,8 +165,9 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		_, err := conn.ModifyDBSubnetGroup(&rds.ModifyDBSubnetGroupInput{
-			DBSubnetGroupName: aws.String(d.Id()),
-			SubnetIds:         sIds,
+			DBSubnetGroupName:        aws.String(d.Id()),
+			DBSubnetGroupDescription: aws.String(d.Get("description").(string)),
+			SubnetIds:                sIds,
 		})
 
 		if err != nil {

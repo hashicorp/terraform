@@ -74,6 +74,11 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				ConflictsWith: []string{"source"},
 			},
 
+			"kms_key_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"etag": &schema.Schema{
 				Type: schema.TypeString,
 				// This will conflict with SSE-C and SSE-KMS encryption and multi-part upload
@@ -117,6 +122,12 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Must specify \"source\" or \"content\" field")
 	}
 
+	if _, ok := d.GetOk("kms_key_id"); ok {
+		if _, ok := d.GetOk("etag"); ok {
+			return fmt.Errorf("Unable to specify 'kms_key_id' and 'etag' together because 'etag' wouldn't equal the MD5 digest of the raw object data")
+		}
+	}
+
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -141,6 +152,11 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 
 	if v, ok := d.GetOk("content_disposition"); ok {
 		putInput.ContentDisposition = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		putInput.SSEKMSKeyId = aws.String(v.(string))
+		putInput.ServerSideEncryption = aws.String("aws:kms")
 	}
 
 	resp, err := s3conn.PutObject(putInput)
@@ -186,6 +202,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_language", resp.ContentLanguage)
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
+	d.Set("kms_key_id", resp.SSEKMSKeyId)
 
 	log.Printf("[DEBUG] Reading S3 Bucket Object meta: %s", resp)
 	return nil
