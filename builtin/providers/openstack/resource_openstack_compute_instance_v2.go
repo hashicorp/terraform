@@ -1009,25 +1009,33 @@ func getInstanceAccessAddresses(d *schema.ResourceData, networks []map[string]in
 		hostv4 = floatingIP
 	}
 
-	// Loop through all networks and check for the following:
-	// * If the network is set as an access network.
-	// * If the network has a floating IP.
-	// * If the network has a v4/v6 fixed IP.
+	// Loop through all networks
+	// If the network has a valid floating, fixed v4, or fixed v6 address
+	// and hostv4 or hostv6 is not set, set hostv4/hostv6.
+	// If the network is an "access_network" overwrite hostv4/hostv6.
 	for _, n := range networks {
-		if n["floating_ip"] != nil {
-			hostv4 = n["floating_ip"].(string)
-		} else {
-			if hostv4 == "" && n["fixed_ip_v4"] != nil {
-				hostv4 = n["fixed_ip_v4"].(string)
+		var accessNetwork bool
+
+		if an, ok := n["access_network"].(bool); ok && an {
+			accessNetwork = true
+		}
+
+		if fixedIPv4, ok := n["fixed_ip_v4"].(string); ok && fixedIPv4 != "" {
+			if hostv4 == "" || accessNetwork {
+				hostv4 = fixedIPv4
 			}
 		}
 
-		if hostv6 == "" && n["fixed_ip_v6"] != nil {
-			hostv6 = n["fixed_ip_v6"].(string)
+		if floatingIP, ok := n["floating_ip"].(string); ok && floatingIP != "" {
+			if hostv4 == "" || accessNetwork {
+				hostv4 = floatingIP
+			}
 		}
 
-		if an, ok := n["access_network"].(bool); ok && an {
-			break
+		if fixedIPv6, ok := n["fixed_ip_v6"].(string); ok && fixedIPv6 != "" {
+			if hostv6 == "" || accessNetwork {
+				hostv6 = fixedIPv6
+			}
 		}
 	}
 
