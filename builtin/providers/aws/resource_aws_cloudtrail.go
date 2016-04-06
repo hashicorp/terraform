@@ -146,11 +146,22 @@ func resourceAwsCloudTrailRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	if len(resp.TrailList) == 0 {
-		return fmt.Errorf("No CloudTrail found, using name %q", name)
+
+	// CloudTrail does not return a NotFound error in the event that the Trail
+	// you're looking for is not found. Instead, it's simply not in the list.
+	var trail *cloudtrail.Trail
+	for _, c := range resp.TrailList {
+		if d.Id() == *c.Name {
+			trail = c
+		}
 	}
 
-	trail := resp.TrailList[0]
+	if trail == nil {
+		log.Printf("[WARN] CloudTrail (%s) not found", name)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[DEBUG] CloudTrail received: %s", trail)
 
 	d.Set("name", trail.Name)

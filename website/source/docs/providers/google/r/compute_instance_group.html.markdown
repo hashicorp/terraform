@@ -15,24 +15,24 @@ and [API](https://cloud.google.com/compute/docs/reference/latest/instanceGroups)
 
 ## Example Usage
 
-Empty instance group
+### Empty instance group
 ```
-resource "google_compute_instance_group" "foobar" {
+resource "google_compute_instance_group" "test" {
 	name = "terraform-test"
 	description = "Terraform test instance group"
 	zone = "us-central1-a"
 }
 ```
 
-With instances and named ports
+### With instances and named ports
 ```
-resource "google_compute_instance_group" "foobar" {
-	name = "terraform-test"
+resource "google_compute_instance_group" "webservers" {
+	name = "terraform-webservers"
 	description = "Terraform test instance group"
-	instances = [ 
-	              "${google_compute_instance.test.self_link}", 
-	              "${google_compute_instance.test2.self_link}"
-	            ]
+	instances = [
+		"${google_compute_instance.test.self_link}",
+		"${google_compute_instance.test2.self_link}"
+	]
 	named_port {
 		name = "http"
 		port = "8080"
@@ -57,12 +57,12 @@ Supported characters include lowercase letters, numbers, and hyphens.
   group.
 
 * `instances` - (Optional) List of instances in the group. They should be given as
-  self_link URLs. When adding instances they must all be in the same network and 
+  self_link URLs. When adding instances they must all be in the same network and
   zone as the instance group.
 
-* `named_port` - (Optional) Named ports are key:value pairs that represent a 
-  service name and the port number that the service runs on. The key:value pairs 
-  are simple metadata that the Load Balancing service can use. This can specified 
+* `named_port` - (Optional) Named ports are key:value pairs that represent a
+  service name and the port number that the service runs on. The key:value pairs
+  are simple metadata that the Load Balancing service can use. This can specified
   multiple times
 
 * `zone` - (Required) The zone that this instance group should be created in.
@@ -70,7 +70,6 @@ Supported characters include lowercase letters, numbers, and hyphens.
 The `named_port` block supports:
 
 * `name` - The name which the port will be mapped to.
-
 * `port` - The port number to map the name to.
 
 ## Attributes Reference
@@ -78,7 +77,5 @@ The `named_port` block supports:
 The following attributes are exported:
 
 * `network` - The network the instance group is in.
-
 * `size` - The number of instances in the group.
-
 * `self_link` - The URL of the created resource.

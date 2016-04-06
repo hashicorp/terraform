@@ -515,7 +515,7 @@ func testAccComputeInstance_basic_deprecated_network(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network {
@@ -537,7 +537,7 @@ func testAccComputeInstance_update_deprecated_network(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network {
@@ -560,7 +560,7 @@ func testAccComputeInstance_basic(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -586,7 +586,7 @@ func testAccComputeInstance_basic2(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-cloud/debian-7-wheezy-v20140814"
+			image = "debian-cloud/debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -610,7 +610,7 @@ func testAccComputeInstance_basic3(instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814"
+			image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -635,7 +635,7 @@ func testAccComputeInstance_forceNewAndChangeMetadata(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -659,7 +659,7 @@ func testAccComputeInstance_update(instance string) string {
 		tags = ["baz"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -686,7 +686,7 @@ func testAccComputeInstance_ip(ip, instance string) string {
 		tags = ["foo", "bar"]
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -717,7 +717,7 @@ func testAccComputeInstance_disks(disk, instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		disk {
@@ -743,7 +743,7 @@ func testAccComputeInstance_local_ssd(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		disk {
@@ -766,7 +766,7 @@ func testAccComputeInstance_service_account(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -791,7 +791,7 @@ func testAccComputeInstance_scheduling(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -816,7 +816,7 @@ func testAccComputeInstance_subnet_auto(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {
@@ -847,7 +847,7 @@ func testAccComputeInstance_subnet_custom(instance string) string {
 		zone = "us-central1-a"
 
 		disk {
-			image = "debian-7-wheezy-v20140814"
+			image = "debian-7-wheezy-v20160301"
 		}
 
 		network_interface {

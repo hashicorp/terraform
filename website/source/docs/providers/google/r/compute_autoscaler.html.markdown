@@ -28,7 +28,7 @@ resource "google_compute_instance_template" "foobar" {
     tags = ["foo", "bar"]
 
     disk {
-        source_image = "debian-cloud/debian-7-wheezy-v20140814"
+        source_image = "debian-cloud/debian-7-wheezy-v20160301"
     }
 
     network_interface {
@@ -114,7 +114,7 @@ The `metric` block contains (more documentation
 [here](https://cloud.google.com/monitoring/api/metrics)):
 
 * `name` - The name of the Google Cloud Monitoring metric to follow, e.g.
-  compute.googleapis.com/instance/network/received_bytes_count
+  `compute.googleapis.com/instance/network/received_bytes_count`
 
 * `type` - Either "cumulative", "delta", or "gauge".
 

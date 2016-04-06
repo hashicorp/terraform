@@ -8,7 +8,7 @@ description: |-
 
 # google\_storage\_bucket\_acl
 
-Creates a new bucket ACL in Google cloud storage service(GCS). 
+Creates a new bucket ACL in Google cloud storage service(GCS).
 
 ## Example Usage
 
@@ -22,7 +22,7 @@ resource "google_storage_bucket" "image-store" {
 
 resource "google_storage_bucket_acl" "image-store-acl" {
     bucket = "${google_storage_bucket.image_store.name}"
-    role_entity = ["OWNER:user-my.email@gmail.com", 
+    role_entity = ["OWNER:user-my.email@gmail.com",
         "READER:group-mygroup"]
 }
 

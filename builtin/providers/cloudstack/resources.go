@@ -69,7 +69,7 @@ func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string,
 		id, err = cs.Network.GetNetworkID(value)
 	case "zone":
 		id, err = cs.Zone.GetZoneID(value)
-	case "ipaddress":
+	case "ip_address":
 		p := cs.Address.NewListPublicIpAddressesParams()
 		p.SetIpaddress(value)
 		l, e := cs.Address.ListPublicIpAddresses(p)

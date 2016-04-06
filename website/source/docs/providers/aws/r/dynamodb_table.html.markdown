@@ -61,19 +61,21 @@ The following arguments are supported:
 * `attribute` - Define an attribute, has two properties:
   * `name` - The name of the attribute
   * `type` - One of: S, N, or B for (S)tring, (N)umber or (B)inary data
+* `stream_enabled` - (Optional) Indicates whether Streams are to be enabled (true) or disabled (false).
+* `stream_view_type` - (Optional) When an item in the table is modified, StreamViewType determines what information is written to the table's stream. Valid values are KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES.
 * `local_secondary_index` - (Optional) Describe an LSI on the table;
   these can only be allocated *at creation* so you cannot change this
 definition after you have created the resource.
 * `global_secondary_index` - (Optional) Describe a GSO for the table;
   subject to the normal limits on the number of GSIs, projected
-attributes, etc.  
+attributes, etc.
 
 For both `local_secondary_index` and `global_secondary_index` objects,
 the following properties are supported:
 
 * `name` - (Required) The name of the LSI or GSI
 * `hash_key` - (Required for GSI) The name of the hash key in the index; must be
-defined as an attribute in the resource. Only applies to 
+defined as an attribute in the resource. Only applies to
   `global_secondary_index`
 * `range_key` - (Required) The name of the range key; must be defined
 * `projection_type` - (Required) One of "ALL", "INCLUDE" or "KEYS_ONLY"
@@ -84,8 +86,6 @@ parameter.
 * `non_key_attributes` - (Optional) Only required with *INCLUDE* as a
   projection type; a list of attributes to project into the index. These
 do not need to be defined as attributes on the table.
-* `stream_enabled` - (Optional) Indicates whether Streams are to be enabled (true) or disabled (false).
-* `stream_view_type` - (Optional) When an item in the table is modified, StreamViewType determines what information is written to the table's stream. Valid values are KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES.
 
 For `global_secondary_index` objects only, you need to specify
 `write_capacity` and `read_capacity` in the same way you would for the
@@ -105,7 +105,7 @@ because these get re-used in numerous places (i.e the table's range key
 could be a part of one or more GSIs), they are stored on the table
 object to prevent duplication and increase consistency. If you add
 attributes here that are not used in these scenarios it can cause an
-infinite loop in planning.  
+infinite loop in planning.
 
 
 ## Attributes Reference
@@ -114,5 +114,5 @@ The following attributes are exported:
 
 * `arn` - The arn of the table
 * `id` - The name of the table
-* `stream_arm` - The ARN of the Table Stream. Only available when `stream_enabled = true`
+* `stream_arn` - The ARN of the Table Stream. Only available when `stream_enabled = true`
 

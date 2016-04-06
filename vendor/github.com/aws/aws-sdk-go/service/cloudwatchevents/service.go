@@ -64,7 +64,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 				ServiceName:   ServiceName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
-				APIVersion:    "2014-02-03",
+				APIVersion:    "2015-10-07",
 				JSONVersion:   "1.1",
 				TargetPrefix:  "AWSEvents",
 			},

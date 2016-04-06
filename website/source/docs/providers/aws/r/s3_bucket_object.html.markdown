@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_s3_bucket_object"
-side_bar_current: "docs-aws-resource-s3-bucket-object"
+sidebar_current: "docs-aws-resource-s3-bucket-object"
 description: |-
   Provides a S3 bucket object resource.
 ---
@@ -37,6 +37,7 @@ The following arguments are supported:
 * `content_language` - (Optional) The language the content is in e.g. en-US or en-GB.
 * `content_type` - (Optional) A standard MIME type describing the format of the object data, e.g. application/octet-stream. All Valid MIME Types are valid for this input.
 * `etag` - (Optional) Used to trigger updates. The only meaningful value is `${md5(file("path/to/file"))}`
+* `kms_key_id` - (Optional) Specifies the AWS KMS key ID to use for object encryption.
 
 Either `source` or `content` must be provided to specify the bucket content.
 These two arguments are mutually-exclusive.

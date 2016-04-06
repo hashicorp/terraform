@@ -85,7 +85,8 @@ func resourceAwsDbInstance() *schema.Resource {
 
 			"identifier": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateRdsId,
 			},
@@ -291,12 +292,25 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
+	identifier := d.Get("identifier").(string)
+	// Generate a unique ID for the user
+	if identifier == "" {
+		identifier = resource.PrefixedUniqueId("tf-")
+		// SQL Server identifier size is max 15 chars, so truncate
+		if engine := d.Get("engine").(string); engine != "" {
+			if strings.Contains(strings.ToLower(engine), "sqlserver") {
+				identifier = identifier[:15]
+			}
+		}
+		d.Set("identifier", identifier)
+	}
+
 	if v, ok := d.GetOk("replicate_source_db"); ok {
 		opts := rds.CreateDBInstanceReadReplicaInput{
 			SourceDBInstanceIdentifier: aws.String(v.(string)),
 			CopyTagsToSnapshot:         aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 			DBInstanceClass:            aws.String(d.Get("instance_class").(string)),
-			DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
+			DBInstanceIdentifier:       aws.String(identifier),
 			Tags:                       tags,
 		}
 		if attr, ok := d.GetOk("iops"); ok {
@@ -534,7 +548,18 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 		log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
 		var err error
-		_, err = conn.CreateDBInstance(&opts)
+		err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+			_, err = conn.CreateDBInstance(&opts)
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "ENHANCED_MONITORING") {
+						return resource.RetryableError(awsErr)
+					}
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
 		if err != nil {
 			return fmt.Errorf("Error creating DB Instance: %s", err)
 		}
@@ -591,6 +616,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("backup_window", v.PreferredBackupWindow)
 	d.Set("license_model", v.LicenseModel)
 	d.Set("maintenance_window", v.PreferredMaintenanceWindow)
+	d.Set("publicly_accessible", v.PubliclyAccessible)
 	d.Set("multi_az", v.MultiAZ)
 	if v.DBSubnetGroup != nil {
 		d.Set("db_subnet_group_name", v.DBSubnetGroup.DBSubnetGroupName)
@@ -803,6 +829,10 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		d.SetPartial("storage_type")
 		req.StorageType = aws.String(d.Get("storage_type").(string))
 		requestUpdate = true
+
+		if *req.StorageType == "io1" {
+			req.Iops = aws.Int64(int64(d.Get("iops").(int)))
+		}
 	}
 	if d.HasChange("auto_minor_version_upgrade") {
 		d.SetPartial("auto_minor_version_upgrade")
@@ -887,6 +917,10 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	return resourceAwsDbInstanceRead(d, meta)
 }
 
+// resourceAwsDbInstanceRetrieve fetches DBInstance information from the AWS
+// API. It returns an error if there is a communication problem or unexpected
+// error with AWS. When the DBInstance is not found, it returns no error and a
+// nil pointer.
 func resourceAwsDbInstanceRetrieve(
 	d *schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
 	conn := meta.(*AWSClient).rdsconn

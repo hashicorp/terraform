@@ -3944,7 +3944,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	// Apply cleanly step 0
-	t.Log("Applying Step 0")
 	ctx := testContext2(t, &ContextOpts{
 		Module: testModule(t, "issue-5254/step-0"),
 		Providers: map[string]ResourceProviderFactory{
@@ -3956,7 +3955,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	t.Logf("Plan for Step 0: %s", plan)
 
 	state, err := ctx.Apply()
 	if err != nil {
@@ -3964,8 +3962,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	}
 
 	// Application success. Now make the modification and store a plan
-	println("Planning Step 1")
-	t.Log("Planning Step 1")
 	ctx = testContext2(t, &ContextOpts{
 		Module: testModule(t, "issue-5254/step-1"),
 		State:  state,
@@ -3990,11 +3986,6 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	t.Logf("Plan for Step 1: %s", planFromFile)
-
-	// Apply the plan
-	println("Applying Step 1 (from Plan)")
-	t.Log("Applying Step 1 (from plan)")
 	ctx = planFromFile.Context(&ContextOpts{
 		Providers: map[string]ResourceProviderFactory{
 			"template": testProviderFuncFixed(p),
@@ -4006,11 +3997,133 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	/*
-		actual := strings.TrimSpace(state.String())
-		expected := strings.TrimSpace(testTerraformApplyProviderAliasStr)
-		if actual != expected {
-			t.Fatalf("bad: \n%s", actual)
-		}
-	*/
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+template_file.child:
+  ID = foo
+  template = Hi
+  type = template_file
+
+  Dependencies:
+    template_file.parent
+template_file.parent:
+  ID = foo
+  template = Hi
+  type = template_file
+		`)
+	if actual != expected {
+		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "apply-tainted-targets"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.iambeingadded"},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.ifailedprovisioners": &ResourceState{
+							Tainted: []*InstanceState{
+								&InstanceState{
+									ID: "ifailedprovisioners",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write / Read plan to simulate running it through a Plan file
+	var buf bytes.Buffer
+	if err := WritePlan(plan, &buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFromFile, err := ReadPlan(&buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx = planFromFile.Context(&ContextOpts{
+		Module: testModule(t, "apply-tainted-targets"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+aws_instance.iambeingadded:
+  ID = foo
+aws_instance.ifailedprovisioners: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = ifailedprovisioners
+		`)
+	if actual != expected {
+		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+	}
+}
+
+// Higher level test exposing the bug this covers in
+// TestResource_ignoreChangesRequired
+func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
+	m := testModule(t, "apply-ignore-changes-create")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("bad: %s", state)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	// Expect no changes from original state
+	expected := strings.TrimSpace(`
+aws_instance.foo:
+  ID = foo
+  required_field = set
+  type = aws_instance
+`)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
 }

@@ -69,6 +69,14 @@ func TestAccAWSS3Bucket_Policy(t *testing.T) {
 						"aws_s3_bucket.bucket", ""),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithEmptyPolicy(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketPolicy(
+						"aws_s3_bucket.bucket", ""),
+				),
+			},
 		},
 	})
 }
@@ -720,6 +728,16 @@ func testAccAWSS3BucketDestroyedConfig(randInt int) string {
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketConfigWithEmptyPolicy(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	policy = ""
 }
 `, randInt)
 }

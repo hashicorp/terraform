@@ -39,7 +39,9 @@ func testAccPreCheck(t *testing.T) {
 	}
 
 	if v := os.Getenv("GOOGLE_CREDENTIALS"); v == "" {
-		t.Fatal("GOOGLE_CREDENTIALS must be set for acceptance tests")
+		if w := os.Getenv("GOOGLE_CLOUD_KEYFILE_JSON"); w == "" {
+			t.Fatal("GOOGLE_CREDENTIALS or GOOGLE_CLOUD_KEYFILE_JSON must be set for acceptance tests")
+		}
 	}
 
 	if v := os.Getenv("GOOGLE_PROJECT"); v == "" {

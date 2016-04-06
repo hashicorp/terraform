@@ -102,9 +102,9 @@ func TestAccAWSELB_AccessLogs(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "access_logs.1713209538.bucket", "terraform-access-logs-bucket"),
+						"aws_elb.foo", "access_logs.0.bucket", "terraform-access-logs-bucket"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "access_logs.1713209538.interval", "5"),
+						"aws_elb.foo", "access_logs.0.interval", "5"),
 				),
 			},
 
@@ -1050,6 +1050,10 @@ resource "aws_security_group" "bar" {
     to_port = 80
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+	tags {
+		Name = "tf_elb_sg_test"
+	}
 }
 `
 

@@ -30,7 +30,7 @@ resource "google_compute_instance_template" "foobar" {
 
 	# Create a new boot disk from an image
 	disk {
-		source_image = "debian-7-wheezy-v20140814"
+		source_image = "debian-7-wheezy-v20160301"
 		auto_delete = true
 		boot = true
 	}
@@ -85,20 +85,20 @@ The following arguments are supported:
 * `network_interface` - (Required) Networks to attach to instances created from this template.
  	This can be specified multiple times for multiple networks. Structure is
 	documented below.
-	
-* `region` - (Optional) An instance template is a global resource that is not bound to a zone 
-    or a region. However, you can still specify some regional resources in an instance template, 
+
+* `region` - (Optional) An instance template is a global resource that is not bound to a zone
+    or a region. However, you can still specify some regional resources in an instance template,
     which restricts the template to the region where that resource resides. For example, a
     custom `subnetwork` resource is tied to a specific region.
     Defaults to the region of the Provider if no value is given.
 
-* `automatic_restart` - (Optional, Deprecated - see `scheduling`) 
+* `automatic_restart` - (Optional, Deprecated - see `scheduling`)
 	Specifies whether the instance should be
 	automatically restarted if it is terminated by Compute Engine (not
 	terminated by a user).
 	This defaults to true.
 
-* `on_host_maintenance` - (Optional, Deprecated - see `scheduling`) 
+* `on_host_maintenance` - (Optional, Deprecated - see `scheduling`)
 	Defines the maintenance behavior for this instance.
 
 * `service_account` - (Optional) Service account to attach to the instance.
@@ -138,6 +138,9 @@ The `disk` block supports:
 * `disk_type` - (Optional) The GCE disk type. Can be either `"pd-ssd"`,
 	`"local-ssd"`, or `"pd-standard"`.
 
+* `disk_size_gb` - (Optional) The size of the image in gigabytes. If not specified,
+	it will inherit the size of its base image.
+
 * `type` - (Optional) The type of GCE disk, can be either `"SCRATCH"` or
 	`"PERSISTENT"`.
 
@@ -176,7 +179,7 @@ The `scheduling` block supports:
 
 * `on_host_maintenance` - (Optional) Defines the maintenance behavior for this instance.
 
-* `preemptible` - (Optional) Allows instance to be preempted. Read 
+* `preemptible` - (Optional) Allows instance to be preempted. Read
 	more on this [here](https://cloud.google.com/compute/docs/instances/preemptible).
 
 ## Attributes Reference

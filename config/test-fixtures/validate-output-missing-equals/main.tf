@@ -1,3 +1,0 @@
-output "whoops" {
-  value "wheresmyequals"
-}

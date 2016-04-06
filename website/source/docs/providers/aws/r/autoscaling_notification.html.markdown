@@ -52,7 +52,7 @@ The following arguments are supported:
 
 * `group_names` - (Required) A list of AutoScaling Group Names
 * `notifications` - (Required) A list of Notification Types that trigger
-notifications. Acceptable are documented [in the AWS documentation here][1]
+notifications. Acceptable values are documented [in the AWS documentation here][1]
 * `topic_arn` - (Required) The Topic ARN for notifications to be sent through
 
 ## Attributes Reference

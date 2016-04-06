@@ -80,7 +80,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"health_check_grace_period": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  300,
 			},
 
 			"health_check_type": &schema.Schema{
@@ -450,7 +450,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// We retry the delete operation to handle InUse/InProgress errors coming
 	// from scaling operations. We should be able to sneak in a delete in between
 	// scaling operations within 5m.
-	err = resource.Retry(5*time.Minute, func() error {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		if _, err := conn.DeleteAutoScalingGroup(&deleteopts); err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				switch awserr.Code() {
@@ -459,11 +459,11 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 					return nil
 				case "ResourceInUse", "ScalingActivityInProgress":
 					// These are retryable
-					return awserr
+					return resource.RetryableError(awserr)
 				}
 			}
 			// Didn't recognize the error, so shouldn't retry.
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		// Successful delete
 		return nil
@@ -472,9 +472,10 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		if g, _ = getAwsAutoscalingGroup(d.Id(), conn); g != nil {
-			return fmt.Errorf("Auto Scaling Group still exists")
+			return resource.RetryableError(
+				fmt.Errorf("Auto Scaling Group still exists"))
 		}
 		return nil
 	})
@@ -531,10 +532,10 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 
 	// Next, wait for the autoscale group to drain
 	log.Printf("[DEBUG] Waiting for group to have zero instances")
-	return resource.Retry(10*time.Minute, func() error {
+	return resource.Retry(10*time.Minute, func() *resource.RetryError {
 		g, err := getAwsAutoscalingGroup(d.Id(), conn)
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		if g == nil {
 			log.Printf("[INFO] Autoscaling Group %q not found", d.Id())
@@ -546,7 +547,8 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 			return nil
 		}
 
-		return fmt.Errorf("group still has %d instances", len(g.Instances))
+		return resource.RetryableError(
+			fmt.Errorf("group still has %d instances", len(g.Instances)))
 	})
 }
 

@@ -13,6 +13,13 @@ to both read keys from Consul, but also to set the value of keys
 in Consul. This is a powerful way dynamically set values in templates,
 and to expose infrastructure details to clients.
 
+This resource manages individual keys, and thus it can create, update and
+delete the keys explicitly given. Howver, It is not able to detect and remove
+additional keys that have been added by non-Terraform means. To manage
+*all* keys sharing a common prefix, and thus have Terraform remove errant keys
+not present in the configuration, consider using the `consul_key_prefix`
+resource instead.
+
 ## Example Usage
 
 ```
@@ -71,7 +78,8 @@ The `key` block supports the following:
   This allows a key to be written to.
 
 * `delete` - (Optional) If true, then the key will be deleted when
-  the resource is destroyed. Otherwise, it will be left in Consul.
+  either its configuration block is removed from the configuration or
+  the entire resource is destroyed. Otherwise, it will be left in Consul.
   Defaults to false.
 
 ## Attributes Reference
@@ -81,4 +89,3 @@ The following attributes are exported:
 * `datacenter` - The datacenter the keys are being read/written to.
 * `var.<name>` - For each name given, the corresponding attribute
   has the value of the key.
-

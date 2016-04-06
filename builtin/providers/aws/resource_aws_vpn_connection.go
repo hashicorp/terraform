@@ -305,11 +305,13 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	// Set read only attributes.
 	d.Set("customer_gateway_configuration", vpnConnection.CustomerGatewayConfiguration)
 
-	tunnelInfo := xmlConfigToTunnelInfo(*vpnConnection.CustomerGatewayConfiguration)
-	d.Set("tunnel1_address", tunnelInfo.Tunnel1Address)
-	d.Set("tunnel1_preshared_key", tunnelInfo.Tunnel1PreSharedKey)
-	d.Set("tunnel2_address", tunnelInfo.Tunnel2Address)
-	d.Set("tunnel2_preshared_key", tunnelInfo.Tunnel2PreSharedKey)
+	if vpnConnection.CustomerGatewayConfiguration != nil {
+		tunnelInfo := xmlConfigToTunnelInfo(*vpnConnection.CustomerGatewayConfiguration)
+		d.Set("tunnel1_address", tunnelInfo.Tunnel1Address)
+		d.Set("tunnel1_preshared_key", tunnelInfo.Tunnel1PreSharedKey)
+		d.Set("tunnel2_address", tunnelInfo.Tunnel2Address)
+		d.Set("tunnel2_preshared_key", tunnelInfo.Tunnel2PreSharedKey)
+	}
 
 	if err := d.Set("vgw_telemetry", telemetryToMapList(vpnConnection.VgwTelemetry)); err != nil {
 		return err

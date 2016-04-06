@@ -10,6 +10,39 @@
                     <a href="/docs/providers/aws/index.html">AWS Provider</a>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-api-gateway/) %>>
+                    <a href="#">API Gateway Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-api-key") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_api_key.html">aws_api_gateway_api_key</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-deployment") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_deployment.html">aws_api_gateway_deployment</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-integration") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_integration.html">aws_api_gateway_integration</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-integration-response") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_integration_response.html">aws_api_gateway_integration_response</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-method") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_method.html">aws_api_gateway_method</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-method-response") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_method_response.html">aws_api_gateway_method_response</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-model") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_model.html">aws_api_gateway_model</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-resource") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_resource.html">aws_api_gateway_resource</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-api-gateway-rest-api") %>>
+                            <a href="/docs/providers/aws/r/api_gateway_rest_api.html">aws_api_gateway_rest_api</a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li<%= sidebar_current(/^docs-aws-resource-cloudformation/) %>>
                     <a href="#">CloudFormation Resources</a>
                     <ul class="nav nav-visible">
@@ -41,6 +74,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-group") %>>
                             <a href="/docs/providers/aws/r/cloudwatch_log_group.html">aws_cloudwatch_log_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-metric-filter") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_metric_filter.html">aws_cloudwatch_log_metric_filter</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-metric-alarm") %>>
@@ -99,7 +136,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement|key-pair)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(ami|app|autoscaling|ebs|elb|eip|instance|launch|lb|proxy|spot|volume|placement|key-pair)/) %>>
                     <a href="#">EC2 Resources</a>
                     <ul class="nav nav-visible">
 
@@ -254,6 +291,23 @@
                 </li>
 
 
+                <li<%= sidebar_current(/^docs-aws-resource-elastic-beanstalk/) %>>
+                    <a href="#">Elastic Beanstalk Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-application") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_application.html">aws_elastic_beanstalk_application</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-configuration-template") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_configuration_template.html">aws_elastic_beanstalk_configuration_template</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-environment") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_environment.html">aws_elastic_beanstalk_environment</a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li<%= sidebar_current(/^docs-aws-resource-elasticsearch/) %>>
                     <a href="#">ElasticSearch Resources</a>
                     <ul class="nav nav-visible">
@@ -334,6 +388,10 @@
                             <a href="/docs/providers/aws/r/iam_user_policy.html">aws_iam_user_policy</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-iam-user-ssh-key") %>>
+                          <a href="/docs/providers/aws/r/iam_user_ssh_key.html">aws_iam_user_ssh_key</a>
+                        </li>
+
                     </ul>
                 </li>
 
@@ -360,6 +418,20 @@
                 </ul>
               </li>
 
+              <li<%= sidebar_current(/^docs-aws-resource-kms/) %>>
+                <a href="#">KMS Resources</a>
+                <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-aws-resource-kms-key") %>>
+                    <a href="/docs/providers/aws/r/kms_key.html">aws_kms_key</a>
+                  </li>
+                  <li<%= sidebar_current("docs-aws-resource-kms-alias") %>>
+                    <a href="/docs/providers/aws/r/kms_alias.html">aws_kms_alias</a>
+                  </li>
+
+                </ul>
+              </li>
+
               <li<%= sidebar_current(/^docs-aws-resource-lambda/) %>>
                   <a href="#">Lambda Resources</a>
                   <ul class="nav nav-visible">
@@ -369,7 +441,7 @@
                       <li<%= sidebar_current("docs-aws-resource-lambda-function") %>>
                           <a href="/docs/providers/aws/r/lambda_function.html">aws_lambda_function</a>
                       </li>
-                      <li<%= sidebar_current("docs-aws-resource-aws-lambda-event-source-mapping") %>>
+                      <li<%= sidebar_current("docs-aws-resource-lambda-event-source-mapping") %>>
                           <a href="/docs/providers/aws/r/lambda_event_source_mapping.html">aws_lambda_event_source_mapping</a>
                       </li>
                       <li<%= sidebar_current("docs-aws-resource-lambda-permission") %>>
@@ -522,6 +594,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-s3-bucket-object") %>>
                             <a href="/docs/providers/aws/r/s3_bucket_object.html">aws_s3_bucket_object</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-s3-bucket-notification") %>>
+                            <a href="/docs/providers/aws/r/s3_bucket_notification.html">aws_s3_bucket_notification</a>
                         </li>
 
                     </ul>

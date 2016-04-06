@@ -217,18 +217,19 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	err := resource.Retry(5*time.Minute, func() error {
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 		log.Printf("[DEBUG] Trying to create new S3 bucket: %q", bucket)
 		_, err := s3conn.CreateBucket(req)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "OperationAborted" {
 				log.Printf("[WARN] Got an error while trying to create S3 bucket %s: %s", bucket, err)
-				return fmt.Errorf("[WARN] Error creating S3 bucket %s, retrying: %s",
-					bucket, err)
+				return resource.RetryableError(
+					fmt.Errorf("[WARN] Error creating S3 bucket %s, retrying: %s",
+						bucket, err))
 			}
 		}
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		return nil
@@ -565,18 +566,15 @@ func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) erro
 			Policy: aws.String(policy),
 		}
 
-		err := resource.Retry(1*time.Minute, func() error {
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 			if _, err := s3conn.PutBucketPolicy(params); err != nil {
 				if awserr, ok := err.(awserr.Error); ok {
 					if awserr.Code() == "MalformedPolicy" {
-						// Retryable
-						return awserr
+						return resource.RetryableError(awserr)
 					}
 				}
-				// Not retryable
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
-			// No error
 			return nil
 		})
 
@@ -907,7 +905,7 @@ func removeNil(data map[string]interface{}) map[string]interface{} {
 }
 
 func normalizeJson(jsonString interface{}) string {
-	if jsonString == nil {
+	if jsonString == nil || jsonString == "" {
 		return ""
 	}
 	var j interface{}

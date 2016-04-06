@@ -2933,6 +2933,9 @@ func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput
 // Using the Command Line Tools to Import Your Virtual Machine to Amazon EC2
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/UploadingYourInstancesandVolumes.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// For information about the import manifest referenced by this API action,
+// see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
 func (c *EC2) DescribeConversionTasks(input *DescribeConversionTasksInput) (*DescribeConversionTasksOutput, error) {
 	req, out := c.DescribeConversionTasksRequest(input)
 	err := req.Send()
@@ -5372,6 +5375,9 @@ func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Re
 // see Using the Command Line Tools to Import Your Virtual Machine to Amazon
 // EC2 (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/UploadingYourInstancesandVolumes.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// For information about the import manifest referenced by this API action,
+// see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
 func (c *EC2) ImportInstance(input *ImportInstanceInput) (*ImportInstanceOutput, error) {
 	req, out := c.ImportInstanceRequest(input)
 	err := req.Send()
@@ -5465,6 +5471,9 @@ func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Reques
 // see Using the Command Line Tools to Import Your Virtual Machine to Amazon
 // EC2 (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/UploadingYourInstancesandVolumes.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// For information about the import manifest referenced by this API action,
+// see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
 func (c *EC2) ImportVolume(input *ImportVolumeInput) (*ImportVolumeOutput, error) {
 	req, out := c.ImportVolumeRequest(input)
 	err := req.Send()
@@ -5533,10 +5542,16 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 //
 // This setting applies to the IAM user who makes the request; it does not
 // apply to the entire AWS account. By default, an IAM user defaults to the
-// same settings as the root user, unless they explicitly override the settings
-// by running this request. Resources created with longer IDs are visible to
-// all IAM users, regardless of these settings and provided that they have permission
-// to use the relevant Describe command for the resource type.
+// same settings as the root user. If you're using this action as the root user
+// or as an IAM role that has permission to use this action, then these settings
+// apply to the entire account, unless an IAM user explicitly overrides these
+// settings for themselves. For more information, see Controlling Access to
+// Longer ID Settings (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html#resource-ids-access)
+// in the Amazon Elastic Compute Cloud User Guide.
+//
+// Resources created with longer IDs are visible to all IAM users, regardless
+// of these settings and provided that they have permission to use the relevant
+// Describe command for the resource type.
 func (c *EC2) ModifyIdFormat(input *ModifyIdFormatInput) (*ModifyIdFormatOutput, error) {
 	req, out := c.ModifyIdFormatRequest(input)
 	err := req.Send()
@@ -6781,6 +6796,10 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 // is ready for you, it enters the running state. To check the state of your
 // instance, call DescribeInstances.
 //
+// To ensure faster instance launches, break up large requests into smaller
+// batches. For example, create five separate launch requests for 100 instances
+// each instead of one launch request for 500 instances.
+//
 // If you don't specify a security group when launching an instance, Amazon
 // EC2 uses the default security group. For more information, see Security Groups
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html)
@@ -6805,9 +6824,9 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 // If any of the AMIs have a product code attached for which the user has not
 // subscribed, RunInstances fails.
 //
-// T2 instance types can only be launched into a VPC. If you do not have a
-// default VPC, or if you do not specify a subnet ID in the request, RunInstances
-// fails.
+// Some instance types can only be launched into a VPC. If you do not have
+// a default VPC, or if you do not specify a subnet ID in the request, RunInstances
+// fails. For more information, see Instance Types Available Only in a VPC (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-vpc.html#vpc-only-instance-types).
 //
 // For more information about troubleshooting, see What To Do If An Instance
 // Immediately Terminates (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_InstanceStraightToTerminated.html),
@@ -7964,6 +7983,7 @@ func (s AvailableCapacity) GoString() string {
 type BlobAttributeValue struct {
 	_ struct{} `type:"structure"`
 
+	// Value is automatically base64 encoded/decoded by the SDK.
 	Value []byte `locationName:"value" type:"blob"`
 }
 
@@ -12392,7 +12412,8 @@ type DescribeInstancesInput struct {
 	//
 	//   instance-id - The ID of the instance.
 	//
-	//   instance-lifecycle - Indicates whether this is a Spot Instance (spot).
+	//   instance-lifecycle - Indicates whether this is a Spot Instance or a Scheduled
+	// Instance (spot | scheduled).
 	//
 	//   instance-state-code - The state of the instance, as a 16-bit unsigned
 	// integer. The high byte is an opaque internal value and should be ignored.
@@ -13788,8 +13809,9 @@ type DescribeScheduledInstanceAvailabilityInput struct {
 	// The time period for the first schedule to start.
 	FirstSlotStartTimeRange *SlotDateTimeRangeRequest `type:"structure" required:"true"`
 
-	// The maximum number of results to return in a single call. To retrieve the
-	// remaining results, make another call with the returned NextToken value.
+	// The maximum number of results to return in a single call. This value can
+	// be between 5 and 300. The default value is 300. To retrieve the remaining
+	// results, make another call with the returned NextToken value.
 	MaxResults *int64 `type:"integer"`
 
 	// The maximum available duration, in hours. This value must be greater than
@@ -13862,8 +13884,9 @@ type DescribeScheduledInstancesInput struct {
 	//   platform - The platform (Linux/UNIX or Windows).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
-	// The maximum number of results to return in a single call. To retrieve the
-	// remaining results, make another call with the returned NextToken value.
+	// The maximum number of results to return in a single call. This value can
+	// be between 5 and 300. The default value is 100. To retrieve the remaining
+	// results, make another call with the returned NextToken value.
 	MaxResults *int64 `type:"integer"`
 
 	// The token for the next set of results.
@@ -16069,6 +16092,9 @@ type DiskImageDescription struct {
 	// Request Authentication Alternative" section of the Authenticating REST Requests
 	// (http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html)
 	// topic in the Amazon Simple Storage Service Developer Guide.
+	//
+	// For information about the import manifest referenced by this API action,
+	// see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
 	ImportManifestUrl *string `locationName:"importManifestUrl" type:"string" required:"true"`
 
 	// The size of the disk image, in GiB.
@@ -16100,6 +16126,9 @@ type DiskImageDetail struct {
 	// URL for an Amazon S3 object, read the "Query String Request Authentication
 	// Alternative" section of the Authenticating REST Requests (http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html)
 	// topic in the Amazon Simple Storage Service Developer Guide.
+	//
+	// For information about the import manifest referenced by this API action,
+	// see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
 	ImportManifestUrl *string `locationName:"importManifestUrl" type:"string" required:"true"`
 }
 
@@ -16924,7 +16953,8 @@ type IdFormat struct {
 	_ struct{} `type:"structure"`
 
 	// The date in UTC at which you are permanently switched over to using longer
-	// IDs.
+	// IDs. If a deadline is not yet available for this resource type, this field
+	// is not returned.
 	Deadline *time.Time `locationName:"deadline" type:"timestamp" timestampFormat:"iso8601"`
 
 	// The type of resource.
@@ -17407,6 +17437,8 @@ type ImportKeyPairInput struct {
 
 	// The public key. You must base64 encode the public key material before sending
 	// it to AWS.
+	//
+	// PublicKeyMaterial is automatically base64 encoded/decoded by the SDK.
 	PublicKeyMaterial []byte `locationName:"publicKeyMaterial" type:"blob" required:"true"`
 }
 
@@ -17637,7 +17669,7 @@ type Instance struct {
 	// The ID of the instance.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
-	// Indicates whether this is a Spot instance.
+	// Indicates whether this is a Spot instance or a Scheduled Instance.
 	InstanceLifecycle *string `locationName:"instanceLifecycle" type:"string" enum:"InstanceLifecycleType"`
 
 	// The instance type.
@@ -19293,7 +19325,7 @@ type NatGateway struct {
 
 	// If the NAT gateway could not be created, specifies the error code for the
 	// failure. (InsufficientFreeAddressesInSubnet | Gateway.NotAttached | InvalidAllocationID.NotFound
-	// | Resource.AlreadyAssociated | InternalError)
+	// | Resource.AlreadyAssociated | InternalError | InvalidSubnetID.NotFound)
 	FailureCode *string `locationName:"failureCode" type:"string"`
 
 	// If the NAT gateway could not be created, specifies the error message for
@@ -19306,6 +19338,8 @@ type NatGateway struct {
 	// For Resource.AlreadyAssociated: Elastic IP address eipalloc-xxxxxxxx is already
 	// associated For InternalError: Network interface eni-xxxxxxxx, created and
 	// used internally by this NAT gateway is in an invalid state. Please try again.
+	// For InvalidSubnetID.NotFound: The specified subnet subnet-xxxxxxxx does not
+	// exist or could not be found.
 	FailureMessage *string `locationName:"failureMessage" type:"string"`
 
 	// Information about the IP addresses and network interface associated with
@@ -19938,10 +19972,10 @@ type PurchaseRequest struct {
 	_ struct{} `type:"structure"`
 
 	// The number of instances.
-	InstanceCount *int64 `type:"integer"`
+	InstanceCount *int64 `type:"integer" required:"true"`
 
 	// The purchase token.
-	PurchaseToken *string `type:"string"`
+	PurchaseToken *string `type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -20008,7 +20042,7 @@ type PurchaseScheduledInstancesInput struct {
 
 	// Unique, case-sensitive identifier that ensures the idempotency of the request.
 	// For more information, see Ensuring Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html).
-	ClientToken *string `type:"string"`
+	ClientToken *string `type:"string" idempotencyToken:"true"`
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have
@@ -20017,7 +20051,7 @@ type PurchaseScheduledInstancesInput struct {
 	DryRun *bool `type:"boolean"`
 
 	// One or more purchase requests.
-	PurchaseRequests []*PurchaseRequest `locationName:"PurchaseRequest" locationNameList:"PurchaseRequest" type:"list" required:"true"`
+	PurchaseRequests []*PurchaseRequest `locationName:"PurchaseRequest" locationNameList:"PurchaseRequest" min:"1" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -20672,8 +20706,9 @@ type RequestSpotInstancesInput struct {
 	// Default: Instances are launched in any available Availability Zone.
 	AvailabilityZoneGroup *string `locationName:"availabilityZoneGroup" type:"string"`
 
-	// The required duration for the Spot instances, in minutes. This value must
-	// be a multiple of 60 (60, 120, 180, 240, 300, or 360).
+	// The required duration for the Spot instances (also known as Spot blocks),
+	// in minutes. This value must be a multiple of 60 (60, 120, 180, 240, 300,
+	// or 360).
 	//
 	// The duration period starts as soon as your Spot instance receives its instance
 	// ID. At the end of the duration period, Amazon EC2 marks the Spot instance
@@ -20835,7 +20870,7 @@ func (s RequestSpotLaunchSpecification) GoString() string {
 type Reservation struct {
 	_ struct{} `type:"structure"`
 
-	// One or more security groups.
+	// [EC2-Classic only] One or more security groups.
 	Groups []*GroupIdentifier `locationName:"groupSet" locationNameList:"item" type:"list"`
 
 	// One or more instances.
@@ -21706,7 +21741,7 @@ type RunInstancesInput struct {
 	// Constraints: Between 1 and the maximum number you're allowed for the specified
 	// instance type. For more information about the default limits, and how to
 	// request an increase, see How many instances can I run in Amazon EC2 (http://aws.amazon.com/ec2/faqs/#How_many_instances_can_I_run_in_Amazon_EC2)
-	// in the Amazon EC2 General FAQ.
+	// in the Amazon EC2 FAQ.
 	MaxCount *int64 `type:"integer" required:"true"`
 
 	// The minimum number of instances to launch. If you specify a minimum that
@@ -21763,8 +21798,9 @@ type RunInstancesInput struct {
 	// For more information, see Running Commands on Your Linux Instance at Launch
 	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) (Linux)
 	// and Adding User Data (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ec2-instance-metadata.html#instancedata-add-user-data)
-	// (Windows). For API calls, the text must be base64-encoded. Command line tools
-	// perform encoding for you.
+	// (Windows). For API calls, the text must be base64-encoded. For command line
+	// tools, the encoding is performed for you, and you can load the text from
+	// a file.
 	UserData *string `type:"string"`
 }
 
@@ -21802,7 +21838,7 @@ type RunScheduledInstancesInput struct {
 
 	// Unique, case-sensitive identifier that ensures the idempotency of the request.
 	// For more information, see Ensuring Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html).
-	ClientToken *string `type:"string"`
+	ClientToken *string `type:"string" idempotencyToken:"true"`
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have
@@ -21870,6 +21906,8 @@ type S3Storage struct {
 
 	// A Base64-encoded Amazon S3 upload policy that gives Amazon EC2 permission
 	// to upload items into Amazon S3 on your behalf.
+	//
+	// UploadPolicy is automatically base64 encoded/decoded by the SDK.
 	UploadPolicy []byte `locationName:"uploadPolicy" type:"blob"`
 
 	// The signature of the Base64 encoded JSON document.
@@ -22185,6 +22223,10 @@ func (s ScheduledInstancesIamInstanceProfile) GoString() string {
 }
 
 // Describes the launch specification for a Scheduled Instance.
+//
+// If you are launching the Scheduled Instance in EC2-VPC, you must specify
+// the ID of the subnet. You can specify the subnet using either SubnetId or
+// NetworkInterface.
 type ScheduledInstancesLaunchSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -22981,8 +23023,10 @@ func (s SpotInstanceStatus) GoString() string {
 type SpotPlacement struct {
 	_ struct{} `type:"structure"`
 
-	// The Availability Zones. To specify multiple Availability Zones, separate
-	// them using commas; for example, "us-west-2a, us-west-2b".
+	// The Availability Zone.
+	//
+	// [Spot fleet only] To specify multiple Availability Zones, separate them
+	// using commas; for example, "us-west-2a, us-west-2b".
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string"`
 
 	// The name of the placement group (for cluster instances).
@@ -23445,7 +23489,7 @@ type UserBucket struct {
 	// The name of the S3 bucket where the disk image is located.
 	S3Bucket *string `type:"string"`
 
-	// The key for the disk image.
+	// The file name of the disk image.
 	S3Key *string `type:"string"`
 }
 
@@ -23466,7 +23510,7 @@ type UserBucketDetails struct {
 	// The S3 bucket from which the disk image was created.
 	S3Bucket *string `locationName:"s3Bucket" type:"string"`
 
-	// The key from which the disk image was created.
+	// The file name of the disk image.
 	S3Key *string `locationName:"s3Key" type:"string"`
 }
 
@@ -23510,8 +23554,17 @@ type UserIdGroupPair struct {
 	// VPC, use GroupId.
 	GroupName *string `locationName:"groupName" type:"string"`
 
-	// The ID of an AWS account. EC2-Classic only.
+	// The status of a VPC peering connection, if applicable.
+	PeeringStatus *string `locationName:"peeringStatus" type:"string"`
+
+	// The ID of an AWS account.
 	UserId *string `locationName:"userId" type:"string"`
+
+	// The ID of the VPC for the referenced security group, if applicable.
+	VpcId *string `locationName:"vpcId" type:"string"`
+
+	// The ID of the VPC peering connection, if applicable.
+	VpcPeeringConnectionId *string `locationName:"vpcPeeringConnectionId" type:"string"`
 }
 
 // String returns the string representation
@@ -24471,6 +24524,8 @@ const (
 const (
 	// @enum InstanceLifecycleType
 	InstanceLifecycleTypeSpot = "spot"
+	// @enum InstanceLifecycleType
+	InstanceLifecycleTypeScheduled = "scheduled"
 )
 
 const (
@@ -24577,6 +24632,8 @@ const (
 	InstanceTypeCc28xlarge = "cc2.8xlarge"
 	// @enum InstanceType
 	InstanceTypeG22xlarge = "g2.2xlarge"
+	// @enum InstanceType
+	InstanceTypeG28xlarge = "g2.8xlarge"
 	// @enum InstanceType
 	InstanceTypeCg14xlarge = "cg1.4xlarge"
 	// @enum InstanceType

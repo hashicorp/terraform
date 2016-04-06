@@ -46,35 +46,37 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"azurerm_resource_group":         resourceArmResourceGroup(),
-			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
-			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
 			"azurerm_availability_set":       resourceArmAvailabilitySet(),
-			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
-			"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
-			"azurerm_public_ip":              resourceArmPublicIp(),
-			"azurerm_subnet":                 resourceArmSubnet(),
-			"azurerm_network_interface":      resourceArmNetworkInterface(),
-			"azurerm_route_table":            resourceArmRouteTable(),
-			"azurerm_route":                  resourceArmRoute(),
-			"azurerm_cdn_profile":            resourceArmCdnProfile(),
 			"azurerm_cdn_endpoint":           resourceArmCdnEndpoint(),
-			"azurerm_storage_account":        resourceArmStorageAccount(),
-			"azurerm_storage_container":      resourceArmStorageContainer(),
-			"azurerm_storage_blob":           resourceArmStorageBlob(),
-			"azurerm_storage_queue":          resourceArmStorageQueue(),
-			"azurerm_dns_zone":               resourceArmDnsZone(),
+			"azurerm_cdn_profile":            resourceArmCdnProfile(),
 			"azurerm_dns_a_record":           resourceArmDnsARecord(),
 			"azurerm_dns_aaaa_record":        resourceArmDnsAAAARecord(),
 			"azurerm_dns_cname_record":       resourceArmDnsCNameRecord(),
-			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
-			"azurerm_dns_ns_record":          resourceArmDnsNsRecord(),
 			"azurerm_dns_mx_record":          resourceArmDnsMxRecord(),
+			"azurerm_dns_ns_record":          resourceArmDnsNsRecord(),
 			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
-			"azurerm_sql_server":             resourceArmSqlServer(),
+			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
+			"azurerm_dns_zone":               resourceArmDnsZone(),
+			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
+			"azurerm_network_interface":      resourceArmNetworkInterface(),
+			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
+			"azurerm_network_security_rule":  resourceArmNetworkSecurityRule(),
+			"azurerm_public_ip":              resourceArmPublicIp(),
+			"azurerm_resource_group":         resourceArmResourceGroup(),
+			"azurerm_route":                  resourceArmRoute(),
+			"azurerm_route_table":            resourceArmRouteTable(),
+			"azurerm_search_service":         resourceArmSearchService(),
 			"azurerm_sql_database":           resourceArmSqlDatabase(),
 			"azurerm_sql_firewall_rule":      resourceArmSqlFirewallRule(),
-			"azurerm_search_service":         resourceArmSearchService(),
+			"azurerm_sql_server":             resourceArmSqlServer(),
+			"azurerm_storage_account":        resourceArmStorageAccount(),
+			"azurerm_storage_blob":           resourceArmStorageBlob(),
+			"azurerm_storage_container":      resourceArmStorageContainer(),
+			"azurerm_storage_queue":          resourceArmStorageQueue(),
+			"azurerm_subnet":                 resourceArmSubnet(),
+			"azurerm_template_deployment":    resourceArmTemplateDeployment(),
+			"azurerm_virtual_machine":        resourceArmVirtualMachine(),
+			"azurerm_virtual_network":        resourceArmVirtualNetwork(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
@@ -142,7 +144,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 func registerAzureResourceProvidersWithSubscription(config *Config, client *ArmClient) error {
 	providerClient := client.providers
 
-	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search"}
+	providers := []string{"Microsoft.Network", "Microsoft.Compute", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources"}
 
 	for _, v := range providers {
 		res, err := providerClient.Register(v)

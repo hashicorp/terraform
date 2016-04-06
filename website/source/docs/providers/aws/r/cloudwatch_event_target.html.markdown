@@ -50,7 +50,7 @@ resource "aws_kinesis_stream" "test_stream" {
 The following arguments are supported:
 
 * `rule` - (Required) The name of the rule you want to add targets to.
-* `target_id` - (Required) The unique target assignment ID.
+* `target_id` - (Optional) The unique target assignment ID.  If missing, will generate a random, unique id. 
 * `arn` - (Required) The Amazon Resource Name (ARN) associated of the target.
 * `input` - (Optional) Valid JSON text passed to the target.
 * `input_path` - (Optional) The value of the [JSONPath](http://goessner.net/articles/JsonPath/)

@@ -42,6 +42,27 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
+	var target events.Target
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudWatchEventTargetConfigMissingTargetId,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
+					resource.TestCheckResourceAttr("aws_cloudwatch_event_target.moobar", "rule", "tf-acc-cw-event-rule-missing-target-id"),
+					resource.TestMatchResourceAttr("aws_cloudwatch_event_target.moobar", "arn",
+						regexp.MustCompile(":tf-acc-moon$")),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 	var target events.Target
 
@@ -105,6 +126,17 @@ func testAccCheckAWSCloudWatchEventTargetDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckTargetIdExists(targetId string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		_, ok := s.RootModule().Resources[targetId]
+		if !ok {
+			return fmt.Errorf("Not found: %s", targetId)
+		}
+
+		return nil
+	}
+}
+
 var testAccAWSCloudWatchEventTargetConfig = `
 resource "aws_cloudwatch_event_rule" "foo" {
 	name = "tf-acc-cw-event-rule-basic"
@@ -114,6 +146,22 @@ resource "aws_cloudwatch_event_rule" "foo" {
 resource "aws_cloudwatch_event_target" "moobar" {
 	rule = "${aws_cloudwatch_event_rule.foo.name}"
 	target_id = "tf-acc-cw-target-basic"
+	arn = "${aws_sns_topic.moon.arn}"
+}
+
+resource "aws_sns_topic" "moon" {
+	name = "tf-acc-moon"
+}
+`
+
+var testAccAWSCloudWatchEventTargetConfigMissingTargetId = `
+resource "aws_cloudwatch_event_rule" "foo" {
+	name = "tf-acc-cw-event-rule-missing-target-id"
+	schedule_expression = "rate(1 hour)"
+}
+
+resource "aws_cloudwatch_event_target" "moobar" {
+	rule = "${aws_cloudwatch_event_rule.foo.name}"
 	arn = "${aws_sns_topic.moon.arn}"
 }
 

@@ -82,7 +82,7 @@ func TestExpandIPPerms(t *testing.T) {
 					GroupId: aws.String("sg-22222"),
 				},
 				&ec2.UserIdGroupPair{
-					GroupId: aws.String("sg-22222"),
+					GroupId: aws.String("sg-11111"),
 				},
 			},
 		},
@@ -92,7 +92,7 @@ func TestExpandIPPerms(t *testing.T) {
 			ToPort:     aws.Int64(int64(-1)),
 			UserIdGroupPairs: []*ec2.UserIdGroupPair{
 				&ec2.UserIdGroupPair{
-					UserId: aws.String("foo"),
+					GroupId: aws.String("foo"),
 				},
 			},
 		},
@@ -122,6 +122,29 @@ func TestExpandIPPerms(t *testing.T) {
 			*exp.UserIdGroupPairs[0].UserId)
 	}
 
+	if *exp.UserIdGroupPairs[0].GroupId != *perm.UserIdGroupPairs[0].GroupId {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupId,
+			*exp.UserIdGroupPairs[0].GroupId)
+	}
+
+	if *exp.UserIdGroupPairs[1].GroupId != *perm.UserIdGroupPairs[1].GroupId {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[1].GroupId,
+			*exp.UserIdGroupPairs[1].GroupId)
+	}
+
+	exp = expected[1]
+	perm = perms[1]
+
+	if *exp.UserIdGroupPairs[0].GroupId != *perm.UserIdGroupPairs[0].GroupId {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupId,
+			*exp.UserIdGroupPairs[0].GroupId)
+	}
 }
 
 func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
@@ -161,7 +184,7 @@ func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
 					GroupId: aws.String("sg-22222"),
 				},
 				&ec2.UserIdGroupPair{
-					GroupId: aws.String("sg-22222"),
+					GroupId: aws.String("sg-11111"),
 				},
 			},
 		},
@@ -256,7 +279,7 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 					GroupName: aws.String("sg-22222"),
 				},
 				&ec2.UserIdGroupPair{
-					GroupName: aws.String("sg-22222"),
+					GroupName: aws.String("sg-11111"),
 				},
 			},
 		},
@@ -287,6 +310,30 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			*perm.IpRanges[0].CidrIp,
 			*exp.IpRanges[0].CidrIp)
+	}
+
+	if *exp.UserIdGroupPairs[0].GroupName != *perm.UserIdGroupPairs[0].GroupName {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupName,
+			*exp.UserIdGroupPairs[0].GroupName)
+	}
+
+	if *exp.UserIdGroupPairs[1].GroupName != *perm.UserIdGroupPairs[1].GroupName {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[1].GroupName,
+			*exp.UserIdGroupPairs[1].GroupName)
+	}
+
+	exp = expected[1]
+	perm = perms[1]
+
+	if *exp.UserIdGroupPairs[0].GroupName != *perm.UserIdGroupPairs[0].GroupName {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIdGroupPairs[0].GroupName,
+			*exp.UserIdGroupPairs[0].GroupName)
 	}
 }
 
@@ -469,6 +516,33 @@ func TestexpandElasticacheParameters(t *testing.T) {
 	expected := &elasticache.ParameterNameValue{
 		ParameterName:  aws.String("activerehashing"),
 		ParameterValue: aws.String("yes"),
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
+func TestExpandStepAdjustments(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"metric_interval_lower_bound": "1.0",
+			"metric_interval_upper_bound": "2.0",
+			"scaling_adjustment":          1,
+		},
+	}
+	parameters, err := expandStepAdjustments(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &autoscaling.StepAdjustment{
+		MetricIntervalLowerBound: aws.Float64(1.0),
+		MetricIntervalUpperBound: aws.Float64(2.0),
+		ScalingAdjustment:        aws.Int64(int64(1)),
 	}
 
 	if !reflect.DeepEqual(parameters[0], expected) {
@@ -681,6 +755,30 @@ func TestFlattenAttachment(t *testing.T) {
 	}
 }
 
+func TestflattenStepAdjustments(t *testing.T) {
+	expanded := []*autoscaling.StepAdjustment{
+		&autoscaling.StepAdjustment{
+			MetricIntervalLowerBound: aws.Float64(1.0),
+			MetricIntervalUpperBound: aws.Float64(2.0),
+			ScalingAdjustment:        aws.Int64(int64(1)),
+		},
+	}
+
+	result := flattenStepAdjustments(expanded)[0]
+	if result == nil {
+		t.Fatal("expected result to have value, but got nil")
+	}
+	if result["metric_interval_lower_bound"] != float64(1.0) {
+		t.Fatalf("expected metric_interval_lower_bound to be 1.0, but got %d", result["metric_interval_lower_bound"])
+	}
+	if result["metric_interval_upper_bound"] != float64(2.0) {
+		t.Fatalf("expected metric_interval_upper_bound to be 1.0, but got %d", result["metric_interval_upper_bound"])
+	}
+	if result["scaling_adjustment"] != int64(1) {
+		t.Fatalf("expected scaling_adjustment to be 1, but got %d", result["scaling_adjustment"])
+	}
+}
+
 func TestFlattenResourceRecords(t *testing.T) {
 	expanded := []*route53.ResourceRecord{
 		&route53.ResourceRecord{
@@ -720,5 +818,87 @@ func TestFlattenAsgEnabledMetrics(t *testing.T) {
 
 	if result[1] != "GroupMaxSize" {
 		t.Fatalf("expected id to be GroupMaxSize, but was %s", result[1])
+	}
+}
+
+func TestFlattenSecurityGroups(t *testing.T) {
+	cases := []struct {
+		ownerId  *string
+		pairs    []*ec2.UserIdGroupPair
+		expected []*ec2.GroupIdentifier
+	}{
+		// simple, no user id included (we ignore it mostly)
+		{
+			ownerId: aws.String("user1234"),
+			pairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("sg-12345"),
+				},
+			},
+			expected: []*ec2.GroupIdentifier{
+				&ec2.GroupIdentifier{
+					GroupId: aws.String("sg-12345"),
+				},
+			},
+		},
+		// include the owner id, but keep it consitent with the same account. Tests
+		// EC2 classic situation
+		{
+			ownerId: aws.String("user1234"),
+			pairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("sg-12345"),
+					UserId:  aws.String("user1234"),
+				},
+			},
+			expected: []*ec2.GroupIdentifier{
+				&ec2.GroupIdentifier{
+					GroupId: aws.String("sg-12345"),
+				},
+			},
+		},
+
+		// include the owner id, but from a different account. This is reflects
+		// EC2 Classic when refering to groups by name
+		{
+			ownerId: aws.String("user1234"),
+			pairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					GroupId:   aws.String("sg-12345"),
+					GroupName: aws.String("somegroup"), // GroupName is only included in Classic
+					UserId:    aws.String("user4321"),
+				},
+			},
+			expected: []*ec2.GroupIdentifier{
+				&ec2.GroupIdentifier{
+					GroupId:   aws.String("sg-12345"),
+					GroupName: aws.String("user4321/somegroup"),
+				},
+			},
+		},
+
+		// include the owner id, but from a different account. This reflects in
+		// EC2 VPC when refering to groups by id
+		{
+			ownerId: aws.String("user1234"),
+			pairs: []*ec2.UserIdGroupPair{
+				&ec2.UserIdGroupPair{
+					GroupId: aws.String("sg-12345"),
+					UserId:  aws.String("user4321"),
+				},
+			},
+			expected: []*ec2.GroupIdentifier{
+				&ec2.GroupIdentifier{
+					GroupId: aws.String("user4321/sg-12345"),
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		out := flattenSecurityGroups(c.pairs, c.ownerId)
+		if !reflect.DeepEqual(out, c.expected) {
+			t.Fatalf("Error matching output and expected: %#v vs %#v", out, c.expected)
+		}
 	}
 }

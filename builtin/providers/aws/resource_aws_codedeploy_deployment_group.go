@@ -158,20 +158,20 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 	// Retry to handle IAM role eventual consistency.
 	var resp *codedeploy.CreateDeploymentGroupOutput
 	var err error
-	err = resource.Retry(2*time.Minute, func() error {
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		resp, err = conn.CreateDeploymentGroup(&input)
 		if err != nil {
 			codedeployErr, ok := err.(awserr.Error)
 			if !ok {
-				return &resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 			if codedeployErr.Code() == "InvalidRoleException" {
 				log.Printf("[DEBUG] Trying to create deployment group again: %q",
 					codedeployErr.Message())
-				return err
+				return resource.RetryableError(err)
 			}
 
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		return nil
 	})

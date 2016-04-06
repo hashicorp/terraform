@@ -68,8 +68,8 @@ func (c *CloudFormation) ContinueUpdateRollbackRequest(input *ContinueUpdateRoll
 // rolling it back to the UPDATE_ROLLBACK_COMPLETE state. Depending on the cause
 // of the failure, you can manually  fix the error (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/troubleshooting.html#troubleshooting-errors-update-rollback-failed)
 // and continue the rollback. By continuing the rollback, you can return your
-// stack to a working state (the UPDATE_ROLLBACK_COMPLETE state), return the
-// stack to its original settings, and then try to update the stack again.
+// stack to a working state (the UPDATE_ROLLBACK_COMPLETE state), and then try
+// to update the stack again.
 //
 // A stack goes into the UPDATE_ROLLBACK_FAILED state when AWS CloudFormation
 // cannot roll back all changes after a failed stack update. For example, you
@@ -637,9 +637,6 @@ func (c *CloudFormation) UpdateStackRequest(input *UpdateStackInput) (req *reque
 // To get a copy of the template for an existing stack, you can use the GetTemplate
 // action.
 //
-// Tags that were associated with this stack during creation time will still
-// be associated with the stack after an UpdateStack operation.
-//
 // For more information about creating an update template, updating a stack,
 // and monitoring the progress of the update, see Updating a Stack (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks.html).
 func (c *CloudFormation) UpdateStack(input *UpdateStackInput) (*UpdateStackOutput, error) {
@@ -903,6 +900,14 @@ func (s CreateStackOutput) GoString() string {
 // The input for DeleteStack action.
 type DeleteStackInput struct {
 	_ struct{} `type:"structure"`
+
+	// For stacks in the DELETE_FAILED state, a list of resource logical IDs that
+	// are associated with the resources you want to retain. During deletion, AWS
+	// CloudFormation deletes the stack but does not delete the retained resources.
+	//
+	// Retaining resources is useful when you cannot delete a resource, such as
+	// a non-empty S3 bucket, but you want to delete the stack.
+	RetainResources []*string `type:"list"`
 
 	// The name or the unique stack ID that is associated with the stack.
 	StackName *string `type:"string" required:"true"`
@@ -2107,6 +2112,15 @@ type UpdateStackInput struct {
 	// resource that you created during a stack update. If you do not specify a
 	// stack policy, the current policy that is associated with the stack is unchanged.
 	StackPolicyURL *string `min:"1" type:"string"`
+
+	// Key-value pairs to associate with this stack. AWS CloudFormation also propagates
+	// these tags to supported resources in the stack. You can specify a maximum
+	// number of 10 tags.
+	//
+	// If you don't specify this parameter, AWS CloudFormation doesn't modify the
+	// stack's tags. If you specify an empty value, AWS CloudFormation removes all
+	// associated tags.
+	Tags []*Tag `type:"list"`
 
 	// Structure containing the template body with a minimum length of 1 byte and
 	// a maximum length of 51,200 bytes. (For more information, go to Template Anatomy

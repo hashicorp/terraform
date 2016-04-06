@@ -308,7 +308,7 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteVpc(DeleteVpcOpts)
 		if err == nil {
 			return nil
@@ -316,19 +316,17 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		switch ec2err.Code() {
 		case "InvalidVpcID.NotFound":
 			return nil
 		case "DependencyViolation":
-			return err
+			return resource.RetryableError(err)
 		}
 
-		return &resource.RetryError{
-			Err: fmt.Errorf("Error deleting VPC: %s", err),
-		}
+		return resource.NonRetryableError(fmt.Errorf("Error deleting VPC: %s", err))
 	})
 }
 

@@ -27,8 +27,7 @@ resource "cloudstack_instance" "web" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the instance. Changing this forces a new
-    resource to be created.
+* `name` - (Required) The name of the instance.
 
 * `display_name` - (Optional) The display name of the instance.
 
@@ -38,8 +37,11 @@ The following arguments are supported:
 * `network` - (Optional) The name or ID of the network to connect this instance
     to. Changing this forces a new resource to be created.
 
-* `ipaddress` - (Optional) The IP address to assign to this instance. Changing
+* `ip_address` - (Optional) The IP address to assign to this instance. Changing
     this forces a new resource to be created.
+
+* `ipaddress` - (Optional, Deprecated) The IP address to assign to this instance.
+    Changing this forces a new resource to be created.
 
 * `template` - (Required) The name or ID of the template used for this
     instance. Changing this forces a new resource to be created.

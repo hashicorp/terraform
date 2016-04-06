@@ -68,6 +68,8 @@ The `lifecycle` block allows the following keys to be set:
       destruction of a given resource. When this is set to `true`, any plan
       that includes a destroy of this resource will return an error message.
 
+<a id="ignore-changes"></a>
+
   * `ignore_changes` (list of strings) - Customizes how diffs are evaluated for
       resources, allowing individual attributes to be ignored through changes.
       As an example, this can be used to ignore dynamic changes to the
