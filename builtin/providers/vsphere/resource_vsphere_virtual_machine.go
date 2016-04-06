@@ -48,6 +48,10 @@ type cdrom struct {
 	path      string
 }
 
+type memoryAllocation struct {
+	reservation int64
+}
+
 type virtualMachine struct {
 	name                 string
 	folder               string
@@ -57,6 +61,7 @@ type virtualMachine struct {
 	datastore            string
 	vcpu                 int
 	memoryMb             int64
+	memoryAllocation  memoryAllocation
 	template             string
 	networkInterfaces    []networkInterface
 	hardDisks            []hardDisk
@@ -109,6 +114,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"memory": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+				ForceNew: true,
+			},
+
+			"memory_reservation": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -319,6 +330,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("folder"); ok {
 		vm.folder = v.(string)
+	}
+
+	if v, ok := d.GetOk("memory_reservation"); ok {
+		vm.memoryAllocation.reservation = int64(v.(int))
+	} else {
+		vm.memoryAllocation.reservation = int64(0)
 	}
 
 	if v, ok := d.GetOk("datacenter"); ok {
@@ -1251,6 +1268,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
+		MemoryAllocation:  &types.ResourceAllocationInfo{
+			Reservation:     vm.memoryAllocation.reservation,
+		},
 	}
 
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
