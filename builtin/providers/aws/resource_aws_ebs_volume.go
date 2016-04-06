@@ -186,7 +186,7 @@ func resourceAwsEbsVolumeRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error reading EC2 volume %s: %#v", d.Id(), err)
+		return fmt.Errorf("Error reading EC2 volume %s: %s", d.Id(), err)
 	}
 
 	return readVolume(d, response.Volumes[0])
