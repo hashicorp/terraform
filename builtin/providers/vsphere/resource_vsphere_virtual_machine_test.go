@@ -561,6 +561,71 @@ func testAccCheckVSphereVirtualMachineExists(n string, vm *virtualMachine) resou
 	}
 }
 
+func TestAccVSphereVirtualMachine_withCdRom(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	gateway := os.Getenv("VSPHERE_NETWORK_GATEWAY")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL")
+	ip_address := os.Getenv("VSPHERE_NETWORK_IP_ADDRESS")
+	cdrom_iso := os.Getenv("VSPHERE_CDROM_ISO")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_withCdRom,
+					locationOpt,
+					gateway,
+					label,
+					ip_address,
+					datastoreOpt,
+					template,
+					cdrom_iso,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.terraform-test-withCdRom", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "name", "terraform-test-withCdRom"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "network_interface.0.label", label),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "cdrom.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.terraform-test-withCdRom", "cdrom.0.iso_path", cdrom_iso),
+				),
+			},
+		},
+	})
+}
+
 const testAccCheckVSphereVirtualMachineConfig_basic = `
 resource "vsphere_virtual_machine" "foo" {
     name = "terraform-test"
@@ -679,6 +744,28 @@ resource "vsphere_virtual_machine" "with_folder" {
     disk {
 %s
         template = "%s"
+    }
+}
+`
+const testAccCheckVSphereVirtualMachineConfig_withCdRom = `
+resource "vsphere_virtual_machine" "terraform-test-withCdRom" {
+    name = "terraform-test-withCdRom"
+%s
+    vcpu = 2
+    memory = 4096
+    gateway = "%s"
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+    }
+    disk {
+%s
+        template = "%s"
+        iops = 500
+    }
+    cdrom {
+        iso_path = "%s"
     }
 }
 `

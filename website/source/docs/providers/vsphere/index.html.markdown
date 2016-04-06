@@ -49,6 +49,10 @@ resource "vsphere_virtual_machine" "web" {
   disk {
     template = "centos-7"
   }
+  
+  cdrom {
+      iso_path = "config.iso"
+  }
 }
 ```
 
@@ -81,6 +85,7 @@ In addition, the following environment variables are used in tests, and must be 
  * VSPHERE\_NETWORK\_LABEL
  * VSPHERE\_NETWORK\_LABEL\_DHCP
  * VSPHERE\_TEMPLATE
+ * VSPHERE\_CDROM\_ISO
 
 The following environment variables depend on your vSphere environment:
 

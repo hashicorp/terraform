@@ -43,6 +43,10 @@ type hardDisk struct {
 	initType string
 }
 
+type cdRom struct {
+	isoPath string
+}
+
 type virtualMachine struct {
 	name                 string
 	folder               string
@@ -55,6 +59,7 @@ type virtualMachine struct {
 	template             string
 	networkInterfaces    []networkInterface
 	hardDisks            []hardDisk
+	cdRoms               []cdRom
 	gateway              string
 	domain               string
 	timeZone             string
@@ -277,6 +282,21 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"cdrom": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"iso_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -372,6 +392,18 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 		vm.networkInterfaces = networks
 		log.Printf("[DEBUG] network_interface init: %v", networks)
+	}
+
+	if vL, ok := d.GetOk("cdrom"); ok {
+		cdroms := make([]cdRom, len(vL.([]interface{})))
+		for i, v := range vL.([]interface{}) {
+			cdrom := v.(map[string]interface{})
+			if v, ok := cdrom["iso_path"].(string); ok && v != "" {
+				cdroms[i].isoPath = v
+			}
+		}
+		vm.cdRoms = cdroms
+		log.Printf("[DEBUG] cdrom init: %v", cdroms)
 	}
 
 	if vL, ok := d.GetOk("disk"); ok {
@@ -612,6 +644,23 @@ func waitForNetworkingActive(client *govmomi.Client, datacenter, name string) re
 			return nil, "pending", err
 		}
 	}
+}
+
+// addCdRom adds a new CD Rom to the VirtualMachine
+func addCdRom(vm *object.VirtualMachine, datastore *object.Datastore, isoFilepath string) error {
+	devices, err := vm.Device(context.TODO())
+
+	ide, err := devices.FindIDEController("")
+	if err != nil {
+		return err
+	}
+
+	cdrom, err := devices.CreateCdrom(ide)
+	if err != nil {
+		return err
+	}
+
+	return vm.AddDevice(context.TODO(), devices.InsertIso(cdrom, datastore.Path(isoFilepath)))
 }
 
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
@@ -1008,6 +1057,14 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 			return err
 		}
 	}
+
+	for _, cd := range vm.cdRoms {
+		log.Printf("[DEBUG] add cdrom iso: %v", cd.isoPath)
+		err = addCdRom(newVM, datastore, cd.isoPath)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -1264,6 +1321,14 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		}
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
+
+	for _, cd := range vm.cdRoms {
+		log.Printf("[DEBUG] add cdrom iso: %v", cd.isoPath)
+		err = addCdRom(newVM, datastore, cd.isoPath)
+		if err != nil {
+			return err
+		}
+	}
 
 	newVM.PowerOn(context.TODO())
 

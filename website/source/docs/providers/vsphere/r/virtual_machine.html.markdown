@@ -26,6 +26,10 @@ resource "vsphere_virtual_machine" "web" {
   disk {
     template = "centos-7"
   }
+  
+  cdrom {
+      iso_path = "config.iso"
+  }
 }
 ```
 
@@ -47,6 +51,7 @@ The following arguments are supported:
 * `network_interface` - (Required) Configures virtual network interfaces; see [Network Interfaces](#network-interfaces) below for details.
 * `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for details
 * `boot_delay` - (Optional) Time in seconds to wait for machine network to be ready.
+* `cdrom` - (Optional) Attaches a cdrom device.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
 
 The `network_interface` block supports:
@@ -69,6 +74,10 @@ The `disk` block supports:
 * `size` - (Required if template not provided) Size of this disk (in GB).
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
 * `type` - (Optional) 'eager_zeroed' (the default), or 'thin' are supported options.
+
+The `cdrom` block supports:
+
+* `iso_path` - (Required) Path to the iso in datastore.
 
 ## Attributes Reference
 
