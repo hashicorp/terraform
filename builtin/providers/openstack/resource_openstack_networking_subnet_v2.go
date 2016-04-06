@@ -117,6 +117,8 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	enableDHCP := d.Get("enable_dhcp").(bool)
+
 	createOpts := subnets.CreateOpts{
 		NetworkID:       d.Get("network_id").(string),
 		CIDR:            d.Get("cidr").(string),
@@ -127,11 +129,7 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		IPVersion:       d.Get("ip_version").(int),
 		DNSNameservers:  resourceSubnetDNSNameserversV2(d),
 		HostRoutes:      resourceSubnetHostRoutesV2(d),
-	}
-
-	if raw, ok := d.GetOk("enable_dhcp"); ok {
-		value := raw.(bool)
-		createOpts.EnableDHCP = &value
+		EnableDHCP:      &enableDHCP,
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
