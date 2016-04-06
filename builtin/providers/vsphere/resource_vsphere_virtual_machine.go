@@ -61,7 +61,7 @@ type virtualMachine struct {
 	datastore            string
 	vcpu                 int
 	memoryMb             int64
-	memoryAllocation  memoryAllocation
+	memoryAllocation     memoryAllocation
 	template             string
 	networkInterfaces    []networkInterface
 	hardDisks            []hardDisk
@@ -1268,8 +1268,8 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
-		MemoryAllocation:  &types.ResourceAllocationInfo{
-			Reservation:     vm.memoryAllocation.reservation,
+		MemoryAllocation: &types.ResourceAllocationInfo{
+			Reservation: vm.memoryAllocation.reservation,
 		},
 	}
 
