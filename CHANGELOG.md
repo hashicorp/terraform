@@ -43,6 +43,7 @@ BUG FIXES:
  * provider/aws: Remove CloudTrail Trail from state if not found [GH-6024]
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
  * provider/aws: set ASG `health_check_grace_period` default to 300 [GH-5830]
+ * provider/aws: Show human-readable error message when failing to read an EBS volume [GH-6038]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
 
