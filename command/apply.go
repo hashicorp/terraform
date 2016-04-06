@@ -72,7 +72,11 @@ func (c *ApplyCommand) Run(args []string) int {
 	// Prepare the extra hooks to count resources
 	countHook := new(CountHook)
 	stateHook := new(StateHook)
-	c.Meta.extraHooks = []terraform.Hook{countHook, stateHook}
+	pendingHook := &PendingHook{
+		Colorize: c.Colorize(),
+		Ui:       c.Ui,
+	}
+	c.Meta.extraHooks = []terraform.Hook{countHook, stateHook, pendingHook}
 
 	if !c.Destroy && maybeInit {
 		// Do a detect to determine if we need to do an init + apply.
@@ -184,6 +188,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	var state *terraform.State
 	var applyErr error
 	doneCh := make(chan struct{})
+	pendingHook.ShowPendingOperationsInBackground(doneCh)
 	go func() {
 		defer close(doneCh)
 		state, applyErr = ctx.Apply()
