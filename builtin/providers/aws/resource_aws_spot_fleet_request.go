@@ -695,8 +695,10 @@ func launchSpecToMap(
 
 	if l.Placement != nil {
 		m["availability_zone"] = aws.StringValue(l.Placement.AvailabilityZone)
-	} else {
-		m["availability_zone"] = ""
+	}
+
+	if l.SubnetId != nil {
+		m["subnet_id"] = aws.StringValue(l.SubnetId)
 	}
 
 	// m["security_groups"] = securityGroupsToSet(l.SecutiryGroups)
@@ -864,7 +866,17 @@ func hashLaunchSpecification(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["ami"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["availability_zone"].(string)))
+	if m["availability_zone"] != nil && m["availability_zone"] != "" {
+		buf.WriteString(fmt.Sprintf("%s-", m["availability_zone"].(string)))
+	} else if m["subnet_id"] != nil && m["subnet_id"] != "" {
+		buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
+	} else {
+		panic(
+			fmt.Sprintf(
+				"Must set one of:\navailability_zone %#v\nsubnet_id: %#v",
+				m["availability_zone"],
+				m["subnet_id"]))
+	}
 	buf.WriteString(fmt.Sprintf("%s-", m["instance_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["spot_price"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["user_data"].(string)))
