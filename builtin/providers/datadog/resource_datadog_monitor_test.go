@@ -39,6 +39,10 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 						"datadog_monitor.foo", "thresholds.warning", "1"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "thresholds.critical", "2"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "true"),
 				),
 			},
 		},
@@ -81,6 +85,10 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "timeout_h", "60"),
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "include_tags", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "false"),
 				),
 			},
 			resource.TestStep{
@@ -195,6 +203,8 @@ resource "datadog_monitor" "foo" {
   notify_audit = false
   timeout_h = 60
   include_tags = true
+  require_full_window = true
+  locked = true
 }
 `
 
@@ -219,6 +229,8 @@ resource "datadog_monitor" "foo" {
   notify_audit = true
   timeout_h = 70
   include_tags = false
+  require_full_window = false
+  locked = false
   silenced {
 	"*" = 0
   }
