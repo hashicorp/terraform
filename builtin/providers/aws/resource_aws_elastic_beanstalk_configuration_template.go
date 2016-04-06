@@ -132,7 +132,7 @@ func resourceAwsElasticBeanstalkConfigurationTemplateUpdate(d *schema.ResourceDa
 		}
 	}
 
-	if d.HasChange("option_settings") {
+	if d.HasChange("setting") {
 		if err := resourceAwsElasticBeanstalkConfigurationTemplateOptionSettingsUpdate(conn, d); err != nil {
 			return err
 		}
@@ -152,7 +152,7 @@ func resourceAwsElasticBeanstalkConfigurationTemplateDescriptionUpdate(conn *ela
 }
 
 func resourceAwsElasticBeanstalkConfigurationTemplateOptionSettingsUpdate(conn *elasticbeanstalk.ElasticBeanstalk, d *schema.ResourceData) error {
-	if d.HasChange("option_settings") {
+	if d.HasChange("setting") {
 		_, err := conn.ValidateConfigurationSettings(&elasticbeanstalk.ValidateConfigurationSettingsInput{
 			ApplicationName: aws.String(d.Get("application").(string)),
 			TemplateName:    aws.String(d.Get("name").(string)),
@@ -162,7 +162,7 @@ func resourceAwsElasticBeanstalkConfigurationTemplateOptionSettingsUpdate(conn *
 			return err
 		}
 
-		o, n := d.GetChange("option_settings")
+		o, n := d.GetChange("setting")
 		if o == nil {
 			o = new(schema.Set)
 		}
@@ -211,7 +211,7 @@ func resourceAwsElasticBeanstalkConfigurationTemplateDelete(d *schema.ResourceDa
 }
 
 func gatherOptionSettings(d *schema.ResourceData) []*elasticbeanstalk.ConfigurationOptionSetting {
-	optionSettingsSet, ok := d.Get("option_settings").(*schema.Set)
+	optionSettingsSet, ok := d.Get("setting").(*schema.Set)
 	if !ok || optionSettingsSet == nil {
 		optionSettingsSet = new(schema.Set)
 	}
