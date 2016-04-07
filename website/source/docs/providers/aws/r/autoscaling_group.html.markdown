@@ -66,6 +66,8 @@ The following arguments are supported:
    behavior and potentially leaves resources dangling.
 * `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
    group names.
+* `suspended_processes` (Optional) A list of auto scaling processes to suspend.
+(See [Suspending and Resuming Processes](http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_SuspendResume.html).)
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
 * `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated.
 * `tag` (Optional) A list of tag blocks. Tags documented below.
