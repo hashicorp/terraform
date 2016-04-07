@@ -42,6 +42,7 @@ type hardDisk struct {
 	size     int64
 	iops     int64
 	initType string
+	vmdkPath string
 }
 
 //Additional options Vsphere can use clones of windows machines
@@ -81,6 +82,7 @@ type virtualMachine struct {
 	timeZone              string
 	dnsSuffixes           []string
 	dnsServers            []string
+	bootableVmdk          bool
 	linkedClone           bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
@@ -342,6 +344,21 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+
+						"vmdk": &schema.Schema{
+							// TODO: Add ValidateFunc to confirm path exists
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "",
+						},
+
+						"bootable": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+							ForceNew: true,
+						},
 					},
 				},
 			},
@@ -508,8 +525,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				} else {
 					if v, ok := disk["size"].(int); ok && v != 0 {
 						disks[i].size = int64(v)
+					} else if v, ok := disk["vmdk"].(string); ok && v != "" {
+						disks[i].vmdkPath = v
+						if v, ok := disk["bootable"].(bool); ok {
+							vm.bootableVmdk = v
+						}
 					} else {
-						return fmt.Errorf("If template argument is not specified, size argument is required.")
+						return fmt.Errorf("template, size, or vmdk argument is required")
 					}
 				}
 				if v, ok := disk["datastore"].(string); ok && v != "" {
@@ -518,8 +540,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			} else {
 				if v, ok := disk["size"].(int); ok && v != 0 {
 					disks[i].size = int64(v)
+				} else if v, ok := disk["vmdk"].(string); ok && v != "" {
+					disks[i].vmdkPath = v
 				} else {
-					return fmt.Errorf("Size argument is required.")
+					return fmt.Errorf("size or vmdk argument is required")
 				}
 
 			}
@@ -774,7 +798,7 @@ func waitForNetworkingActive(client *govmomi.Client, datacenter, name string) re
 }
 
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
-func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string) error {
+func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string) error {
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
 		return err
@@ -787,7 +811,8 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string) e
 	}
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
-	disk := devices.CreateDisk(controller, "")
+	// TODO Check if diskPath & datastore exist
+	disk := devices.CreateDisk(controller, fmt.Sprintf("[%v] %v", datastore.Name(), diskPath))
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -1214,7 +1239,7 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	for _, hd := range vm.hardDisks {
 		log.Printf("[DEBUG] add hard disk: %v", hd.size)
 		log.Printf("[DEBUG] add hard disk: %v", hd.iops)
-		err = addHardDisk(newVM, hd.size, hd.iops, "thin")
+		err = addHardDisk(newVM, hd.size, hd.iops, "thin", datastore, hd.vmdkPath)
 		if err != nil {
 			return err
 		}
@@ -1223,6 +1248,15 @@ func (vm *virtualMachine) createVirtualMachine(c *govmomi.Client) error {
 	// Create the cdroms if needed.
 	if err := createCdroms(newVM, vm.cdroms); err != nil {
 		return err
+	}
+
+	if vm.bootableVmdk {
+		newVM.PowerOn(context.TODO())
+		ip, err := newVM.WaitForIP(context.TODO())
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] ip address: %v", ip)
 	}
 
 	return nil
@@ -1546,7 +1580,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	log.Printf("[DEBUG] VM customization finished")
 
 	for i := 1; i < len(vm.hardDisks); i++ {
-		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType)
+		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, vm.hardDisks[i].vmdkPath)
 		if err != nil {
 			return err
 		}

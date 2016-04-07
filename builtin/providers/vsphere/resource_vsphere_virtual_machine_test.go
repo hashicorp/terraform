@@ -455,6 +455,68 @@ func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_createWithExistingVmdk(t *testing.T) {
+	vmdk_path := os.Getenv("VSPHERE_VMDK_PATH")
+	gateway := os.Getenv("VSPHERE_NETWORK_GATEWAY")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL")
+	ip_address := os.Getenv("VSPHERE_NETWORK_IP_ADDRESS")
+
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_withExistingVmdk,
+					locationOpt,
+					gateway,
+					label,
+					ip_address,
+					datastoreOpt,
+					vmdk_path,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.with_existing_vmdk", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "name", "terraform-test-with-existing-vmdk"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "disk.0.vmdk", vmdk_path),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "disk.0.bootable", "true"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_existing_vmdk", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
@@ -768,6 +830,26 @@ resource "vsphere_virtual_machine" "with_cdrom" {
     cdrom {
         datastore = "%s"
         path = "%s"
+    }
+}
+`
+
+const testAccCheckVSphereVirtualMachineConfig_withExistingVmdk = `
+resource "vsphere_virtual_machine" "with_existing_vmdk" {
+    name = "terraform-test-with-existing-vmdk"
+%s
+    vcpu = 2
+    memory = 4096
+    gateway = "%s"
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+    }
+    disk {
+%s
+        vmdk = "%s"
+		bootable = true
     }
 }
 `
