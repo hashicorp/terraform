@@ -86,7 +86,7 @@ The following arguments are supported:
     create the template deployment.
 * `template_body` - (Optional) Specifies the JSON definition for the template.
 * `parameters` - (Optional) Specifies the name and value pairs that define the deployment parameters for the template.
-* `deploymnet_mode` - (Optional) Specifies the mode that is used to deploy resources. This value could be either `Incremental` or `Complete`. 
+* `deployment_mode` - (Optional) Specifies the mode that is used to deploy resources. This value could be either `Incremental` or `Complete`. 
 
 ## Attributes Reference
 
