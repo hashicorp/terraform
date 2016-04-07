@@ -1,14 +1,14 @@
 ---
 layout: "github"
-page_title: "Github: github_team_membership"
+page_title: "GitHub: github_team_membership"
 sidebar_current: "docs-github-resource-team-membership"
 description: |-
-  Provides a Github team membership resource.
+  Provides a GitHub team membership resource.
 ---
 
 # github\_team_membership
 
-Provides a Github team membership resource.
+Provides a GitHub team membership resource.
 
 This resource allows you to add/remove users from teams in your organization. When applied,
 the user will be added to the team. If the user hasn't accepted their invitation to the 
@@ -40,7 +40,7 @@ resource "github_team_membership" "some_team_membership" {
 
 The following arguments are supported:
 
-* `team_id` - (Required) The Github team id
+* `team_id` - (Required) The GitHub team id
 * `username` - (Required) The user to add to the team.
 * `role` - (Optional) The role of the user within the team. 
             Must be one of `member` or `maintainer`. Defaults to `member`.
