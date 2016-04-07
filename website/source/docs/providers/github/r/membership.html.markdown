@@ -1,14 +1,14 @@
 ---
 layout: "github"
-page_title: "Github: github_membership"
+page_title: "GitHub: github_membership"
 sidebar_current: "docs-github-resource-membership"
 description: |-
-  Provides a Github membership resource.
+  Provides a GitHub membership resource.
 ---
 
 # github\_membership
 
-Provides a Github membership resource.
+Provides a GitHub membership resource.
 
 This resource allows you to add/remove users from your organization. When applied,
 an invitation will be sent to the user to become part of the organization. When
