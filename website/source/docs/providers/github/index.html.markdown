@@ -1,16 +1,16 @@
 ---
 layout: "github"
-page_title: "Provider: Github"
+page_title: "Provider: GitHub"
 sidebar_current: "docs-github-index"
 description: |-
-  The Github provider is used to interact with Github organization resources.
+  The GitHub provider is used to interact with GitHub organization resources.
 ---
 
-# Github Provider
+# GitHub Provider
 
-The Github provider is used to interact with Github organization resources. 
+The GitHub provider is used to interact with GitHub organization resources. 
 
-The provider allows you to manage your Github organization's members and teams easily. 
+The provider allows you to manage your GitHub organization's members and teams easily. 
 It needs to be configured with the proper credentials before it can be used.
 
 Use the navigation to the left to read about the available resources.
@@ -18,7 +18,7 @@ Use the navigation to the left to read about the available resources.
 ## Example Usage
 
 ```
-# Configure the Github Provider
+# Configure the GitHub Provider
 provider "github" {
     token = "${var.github_token}"
     organization = "${var.github_organization}"
@@ -34,9 +34,9 @@ resource "github_membership" "membership_for_user_x" {
 
 The following arguments are supported in the `provider` block:
 
-* `token` - (Optional) This is the Github personal access token. It must be provided, but
+* `token` - (Optional) This is the GitHub personal access token. It must be provided, but
   it can also be sourced from the `GITHUB_TOKEN` environment variable.
 
-* `organization` - (Optional) This is the target Github organization to manage. The account
+* `organization` - (Optional) This is the target GitHub organization to manage. The account
   corresponding to the token will need "owner" privileges for this organization. It must be provided, but
   it can also be sourced from the `GITHUB_ORGANIZATION` environment variable.
