@@ -39,7 +39,14 @@ type Provider struct {
 	// See the ConfigureFunc documentation for more information.
 	ConfigureFunc ConfigureFunc
 
-	meta interface{}
+	configResult ProviderConfigResult
+}
+
+// ProviderConfigResult is the stored result of a configured provider (via
+// Provider.Configure()).
+type ProviderConfigResult struct {
+	Meta interface{}
+	Data *ResourceData
 }
 
 // ConfigureFunc is the function used to configure a Provider.
@@ -78,21 +85,21 @@ func (p *Provider) InternalValidate() error {
 // Meta returns the metadata associated with this provider that was
 // returned by the Configure call. It will be nil until Configure is called.
 func (p *Provider) Meta() interface{} {
-	return p.meta
+	return p.configResult.Meta
 }
 
 // SetMeta can be used to forcefully set the Meta object of the provider.
 // Note that if Configure is called the return value will override anything
 // set here.
 func (p *Provider) SetMeta(v interface{}) {
-	p.meta = v
+	p.configResult.Meta = v
 }
 
 // Input implementation of terraform.ResourceProvider interface.
 func (p *Provider) Input(
 	input terraform.UIInput,
 	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	return schemaMap(p.Schema).Input(input, c)
+	return schemaMap(p.Schema).Input(input, c, &p.configResult)
 }
 
 // Validate implementation of terraform.ResourceProvider interface.
@@ -104,7 +111,7 @@ func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 				"this bug:\n\n%s", err)}
 	}
 
-	return schemaMap(p.Schema).Validate(c)
+	return schemaMap(p.Schema).Validate(c, &p.configResult)
 }
 
 // ValidateResource implementation of terraform.ResourceProvider interface.
@@ -116,7 +123,7 @@ func (p *Provider) ValidateResource(
 			"Provider doesn't support resource: %s", t)}
 	}
 
-	return r.Validate(c)
+	return r.Validate(c, &p.configResult)
 }
 
 // Configure implementation of terraform.ResourceProvider interface.
@@ -130,12 +137,12 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 
 	// Get a ResourceData for this configuration. To do this, we actually
 	// generate an intermediary "diff" although that is never exposed.
-	diff, err := sm.Diff(nil, c)
+	diff, err := sm.Diff(nil, c, &p.configResult)
 	if err != nil {
 		return err
 	}
 
-	data, err := sm.Data(nil, diff)
+	data, err := sm.Data(nil, diff, &p.configResult)
 	if err != nil {
 		return err
 	}
@@ -145,7 +152,9 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 		return err
 	}
 
-	p.meta = meta
+	p.configResult.Meta = meta // making API calls
+	p.configResult.Data = data // k/v from provider config
+
 	return nil
 }
 
@@ -159,7 +168,7 @@ func (p *Provider) Apply(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Apply(s, d, p.meta)
+	return r.Apply(s, d, &p.configResult)
 }
 
 // Diff implementation of terraform.ResourceProvider interface.
@@ -172,7 +181,7 @@ func (p *Provider) Diff(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Diff(s, c)
+	return r.Diff(s, c, &p.configResult)
 }
 
 // Refresh implementation of terraform.ResourceProvider interface.
@@ -184,7 +193,7 @@ func (p *Provider) Refresh(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Refresh(s, p.meta)
+	return r.Refresh(s, &p.configResult)
 }
 
 // Resources implementation of terraform.ResourceProvider interface.

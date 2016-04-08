@@ -13,6 +13,7 @@ func TestResourceDataGet(t *testing.T) {
 		Schema map[string]*Schema
 		State  *terraform.InstanceState
 		Diff   *terraform.InstanceDiff
+		PCR    *ProviderConfigResult
 		Key    string
 		Value  interface{}
 	}{
@@ -735,7 +736,7 @@ func TestResourceDataGet(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff, tc.PCR)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -756,6 +757,7 @@ func TestResourceDataGetChange(t *testing.T) {
 		Schema   map[string]*Schema
 		State    *terraform.InstanceState
 		Diff     *terraform.InstanceDiff
+		PCR      *ProviderConfigResult
 		Key      string
 		OldValue interface{}
 		NewValue interface{}
@@ -822,7 +824,7 @@ func TestResourceDataGetChange(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff, tc.PCR)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -842,6 +844,7 @@ func TestResourceDataGetOk(t *testing.T) {
 		Schema map[string]*Schema
 		State  *terraform.InstanceState
 		Diff   *terraform.InstanceDiff
+		PCR    *ProviderConfigResult
 		Key    string
 		Value  interface{}
 		Ok     bool
@@ -1061,7 +1064,7 @@ func TestResourceDataGetOk(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff, tc.PCR)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1085,6 +1088,7 @@ func TestResourceDataHasChange(t *testing.T) {
 		Schema map[string]*Schema
 		State  *terraform.InstanceState
 		Diff   *terraform.InstanceDiff
+		PCR    *ProviderConfigResult
 		Key    string
 		Change bool
 	}{
@@ -1236,7 +1240,7 @@ func TestResourceDataHasChange(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff, tc.PCR)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1255,6 +1259,7 @@ func TestResourceDataSet(t *testing.T) {
 		Schema   map[string]*Schema
 		State    *terraform.InstanceState
 		Diff     *terraform.InstanceDiff
+		PCR      *ProviderConfigResult
 		Key      string
 		Value    interface{}
 		Err      bool
@@ -1730,7 +1735,7 @@ func TestResourceDataSet(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff, tc.PCR)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1760,6 +1765,7 @@ func TestResourceDataState(t *testing.T) {
 		Schema  map[string]*Schema
 		State   *terraform.InstanceState
 		Diff    *terraform.InstanceDiff
+		PCR     *ProviderConfigResult
 		Set     map[string]interface{}
 		Result  *terraform.InstanceState
 		Partial []string
@@ -2839,7 +2845,7 @@ func TestResourceDataState(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff, tc.PCR)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}

@@ -147,15 +147,66 @@ type Schema struct {
 	ValidateFunc SchemaValidateFunc
 }
 
+// DefaultFuncContext is a struct used as input to the SchemaDefaultFunc.
+type DefaultFuncContext struct {
+	// Meta is the arbitrary metadata exposed during provider configuration. This
+	// implementation varies by provider.
+	Meta interface{}
+
+	// ProviderData is the given input to the Provider.Configure().
+	ProviderData *ResourceData
+}
+
 // SchemaDefaultFunc is a function called to return a default value for
-// a field.
-type SchemaDefaultFunc func() (interface{}, error)
+// a field. The input parameter to the function is guaranteed to be non-nil,
+// but fields on that struct may be nil, depending on which phase of execution
+// is currently running. For example, during the provider has not yet been
+// configured. This means both Meta and ProviderData will be nil. Plugins which
+// implement a DefaultFunc which relies on the behavior of provider
+// configuration MUST explicitly check if the provider has been configured
+// before accessing any of the data. For example:
+//
+// 		&schema.Schema{
+// 			Type: schema.TypeString,
+// 			DefaultFunc: func(c *DefaultFuncContext) (interface{}, error) {
+// 				if c.ProviderData == nil {
+// 					return nil, nil
+// 				}
+// 				return c.ProvierData.Get("field").(string), nil
+// 			},
+// 		}
+//
+// If a schema field is marked as required but specifies a DefaultFunc, the
+// return value for a non-configured input must be the non-nil, non-default
+// value. This is because the first validation pass will not have configured
+// the provider, resulting in a nil value, but the validation step will fail
+// because of a missing attribute. The validation step is also run before other
+// commands, after the provider has been configured, so it is safe to set a
+// default return value here for the first pass of evaluation, and the provider
+// will still function as you expect. For example:
+//
+// 		&schema.Schema{
+// 			Type:     schema.TypeString,
+// 			Required: true,
+// 			DefaultFunc: func(c *DefaultFuncContext) (interface{}, error) {
+// 				if c.ProviderData == nil {
+// 					return "<computed>", nil // <-- this change is required
+// 				}
+// 				return c.ProvierData.Get("field").(string), nil
+// 			},
+// 		}
+//
+// Notice how the return value satisfies the initial validation by returning a
+// non-nil string. If the provider's "field" is the empty string, validation
+// will still fail, but it will fail in the second pass, after the provider has
+// been configured. This operation is transparent to the user.
+type SchemaDefaultFunc func(*DefaultFuncContext) (interface{}, error)
 
 // EnvDefaultFunc is a helper function that returns the value of the
 // given environment variable, if one exists, or the default value
 // otherwise.
 func EnvDefaultFunc(k string, dv interface{}) SchemaDefaultFunc {
-	return func() (interface{}, error) {
+	return func(i *DefaultFuncContext) (interface{}, error) {
 		if v := os.Getenv(k); v != "" {
 			return v, nil
 		}
@@ -169,7 +220,7 @@ func EnvDefaultFunc(k string, dv interface{}) SchemaDefaultFunc {
 // none of the environment variables return a value, the default value is
 // returned.
 func MultiEnvDefaultFunc(ks []string, dv interface{}) SchemaDefaultFunc {
-	return func() (interface{}, error) {
+	return func(i *DefaultFuncContext) (interface{}, error) {
 		for _, k := range ks {
 			if v := os.Getenv(k); v != "" {
 				return v, nil
@@ -197,13 +248,16 @@ func (s *Schema) GoString() string {
 
 // Returns a default value for this schema by either reading Default or
 // evaluating DefaultFunc. If neither of these are defined, returns nil.
-func (s *Schema) DefaultValue() (interface{}, error) {
+func (s *Schema) DefaultValue(pcr *ProviderConfigResult) (interface{}, error) {
 	if s.Default != nil {
 		return s.Default, nil
 	}
 
 	if s.DefaultFunc != nil {
-		defaultValue, err := s.DefaultFunc()
+		defaultValue, err := s.DefaultFunc(&DefaultFuncContext{
+			Meta:         pcr.Meta,
+			ProviderData: pcr.Data,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("error loading default: %s", err)
 		}
@@ -276,11 +330,17 @@ type schemaMap map[string]*Schema
 // The diff is optional.
 func (m schemaMap) Data(
 	s *terraform.InstanceState,
-	d *terraform.InstanceDiff) (*ResourceData, error) {
+	d *terraform.InstanceDiff,
+	pcr *ProviderConfigResult) (*ResourceData, error) {
+	if pcr == nil {
+		pcr = new(ProviderConfigResult)
+	}
+
 	return &ResourceData{
 		schema: m,
 		state:  s,
 		diff:   d,
+		pcr:    pcr,
 	}, nil
 }
 
@@ -288,7 +348,12 @@ func (m schemaMap) Data(
 // state, and configuration.
 func (m schemaMap) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) (*terraform.InstanceDiff, error) {
+	if pcr == nil {
+		pcr = new(ProviderConfigResult)
+	}
+
 	result := new(terraform.InstanceDiff)
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
@@ -296,6 +361,7 @@ func (m schemaMap) Diff(
 		schema: m,
 		state:  s,
 		config: c,
+		pcr:    pcr,
 	}
 
 	for k, schema := range m {
@@ -388,7 +454,12 @@ func (m schemaMap) Diff(
 // for input for required configuration keys that don't have a value.
 func (m schemaMap) Input(
 	input terraform.UIInput,
-	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) (*terraform.ResourceConfig, error) {
+	if pcr == nil {
+		pcr = new(ProviderConfigResult)
+	}
+
 	keys := make([]string, 0, len(m))
 	for k, _ := range m {
 		keys = append(keys, k)
@@ -415,7 +486,7 @@ func (m schemaMap) Input(
 		}
 
 		// Skip if it has a default value
-		defaultValue, err := v.DefaultValue()
+		defaultValue, err := v.DefaultValue(pcr)
 		if err != nil {
 			return nil, fmt.Errorf("%s: error loading default: %s", k, err)
 		}
@@ -445,8 +516,11 @@ func (m schemaMap) Input(
 }
 
 // Validate validates the configuration against this schema mapping.
-func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return m.validateObject("", m, c)
+func (m schemaMap) Validate(c *terraform.ResourceConfig, pcr *ProviderConfigResult) ([]string, []error) {
+	if pcr == nil {
+		pcr = new(ProviderConfigResult)
+	}
+	return m.validateObject("", m, c, pcr)
 }
 
 // InternalValidate validates the format of this schema. This should be called
@@ -990,12 +1064,17 @@ func (m schemaMap) inputString(
 func (m schemaMap) validate(
 	k string,
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) ([]string, []error) {
 	raw, ok := c.Get(k)
 	if !ok && schema.DefaultFunc != nil {
 		// We have a dynamic default. Check if we have a value.
 		var err error
-		raw, err = schema.DefaultFunc()
+		raw, err = schema.DefaultFunc(&DefaultFuncContext{
+			Meta:         pcr.Meta,
+			ProviderData: pcr.Data,
+		})
+
 		if err != nil {
 			return nil, []error{fmt.Errorf(
 				"%q, error loading default: %s", k, err)}
@@ -1024,7 +1103,7 @@ func (m schemaMap) validate(
 		return nil, []error{err}
 	}
 
-	return m.validateType(k, raw, schema, c)
+	return m.validateType(k, raw, schema, c, pcr)
 }
 
 func (m schemaMap) validateConflictingAttributes(
@@ -1050,7 +1129,8 @@ func (m schemaMap) validateList(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) ([]string, []error) {
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
@@ -1081,9 +1161,9 @@ func (m schemaMap) validateList(
 		switch t := schema.Elem.(type) {
 		case *Resource:
 			// This is a sub-resource
-			ws2, es2 = m.validateObject(key, t.Schema, c)
+			ws2, es2 = m.validateObject(key, t.Schema, c, pcr)
 		case *Schema:
-			ws2, es2 = m.validateType(key, raw, t, c)
+			ws2, es2 = m.validateType(key, raw, t, c, pcr)
 		}
 
 		if len(ws2) > 0 {
@@ -1101,7 +1181,8 @@ func (m schemaMap) validateMap(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) ([]string, []error) {
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
@@ -1149,7 +1230,8 @@ func (m schemaMap) validateMap(
 func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) ([]string, []error) {
 	raw, _ := c.GetRaw(k)
 	if _, ok := raw.(map[string]interface{}); !ok {
 		return nil, []error{fmt.Errorf(
@@ -1165,7 +1247,7 @@ func (m schemaMap) validateObject(
 			key = fmt.Sprintf("%s.%s", k, subK)
 		}
 
-		ws2, es2 := m.validate(key, s, c)
+		ws2, es2 := m.validate(key, s, c, pcr)
 		if len(ws2) > 0 {
 			ws = append(ws, ws2...)
 		}
@@ -1191,7 +1273,8 @@ func (m schemaMap) validatePrimitive(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) ([]string, []error) {
 
 	// Catch if the user gave a complex type where a primitive was
 	// expected, so we can return a friendly error message that
@@ -1259,16 +1342,17 @@ func (m schemaMap) validateType(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) ([]string, []error) {
 	var ws []string
 	var es []error
 	switch schema.Type {
 	case TypeSet, TypeList:
-		ws, es = m.validateList(k, raw, schema, c)
+		ws, es = m.validateList(k, raw, schema, c, pcr)
 	case TypeMap:
-		ws, es = m.validateMap(k, raw, schema, c)
+		ws, es = m.validateMap(k, raw, schema, c, pcr)
 	default:
-		ws, es = m.validatePrimitive(k, raw, schema, c)
+		ws, es = m.validatePrimitive(k, raw, schema, c, pcr)
 	}
 
 	if schema.Deprecated != "" {

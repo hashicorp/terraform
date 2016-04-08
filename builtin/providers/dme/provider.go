@@ -40,7 +40,7 @@ func Provider() terraform.ResourceProvider {
 }
 
 func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
+	return func(c *schema.DefaultFuncContext) (interface{}, error) {
 		if v := os.Getenv(k); v != "" {
 			if v == "true" {
 				return true, nil

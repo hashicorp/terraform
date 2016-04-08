@@ -18,6 +18,8 @@ func TestConfigFieldReader(t *testing.T) {
 		return &ConfigFieldReader{
 			Schema: s,
 
+			PCR: &ProviderConfigResult{},
+
 			Config: testConfig(t, map[string]interface{}{
 				"bool":   true,
 				"float":  3.1415,
@@ -57,7 +59,7 @@ func TestConfigFieldReader_DefaultHandling(t *testing.T) {
 		},
 		"strWithDefaultFunc": &Schema{
 			Type: TypeString,
-			DefaultFunc: func() (interface{}, error) {
+			DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
 				return "FuncDefault", nil
 			},
 		},
@@ -119,6 +121,7 @@ func TestConfigFieldReader_DefaultHandling(t *testing.T) {
 		r := &ConfigFieldReader{
 			Schema: schema,
 			Config: tc.Config,
+			PCR:    &ProviderConfigResult{},
 		}
 		out, err := r.ReadField(tc.Addr)
 		if err != nil != tc.Err {

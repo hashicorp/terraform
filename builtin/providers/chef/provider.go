@@ -69,7 +69,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	return chefc.NewClient(config)
 }
 
-func providerPrivateKeyEnvDefault() (interface{}, error) {
+func providerPrivateKeyEnvDefault(c *schema.DefaultFuncContext) (interface{}, error) {
 	if fn := os.Getenv("CHEF_PRIVATE_KEY_FILE"); fn != "" {
 		contents, err := ioutil.ReadFile(fn)
 		if err != nil {
