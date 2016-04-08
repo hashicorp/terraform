@@ -134,13 +134,17 @@ func v3auth(client *gophercloud.ProviderClient, endpoint string, options gopherc
 		v3Client.Endpoint = endpoint
 	}
 
+	// copy the auth options to a local variable that we can change. `options`
+	// needs to stay as-is for reauth purposes
+	v3Options := options
+
 	var scope *tokens3.Scope
 	if options.TenantID != "" {
 		scope = &tokens3.Scope{
 			ProjectID: options.TenantID,
 		}
-		options.TenantID = ""
-		options.TenantName = ""
+		v3Options.TenantID = ""
+		v3Options.TenantName = ""
 	} else {
 		if options.TenantName != "" {
 			scope = &tokens3.Scope{
@@ -148,11 +152,11 @@ func v3auth(client *gophercloud.ProviderClient, endpoint string, options gopherc
 				DomainID:    options.DomainID,
 				DomainName:  options.DomainName,
 			}
-			options.TenantName = ""
+			v3Options.TenantName = ""
 		}
 	}
 
-	result := tokens3.Create(v3Client, options, scope)
+	result := tokens3.Create(v3Client, v3Options, scope)
 
 	token, err := result.ExtractToken()
 	if err != nil {
