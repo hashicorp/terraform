@@ -50,6 +50,7 @@ type virtualMachine struct {
 	cluster              string
 	resourcePool         string
 	datastore            string
+	linkedClone          bool
 	vcpu                 int
 	memoryMb             int64
 	template             string
@@ -124,6 +125,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"linkedClone": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
 			"gateway": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -316,6 +323,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("time_zone"); ok {
 		vm.timeZone = v.(string)
+	}
+
+	if v, ok := d.GetOk("linkedClone"); ok {
+		vm.linkedClone = v.(bool)
 	}
 
 	if raw, ok := d.GetOk("dns_suffixes"); ok {
@@ -707,8 +718,15 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 }
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
-func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, initType string) (types.VirtualMachineRelocateSpec, error) {
+func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
 	var key int
+	var moveType string
+	if linkedClone {
+		moveType = "createNewChildDiskBacking"
+	} else {
+		moveType = "moveAllDiskBackingsAndDisallowSharing"
+	}
+	log.Printf("[DEBUG] relocate type: [%s]", moveType)
 
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
@@ -724,8 +742,9 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	rpr := rp.Reference()
 	dsr := ds.Reference()
 	return types.VirtualMachineRelocateSpec{
-		Datastore: &dsr,
-		Pool:      &rpr,
+		Datastore:    &dsr,
+		Pool:         &rpr,
+		DiskMoveType: moveType,
 		Disk: []types.VirtualMachineRelocateSpecDiskLocator{
 			types.VirtualMachineRelocateSpecDiskLocator{
 				Datastore: dsr,
@@ -1099,7 +1118,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	}
 	log.Printf("[DEBUG] datastore: %#v", datastore)
 
-	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.hardDisks[0].initType)
+	relocateSpec, err := buildVMRelocateSpec(resourcePool, datastore, template, vm.linkedClone, vm.hardDisks[0].initType)
 	if err != nil {
 		return err
 	}
@@ -1203,6 +1222,17 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		Template: false,
 		Config:   &configSpec,
 		PowerOn:  false,
+	}
+	if vm.linkedClone {
+		var template_mo mo.VirtualMachine
+		err = template.Properties(context.TODO(), template.Reference(), []string{"parent", "config.template", "resourcePool", "snapshot", "guest.toolsVersionStatus2", "config.guestFullName"}, &template_mo)
+		if err != nil {
+			return fmt.Errorf("Error reading base VM properties: %s", err)
+		}
+		if template_mo.Snapshot == nil {
+			return fmt.Errorf("`linkedClone=true`, but image VM has no snapshots")
+		}
+		cloneSpec.Snapshot = template_mo.Snapshot.CurrentSnapshot
 	}
 	log.Printf("[DEBUG] clone spec: %v", cloneSpec)
 
