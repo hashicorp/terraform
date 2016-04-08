@@ -60,7 +60,6 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
-	linkedClone           bool
 	vcpu                  int
 	memoryMb              int64
 	template              string
@@ -71,6 +70,7 @@ type virtualMachine struct {
 	timeZone              string
 	dnsSuffixes           []string
 	dnsServers            []string
+	linkedClone           bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
 }
