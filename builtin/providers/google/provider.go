@@ -33,7 +33,7 @@ func Provider() terraform.ResourceProvider {
 
 			"project": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Required:    false,
 				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_PROJECT", nil),
 			},
 
@@ -122,7 +122,7 @@ func validateAccountFile(v interface{}, k string) (warnings []string, errors []e
 		errors = append(errors, fmt.Errorf("Error loading Account File: %s", err))
 	}
 	if wasPath {
-		warnings = append(warnings, `account_file was provided as a path instead of 
+		warnings = append(warnings, `account_file was provided as a path instead of
 as file contents. This support will be removed in the future. Please update
 your configuration to use ${file("filename.json")} instead.`)
 	}
