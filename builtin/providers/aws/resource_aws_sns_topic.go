@@ -56,7 +56,9 @@ func resourceAwsSnsTopic() *schema.Resource {
 						log.Printf("[WARN] Error compacting JSON for Policy in SNS Topic")
 						return ""
 					}
-					return buffer.String()
+					value := normalizeJson(buffer.String())
+					log.Printf("[DEBUG] topic policy before save: %s", value)
+					return value
 				},
 			},
 			"delivery_policy": &schema.Schema{
@@ -183,9 +185,14 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 				// Some of the fetched attributes are stateful properties such as
 				// the number of subscriptions, the owner, etc. skip those
 				if resource.Schema[iKey] != nil {
-					value := *attrmap[oKey]
+					var value string
+					if iKey == "policy" {
+						value = normalizeJson(*attrmap[oKey])
+					} else {
+						value = *attrmap[oKey]
+					}
 					log.Printf("[DEBUG] Reading %s => %s -> %s", iKey, oKey, value)
-					d.Set(iKey, *attrmap[oKey])
+					d.Set(iKey, value)
 				}
 			}
 		}
