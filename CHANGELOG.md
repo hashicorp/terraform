@@ -52,6 +52,7 @@ BUG FIXES:
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
  * provider/openstack: Fix resizing when Flavor Name changes [GH-6020]
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
+ * provider/vsphere: Add error handling to `vsphere_folder` [GH-6095]
 
 ## 0.6.14 (March 21, 2016)
 
