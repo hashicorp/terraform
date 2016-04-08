@@ -48,6 +48,7 @@ BUG FIXES:
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
  * provider/openstack: Fix resizing when Flavor Name changes [GH-6020]
+ * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
 
 ## 0.6.14 (March 21, 2016)
 
