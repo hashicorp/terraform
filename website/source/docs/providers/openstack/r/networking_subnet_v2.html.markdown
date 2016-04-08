@@ -53,7 +53,12 @@ The following arguments are supported:
     documented below. Changing this creates a new subnet.
 
 * `gateway_ip` - (Optional)  Default gateway used by devices in this subnet.
-    Changing this updates the gateway IP of the existing subnet.
+    Leaving this blank and not setting `no_gateway` will cause a default
+    gateway of `.1` to be used. Changing this updates the gateway IP of the
+    existing subnet.
+
+* `no_gateway` - (Optional) Do not set a gateway IP on this subnet. Changing
+    this removes or adds a default gateway IP of the existing subnet.
 
 * `enable_dhcp` - (Optional) The administrative state of the network.
     Acceptable values are "true" and "false". Changing this value enables or
