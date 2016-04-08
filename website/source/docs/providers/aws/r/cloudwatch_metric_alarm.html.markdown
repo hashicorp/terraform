@@ -77,3 +77,10 @@ The following arguments are supported:
 * `insufficient_data_actions` - (Optional) The list of actions to execute when this alarm transitions into an INSUFFICIENT_DATA state from any other state. Each action is specified as an Amazon Resource Number (ARN).
 * `ok_actions` - (Optional) The list of actions to execute when this alarm transitions into an OK state from any other state. Each action is specified as an Amazon Resource Number (ARN).
 * `unit` - (Optional) The unit for the alarm's associated metric.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `id` - The ID of the health check
+
