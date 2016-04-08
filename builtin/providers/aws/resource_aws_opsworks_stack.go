@@ -80,7 +80,6 @@ func resourceAwsOpsworksStack() *schema.Resource {
 			"custom_cookbooks_source": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": &schema.Schema{
