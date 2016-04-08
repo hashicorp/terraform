@@ -30,6 +30,7 @@ IMPROVEMENTS:
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
  * provider/docker: Add support for docker run --user option [GH-5300]
  * provider/google: Accept GOOGLE_CLOUD_KEYFILE_JSON env var for credentials [GH-6007]
+ * provider/cloudstack: Deprecate `ipaddress` in favour of `ip_address` in all resources [GH-6010]
  * provider/openstack: Allow subnets with no gateway [GH-6060]
 
 BUG FIXES:
