@@ -38,7 +38,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -62,14 +62,14 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Optional:    true,
 				ForceNew:    false,
 				Computed:    true,
-				DefaultFunc: envDefaultFunc("OS_FLAVOR_ID"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_FLAVOR_ID", nil),
 			},
 			"flavor_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    false,
 				Computed:    true,
-				DefaultFunc: envDefaultFunc("OS_FLAVOR_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_FLAVOR_NAME", nil),
 			},
 			"floating_ip": &schema.Schema{
 				Type:     schema.TypeString,
