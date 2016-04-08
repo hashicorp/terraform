@@ -725,12 +725,20 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if d.HasChange("flavor_id") || d.HasChange("flavor_name") {
-		flavorId, err := getFlavorID(computeClient, d)
-		if err != nil {
-			return err
+		var newFlavorId string
+		var err error
+		if d.HasChange("flavor_id") {
+			newFlavorId = d.Get("flavor_id").(string)
+		} else {
+			newFlavorName := d.Get("flavor_name").(string)
+			newFlavorId, err = flavors.IDFromName(computeClient, newFlavorName)
+			if err != nil {
+				return err
+			}
 		}
+
 		resizeOpts := &servers.ResizeOpts{
-			FlavorRef: flavorId,
+			FlavorRef: newFlavorId,
 		}
 		log.Printf("[DEBUG] Resize configuration: %#v", resizeOpts)
 		err = servers.Resize(computeClient, d.Id(), resizeOpts).ExtractErr()
@@ -1258,35 +1266,8 @@ func getFlavorID(client *gophercloud.ServiceClient, d *schema.ResourceData) (str
 		return flavorId, nil
 	}
 
-	flavorCount := 0
 	flavorName := d.Get("flavor_name").(string)
-	if flavorName != "" {
-		pager := flavors.ListDetail(client, nil)
-		pager.EachPage(func(page pagination.Page) (bool, error) {
-			flavorList, err := flavors.ExtractFlavors(page)
-			if err != nil {
-				return false, err
-			}
-
-			for _, f := range flavorList {
-				if f.Name == flavorName {
-					flavorCount++
-					flavorId = f.ID
-				}
-			}
-			return true, nil
-		})
-
-		switch flavorCount {
-		case 0:
-			return "", fmt.Errorf("Unable to find flavor: %s", flavorName)
-		case 1:
-			return flavorId, nil
-		default:
-			return "", fmt.Errorf("Found %d flavors matching %s", flavorCount, flavorName)
-		}
-	}
-	return "", fmt.Errorf("Neither a flavor ID nor a flavor name were able to be determined.")
+	return flavors.IDFromName(client, flavorName)
 }
 
 func resourceComputeVolumeAttachmentHash(v interface{}) int {
