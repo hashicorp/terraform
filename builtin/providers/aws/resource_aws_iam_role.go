@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -145,9 +146,7 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	// Loop and remove this Role from any Profiles
 	if len(resp.InstanceProfiles) > 0 {
 		for _, i := range resp.InstanceProfiles {
-			request := &iam.DeleteRoleInput{
-				RoleName: aws.String(d.Id()),
-			}
+			time.Sleep(500 * time.Millisecond)
 
 			// Test to make sure IAM Instance Profile still exists
 			_, err := iamconn.GetInstanceProfile(&iam.GetInstanceProfileInput{
@@ -155,11 +154,22 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 			})
 
 			if err == nil {
-				if _, err := iamconn.DeleteRole(request); err != nil {
-					return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+				_, err := iamconn.RemoveRoleFromInstanceProfile(&iam.RemoveRoleFromInstanceProfileInput{
+					InstanceProfileName: i.InstanceProfileName,
+					RoleName:            aws.String(d.Id()),
+				})
+				if err != nil {
+					return fmt.Errorf("Error detaching IAM Role %s: %s", d.Id(), err)
 				}
 			}
 		}
+	}
+
+	request := &iam.DeleteRoleInput{
+		RoleName: aws.String(d.Id()),
+	}
+	if _, err := iamconn.DeleteRole(request); err != nil {
+		return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
 	}
 
 	return nil
