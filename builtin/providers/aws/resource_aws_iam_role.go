@@ -145,22 +145,22 @@ func resourceAwsIamRoleDelete(d *schema.ResourceData, meta interface{}) error {
 	// Loop and remove this Role from any Profiles
 	if len(resp.InstanceProfiles) > 0 {
 		for _, i := range resp.InstanceProfiles {
-			_, err := iamconn.RemoveRoleFromInstanceProfile(&iam.RemoveRoleFromInstanceProfileInput{
+			request := &iam.DeleteRoleInput{
+				RoleName: aws.String(d.Id()),
+			}
+
+			// Test to make sure IAM Instance Profile still exists
+			_, err := iamconn.GetInstanceProfile(&iam.GetInstanceProfileInput{
 				InstanceProfileName: i.InstanceProfileName,
-				RoleName:            aws.String(d.Id()),
 			})
-			if err != nil {
-				return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+
+			if err == nil {
+				if _, err := iamconn.DeleteRole(request); err != nil {
+					return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
+				}
 			}
 		}
 	}
 
-	request := &iam.DeleteRoleInput{
-		RoleName: aws.String(d.Id()),
-	}
-
-	if _, err := iamconn.DeleteRole(request); err != nil {
-		return fmt.Errorf("Error deleting IAM Role %s: %s", d.Id(), err)
-	}
 	return nil
 }
