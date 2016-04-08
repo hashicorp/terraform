@@ -15,6 +15,7 @@ type Config struct {
 	Username         string
 	UserID           string
 	Password         string
+	Token            string
 	APIKey           string
 	IdentityEndpoint string
 	TenantID         string
@@ -41,6 +42,7 @@ func (c *Config) loadAndValidate() error {
 		Username:         c.Username,
 		UserID:           c.UserID,
 		Password:         c.Password,
+		TokenID:          c.Token,
 		APIKey:           c.APIKey,
 		IdentityEndpoint: c.IdentityEndpoint,
 		TenantID:         c.TenantID,
