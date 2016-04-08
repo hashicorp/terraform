@@ -47,6 +47,7 @@ BUG FIXES:
  * provider/aws: Show human-readable error message when failing to read an EBS volume [GH-6038]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
+ * provider/openstack: Fix resizing when Flavor Name changes [GH-6020]
 
 ## 0.6.14 (March 21, 2016)
 
