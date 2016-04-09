@@ -30,6 +30,27 @@ func TestAccAWSRole_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRole_namePrefix(t *testing.T) {
+	var conf iam.GetRoleOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRoleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSRolePrefixNameConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
+					testAccCheckAWSSecurityGroupGeneratedNamePrefix(
+						"aws_iam_role.role", "test-role-"),
+					testAccCheckAWSRoleAttributes(&conf),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRole_testNameChange(t *testing.T) {
 	var conf iam.GetRoleOutput
 
@@ -123,11 +144,27 @@ func testAccCheckAWSRoleAttributes(role *iam.GetRoleOutput) resource.TestCheckFu
 	}
 }
 
+func testAccCheckAWSRoleGeneratedNamePrefix(role *iam.GetRoleOutput, prefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if !strings.HasPrefix(*role.Role.RoleName, prefix) {
+			return fmt.Errorf("Name: %q, does not have prefix: %q", name, prefix)
+		}
+		return nil
+	}
+}
+
 const testAccAWSRoleConfig = `
 resource "aws_iam_role" "role" {
 	name   = "test-role"
 	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+`
+
+const testAccAWSRolePrefixNameConfig = `
+resource "aws_iam_role" "role" {
+    name = "test-role-"
+    assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
 }
 `
 
