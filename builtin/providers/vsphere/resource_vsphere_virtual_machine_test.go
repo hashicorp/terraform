@@ -34,9 +34,9 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
 	}
 	template := os.Getenv("VSPHERE_TEMPLATE")
-	gateway := os.Getenv("VSPHERE_NETWORK_GATEWAY")
+	gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL")
-	ip_address := os.Getenv("VSPHERE_NETWORK_IP_ADDRESS")
+	ip_address := os.Getenv("VSPHERE_IPV4_ADDRESS")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -388,6 +388,77 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL")
+	ipv4Address := os.Getenv("VSPHERE_IPV4_ADDRESS")
+	ipv4Gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
+	ipv6Address := os.Getenv("VSPHERE_IPV6_ADDRESS")
+	ipv6Gateway := os.Getenv("VSPHERE_IPV6_GATEWAY")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_ipv4Andipv6,
+					locationOpt,
+					label,
+					ipv4Address,
+					ipv4Gateway,
+					ipv6Address,
+					ipv6Gateway,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.ipv4ipv6", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "name", "terraform-test-ipv4-ipv6"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "disk.#", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.label", label),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv4_address", ipv4Address),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv4_gateway", ipv4Gateway),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv6_address", ipv6Address),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.ipv4ipv6", "network_interface.0.ipv6_gateway", ipv6Gateway),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
@@ -664,7 +735,7 @@ resource "vsphere_virtual_machine" "folder" {
 
 const testAccCheckVSphereVirtualMachineConfig_createWithFolder = `
 resource "vsphere_folder" "with_folder" {
-	path = "%s"	
+	path = "%s"
 %s
 }
 resource "vsphere_virtual_machine" "with_folder" {
@@ -679,6 +750,33 @@ resource "vsphere_virtual_machine" "with_folder" {
     disk {
 %s
         template = "%s"
+    }
+}
+`
+
+const testAccCheckVSphereVirtualMachineConfig_ipv4Andipv6 = `
+resource "vsphere_virtual_machine" "ipv4ipv6" {
+    name = "terraform-test-ipv4-ipv6"
+%s
+    vcpu = 2
+    memory = 4096
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+        ipv4_gateway = "%s"
+        ipv6_address = "%s"
+        ipv6_prefix_length = 64
+        ipv6_gateway = "%s"
+    }
+    disk {
+%s
+        template = "%s"
+        iops = 500
+    }
+    disk {
+        size = 1
+        iops = 500
     }
 }
 `
