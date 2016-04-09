@@ -450,7 +450,7 @@ func (c *Config) Validate() error {
 		r.RawCount.interpolate(func(root ast.Node) (string, error) {
 			// Execute the node but transform the AST so that it returns
 			// a fixed value of "5" for all interpolations.
-			out, _, err := hil.Eval(
+			result, err := hil.Eval(
 				hil.FixedValueTransform(
 					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
 				nil)
@@ -458,7 +458,7 @@ func (c *Config) Validate() error {
 				return "", err
 			}
 
-			return out.(string), nil
+			return result.Value.(string), nil
 		})
 		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
 		if err != nil {
@@ -680,7 +680,7 @@ func (c *Config) validateVarContextFn(
 		node = node.Accept(func(n ast.Node) ast.Node {
 			// If it is a concat or variable access, we allow it.
 			switch n.(type) {
-			case *ast.Concat:
+			case *ast.Output:
 				return n
 			case *ast.VariableAccess:
 				return n

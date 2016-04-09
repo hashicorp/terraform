@@ -160,15 +160,15 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 		},
 	}
 
-	out, typ, err := hil.Eval(root, &cfg)
+	result, err := hil.Eval(root, &cfg)
 	if err != nil {
 		return "", err
 	}
-	if typ != ast.TypeString {
-		return "", fmt.Errorf("unexpected output ast.Type: %v", typ)
+	if result.Type != hil.TypeString {
+		return "", fmt.Errorf("unexpected output hil.Type: %v", result.Type)
 	}
 
-	return out.(string), nil
+	return result.Value.(string), nil
 }
 
 func hash(s string) string {
