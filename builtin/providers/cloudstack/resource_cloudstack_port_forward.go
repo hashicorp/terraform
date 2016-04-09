@@ -43,6 +43,12 @@ func resourceCloudStackPortForward() *schema.Resource {
 				Default:  false,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"forward": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -206,6 +212,17 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 	p := cs.Firewall.NewListPortForwardingRulesParams()
 	p.SetIpaddressid(d.Id())
 	p.SetListall(true)
+
+	// If there is a project supplied, we retrieve and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project ID
+		projectid, e := retrieveID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
+	}
 
 	l, err := cs.Firewall.ListPortForwardingRules(p)
 	if err != nil {
