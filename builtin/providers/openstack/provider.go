@@ -1,8 +1,6 @@
 package openstack
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,12 +12,12 @@ func Provider() terraform.ResourceProvider {
 			"auth_url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("OS_AUTH_URL"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
 			},
 			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_USERNAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", nil),
 			},
 			"user_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -34,27 +32,27 @@ func Provider() terraform.ResourceProvider {
 			"tenant_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_TENANT_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_TENANT_NAME", nil),
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_PASSWORD"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_PASSWORD", nil),
 			},
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_AUTH_TOKEN"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
 			},
 			"domain_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_DOMAIN_ID"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_ID", ""),
 			},
 			"domain_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_DOMAIN_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_NAME", ""),
 			},
 			"insecure": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -64,12 +62,12 @@ func Provider() terraform.ResourceProvider {
 			"endpoint_type": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_ENDPOINT_TYPE"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_ENDPOINT_TYPE", ""),
 			},
 			"cacert_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_CACERT"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_CACERT", ""),
 			},
 		},
 
@@ -121,21 +119,4 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return &config, nil
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
-	}
-}
-
-func envDefaultFuncAllowMissing(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		v := os.Getenv(k)
-		return v, nil
-	}
 }
