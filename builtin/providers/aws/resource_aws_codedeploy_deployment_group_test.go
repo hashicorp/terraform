@@ -2,12 +2,14 @@ package aws
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -187,6 +189,80 @@ func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Trigger event validation failed for event type %q: %q", tc.Value, errors)
 		}
+	}
+}
+
+func TestBuildTriggerConfigs(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"trigger_events": schema.NewSet(schema.HashString, []interface{}{
+				"DeploymentFailure",
+			}),
+			"trigger_name":       "foo-trigger",
+			"trigger_target_arn": "arn:aws:sns:us-west-2:123456789012:foo-topic",
+		},
+	}
+
+	expected := []*codedeploy.TriggerConfig{
+		&codedeploy.TriggerConfig{
+			TriggerEvents: []*string{
+				aws.String("DeploymentFailure"),
+			},
+			TriggerName:      aws.String("foo-trigger"),
+			TriggerTargetArn: aws.String("arn:aws:sns:us-west-2:123456789012:foo-topic"),
+		},
+	}
+
+	actual := buildTriggerConfigs(input)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("buildTriggerConfigs output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestTriggerConfigsToMap(t *testing.T) {
+	input := []*codedeploy.TriggerConfig{
+		&codedeploy.TriggerConfig{
+			TriggerEvents: []*string{
+				aws.String("DeploymentFailure"),
+				aws.String("InstanceFailure"),
+			},
+			TriggerName:      aws.String("bar-trigger"),
+			TriggerTargetArn: aws.String("arn:aws:sns:us-west-2:123456789012:bar-topic"),
+		},
+	}
+
+	expected := map[string]interface{}{
+		"trigger_events": schema.NewSet(schema.HashString, []interface{}{
+			"DeploymentFailure",
+			"InstanceFailure",
+		}),
+		"trigger_name":       "bar-trigger",
+		"trigger_target_arn": "arn:aws:sns:us-west-2:123456789012:bar-topic",
+	}
+
+	actual := triggerConfigsToMap(input)[0]
+
+	fatal := false
+
+	if actual["trigger_name"] != expected["trigger_name"] {
+		fatal = true
+	}
+
+	if actual["trigger_target_arn"] != expected["trigger_target_arn"] {
+		fatal = true
+	}
+
+	actualEvents := actual["trigger_events"].(*schema.Set)
+	expectedEvents := expected["trigger_events"].(*schema.Set)
+	if !actualEvents.Equal(expectedEvents) {
+		fatal = true
+	}
+
+	if fatal {
+		t.Fatalf("triggerConfigsToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
 	}
 }
 

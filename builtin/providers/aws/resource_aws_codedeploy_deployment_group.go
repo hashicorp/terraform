@@ -355,7 +355,7 @@ func buildTriggerConfigs(configured []interface{}) []*codedeploy.TriggerConfig {
 		var config codedeploy.TriggerConfig
 		m := raw.(map[string]interface{})
 
-		config.TriggerEvents = expandStringList(m["trigger_events"].(*schema.Set).List())
+		config.TriggerEvents = expandStringSet(m["trigger_events"].(*schema.Set))
 		config.TriggerName = aws.String(m["trigger_name"].(string))
 		config.TriggerTargetArn = aws.String(m["trigger_target_arn"].(string))
 
