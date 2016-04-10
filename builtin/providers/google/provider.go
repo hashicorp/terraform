@@ -27,20 +27,29 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"GOOGLE_CREDENTIALS",
 					"GOOGLE_CLOUD_KEYFILE_JSON",
+					"GCLOUD_KEYFILE_JSON",
 				}, nil),
 				ValidateFunc: validateCredentials,
 			},
 
 			"project": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_PROJECT", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_PROJECT",
+					"GCLOUD_PROJECT",
+					"CLOUDSDK_CORE_PROJECT",
+				}, nil),
 			},
 
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_REGION", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_REGION",
+					"GCLOUD_REGION",
+					"CLOUDSDK_COMPUTE_REGION",
+				}, nil),
 			},
 		},
 
