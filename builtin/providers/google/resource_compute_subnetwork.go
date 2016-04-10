@@ -18,25 +18,19 @@ func resourceComputeSubnetwork() *schema.Resource {
 		Delete: resourceComputeSubnetworkDelete,
 
 		Schema: map[string]*schema.Schema{
+			"ip_cidr_range": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"ip_cidr_range": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -53,15 +47,21 @@ func resourceComputeSubnetwork() *schema.Resource {
 				Computed: true,
 			},
 
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -81,6 +81,11 @@ func splitSubnetID(id string) (region string, name string) {
 func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
 	project, err := getProject(d, config)
 	if err != nil {
 		return err
@@ -93,7 +98,6 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 		IpCidrRange: d.Get("ip_cidr_range").(string),
 		Network:     d.Get("network").(string),
 	}
-	region := d.Get("region").(string)
 
 	log.Printf("[DEBUG] Subnetwork insert request: %#v", subnetwork)
 	op, err := config.clientCompute.Subnetworks.Insert(
@@ -122,13 +126,17 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
 	project, err := getProject(d, config)
 	if err != nil {
 		return err
 	}
 
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
 
 	subnetwork, err := config.clientCompute.Subnetworks.Get(
 		project, region, name).Do()
@@ -153,12 +161,15 @@ func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) err
 func resourceComputeSubnetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	project, err := getProject(d, config)
+	region, err := getRegion(d, config)
 	if err != nil {
 		return err
 	}
 
-	region := d.Get("region").(string)
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Delete the subnetwork
 	op, err := config.clientCompute.Subnetworks.Delete(

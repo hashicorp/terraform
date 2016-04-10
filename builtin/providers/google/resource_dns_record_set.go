@@ -17,26 +17,14 @@ func resourceDnsRecordSet() *schema.Resource {
 		Delete: resourceDnsRecordSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"managed_zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"ttl": &schema.Schema{
-				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
@@ -48,6 +36,18 @@ func resourceDnsRecordSet() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+
+			"ttl": &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"project": &schema.Schema{

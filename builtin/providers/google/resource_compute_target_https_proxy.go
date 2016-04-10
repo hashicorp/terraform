@@ -24,6 +24,17 @@ func resourceComputeTargetHttpsProxy() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"ssl_certificates": &schema.Schema{
+				Type:     schema.TypeList,
+				Required: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"url_map": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -38,17 +49,6 @@ func resourceComputeTargetHttpsProxy() *schema.Resource {
 			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-
-			"url_map": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"ssl_certificates": &schema.Schema{
-				Type:     schema.TypeList,
-				Required: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"project": &schema.Schema{

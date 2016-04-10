@@ -21,57 +21,9 @@ func resourceContainerCluster() *schema.Resource {
 		Delete: resourceContainerClusterDelete,
 
 		Schema: map[string]*schema.Schema{
-			"zone": &schema.Schema{
-				Type:     schema.TypeString,
+			"initial_node_count": &schema.Schema{
+				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
-			},
-
-			"node_version": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"cluster_ipv4_cidr": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					_, ipnet, err := net.ParseCIDR(value)
-
-					if err != nil || ipnet == nil || value != ipnet.String() {
-						errors = append(errors, fmt.Errorf(
-							"%q must contain a valid CIDR", k))
-					}
-					return
-				},
-			},
-
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"endpoint": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"logging_service": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
-			"monitoring_service": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
 				ForceNew: true,
 			},
 
@@ -93,13 +45,11 @@ func resourceContainerCluster() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-
 						"password": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-
 						"username": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -134,6 +84,60 @@ func resourceContainerCluster() *schema.Resource {
 					}
 					return
 				},
+			},
+
+			"zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"cluster_ipv4_cidr": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					_, ipnet, err := net.ParseCIDR(value)
+
+					if err != nil || ipnet == nil || value != ipnet.String() {
+						errors = append(errors, fmt.Errorf(
+							"%q must contain a valid CIDR", k))
+					}
+					return
+				},
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"instance_group_urls": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"logging_service": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"monitoring_service": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"network": &schema.Schema{
@@ -184,16 +188,10 @@ func resourceContainerCluster() *schema.Resource {
 				},
 			},
 
-			"initial_node_count": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"instance_group_urls": &schema.Schema{
-				Type:     schema.TypeList,
+			"node_version": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"project": &schema.Schema{

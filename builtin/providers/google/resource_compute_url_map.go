@@ -18,20 +18,15 @@ func resourceComputeUrlMap() *schema.Resource {
 		Delete: resourceComputeUrlMapDelete,
 
 		Schema: map[string]*schema.Schema{
+			"default_service": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-			},
-
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"default_service": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
 			},
 
 			"description": &schema.Schema{
@@ -66,6 +61,11 @@ func resourceComputeUrlMap() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"path_matcher": &schema.Schema{
@@ -110,6 +110,12 @@ func resourceComputeUrlMap() *schema.Resource {
 				},
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -141,12 +147,6 @@ func resourceComputeUrlMap() *schema.Resource {
 						},
 					},
 				},
-			},
-
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}

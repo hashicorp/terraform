@@ -26,11 +26,6 @@ func resourceComputeFirewall() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
 			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -58,6 +53,22 @@ func resourceComputeFirewall() *schema.Resource {
 				Set: resourceComputeFirewallAllowHash,
 			},
 
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"source_ranges": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -77,17 +88,6 @@ func resourceComputeFirewall() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
-			},
-
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}

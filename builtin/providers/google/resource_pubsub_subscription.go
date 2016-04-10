@@ -20,8 +20,20 @@ func resourcePubsubSubscription() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"topic": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"ack_deadline_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -46,18 +58,6 @@ func resourcePubsubSubscription() *schema.Resource {
 						},
 					},
 				},
-			},
-
-			"topic": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}

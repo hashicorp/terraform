@@ -27,9 +27,10 @@ func resourceComputeAddress() *schema.Resource {
 				Computed: true,
 			},
 
-			"self_link": &schema.Schema{
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"region": &schema.Schema{
@@ -38,10 +39,9 @@ func resourceComputeAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"project": &schema.Schema{
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}
