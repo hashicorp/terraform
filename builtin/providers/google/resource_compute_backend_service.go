@@ -20,10 +20,36 @@ func resourceComputeBackendService() *schema.Resource {
 		Delete: resourceComputeBackendServiceDelete,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					re := `^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$`
+					if !regexp.MustCompile(re).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q (%q) doesn't match regexp %q", k, value, re))
+					}
+					return
+				},
+			},
+
+			"health_checks": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Required: true,
+				Set:      schema.HashString,
+			},
+
 			"backend": &schema.Schema{
 				Type: schema.TypeSet,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"balancing_mode": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -35,10 +61,6 @@ func resourceComputeBackendService() *schema.Resource {
 							Default:  1,
 						},
 						"description": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"group": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -66,32 +88,9 @@ func resourceComputeBackendService() *schema.Resource {
 				Optional: true,
 			},
 
-			"region": &schema.Schema{
+			"fingerprint": &schema.Schema{
 				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-			},
-
-			"health_checks": &schema.Schema{
-				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
-				Set:      schema.HashString,
-			},
-
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					re := `^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$`
-					if !regexp.MustCompile(re).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q (%q) doesn't match regexp %q", k, value, re))
-					}
-					return
-				},
+				Computed: true,
 			},
 
 			"port_name": &schema.Schema{
@@ -100,21 +99,22 @@ func resourceComputeBackendService() *schema.Resource {
 				Computed: true,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"protocol": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"timeout_sec": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-			},
-
-			"fingerprint": &schema.Schema{
+			"region": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -122,10 +122,10 @@ func resourceComputeBackendService() *schema.Resource {
 				Computed: true,
 			},
 
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
+			"timeout_sec": &schema.Schema{
+				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}

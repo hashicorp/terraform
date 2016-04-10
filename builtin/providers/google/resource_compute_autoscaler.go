@@ -23,14 +23,15 @@ func resourceComputeAutoscaler() *schema.Resource {
 				Required: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
 			"target": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"autoscaling_policy": &schema.Schema{
@@ -105,21 +106,20 @@ func resourceComputeAutoscaler() *schema.Resource {
 				},
 			},
 
-			"zone": &schema.Schema{
+			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
 			},
 
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}

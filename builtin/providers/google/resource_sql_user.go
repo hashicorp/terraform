@@ -18,17 +18,6 @@ func resourceSqlUser() *schema.Resource {
 		Delete: resourceSqlUserDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
 			"host": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -39,6 +28,17 @@ func resourceSqlUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"password": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 			},
 
 			"project": &schema.Schema{

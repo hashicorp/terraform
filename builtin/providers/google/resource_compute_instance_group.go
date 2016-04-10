@@ -25,10 +25,22 @@ func resourceComputeInstanceGroup() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"instances": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"named_port": &schema.Schema{
@@ -49,29 +61,7 @@ func resourceComputeInstanceGroup() *schema.Resource {
 				},
 			},
 
-			"instances": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-
 			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"size": &schema.Schema{
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-
-			"zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -80,6 +70,16 @@ func resourceComputeInstanceGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"size": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
 			},
 		},
 	}

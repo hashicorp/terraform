@@ -16,17 +16,17 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
-# Configure the Google Cloud provider
+```js
+// Configure the Google Cloud provider
 provider "google" {
   credentials = "${file("account.json")}"
   project     = "my-gce-project"
   region      = "us-central1"
 }
 
-# Create a new instance
+// Create a new instance
 resource "google_compute_instance" "default" {
-  ...
+  // ...
 }
 ```
 

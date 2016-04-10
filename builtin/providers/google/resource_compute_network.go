@@ -22,18 +22,6 @@ func resourceComputeNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipv4_range": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use google_compute_subnetwork resources instead.",
-			},
-
-			"gateway_ipv4": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"auto_create_subnetworks": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -52,15 +40,27 @@ func resourceComputeNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"gateway_ipv4": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"ipv4_range": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use google_compute_subnetwork resources instead.",
 			},
 
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}

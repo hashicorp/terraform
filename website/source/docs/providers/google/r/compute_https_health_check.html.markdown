@@ -8,27 +8,33 @@ description: |-
 
 # google\_compute\_https\_health\_check
 
-Manages an HTTPS health check within GCE.  This is used to monitor instances
-behind load balancers.  Timeouts or HTTPS errors cause the instance to be
-removed from the pool.  For more information, see [the official
+Manages an HTTPS health check within GCE. This is used to monitor instances
+behind load balancers. Timeouts or HTTPS errors cause the instance to be
+removed from the pool. For more information, see [the official
 documentation](https://cloud.google.com/compute/docs/load-balancing/health-checks)
 and
 [API](https://cloud.google.com/compute/docs/reference/latest/httpsHealthChecks).
 
 ## Example Usage
 
-```
+```js
 resource "google_compute_https_health_check" "default" {
-	name = "test"
-    request_path = "/health_check"
-    check_interval_sec = 1
-    timeout_sec = 1
+  name         = "test"
+  request_path = "/health_check"
+
+  timeout_sec        = 1
+  check_interval_sec = 1
 }
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
+
+* `name` - (Required) A unique name for the resource, required by GCE. Changing
+    this forces a new resource to be created.
+
+- - -
 
 * `check_interval_sec` - (Optional) How often to poll each instance (default 5).
 
@@ -38,10 +44,10 @@ The following arguments are supported:
 
 * `host` - (Optional) HTTPS host header field (default instance's public ip).
 
-* `name` - (Required) A unique name for the resource, required by GCE.
-    Changing this forces a new resource to be created.
-
 * `port` - (Optional) TCP port to connect to (default 443).
+
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
 
 * `request_path` - (Optional) URL path to query (default /).
 

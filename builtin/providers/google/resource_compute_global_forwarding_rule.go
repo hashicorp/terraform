@@ -17,6 +17,23 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 		Delete: resourceComputeGlobalForwardingRuleDelete,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"target": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -31,32 +48,16 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 				Computed: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"port_range": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"target": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"region": &schema.Schema{
@@ -66,10 +67,9 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 				Deprecated: "Please remove this attribute (it was never used)",
 			},
 
-			"project": &schema.Schema{
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}

@@ -34,20 +34,14 @@ func resourceComputeDisk() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"size": &schema.Schema{
 				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"snapshot": &schema.Schema{
-				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -57,7 +51,13 @@ func resourceComputeDisk() *schema.Resource {
 				Computed: true,
 			},
 
-			"project": &schema.Schema{
+			"snapshot": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

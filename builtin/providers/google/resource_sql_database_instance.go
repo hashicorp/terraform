@@ -19,32 +19,12 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 		Delete: resourceSqlDatabaseInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-			"master_instance_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"database_version": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "MYSQL_5_5",
-				ForceNew: true,
-			},
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+
 			"settings": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
@@ -170,6 +150,14 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 					},
 				},
 			},
+
+			"database_version": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "MYSQL_5_5",
+				ForceNew: true,
+			},
+
 			"ip_address": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
@@ -187,6 +175,26 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 					},
 				},
 			},
+
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"master_instance_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"replica_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -246,10 +254,9 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 				},
 			},
 
-			"project": &schema.Schema{
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}

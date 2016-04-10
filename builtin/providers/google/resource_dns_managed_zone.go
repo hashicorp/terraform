@@ -16,13 +16,13 @@ func resourceDnsManagedZone() *schema.Resource {
 		Delete: resourceDnsManagedZoneDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"dns_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"dns_name": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

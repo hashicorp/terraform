@@ -17,6 +17,12 @@ func resourceComputeHttpsHealthCheck() *schema.Resource {
 		Update: resourceComputeHttpsHealthCheckUpdate,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"check_interval_sec": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -39,16 +45,16 @@ func resourceComputeHttpsHealthCheck() *schema.Resource {
 				Optional: true,
 			},
 
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  443,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"request_path": &schema.Schema{
@@ -72,12 +78,6 @@ func resourceComputeHttpsHealthCheck() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  2,
-			},
-
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}

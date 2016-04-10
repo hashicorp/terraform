@@ -15,9 +15,9 @@ Creates a static IP address resource global to a Google Compute Engine project. 
 
 ## Example Usage
 
-```
+```js
 resource "google_compute_global_address" "default" {
-	name = "test-address"
+  name = "test-address"
 }
 ```
 
@@ -28,10 +28,16 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
+- - -
+
+* `project` - (Optional) The project in which the resource belongs. If it
+is not provided, the provider project is used.
+
 ## Attributes Reference
 
-The following attributes are exported:
+In addition to the arguments listed above, the following computed attributes are
+exported:
 
-* `name` - The name of the resource.
-* `address` - The IP address that was allocated.
+* `address` - The assigned address.
+
 * `self_link` - The URI of the created resource.

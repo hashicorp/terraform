@@ -16,13 +16,13 @@ func resourceComputeRoute() *schema.Resource {
 		Delete: resourceComputeRouteDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"dest_range": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"dest_range": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -34,7 +34,13 @@ func resourceComputeRoute() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"next_hop_ip": &schema.Schema{
+			"priority": &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"next_hop_gateway": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -52,7 +58,7 @@ func resourceComputeRoute() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"next_hop_gateway": &schema.Schema{
+			"next_hop_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -69,10 +75,15 @@ func resourceComputeRoute() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"priority": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"tags": &schema.Schema{
@@ -81,17 +92,6 @@ func resourceComputeRoute() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
-			},
-
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}

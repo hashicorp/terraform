@@ -18,6 +18,12 @@ func resourceComputeTargetPool() *schema.Resource {
 		Update: resourceComputeTargetPoolUpdate,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"backup_pool": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -50,18 +56,7 @@ func resourceComputeTargetPool() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"session_affinity": &schema.Schema{
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -73,7 +68,12 @@ func resourceComputeTargetPool() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"project": &schema.Schema{
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"session_affinity": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

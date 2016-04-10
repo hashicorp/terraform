@@ -19,7 +19,24 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 		Delete: resourceComputeInstanceGroupManagerDelete,
 
 		Schema: map[string]*schema.Schema{
+			"base_instance_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"instance_template": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
 			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -28,12 +45,6 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
-			},
-
-			"base_instance_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
 				ForceNew: true,
 			},
 
@@ -47,17 +58,11 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Computed: true,
 			},
 
-			"instance_template": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
 			"named_port": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -69,6 +74,17 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"update_strategy": &schema.Schema{
@@ -88,23 +104,6 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 				Optional: true,
-			},
-
-			"zone": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 		},
 	}

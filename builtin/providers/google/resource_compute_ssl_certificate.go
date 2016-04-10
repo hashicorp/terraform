@@ -17,19 +17,13 @@ func resourceComputeSslCertificate() *schema.Resource {
 		Delete: resourceComputeSslCertificateDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"certificate": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"certificate": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -41,9 +35,10 @@ func resourceComputeSslCertificate() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"id": &schema.Schema{
@@ -55,6 +50,11 @@ func resourceComputeSslCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
