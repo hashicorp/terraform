@@ -229,18 +229,13 @@ func resourceMachineCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	tags := map[string]string{}
-	for k, v := range d.Get("tags").(map[string]interface{}) {
-		tags[k] = v.(string)
-	}
-
 	machine, err := client.CreateMachine(cloudapi.CreateMachineOpts{
 		Name:            d.Get("name").(string),
 		Package:         d.Get("package").(string),
 		Image:           d.Get("image").(string),
 		Networks:        networks,
 		Metadata:        metadata,
-		Tags:            tags,
+		Tags:            tagsToTritonTags(d.Get("tags").(map[string]interface{})),
 		FirewallEnabled: d.Get("firewall_enabled").(bool),
 	})
 	if err != nil {
@@ -291,7 +286,7 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("memory", machine.Memory)
 	d.Set("disk", machine.Disk)
 	d.Set("ips", machine.IPs)
-	d.Set("tags", machine.Tags)
+	d.Set("tags", tagsFromTritonTags(machine.Tags))
 	d.Set("created", machine.Created)
 	d.Set("updated", machine.Updated)
 	d.Set("package", machine.Package)
@@ -356,10 +351,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("tags") {
-		tags := map[string]string{}
-		for k, v := range d.Get("tags").(map[string]interface{}) {
-			tags[k] = v.(string)
-		}
+		tags := tagsToTritonTags(d.Get("tags").(map[string]interface{}))
 
 		var err error
 		if len(tags) == 0 {
