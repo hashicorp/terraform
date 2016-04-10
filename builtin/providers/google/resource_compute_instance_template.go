@@ -337,7 +337,7 @@ func buildDisks(d *schema.ResourceData, meta interface{}) ([]*compute.AttachedDi
 	return disks, nil
 }
 
-func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.NetworkInterface) {
+func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.NetworkInterface, error) {
 	// Build up the list of networks
 	config := meta.(*Config)
 
@@ -355,20 +355,19 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 		}
 
 		if networkName == "" && subnetworkName == "" {
-			return fmt.Errorf("network or subnetwork must be provided"), nil
+			return nil, fmt.Errorf("network or subnetwork must be provided")
 		}
 		if networkName != "" && subnetworkName != "" {
-			return fmt.Errorf("network or subnetwork must not both be provided"), nil
+			return nil, fmt.Errorf("network or subnetwork must not both be provided")
 		}
 
 		var networkLink, subnetworkLink string
 		if networkName != "" {
 			network, err := config.clientCompute.Networks.Get(
-				config.Project, networkName).Do()
+				project, networkName).Do()
 			if err != nil {
-				return fmt.Errorf(
-					"Error referencing network '%s': %s",
-					networkName, err), nil
+				return nil, fmt.Errorf("Error referencing network '%s': %s",
+					networkName, err)
 			}
 			networkLink = network.SelfLink
 		} else {
@@ -378,11 +377,11 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 				region = config.Region
 			}
 			subnetwork, err := config.clientCompute.Subnetworks.Get(
-				config.Project, region, subnetworkName).Do()
+				project, region, subnetworkName).Do()
 			if err != nil {
-				return fmt.Errorf(
+				return nil, fmt.Errorf(
 					"Error referencing subnetwork '%s' in region '%s': %s",
-					subnetworkName, region, err), nil
+					subnetworkName, region, err)
 			}
 			subnetworkLink = subnetwork.SelfLink
 		}
@@ -404,7 +403,7 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 
 		networkInterfaces = append(networkInterfaces, &iface)
 	}
-	return nil, networkInterfaces
+	return networkInterfaces, nil
 }
 
 func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
@@ -425,7 +424,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 	instanceProperties.Metadata = metadata
-	err, networks := buildNetworks(d, meta)
+	networks, err := buildNetworks(d, meta)
 	if err != nil {
 		return err
 	}
