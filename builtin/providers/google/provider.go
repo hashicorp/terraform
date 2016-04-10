@@ -33,8 +33,8 @@ func Provider() terraform.ResourceProvider {
 
 			"project": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    false,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_PROJECT", nil),
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_PROJECT", ""),
 			},
 
 			"region": &schema.Schema{
@@ -157,4 +157,32 @@ func getRegionFromZone(zone string) string {
 		return region
 	}
 	return ""
+}
+
+// getRegion reads the "region" field from the given resource data and falls
+// back to the provider's value if not given. If the provider's value is not
+// given, an error is returned.
+func getRegion(d *schema.ResourceData, config *Config) (string, error) {
+	res, ok := d.GetOk("region")
+	if !ok {
+		if config.Region != "" {
+			return config.Region, nil
+		}
+		return "", fmt.Errorf("%q: required field is not set", "region")
+	}
+	return res.(string), nil
+}
+
+// getProject reads the "project" field from the given resource data and falls
+// back to the provider's value if not given. If the provider's value is not
+// given, an error is returned.
+func getProject(d *schema.ResourceData, config *Config) (string, error) {
+	res, ok := d.GetOk("project")
+	if !ok {
+		if config.Project != "" {
+			return config.Project, nil
+		}
+		return "", fmt.Errorf("%q: required field is not set", "project")
+	}
+	return res.(string), nil
 }

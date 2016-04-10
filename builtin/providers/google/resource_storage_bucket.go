@@ -61,12 +61,22 @@ func resourceStorageBucket() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Get the bucket and acl
 	bucket := d.Get("name").(string)
@@ -95,7 +105,7 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	call := config.clientStorage.Buckets.Insert(config.Project, sb)
+	call := config.clientStorage.Buckets.Insert(project, sb)
 	if v, ok := d.GetOk("predefined_acl"); ok {
 		call = call.PredefinedAcl(v.(string))
 	}

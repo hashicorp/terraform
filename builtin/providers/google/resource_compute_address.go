@@ -37,26 +37,33 @@ func resourceComputeAddress() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-		},
-	}
-}
 
-func getOptionalRegion(d *schema.ResourceData, config *Config) string {
-	if res, ok := d.GetOk("region"); !ok {
-		return config.Region
-	} else {
-		return res.(string)
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+		},
 	}
 }
 
 func resourceComputeAddressCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	region := getOptionalRegion(d, config)
+
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Build the address parameter
 	addr := &compute.Address{Name: d.Get("name").(string)}
 	op, err := config.clientCompute.Addresses.Insert(
-		config.Project, region, addr).Do()
+		project, region, addr).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating address: %s", err)
 	}
@@ -75,10 +82,18 @@ func resourceComputeAddressCreate(d *schema.ResourceData, meta interface{}) erro
 func resourceComputeAddressRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	region := getOptionalRegion(d, config)
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	addr, err := config.clientCompute.Addresses.Get(
-		config.Project, region, d.Id()).Do()
+		project, region, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
@@ -100,11 +115,20 @@ func resourceComputeAddressRead(d *schema.ResourceData, meta interface{}) error 
 func resourceComputeAddressDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	region := getOptionalRegion(d, config)
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the address
 	log.Printf("[DEBUG] address delete request")
 	op, err := config.clientCompute.Addresses.Delete(
-		config.Project, region, d.Id()).Do()
+		project, region, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting address: %s", err)
 	}

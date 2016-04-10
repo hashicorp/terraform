@@ -245,12 +245,23 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 					},
 				},
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	region := d.Get("region").(string)
 	databaseVersion := d.Get("database_version").(string)
@@ -468,7 +479,7 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		instance.MasterInstanceName = v.(string)
 	}
 
-	op, err := config.clientSqlAdmin.Instances.Insert(config.Project, instance).Do()
+	op, err := config.clientSqlAdmin.Instances.Insert(project, instance).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 409 {
 			return fmt.Errorf("Error, the name %s is unavailable because it was used recently", instance.Name)
@@ -488,7 +499,12 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	instance, err := config.clientSqlAdmin.Instances.Get(config.Project,
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	instance, err := config.clientSqlAdmin.Instances.Get(project,
 		d.Get("name").(string)).Do()
 
 	if err != nil {
@@ -742,9 +758,15 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	d.Partial(true)
 
-	instance, err := config.clientSqlAdmin.Instances.Get(config.Project,
+	instance, err := config.clientSqlAdmin.Instances.Get(project,
 		d.Get("name").(string)).Do()
 
 	if err != nil {
@@ -963,7 +985,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 	d.Partial(false)
 
-	op, err := config.clientSqlAdmin.Instances.Update(config.Project, instance.Name, instance).Do()
+	op, err := config.clientSqlAdmin.Instances.Update(project, instance.Name, instance).Do()
 	if err != nil {
 		return fmt.Errorf("Error, failed to update instance %s: %s", instance.Name, err)
 	}
@@ -979,7 +1001,12 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 func resourceSqlDatabaseInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	op, err := config.clientSqlAdmin.Instances.Delete(config.Project, d.Get("name").(string)).Do()
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	op, err := config.clientSqlAdmin.Instances.Delete(project, d.Get("name").(string)).Do()
 
 	if err != nil {
 		return fmt.Errorf("Error, failed to delete instance %s: %s", d.Get("name").(string), err)

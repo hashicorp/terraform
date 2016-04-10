@@ -31,11 +31,6 @@ func resourceComputeVpnTunnel() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
 			"peer_ip": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
@@ -73,6 +68,16 @@ func resourceComputeVpnTunnel() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -80,13 +85,21 @@ func resourceComputeVpnTunnel() *schema.Resource {
 func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	region := getOptionalRegion(d, config)
 	peerIp := d.Get("peer_ip").(string)
 	sharedSecret := d.Get("shared_secret").(string)
 	targetVpnGateway := d.Get("target_vpn_gateway").(string)
 	ikeVersion := d.Get("ike_version").(int)
-	project := config.Project
 
 	if ikeVersion < 1 || ikeVersion > 2 {
 		return fmt.Errorf("Only IKE version 1 or 2 supported, not %d", ikeVersion)
@@ -132,9 +145,17 @@ func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) er
 func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	region := getOptionalRegion(d, config)
-	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
 
@@ -162,9 +183,17 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 func resourceComputeVpnTunnelDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	region := getOptionalRegion(d, config)
-	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
 

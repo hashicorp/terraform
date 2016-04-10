@@ -179,12 +179,6 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				Deprecated: "Please use `scheduling.on_host_maintenance` instead",
 			},
 
-			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
 			"scheduling": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -261,6 +255,18 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -341,6 +347,11 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 	// Build up the list of networks
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return nil, err
+	}
+
 	networksCount := d.Get("network_interface.#").(int)
 	networkInterfaces := make([]*compute.NetworkInterface, 0, networksCount)
 	for i := 0; i < networksCount; i++ {
@@ -372,9 +383,9 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 			networkLink = network.SelfLink
 		} else {
 			// lookup subnetwork link using region and subnetwork name
-			region := d.Get("region").(string)
-			if region == "" {
-				region = config.Region
+			region, err := getRegion(d, config)
+			if err != nil {
+				return nil, err
 			}
 			subnetwork, err := config.clientCompute.Subnetworks.Get(
 				project, region, subnetworkName).Do()
@@ -408,6 +419,11 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 
 func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	instanceProperties := &compute.InstanceProperties{}
 
@@ -503,7 +519,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	}
 
 	op, err := config.clientCompute.InstanceTemplates.Insert(
-		config.Project, &instanceTemplate).Do()
+		project, &instanceTemplate).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating instance: %s", err)
 	}
@@ -522,8 +538,13 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	instanceTemplate, err := config.clientCompute.InstanceTemplates.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Instance Template %q because it's gone", d.Get("name").(string))
@@ -553,8 +574,13 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 func resourceComputeInstanceTemplateDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	op, err := config.clientCompute.InstanceTemplates.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting instance template: %s", err)
 	}

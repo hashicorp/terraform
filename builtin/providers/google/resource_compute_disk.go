@@ -56,6 +56,12 @@ func resourceComputeDisk() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -63,10 +69,15 @@ func resourceComputeDisk() *schema.Resource {
 func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Get the zone
 	log.Printf("[DEBUG] Loading zone: %s", d.Get("zone").(string))
 	zone, err := config.clientCompute.Zones.Get(
-		config.Project, d.Get("zone").(string)).Do()
+		project, d.Get("zone").(string)).Do()
 	if err != nil {
 		return fmt.Errorf(
 			"Error loading zone '%s': %s", d.Get("zone").(string), err)
@@ -107,7 +118,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		snapshotName := v.(string)
 		log.Printf("[DEBUG] Loading snapshot: %s", snapshotName)
 		snapshotData, err := config.clientCompute.Snapshots.Get(
-			config.Project, snapshotName).Do()
+			project, snapshotName).Do()
 
 		if err != nil {
 			return fmt.Errorf(
@@ -119,7 +130,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	op, err := config.clientCompute.Disks.Insert(
-		config.Project, d.Get("zone").(string), disk).Do()
+		project, d.Get("zone").(string), disk).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating disk: %s", err)
 	}
@@ -137,8 +148,13 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	disk, err := config.clientCompute.Disks.Get(
-		config.Project, d.Get("zone").(string), d.Id()).Do()
+		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Disk %q because it's gone", d.Get("name").(string))
@@ -159,9 +175,14 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 func resourceComputeDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the disk
 	op, err := config.clientCompute.Disks.Delete(
-		config.Project, d.Get("zone").(string), d.Id()).Do()
+		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting disk: %s", err)
 	}
