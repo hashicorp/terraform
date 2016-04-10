@@ -19,6 +19,12 @@ func resourcePubsubTopic() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -26,7 +32,12 @@ func resourcePubsubTopic() *schema.Resource {
 func resourcePubsubTopicCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	name := fmt.Sprintf("projects/%s/topics/%s", config.Project, d.Get("name").(string))
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	name := fmt.Sprintf("projects/%s/topics/%s", project, d.Get("name").(string))
 	topic := &pubsub.Topic{}
 
 	call := config.clientPubsub.Projects.Topics.Create(name, topic)

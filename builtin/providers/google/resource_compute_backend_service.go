@@ -121,6 +121,12 @@ func resourceComputeBackendService() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -159,9 +165,14 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		service.TimeoutSec = int64(v.(int))
 	}
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] Creating new Backend Service: %#v", service)
 	op, err := config.clientCompute.BackendServices.Insert(
-		config.Project, &service).Do()
+		project, &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating backend service: %s", err)
 	}
@@ -181,8 +192,13 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	service, err := config.clientCompute.BackendServices.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
@@ -210,6 +226,11 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 
 func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	hc := d.Get("health_checks").(*schema.Set).List()
 	healthChecks := make([]string, 0, len(hc))
@@ -241,7 +262,7 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)
 	op, err := config.clientCompute.BackendServices.Update(
-		config.Project, d.Id(), &service).Do()
+		project, d.Id(), &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating backend service: %s", err)
 	}
@@ -259,9 +280,14 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 func resourceComputeBackendServiceDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] Deleting backend service %s", d.Id())
 	op, err := config.clientCompute.BackendServices.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting backend service: %s", err)
 	}

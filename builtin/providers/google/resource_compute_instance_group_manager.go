@@ -100,6 +100,12 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -118,6 +124,11 @@ func getNamedPorts(nps []interface{}) []*compute.NamedPort {
 
 func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Get group size, default to 1 if not given
 	var target_size int64 = 1
@@ -157,7 +168,7 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 
 	log.Printf("[DEBUG] InstanceGroupManager insert request: %#v", manager)
 	op, err := config.clientCompute.InstanceGroupManagers.Insert(
-		config.Project, d.Get("zone").(string), manager).Do()
+		project, d.Get("zone").(string), manager).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating InstanceGroupManager: %s", err)
 	}
@@ -177,8 +188,13 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	manager, err := config.clientCompute.InstanceGroupManagers.Get(
-		config.Project, d.Get("zone").(string), d.Id()).Do()
+		project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Instance Group Manager %q because it's gone", d.Get("name").(string))
@@ -203,6 +219,11 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	d.Partial(true)
 
 	// If target_pools changes then update
@@ -221,7 +242,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		op, err := config.clientCompute.InstanceGroupManagers.SetTargetPools(
-			config.Project, d.Get("zone").(string), d.Id(), setTargetPools).Do()
+			project, d.Get("zone").(string), d.Id(), setTargetPools).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
 		}
@@ -243,7 +264,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 		}
 
 		op, err := config.clientCompute.InstanceGroupManagers.SetInstanceTemplate(
-			config.Project, d.Get("zone").(string), d.Id(), setInstanceTemplate).Do()
+			project, d.Get("zone").(string), d.Id(), setInstanceTemplate).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
 		}
@@ -256,7 +277,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 
 		if d.Get("update_strategy").(string) == "RESTART" {
 			managedInstances, err := config.clientCompute.InstanceGroupManagers.ListManagedInstances(
-				config.Project, d.Get("zone").(string), d.Id()).Do()
+				project, d.Get("zone").(string), d.Id()).Do()
 
 			managedInstanceCount := len(managedInstances.ManagedInstances)
 			instances := make([]string, managedInstanceCount)
@@ -269,7 +290,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 			}
 
 			op, err = config.clientCompute.InstanceGroupManagers.RecreateInstances(
-				config.Project, d.Get("zone").(string), d.Id(), recreateInstances).Do()
+				project, d.Get("zone").(string), d.Id(), recreateInstances).Do()
 
 			if err != nil {
 				return fmt.Errorf("Error restarting instance group managers instances: %s", err)
@@ -297,7 +318,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 
 		// Make the request:
 		op, err := config.clientCompute.InstanceGroups.SetNamedPorts(
-			config.Project, d.Get("zone").(string), d.Id(), setNamedPorts).Do()
+			project, d.Get("zone").(string), d.Id(), setNamedPorts).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
 		}
@@ -318,7 +339,7 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 			target_size := int64(v.(int))
 
 			op, err := config.clientCompute.InstanceGroupManagers.Resize(
-				config.Project, d.Get("zone").(string), d.Id(), target_size).Do()
+				project, d.Get("zone").(string), d.Id(), target_size).Do()
 			if err != nil {
 				return fmt.Errorf("Error updating InstanceGroupManager: %s", err)
 			}
@@ -341,8 +362,13 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zone := d.Get("zone").(string)
-	op, err := config.clientCompute.InstanceGroupManagers.Delete(config.Project, zone, d.Id()).Do()
+	op, err := config.clientCompute.InstanceGroupManagers.Delete(project, zone, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting instance group manager: %s", err)
 	}
@@ -358,7 +384,7 @@ func resourceComputeInstanceGroupManagerDelete(d *schema.ResourceData, meta inte
 		}
 
 		instanceGroup, err := config.clientCompute.InstanceGroups.Get(
-			config.Project, d.Get("zone").(string), d.Id()).Do()
+			project, d.Get("zone").(string), d.Id()).Do()
 
 		if err != nil {
 			return fmt.Errorf("Error getting instance group size: %s", err)

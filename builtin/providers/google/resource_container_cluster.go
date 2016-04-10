@@ -195,12 +195,23 @@ func resourceContainerCluster() *schema.Resource {
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	zoneName := d.Get("zone").(string)
 	clusterName := d.Get("name").(string)
@@ -273,7 +284,7 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	op, err := config.clientContainer.Projects.Zones.Clusters.Create(
-		config.Project, zoneName, req).Do()
+		project, zoneName, req).Do()
 	if err != nil {
 		return err
 	}
@@ -286,7 +297,7 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		MinTimeout: 3 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				config.Project, zoneName, op.Name).Do()
+				project, zoneName, op.Name).Do()
 			log.Printf("[DEBUG] Progress of creating GKE cluster %s: %s",
 				clusterName, resp.Status)
 			return resp, resp.Status, err
@@ -308,10 +319,15 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zoneName := d.Get("zone").(string)
 
 	cluster, err := config.clientContainer.Projects.Zones.Clusters.Get(
-		config.Project, zoneName, d.Get("name").(string)).Do()
+		project, zoneName, d.Get("name").(string)).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Container Cluster %q because it's gone", d.Get("name").(string))
@@ -355,6 +371,11 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zoneName := d.Get("zone").(string)
 	clusterName := d.Get("name").(string)
 	desiredNodeVersion := d.Get("node_version").(string)
@@ -365,7 +386,7 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 		},
 	}
 	op, err := config.clientContainer.Projects.Zones.Clusters.Update(
-		config.Project, zoneName, clusterName, req).Do()
+		project, zoneName, clusterName, req).Do()
 	if err != nil {
 		return err
 	}
@@ -379,7 +400,7 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if GKE cluster %s is updated", clusterName)
 			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				config.Project, zoneName, op.Name).Do()
+				project, zoneName, op.Name).Do()
 			log.Printf("[DEBUG] Progress of updating GKE cluster %s: %s",
 				clusterName, resp.Status)
 			return resp, resp.Status, err
@@ -400,12 +421,17 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zoneName := d.Get("zone").(string)
 	clusterName := d.Get("name").(string)
 
 	log.Printf("[DEBUG] Deleting GKE cluster %s", d.Get("name").(string))
 	op, err := config.clientContainer.Projects.Zones.Clusters.Delete(
-		config.Project, zoneName, clusterName).Do()
+		project, zoneName, clusterName).Do()
 	if err != nil {
 		return err
 	}
@@ -419,7 +445,7 @@ func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if GKE cluster %s is deleted", clusterName)
 			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				config.Project, zoneName, op.Name).Do()
+				project, zoneName, op.Name).Do()
 			log.Printf("[DEBUG] Progress of deleting GKE cluster %s: %s",
 				clusterName, resp.Status)
 			return resp, resp.Status, err

@@ -53,6 +53,12 @@ func resourcePubsubSubscription() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -68,8 +74,13 @@ func cleanAdditionalArgs(args map[string]interface{}) map[string]string {
 func resourcePubsubSubscriptionCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	name := fmt.Sprintf("projects/%s/subscriptions/%s", config.Project, d.Get("name").(string))
-	computed_topic_name := fmt.Sprintf("projects/%s/topics/%s", config.Project, d.Get("topic").(string))
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	name := fmt.Sprintf("projects/%s/subscriptions/%s", project, d.Get("name").(string))
+	computed_topic_name := fmt.Sprintf("projects/%s/topics/%s", project, d.Get("topic").(string))
 
 	//  process optional parameters
 	var ackDeadlineSeconds int64
