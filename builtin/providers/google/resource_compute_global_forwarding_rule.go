@@ -49,12 +49,6 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -63,6 +57,13 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 			"target": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"region": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please remove this attribute (it was never used)",
 			},
 		},
 	}
