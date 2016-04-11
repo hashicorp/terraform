@@ -1,6 +1,7 @@
 package cloudstack
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -21,16 +22,31 @@ func resourceCloudStackPortForward() *schema.Resource {
 		Delete: resourceCloudStackPortForwardDelete,
 
 		Schema: map[string]*schema.Schema{
+			"ip_address": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ipaddress"},
+			},
+
 			"ipaddress": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Please use the `ip_address` field instead",
+				ConflictsWith: []string{"ip_address"},
 			},
 
 			"managed": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"forward": &schema.Schema{
@@ -72,8 +88,16 @@ func resourceCloudStackPortForward() *schema.Resource {
 func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
+	ipaddress, ok := d.GetOk("ip_address")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if !ok {
+		return errors.New("Either `ip_address` or [deprecated] `ipaddress` must be provided.")
+	}
+
 	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
+	ipaddressid, e := retrieveID(cs, "ip_address", ipaddress.(string))
 	if e != nil {
 		return e.Error()
 	}
@@ -188,6 +212,10 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 	p := cs.Firewall.NewListPortForwardingRulesParams()
 	p.SetIpaddressid(d.Id())
 	p.SetListall(true)
+
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
+	}
 
 	l, err := cs.Firewall.ListPortForwardingRules(p)
 	if err != nil {

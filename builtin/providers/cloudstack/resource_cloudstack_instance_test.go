@@ -82,7 +82,7 @@ func TestAccCloudStackInstance_fixedIP(t *testing.T) {
 					testAccCheckCloudStackInstanceExists(
 						"cloudstack_instance.foobar", &instance),
 					resource.TestCheckResourceAttr(
-						"cloudstack_instance.foobar", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS1),
+						"cloudstack_instance.foobar", "ip_address", CLOUDSTACK_NETWORK_1_IPADDRESS1),
 				),
 			},
 		},
@@ -267,7 +267,7 @@ resource "cloudstack_instance" "foobar" {
   display_name = "terraform-test"
   service_offering= "%s"
   network = "%s"
-  ipaddress = "%s"
+  ip_address = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -288,7 +288,7 @@ resource "cloudstack_instance" "foobar" {
   display_name = "terraform-test"
   service_offering= "%s"
   network = "%s"
-  ipaddress = "%s"
+  ip_address = "%s"
   template = "%s"
   zone = "%s"
 	keypair = "${cloudstack_ssh_keypair.foo.name}"

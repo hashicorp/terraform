@@ -61,6 +61,7 @@ func resourceAwsEip() *schema.Resource {
 
 			"private_ip": &schema.Schema{
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 			},
 		},
@@ -180,10 +181,15 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		// more unique ID conditionals
 		if domain == "vpc" {
+			var privateIpAddress *string
+			if v := d.Get("private_ip").(string); v != "" {
+				privateIpAddress = aws.String(v)
+			}
 			assocOpts = &ec2.AssociateAddressInput{
 				NetworkInterfaceId: aws.String(networkInterfaceId),
 				InstanceId:         aws.String(instanceId),
 				AllocationId:       aws.String(d.Id()),
+				PrivateIpAddress:   privateIpAddress,
 			}
 		}
 

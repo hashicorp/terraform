@@ -128,8 +128,6 @@ resource "aws_sns_topic" "test_topic" {
   name = "example"
   policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Id": "Policy1445931846145",
   "Statement": [
     {
       "Sid": "Stmt1445931846145",
@@ -140,7 +138,9 @@ resource "aws_sns_topic" "test_topic" {
       "Action": "sns:Publish",
       "Resource": "arn:aws:sns:us-west-2::example"
     }
-  ]
+  ],
+  "Version": "2012-10-17",
+  "Id": "Policy1445931846145"
 }
 EOF
 }

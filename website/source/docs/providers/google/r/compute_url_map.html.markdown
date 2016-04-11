@@ -86,7 +86,7 @@ The following arguments are supported:
 * `description` - (Optional) A brief description of this resource.
 
 * `default_service` - (Required) The URL of the backend service to use when none of the
-    given rules match. See the documentation for formatting the service URL 
+    given rules match. See the documentation for formatting the service URL
     [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#defaultService)
 
 The `host_rule` block supports: (Note that this block can be defined an arbitrary
@@ -97,14 +97,14 @@ number of times.)
 
 * `description` - (Optional) An optional description of the host rule.
 
-* `path_matcher` - (Required) The name of the `path_matcher` (defined below) 
-    to apply this host rule to. 
+* `path_matcher` - (Required) The name of the `path_matcher` (defined below)
+    to apply this host rule to.
 
 The `path_matcher` block supports: (Note that this block can be defined an arbitrary
 number of times.)
 
 * `default_service` - (Required) The URL for the backend service to use if none
-    of the given paths match. See the documentation for formatting the service URL 
+    of the given paths match. See the documentation for formatting the service URL
     [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatcher.defaultService)
 
 * `name` - (Required) The name of the `path_matcher` resource. Used by the `host_rule`
@@ -119,10 +119,10 @@ number of times.)
     documentation for formatting these [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatchers.pathRules.paths)
 
 * `default_service` - (Required) The URL for the backend service to use if any
-    of the given paths match. See the documentation for formatting the service URL 
+    of the given paths match. See the documentation for formatting the service URL
     [here](https://cloud.google.com/compute/docs/reference/latest/urlMaps#pathMatcher.defaultService)
 
-The optional `test` block supports: (Note that this block can be defined an arbitary 
+The optional `test` block supports: (Note that this block can be defined an arbitary
 number of times.)
 
 * `service` - (Required) The service that should be matched by this test.

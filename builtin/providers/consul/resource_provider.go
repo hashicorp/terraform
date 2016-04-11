@@ -29,7 +29,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"consul_keys": resourceConsulKeys(),
+			"consul_keys":       resourceConsulKeys(),
+			"consul_key_prefix": resourceConsulKeyPrefix(),
 		},
 
 		ConfigureFunc: providerConfigure,

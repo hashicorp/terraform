@@ -22,9 +22,13 @@ resource "cloudstack_secondary_ipaddress" "default" {
 
 The following arguments are supported:
 
-* `ipaddress` - (Optional) The IP address to attach the to NIC. If not supplied
+* `ip_address` - (Optional) The IP address to attach the to NIC. If not supplied
  		an IP address will be selected randomly. Changing this forces a new resource
 		to be	created.
+
+* `ipaddress` - (Optional, Deprecated) The IP address to attach the to NIC. If
+    not supplied an IP address will be selected randomly. Changing this forces 
+    a new resource to be	created.
 
 * `nicid` - (Optional) The ID of the NIC to which you want to attach the
 		secondary IP address. Changing this forces a new resource to be
