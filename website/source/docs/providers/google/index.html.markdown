@@ -39,17 +39,28 @@ The following keys can be used to configure the provider.
   retrieving this file are below. Credentials may be blank if you are running
   Terraform from a GCE instance with a properly-configured [Compute Engine
   Service Account](https://cloud.google.com/compute/docs/authentication). This
-  can also be specified with the `GOOGLE_CREDENTIALS` or `GOOGLE_CLOUD_KEYFILE_JSON`
-  shell environment variable, containing the contents of the credentials file.
+  can also be specified using any of the following environment variables
+  (listed in order of precedence):
+
+    * `GOOGLE_CREDENTIALS`
+    * `GOOGLE_CLOUD_KEYFILE_JSON`
+    * `GCLOUD_KEYFILE_JSON`
+
+* `project` - (Required) The ID of the project to apply any resources to.  This
+  can be specified using any of the following environment variables (listed in
+  order of precedence):
+
+    * `GOOGLE_PROJECT`
+    * `GCLOUD_PROJECT`
+    * `CLOUDSDK_CORE_PROJECT`
 
 * `region` - (Required) The region to operate under. This can also be specified
-  with the `GOOGLE_REGION` shell environment variable.
+  using any of the following environment variables (listed in order of
+  precedence):
 
-* `project` - (Optional) The ID of the project to apply resources in. This
-  can also be specified with the `GOOGLE_PROJECT` shell environment variable.
-  If unspecified, users will need to specify the `project` attribute for
-  all resources. If specified, resources which do not depend on a project will
-  ignore this value.
+    * `GOOGLE_REGION`
+    * `GCLOUD_REGION`
+    * `CLOUDSDK_COMPUTE_REGION`
 
 The following keys are supported for backwards compatibility, and may be
 removed in a future version:
