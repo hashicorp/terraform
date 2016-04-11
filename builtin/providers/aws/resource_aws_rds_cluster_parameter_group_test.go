@@ -288,63 +288,73 @@ func testAccCheckAWSDBClusterParameterGroupExists(n string, v *rds.DBClusterPara
 
 const testAccAWSDBClusterParameterGroupConfig = `
 resource "aws_rds_cluster_parameter_group" "bar" {
-	name = "cluster-parameter-group-test-terraform"
-	family = "aurora5.6"
-	description = "Test cluster parameter group for terraform"
-	parameter {
-	  name = "character_set_server"
-	  value = "utf8"
-	}
-	parameter {
-	  name = "character_set_client"
-	  value = "utf8"
-	}
-	parameter{
-	  name = "character_set_results"
-	  value = "utf8"
-	}
-	tags {
-		foo = "bar"
-	}
+  name        = "cluster-parameter-group-test-terraform"
+  family      = "aurora5.6"
+  description = "Test cluster parameter group for terraform"
+
+  parameter {
+    name  = "character_set_server"
+    value = "utf8"
+  }
+
+  parameter {
+    name  = "character_set_client"
+    value = "utf8"
+  }
+
+  parameter {
+    name  = "character_set_results"
+    value = "utf8"
+  }
+
+  tags {
+    foo = "bar"
+  }
 }
 `
 
 const testAccAWSDBClusterParameterGroupAddParametersConfig = `
 resource "aws_rds_cluster_parameter_group" "bar" {
-	name = "cluster-parameter-group-test-terraform"
-	family = "aurora5.6"
-	description = "Test cluster parameter group for terraform"
-	parameter {
-	  name = "character_set_server"
-	  value = "utf8"
-	}
-	parameter {
-	  name = "character_set_client"
-	  value = "utf8"
-	}
-	parameter{
-	  name = "character_set_results"
-	  value = "utf8"
-	}
-	parameter {
-	  name = "collation_server"
-	  value = "utf8_unicode_ci"
-	}
-	parameter {
-	  name = "collation_connection"
-	  value = "utf8_unicode_ci"
-	}
-	tags {
-		foo = "bar"
-		baz = "foo"
-	}
+  name        = "cluster-parameter-group-test-terraform"
+  family      = "aurora5.6"
+  description = "Test cluster parameter group for terraform"
+
+  parameter {
+    name  = "character_set_server"
+    value = "utf8"
+  }
+
+  parameter {
+    name  = "character_set_client"
+    value = "utf8"
+  }
+
+  parameter {
+    name  = "character_set_results"
+    value = "utf8"
+  }
+
+  parameter {
+    name  = "collation_server"
+    value = "utf8_unicode_ci"
+  }
+
+  parameter {
+    name  = "collation_connection"
+    value = "utf8_unicode_ci"
+  }
+
+  tags {
+    foo = "bar"
+    baz = "foo"
+  }
 }
 `
 
 const testAccAWSDBClusterParameterGroupOnlyConfig = `
 resource "aws_rds_cluster_parameter_group" "bar" {
-	name = "cluster-parameter-group-test-terraform"
-	family = "aurora5.6"
-	description = "Test cluster parameter group for terraform"
+  name        = "cluster-parameter-group-test-terraform"
+  family      = "aurora5.6"
+  description = "Test cluster parameter group for terraform"
 }
 `
