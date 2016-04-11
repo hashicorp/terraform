@@ -51,24 +51,15 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	resource.Retry(5*time.Minute, func() *resource.RetryError {
-		_, err := conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
-			InternetGatewayIds: []*string{aws.String(d.Id())},
-		})
-		if err == nil {
+		igRaw, _, err := IGStateRefreshFunc(conn, d.Id())()
+		if igRaw != nil {
 			return nil
 		}
-
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
+		if err == nil {
 			return resource.RetryableError(err)
+		} else {
+			return resource.NonRetryableError(err)
 		}
-
-		switch ec2err.Code() {
-		case "InvalidInternetGatewayID.NotFound":
-			return resource.RetryableError(err) // retry
-		}
-
-		return resource.NonRetryableError(err)
 	})
 
 	// Attach the new gateway to the correct vpc
