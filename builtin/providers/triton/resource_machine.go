@@ -333,6 +333,19 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
+		err = waitFor(
+			func() (bool, error) {
+				machine, err := client.GetMachine(d.Id())
+				return machine.FirewallEnabled == d.Get("firewall_enabled").(bool), err
+			},
+			machineStateChangeCheckInterval,
+			machineStateChangeTimeout,
+		)
+
+		if err != nil {
+			return err
+		}
+
 		d.SetPartial("firewall_enabled")
 	}
 
