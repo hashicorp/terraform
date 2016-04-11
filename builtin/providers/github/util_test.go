@@ -23,13 +23,13 @@ func TestAccGithubUtilRole_validation(t *testing.T) {
 		},
 	}
 
-	validationFunc := validateRoleValueFunc([]string{"valid_one", "valid_two"})
+	validationFunc := validateValueFunc([]string{"valid_one", "valid_two"})
 
 	for _, tc := range cases {
-		_, errors := validationFunc(tc.Value, "github_membership")
+		_, errors := validationFunc(tc.Value, "test_arg")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected github_membership to trigger a validation error")
+			t.Fatalf("Expected 1 validation error")
 		}
 	}
 }
