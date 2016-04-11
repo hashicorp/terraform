@@ -24,19 +24,22 @@ func resourceStorageBucketAcl() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"default_acl": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"predefined_acl": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
+
 			"role_entity": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"default_acl": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
 			},
 		},
 	}

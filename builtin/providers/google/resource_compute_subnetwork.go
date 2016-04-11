@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"log"
 
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
-	"strings"
 )
 
 func resourceComputeSubnetwork() *schema.Resource {
@@ -17,25 +18,19 @@ func resourceComputeSubnetwork() *schema.Resource {
 		Delete: resourceComputeSubnetworkDelete,
 
 		Schema: map[string]*schema.Schema{
+			"ip_cidr_range": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"ip_cidr_range": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -50,6 +45,18 @@ func resourceComputeSubnetwork() *schema.Resource {
 			"gateway_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -74,6 +81,16 @@ func splitSubnetID(id string) (region string, name string) {
 func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Build the subnetwork parameters
 	subnetwork := &compute.Subnetwork{
 		Name:        d.Get("name").(string),
@@ -81,11 +98,10 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 		IpCidrRange: d.Get("ip_cidr_range").(string),
 		Network:     d.Get("network").(string),
 	}
-	region := d.Get("region").(string)
 
 	log.Printf("[DEBUG] Subnetwork insert request: %#v", subnetwork)
 	op, err := config.clientCompute.Subnetworks.Insert(
-		config.Project, region, subnetwork).Do()
+		project, region, subnetwork).Do()
 
 	if err != nil {
 		return fmt.Errorf("Error creating subnetwork: %s", err)
@@ -109,11 +125,21 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	region := d.Get("region").(string)
 
 	subnetwork, err := config.clientCompute.Subnetworks.Get(
-		config.Project, region, name).Do()
+		project, region, name).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Subnetwork %q because it's gone", name)
@@ -134,11 +160,20 @@ func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeSubnetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	region := d.Get("region").(string)
+
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Delete the subnetwork
 	op, err := config.clientCompute.Subnetworks.Delete(
-		config.Project, region, d.Get("name").(string)).Do()
+		project, region, d.Get("name").(string)).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting subnetwork: %s", err)
 	}

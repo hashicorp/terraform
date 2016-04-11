@@ -24,23 +24,38 @@ func resourceStorageBucket() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"predefined_acl": &schema.Schema{
-				Type:       schema.TypeString,
-				Deprecated: "Please use resource \"storage_bucket_acl.predefined_acl\" instead.",
-				Optional:   true,
-				ForceNew:   true,
+
+			"force_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
+
 			"location": &schema.Schema{
 				Type:     schema.TypeString,
 				Default:  "US",
 				Optional: true,
 				ForceNew: true,
 			},
-			"force_destroy": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+
+			"predefined_acl": &schema.Schema{
+				Type:       schema.TypeString,
+				Deprecated: "Please use resource \"storage_bucket_acl.predefined_acl\" instead.",
+				Optional:   true,
+				ForceNew:   true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"website": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -57,16 +72,17 @@ func resourceStorageBucket() *schema.Resource {
 					},
 				},
 			},
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
 
 func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Get the bucket and acl
 	bucket := d.Get("name").(string)
@@ -95,7 +111,7 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	call := config.clientStorage.Buckets.Insert(config.Project, sb)
+	call := config.clientStorage.Buckets.Insert(project, sb)
 	if v, ok := d.GetOk("predefined_acl"); ok {
 		call = call.PredefinedAcl(v.(string))
 	}
