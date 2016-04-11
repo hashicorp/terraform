@@ -77,14 +77,71 @@ func testCheckTritonMachineDestroy(s *terraform.State) error {
 	return nil
 }
 
+func TestAccTritonMachine_firewall(t *testing.T) {
+	machineName := fmt.Sprintf("acctest-%d", acctest.RandInt())
+	disabled_config := fmt.Sprintf(testAccTritonMachine_firewall_0, machineName)
+	enabled_config := fmt.Sprintf(testAccTritonMachine_firewall_1, machineName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckTritonMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: enabled_config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+					resource.TestCheckResourceAttr(
+						"triton_machine.test", "firewall_enabled", "true"),
+				),
+			},
+			resource.TestStep{
+				Config: disabled_config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+					resource.TestCheckResourceAttr(
+						"triton_machine.test", "firewall_enabled", "false"),
+				),
+			},
+			resource.TestStep{
+				Config: enabled_config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+					resource.TestCheckResourceAttr(
+						"triton_machine.test", "firewall_enabled", "true"),
+				),
+			},
+		},
+	})
+}
+
 var testAccTritonMachine_basic = `
 resource "triton_machine" "test" {
   name = "%s"
-  package = "g3-standard-0.25-smartos"
-  image = "842e6fa6-6e9b-11e5-8402-1b490459e334"
+  package = "t4-standard-128M"
+  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
 
   tags = {
 	test = "hello!"
   }
+}
+`
+
+var testAccTritonMachine_firewall_0 = `
+resource "triton_machine" "test" {
+  name = "%s"
+  package = "t4-standard-128M"
+  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
+
+	firewall_enabled = 0
+}
+`
+var testAccTritonMachine_firewall_1 = `
+resource "triton_machine" "test" {
+  name = "%s"
+  package = "t4-standard-128M"
+  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
+
+	firewall_enabled = 1
 }
 `
