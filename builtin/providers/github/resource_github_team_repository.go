@@ -33,7 +33,7 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "pull",
-				ValidateFunc: validateRoleValueFunc([]string{"pull", "push", "admin"}),
+				ValidateFunc: validateValueFunc([]string{"pull", "push", "admin"}),
 			},
 		},
 	}
