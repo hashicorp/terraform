@@ -17,20 +17,20 @@ func resourceCloudStackStaticNAT() *schema.Resource {
 		Delete: resourceCloudStackStaticNATDelete,
 
 		Schema: map[string]*schema.Schema{
-			"ipaddress": &schema.Schema{
+			"ip_address_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"network": &schema.Schema{
+			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"virtual_machine": &schema.Schema{
+			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -49,29 +49,14 @@ func resourceCloudStackStaticNAT() *schema.Resource {
 func resourceCloudStackStaticNATCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
-	if e != nil {
-		return e.Error()
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
-	if e != nil {
-		return e.Error()
-	}
+	ipaddressid := d.Get("ip_address_id").(string)
+	virtualmachineid := d.Get("virtual_machine_id").(string)
 
 	// Create a new parameter struct
 	p := cs.NAT.NewEnableStaticNatParams(ipaddressid, virtualmachineid)
 
-	if network, ok := d.GetOk("network"); ok {
-		// Retrieve the network ID
-		networkid, e := retrieveID(cs, "network", network.(string))
-		if e != nil {
-			return e.Error()
-		}
-
-		p.SetNetworkid(networkid)
+	if networkid, ok := d.GetOk("network_id"); ok {
+		p.SetNetworkid(networkid.(string))
 	}
 
 	if vmGuestIP, ok := d.GetOk("vm_guest_ip"); ok {
@@ -126,8 +111,8 @@ func resourceCloudStackStaticNATRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	setValueOrID(d, "network", ip.Associatednetworkname, ip.Associatednetworkid)
-	setValueOrID(d, "virtual_machine", ip.Virtualmachinename, ip.Virtualmachineid)
+	d.Set("network_id", ip.Associatednetworkid)
+	d.Set("virtual_machine_id", ip.Virtualmachineid)
 	d.Set("vm_guest_ip", ip.Vmipaddress)
 
 	return nil

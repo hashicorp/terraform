@@ -16,16 +16,32 @@ func resourceCloudStackIPAddress() *schema.Resource {
 		Delete: resourceCloudStackIPAddressDelete,
 
 		Schema: map[string]*schema.Schema{
-			"network": &schema.Schema{
+			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"network": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `network_id` field instead",
+			},
+
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
 			"vpc": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `vpc_id` field instead",
 			},
 
 			"project": &schema.Schema{
@@ -52,7 +68,11 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	// Create a new parameter struct
 	p := cs.Address.NewAssociateIpAddressParams()
 
-	if network, ok := d.GetOk("network"); ok {
+	network, ok := d.GetOk("network_id")
+	if !ok {
+		network, ok = d.GetOk("network")
+	}
+	if ok {
 		// Retrieve the network ID
 		networkid, e := retrieveID(cs, "network", network.(string))
 		if e != nil {
@@ -63,7 +83,11 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 		p.SetNetworkid(networkid)
 	}
 
-	if vpc, ok := d.GetOk("vpc"); ok {
+	vpc, ok := d.GetOk("vpc_id")
+	if !ok {
+		vpc, ok = d.GetOk("vpc")
+	}
+	if ok {
 		// Retrieve the vpc ID
 		vpcid, e := retrieveID(cs, "vpc", vpc.(string))
 		if e != nil {
@@ -75,14 +99,8 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project ID
-		projectid, e := retrieveID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
 	}
 
 	// Associate a new IP address
@@ -115,24 +133,16 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 	// Updated the IP address
 	d.Set("ip_address", ip.Ipaddress)
 
-	if _, ok := d.GetOk("network"); ok {
-		// Get the network details
-		n, _, err := cs.Network.GetNetworkByID(ip.Associatednetworkid)
-		if err != nil {
-			return err
-		}
-
-		setValueOrID(d, "network", n.Name, ip.Associatednetworkid)
+	_, networkID := d.GetOk("network_id")
+	_, network := d.GetOk("network")
+	if networkID || network {
+		d.Set("network_id", ip.Associatednetworkid)
 	}
 
-	if _, ok := d.GetOk("vpc"); ok {
-		// Get the VPC details
-		v, _, err := cs.VPC.GetVPCByID(ip.Vpcid)
-		if err != nil {
-			return err
-		}
-
-		setValueOrID(d, "vpc", v.Name, ip.Vpcid)
+	_, vpcID := d.GetOk("vpc_id")
+	_, vpc := d.GetOk("vpc")
+	if vpcID || vpc {
+		d.Set("vpc_id", ip.Vpcid)
 	}
 
 	setValueOrID(d, "project", ip.Project, ip.Projectid)
@@ -162,12 +172,14 @@ func resourceCloudStackIPAddressDelete(d *schema.ResourceData, meta interface{})
 }
 
 func verifyIPAddressParams(d *schema.ResourceData) error {
+	_, networkID := d.GetOk("network_id")
 	_, network := d.GetOk("network")
+	_, vpcID := d.GetOk("vpc_id")
 	_, vpc := d.GetOk("vpc")
 
-	if network && vpc || !network && !vpc {
+	if (networkID || network) && (vpcID || vpc) || (!networkID && !network) && (!vpcID && !vpc) {
 		return fmt.Errorf(
-			"You must supply a value for either (so not both) the 'network' or 'vpc' parameter")
+			"You must supply a value for either (so not both) the 'network_id' or 'vpc_id' parameter")
 	}
 
 	return nil

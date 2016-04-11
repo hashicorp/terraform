@@ -21,7 +21,7 @@ func TestAccCloudStackFirewall_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackFirewallRulesExist("cloudstack_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_firewall.foo", "ip_address", CLOUDSTACK_PUBLIC_IPADDRESS),
+						"cloudstack_firewall.foo", "ip_address_id", CLOUDSTACK_PUBLIC_IPADDRESS),
 					resource.TestCheckResourceAttr(
 						"cloudstack_firewall.foo", "rule.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -55,7 +55,7 @@ func TestAccCloudStackFirewall_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackFirewallRulesExist("cloudstack_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_firewall.foo", "ip_address", CLOUDSTACK_PUBLIC_IPADDRESS),
+						"cloudstack_firewall.foo", "ip_address_id", CLOUDSTACK_PUBLIC_IPADDRESS),
 					resource.TestCheckResourceAttr(
 						"cloudstack_firewall.foo", "rule.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -80,7 +80,7 @@ func TestAccCloudStackFirewall_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackFirewallRulesExist("cloudstack_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_firewall.foo", "ip_address", CLOUDSTACK_PUBLIC_IPADDRESS),
+						"cloudstack_firewall.foo", "ip_address_id", CLOUDSTACK_PUBLIC_IPADDRESS),
 					resource.TestCheckResourceAttr(
 						"cloudstack_firewall.foo", "rule.#", "3"),
 					resource.TestCheckResourceAttr(
@@ -174,7 +174,7 @@ func testAccCheckCloudStackFirewallDestroy(s *terraform.State) error {
 
 var testAccCloudStackFirewall_basic = fmt.Sprintf(`
 resource "cloudstack_firewall" "foo" {
-  ip_address = "%s"
+  ip_address_id = "%s"
 
   rule {
     cidr_list = ["10.0.0.0/24"]
@@ -191,7 +191,7 @@ resource "cloudstack_firewall" "foo" {
 
 var testAccCloudStackFirewall_update = fmt.Sprintf(`
 resource "cloudstack_firewall" "foo" {
-  ip_address = "%s"
+  ip_address_id = "%s"
 
   rule {
     cidr_list = ["10.0.0.0/24", "10.0.1.0/24"]

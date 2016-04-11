@@ -106,14 +106,8 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project ID
-		projectid, e := retrieveID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
 	}
 
 	// Create the new VPC
@@ -163,8 +157,9 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	p.SetVpcid(d.Id())
 	p.SetIssourcenat(true)
 
-	if _, ok := d.GetOk("project"); ok {
-		p.SetProjectid(v.Projectid)
+	// If there is a project supplied, we retrieve and set the project id
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
 	}
 
 	// Get the source NAT IP assigned to the VPC

@@ -22,8 +22,6 @@ func TestAccCloudStackVPNGateway_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNGatewayExists(
 						"cloudstack_vpn_gateway.foo", &vpnGateway),
-					resource.TestCheckResourceAttr(
-						"cloudstack_vpn_gateway.foo", "vpc", "terraform-vpc"),
 				),
 			},
 		},
@@ -90,7 +88,7 @@ resource "cloudstack_vpc" "foo" {
 }
 
 resource "cloudstack_vpn_gateway" "foo" {
-  vpc = "${cloudstack_vpc.foo.name}"
+  vpc_id = "${cloudstack_vpc.foo.id}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,

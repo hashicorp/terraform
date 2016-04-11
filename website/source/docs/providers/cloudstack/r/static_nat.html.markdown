@@ -14,8 +14,8 @@ Enables static NAT for a given IP address
 
 ```
 resource "cloudstack_static_nat" "default" {
-  ipaddress = "192.168.0.1"
-  virtual_machine = "server-1"
+  ip_address_id = "f8141e2f-4e7e-4c63-9362-986c908b7ea7"
+  virtual_machine_id = "6ca2a163-bc68-429c-adc8-ab4a620b1bb3"
 }
 ```
 
@@ -23,18 +23,16 @@ resource "cloudstack_static_nat" "default" {
 
 The following arguments are supported:
 
-* `ipaddress` - (Required) The name or ID of the public IP address for which
-    static NAT will be enabled. Changing this forces a new resource to be
+* `ip_address_id` - (Required) The public IP address ID for which static
+    NAT will be enabled. Changing this forces a new resource to be created.
+
+* `network_id` - (Optional) The network ID of the VM the static NAT will be
+    enabled for. Required when public IP address is not associated with any
+    guest network yet (VPC case). Changing this forces a new resource to be
     created.
 
-* `network` - (Optional) The name or ID of the network of the VM the static
-    NAT will be enabled for. Required when public IP address is not
-    associated with any guest network yet (VPC case). Changing this forces
-    a new resource to be created.
-
-* `virtual_machine` - (Required) The name or ID of the virtual machine to
-    enable the static NAT feature for. Changing this forces a new resource
-    to be created.
+* `virtual_machine_id` - (Required) The virtual machine ID to enable the
+    static NAT feature for. Changing this forces a new resource to be created.
 
 * `vm_guest_ip` - (Optional) The virtual machine IP address for the port
     forwarding rule (useful when the virtual machine has a secondairy NIC).

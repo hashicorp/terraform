@@ -75,7 +75,7 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 	})
 }
 
-func TestAccCloudStackLoadBalancerRule_forcenew(t *testing.T) {
+func TestAccCloudStackLoadBalancerRule_forceNew(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -138,7 +138,7 @@ func TestAccCloudStackLoadBalancerRule_vpc(t *testing.T) {
 	})
 }
 
-func TestAccCloudStackLoadBalancerRule_vpc_update(t *testing.T) {
+func TestAccCloudStackLoadBalancerRule_vpcUpdate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -243,7 +243,7 @@ resource "cloudstack_instance" "foobar1" {
   name = "terraform-server1"
   display_name = "terraform"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -251,11 +251,11 @@ resource "cloudstack_instance" "foobar1" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb"
-  ip_address = "%s"
+  ip_address_id = "%s"
   algorithm = "roundrobin"
   public_port = 80
   private_port = 80
-  members = ["${cloudstack_instance.foobar1.id}"]
+  member_ids = ["${cloudstack_instance.foobar1.id}"]
 }
 `,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -269,7 +269,7 @@ resource "cloudstack_instance" "foobar1" {
   name = "terraform-server1"
   display_name = "terraform"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -277,11 +277,11 @@ resource "cloudstack_instance" "foobar1" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb-update"
-  ip_address = "%s"
+  ip_address_id = "%s"
   algorithm = "leastconn"
   public_port = 80
   private_port = 80
-  members = ["${cloudstack_instance.foobar1.id}"]
+  member_ids = ["${cloudstack_instance.foobar1.id}"]
 }
 `,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -295,7 +295,7 @@ resource "cloudstack_instance" "foobar1" {
   name = "terraform-server1"
   display_name = "terraform"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -303,11 +303,11 @@ resource "cloudstack_instance" "foobar1" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb-update"
-  ip_address = "%s"
+  ip_address_id = "%s"
   algorithm = "leastconn"
   public_port = 443
   private_port = 443
-  members = ["${cloudstack_instance.foobar1.id}"]
+  member_ids = ["${cloudstack_instance.foobar1.id}"]
 }
 `,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -328,19 +328,19 @@ resource "cloudstack_network" "foo" {
   name = "terraform-network"
   cidr = "%s"
   network_offering = "%s"
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
   zone = "${cloudstack_vpc.foobar.zone}"
 }
 
 resource "cloudstack_ipaddress" "foo" {
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
 }
 
 resource "cloudstack_instance" "foobar1" {
   name = "terraform-server1"
   display_name = "terraform"
   service_offering= "%s"
-  network = "${cloudstack_network.foo.name}"
+  network_id = "${cloudstack_network.foo.id}"
   template = "%s"
   zone = "${cloudstack_network.foo.zone}"
   expunge = true
@@ -348,12 +348,12 @@ resource "cloudstack_instance" "foobar1" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb"
-  ip_address = "${cloudstack_ipaddress.foo.ip_address}"
+  ip_address_id = "${cloudstack_ipaddress.foo.id}"
   algorithm = "roundrobin"
-  network = "${cloudstack_network.foo.id}"
+  network_id = "${cloudstack_network.foo.id}"
   public_port = 80
   private_port = 80
-  members = ["${cloudstack_instance.foobar1.id}"]
+  member_ids = ["${cloudstack_instance.foobar1.id}"]
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
@@ -375,19 +375,19 @@ resource "cloudstack_network" "foo" {
   name = "terraform-network"
   cidr = "%s"
   network_offering = "%s"
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
   zone = "${cloudstack_vpc.foobar.zone}"
 }
 
 resource "cloudstack_ipaddress" "foo" {
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
 }
 
 resource "cloudstack_instance" "foobar1" {
   name = "terraform-server1"
   display_name = "terraform"
   service_offering= "%s"
-  network = "${cloudstack_network.foo.name}"
+  network_id = "${cloudstack_network.foo.id}"
   template = "%s"
   zone = "${cloudstack_network.foo.zone}"
   expunge = true
@@ -397,7 +397,7 @@ resource "cloudstack_instance" "foobar2" {
   name = "terraform-server2"
   display_name = "terraform"
   service_offering= "%s"
-  network = "${cloudstack_network.foo.name}"
+  network_id = "${cloudstack_network.foo.id}"
   template = "%s"
   zone = "${cloudstack_network.foo.zone}"
   expunge = true
@@ -405,12 +405,12 @@ resource "cloudstack_instance" "foobar2" {
 
 resource "cloudstack_loadbalancer_rule" "foo" {
   name = "terraform-lb-update"
-  ip_address = "${cloudstack_ipaddress.foo.ip_address}"
+  ip_address_id = "${cloudstack_ipaddress.foo.id}"
   algorithm = "leastconn"
-  network = "${cloudstack_network.foo.id}"
+  network_id = "${cloudstack_network.foo.id}"
   public_port = 443
   private_port = 443
-  members = ["${cloudstack_instance.foobar1.id}", "${cloudstack_instance.foobar2.id}"]
+  member_ids = ["${cloudstack_instance.foobar1.id}", "${cloudstack_instance.foobar2.id}"]
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,

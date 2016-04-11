@@ -188,11 +188,11 @@ resource "cloudstack_vpc" "bar" {
 }
 
 resource "cloudstack_vpn_gateway" "foo" {
-	vpc = "${cloudstack_vpc.foo.name}"
+	vpc_id = "${cloudstack_vpc.foo.id}"
 }
 
 resource "cloudstack_vpn_gateway" "bar" {
-	vpc = "${cloudstack_vpc.bar.name}"
+	vpc_id = "${cloudstack_vpc.bar.id}"
 }
 
 resource "cloudstack_vpn_customer_gateway" "foo" {
@@ -235,11 +235,11 @@ resource "cloudstack_vpc" "bar" {
 }
 
 resource "cloudstack_vpn_gateway" "foo" {
-  vpc = "${cloudstack_vpc.foo.name}"
+  vpc_id = "${cloudstack_vpc.foo.id}"
 }
 
 resource "cloudstack_vpn_gateway" "bar" {
-  vpc = "${cloudstack_vpc.bar.name}"
+  vpc_id = "${cloudstack_vpc.bar.id}"
 }
 
 resource "cloudstack_vpn_customer_gateway" "foo" {

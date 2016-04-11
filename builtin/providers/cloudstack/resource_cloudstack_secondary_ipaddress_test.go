@@ -64,9 +64,13 @@ func testAccCheckCloudStackSecondaryIPAddressExists(
 
 		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
 
+		virtualmachine, ok := rs.Primary.Attributes["virtual_machine_id"]
+		if !ok {
+			virtualmachine, ok = rs.Primary.Attributes["virtual_machine"]
+		}
+
 		// Retrieve the virtual_machine ID
-		virtualmachineid, e := retrieveID(
-			cs, "virtual_machine", rs.Primary.Attributes["virtual_machine"])
+		virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine)
 		if e != nil {
 			return e.Error()
 		}
@@ -80,8 +84,11 @@ func testAccCheckCloudStackSecondaryIPAddressExists(
 			return err
 		}
 
-		nicid := rs.Primary.Attributes["nicid"]
-		if nicid == "" {
+		nicid, ok := rs.Primary.Attributes["nic_id"]
+		if !ok {
+			nicid, ok = rs.Primary.Attributes["nicid"]
+		}
+		if !ok {
 			nicid = vm.Nic[0].Id
 		}
 
@@ -136,9 +143,13 @@ func testAccCheckCloudStackSecondaryIPAddressDestroy(s *terraform.State) error {
 			return fmt.Errorf("No IP address ID is set")
 		}
 
+		virtualmachine, ok := rs.Primary.Attributes["virtual_machine_id"]
+		if !ok {
+			virtualmachine, ok = rs.Primary.Attributes["virtual_machine"]
+		}
+
 		// Retrieve the virtual_machine ID
-		virtualmachineid, e := retrieveID(
-			cs, "virtual_machine", rs.Primary.Attributes["virtual_machine"])
+		virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine)
 		if e != nil {
 			return e.Error()
 		}
@@ -152,8 +163,11 @@ func testAccCheckCloudStackSecondaryIPAddressDestroy(s *terraform.State) error {
 			return err
 		}
 
-		nicid := rs.Primary.Attributes["nicid"]
-		if nicid == "" {
+		nicid, ok := rs.Primary.Attributes["nic_id"]
+		if !ok {
+			nicid, ok = rs.Primary.Attributes["nicid"]
+		}
+		if !ok {
 			nicid = vm.Nic[0].Id
 		}
 
@@ -189,14 +203,14 @@ var testAccCloudStackSecondaryIPAddress_basic = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
 }
 
 resource "cloudstack_secondary_ipaddress" "foo" {
-	virtual_machine = "${cloudstack_instance.foobar.id}"
+	virtual_machine_id = "${cloudstack_instance.foobar.id}"
 }
 `,
 	CLOUDSTACK_SERVICE_OFFERING_1,
@@ -208,7 +222,7 @@ var testAccCloudStackSecondaryIPAddress_fixedIP = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -216,7 +230,7 @@ resource "cloudstack_instance" "foobar" {
 
 resource "cloudstack_secondary_ipaddress" "foo" {
 	ip_address = "%s"
-	virtual_machine = "${cloudstack_instance.foobar.id}"
+	virtual_machine_id = "${cloudstack_instance.foobar.id}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,
