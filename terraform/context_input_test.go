@@ -45,7 +45,7 @@ func TestContext2Input(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformInputVarsStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, actual)
 	}
 }
 

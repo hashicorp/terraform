@@ -575,7 +575,7 @@ func (m *ModuleState) Equal(other *ModuleState) bool {
 		return false
 	}
 	for k, v := range m.Outputs {
-		if other.Outputs[k] != v {
+		if !reflect.DeepEqual(other.Outputs[k], v) {
 			return false
 		}
 	}
@@ -803,7 +803,27 @@ func (m *ModuleState) String() string {
 
 		for _, k := range ks {
 			v := m.Outputs[k]
-			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
+			switch vTyped := v.(type) {
+			case string:
+				buf.WriteString(fmt.Sprintf("%s = %s\n", k, vTyped))
+			case []interface{}:
+				buf.WriteString(fmt.Sprintf("%s = %s\n", k, vTyped))
+			case map[string]interface{}:
+				var mapKeys []string
+				for key, _ := range vTyped {
+					mapKeys = append(mapKeys, key)
+				}
+				sort.Strings(mapKeys)
+
+				var mapBuf bytes.Buffer
+				mapBuf.WriteString("{")
+				for _, key := range mapKeys {
+					mapBuf.WriteString(fmt.Sprintf("%s:%s ", key, vTyped[key]))
+				}
+				mapBuf.WriteString("}")
+
+				buf.WriteString(fmt.Sprintf("%s = %s\n", k, mapBuf.String()))
+			}
 		}
 	}
 
