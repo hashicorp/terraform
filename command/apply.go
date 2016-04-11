@@ -394,29 +394,31 @@ func outputsAsString(state *terraform.State, schema []*config.Output) string {
 
 		// Output the outputs in alphabetical order
 		keyLen := 0
-		keys := make([]string, 0, len(outputs))
+		ks := make([]string, 0, len(outputs))
 		for key, _ := range outputs {
-			keys = append(keys, key)
+			ks = append(ks, key)
 			if len(key) > keyLen {
 				keyLen = len(key)
 			}
 		}
-		sort.Strings(keys)
+		sort.Strings(ks)
 
-		for _, k := range keys {
-			v := outputs[k]
-
+		for _, k := range ks {
 			if schemaMap[k].Sensitive {
-				outputBuf.WriteString(fmt.Sprintf(
-					"  %s%s = <sensitive>\n",
-					k,
-					strings.Repeat(" ", keyLen-len(k))))
-			} else {
-				outputBuf.WriteString(fmt.Sprintf(
-					"  %s%s = %s\n",
-					k,
-					strings.Repeat(" ", keyLen-len(k)),
-					v))
+				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
+				continue
+			}
+
+			v := outputs[k]
+			switch typedV := v.(type) {
+			case string:
+				outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, typedV))
+			case []interface{}:
+				outputBuf.WriteString(formatListOutput("", k, typedV))
+				outputBuf.WriteString("\n")
+			case map[string]interface{}:
+				outputBuf.WriteString(formatMapOutput("", k, typedV))
+				outputBuf.WriteString("\n")
 			}
 		}
 	}

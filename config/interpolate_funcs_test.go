@@ -672,28 +672,33 @@ func TestInterpolateFuncSplit(t *testing.T) {
 func TestInterpolateFuncLookup(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
-			"var.foo.bar": ast.Variable{
-				Value: "baz",
-				Type:  ast.TypeString,
+			"var.foo": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+				},
 			},
 		},
 		Cases: []testFunctionCase{
 			{
-				`${lookup("foo", "bar")}`,
+				`${lookup(var.foo, "bar")}`,
 				"baz",
 				false,
 			},
 
 			// Invalid key
 			{
-				`${lookup("foo", "baz")}`,
+				`${lookup(var.foo, "baz")}`,
 				nil,
 				true,
 			},
 
 			// Too many args
 			{
-				`${lookup("foo", "bar", "baz")}`,
+				`${lookup(var.foo, "bar", "baz")}`,
 				nil,
 				true,
 			},
@@ -704,13 +709,18 @@ func TestInterpolateFuncLookup(t *testing.T) {
 func TestInterpolateFuncKeys(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
-			"var.foo.bar": ast.Variable{
-				Value: "baz",
-				Type:  ast.TypeString,
-			},
-			"var.foo.qux": ast.Variable{
-				Value: "quack",
-				Type:  ast.TypeString,
+			"var.foo": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Value: "baz",
+						Type:  ast.TypeString,
+					},
+					"qux": ast.Variable{
+						Value: "quack",
+						Type:  ast.TypeString,
+					},
+				},
 			},
 			"var.str": ast.Variable{
 				Value: "astring",
@@ -719,28 +729,28 @@ func TestInterpolateFuncKeys(t *testing.T) {
 		},
 		Cases: []testFunctionCase{
 			{
-				`${keys("foo")}`,
-				NewStringList([]string{"bar", "qux"}).String(),
+				`${keys(var.foo)}`,
+				[]interface{}{"bar", "qux"},
 				false,
 			},
 
 			// Invalid key
 			{
-				`${keys("not")}`,
+				`${keys(var.not)}`,
 				nil,
 				true,
 			},
 
 			// Too many args
 			{
-				`${keys("foo", "bar")}`,
+				`${keys(var.foo, "bar")}`,
 				nil,
 				true,
 			},
 
 			// Not a map
 			{
-				`${keys("str")}`,
+				`${keys(var.str)}`,
 				nil,
 				true,
 			},
@@ -751,13 +761,18 @@ func TestInterpolateFuncKeys(t *testing.T) {
 func TestInterpolateFuncValues(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
-			"var.foo.bar": ast.Variable{
-				Value: "quack",
-				Type:  ast.TypeString,
-			},
-			"var.foo.qux": ast.Variable{
-				Value: "baz",
-				Type:  ast.TypeString,
+			"var.foo": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Value: "quack",
+						Type:  ast.TypeString,
+					},
+					"qux": ast.Variable{
+						Value: "baz",
+						Type:  ast.TypeString,
+					},
+				},
 			},
 			"var.str": ast.Variable{
 				Value: "astring",
@@ -766,28 +781,28 @@ func TestInterpolateFuncValues(t *testing.T) {
 		},
 		Cases: []testFunctionCase{
 			{
-				`${values("foo")}`,
-				NewStringList([]string{"quack", "baz"}).String(),
+				`${values(var.foo)}`,
+				[]interface{}{"quack", "baz"},
 				false,
 			},
 
 			// Invalid key
 			{
-				`${values("not")}`,
+				`${values(var.not)}`,
 				nil,
 				true,
 			},
 
 			// Too many args
 			{
-				`${values("foo", "bar")}`,
+				`${values(var.foo, "bar")}`,
 				nil,
 				true,
 			},
 
 			// Not a map
 			{
-				`${values("str")}`,
+				`${values(var.str)}`,
 				nil,
 				true,
 			},

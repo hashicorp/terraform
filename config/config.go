@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"github.com/hashicorp/terraform/flatmap"
 	"github.com/mitchellh/mapstructure"
 	"github.com/mitchellh/reflectwalk"
 )
@@ -239,7 +238,7 @@ func (c *Config) Validate() error {
 		}
 
 		interp := false
-		fn := func(ast.Node) (string, error) {
+		fn := func(ast.Node) (interface{}, error) {
 			interp = true
 			return "", nil
 		}
@@ -450,7 +449,7 @@ func (c *Config) Validate() error {
 		}
 
 		// Interpolate with a fixed number to verify that its a number.
-		r.RawCount.interpolate(func(root ast.Node) (string, error) {
+		r.RawCount.interpolate(func(root ast.Node) (interface{}, error) {
 			// Execute the node but transform the AST so that it returns
 			// a fixed value of "5" for all interpolations.
 			result, err := hil.Eval(
@@ -461,7 +460,7 @@ func (c *Config) Validate() error {
 				return "", err
 			}
 
-			return result.Value.(string), nil
+			return result.Value, nil
 		})
 		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
 		if err != nil {
@@ -807,28 +806,6 @@ func (r *Resource) mergerMerge(m merger) merger {
 	}
 
 	return &result
-}
-
-// DefaultsMap returns a map of default values for this variable.
-func (v *Variable) DefaultsMap() map[string]string {
-	if v.Default == nil {
-		return nil
-	}
-
-	n := fmt.Sprintf("var.%s", v.Name)
-	switch v.Type() {
-	case VariableTypeString:
-		return map[string]string{n: v.Default.(string)}
-	case VariableTypeMap:
-		result := flatmap.Flatten(map[string]interface{}{
-			n: v.Default.(map[string]string),
-		})
-		result[n] = v.Name
-
-		return result
-	default:
-		return nil
-	}
 }
 
 // Merge merges two variables to create a new third variable.
