@@ -632,7 +632,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(customer|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(default|customer|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
                     <a href="#">VPC Resources</a>
                     <ul class="nav nav-visible">
 
@@ -654,6 +654,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-nat-gateway") %>>
                             <a href="/docs/providers/aws/r/nat_gateway.html">aws_nat_gateway</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-default-network-acl") %>>
+                            <a href="/docs/providers/aws/r/default_network_acl.html">aws_default_network_acl</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-network-acl") %>>

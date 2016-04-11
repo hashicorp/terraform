@@ -324,7 +324,6 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2.EC2) error {
-
 	if d.HasChange(entryType) {
 		o, n := d.GetChange(entryType)
 
@@ -343,7 +342,6 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 			return err
 		}
 		for _, remove := range toBeDeleted {
-
 			// AWS includes default rules with all network ACLs that can be
 			// neither modified nor destroyed. They have a custom rule
 			// number that is out of bounds for any other rule. If we
@@ -353,6 +351,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 			}
 
 			// Delete old Acl
+			log.Printf("[DEBUG] Destroying Network ACL Entry number (%d)", int(*remove.RuleNumber))
 			_, err := conn.DeleteNetworkAclEntry(&ec2.DeleteNetworkAclEntryInput{
 				NetworkAclId: aws.String(d.Id()),
 				RuleNumber:   remove.RuleNumber,
