@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -80,6 +81,26 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster_parameter_group.bar", "tags.#", "2"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBClusterParameterGroup_disappears(t *testing.T) {
+	var v rds.DBClusterParameterGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBClusterParameterGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
+					testAccAWSDBClusterParameterGroupDisappears(&v),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -200,6 +221,34 @@ func testAccCheckAWSDBClusterParameterGroupAttributes(v *rds.DBClusterParameterG
 		}
 
 		return nil
+	}
+}
+
+func testAccAWSDBClusterParameterGroupDisappears(v *rds.DBClusterParameterGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
+		opts := &rds.DeleteDBClusterParameterGroupInput{
+			DBClusterParameterGroupName: v.DBClusterParameterGroupName,
+		}
+		if _, err := conn.DeleteDBClusterParameterGroup(opts); err != nil {
+			return err
+		}
+		return resource.Retry(40*time.Minute, func() *resource.RetryError {
+			opts := &rds.DescribeDBClusterParameterGroupsInput{
+				DBClusterParameterGroupName: v.DBClusterParameterGroupName,
+			}
+			_, err := conn.DescribeDBClusterParameterGroups(opts)
+			if err != nil {
+				dbparamgrouperr, ok := err.(awserr.Error)
+				if ok && dbparamgrouperr.Code() == "DBParameterGroupNotFound" {
+					return nil
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error retrieving DB Cluster Parameter Groups: %s", err))
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for cluster parameter group to be deleted: %v", v.DBClusterParameterGroupName))
+		})
 	}
 }
 
