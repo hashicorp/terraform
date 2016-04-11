@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -23,12 +24,12 @@ const (
 // Interpolater is the structure responsible for determining the values
 // for interpolations such as `aws_instance.foo.bar`.
 type Interpolater struct {
-	Operation     walkOperation
-	Module        *module.Tree
-	State         *State
-	StateLock     *sync.RWMutex
-	Variables     map[string]string
-	VariablesLock *sync.Mutex
+	Operation          walkOperation
+	Module             *module.Tree
+	State              *State
+	StateLock          *sync.RWMutex
+	VariableValues     map[string]interface{}
+	VariableValuesLock *sync.Mutex
 }
 
 // InterpolationScope is the current scope of execution. This is required
@@ -52,12 +53,18 @@ func (i *Interpolater) Values(
 			mod = i.Module.Child(scope.Path[1:])
 		}
 		for _, v := range mod.Config().Variables {
-			for k, val := range v.DefaultsMap() {
-				result[k] = ast.Variable{
-					Value: val,
-					Type:  ast.TypeString,
-				}
+			// Set default variables
+			if v.Default == nil {
+				continue
 			}
+
+			n := fmt.Sprintf("var.%s", v.Name)
+			variable, err := hil.InterfaceToVariable(v.Default)
+			if err != nil {
+				return nil, fmt.Errorf("invalid default map value for %s: %v", v.Name, v.Default)
+			}
+			// Potentially TODO(jen20): check against declared type
+			result[n] = variable
 		}
 	}
 
@@ -110,18 +117,6 @@ func (i *Interpolater) valueCountVar(
 	}
 }
 
-func interfaceToHILVariable(input interface{}) ast.Variable {
-	switch v := input.(type) {
-	case string:
-		return ast.Variable{
-			Type:  ast.TypeString,
-			Value: v,
-		}
-	default:
-		panic(fmt.Errorf("Unknown interface type %T in interfaceToHILVariable", v))
-	}
-}
-
 func unknownVariable() ast.Variable {
 	return ast.Variable{
 		Type:  ast.TypeString,
@@ -167,7 +162,11 @@ func (i *Interpolater) valueModuleVar(
 	} else {
 		// Get the value from the outputs
 		if value, ok := mod.Outputs[v.Field]; ok {
-			result[n] = interfaceToHILVariable(value)
+			output, err := hil.InterfaceToVariable(value)
+			if err != nil {
+				return err
+			}
+			result[n] = output
 		} else {
 			// Same reasons as the comment above.
 			result[n] = unknownVariable()
@@ -289,33 +288,44 @@ func (i *Interpolater) valueUserVar(
 	n string,
 	v *config.UserVariable,
 	result map[string]ast.Variable) error {
-	i.VariablesLock.Lock()
-	defer i.VariablesLock.Unlock()
-	val, ok := i.Variables[v.Name]
+	i.VariableValuesLock.Lock()
+	defer i.VariableValuesLock.Unlock()
+	val, ok := i.VariableValues[v.Name]
 	if ok {
-		result[n] = ast.Variable{
-			Value: val,
-			Type:  ast.TypeString,
+		varValue, err := hil.InterfaceToVariable(val)
+		if err != nil {
+			return fmt.Errorf("cannot convert %s value %q to an ast.Variable for interpolation: %s",
+				v.Name, val, err)
 		}
+		result[n] = varValue
 		return nil
 	}
 
 	if _, ok := result[n]; !ok && i.Operation == walkValidate {
-		result[n] = ast.Variable{
-			Value: config.UnknownVariableValue,
-			Type:  ast.TypeString,
-		}
+		result[n] = unknownVariable()
 		return nil
 	}
 
 	// Look up if we have any variables with this prefix because
 	// those are map overrides. Include those.
-	for k, val := range i.Variables {
+	for k, val := range i.VariableValues {
 		if strings.HasPrefix(k, v.Name+".") {
-			result["var."+k] = ast.Variable{
-				Value: val,
-				Type:  ast.TypeString,
+			keyComponents := strings.Split(k, ".")
+			overrideKey := keyComponents[len(keyComponents)-1]
+
+			mapInterface, ok := result["var."+v.Name]
+			if !ok {
+				return fmt.Errorf("override for non-existent variable: %s", v.Name)
 			}
+
+			mapVariable := mapInterface.Value.(map[string]ast.Variable)
+
+			varValue, err := hil.InterfaceToVariable(val)
+			if err != nil {
+				return fmt.Errorf("cannot convert %s value %q to an ast.Variable for interpolation: %s",
+					v.Name, val, err)
+			}
+			mapVariable[overrideKey] = varValue
 		}
 	}
 

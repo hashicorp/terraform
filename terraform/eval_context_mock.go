@@ -74,7 +74,7 @@ type MockEvalContext struct {
 
 	SetVariablesCalled    bool
 	SetVariablesModule    string
-	SetVariablesVariables map[string]string
+	SetVariablesVariables map[string]interface{}
 
 	DiffCalled bool
 	DiffDiff   *Diff
@@ -183,7 +183,7 @@ func (c *MockEvalContext) Path() []string {
 	return c.PathPath
 }
 
-func (c *MockEvalContext) SetVariables(n string, vs map[string]string) {
+func (c *MockEvalContext) SetVariables(n string, vs map[string]interface{}) {
 	c.SetVariablesCalled = true
 	c.SetVariablesModule = n
 	c.SetVariablesVariables = vs

@@ -89,7 +89,7 @@ func TestInterpolationWalker_detect(t *testing.T) {
 
 	for i, tc := range cases {
 		var actual []string
-		detectFn := func(root ast.Node) (string, error) {
+		detectFn := func(root ast.Node) (interface{}, error) {
 			actual = append(actual, fmt.Sprintf("%s", root))
 			return "", nil
 		}
@@ -175,7 +175,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		fn := func(ast.Node) (string, error) {
+		fn := func(ast.Node) (interface{}, error) {
 			return tc.Value, nil
 		}
 
