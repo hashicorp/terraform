@@ -23,14 +23,15 @@ func resourceComputeAutoscaler() *schema.Resource {
 				Required: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
 			"target": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"autoscaling_policy": &schema.Schema{
@@ -105,9 +106,14 @@ func resourceComputeAutoscaler() *schema.Resource {
 				},
 			},
 
-			"zone": &schema.Schema{
+			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -120,7 +126,6 @@ func resourceComputeAutoscaler() *schema.Resource {
 }
 
 func buildAutoscaler(d *schema.ResourceData) (*compute.Autoscaler, error) {
-
 	// Build the parameter
 	scaler := &compute.Autoscaler{
 		Name:   d.Get("name").(string),
@@ -200,10 +205,15 @@ func buildAutoscaler(d *schema.ResourceData) (*compute.Autoscaler, error) {
 func resourceComputeAutoscalerCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Get the zone
 	log.Printf("[DEBUG] Loading zone: %s", d.Get("zone").(string))
 	zone, err := config.clientCompute.Zones.Get(
-		config.Project, d.Get("zone").(string)).Do()
+		project, d.Get("zone").(string)).Do()
 	if err != nil {
 		return fmt.Errorf(
 			"Error loading zone '%s': %s", d.Get("zone").(string), err)
@@ -215,7 +225,7 @@ func resourceComputeAutoscalerCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	op, err := config.clientCompute.Autoscalers.Insert(
-		config.Project, zone.Name, scaler).Do()
+		project, zone.Name, scaler).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating Autoscaler: %s", err)
 	}
@@ -234,9 +244,14 @@ func resourceComputeAutoscalerCreate(d *schema.ResourceData, meta interface{}) e
 func resourceComputeAutoscalerRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zone := d.Get("zone").(string)
 	scaler, err := config.clientCompute.Autoscalers.Get(
-		config.Project, zone, d.Id()).Do()
+		project, zone, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
@@ -257,6 +272,11 @@ func resourceComputeAutoscalerRead(d *schema.ResourceData, meta interface{}) err
 func resourceComputeAutoscalerUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zone := d.Get("zone").(string)
 
 	scaler, err := buildAutoscaler(d)
@@ -265,7 +285,7 @@ func resourceComputeAutoscalerUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	op, err := config.clientCompute.Autoscalers.Patch(
-		config.Project, zone, d.Id(), scaler).Do()
+		project, zone, d.Id(), scaler).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating Autoscaler: %s", err)
 	}
@@ -284,9 +304,14 @@ func resourceComputeAutoscalerUpdate(d *schema.ResourceData, meta interface{}) e
 func resourceComputeAutoscalerDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zone := d.Get("zone").(string)
 	op, err := config.clientCompute.Autoscalers.Delete(
-		config.Project, zone, d.Id()).Do()
+		project, zone, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting autoscaler: %s", err)
 	}

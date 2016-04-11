@@ -12,21 +12,21 @@ Manages a firewall resource within GCE.
 
 ## Example Usage
 
-```
+```js
 resource "google_compute_firewall" "default" {
-	name = "test"
-	network = "${google_compute_network.other.name}"
+  name    = "test"
+  network = "${google_compute_network.other.name}"
 
-	allow {
-		protocol = "icmp"
-	}
+  allow {
+    protocol = "icmp"
+  }
 
-	allow {
-		protocol = "tcp"
-		ports = ["80", "8080", "1000-2000"]
-	}
+  allow {
+    protocol = "tcp"
+    ports    = ["80", "8080", "1000-2000"]
+  }
 
-	source_tags = ["web"]
+  source_tags = ["web"]
 }
 ```
 
@@ -37,19 +37,24 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `description` - (Optional) Textual description field.
-
 * `network` - (Required) The name of the network to attach this firewall to.
 
 * `allow` - (Required) Can be specified multiple times for each allow
     rule. Each allow block supports fields documented below.
 
+- - -
+
+* `description` - (Optional) Textual description field.
+
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
+
 * `source_ranges` - (Optional) A list of source CIDR ranges that this
    firewall applies to.
 
-* `source_tags` - (Optional) A list of source tags that this firewall applies to.
+* `source_tags` - (Optional) A list of source tags for this firewall.
 
-* `target_tags` - (Optional) A list of target tags that this firewall applies to.
+* `target_tags` - (Optional) A list of target tags for this firewall.
 
 The `allow` block supports:
 
@@ -60,9 +65,7 @@ The `allow` block supports:
 
 ## Attributes Reference
 
-The following attributes are exported:
+In addition to the arguments listed above, the following computed attributes are
+exported:
 
-* `name` - The name of the resource.
-* `network` - The network that this resource is attached to.
-* `source_ranges` - The CIDR block ranges this firewall applies to.
-* `source_tags` - The tags that this firewall applies to.
+* `self_link` - The URI of the created resource.

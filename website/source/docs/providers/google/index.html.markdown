@@ -16,17 +16,17 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```
-# Configure the Google Cloud provider
+```js
+// Configure the Google Cloud provider
 provider "google" {
   credentials = "${file("account.json")}"
   project     = "my-gce-project"
   region      = "us-central1"
 }
 
-# Create a new instance
+// Create a new instance
 resource "google_compute_instance" "default" {
-  ...
+  // ...
 }
 ```
 
@@ -42,11 +42,14 @@ The following keys can be used to configure the provider.
   can also be specified with the `GOOGLE_CREDENTIALS` or `GOOGLE_CLOUD_KEYFILE_JSON`
   shell environment variable, containing the contents of the credentials file.
 
-* `project` - (Required) The ID of the project to apply any resources to.  This
-  can also be specified with the `GOOGLE_PROJECT` shell environment variable.
-
 * `region` - (Required) The region to operate under. This can also be specified
   with the `GOOGLE_REGION` shell environment variable.
+
+* `project` - (Optional) The ID of the project to apply resources in. This
+  can also be specified with the `GOOGLE_PROJECT` shell environment variable.
+  If unspecified, users will need to specify the `project` attribute for
+  all resources. If specified, resources which do not depend on a project will
+  ignore this value.
 
 The following keys are supported for backwards compatibility, and may be
 removed in a future version:

@@ -17,19 +17,13 @@ func resourceComputeSslCertificate() *schema.Resource {
 		Delete: resourceComputeSslCertificateDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"certificate": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"certificate": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -41,12 +35,24 @@ func resourceComputeSslCertificate() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"id": &schema.Schema{
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -56,6 +62,11 @@ func resourceComputeSslCertificate() *schema.Resource {
 
 func resourceComputeSslCertificateCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	// Build the certificate parameter
 	cert := &compute.SslCertificate{
@@ -69,7 +80,7 @@ func resourceComputeSslCertificateCreate(d *schema.ResourceData, meta interface{
 	}
 
 	op, err := config.clientCompute.SslCertificates.Insert(
-		config.Project, cert).Do()
+		project, cert).Do()
 
 	if err != nil {
 		return fmt.Errorf("Error creating ssl certificate: %s", err)
@@ -88,8 +99,13 @@ func resourceComputeSslCertificateCreate(d *schema.ResourceData, meta interface{
 func resourceComputeSslCertificateRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	cert, err := config.clientCompute.SslCertificates.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing SSL Certificate %q because it's gone", d.Get("name").(string))
@@ -111,8 +127,13 @@ func resourceComputeSslCertificateRead(d *schema.ResourceData, meta interface{})
 func resourceComputeSslCertificateDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	op, err := config.clientCompute.SslCertificates.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting ssl certificate: %s", err)
 	}

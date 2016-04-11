@@ -8,16 +8,16 @@ description: |-
 
 # google\_pubsub\_topic
 
-Creates a topic in Google's pubsub queueing system.  For more information see
+Creates a topic in Google's pubsub queueing system. For more information see
 [the official documentation](https://cloud.google.com/pubsub/docs) and
 [API](https://cloud.google.com/pubsub/reference/rest/v1/projects.topics).
 
 
 ## Example Usage
 
-```
+```js
 resource "google_pubsub_topic" "default" {
-	name = "default-topic"
+  name = "default-topic"
 }
 ```
 
@@ -28,8 +28,11 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by pubsub.
     Changing this forces a new resource to be created.
 
+- - -
+
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
+
 ## Attributes Reference
 
-The following attributes are exported:
-
-* `name` - The name of the resource.
+Only the arguments listed above are exposed as attributes.

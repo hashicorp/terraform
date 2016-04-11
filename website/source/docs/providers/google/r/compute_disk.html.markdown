@@ -12,12 +12,12 @@ Creates a new persistent disk within GCE, based on another disk.
 
 ## Example Usage
 
-```
+```js
 resource "google_compute_disk" "default" {
-	name = "test-disk"
-	type = "pd-ssd"
-	zone = "us-central1-a"
-	image = "debian7-wheezy"
+  name  = "test-disk"
+  type  = "pd-ssd"
+  zone  = "us-central1-a"
+  image = "debian7-wheezy"
 }
 ```
 
@@ -30,22 +30,25 @@ The following arguments are supported:
 
 * `zone` - (Required) The zone where this disk will be available.
 
-* `image` - (Optional) The image from which to initialize this disk.  Either the full URL, a
-  contraction of the form "project/name", or just a name (in which case the current project is
-used).
+- - -
 
-* `snapshot` - (Optional) Name of snapshot from which to initialize this disk;
+* `image` - (Optional) The image from which to initialize this disk. Either the
+    full URL, a contraction of the form "project/name", or just a name (in which
+    case the current project is used).
 
-* `size` - (Optional) The size of the image in gigabytes. If not specified,
-    it will inherit the size of its base image.
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
+
+* `size` - (Optional) The size of the image in gigabytes. If not specified, it
+    will inherit the size of its base image.
+
+* `snapshot` - (Optional) Name of snapshot from which to initialize this disk.
 
 * `type` - (Optional) The GCE disk type.
 
 ## Attributes Reference
 
-The following attributes are exported:
+In addition to the arguments listed above, the following computed attributes are
+exported:
 
-* `name` - The name of the resource.
-* `zone` - The zone where the resource is located.
-* `image` - The name of the image the disk is based off of.
-* `size` - The size of the disk in gigabytes.
+* `self_link` - The URI of the created resource.

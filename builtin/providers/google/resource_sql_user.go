@@ -18,17 +18,6 @@ func resourceSqlUser() *schema.Resource {
 		Delete: resourceSqlUserDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
 			"host": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -40,6 +29,23 @@ func resourceSqlUser() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"password": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -47,11 +53,15 @@ func resourceSqlUser() *schema.Resource {
 func resourceSqlUserCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 	instance := d.Get("instance").(string)
 	password := d.Get("password").(string)
 	host := d.Get("host").(string)
-	project := config.Project
 
 	user := &sqladmin.User{
 		Name:     name,
@@ -81,9 +91,13 @@ func resourceSqlUserCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceSqlUserRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 	instance := d.Get("instance").(string)
-	project := config.Project
 
 	users, err := config.clientSqlAdmin.Users.List(project, instance).Do()
 
@@ -122,11 +136,15 @@ func resourceSqlUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	if d.HasChange("password") {
+		project, err := getProject(d, config)
+		if err != nil {
+			return err
+		}
+
 		name := d.Get("name").(string)
 		instance := d.Get("instance").(string)
 		host := d.Get("host").(string)
 		password := d.Get("password").(string)
-		project := config.Project
 
 		user := &sqladmin.User{
 			Name:     name,
@@ -159,10 +177,14 @@ func resourceSqlUserUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceSqlUserDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 	instance := d.Get("instance").(string)
 	host := d.Get("host").(string)
-	project := config.Project
 
 	op, err := config.clientSqlAdmin.Users.Delete(project, instance, host, name).Do()
 
