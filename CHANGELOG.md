@@ -34,6 +34,7 @@ IMPROVEMENTS:
  * provider/google: Make "project" attribute on provider configuration optional [GH-6112]
  * provider/google: Add "project" argument and attribute to all GCP compute resources which inherit from the provider's value [GH-6112]
  *provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
+ * provider/google: Read more common configuration values from the environment and clarify precedence ordering [GH-6114]
  * provider/github: Add support for privacy to `github_team` [GH-6116]
  * provider/cloudstack: Deprecate `ipaddress` in favour of `ip_address` in all resources [GH-6010]
  * provider/openstack: Allow subnets with no gateway [GH-6060]
