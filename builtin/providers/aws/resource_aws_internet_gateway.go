@@ -45,11 +45,6 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetId(*ig.InternetGatewayId)
 	log.Printf("[INFO] InternetGateway ID: %s", d.Id())
 
-	err = setTags(conn, d)
-	if err != nil {
-		return err
-	}
-
 	resource.Retry(5*time.Minute, func() *resource.RetryError {
 		igRaw, _, err := IGStateRefreshFunc(conn, d.Id())()
 		if igRaw != nil {
@@ -61,6 +56,11 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 			return resource.NonRetryableError(err)
 		}
 	})
+
+	err = setTags(conn, d)
+	if err != nil {
+		return err
+	}
 
 	// Attach the new gateway to the correct vpc
 	return resourceAwsInternetGatewayAttach(d, meta)
