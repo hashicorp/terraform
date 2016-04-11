@@ -240,6 +240,8 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", vm.Name)
 	d.Set("display_name", vm.Displayname)
 	d.Set("ipaddress", vm.Nic[0].Ipaddress)
+	d.Set("group", vm.Group)
+
 	//NB cloudstack sometimes sends back the wrong keypair name, so dont update it
 
 	setValueOrID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
@@ -275,6 +277,26 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		d.SetPartial("display_name")
+	}
+
+	// Check if the group is changed and if so, update the virtual machine
+	if d.HasChange("group") {
+		log.Printf("[DEBUG] Group changed for %s, starting update", name)
+
+		// Create a new parameter struct
+		p := cs.VirtualMachine.NewUpdateVirtualMachineParams(d.Id())
+
+		// Set the new group
+		p.SetGroup(d.Get("group").(string))
+
+		// Update the display name
+		_, err := cs.VirtualMachine.UpdateVirtualMachine(p)
+		if err != nil {
+			return fmt.Errorf(
+				"Error updating the group for instance %s: %s", name, err)
+		}
+
+		d.SetPartial("group")
 	}
 
 	// Attributes that require reboot to update
