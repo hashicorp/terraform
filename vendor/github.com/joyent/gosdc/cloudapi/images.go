@@ -19,7 +19,7 @@ type Image struct {
 	Requirements map[string]interface{} // Minimum requirements for provisioning a machine with this image, e.g. 'password' indicates that a password must be provided
 	Homepage     string                 // URL for a web page including detailed information for this image (new in API version 7.0)
 	PublishedAt  string                 `json:"published_at"` // Time this image has been made publicly available (new in API version 7.0)
-	Public       string                 // Indicates if the image is publicly available (new in API version 7.1)
+	Public       bool                   // Indicates if the image is publicly available (new in API version 7.1)
 	State        string                 // Current image state. One of 'active', 'unactivated', 'disabled', 'creating', 'failed' (new in API version 7.1)
 	Tags         map[string]string      // A map of key/value pairs that allows clients to categorize images by any given criteria (new in API version 7.1)
 	EULA         string                 // URL of the End User License Agreement (EULA) for the image (new in API version 7.1)
@@ -44,14 +44,14 @@ type MantaLocation struct {
 // CreateImageFromMachineOpts represent the option that can be specified
 // when creating a new image from an existing machine.
 type CreateImageFromMachineOpts struct {
-	Machine     string            `json:"machine"`     // The machine UUID from which the image is to be created
-	Name        string            `json:"name"`        // Image name
-	Version     string            `json:"version"`     // Image version
-	Description string            `json:"description"` // Image description
-	Homepage    string            `json:"homepage"`    // URL for a web page including detailed information for this image
-	EULA        string            `json:"eula"`        // URL of the End User License Agreement (EULA) for the image
-	ACL         []string          `json:"acl"`         // An array of account UUIDs given access to a private image. The field is only relevant to private images
-	Tags        map[string]string `json:"tags"`        // A map of key/value pairs that allows clients to categorize images by any given criteria
+	Machine     string            `json:"machine"`               // The machine UUID from which the image is to be created
+	Name        string            `json:"name"`                  // Image name
+	Version     string            `json:"version"`               // Image version
+	Description string            `json:"description,omitempty"` // Image description
+	Homepage    string            `json:"homepage,omitempty"`    // URL for a web page including detailed information for this image
+	EULA        string            `json:"eula,omitempty"`        // URL of the End User License Agreement (EULA) for the image
+	ACL         []string          `json:"acl,omitempty"`         // An array of account UUIDs given access to a private image. The field is only relevant to private images
+	Tags        map[string]string `json:"tags,omitempty"`        // A map of key/value pairs that allows clients to categorize images by any given criteria
 }
 
 // ListImages provides a list of images available in the datacenter.

@@ -29,7 +29,7 @@ type Machine struct {
 	Image           string            // The image id the machine was provisioned with
 	PrimaryIP       string            // The primary (public) IP address for the machine
 	Networks        []string          // The network IDs for the machine
-	FirewallEnabled bool              // whether or not the firewall is enabled
+	FirewallEnabled bool              `json:"firewall_enabled"` // whether or not the firewall is enabled
 }
 
 // Equals compares two machines. Ignores state and timestamps.
