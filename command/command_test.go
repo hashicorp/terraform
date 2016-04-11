@@ -224,21 +224,8 @@ func testProvider() *terraform.MockResourceProvider {
 }
 
 func testTempFile(t *testing.T) string {
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	result := tf.Name()
-
-	if err := tf.Close(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Remove(result); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return result
+	dir := testTempDir(t)
+	return filepath.Join(dir, "tf-test-temp")
 }
 
 func testTempDir(t *testing.T) string {
