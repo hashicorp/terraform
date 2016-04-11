@@ -48,6 +48,45 @@ func TestContext2Apply(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
+	m := testModule(t, "apply-map-var-through-module")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`<no state>
+Outputs:
+
+amis_from_module = {eu-west-1:ami-789012 eu-west-2:ami-989484 us-west-1:ami-123456 us-west-2:ami-456789 }
+
+module.test:
+  null_resource.noop:
+    ID = foo
+
+  Outputs:
+
+  amis_out = {eu-west-1:ami-789012 eu-west-2:ami-989484 us-west-1:ami-123456 us-west-2:ami-456789 }`)
+	if actual != expected {
+		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
+	}
+}
+
 func TestContext2Apply_providerAlias(t *testing.T) {
 	m := testModule(t, "apply-provider-alias")
 	p := testProvider("aws")
@@ -3066,7 +3105,7 @@ func TestContext2Apply_outputInvalid(t *testing.T) {
 	if err == nil {
 		t.Fatalf("err: %s", err)
 	}
-	if !strings.Contains(err.Error(), "is not a string") {
+	if !strings.Contains(err.Error(), "is not a valid type") {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -3144,7 +3183,7 @@ func TestContext2Apply_outputList(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputListStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
 }
 
@@ -3850,7 +3889,7 @@ func TestContext2Apply_vars(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyVarsStr)
 	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+		t.Fatalf("expected: %s\n got:\n%s", expected, actual)
 	}
 }
 
