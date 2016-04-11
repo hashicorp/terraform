@@ -8,6 +8,7 @@ FEATURES:
 
   * core: State manipulation commands are now exposed via `terraform state`
   * core: Lists can now be specified as variables and outputs [GH-5936]
+  * core: Terraform version is now in state, and Terraform will fail running on state from a future version [GH-5873]
 
 IMPROVEMENTS:
 
