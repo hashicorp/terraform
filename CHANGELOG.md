@@ -31,6 +31,9 @@ IMPROVEMENTS:
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
  * provider/docker: Add support for docker run --user option [GH-5300]
  * provider/google: Accept GOOGLE_CLOUD_KEYFILE_JSON env var for credentials [GH-6007]
+ * provider/google: Make "project" attribute on provider configuration optional [GH-6112]
+ * provider/google: Add "project" argument and attribute to all GCP compute resources which inherit from the provider's value [GH-6112]
+ *provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
  * provider/github: Add support for privacy to `github_team` [GH-6116]
  * provider/cloudstack: Deprecate `ipaddress` in favour of `ip_address` in all resources [GH-6010]
  * provider/openstack: Allow subnets with no gateway [GH-6060]
@@ -265,7 +268,7 @@ BUG FIXES:
   * provider/google: Fix reading of `google_compute_vpn_gateway` without an explicit ([#5125](https://github.com/hashicorp/terraform/issues/5125))
   * provider/google: Fix crash when setting `ack_deadline_seconds` on `google_pubsub_subscription` ([#5110](https://github.com/hashicorp/terraform/issues/5110))
   * provider/openstack: Fix crash when `access_network` was not defined in instances ([#4966](https://github.com/hashicorp/terraform/issues/4966))
-  * provider/powerdns: Fix refresh of `powerdns_record` no longer fails if the record name contains a `-` ([#5228](https://github.com/hashicorp/terraform/issues/5228)) 
+  * provider/powerdns: Fix refresh of `powerdns_record` no longer fails if the record name contains a `-` ([#5228](https://github.com/hashicorp/terraform/issues/5228))
   * provider/vcd: Wait for DHCP assignment when creating `vcd_vapp` resources with no static IP assignment ([#5195](https://github.com/hashicorp/terraform/issues/5195))
 
 ## 0.6.11 (February 1, 2016)
@@ -286,8 +289,8 @@ IMPROVEMENTS:
   * provider/template: Remove unnecessary mime-type validation from `template_cloudinit_config` resources ([#4873](https://github.com/hashicorp/terraform/issues/4873))
   * provider/template: Correct spelling of "Boundary" in the part separator of rendered `template_cloudinit_config` resources ([#4873](https://github.com/hashicorp/terraform/issues/4873))
   * provider/aws: Provide a better message if no AWS creds are found ([#4869](https://github.com/hashicorp/terraform/issues/4869))
-  * provider/openstack: Ability to specify per-network Floating IPs ([#4812](https://github.com/hashicorp/terraform/issues/4812)) 
- 
+  * provider/openstack: Ability to specify per-network Floating IPs ([#4812](https://github.com/hashicorp/terraform/issues/4812))
+
 BUG FIXES:
 
   * provider/aws: `aws_autoscale_schedule` 0 values ([#4693](https://github.com/hashicorp/terraform/issues/4693))
@@ -298,7 +301,7 @@ BUG FIXES:
   * provider/azurerm: Fix panic if no creds supplied ([#4902](https://github.com/hashicorp/terraform/issues/4902))
   * provider/openstack: Changing the port resource to mark the ip_address as optional ([#4850](https://github.com/hashicorp/terraform/issues/4850))
   * provider/docker: Catch potential custom network errors in docker ([#4918](https://github.com/hashicorp/terraform/issues/4918))
-  
+
 
 
 ## 0.6.10 (January 27, 2016)
@@ -354,7 +357,7 @@ IMPROVEMENTS:
   * provider/aws: Enable specifying aws s3 redirect protocol ([#4098](https://github.com/hashicorp/terraform/issues/4098))
   * provider/aws: Added support for `encrypted` on `ebs_block_devices` in Launch Configurations ([#4481](https://github.com/hashicorp/terraform/issues/4481))
   * provider/aws: Retry Listener Creation for ELBs ([#4825](https://github.com/hashicorp/terraform/issues/4825))
-  * provider/aws: Add support for creating Managed Microsoft Active Directory 
+  * provider/aws: Add support for creating Managed Microsoft Active Directory
     and Directory Connectors ([#4388](https://github.com/hashicorp/terraform/issues/4388))
   * provider/aws: Mark some `aws_db_instance` fields as optional ([#3138](https://github.com/hashicorp/terraform/issues/3138))
   * provider/digitalocean: Add support for reassigning `digitalocean_floating_ip` resources ([#4476](https://github.com/hashicorp/terraform/issues/4476))
