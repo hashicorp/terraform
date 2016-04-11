@@ -14,7 +14,7 @@ Creates firewall rules for a given IP address.
 
 ```
 resource "cloudstack_firewall" "default" {
-  ip_address = "192.168.0.1"
+  ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
 
   rule {
     cidr_list = ["10.0.0.0/8"]
@@ -28,8 +28,8 @@ resource "cloudstack_firewall" "default" {
 
 The following arguments are supported:
 
-* `ip_address` - (Required) The IP address or ID for which to create the firewall
-    rules. Changing this forces a new resource to be created.
+* `ip_address_id` - (Required) The IP address ID for which to create the
+    firewall rules. Changing this forces a new resource to be created.
 
 * `ipaddress` - (Required, Deprecated) The IP address or ID for which to create
     the firewall rules. Changing this forces a new resource to be created.

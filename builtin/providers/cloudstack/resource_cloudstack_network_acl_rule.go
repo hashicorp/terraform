@@ -1,6 +1,7 @@
 package cloudstack
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -20,10 +21,19 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 		Delete: resourceCloudStackNetworkACLRuleDelete,
 
 		Schema: map[string]*schema.Schema{
+			"acl_id": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"aclid"},
+			},
+
 			"aclid": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Please use the `acl_id` field instead",
+				ConflictsWith: []string{"acl_id"},
 			},
 
 			"managed": &schema.Schema{
@@ -109,8 +119,16 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
+	aclid, ok := d.GetOk("acl_id")
+	if !ok {
+		aclid, ok = d.GetOk("aclid")
+	}
+	if !ok {
+		return errors.New("Either `acl_id` or [deprecated] `aclid` must be provided.")
+	}
+
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(d.Get("aclid").(string))
+	d.SetId(aclid.(string))
 
 	// Create all rules that are configured
 	if nrs := d.Get("rule").(*schema.Set); nrs.Len() > 0 {

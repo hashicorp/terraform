@@ -42,8 +42,6 @@ func TestAccCloudStackIPAddress_vpc(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackIPAddressExists(
 						"cloudstack_ipaddress.foo", &ipaddr),
-					resource.TestCheckResourceAttr(
-						"cloudstack_ipaddress.foo", "vpc", "terraform-vpc"),
 				),
 			},
 		},
@@ -83,8 +81,8 @@ func testAccCheckCloudStackIPAddressAttributes(
 	ipaddr *cloudstack.PublicIpAddress) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if ipaddr.Associatednetworkname != CLOUDSTACK_NETWORK_1 {
-			return fmt.Errorf("Bad network: %s", ipaddr.Associatednetworkname)
+		if ipaddr.Associatednetworkid != CLOUDSTACK_NETWORK_1 {
+			return fmt.Errorf("Bad network ID: %s", ipaddr.Associatednetworkid)
 		}
 
 		return nil
@@ -114,7 +112,7 @@ func testAccCheckCloudStackIPAddressDestroy(s *terraform.State) error {
 
 var testAccCloudStackIPAddress_basic = fmt.Sprintf(`
 resource "cloudstack_ipaddress" "foo" {
-  network = "%s"
+  network_id = "%s"
 }`, CLOUDSTACK_NETWORK_1)
 
 var testAccCloudStackIPAddress_vpc = fmt.Sprintf(`
@@ -126,7 +124,7 @@ resource "cloudstack_vpc" "foobar" {
 }
 
 resource "cloudstack_ipaddress" "foo" {
-  vpc = "${cloudstack_vpc.foobar.name}"
+  vpc_id = "${cloudstack_vpc.foobar.id}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,

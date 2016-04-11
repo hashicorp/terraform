@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -37,10 +38,18 @@ func resourceCloudStackInstance() *schema.Resource {
 				Required: true,
 			},
 
-			"network": &schema.Schema{
+			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
+			},
+
+			"network": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `network_id` field instead",
 			},
 
 			"ip_address": &schema.Schema{
@@ -149,11 +158,21 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if zone.Networktype == "Advanced" {
+		network, ok := d.GetOk("network_id")
+		if !ok {
+			network, ok = d.GetOk("network")
+		}
+		if !ok {
+			return errors.New(
+				"Either `network_id` or [deprecated] `network` must be provided when using a zone with network type `advanced`.")
+		}
+
 		// Retrieve the network ID
-		networkid, e := retrieveID(cs, "network", d.Get("network").(string))
+		networkid, e := retrieveID(cs, "network", network.(string))
 		if e != nil {
 			return e.Error()
 		}
+
 		// Set the default network ID
 		p.SetNetworkids([]string{networkid})
 	}
@@ -168,14 +187,8 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project ID
-		projectid, e := retrieveID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
 	}
 
 	// If a keypair is supplied, add it to the parameter struct
@@ -240,10 +253,9 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	// Update the config
 	d.Set("name", vm.Name)
 	d.Set("display_name", vm.Displayname)
+	d.Set("network_id", vm.Nic[0].Networkid)
 	d.Set("ip_address", vm.Nic[0].Ipaddress)
-	//NB cloudstack sometimes sends back the wrong keypair name, so dont update it
 
-	setValueOrID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
 	setValueOrID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrID(d, "template", vm.Templatename, vm.Templateid)
 	setValueOrID(d, "project", vm.Project, vm.Projectid)

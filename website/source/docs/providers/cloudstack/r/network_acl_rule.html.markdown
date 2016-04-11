@@ -14,7 +14,7 @@ Creates network ACL rules for a given network ACL.
 
 ```
 resource "cloudstack_network_acl_rule" "default" {
-  aclid = "f3843ce0-334c-4586-bbd3-0c2e2bc946c6"
+  acl_id = "f3843ce0-334c-4586-bbd3-0c2e2bc946c6"
 
   rule {
     action = "allow"
@@ -30,8 +30,11 @@ resource "cloudstack_network_acl_rule" "default" {
 
 The following arguments are supported:
 
-* `aclid` - (Required) The network ACL ID for which to create the rules.
+* `acl_id` - (Required) The network ACL ID for which to create the rules.
     Changing this forces a new resource to be created.
+
+* `aclid` - (Required, Deprecated) The network ACL ID for which to create
+    the rules. Changing this forces a new resource to be created.
 
 * `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
     this network ACL will be managed by this resource. This means it will delete

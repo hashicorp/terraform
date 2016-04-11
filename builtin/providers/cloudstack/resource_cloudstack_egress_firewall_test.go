@@ -21,7 +21,7 @@ func TestAccCloudStackEgressFirewall_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackEgressFirewallRulesExist("cloudstack_egress_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "network", CLOUDSTACK_NETWORK_1),
+						"cloudstack_egress_firewall.foo", "network_id", CLOUDSTACK_NETWORK_1),
 					resource.TestCheckResourceAttr(
 						"cloudstack_egress_firewall.foo", "rule.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -59,7 +59,7 @@ func TestAccCloudStackEgressFirewall_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackEgressFirewallRulesExist("cloudstack_egress_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "network", CLOUDSTACK_NETWORK_1),
+						"cloudstack_egress_firewall.foo", "network_id", CLOUDSTACK_NETWORK_1),
 					resource.TestCheckResourceAttr(
 						"cloudstack_egress_firewall.foo", "rule.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -88,7 +88,7 @@ func TestAccCloudStackEgressFirewall_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackEgressFirewallRulesExist("cloudstack_egress_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "network", CLOUDSTACK_NETWORK_1),
+						"cloudstack_egress_firewall.foo", "network_id", CLOUDSTACK_NETWORK_1),
 					resource.TestCheckResourceAttr(
 						"cloudstack_egress_firewall.foo", "rule.#", "3"),
 					resource.TestCheckResourceAttr(
@@ -188,7 +188,7 @@ func testAccCheckCloudStackEgressFirewallDestroy(s *terraform.State) error {
 
 var testAccCloudStackEgressFirewall_basic = fmt.Sprintf(`
 resource "cloudstack_egress_firewall" "foo" {
-  network = "%s"
+  network_id = "%s"
 
   rule {
     cidr_list = ["%s/32"]
@@ -208,7 +208,7 @@ resource "cloudstack_egress_firewall" "foo" {
 
 var testAccCloudStackEgressFirewall_update = fmt.Sprintf(`
 resource "cloudstack_egress_firewall" "foo" {
-  network = "%s"
+  network_id = "%s"
 
   rule {
     cidr_list = ["%s/32", "%s/32"]
