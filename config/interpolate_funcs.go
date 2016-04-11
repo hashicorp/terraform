@@ -19,6 +19,7 @@ import (
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
 )
@@ -466,20 +467,22 @@ func interpolationFuncSplit() ast.Function {
 // dynamic lookups of map types within a Terraform configuration.
 func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ArgTypes:   []ast.Type{ast.TypeMap, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			k := fmt.Sprintf("var.%s.%s", args[0].(string), args[1].(string))
-			v, ok := vs[k]
+			index := args[1].(string)
+			mapVar := args[0].(map[string]ast.Variable)
+
+			v, ok := mapVar[index]
 			if !ok {
 				return "", fmt.Errorf(
-					"lookup in '%s' failed to find '%s'",
-					args[0].(string), args[1].(string))
+					"lookup failed to find '%s'",
+					args[1].(string))
 			}
 			if v.Type != ast.TypeString {
 				return "", fmt.Errorf(
-					"lookup in '%s' for '%s' has bad type %s",
-					args[0].(string), args[1].(string), v.Type)
+					"lookup for '%s' has bad type %s",
+					args[1].(string), v.Type)
 			}
 
 			return v.Value.(string), nil
@@ -513,28 +516,24 @@ func interpolationFuncElement() ast.Function {
 // keys of map types within a Terraform configuration.
 func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString},
-		ReturnType: ast.TypeString,
+		ArgTypes:   []ast.Type{ast.TypeMap},
+		ReturnType: ast.TypeList,
 		Callback: func(args []interface{}) (interface{}, error) {
-			// Prefix must include ending dot to be a map
-			prefix := fmt.Sprintf("var.%s.", args[0].(string))
-			keys := make([]string, 0, len(vs))
-			for k, _ := range vs {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
-				keys = append(keys, k[len(prefix):])
-			}
+			mapVar := args[0].(map[string]ast.Variable)
+			keys := make([]string, 0)
 
-			if len(keys) <= 0 {
-				return "", fmt.Errorf(
-					"failed to find map '%s'",
-					args[0].(string))
+			for k, _ := range mapVar {
+				keys = append(keys, k)
 			}
 
 			sort.Strings(keys)
 
-			return NewStringList(keys).String(), nil
+			variable, err := hil.InterfaceToVariable(keys)
+			if err != nil {
+				return nil, err
+			}
+
+			return variable.Value, nil
 		},
 	}
 }
@@ -543,38 +542,34 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 // keys of map types within a Terraform configuration.
 func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString},
-		ReturnType: ast.TypeString,
+		ArgTypes:   []ast.Type{ast.TypeMap},
+		ReturnType: ast.TypeList,
 		Callback: func(args []interface{}) (interface{}, error) {
-			// Prefix must include ending dot to be a map
-			prefix := fmt.Sprintf("var.%s.", args[0].(string))
-			keys := make([]string, 0, len(vs))
-			for k, _ := range vs {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
-				keys = append(keys, k)
-			}
+			mapVar := args[0].(map[string]ast.Variable)
+			keys := make([]string, 0)
 
-			if len(keys) <= 0 {
-				return "", fmt.Errorf(
-					"failed to find map '%s'",
-					args[0].(string))
+			for k, _ := range mapVar {
+				keys = append(keys, k)
 			}
 
 			sort.Strings(keys)
 
-			vals := make([]string, 0, len(keys))
-
-			for _, k := range keys {
-				v := vs[k]
-				if v.Type != ast.TypeString {
-					return "", fmt.Errorf("values(): %q has bad type %s", k, v.Type)
+			values := make([]string, len(keys))
+			for index, key := range keys {
+				if value, ok := mapVar[key].Value.(string); ok {
+					values[index] = value
+				} else {
+					return "", fmt.Errorf("values(): %q has element with bad type %s",
+						key, mapVar[key].Type)
 				}
-				vals = append(vals, vs[k].Value.(string))
 			}
 
-			return NewStringList(vals).String(), nil
+			variable, err := hil.InterfaceToVariable(values)
+			if err != nil {
+				return nil, err
+			}
+
+			return variable.Value, nil
 		},
 	}
 }

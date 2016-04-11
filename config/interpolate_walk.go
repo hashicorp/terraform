@@ -42,7 +42,7 @@ type interpolationWalker struct {
 //
 // If Replace is set to false in interpolationWalker, then the replace
 // value can be anything as it will have no effect.
-type interpolationWalkerFunc func(ast.Node) (string, error)
+type interpolationWalkerFunc func(ast.Node) (interface{}, error)
 
 // interpolationWalkerContextFunc is called by interpolationWalk if
 // ContextF is set. This receives both the interpolation and the location
@@ -150,8 +150,8 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		// set if it is computed. This behavior is different if we're
 		// splitting (in a SliceElem) or not.
 		remove := false
-		if w.loc == reflectwalk.SliceElem && IsStringList(replaceVal) {
-			parts := StringList(replaceVal).Slice()
+		if w.loc == reflectwalk.SliceElem && IsStringList(replaceVal.(string)) {
+			parts := StringList(replaceVal.(string)).Slice()
 			for _, p := range parts {
 				if p == UnknownVariableValue {
 					remove = true

@@ -2,7 +2,6 @@ package config
 
 import (
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -455,43 +454,6 @@ func TestProviderConfigName(t *testing.T) {
 	n := ProviderConfigName("aws_instance", pcs)
 	if n != "aws" {
 		t.Fatalf("bad: %s", n)
-	}
-}
-
-func TestVariableDefaultsMap(t *testing.T) {
-	cases := []struct {
-		Default interface{}
-		Output  map[string]string
-	}{
-		{
-			nil,
-			nil,
-		},
-
-		{
-			"foo",
-			map[string]string{"var.foo": "foo"},
-		},
-
-		{
-			map[interface{}]interface{}{
-				"foo": "bar",
-				"bar": "baz",
-			},
-			map[string]string{
-				"var.foo":     "foo",
-				"var.foo.foo": "bar",
-				"var.foo.bar": "baz",
-			},
-		},
-	}
-
-	for i, tc := range cases {
-		v := &Variable{Name: "foo", Default: tc.Default}
-		actual := v.DefaultsMap()
-		if !reflect.DeepEqual(actual, tc.Output) {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
 	}
 }
 
