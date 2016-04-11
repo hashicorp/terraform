@@ -108,7 +108,7 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 	defer r.lock.Unlock()
 
 	config := langEvalConfig(vs)
-	return r.interpolate(func(root ast.Node) (string, error) {
+	return r.interpolate(func(root ast.Node) (interface{}, error) {
 		// We detect the variables again and check if the value of any
 		// of the variables is the computed value. If it is, then we
 		// treat this entire value as computed.
@@ -137,7 +137,7 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 			return "", err
 		}
 
-		return result.Value.(string), nil
+		return result.Value, nil
 	})
 }
 
@@ -194,7 +194,7 @@ func (r *RawConfig) init() error {
 	r.Interpolations = nil
 	r.Variables = nil
 
-	fn := func(node ast.Node) (string, error) {
+	fn := func(node ast.Node) (interface{}, error) {
 		r.Interpolations = append(r.Interpolations, node)
 		vars, err := DetectVariables(node)
 		if err != nil {
