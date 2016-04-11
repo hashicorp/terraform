@@ -251,7 +251,8 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	if !c.Destroy {
 		if outputs := outputsAsString(state); outputs != "" {
-			c.Ui.Output(c.Colorize().Color(outputs))
+			colorOutputs := fmt.Sprintf("[reset][bold][green]\nOutputs:\n\n%s", outputs)
+			c.Ui.Output(c.Colorize().Color(colorOutputs))
 		}
 	}
 
@@ -384,27 +385,25 @@ func outputsAsString(state *terraform.State) string {
 	outputs := state.RootModule().Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
-		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
-
-		// Output the outputs in alphabetical order
-		keyLen := 0
-		keys := make([]string, 0, len(outputs))
-		for key, _ := range outputs {
-			keys = append(keys, key)
-			if len(key) > keyLen {
-				keyLen = len(key)
-			}
+		ks := make([]string, 0, len(outputs))
+		for k, _ := range outputs {
+			ks = append(ks, k)
 		}
-		sort.Strings(keys)
+		sort.Strings(ks)
 
-		for _, k := range keys {
+		for _, k := range ks {
 			v := outputs[k]
-
-			outputBuf.WriteString(fmt.Sprintf(
-				"  %s%s = %s\n",
-				k,
-				strings.Repeat(" ", keyLen-len(k)),
-				v))
+			switch typedV := v.(type) {
+			case string:
+				outputBuf.WriteString(fmt.Sprintf("%s = %s", k, typedV))
+				outputBuf.WriteString("\n")
+			case []interface{}:
+				outputBuf.WriteString(formatListOutput("", k, typedV))
+				outputBuf.WriteString("\n")
+			case map[string]interface{}:
+				outputBuf.WriteString(formatMapOutput("", k, typedV))
+				outputBuf.WriteString("\n")
+			}
 		}
 	}
 
