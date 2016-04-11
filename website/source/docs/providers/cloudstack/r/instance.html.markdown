@@ -31,6 +31,8 @@ The following arguments are supported:
 
 * `display_name` - (Optional) The display name of the instance.
 
+* `group` - (Optional) The group name of the instance.
+
 * `service_offering` - (Required) The name or ID of the service offering used
     for this instance.
 
