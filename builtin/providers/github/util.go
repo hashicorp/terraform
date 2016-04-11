@@ -17,11 +17,11 @@ func fromGithubID(id *int) string {
 	return strconv.Itoa(*id)
 }
 
-func validateRoleValueFunc(roles []string) schema.SchemaValidateFunc {
+func validateValueFunc(values []string) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (we []string, errors []error) {
 		value := v.(string)
 		valid := false
-		for _, role := range roles {
+		for _, role := range values {
 			if value == role {
 				valid = true
 				break
@@ -29,7 +29,7 @@ func validateRoleValueFunc(roles []string) schema.SchemaValidateFunc {
 		}
 
 		if !valid {
-			errors = append(errors, fmt.Errorf("%s is an invalid Github role type for %s", value, k))
+			errors = append(errors, fmt.Errorf("%s is an invalid value for argument %s", value, k))
 		}
 		return
 	}
