@@ -592,7 +592,7 @@ aws_instance.foo:
 
 Outputs:
 
-foo_num = bar,bar,bar
+foo_num = [bar,bar,bar]
 `
 
 const testTerraformApplyOutputMultiStr = `
