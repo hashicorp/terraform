@@ -127,30 +127,14 @@ func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interfa
 func stateAddFunc_Instance_Instance(s *State, addr *ResourceAddress, raw interface{}) error {
 	src := raw.(*InstanceState).deepcopy()
 
-	// Create the module up to this point
-	path := append([]string{"root"}, addr.Path...)
-	mod := s.ModuleByPath(path)
-	if mod == nil {
-		mod = s.AddModule(path)
-	}
-
-	// Create the resources
-	resourceKey := (&ResourceStateKey{
-		Name:  addr.Name,
-		Type:  addr.Type,
-		Index: addr.Index,
-	}).String()
-	resource, ok := mod.Resources[resourceKey]
-	if !ok {
-		resource = &ResourceState{Type: addr.Type}
-		resource.init()
-		mod.Resources[resourceKey] = resource
-	}
+	// Create the instance
+	instanceRaw, _ := stateAddInitAddr(s, addr)
+	instance := instanceRaw.(*InstanceState)
 
 	// Depending on the instance type, set it
 	switch addr.InstanceType {
 	case TypePrimary:
-		resource.Primary = src
+		*instance = *src
 	default:
 		return fmt.Errorf("can't move instance state to %s", addr.InstanceType)
 	}
