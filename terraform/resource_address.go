@@ -52,11 +52,15 @@ func (r *ResourceAddress) String() string {
 
 	if r.Name != "" {
 		name := r.Name
-		switch r.InstanceType {
-		case TypeDeposed:
-			name += ".deposed"
-		case TypeTainted:
-			name += ".tainted"
+		if r.InstanceTypeSet {
+			switch r.InstanceType {
+			case TypePrimary:
+				name += ".primary"
+			case TypeDeposed:
+				name += ".deposed"
+			case TypeTainted:
+				name += ".tainted"
+			}
 		}
 
 		if r.Index >= 0 {

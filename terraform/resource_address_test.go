@@ -50,7 +50,7 @@ func TestParseResourceAddress(t *testing.T) {
 				InstanceTypeSet: true,
 				Index:           2,
 			},
-			"aws_instance.foo[2]",
+			"",
 		},
 		"tainted": {
 			"aws_instance.foo.tainted",
