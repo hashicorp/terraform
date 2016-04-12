@@ -98,7 +98,11 @@ func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interfa
 	src := raw.(*ResourceState)
 
 	// Initialize the resource
-	resource := stateAddInitAddr(s, addr).(*ResourceState)
+	resourceRaw, exists := stateAddInitAddr(s, addr)
+	if exists {
+		return fmt.Errorf("resource exists and not empty: %s", addr)
+	}
+	resource := resourceRaw.(*ResourceState)
 	resource.Type = src.Type
 
 	// TODO: Dependencies
@@ -218,17 +222,19 @@ func detectValueAddLoc(raw interface{}) stateAddLoc {
 // stateAddInitAddr takes a ResourceAddress and creates the non-existing
 // resources up to that point, returning the empty (or existing) interface
 // at that address.
-func stateAddInitAddr(s *State, addr *ResourceAddress) interface{} {
+func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 	addType := detectAddrAddLoc(addr)
 
 	// Get the module
 	path := append([]string{"root"}, addr.Path...)
+	exists := true
 	mod := s.ModuleByPath(path)
 	if mod == nil {
 		mod = s.AddModule(path)
+		exists = false
 	}
 	if addType == stateAddModule {
-		return mod
+		return mod, exists
 	}
 
 	// Add the resource
@@ -237,17 +243,20 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) interface{} {
 		Type:  addr.Type,
 		Index: addr.Index,
 	}).String()
+	exists = true
 	resource, ok := mod.Resources[resourceKey]
 	if !ok {
 		resource = &ResourceState{Type: addr.Type}
 		resource.init()
 		mod.Resources[resourceKey] = resource
+		exists = false
 	}
 	if addType == stateAddResource {
-		return resource
+		return resource, exists
 	}
 
 	// Get the instance
+	exists = true
 	var instance *InstanceState
 	switch addr.InstanceType {
 	case TypePrimary:
@@ -271,7 +280,8 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) interface{} {
 	}
 	if instance == nil {
 		instance = &InstanceState{}
+		exists = false
 	}
 
-	return instance
+	return instance, exists
 }
