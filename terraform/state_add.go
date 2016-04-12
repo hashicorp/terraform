@@ -97,6 +97,10 @@ func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}
 func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interface{}) error {
 	src := raw.(*ResourceState)
 
+	// Initialize the resource
+	resource := stateAddInitAddr(s, addr).(*ResourceState)
+	resource.Type = src.Type
+
 	// TODO: Dependencies
 	// TODO: Provider?
 
@@ -209,4 +213,65 @@ func detectValueAddLoc(raw interface{}) stateAddLoc {
 	default:
 		return stateAddInvalid
 	}
+}
+
+// stateAddInitAddr takes a ResourceAddress and creates the non-existing
+// resources up to that point, returning the empty (or existing) interface
+// at that address.
+func stateAddInitAddr(s *State, addr *ResourceAddress) interface{} {
+	addType := detectAddrAddLoc(addr)
+
+	// Get the module
+	path := append([]string{"root"}, addr.Path...)
+	mod := s.ModuleByPath(path)
+	if mod == nil {
+		mod = s.AddModule(path)
+	}
+	if addType == stateAddModule {
+		return mod
+	}
+
+	// Add the resource
+	resourceKey := (&ResourceStateKey{
+		Name:  addr.Name,
+		Type:  addr.Type,
+		Index: addr.Index,
+	}).String()
+	resource, ok := mod.Resources[resourceKey]
+	if !ok {
+		resource = &ResourceState{Type: addr.Type}
+		resource.init()
+		mod.Resources[resourceKey] = resource
+	}
+	if addType == stateAddResource {
+		return resource
+	}
+
+	// Get the instance
+	var instance *InstanceState
+	switch addr.InstanceType {
+	case TypePrimary:
+		instance = resource.Primary
+	case TypeTainted:
+		idx := addr.Index
+		if addr.Index < 0 {
+			idx = 0
+		}
+		if len(resource.Tainted) > idx {
+			instance = resource.Tainted[idx]
+		}
+	case TypeDeposed:
+		idx := addr.Index
+		if addr.Index < 0 {
+			idx = 0
+		}
+		if len(resource.Deposed) > idx {
+			instance = resource.Deposed[idx]
+		}
+	}
+	if instance == nil {
+		instance = &InstanceState{}
+	}
+
+	return instance
 }
