@@ -126,6 +126,84 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	testStateOutput(t, backups[0], testStateMvOutput_stateOutOriginal)
 }
 
+func TestStateMv_stateOutExisting(t *testing.T) {
+	stateSrc := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "value",
+								"bar": "value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, stateSrc)
+
+	stateDst := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.qux": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	stateOutPath := testStateFile(t, stateDst)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-state-out", stateOutPath,
+		"test_instance.foo",
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, stateOutPath, testStateMvExisting_stateDst)
+	testStateOutput(t, statePath, testStateMvExisting_stateSrc)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], testStateMvExisting_stateSrcOriginal)
+
+	backups = testStateBackups(t, filepath.Dir(stateOutPath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], testStateMvExisting_stateDstOriginal)
+}
+
 func TestStateMv_noState(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
@@ -183,4 +261,29 @@ test_instance.foo:
   ID = bar
   bar = value
   foo = value
+`
+
+const testStateMvExisting_stateSrc = `
+<no state>
+`
+
+const testStateMvExisting_stateDst = `
+test_instance.bar:
+  ID = bar
+  bar = value
+  foo = value
+test_instance.qux:
+  ID = bar
+`
+
+const testStateMvExisting_stateSrcOriginal = `
+test_instance.foo:
+  ID = bar
+  bar = value
+  foo = value
+`
+
+const testStateMvExisting_stateDstOriginal = `
+test_instance.qux:
+  ID = bar
 `
