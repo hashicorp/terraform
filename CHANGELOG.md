@@ -61,6 +61,7 @@ BUG FIXES:
  * provider/openstack: Fix resizing when Flavor Name changes [GH-6020]
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
  * provider/vsphere: Add error handling to `vsphere_folder` [GH-6095]
+ * provider/triton: Firewall status on `triton_machine` resources is reflected correctly [GH-6119]
 
 ## 0.6.14 (March 21, 2016)
 
