@@ -17,11 +17,13 @@ type StateMvCommand struct {
 func (c *StateMvCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
 
-	var backupPath string
+	// We create two metas to track the two states
+	var meta1, meta2 Meta
 	cmdFlags := c.Meta.flagSet("state show")
-	cmdFlags.StringVar(&backupPath, "backup", "", "backup")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
+	cmdFlags.StringVar(&meta1.stateOutPath, "backup", "", "backup")
+	cmdFlags.StringVar(&meta1.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&meta2.stateOutPath, "backup-out", "", "backup")
+	cmdFlags.StringVar(&meta2.statePath, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
 	}
@@ -31,43 +33,85 @@ func (c *StateMvCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	state, err := c.StateMeta.State(&c.Meta)
+	// Copy the `-state` flag for output if we weren't given a custom one
+	if meta2.statePath == "" {
+		meta2.statePath = meta1.statePath
+	}
+
+	// Read the from state
+	stateFrom, err := c.StateMeta.State(&meta1)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return cli.RunResultHelp
 	}
 
-	stateReal := state.State()
-	if stateReal == nil {
+	stateFromReal := stateFrom.State()
+	if stateFromReal == nil {
 		c.Ui.Error(fmt.Sprintf(errStateNotFound))
 		return 1
 	}
 
-	filter := &terraform.StateFilter{State: stateReal}
+	// Read the destination state
+	stateTo := stateFrom
+	stateToReal := stateFromReal
+	if meta2.statePath != meta1.statePath {
+		stateTo, err = c.StateMeta.State(&meta2)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+			return cli.RunResultHelp
+		}
+
+		stateToReal = stateTo.State()
+		if stateToReal == nil {
+			stateToReal = terraform.NewState()
+		}
+	}
+
+	// Filter what we're moving
+	filter := &terraform.StateFilter{State: stateFromReal}
 	results, err := filter.Filter(args[0])
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateMv, err))
 		return cli.RunResultHelp
 	}
+	if len(results) == 0 {
+		c.Ui.Output(fmt.Sprintf("Item to move doesn't exist: %s", args[0]))
+		return 1
+	}
 
-	if err := stateReal.Remove(args[0]); err != nil {
+	// Do the actual move
+	if err := stateFromReal.Remove(args[0]); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateMv, err))
 		return 1
 	}
 
-	if err := stateReal.Add(args[0], args[1], results[0].Value); err != nil {
+	if err := stateToReal.Add(args[0], args[1], results[0].Value); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateMv, err))
 		return 1
 	}
 
-	if err := state.WriteState(stateReal); err != nil {
+	// Write the new state
+	if err := stateTo.WriteState(stateToReal); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
 		return 1
 	}
 
-	if err := state.PersistState(); err != nil {
+	if err := stateTo.PersistState(); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
 		return 1
+	}
+
+	// Write the old state if it is different
+	if stateTo != stateFrom {
+		if err := stateFrom.WriteState(stateFromReal); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+			return 1
+		}
+
+		if err := stateFrom.PersistState(); err != nil {
+			c.Ui.Error(fmt.Sprintf(errStateMvPersist, err))
+			return 1
+		}
 	}
 
 	c.Ui.Output(fmt.Sprintf(
@@ -93,10 +137,17 @@ Usage: terraform state mv [options] ADDRESS ADDRESS
 
 Options:
 
-  -backup=PATH        Path where Terraform should write the backup
+  -backup=PATH        Path where Terraform should write the backup for the original
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
                       a backup extension.
+
+  -backup-out=PATH    Path where Terraform should write the backup for the destination
+                      state. This can't be disabled. If not set, Terraform
+                      will write it to the same path as the destination state
+                      file with a backup extension. This only needs
+                      to be specified if -state-out is set to a different path
+                      than -state.
 
   -state=PATH         Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
