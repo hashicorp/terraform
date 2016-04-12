@@ -263,7 +263,7 @@ func TestStateAdd(t *testing.T) {
 			nil,
 		},
 
-		"ResourceState => Module (existing)": {
+		"ResourceState => Module (new)": {
 			false,
 			"aws_instance.bar",
 			"module.foo",
@@ -282,6 +282,32 @@ func TestStateAdd(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"aws_instance.bar": &ResourceState{
 								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		"InstanceState => Resource (new)": {
+			false,
+			"aws_instance.bar.primary",
+			"aws_instance.baz",
+			&InstanceState{
+				ID: "foo",
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.baz": &ResourceState{
+								Type: "aws_instance",
 								Primary: &InstanceState{
 									ID: "foo",
 								},
