@@ -317,6 +317,32 @@ func TestStateAdd(t *testing.T) {
 				},
 			},
 		},
+
+		"InstanceState => Module (new)": {
+			false,
+			"aws_instance.bar.primary",
+			"module.foo",
+			&InstanceState{
+				ID: "foo",
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.bar": &ResourceState{
+								Type: "aws_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for k, tc := range cases {

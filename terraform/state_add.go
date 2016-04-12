@@ -159,6 +159,15 @@ func stateAddFunc_Instance_Instance(s *State, fromAddr, addr *ResourceAddress, r
 	return nil
 }
 
+func stateAddFunc_Instance_Module(
+	s *State, from, to *ResourceAddress, raw interface{}) error {
+	addr := *to
+	addr.Type = from.Type
+	addr.Name = from.Name
+
+	return s.Add(from.String(), addr.String(), raw)
+}
+
 func stateAddFunc_Instance_Resource(
 	s *State, from, to *ResourceAddress, raw interface{}) error {
 	addr := *to
@@ -185,6 +194,7 @@ func init() {
 		},
 		stateAddInstance: {
 			stateAddInstance: stateAddFunc_Instance_Instance,
+			stateAddModule:   stateAddFunc_Instance_Module,
 			stateAddResource: stateAddFunc_Instance_Resource,
 		},
 	}
