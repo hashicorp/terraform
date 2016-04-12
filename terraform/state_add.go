@@ -27,16 +27,22 @@ import (
 //          represents a single instance (primary). Example:
 //          "aws_instance.foo" can be moved to "aws_instance.bar.tainted"
 //
-func (s *State) Add(addrRaw string, raw interface{}) error {
+func (s *State) Add(fromAddrRaw string, toAddrRaw string, raw interface{}) error {
 	// Parse the address
-	addr, err := ParseResourceAddress(addrRaw)
+	toAddr, err := ParseResourceAddress(toAddrRaw)
+	if err != nil {
+		return err
+	}
+
+	// Parse the from address
+	fromAddr, err := ParseResourceAddress(fromAddrRaw)
 	if err != nil {
 		return err
 	}
 
 	// Determine the types
 	from := detectValueAddLoc(raw)
-	to := detectAddrAddLoc(addr)
+	to := detectAddrAddLoc(toAddr)
 
 	// Find the function to do this
 	fromMap, ok := stateAddFuncs[from]
@@ -45,11 +51,11 @@ func (s *State) Add(addrRaw string, raw interface{}) error {
 	}
 	f, ok := fromMap[to]
 	if !ok {
-		return fmt.Errorf("invalid destination: %s (%d)", addr, to)
+		return fmt.Errorf("invalid destination: %s (%d)", toAddr, to)
 	}
 
 	// Call the migrator
-	if err := f(s, addr, raw); err != nil {
+	if err := f(s, fromAddr, toAddr, raw); err != nil {
 		return err
 	}
 
@@ -58,7 +64,7 @@ func (s *State) Add(addrRaw string, raw interface{}) error {
 	return nil
 }
 
-func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}) error {
+func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
 	src := raw.(*ModuleState).deepcopy()
 
 	// If the target module exists, it is an error
@@ -86,7 +92,7 @@ func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}
 		addrCopy.Index = resourceKey.Index
 
 		// Perform an add
-		if err := s.Add(addrCopy.String(), v); err != nil {
+		if err := s.Add(fromAddr.String(), addrCopy.String(), v); err != nil {
 			return err
 		}
 	}
@@ -94,7 +100,17 @@ func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}
 	return nil
 }
 
-func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interface{}) error {
+func stateAddFunc_Resource_Module(
+	s *State, from, to *ResourceAddress, raw interface{}) error {
+	// Build the more specific to addr
+	addr := *to
+	addr.Type = from.Type
+	addr.Name = from.Name
+
+	return s.Add(from.String(), addr.String(), raw)
+}
+
+func stateAddFunc_Resource_Resource(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
 	src := raw.(*ResourceState).deepcopy()
 
 	// Initialize the resource
@@ -112,7 +128,7 @@ func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interfa
 		addrCopy := *addr
 		addrCopy.InstanceType = TypePrimary
 		addrCopy.InstanceTypeSet = true
-		if err := s.Add(addrCopy.String(), src.Primary); err != nil {
+		if err := s.Add(fromAddr.String(), addrCopy.String(), src.Primary); err != nil {
 			return err
 		}
 	}
@@ -130,7 +146,7 @@ func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interfa
 	return nil
 }
 
-func stateAddFunc_Instance_Instance(s *State, addr *ResourceAddress, raw interface{}) error {
+func stateAddFunc_Instance_Instance(s *State, fromAddr, addr *ResourceAddress, raw interface{}) error {
 	src := raw.(*InstanceState).deepcopy()
 
 	// Create the instance
@@ -144,7 +160,7 @@ func stateAddFunc_Instance_Instance(s *State, addr *ResourceAddress, raw interfa
 }
 
 // stateAddFunc is the type of function for adding an item to a state
-type stateAddFunc func(s *State, addr *ResourceAddress, item interface{}) error
+type stateAddFunc func(s *State, from, to *ResourceAddress, item interface{}) error
 
 // stateAddFuncs has the full matrix mapping of the state adders.
 var stateAddFuncs map[stateAddLoc]map[stateAddLoc]stateAddFunc
@@ -155,6 +171,7 @@ func init() {
 			stateAddModule: stateAddFunc_Module_Module,
 		},
 		stateAddResource: {
+			stateAddModule:   stateAddFunc_Resource_Module,
 			stateAddResource: stateAddFunc_Resource_Resource,
 		},
 		stateAddInstance: {
