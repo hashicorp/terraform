@@ -25,6 +25,7 @@ var (
 		"user_script":          "user-script",
 		"user_data":            "user-data",
 		"administrator_pw":     "administrator-pw",
+		"triton_cns_status":    "triton.cns.status",
 	}
 )
 
@@ -166,6 +167,12 @@ func resourceMachine() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
+			},
+			"triton_cns_status": {
+				Description: "up/down flag to control Triton's CNS",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "up",
 			},
 
 			// computed resources from metadata
