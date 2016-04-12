@@ -195,6 +195,39 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
+		"ResourceState w/ tainted => Resource Addr (new)": {
+			false,
+			"aws_instance.foo",
+			&ResourceState{
+				Type: "test_instance",
+				Tainted: []*InstanceState{
+					&InstanceState{
+						ID: "foo",
+					},
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.foo": &ResourceState{
+								Type:    "test_instance",
+								Primary: &InstanceState{},
+								Tainted: []*InstanceState{
+									&InstanceState{
+										ID: "foo",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
 		"ResourceState => Resource Addr (existing)": {
 			true,
 			"aws_instance.foo",
@@ -246,8 +279,8 @@ func TestStateAdd(t *testing.T) {
 
 		// Verify equality
 		if !tc.One.Equal(tc.Two) {
-			//	t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
-			t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
+			t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
+			//t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
 		}
 	}
 }
