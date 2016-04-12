@@ -117,8 +117,15 @@ func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interfa
 		}
 	}
 
-	// TODO: Move all tainted
-	// TODO: Move all deposed
+	// Move all tainted
+	if len(src.Tainted) > 0 {
+		resource.Tainted = src.Tainted
+	}
+
+	// Move all deposed
+	if len(src.Deposed) > 0 {
+		resource.Deposed = src.Deposed
+	}
 
 	return nil
 }
@@ -130,13 +137,8 @@ func stateAddFunc_Instance_Instance(s *State, addr *ResourceAddress, raw interfa
 	instanceRaw, _ := stateAddInitAddr(s, addr)
 	instance := instanceRaw.(*InstanceState)
 
-	// Depending on the instance type, set it
-	switch addr.InstanceType {
-	case TypePrimary:
-		*instance = *src
-	default:
-		return fmt.Errorf("can't move instance state to %s", addr.InstanceType)
-	}
+	// Set it
+	*instance = *src
 
 	return nil
 }
@@ -240,10 +242,14 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 
 	// Get the instance
 	exists = true
-	var instance *InstanceState
+	instance := &InstanceState{}
 	switch addr.InstanceType {
 	case TypePrimary:
-		instance = resource.Primary
+		if v := resource.Primary; v != nil {
+			instance = resource.Primary
+		} else {
+			exists = false
+		}
 	case TypeTainted:
 		idx := addr.Index
 		if addr.Index < 0 {
@@ -251,6 +257,9 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 		}
 		if len(resource.Tainted) > idx {
 			instance = resource.Tainted[idx]
+		} else {
+			resource.Tainted = append(resource.Tainted, instance)
+			exists = false
 		}
 	case TypeDeposed:
 		idx := addr.Index
@@ -259,11 +268,10 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 		}
 		if len(resource.Deposed) > idx {
 			instance = resource.Deposed[idx]
+		} else {
+			resource.Deposed = append(resource.Deposed, instance)
+			exists = false
 		}
-	}
-	if instance == nil {
-		instance = &InstanceState{}
-		exists = false
 	}
 
 	return instance, exists
