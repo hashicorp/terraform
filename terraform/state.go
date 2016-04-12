@@ -417,12 +417,8 @@ func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
 	}
-	if len(s.Modules) == 0 {
-		root := &ModuleState{
-			Path: rootModulePath,
-		}
-		root.init()
-		s.Modules = []*ModuleState{root}
+	if s.ModuleByPath(rootModulePath) == nil {
+		s.AddModule(rootModulePath)
 	}
 }
 
