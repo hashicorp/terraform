@@ -125,15 +125,16 @@ Usage: terraform state mv [options] ADDRESS ADDRESS
 
   Move an item in the state to another location within the same state.
 
-  This command is useful for module refactors (moving items into a module)
-  or generally renaming of resources.
+  This command is useful for module refactors (moving items into a module),
+  configuration refactors (moving items to a completely different or new
+  state file), or generally renaming of resources.
 
   This command creates a timestamped backup of the state on every invocation.
   This can't be disabled. Due to the destructive nature of this command,
   the backup is ensured by Terraform for safety reasons.
 
-  This command can't currently move an item from one state file to a
-  completely new state file, but this functionality will come in an update.
+  If you're moving from one state file to a different state file, a backup
+  will be created for each state file.
 
 Options:
 
