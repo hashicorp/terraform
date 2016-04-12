@@ -7,12 +7,13 @@ import (
 func TestStateAdd(t *testing.T) {
 	cases := map[string]struct {
 		Err      bool
-		Address  string
+		From, To string
 		Value    interface{}
 		One, Two *State
 	}{
 		"ModuleState => Module Addr (new)": {
 			false,
+			"",
 			"module.foo",
 			&ModuleState{
 				Path: rootModulePath,
@@ -60,6 +61,7 @@ func TestStateAdd(t *testing.T) {
 
 		"ModuleState w/ outputs and deps => Module Addr (new)": {
 			false,
+			"",
 			"module.foo",
 			&ModuleState{
 				Path: rootModulePath,
@@ -115,6 +117,7 @@ func TestStateAdd(t *testing.T) {
 
 		"ModuleState => Module Addr (existing)": {
 			true,
+			"",
 			"module.foo",
 			&ModuleState{},
 			&State{
@@ -137,6 +140,7 @@ func TestStateAdd(t *testing.T) {
 
 		"ResourceState => Resource Addr (new)": {
 			false,
+			"aws_instance.bar",
 			"aws_instance.foo",
 			&ResourceState{
 				Type: "test_instance",
@@ -165,6 +169,7 @@ func TestStateAdd(t *testing.T) {
 
 		"ResourceState w/ deps, provider => Resource Addr (new)": {
 			false,
+			"aws_instance.bar",
 			"aws_instance.foo",
 			&ResourceState{
 				Type:         "test_instance",
@@ -197,6 +202,7 @@ func TestStateAdd(t *testing.T) {
 
 		"ResourceState w/ tainted => Resource Addr (new)": {
 			false,
+			"aws_instance.bar",
 			"aws_instance.foo",
 			&ResourceState{
 				Type: "test_instance",
@@ -230,6 +236,7 @@ func TestStateAdd(t *testing.T) {
 
 		"ResourceState => Resource Addr (existing)": {
 			true,
+			"aws_instance.bar",
 			"aws_instance.foo",
 			&ResourceState{
 				Type: "test_instance",
@@ -255,6 +262,35 @@ func TestStateAdd(t *testing.T) {
 			},
 			nil,
 		},
+
+		"ResourceState => Module (existing)": {
+			false,
+			"aws_instance.bar",
+			"module.foo",
+			&ResourceState{
+				Type: "test_instance",
+				Primary: &InstanceState{
+					ID: "foo",
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.bar": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for k, tc := range cases {
@@ -265,7 +301,7 @@ func TestStateAdd(t *testing.T) {
 		}
 
 		// Add the value
-		err := tc.One.Add(tc.Address, tc.Value)
+		err := tc.One.Add(tc.From, tc.To, tc.Value)
 		if (err != nil) != tc.Err {
 			t.Fatalf("bad: %s\n\n%s", k, err)
 		}
