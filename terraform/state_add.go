@@ -159,6 +159,15 @@ func stateAddFunc_Instance_Instance(s *State, fromAddr, addr *ResourceAddress, r
 	return nil
 }
 
+func stateAddFunc_Instance_Resource(
+	s *State, from, to *ResourceAddress, raw interface{}) error {
+	addr := *to
+	addr.InstanceType = TypePrimary
+	addr.InstanceTypeSet = true
+
+	return s.Add(from.String(), addr.String(), raw)
+}
+
 // stateAddFunc is the type of function for adding an item to a state
 type stateAddFunc func(s *State, from, to *ResourceAddress, item interface{}) error
 
@@ -176,6 +185,7 @@ func init() {
 		},
 		stateAddInstance: {
 			stateAddInstance: stateAddFunc_Instance_Instance,
+			stateAddResource: stateAddFunc_Instance_Resource,
 		},
 	}
 }
