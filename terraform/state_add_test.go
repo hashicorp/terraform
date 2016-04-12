@@ -59,6 +59,54 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
+		"ModuleState => Nested Module Addr (new)": {
+			false,
+			"",
+			"module.foo.module.bar",
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"test_instance.foo": &ResourceState{
+						Type: "test_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+
+					"test_instance.bar": &ResourceState{
+						Type: "test_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo", "bar"},
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+
+							"test_instance.bar": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
 		"ModuleState w/ outputs and deps => Module Addr (new)": {
 			false,
 			"",
