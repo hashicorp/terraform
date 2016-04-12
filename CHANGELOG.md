@@ -39,7 +39,8 @@ IMPROVEMENTS:
  * provider/github: Add support for privacy to `github_team` [GH-6116]
  * provider/cloudstack: Deprecate `ipaddress` in favour of `ip_address` in all resources [GH-6010]
  * provider/openstack: Allow subnets with no gateway [GH-6060]
- * provider/openstack Add value_specs argument and attribute for routers [GH-4898]
+ * provider/openstack: Add value_specs argument and attribute for routers [GH-4898]
+ * provider/cloudstack: Deprecate allowing names (instead of IDs) for parameters that reference other resources [GH-6123]
 
 BUG FIXES:
 
