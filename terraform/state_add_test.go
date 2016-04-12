@@ -134,6 +134,34 @@ func TestStateAdd(t *testing.T) {
 			},
 			nil,
 		},
+
+		"ResourceState => Resource Addr (new)": {
+			false,
+			"aws_instance.foo",
+			&ResourceState{
+				Type: "test_instance",
+				Primary: &InstanceState{
+					ID: "foo",
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.foo": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for k, tc := range cases {
@@ -158,7 +186,7 @@ func TestStateAdd(t *testing.T) {
 
 		// Verify equality
 		if !tc.One.Equal(tc.Two) {
-			//t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
+			//	t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
 			t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
 		}
 	}
