@@ -123,7 +123,8 @@ func (c *StateMvCommand) Help() string {
 	helpText := `
 Usage: terraform state mv [options] ADDRESS ADDRESS
 
-  Move an item in the state to another location within the same state.
+  Move an item in the state to another location or to a completely different
+  state file.
 
   This command is useful for module refactors (moving items into a module),
   configuration refactors (moving items to a completely different or new
