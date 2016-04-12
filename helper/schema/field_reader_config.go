@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
@@ -178,22 +179,41 @@ func (r *ConfigFieldReader) readPrimitive(
 		}
 	}
 
-	var result string
-	if err := mapstructure.WeakDecode(raw, &result); err != nil {
-		return FieldReadResult{}, err
-	}
-
 	computed := r.Config.IsComputed(k)
-	returnVal, err := stringToPrimitive(result, computed, schema)
-	if err != nil {
-		return FieldReadResult{}, err
-	}
 
-	return FieldReadResult{
-		Value:    returnVal,
-		Exists:   true,
-		Computed: computed,
-	}, nil
+	switch typedRaw := raw.(type) {
+	case []ast.Variable:
+		rawExtracted := make([]interface{}, len(typedRaw))
+		for i, val := range typedRaw {
+			var result string
+			if err := mapstructure.WeakDecode(val.Value, &result); err != nil {
+				return FieldReadResult{}, fmt.Errorf("here: %s", err)
+			}
+			rawExtracted[i] = result
+		}
+
+		return FieldReadResult{
+			Value:    rawExtracted,
+			Exists:   true,
+			Computed: computed,
+		}, nil
+	default:
+		var result string
+		if err := mapstructure.WeakDecode(raw, &result); err != nil {
+			return FieldReadResult{}, fmt.Errorf("here: %s", err)
+		}
+
+		returnVal, err := stringToPrimitive(result, computed, schema)
+		if err != nil {
+			return FieldReadResult{}, err
+		}
+
+		return FieldReadResult{
+			Value:    returnVal,
+			Exists:   true,
+			Computed: computed,
+		}, nil
+	}
 }
 
 func (r *ConfigFieldReader) readSet(

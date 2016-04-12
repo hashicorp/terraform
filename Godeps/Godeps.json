@@ -694,6 +694,10 @@
 			"Rev": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/go-plugin",
+			"Rev": "cccb4a1328abbb89898f3ecf4311a05bddc4de6d"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/go-retryablehttp",
 			"Rev": "24fda80b7c713c52649e57ce20100d453f7bdb24"
 		},
@@ -893,7 +897,7 @@
 		},
 		{
 			"ImportPath": "github.com/mitchellh/cli",
-			"Rev": "cb6853d606ea4a12a15ac83cc43503df99fd28fb"
+			"Rev": "83f97d41cf100ee5f33944a8815c167d5e4aa272"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/colorstring",
@@ -1148,6 +1152,11 @@
 			"ImportPath": "github.com/rackspace/gophercloud/testhelper/client",
 			"Comment": "v1.0.0-868-ga09b5b4",
 			"Rev": "a09b5b4eb58195b6fb3898496586b8d6aeb558e0"
+		},
+		{
+			"ImportPath": "github.com/ryanuber/columnize",
+			"Comment": "v2.0.1-8-g983d3a5",
+			"Rev": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",

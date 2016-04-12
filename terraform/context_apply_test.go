@@ -969,7 +969,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]string{
+				Outputs: map[string]interface{}{
 					"a_output": "a",
 				},
 			},
@@ -1397,7 +1397,7 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
-				Outputs: map[string]string{
+				Outputs: map[string]interface{}{
 					"foo": "bar",
 					"bar": "baz",
 				},
@@ -2937,7 +2937,7 @@ func TestContext2Apply_outputInvalid(t *testing.T) {
 	if err == nil {
 		t.Fatalf("err: %s", err)
 	}
-	if !strings.Contains(err.Error(), "is not a string") {
+	if !strings.Contains(err.Error(), "is not a valid type (int)") {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -3986,11 +3986,14 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ctx = planFromFile.Context(&ContextOpts{
+	ctx, err = planFromFile.Context(&ContextOpts{
 		Providers: map[string]ResourceProviderFactory{
 			"template": testProviderFuncFixed(p),
 		},
 	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	state, err = ctx.Apply()
 	if err != nil {
@@ -4060,12 +4063,15 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ctx = planFromFile.Context(&ContextOpts{
+	ctx, err = planFromFile.Context(&ContextOpts{
 		Module: testModule(t, "apply-tainted-targets"),
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
 	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	state, err := ctx.Apply()
 	if err != nil {

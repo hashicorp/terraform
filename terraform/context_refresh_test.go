@@ -452,7 +452,7 @@ func TestContext2Refresh_output(t *testing.T) {
 						},
 					},
 
-					Outputs: map[string]string{
+					Outputs: map[string]interface{}{
 						"foo": "foo",
 					},
 				},
@@ -738,7 +738,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]string{
+				Outputs: map[string]interface{}{
 					"id":            "i-bcd234",
 					"grandchild_id": "i-cde345",
 				},
@@ -752,7 +752,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 						},
 					},
 				},
-				Outputs: map[string]string{
+				Outputs: map[string]interface{}{
 					"id": "i-cde345",
 				},
 			},

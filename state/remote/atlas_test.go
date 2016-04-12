@@ -245,7 +245,7 @@ func (f *fakeAtlas) handler(resp http.ResponseWriter, req *http.Request) {
 // loads the state.
 var testStateModuleOrderChange = []byte(
 	`{
-    "version": 1,
+    "version": 2,
     "serial": 1,
     "modules": [
         {
@@ -276,7 +276,7 @@ var testStateModuleOrderChange = []byte(
 
 var testStateSimple = []byte(
 	`{
-    "version": 1,
+    "version": 2,
     "serial": 1,
     "modules": [
         {

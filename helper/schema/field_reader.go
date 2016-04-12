@@ -215,7 +215,10 @@ func readObjectField(
 }
 
 func stringToPrimitive(
-	value string, computed bool, schema *Schema) (interface{}, error) {
+	value2 interface{}, computed bool, schema *Schema) (interface{}, error) {
+
+	value := value2.(string)
+
 	var returnVal interface{}
 	switch schema.Type {
 	case TypeBool:

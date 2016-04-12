@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/hilstructure"
 )
 
 const (
@@ -52,12 +54,38 @@ func (i *Interpolater) Values(
 			mod = i.Module.Child(scope.Path[1:])
 		}
 		for _, v := range mod.Config().Variables {
-			for k, val := range v.DefaultsMap() {
-				result[k] = ast.Variable{
-					Value: val,
+			name := fmt.Sprintf("var.%s", v.Name)
+			if v.Default == nil {
+				v.Default = ""
+			}
+
+			switch v.Type() {
+			case config.VariableTypeList:
+				elements := v.Default.([]string)
+				result[name] = hilstructure.MakeHILStringList(elements)
+			case config.VariableTypeMap:
+				components := flatmap.Flatten(map[string]interface{}{
+					name: v.Default.(map[string]string),
+				})
+
+				for k, val := range components {
+					result[k] = ast.Variable{
+						Value: val,
+						Type:  ast.TypeString,
+					}
+				}
+
+				result[name] = ast.Variable{
+					Type:  ast.TypeString,
+					Value: v.Name,
+				}
+			default:
+				result[name] = ast.Variable{
+					Value: v.Default.(string),
 					Type:  ast.TypeString,
 				}
 			}
+
 		}
 	}
 
@@ -110,6 +138,25 @@ func (i *Interpolater) valueCountVar(
 	}
 }
 
+func interfaceToHILVariable(input interface{}) ast.Variable {
+	switch v := input.(type) {
+	case string:
+		return ast.Variable{
+			Type:  ast.TypeString,
+			Value: v,
+		}
+	default:
+		panic(fmt.Errorf("Unknown interface type %T in interfaceToHILVariable", v))
+	}
+}
+
+func unknownVariable() ast.Variable {
+	return ast.Variable{
+		Type:  ast.TypeString,
+		Value: config.UnknownVariableValue,
+	}
+}
+
 func (i *Interpolater) valueModuleVar(
 	scope *InterpolationScope,
 	n string,
@@ -136,7 +183,6 @@ func (i *Interpolater) valueModuleVar(
 	defer i.StateLock.RUnlock()
 
 	// Get the module where we're looking for the value
-	var value string
 	mod := i.State.ModuleByPath(path)
 	if mod == nil {
 		// If the module doesn't exist, then we can return an empty string.
@@ -145,21 +191,18 @@ func (i *Interpolater) valueModuleVar(
 		// modules reference other modules, and graph ordering should
 		// ensure that the module is in the state, so if we reach this
 		// point otherwise it really is a panic.
-		value = config.UnknownVariableValue
+		result[n] = unknownVariable()
 	} else {
 		// Get the value from the outputs
-		var ok bool
-		value, ok = mod.Outputs[v.Field]
-		if !ok {
+		if value, ok := mod.Outputs[v.Field]; ok {
+			result[n] = interfaceToHILVariable(value)
+		} else {
 			// Same reasons as the comment above.
-			value = config.UnknownVariableValue
+			result[n] = unknownVariable()
+
 		}
 	}
 
-	result[n] = ast.Variable{
-		Value: value,
-		Type:  ast.TypeString,
-	}
 	return nil
 }
 
