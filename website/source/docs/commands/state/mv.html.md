@@ -69,6 +69,14 @@ created if it doesn't exist.
 $ terraform state mv aws_instance.foo module.web
 ```
 
+## Example: Move a Module Into a Module
+
+The example below moves a module into another module.
+
+```
+$ terraform state mv module.foo module.parent.module.foo
+```
+
 ## Example: Move a Module to Another State
 
 The example below moves a module into another state file. This removes
