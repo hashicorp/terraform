@@ -180,8 +180,8 @@ func testAccCheckCloudStackInstanceAttributes(
 			return fmt.Errorf("Bad template: %s", instance.Templatename)
 		}
 
-		if instance.Nic[0].Networkname != CLOUDSTACK_NETWORK_1 {
-			return fmt.Errorf("Bad network: %s", instance.Nic[0].Networkname)
+		if instance.Nic[0].Networkid != CLOUDSTACK_NETWORK_1 {
+			return fmt.Errorf("Bad network ID: %s", instance.Nic[0].Networkid)
 		}
 
 		return nil
@@ -234,7 +234,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   user_data = "foobar\nfoo\nbar"
@@ -250,7 +250,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-updated"
   display_name = "terraform-updated"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   user_data = "foobar\nfoo\nbar"
@@ -266,7 +266,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   ip_address = "%s"
   template = "%s"
   zone = "%s"
@@ -287,7 +287,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   ip_address = "%s"
   template = "%s"
   zone = "%s"
@@ -305,7 +305,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-	network = "%s"
+	network_id = "%s"
   template = "%s"
 	project = "%s"
   zone = "%s"
