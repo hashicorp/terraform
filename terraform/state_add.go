@@ -59,7 +59,7 @@ func (s *State) Add(addrRaw string, raw interface{}) error {
 }
 
 func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}) error {
-	src := raw.(*ModuleState)
+	src := raw.(*ModuleState).deepcopy()
 
 	// If the target module exists, it is an error
 	path := append([]string{"root"}, addr.Path...)
@@ -67,8 +67,10 @@ func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}
 		return fmt.Errorf("module target is not empty: %s", addr)
 	}
 
-	// TODO: outputs
-	// TODO: dependencies
+	// Create it and copy our outputs and dependencies
+	mod := s.AddModule(path)
+	mod.Outputs = src.Outputs
+	mod.Dependencies = src.Dependencies
 
 	// Go through the resources perform an add for each of those
 	for k, v := range src.Resources {
