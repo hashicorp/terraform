@@ -95,7 +95,7 @@ func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}
 }
 
 func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interface{}) error {
-	src := raw.(*ResourceState)
+	src := raw.(*ResourceState).deepcopy()
 
 	// Initialize the resource
 	resourceRaw, exists := stateAddInitAddr(s, addr)
@@ -104,9 +104,8 @@ func stateAddFunc_Resource_Resource(s *State, addr *ResourceAddress, raw interfa
 	}
 	resource := resourceRaw.(*ResourceState)
 	resource.Type = src.Type
-
-	// TODO: Dependencies
-	// TODO: Provider?
+	resource.Dependencies = src.Dependencies
+	resource.Provider = src.Provider
 
 	// Move the primary
 	if src.Primary != nil {
