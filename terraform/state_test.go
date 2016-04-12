@@ -426,11 +426,13 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 
 func TestStateAdd(t *testing.T) {
 	cases := map[string]struct {
+		Err      bool
 		Address  string
 		Value    interface{}
 		One, Two *State
 	}{
 		"ModuleState => Module Addr (new)": {
+			false,
 			"module.foo",
 			&ModuleState{
 				Path: rootModulePath,
@@ -475,16 +477,44 @@ func TestStateAdd(t *testing.T) {
 				},
 			},
 		},
+
+		"ModuleState => Module Addr (existing)": {
+			true,
+			"module.foo",
+			&ModuleState{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo"},
+						Resources: map[string]*ResourceState{
+							"test_instance.baz": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
 	}
 
 	for k, tc := range cases {
 		// Make sure they're both initialized as normal
 		tc.One.init()
-		tc.Two.init()
+		if tc.Two != nil {
+			tc.Two.init()
+		}
 
 		// Add the value
-		if err := tc.One.Add(tc.Address, tc.Value); err != nil {
+		err := tc.One.Add(tc.Address, tc.Value)
+		if (err != nil) != tc.Err {
 			t.Fatalf("bad: %s\n\n%s", k, err)
+		}
+		if tc.Err {
+			continue
 		}
 
 		// Prune them both to be sure
@@ -493,8 +523,8 @@ func TestStateAdd(t *testing.T) {
 
 		// Verify equality
 		if !tc.One.Equal(tc.Two) {
-			t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
-			//t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
+			//t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
+			t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
 		}
 	}
 }

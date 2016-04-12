@@ -61,6 +61,12 @@ func (s *State) Add(addrRaw string, raw interface{}) error {
 func stateAddFunc_Module_Module(s *State, addr *ResourceAddress, raw interface{}) error {
 	src := raw.(*ModuleState)
 
+	// If the target module exists, it is an error
+	path := append([]string{"root"}, addr.Path...)
+	if s.ModuleByPath(path) != nil {
+		return fmt.Errorf("module target is not empty: %s", addr)
+	}
+
 	// TODO: outputs
 	// TODO: dependencies
 
