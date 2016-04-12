@@ -66,12 +66,8 @@ func testAccCheckCloudStackStaticNATAttributes(
 	ipaddr *cloudstack.PublicIpAddress) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if ipaddr.Associatednetworkname != CLOUDSTACK_NETWORK_1 {
-			return fmt.Errorf("Bad network: %s", ipaddr.Associatednetworkname)
-		}
-
-		if ipaddr.Virtualmachinename != "terraform-test" {
-			return fmt.Errorf("Bad virtual_machine: %s", ipaddr.Virtualmachinename)
+		if ipaddr.Associatednetworkid != CLOUDSTACK_NETWORK_1 {
+			return fmt.Errorf("Bad network ID: %s", ipaddr.Associatednetworkid)
 		}
 
 		return nil
@@ -104,7 +100,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   user_data = "foobar\nfoo\nbar"
@@ -112,17 +108,16 @@ resource "cloudstack_instance" "foobar" {
 }
 
 resource "cloudstack_ipaddress" "foo" {
-  network = "%s"
+  network_id = "${cloudstack_instance.foobar.network_id}"
 }
 
 resource "cloudstack_static_nat" "foo" {
-	ipaddress = "${cloudstack_ipaddress.foo.id}"
-	network = "${cloudstack_ipaddress.foo.network}"
-  virtual_machine = "${cloudstack_instance.foobar.id}"
+	ip_address_id = "${cloudstack_ipaddress.foo.id}"
+	network_id = "${cloudstack_ipaddress.foo.network_id}"
+  virtual_machine_id = "${cloudstack_instance.foobar.id}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,
 	CLOUDSTACK_TEMPLATE,
 	CLOUDSTACK_ZONE,
-	CLOUDSTACK_NETWORK_1,
 )

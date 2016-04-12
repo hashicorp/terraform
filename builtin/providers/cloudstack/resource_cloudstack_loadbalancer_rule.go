@@ -29,25 +29,32 @@ func resourceCloudStackLoadBalancerRule() *schema.Resource {
 				Computed: true,
 			},
 
-			"ip_address": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"ipaddress"},
+			"ip_address_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"ipaddress": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Deprecated:    "Please use the `ip_address` field instead",
-				ConflictsWith: []string{"ip_address"},
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `ip_address_id` field instead",
+			},
+
+			"network_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `network_id` field instead",
 			},
 
 			"algorithm": &schema.Schema{
@@ -67,11 +74,21 @@ func resourceCloudStackLoadBalancerRule() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"member_ids": &schema.Schema{
+				Type:          schema.TypeList,
+				Optional:      true,
+				ForceNew:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"members"},
+			},
+
 			"members": &schema.Schema{
-				Type:     schema.TypeList,
-				Required: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Type:          schema.TypeList,
+				Optional:      true,
+				ForceNew:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Deprecated:    "Please use the `member_ids` field instead",
+				ConflictsWith: []string{"member_ids"},
 			},
 		},
 	}
@@ -99,23 +116,27 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		p.SetDescription(d.Get("name").(string))
 	}
 
-	// Retrieve the network and the ID
-	if network, ok := d.GetOk("network"); ok {
+	network, ok := d.GetOk("network_id")
+	if !ok {
+		network, ok = d.GetOk("network")
+	}
+	if ok {
+		// Retrieve the network ID
 		networkid, e := retrieveID(cs, "network", network.(string))
 		if e != nil {
 			return e.Error()
 		}
 
-		// Set the default network ID
+		// Set the networkid
 		p.SetNetworkid(networkid)
 	}
 
-	ipaddress, ok := d.GetOk("ip_address")
+	ipaddress, ok := d.GetOk("ip_address_id")
 	if !ok {
 		ipaddress, ok = d.GetOk("ipaddress")
 	}
 	if !ok {
-		return errors.New("Either `ip_address` or [deprecated] `ipaddress` must be provided.")
+		return errors.New("Either `ip_address_id` or [deprecated] `ipaddress` must be provided.")
 	}
 
 	// Retrieve the ipaddress ID
@@ -135,8 +156,8 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 	d.SetId(r.Id)
 	d.SetPartial("name")
 	d.SetPartial("description")
-	d.SetPartial("ip_address")
-	d.SetPartial("network")
+	d.SetPartial("ip_address_id")
+	d.SetPartial("network_id")
 	d.SetPartial("algorithm")
 	d.SetPartial("private_port")
 	d.SetPartial("public_port")
@@ -144,8 +165,16 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 	// Create a new parameter struct
 	ap := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(r.Id)
 
+	members, ok := d.GetOk("member_ids")
+	if !ok {
+		members, ok = d.GetOk("members")
+	}
+	if !ok {
+		return errors.New("Either `member_ids` or [deprecated] `members` must be provided.")
+	}
+
 	var mbs []string
-	for _, id := range d.Get("members").([]interface{}) {
+	for _, id := range members.([]interface{}) {
 		mbs = append(mbs, id.(string))
 	}
 
@@ -156,9 +185,10 @@ func resourceCloudStackLoadBalancerRuleCreate(d *schema.ResourceData, meta inter
 		return err
 	}
 
+	d.SetPartial("member_ids")
 	d.SetPartial("members")
-
 	d.Partial(false)
+
 	return resourceCloudStackLoadBalancerRuleRead(d, meta)
 }
 
@@ -180,16 +210,13 @@ func resourceCloudStackLoadBalancerRuleRead(d *schema.ResourceData, meta interfa
 	d.Set("algorithm", lb.Algorithm)
 	d.Set("public_port", lb.Publicport)
 	d.Set("private_port", lb.Privateport)
-
-	setValueOrID(d, "ip_address", lb.Publicip, lb.Publicipid)
+	d.Set("ip_address_id", lb.Publicipid)
 
 	// Only set network if user specified it to avoid spurious diffs
-	if _, ok := d.GetOk("network"); ok {
-		network, _, err := cs.Network.GetNetworkByID(lb.Networkid)
-		if err != nil {
-			return err
-		}
-		setValueOrID(d, "network", network.Name, lb.Networkid)
+	_, networkID := d.GetOk("network_id")
+	_, network := d.GetOk("network")
+	if networkID || network {
+		d.Set("network_id", lb.Networkid)
 	}
 
 	return nil
