@@ -478,6 +478,61 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
+		"ModuleState w/ outputs and deps => Module Addr (new)": {
+			false,
+			"module.foo",
+			&ModuleState{
+				Path: rootModulePath,
+				Outputs: map[string]interface{}{
+					"foo": "bar",
+				},
+				Dependencies: []string{"foo"},
+				Resources: map[string]*ResourceState{
+					"test_instance.foo": &ResourceState{
+						Type: "test_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+
+					"test_instance.bar": &ResourceState{
+						Type: "test_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo"},
+						Outputs: map[string]interface{}{
+							"foo": "bar",
+						},
+						Dependencies: []string{"foo"},
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+
+							"test_instance.bar": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
 		"ModuleState => Module Addr (existing)": {
 			true,
 			"module.foo",
