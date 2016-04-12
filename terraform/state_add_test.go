@@ -163,6 +163,38 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
+		"ResourceState w/ deps, provider => Resource Addr (new)": {
+			false,
+			"aws_instance.foo",
+			&ResourceState{
+				Type:         "test_instance",
+				Provider:     "foo",
+				Dependencies: []string{"bar"},
+				Primary: &InstanceState{
+					ID: "foo",
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root"},
+						Resources: map[string]*ResourceState{
+							"aws_instance.foo": &ResourceState{
+								Type:         "test_instance",
+								Provider:     "foo",
+								Dependencies: []string{"bar"},
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
 		"ResourceState => Resource Addr (existing)": {
 			true,
 			"aws_instance.foo",
