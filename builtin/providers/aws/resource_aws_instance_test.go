@@ -291,6 +291,10 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo",
+						"user_data",
+						"2fad308761514d9d73c3c7fdc877607e06cf950d"),
 				),
 			},
 		},
@@ -825,6 +829,7 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
 	tenancy = "dedicated"
+	# pre-encoded base64 data
 	user_data = "3dc39dda39be1205215e776bad998da361a5955d"
 }
 `
