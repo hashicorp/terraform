@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -439,6 +440,19 @@ func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["trigger_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["trigger_target_arn"].(string)))
+
+	if triggerEvents, ok := m["trigger_events"]; ok {
+		names := triggerEvents.(*schema.Set).List()
+		strings := make([]string, len(names))
+		for i, raw := range names {
+			strings[i] = raw.(string)
+		}
+		sort.Strings(strings)
+
+		for _, s := range strings {
+			buf.WriteString(fmt.Sprintf("%s-", s))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
