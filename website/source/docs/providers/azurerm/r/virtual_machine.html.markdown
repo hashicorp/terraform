@@ -175,7 +175,7 @@ For more information on the different example configurations, please check out t
 `os_profile_linux_config` supports the following:
 
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
-* `ssh_keys` - (Optional) Specifies a collection of `key_path` and `key_data` to be placed on the virtual machine.
+* `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
 `os_profile_secrets` supports the following:
 
