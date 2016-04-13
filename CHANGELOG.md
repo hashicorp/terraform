@@ -27,6 +27,7 @@ IMPROVEMENTS:
  * provider/aws: normalize json for `aws_cloudwatch_event_rule` [GH-6025]
  * provider/aws: normalise json for `aws_sns_topic` [GH-6089]
  * provider/aws: Allow multiple EIPs to associate to single ENI [GH-6070]
+ * provider/aws: Check that InternetGateway exists before returning from creation [GH-6105]
  * provider/aws: Add support for trigger_configuration to `aws_codedeploy_deployment_group` [GH-5599]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
