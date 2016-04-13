@@ -626,6 +626,23 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_moduleVarWrongType(t *testing.T) {
+	m := testModule(t, "plan-module-wrong-var-type")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err == nil {
+		t.Fatalf("should error")
+	}
+}
+
 func TestContext2Plan_moduleVarComputed(t *testing.T) {
 	m := testModule(t, "plan-module-var-computed")
 	p := testProvider("aws")
@@ -2035,6 +2052,7 @@ func TestContext2Plan_varListErr(t *testing.T) {
 	})
 
 	_, err := ctx.Plan()
+
 	if err == nil {
 		t.Fatal("should error")
 	}
