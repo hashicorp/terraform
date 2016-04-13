@@ -35,26 +35,6 @@ func TestAccAWSAPIGatewaySwaggerAPI_basic(t *testing.T) {
 	})
 }
 
-func testAccCheckAWSAPIGatewaySwaggerAPINameAttribute(conf *apigateway.RestApi, name string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if *conf.Name != name {
-			return fmt.Errorf("Wrong Name: %q", *conf.Name)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckAWSAPIGatewaySwaggerAPIDescriptionAttribute(conf *apigateway.RestApi, description string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if *conf.Description != description {
-			return fmt.Errorf("Wrong Description: %q", *conf.Description)
-		}
-
-		return nil
-	}
-}
-
 func testAccCheckAWSAPIGatewaySwaggerAPIExists(n string, res *apigateway.RestApi) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
