@@ -29,6 +29,7 @@ IMPROVEMENTS:
  * provider/aws: Allow multiple EIPs to associate to single ENI [GH-6070]
  * provider/aws: Check that InternetGateway exists before returning from creation [GH-6105]
  * provider/aws: Add support for trigger_configuration to `aws_codedeploy_deployment_group` [GH-5599]
+ * provider/aws: Don't Base64-encode EC2 userdata if it is already Base64 encoded [GH-6140]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/datadog: Add heredoc support to message, escalation_message, and query [GH-5788]
  * provider/docker: Add support for docker run --user option [GH-5300]
