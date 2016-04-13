@@ -6,7 +6,8 @@ import (
 
 var (
 	tritonTags = []string{
-		"triton.cns.disable",
+		// TODO: add cns.disable when joyent/gosdc#31 is fixed.
+		//"triton.cns.disable",
 		"triton.cns.services",
 		"triton.cns.reverse_ptr",
 	}
