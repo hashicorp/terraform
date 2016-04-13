@@ -10,43 +10,32 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSAPIGatewayRestApi_basic(t *testing.T) {
+func TestAccAWSAPIGatewaySwaggerAPI_basic(t *testing.T) {
 	var conf apigateway.RestApi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSAPIGatewayRestAPIDestroy,
+		CheckDestroy: testAccCheckAWSAPIGatewaySwaggerAPIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAPIGatewayRestAPIConfig,
+				Config: testAccAWSAPIGatewaySwaggerAPIConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSAPIGatewayRestAPIExists("aws_api_gateway_swagger_api.test", &conf),
-					testAccCheckAWSAPIGatewayRestAPINameAttribute(&conf, "bar"),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_rest_api.test", "name", "bar"),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_rest_api.test", "description", ""),
+					testAccCheckAWSAPIGatewaySwaggerAPIExists("aws_api_gateway_swagger_api.test", &conf),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAWSAPIGatewayRestAPIUpdateConfig,
+				Config: testAccAWSAPIGatewaySwaggerAPIUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSAPIGatewayRestAPIExists("aws_api_gateway_swagger_api.test", &conf),
-					testAccCheckAWSAPIGatewayRestAPINameAttribute(&conf, "test"),
-					testAccCheckAWSAPIGatewayRestAPIDescriptionAttribute(&conf, "test"),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_rest_api.test", "name", "test"),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_rest_api.test", "description", "test"),
+					testAccCheckAWSAPIGatewaySwaggerAPIExists("aws_api_gateway_swagger_api.test", &conf),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSAPIGatewayRestAPINameAttribute(conf *apigateway.RestApi, name string) resource.TestCheckFunc {
+func testAccCheckAWSAPIGatewaySwaggerAPINameAttribute(conf *apigateway.RestApi, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *conf.Name != name {
 			return fmt.Errorf("Wrong Name: %q", *conf.Name)
@@ -56,7 +45,7 @@ func testAccCheckAWSAPIGatewayRestAPINameAttribute(conf *apigateway.RestApi, nam
 	}
 }
 
-func testAccCheckAWSAPIGatewayRestAPIDescriptionAttribute(conf *apigateway.RestApi, description string) resource.TestCheckFunc {
+func testAccCheckAWSAPIGatewaySwaggerAPIDescriptionAttribute(conf *apigateway.RestApi, description string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *conf.Description != description {
 			return fmt.Errorf("Wrong Description: %q", *conf.Description)
@@ -66,7 +55,7 @@ func testAccCheckAWSAPIGatewayRestAPIDescriptionAttribute(conf *apigateway.RestA
 	}
 }
 
-func testAccCheckAWSAPIGatewayRestAPIExists(n string, res *apigateway.RestApi) resource.TestCheckFunc {
+func testAccCheckAWSAPIGatewaySwaggerAPIExists(n string, res *apigateway.RestApi) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -97,7 +86,7 @@ func testAccCheckAWSAPIGatewayRestAPIExists(n string, res *apigateway.RestApi) r
 	}
 }
 
-func testAccCheckAWSAPIGatewayRestAPIDestroy(s *terraform.State) error {
+func testAccCheckAWSAPIGatewaySwaggerAPIDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).apigateway
 
 	for _, rs := range s.RootModule().Resources {
@@ -121,15 +110,84 @@ func testAccCheckAWSAPIGatewayRestAPIDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccAWSAPIGatewayRestAPIConfig = `
-resource "aws_api_gateway_rest_api" "test" {
-  name = "bar"
+const testAccAWSAPIGatewaySwaggerAPIConfig = `
+resource "aws_api_gateway_swagger_api" "test" {
+  swagger = <<EOF
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0",
+    "title": "Hello World API"
+  },
+  "paths": {
+    "/hello/{user}": {
+      "get": {
+        "description": "Returns a greeting to the user!",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "The name of the user to greet."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the greeting.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "400": {
+            "description": "Invalid characters in \"user\" were provided."
+          }
+        }
+      }
+    }
+  }
+}
+EOF
 }
 `
 
-const testAccAWSAPIGatewayRestAPIUpdateConfig = `
-resource "aws_api_gateway_rest_api" "test" {
-  name = "test"
-  description = "test"
+const testAccAWSAPIGatewaySwaggerAPIUpdateConfig = `
+resource "aws_api_gateway_swagger_api" "test" {
+  swagger = <<EOF
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0",
+    "title": "Hello World API 2"
+  },
+  "paths": {
+    "/hello/{user}": {
+      "get": {
+        "description": "Returns a greeting to the user!",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "type": "string",
+            "required": true,
+            "description": "The name of the user to greet."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the greeting.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "400": {
+            "description": "Invalid characters in \"user\" were provided."
+          }
+        }
+      }
+    }
+  }
+}
+EOF
 }
 `

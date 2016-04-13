@@ -57,7 +57,7 @@ func resourceAwsApiGatewayDomainCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).apigateway
 
 	//Domain link with cloudfront distribution can take a while to actually delete
-	err := resource.Retry(4*time.Minute, func() error {
+	err := resource.Retry(4*time.Minute, func() *resource.RetryError {
 		r, err := conn.CreateDomainName(&apigateway.CreateDomainNameInput{
 			DomainName:            aws.String(d.Get("domain_name").(string)),
 			CertificateName:       aws.String(d.Get("certificate_name").(string)),
@@ -69,9 +69,15 @@ func resourceAwsApiGatewayDomainCreate(d *schema.ResourceData, meta interface{})
 		if err != nil {
 			log.Printf("[DEBUG] Error creating domain - not found : %s", err)
 			if err, ok := err.(awserr.Error); ok && err.Code() != "BadRequestException" {
-				return nil
+				return &resource.RetryError{
+					Err:       err,
+					Retryable: false,
+				}
 			}
-			return fmt.Errorf("Error creating domain name %s", err)
+			return &resource.RetryError{
+				Err:       fmt.Errorf("Error creating domain name %s", err),
+				Retryable: true,
+			}
 		}
 
 		d.SetId(*r.DomainName)

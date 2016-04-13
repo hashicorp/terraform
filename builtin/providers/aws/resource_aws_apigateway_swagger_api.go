@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -12,11 +11,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsApiGatewaySwaggerApi() *schema.Resource {
+func resourceAwsAPIGatewaySwaggerAPI() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsApiSwaggerApiCreate,
-		Read:   resourceAwsApiSwaggerApiRead,
-		Delete: resourceAwsApiSwaggerApiDelete,
+		Create: resourceAwsAPIGatewaySwaggerAPICreate,
+		Read:   resourceAwsAPIGatewaySwaggerAPIRead,
+		Delete: resourceAwsAPIGatewaySwaggerAPIDelete,
 
 		Schema: map[string]*schema.Schema{
 			"swagger": &schema.Schema{
@@ -28,16 +27,18 @@ func resourceAwsApiGatewaySwaggerApi() *schema.Resource {
 			"failonwarnings": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
 }
 
-func resourceAwsApiGatewaySwaggerApiCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAPIGatewaySwaggerAPICreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
+	swagger := d.Get("swagger").(string)
 
 	req := &apigateway.ImportRestApiInput{
-		Body: d.Get("swagger").([]byte),
+		Body: []byte(swagger),
 	}
 
 	if d.Get("failonwarnings") != nil {
@@ -55,13 +56,13 @@ func resourceAwsApiGatewaySwaggerApiCreate(d *schema.ResourceData, meta interfac
 	}
 	d.SetId(*res.Id)
 
-	return resourceAwsApiSwaggerApiRead(d, meta)
+	return resourceAwsAPIGatewaySwaggerAPIRead(d, meta)
 }
 
-func resourceAwsApiSwaggerApiRead(d *schema.ResourceDta, meta interface{}) error {
+func resourceAwsAPIGatewaySwaggerAPIRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
-	api, err := conn.GetRestApi(&apigateway.GetRestApiInput{
+	_, err := conn.GetRestApi(&apigateway.GetRestApiInput{
 		RestApiId: aws.String(d.Id()),
 	})
 
@@ -76,7 +77,7 @@ func resourceAwsApiSwaggerApiRead(d *schema.ResourceDta, meta interface{}) error
 	return nil
 }
 
-func resourceAwsApiGatewaySwaggerApiDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAPIGatewaySwaggerAPIDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway: %s", d.Id())
 
