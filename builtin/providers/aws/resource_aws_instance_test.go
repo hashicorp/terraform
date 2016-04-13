@@ -825,6 +825,7 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
 	tenancy = "dedicated"
+	user_data = "3dc39dda39be1205215e776bad998da361a5955d"
 }
 `
 
