@@ -49,6 +49,7 @@ BUG FIXES:
  * provider/aws: Fix issue re-creating deleted VPC peering connections [GH-5959]
  * provider/aws: Fix issue with changing iops when also changing storage type to io1 on RDS [GH-5676]
  * provider/aws: Fix issue with retrying deletion of Network ACLs [GH-5954]
+ * provider/aws: Fix Lambda VPC integration (missing `vpc_id` field in schema) [GH-6157]
  * provider/aws: Fix potential crash when receiving malformed `aws_route` API responses [GH-5867]
  * provider/aws: Guard against empty responses from Lambda Permissions [GH-5838]
  * provider/aws: Normalize and compact SQS Redrive, Policy JSON [GH-5888]
