@@ -136,7 +136,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"linkedClone": &schema.Schema{
+			"linked_clone": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -374,7 +374,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		vm.timeZone = v.(string)
 	}
 
-	if v, ok := d.GetOk("linkedClone"); ok {
+	if v, ok := d.GetOk("linked_clone"); ok {
 		vm.linkedClone = v.(bool)
 	}
 
