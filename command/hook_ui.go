@@ -133,10 +133,11 @@ func (h *UiHook) PreApply(
 }
 
 func (h *UiHook) stillApplying(id string) {
-	// Grab the operation
+	// Grab the operation. We defer the lock here to avoid the "still..."
+	// message showing up after a completion message.
 	h.l.Lock()
+	defer h.l.Unlock()
 	state, ok := h.resources[id]
-	h.l.Unlock()
 
 	// If the resource is out of the map it means we're done with it
 	if !ok {
