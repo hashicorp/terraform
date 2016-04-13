@@ -2,6 +2,7 @@ package triton
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"time"
@@ -365,6 +366,7 @@ func resourceMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 		err = waitFor(
 			func() (bool, error) {
 				machine, err := client.GetMachine(d.Id())
+				log.Printf("[DEBUG]: Triton Machine Waiting for Metadata convergence.")
 				return reflect.DeepEqual(machine.Metadata, metadata), err
 			},
 			machineStateChangeCheckInterval,
