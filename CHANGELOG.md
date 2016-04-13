@@ -14,6 +14,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * command/apply: Output will now show periodic status updates of slow
+     resources. [GH-6163]
  * provider/aws: Add support for Step Scaling in `aws_autoscaling_policy` [GH-4277]
  * provider/aws: Add support for `cname_prefix` to `aws_elastic_beanstalk_environment` resource [GH-5966]
  * provider/aws: Adding outputs for elastic_beanstalk_environment resource [GH-5915]
