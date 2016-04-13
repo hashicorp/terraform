@@ -23,7 +23,6 @@ type UiHook struct {
 	l         sync.Mutex
 	once      sync.Once
 	resources map[string]uiResourceOp
-	ui        cli.Ui
 }
 
 type uiResourceOp byte
@@ -107,7 +106,7 @@ func (h *UiHook) PreApply(
 		attrString = "\n  " + attrString
 	}
 
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.Ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s[reset_bold]%s",
 		id,
 		operation,
@@ -144,7 +143,7 @@ func (h *UiHook) PostApply(
 		return terraform.HookActionContinue, nil
 	}
 
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.Ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s[reset_bold]",
 		id, msg)))
 
@@ -161,7 +160,7 @@ func (h *UiHook) PreProvision(
 	n *terraform.InstanceInfo,
 	provId string) (terraform.HookAction, error) {
 	id := n.HumanId()
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.Ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Provisioning with '%s'...[reset_bold]",
 		id, provId)))
 	return terraform.HookActionContinue, nil
@@ -185,7 +184,7 @@ func (h *UiHook) ProvisionOutput(
 		}
 	}
 
-	h.ui.Output(strings.TrimSpace(buf.String()))
+	h.Ui.Output(strings.TrimSpace(buf.String()))
 }
 
 func (h *UiHook) PreRefresh(
@@ -194,7 +193,7 @@ func (h *UiHook) PreRefresh(
 	h.once.Do(h.init)
 
 	id := n.HumanId()
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.Ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Refreshing state... (ID: %s)",
 		id, s.ID)))
 	return terraform.HookActionContinue, nil
@@ -206,10 +205,6 @@ func (h *UiHook) init() {
 	}
 
 	h.resources = make(map[string]uiResourceOp)
-
-	// Wrap the ui so that it is safe for concurrency regardless of the
-	// underlying reader/writer that is in place.
-	h.ui = &cli.ConcurrentUi{Ui: h.Ui}
 }
 
 // scanLines is basically copied from the Go standard library except
