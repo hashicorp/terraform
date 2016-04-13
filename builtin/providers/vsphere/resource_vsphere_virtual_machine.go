@@ -1275,6 +1275,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	var identity_options types.BaseCustomizationIdentitySettings
 	if strings.HasPrefix(template_mo.Config.GuestId, "win") {
 		var timeZone int
+		if vm.timeZone == "Etc/UTC" {
+			vm.timeZone = "085"
+		}
 		timeZone, err := strconv.Atoi(vm.timeZone)
 		if err != nil {
 			return fmt.Errorf("Error converting TimeZone: %s", err)
