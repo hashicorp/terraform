@@ -47,6 +47,7 @@ IMPROVEMENTS:
  * provider/openstack: Allow subnets with no gateway [GH-6060]
  * provider/openstack: Add value_specs argument and attribute for routers [GH-4898]
  * provider/cloudstack: Deprecate allowing names (instead of IDs) for parameters that reference other resources [GH-6123]
+ * provider/vsphere: Support for linked clones and Windows-specific guest config options [GH-6087]
 
 BUG FIXES:
 
