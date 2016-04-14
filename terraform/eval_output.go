@@ -84,8 +84,10 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	case string:
 		mod.Outputs[n.Name] = valueTyped
 	case []interface{}:
-		mod.Outputs[n.Name] = valueTyped[0]
+		// Multi-variables, interpolation function values
+		mod.Outputs[n.Name] = valueTyped
 	case []ast.Variable:
+		// Outputs interpolated directly from variables
 		slice, err := hilstructure.HILStringListToSlice(valueTyped)
 		if err != nil {
 			return nil, err

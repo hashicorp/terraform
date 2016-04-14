@@ -695,7 +695,7 @@ func (c *Config) validateVarContextFn(
 
 			if rv.Multi && rv.Index == -1 {
 				*errs = append(*errs, fmt.Errorf(
-					"%s: multi-variable must be in a slice", source))
+					"%s: use of the splat ('*') operator must be wrapped in a list declaration", source))
 			}
 		}
 	}
