@@ -643,6 +643,23 @@ func TestContext2Plan_moduleVarWrongType(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
+	m := testModule(t, "plan-module-wrong-var-type-nested")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err == nil {
+		t.Fatalf("should error")
+	}
+}
+
 func TestContext2Plan_moduleVarComputed(t *testing.T) {
 	m := testModule(t, "plan-module-var-computed")
 	p := testProvider("aws")
