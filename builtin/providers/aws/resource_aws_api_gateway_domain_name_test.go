@@ -33,6 +33,12 @@ func TestAccAWSApiGatewayDomain_basic(t *testing.T) {
 					testAccCheckAWSApiGatewayDomainExists("aws_api_gateway_domain.test", name, &conf),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSApiGatewayDomainConfigUpdate(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSApiGatewayDomainExists("aws_api_gateway_domain.test", name, &conf),
+				),
+			},
 		},
 	})
 }
@@ -99,6 +105,17 @@ func testAccAWSApiGatewayDomainConfig(name string) string {
   certificate_body = "${file("test-fixtures/apigateway.crt")}"
   certificate_private_key = "${file("test-fixtures/apigateway.key")}"
   certificate_chain = "${file("test-fixtures/apigateway.crt")}"
+}
+`, name)
+}
+
+func testAccAWSApiGatewayDomainConfigUpdate(name string) string {
+	return fmt.Sprintf(`resource "aws_api_gateway_domain" "test" {
+  domain_name = "%s"
+  certificate_name = "test_api_cert2"
+  certificate_body = "${file("test-fixtures/apigateway2.crt")}"
+  certificate_private_key = "${file("test-fixtures/apigateway2.key")}"
+  certificate_chain = "${file("test-fixtures/apigateway2.crt")}"
 }
 `, name)
 }

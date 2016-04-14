@@ -10,32 +10,32 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSAPIGatewaySwaggerAPI_basic(t *testing.T) {
+func TestAccAWSApiGatewaySwaggerAPI_basic(t *testing.T) {
 	var conf apigateway.RestApi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSAPIGatewaySwaggerAPIDestroy,
+		CheckDestroy: testAccCheckAWSApiGatewaySwaggerAPIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAPIGatewaySwaggerAPIConfig,
+				Config: testAccAWSApiGatewaySwaggerAPIConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSAPIGatewaySwaggerAPIExists("aws_api_gateway_swagger_api.test", &conf),
+					testAccCheckAWSApiGatewaySwaggerAPIExists("aws_api_gateway_swagger_api.test", &conf),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccAWSAPIGatewaySwaggerAPIUpdateConfig,
+				Config: testAccAWSApiGatewaySwaggerAPIUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSAPIGatewaySwaggerAPIExists("aws_api_gateway_swagger_api.test", &conf),
+					testAccCheckAWSApiGatewaySwaggerAPIExists("aws_api_gateway_swagger_api.test", &conf),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSAPIGatewaySwaggerAPIExists(n string, res *apigateway.RestApi) resource.TestCheckFunc {
+func testAccCheckAWSApiGatewaySwaggerAPIExists(n string, res *apigateway.RestApi) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -57,7 +57,7 @@ func testAccCheckAWSAPIGatewaySwaggerAPIExists(n string, res *apigateway.RestApi
 		}
 
 		if *describe.Id != rs.Primary.ID {
-			return fmt.Errorf("APIGateway not found")
+			return fmt.Errorf("ApiGateway not found")
 		}
 
 		*res = *describe
@@ -66,7 +66,7 @@ func testAccCheckAWSAPIGatewaySwaggerAPIExists(n string, res *apigateway.RestApi
 	}
 }
 
-func testAccCheckAWSAPIGatewaySwaggerAPIDestroy(s *terraform.State) error {
+func testAccCheckAWSApiGatewaySwaggerAPIDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).apigateway
 
 	for _, rs := range s.RootModule().Resources {
@@ -90,7 +90,7 @@ func testAccCheckAWSAPIGatewaySwaggerAPIDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccAWSAPIGatewaySwaggerAPIConfig = `
+const testAccAWSApiGatewaySwaggerAPIConfig = `
 resource "aws_api_gateway_swagger_api" "test" {
   swagger = <<EOF
 {
@@ -131,7 +131,7 @@ EOF
 }
 `
 
-const testAccAWSAPIGatewaySwaggerAPIUpdateConfig = `
+const testAccAWSApiGatewaySwaggerAPIUpdateConfig = `
 resource "aws_api_gateway_swagger_api" "test" {
   swagger = <<EOF
 {

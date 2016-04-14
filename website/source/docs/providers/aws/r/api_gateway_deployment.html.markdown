@@ -14,7 +14,7 @@ Provides an API Gateway Deployment.
 you might need to add an explicit `depends_on` for clean runs.
 
 ## Example Usage
-
+§
 ```
 resource "aws_api_gateway_rest_api" "MyDemoAPI" {
   name = "MyDemoAPI"

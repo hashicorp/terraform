@@ -16,6 +16,7 @@ import (
 func resourceAwsApiGatewayDomain() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsApiGatewayDomainCreate,
+		Update: resourceAwsApiGatewayDomainUpdate,
 		Read:   resourceAwsApiGatewayDomainRead,
 		Delete: resourceAwsApiGatewayDomainDelete,
 
@@ -28,22 +29,18 @@ func resourceAwsApiGatewayDomain() *schema.Resource {
 			"certificate_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"certificate_body": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"certificate_private_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"certificate_chain": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"distribution_domain": &schema.Schema{
 				Type:     schema.TypeString,
@@ -80,7 +77,7 @@ func resourceAwsApiGatewayDomainCreate(d *schema.ResourceData, meta interface{})
 			}
 		}
 
-		d.SetId(*r.DomainName)
+		d.SetId(fmt.Sprintf("api-gateway-domain-name/%s", *r.DomainName))
 		d.Set("distribution_domain", *r.DistributionDomainName)
 
 		return nil
@@ -96,8 +93,8 @@ func resourceAwsApiGatewayDomainCreate(d *schema.ResourceData, meta interface{})
 func resourceAwsApiGatewayDomainRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
-	_, err := conn.GetDomainName(&apigateway.GetDomainNameInput{
-		DomainName: aws.String(d.Id()),
+	res, err := conn.GetDomainName(&apigateway.GetDomainNameInput{
+		DomainName: aws.String(d.Get("domain_name").(string)),
 	})
 
 	if err != nil {
@@ -108,9 +105,48 @@ func resourceAwsApiGatewayDomainRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error reading api gateway domain %s", err)
 	}
 
+	d.Set("certificate_name", *res.CertificateName)
+	d.Set("distribution_domain", *res.DistributionDomainName)
+
 	return nil
 }
 
+func patchFor(d *schema.ResourceData, key string, res string, patches []*apigateway.PatchOperation) {
+	if d.HasChange(key) {
+		patches = append(patches, &apigateway.PatchOperation{
+			Path:  aws.String(fmt.Sprintf("/%s", res)),
+			Op:    aws.String("replace"),
+			Value: aws.String(d.Get(key).(string)),
+		})
+	}
+}
+
+func resourceAwsApiGatewayDomainUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).apigateway
+
+	var patches []*apigateway.PatchOperation
+
+	//patchFor(d, "certificate_name", "certificateName", patches)
+	//patchFor(d, "certificate_body", "certificateBody", patches)
+	//patchFor(d, "certificate_private_key", "certificatePrivateKey", patches)
+	//patchFor(d, "certificate_chain", "certificateChain", patches)
+
+	if len(patches) == 0 {
+		_, err := conn.UpdateDomainName(&apigateway.UpdateDomainNameInput{
+			DomainName:      aws.String(d.Get("domain_name").(string)),
+			PatchOperations: patches,
+		})
+		if err != nil {
+			if err, ok := err.(awserr.Error); ok && err.Code() == "NotFound" {
+				d.SetId("")
+				return nil
+			}
+			return fmt.Errorf("Error updating api gateway domain %s", err)
+		}
+	}
+
+	return resourceAwsApiGatewayDomainRead(d, meta)
+}
 func resourceAwsApiGatewayDomainDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 

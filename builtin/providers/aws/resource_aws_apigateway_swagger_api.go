@@ -11,11 +11,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsAPIGatewaySwaggerAPI() *schema.Resource {
+func resourceAwsApiGatewaySwaggerAPI() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsAPIGatewaySwaggerAPICreate,
-		Read:   resourceAwsAPIGatewaySwaggerAPIRead,
-		Delete: resourceAwsAPIGatewaySwaggerAPIDelete,
+		Create: resourceAwsApiGatewaySwaggerAPICreate,
+		Read:   resourceAwsApiGatewaySwaggerAPIRead,
+		Delete: resourceAwsApiGatewaySwaggerAPIDelete,
 
 		Schema: map[string]*schema.Schema{
 			"swagger": &schema.Schema{
@@ -33,7 +33,7 @@ func resourceAwsAPIGatewaySwaggerAPI() *schema.Resource {
 	}
 }
 
-func resourceAwsAPIGatewaySwaggerAPICreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsApiGatewaySwaggerAPICreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 	swagger := d.Get("swagger").(string)
 
@@ -56,10 +56,10 @@ func resourceAwsAPIGatewaySwaggerAPICreate(d *schema.ResourceData, meta interfac
 	}
 	d.SetId(*res.Id)
 
-	return resourceAwsAPIGatewaySwaggerAPIRead(d, meta)
+	return resourceAwsApiGatewaySwaggerAPIRead(d, meta)
 }
 
-func resourceAwsAPIGatewaySwaggerAPIRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsApiGatewaySwaggerAPIRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 
 	_, err := conn.GetRestApi(&apigateway.GetRestApiInput{
@@ -77,7 +77,7 @@ func resourceAwsAPIGatewaySwaggerAPIRead(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func resourceAwsAPIGatewaySwaggerAPIDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsApiGatewaySwaggerAPIDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).apigateway
 	log.Printf("[DEBUG] Deleting API Gateway: %s", d.Id())
 
