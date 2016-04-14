@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -57,20 +56,17 @@ func testAccAWSSNSPlatformApplcationAPNSDestroy(s *terraform.State) error {
 		}
 
 		//App deletes are not consistent so retry
-		resource.Retry(30*time.Second, func() error {
+		resource.Retry(30*time.Second, func() *resource.RetryError {
 			r, err := conn.GetPlatformApplicationAttributes(params)
 			if err == nil {
-				return fmt.Errorf("Platform application exists when it should be destroyed! %s", r)
+				return &resource.RetryError{
+					Err:       fmt.Errorf("Platform application exists when it should be destroyed %s", r),
+					Retryable: true,
+				}
 			}
 
 			return nil
 		})
-
-		// Verify the error is an API error, not something else
-		_, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
 	}
 
 	return nil
@@ -89,20 +85,17 @@ func testAccAWSSNSPlatformApplcationGCMDestroy(s *terraform.State) error {
 		}
 
 		//App deletes are not consistent so retry
-		resource.Retry(30*time.Second, func() error {
+		resource.Retry(30*time.Second, func() *resource.RetryError {
 			r, err := conn.GetPlatformApplicationAttributes(params)
 			if err == nil {
-				return fmt.Errorf("Platform application exists when it should be destroyed! %s", r)
+				return &resource.RetryError{
+					Err:       fmt.Errorf("Platform application exists when it should be destroyed %s", r),
+					Retryable: true,
+				}
 			}
 
 			return nil
 		})
-
-		// Verify the error is an API error, not something else
-		_, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
 	}
 
 	return nil
