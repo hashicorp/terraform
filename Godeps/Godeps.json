@@ -366,6 +366,11 @@
 			"Rev": "6876e9922ff299adf36e43e04c94820077968b3b"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudfront",
+			"Comment": "v1.1.14",
+			"Rev": "6876e9922ff299adf36e43e04c94820077968b3b"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudtrail",
 			"Comment": "v1.1.14",
 			"Rev": "6876e9922ff299adf36e43e04c94820077968b3b"

@@ -52,6 +52,18 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-cloudfront/) %>>
+                    <a href="#">CloudFront Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cloudfront-distribution") %>>
+                            <a href="/docs/providers/aws/r/cloudfront_distribution.html">aws_cloudfront_distribution</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-cloudfront-origin-access-identity") %>>
+                            <a href="/docs/providers/aws/r/cloudfront_origin_access_identity.html">aws_cloudfront_origin_access_identity</a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li<%= sidebar_current(/^docs-aws-resource-cloudtrail/) %>>
                     <a href="#">CloudTrail Resources</a>
                     <ul class="nav nav-visible">
