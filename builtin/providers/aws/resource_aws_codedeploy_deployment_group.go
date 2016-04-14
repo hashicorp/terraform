@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -191,14 +193,24 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 	// Retry to handle IAM role eventual consistency.
 	var resp *codedeploy.CreateDeploymentGroupOutput
 	var err error
-	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		resp, err = conn.CreateDeploymentGroup(&input)
 		if err != nil {
+			retry := false
 			codedeployErr, ok := err.(awserr.Error)
 			if !ok {
 				return resource.NonRetryableError(err)
 			}
 			if codedeployErr.Code() == "InvalidRoleException" {
+				retry = true
+			}
+			if codedeployErr.Code() == "InvalidTriggerConfigException" {
+				r := regexp.MustCompile("^Topic ARN .+ is not valid$")
+				if r.MatchString(codedeployErr.Message()) {
+					retry = true
+				}
+			}
+			if retry {
 				log.Printf("[DEBUG] Trying to create deployment group again: %q",
 					codedeployErr.Message())
 				return resource.RetryableError(err)
@@ -439,6 +451,19 @@ func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["trigger_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["trigger_target_arn"].(string)))
+
+	if triggerEvents, ok := m["trigger_events"]; ok {
+		names := triggerEvents.(*schema.Set).List()
+		strings := make([]string, len(names))
+		for i, raw := range names {
+			strings[i] = raw.(string)
+		}
+		sort.Strings(strings)
+
+		for _, s := range strings {
+			buf.WriteString(fmt.Sprintf("%s-", s))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
