@@ -33,12 +33,14 @@ func TestAccAWSApiGatewayDomain_basic(t *testing.T) {
 					testAccCheckAWSApiGatewayDomainExists("aws_api_gateway_domain.test", name, &conf),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSApiGatewayDomainConfigUpdate(name),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSApiGatewayDomainExists("aws_api_gateway_domain.test", name, &conf),
-				),
-			},
+			/*
+				resource.TestStep{
+					Config: testAccAWSApiGatewayDomainConfigUpdate(name),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckAWSApiGatewayDomainExists("aws_api_gateway_domain.test", name, &conf),
+					),
+				},
+			*/
 		},
 	})
 }

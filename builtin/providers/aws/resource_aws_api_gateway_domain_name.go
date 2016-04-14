@@ -16,7 +16,6 @@ import (
 func resourceAwsApiGatewayDomain() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsApiGatewayDomainCreate,
-		Update: resourceAwsApiGatewayDomainUpdate,
 		Read:   resourceAwsApiGatewayDomainRead,
 		Delete: resourceAwsApiGatewayDomainDelete,
 
@@ -29,22 +28,27 @@ func resourceAwsApiGatewayDomain() *schema.Resource {
 			"certificate_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"certificate_body": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"certificate_private_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"certificate_chain": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"distribution_domain": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -126,10 +130,10 @@ func resourceAwsApiGatewayDomainUpdate(d *schema.ResourceData, meta interface{})
 
 	var patches []*apigateway.PatchOperation
 
-	//patchFor(d, "certificate_name", "certificateName", patches)
-	//patchFor(d, "certificate_body", "certificateBody", patches)
-	//patchFor(d, "certificate_private_key", "certificatePrivateKey", patches)
-	//patchFor(d, "certificate_chain", "certificateChain", patches)
+	patchFor(d, "certificate_name", "certificateName", patches)
+	patchFor(d, "certificate_body", "certificateBody", patches)
+	patchFor(d, "certificate_private_key", "certificatePrivateKey", patches)
+	patchFor(d, "certificate_chain", "certificateChain", patches)
 
 	if len(patches) == 0 {
 		_, err := conn.UpdateDomainName(&apigateway.UpdateDomainNameInput{
