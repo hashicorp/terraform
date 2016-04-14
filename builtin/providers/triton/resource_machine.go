@@ -174,6 +174,14 @@ func resourceMachine() *schema.Resource {
 				Optional:    true,
 				Default:     "up",
 			},
+			"domain_names": {
+				Description: "list of domain names from Triton's CNS",
+				Type:        schema.TypeList,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 
 			// computed resources from metadata
 			"root_authorized_keys": {
@@ -300,6 +308,7 @@ func resourceMachineRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("image", machine.Image)
 	d.Set("primaryip", machine.PrimaryIP)
 	d.Set("firewall_enabled", machine.FirewallEnabled)
+	d.Set("domain_names", machine.DomainNames)
 
 	// create and update NICs
 	var (
