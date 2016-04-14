@@ -154,7 +154,6 @@ func resourceContainerCluster() *schema.Resource {
 			"addons_config": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
@@ -162,7 +161,6 @@ func resourceContainerCluster() *schema.Resource {
 						"http_load_balancing": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
-							Computed: true,
 							ForceNew: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
@@ -170,7 +168,6 @@ func resourceContainerCluster() *schema.Resource {
 									"disabled": &schema.Schema{
 										Type:     schema.TypeBool,
 										Optional: true,
-										Computed: true,
 										ForceNew: true,
 									},
 								},
@@ -179,7 +176,6 @@ func resourceContainerCluster() *schema.Resource {
 						"horizontal_pod_autoscaling": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
-							Computed: true,
 							ForceNew: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
@@ -187,7 +183,6 @@ func resourceContainerCluster() *schema.Resource {
 									"disabled": &schema.Schema{
 										Type:     schema.TypeBool,
 										Optional: true,
-										Computed: true,
 										ForceNew: true,
 									},
 								},
