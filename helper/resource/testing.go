@@ -600,6 +600,26 @@ func TestCheckOutput(name, value string) TestCheckFunc {
 	}
 }
 
+func TestMatchOutput(name string, r *regexp.Regexp) TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Outputs[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if !r.MatchString(rs.Value.(string)) {
+			return fmt.Errorf(
+				"Output '%s': %#v didn't match %q",
+				name,
+				rs,
+				r.String())
+		}
+
+		return nil
+	}
+}
+
 // TestT is the interface used to handle the test lifecycle of a test.
 //
 // Users should just use a *testing.T object, which implements this.
