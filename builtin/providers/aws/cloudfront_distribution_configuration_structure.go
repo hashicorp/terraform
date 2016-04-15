@@ -82,12 +82,20 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 // aws_cloudfront_distribution resource.
 //
 // Used by the aws_cloudfront_distribution Read function.
-func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloudfront.DistributionConfig) {
-	d.Set("origins", flattenOrigins(distributionConfig.Origins))
+func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloudfront.DistributionConfig) error {
+	var err error
+
 	d.Set("enabled", *distributionConfig.Enabled)
-	d.Set("default_cache_behavior", flattenDefaultCacheBehavior(distributionConfig.DefaultCacheBehavior))
-	d.Set("viewer_certificate", flattenViewerCertificate(distributionConfig.ViewerCertificate))
 	d.Set("price_class", *distributionConfig.PriceClass)
+
+	err = d.Set("default_cache_behavior", flattenDefaultCacheBehavior(distributionConfig.DefaultCacheBehavior))
+	if err != nil {
+		return err
+	}
+	err = d.Set("viewer_certificate", flattenViewerCertificate(distributionConfig.ViewerCertificate))
+	if err != nil {
+		return err
+	}
 
 	if distributionConfig.CallerReference != nil {
 		d.Set("caller_reference", *distributionConfig.CallerReference)
@@ -100,24 +108,48 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 	if distributionConfig.DefaultRootObject != nil {
 		d.Set("default_root_object", *distributionConfig.DefaultRootObject)
 	}
-	if distributionConfig.CustomErrorResponses != nil {
-		d.Set("custom_error_response", flattenCustomErrorResponses(distributionConfig.CustomErrorResponses))
-	}
-	if distributionConfig.CacheBehaviors != nil {
-		d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
-	}
-	if distributionConfig.Logging != nil && *distributionConfig.Logging.Enabled {
-		d.Set("logging_config", flattenLoggingConfig(distributionConfig.Logging))
-	}
-	if distributionConfig.Aliases != nil {
-		d.Set("aliases", flattenAliases(distributionConfig.Aliases))
-	}
-	if distributionConfig.Restrictions != nil {
-		d.Set("restrictions", flattenRestrictions(distributionConfig.Restrictions))
-	}
 	if distributionConfig.WebACLId != nil {
 		d.Set("web_acl_id", *distributionConfig.WebACLId)
 	}
+
+	if distributionConfig.CustomErrorResponses != nil {
+		err = d.Set("custom_error_response", flattenCustomErrorResponses(distributionConfig.CustomErrorResponses))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.CacheBehaviors != nil {
+		err = d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.Logging != nil && *distributionConfig.Logging.Enabled {
+		err = d.Set("logging_config", flattenLoggingConfig(distributionConfig.Logging))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.Aliases != nil {
+		err = d.Set("aliases", flattenAliases(distributionConfig.Aliases))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.Restrictions != nil {
+		err = d.Set("restrictions", flattenRestrictions(distributionConfig.Restrictions))
+		if err != nil {
+			return err
+		}
+	}
+	if *distributionConfig.Origins.Quantity > 0 {
+		err = d.Set("origin", flattenOrigins(distributionConfig.Origins))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func expandDefaultCacheBehavior(m map[string]interface{}) *cloudfront.DefaultCacheBehavior {

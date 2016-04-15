@@ -492,10 +492,16 @@ func resourceAwsCloudFrontDistributionRead(d *schema.ResourceData, meta interfac
 	}
 
 	// Update attributes from DistributionConfig
-	flattenDistributionConfig(d, resp.Distribution.DistributionConfig)
+	err = flattenDistributionConfig(d, resp.Distribution.DistributionConfig)
+	if err != nil {
+		return err
+	}
 	// Update other attributes outside of DistributionConfig
 	d.SetId(*resp.Distribution.Id)
-	d.Set("active_trusted_signers", flattenActiveTrustedSigners(resp.Distribution.ActiveTrustedSigners))
+	err = d.Set("active_trusted_signers", flattenActiveTrustedSigners(resp.Distribution.ActiveTrustedSigners))
+	if err != nil {
+		return err
+	}
 	d.Set("status", *resp.Distribution.Status)
 	d.Set("domain_name", *resp.Distribution.DomainName)
 	d.Set("last_modified_time", aws.String(resp.Distribution.LastModifiedTime.String()))
