@@ -12,16 +12,18 @@ import (
 
 func TestIngnitionFileReplace(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_file" "test" {
-		    config {
-		    	replace {
-		    		source = "foo"
-		    		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-		    	}
+		resource "ignition_config" "test" {
+			ignition {
+			    config {
+			    	replace {
+			    		source = "foo"
+			    		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+			    	}
+				}
 			}
 		}
-	`, func(i *types.Ignition) error {
-		r := i.Config.Replace
+	`, func(c *types.Config) error {
+		r := c.Ignition.Config.Replace
 		if r == nil {
 			return fmt.Errorf("unable to find replace config")
 		}
@@ -40,21 +42,23 @@ func TestIngnitionFileReplace(t *testing.T) {
 
 func TestIngnitionFileAppend(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_file" "test" {
-		    config {
-		    	append {
-		    		source = "foo"
-		    		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-		    	}
+		resource "ignition_config" "test" {
+		    ignition {
+		    	config {
+			    	append {
+			    		source = "foo"
+			    		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+			    	}
 
-		    	append {
-		    		source = "foo"
-		    		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-		    	}
+			    	append {
+			    		source = "foo"
+			    		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+			    	}
+			    }
 			}
 		}
-	`, func(i *types.Ignition) error {
-		a := i.Config.Append
+	`, func(c *types.Config) error {
+		a := c.Ignition.Config.Append
 		if len(a) != 2 {
 			return fmt.Errorf("unable to find append config, expected 2")
 		}
@@ -71,17 +75,17 @@ func TestIngnitionFileAppend(t *testing.T) {
 	})
 }
 
-func testIgnition(t *testing.T, input string, assert func(*types.Ignition) error) {
+func testIgnition(t *testing.T, input string, assert func(*types.Config) error) {
 	check := func(s *terraform.State) error {
 		got := s.RootModule().Outputs["rendered"]
 
-		i := &types.Ignition{}
-		err := json.Unmarshal([]byte(got), i)
+		c := &types.Config{}
+		err := json.Unmarshal([]byte(got), c)
 		if err != nil {
 			return err
 		}
 
-		return assert(i)
+		return assert(c)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -99,7 +103,7 @@ var testTemplate = `
 %s
 
 output "rendered" {
-	value = "${ignition_file.test.rendered}"
+	value = "${ignition_config.test.rendered}"
 }
 
 `

@@ -1,8 +1,6 @@
 package ignition
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -12,7 +10,36 @@ import (
 	"github.com/coreos/ignition/config/types"
 )
 
-var configReference = &schema.Resource{
+var ignitionResource = &schema.Resource{
+	Create: resourceIgnitionFileCreate,
+	Delete: resourceIgnitionFileDelete,
+	Exists: resourceIgnitionFileExists,
+	Read:   resourceIgnitionFileRead,
+	Schema: map[string]*schema.Schema{
+		"config": &schema.Schema{
+			Type:     schema.TypeList,
+			Optional: true,
+			MaxItems: 1,
+			ForceNew: true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"replace": &schema.Schema{
+						Type:     schema.TypeList,
+						Optional: true,
+						MaxItems: 1,
+						Elem:     configReferenceResource,
+					},
+					"append": &schema.Schema{
+						Type:     schema.TypeList,
+						Optional: true,
+						Elem:     configReferenceResource,
+					},
+				},
+			},
+		},
+	},
+}
+var configReferenceResource = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"source": &schema.Schema{
 			Type:        schema.TypeString,
@@ -27,41 +54,25 @@ var configReference = &schema.Resource{
 	},
 }
 
-func resourceFile() *schema.Resource {
+func resourceConfig() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceIgnitionFileCreate,
 		Delete: resourceIgnitionFileDelete,
 		Exists: resourceIgnitionFileExists,
 		Read:   resourceIgnitionFileRead,
-
 		Schema: map[string]*schema.Schema{
-			"version": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "2.0.0",
-				Description: "The semantic version number of the spec",
-				ForceNew:    true,
-			},
-			"config": &schema.Schema{
+			"ignition": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"replace": &schema.Schema{
-							Type:     schema.TypeList,
-							Optional: true,
-							MaxItems: 1,
-							Elem:     configReference,
-						},
-						"append": &schema.Schema{
-							Type:     schema.TypeList,
-							Optional: true,
-							Elem:     configReference,
-						},
-					},
-				},
+				Elem:     ignitionResource,
+			},
+			"users": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"rendered": &schema.Schema{
 				Type:        schema.TypeString,
@@ -73,7 +84,7 @@ func resourceFile() *schema.Resource {
 }
 
 func resourceIgnitionFileCreate(d *schema.ResourceData, meta interface{}) error {
-	rendered, err := renderIgnition(d)
+	rendered, err := renderConfig(d, meta.(*cache))
 	if err != nil {
 		return err
 	}
@@ -92,7 +103,7 @@ func resourceIgnitionFileDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceIgnitionFileExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	rendered, err := renderIgnition(d)
+	rendered, err := renderConfig(d, meta.(*cache))
 	if err != nil {
 		return false, err
 	}
@@ -104,8 +115,8 @@ func resourceIgnitionFileRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func renderIgnition(d *schema.ResourceData) (string, error) {
-	i, err := buildIgnition(d)
+func renderConfig(d *schema.ResourceData, c *cache) (string, error) {
+	i, err := buildConfig(d, c)
 	if err != nil {
 		return "", err
 	}
@@ -118,26 +129,42 @@ func renderIgnition(d *schema.ResourceData) (string, error) {
 	return string(bytes), nil
 }
 
-func buildIgnition(d *schema.ResourceData) (*types.Ignition, error) {
+func buildConfig(d *schema.ResourceData, c *cache) (*types.Config, error) {
+	var err error
+	config := &types.Config{}
+	config.Ignition, err = buildIgnition(d)
+	if err != nil {
+		return nil, err
+	}
+
+	config.Passwd, err = buildPasswd(d, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+func buildIgnition(d *schema.ResourceData) (types.Ignition, error) {
 	var err error
 
-	i := &types.Ignition{}
+	i := types.Ignition{}
 	i.Version.UnmarshalJSON([]byte(`"2.0.0"`))
 
-	rr := d.Get("config.0.replace.0").(map[string]interface{})
+	rr := d.Get("ignition.0.config.0.replace.0").(map[string]interface{})
 	if len(rr) != 0 {
 		i.Config.Replace, err = buildConfigReference(rr)
 		if err != nil {
-			return nil, err
+			return i, err
 		}
 	}
 
-	ar := d.Get("config.0.append").([]interface{})
+	ar := d.Get("ignition.0.config.0.append").([]interface{})
 	if len(ar) != 0 {
 		for _, rr := range ar {
 			r, err := buildConfigReference(rr.(map[string]interface{}))
 			if err != nil {
-				return nil, err
+				return i, err
 			}
 
 			i.Config.Append = append(i.Config.Append, *r)
@@ -167,6 +194,17 @@ func buildConfigReference(raw map[string]interface{}) (*types.ConfigReference, e
 	return r, nil
 }
 
+func buildPasswd(d *schema.ResourceData, c *cache) (types.Passwd, error) {
+	passwd := types.Passwd{}
+
+	for _, id := range d.Get("users").([]interface{}) {
+		passwd.Users = append(passwd.Users, *c.users[id.(string)])
+	}
+
+	return passwd, nil
+
+}
+
 func buildURL(raw string) (types.Url, error) {
 	u, err := url.Parse(raw)
 	if err != nil {
@@ -181,9 +219,4 @@ func buildHash(raw string) (types.Hash, error) {
 	err := h.UnmarshalJSON([]byte(fmt.Sprintf("%q", raw)))
 
 	return h, err
-}
-
-func hash(s string) string {
-	sha := sha256.Sum256([]byte(s))
-	return hex.EncodeToString(sha[:])
 }
