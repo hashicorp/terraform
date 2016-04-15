@@ -50,6 +50,7 @@ resource "google_container_cluster" "primary" {
 * `zone` - (Required) The zone that all resources should be created in.
 
 - - -
+* `addons_config` - (Optional) The configuration for addons supported by Google Container Engine
 
 * `cluster_ipv4_cidr` - (Optional) The IP address range of the container pods in
     this cluster. Default is an automatically assigned CIDR.
@@ -78,6 +79,8 @@ resource "google_container_cluster" "primary" {
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
+* `subnetwork` - (Optional) The name of the Google Compute Engine subnetwork in which the cluster's instances are launched
+
 **Master Auth** supports the following arguments:
 
 * `password` - The password to use for HTTP basic authentication when accessing
@@ -102,6 +105,23 @@ resource "google_container_cluster" "primary" {
   * `https://www.googleapis.com/auth/devstorage.read_only`
   * `https://www.googleapis.com/auth/logging.write` (if `logging_service` points to Google)
   * `https://www.googleapis.com/auth/monitoring` (if `monitoring_service` points to Google)
+
+**Addons Config** supports the following addons:
+
+* `http_load_balancing` - (Optional) The status of the HTTP Load Balancing addon. It is enabled by default; set `disabled = true` to disable.
+* `horizontal_pod_autoscaling` - (Optional) The status of the Horizontal Pod Autoscaling addon. It is enabled by default; set `disabled = true` to disable.
+
+This example `addons_config` disables both addons:
+```
+addons_config {
+  http_load_balancing { 
+    disabled = false
+  }
+  horizontal_pod_autoscaling {
+    disabled = false
+  }
+}
+```
 
 ## Attributes Reference
 
