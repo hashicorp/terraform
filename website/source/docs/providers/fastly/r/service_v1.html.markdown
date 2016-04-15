@@ -40,7 +40,7 @@ resource "fastly_service_v1" "demo" {
 
 ```
 
-Basic usage with an Amazon S3 Website:
+Basic usage with an Amazon S3 Website, and removes the `x-amz-request-id` header:
 
 ```
 resource "fastly_service_v1" "demo" {
@@ -55,6 +55,13 @@ resource "fastly_service_v1" "demo" {
     address = "demo.notexample.com.s3-website-us-west-2.amazonaws.com"
     name    = "AWS S3 hosting"
     port    = 80
+  }
+
+  header {
+    destination = "http.x-amz-request-id"
+    type        = "cache"
+    action      = "delete"
+    name        = "remove x-amz-request-id"
   }
 
   default_host = "${aws_s3_bucket.website.name}.s3-website-us-west-2.amazonaws.com"
