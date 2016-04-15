@@ -18,7 +18,7 @@ const awsDefaultAclRuleNumber = 32767
 func resourceAwsDefaultNetworkAcl() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDefaultNetworkAclCreate,
-                // We reuse aws_network_acl's read method, the operations are the same
+		// We reuse aws_network_acl's read method, the operations are the same
 		Read:   resourceAwsNetworkAclRead,
 		Delete: resourceAwsDefaultNetworkAclDelete,
 		Update: resourceAwsDefaultNetworkAclUpdate,
@@ -34,21 +34,26 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 				ForceNew: true,
 				Computed: false,
 			},
+			// subnet_id is a deprecated value in aws_network_acl, so we don't support
+			// using it here. We do re-use aws_network_acl's READ method which will
+			// attempt to set this value, so we include it here
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			// We want explicit managment of Subnets here, so we do not allow them to be
+			// We want explicit management of Subnets here, so we do not allow them to be
 			// computed. Instead, an empty config will enforce just that; removal of the
 			// any Subnets that have been assigned to the Default Network ACL. Because we
-			// can't actually remove them, this will be a continual plan
+			// can't actually remove them, this will be a continual plan until the
+			// Subnets are themselves destroyed or reassigned to a different Network
+			// ACL
 			"subnet_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			// We want explicit managment of Rules here, so we do not allow them to be
+			// We want explicit management of Rules here, so we do not allow them to be
 			// computed. Instead, an empty config will enforce just that; removal of the
 			// rules
 			"ingress": &schema.Schema{
@@ -143,14 +148,11 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 
 func resourceAwsDefaultNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(d.Get("default_network_acl_id").(string))
-	log.Printf("[DEBUG] Revoking ingress rules for Default Network ACL for %s", d.Id())
-	err := revokeRulesForType(d.Id(), "ingress", meta)
-	if err != nil {
-		return err
-	}
 
-	log.Printf("[DEBUG] Revoking egress rules for Default Network ACL for %s", d.Id())
-	err = revokeRulesForType(d.Id(), "egress", meta)
+	// revoke all default and pre-existing rules on the default network acl.
+	// In the UPDATE method, we'll apply only the rules in the configuration.
+	log.Printf("[DEBUG] Revoking default ingress and egress rules for Default Network ACL for %s", d.Id())
+	err := revokeAllNetworkACLEntries(d.Id(), meta)
 	if err != nil {
 		return err
 	}
@@ -195,7 +197,7 @@ func resourceAwsDefaultNetworkAclUpdate(d *schema.ResourceData, meta interface{}
 			//
 			// NO-OP
 			//
-			// Subnets *must* belong to a Network ACL. Subnets are not "remove" from
+			// Subnets *must* belong to a Network ACL. Subnets are not "removed" from
 			// Network ACLs, instead their association is replaced. In a normal
 			// Network ACL, any removal of a Subnet is done by replacing the
 			// Subnet/ACL association with an association between the Subnet and the
@@ -241,9 +243,9 @@ func resourceAwsDefaultNetworkAclDelete(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-// revokeRulesForType will query the Network ACL for it's entries, and revoke
-// any rule of the matching type.
-func revokeRulesForType(netaclId, rType string, meta interface{}) error {
+// revokeAllNetworkACLEntries revoke all ingress and egress rules that the Default
+// Network ACL currently has
+func revokeAllNetworkACLEntries(netaclId string, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	resp, err := conn.DescribeNetworkAcls(&ec2.DescribeNetworkAclsInput{
@@ -262,24 +264,18 @@ func revokeRulesForType(netaclId, rType string, meta interface{}) error {
 	networkAcl := resp.NetworkAcls[0]
 	for _, e := range networkAcl.Entries {
 		// Skip the default rules added by AWS. They can be neither
-                // configured or deleted by users. See http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html#default-network-acl
-                if *e.RuleNumber == awsDefaultAclRuleNumber {
+		// configured or deleted by users. See http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html#default-network-acl
+		if *e.RuleNumber == awsDefaultAclRuleNumber {
 			continue
 		}
 
-		// networkAcl.Entries contains a list of ACL Entries, with an Egress boolean
-		// to indicate if they are ingress or egress. Match on that bool to make
-		// sure we're removing the right kind of rule, instead of just all rules
+		// track if this is an egress or ingress rule, for logging purposes
 		rt := "ingress"
 		if *e.Egress == true {
 			rt = "egress"
 		}
 
-		if rType != rt {
-			continue
-		}
-
-		log.Printf("[DEBUG] Destroying Network ACL Entry number (%d) for type (%s)", int(*e.RuleNumber), rt)
+		log.Printf("[DEBUG] Destroying Network ACL (%s) Entry number (%d)", rt, int(*e.RuleNumber))
 		_, err := conn.DeleteNetworkAclEntry(&ec2.DeleteNetworkAclEntryInput{
 			NetworkAclId: aws.String(netaclId),
 			RuleNumber:   e.RuleNumber,

@@ -20,9 +20,9 @@ Terraform does not _create_ this resource, but instead attempts to "adopt" it
 into management. We can do this because each VPC created has a Default Network
 ACL that cannot be destroyed, and is created with a known set of default rules. 
 
-When Terraform first adopts the Default Network ACL, it **immeidately removes all
+When Terraform first adopts the Default Network ACL, it **immediately removes all
 rules in the ACL**. It then proceeds to create any rules specified in the 
-configuration. This step is required so that only the rules specificed in the 
+configuration. This step is required so that only the rules specified in the 
 configuration are created.
 
 For more information about Network ACLs, see the AWS Documentation on 
@@ -113,9 +113,9 @@ Within a VPC, all Subnets must be associated with a Network ACL. In order to
 association is destroyed by replacing it with an association between the Subnet 
 and the Default ACL instead. 
 
-When managing the Default Network ACL, you cannot "delete" or "remove" Subnets,
-instead they must be re-assigned to another Network ACL, or the Subnet itself must be
-destroyed. Because of these rules, removing the `subnet_ids` attribute from the
+When managing the Default Network ACL, you cannot "remove" Subnets.
+Instead, they must be reassigned to another Network ACL, or the Subnet itself must be
+destroyed. Because of these requirements, removing the `subnet_ids` attribute from the
 configuration of a `aws_default_network_acl` resource may result in a reoccurring
 plan, until the Subnets are reassigned to another Network ACL or are destroyed.
 
@@ -134,7 +134,7 @@ the `aws_default_network_acl` entry.
 Each AWS VPC comes with a Default Network ACL that cannot be deleted. The `aws_default_network_acl` 
 allows you to manage this Network ACL, but Terraform cannot destroy it. Removing
 this resource from your configuration will remove it from your statefile and
-management, **but will not destroy the Network ACL.** All Subnets assocations
+management, **but will not destroy the Network ACL.** All Subnets associations
 and ingress or egress rules will be left as they are at the time of removal. You
 can resume managing them via the AWS Console.
 

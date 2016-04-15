@@ -40,14 +40,6 @@ func TestAccAWSDefaultNetworkAcl_basic(t *testing.T) {
 					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{}, 0),
 				),
 			},
-			// Add default ACL rules and veryify plan is empty
-			resource.TestStep{
-				Config: testAccAWSDefaultNetworkConfig_basicDefaultRules,
-				Check: resource.ComposeTestCheckFunc(
-					testAccGetWSDefaultNetworkAcl("aws_default_network_acl.default", &networkAcl),
-					testAccCheckAWSDefaultACLAttributes(&networkAcl, []*ec2.NetworkAclEntry{defaultEgressAcl, defaultIngressAcl}, 0),
-				),
-			},
 		},
 	})
 }
@@ -55,9 +47,7 @@ func TestAccAWSDefaultNetworkAcl_basic(t *testing.T) {
 func TestAccAWSDefaultNetworkAcl_deny_ingress(t *testing.T) {
 	// TestAccAWSDefaultNetworkAcl_deny_ingress will deny all Ingress rules, but
 	// not Egress. We then expect there to be 3 rules, 2 AWS defaults and 1
-	// additional Egress. Without specifying the Egress rule in the configuration,
-	// we expect a follow up plan to prompt it's removal, thus we expect a non
-	// emtpy plan
+	// additional Egress.
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
@@ -123,10 +113,18 @@ func TestAccAWSDefaultNetworkAcl_SubnetReassign(t *testing.T) {
 				),
 			},
 
-			// Here we've re-assinged the subnets to a different ACL, however, we
-			// still arn't updating the Default resource, so we introduce a depends_on
-			// reference, to ensure the right order (Network ACL, then Default Network
-			// ACL)
+			// Here we've reassigned the subnets to a different ACL.
+			// Without any otherwise association between the `aws_network_acl` and
+			// `aws_default_network_acl` resources, we cannot guarantee that the
+			// reassignment of the two subnets to the `aws_network_acl` will happen
+			// before the update/read on the `aws_default_network_acl` resource.
+			// Because of this, there could be a non-empty plan if a READ is done on
+			// the default before the reassignment occurs on the other resource.
+			//
+			// For the sake of testing, here we introduce a depends_on attribute from
+			// the default resource to the other acl resource, to ensure the latter's
+			// update occurs first, and the former's READ will correctly read zero
+			// subnets
 			resource.TestStep{
 				Config: testAccAWSDefaultNetworkConfig_Subnets_move,
 				Check: resource.ComposeTestCheckFunc(
@@ -139,12 +137,7 @@ func TestAccAWSDefaultNetworkAcl_SubnetReassign(t *testing.T) {
 }
 
 func testAccCheckAWSDefaultNetworkAclDestroy(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_default_network_acl" {
-			continue
-		}
-	}
-
+	// We can't destroy this resource; it comes and goes with the VPC itself.
 	return nil
 }
 
