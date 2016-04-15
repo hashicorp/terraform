@@ -48,6 +48,7 @@ IMPROVEMENTS:
  * provider/openstack: Add value_specs argument and attribute for routers [GH-4898]
  * provider/cloudstack: Deprecate allowing names (instead of IDs) for parameters that reference other resources [GH-6123]
  * provider/vsphere: Support for linked clones and Windows-specific guest config options [GH-6087]
+ * provider/google: `addons_config` and `subnetwork` added as attributes to `google_container_cluster` [GH-5871]
 
 BUG FIXES:
 
