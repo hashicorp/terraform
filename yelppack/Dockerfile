@@ -15,5 +15,7 @@ ENV PATH /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:/usr/local
 ENV GOPATH /go
 RUN mkdir /go
 RUN gem install fpm
+ENV RUBYOPT="-KU -E utf-8:utf-8"
+RUN gem install fpm
 
 #WORKDIR /go/src/github.com/Yelp/terraform-provider-gitfile

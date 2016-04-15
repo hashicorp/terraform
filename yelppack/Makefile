@@ -8,9 +8,9 @@ ifdef upstream_build_number
 else
 	REAL_BUILD_NUMBER?=$(BUILD_NUMBER)
 endif
-VERSION = 0.2
+VERSION = 0.4
 ITERATION = yelp$(REAL_BUILD_NUMBER)
-ARCH := $(shell facter architecture)
+ARCH := $(shell dpkg --print-architecture)
 
 PACKAGE_NAME := $(PROJECT)_$(VERSION)-$(ITERATION)_$(ARCH).deb
 PACKAGE_FILE := dist/$(PACKAGE_NAME)

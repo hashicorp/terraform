@@ -55,6 +55,11 @@ func recordResource() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"use_client_subnet": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -124,6 +129,10 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"up": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
 					},
 				},
 				Set: regionsToHash,
@@ -163,6 +172,7 @@ func regionsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", r["georegion"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", r["country"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", r["us_state"].(string)))
+	buf.WriteString(fmt.Sprintf("%t-", r["up"].(bool)))
 	return hashcode.String(buf.String())
 }
 
@@ -263,6 +273,11 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 			if len(region.Meta.USState) > 0 {
 				new_region["us_state"] = region.Meta.USState[0]
 			}
+			if region.Meta.Up {
+				new_region["up"] = region.Meta.Up
+			} else {
+				new_region["up"] = false
+			}
 			regions = append(regions, new_region)
 		}
 		log.Printf("Setting regions %+v", regions)
@@ -293,12 +308,33 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 				meta["feed"] = t["feed"].(string)
 			case string:
 				meta["value"] = t
+			case []interface{}:
+				var val_array []string
+				for _, pref := range t {
+					val_array = append(val_array, pref.(string))
+				}
+				sort.Strings(val_array)
+				string_val := strings.Join(val_array, ",")
+				meta["value"] = string_val
+			case bool:
+				int_val := btoi(t)
+				meta["value"] = strconv.Itoa(int_val)
+			case float64:
+				int_val := int(t)
+				meta["value"] = strconv.Itoa(int_val)
 			}
 			metas.Add(meta)
 		}
 		m["meta"] = metas
 	}
 	return m
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
@@ -325,7 +361,13 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 						a.Meta[key] = nsone.NewMetaFeed(value.(string))
 					}
 					if value, ok := meta["value"]; ok && value.(string) != "" {
-						a.Meta[key] = value.(string)
+						meta_array := strings.Split(value.(string), ",")
+						if len(meta_array) > 1 {
+							sort.Strings(meta_array)
+							a.Meta[key] = meta_array
+						} else {
+							a.Meta[key] = value.(string)
+						}
 					}
 				}
 			}
@@ -342,6 +384,11 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
 	}
+	useClientSubnetVal := d.Get("use_client_subnet").(bool)
+	if v := strconv.FormatBool(useClientSubnetVal); v != "" {
+		r.UseClientSubnet = useClientSubnetVal
+	}
+
 	if rawFilters := d.Get("filters").([]interface{}); len(rawFilters) > 0 {
 		f := make([]nsone.Filter, len(rawFilters))
 		for i, filter_raw := range rawFilters {
@@ -383,6 +430,10 @@ func resourceDataToRecord(r *nsone.Record, d *schema.ResourceData) error {
 			if g := region["us_state"].(string); g != "" {
 				nsone_r.Meta.USState = []string{g}
 			}
+			if g := region["up"].(bool); g {
+				nsone_r.Meta.Up = g
+			}
+
 			rm[region["name"].(string)] = nsone_r
 		}
 		r.Regions = rm
