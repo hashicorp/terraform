@@ -872,10 +872,12 @@ func flattenViewerCertificate(vc *cloudfront.ViewerCertificate) *schema.Set {
 	if vc.IAMCertificateId != nil {
 		m["iam_certificate_id"] = *vc.IAMCertificateId
 		m["ssl_support_method"] = *vc.SSLSupportMethod
-	} else if vc.ACMCertificateArn != nil {
+	}
+	if vc.ACMCertificateArn != nil {
 		m["acm_certificate_arn"] = *vc.ACMCertificateArn
 		m["ssl_support_method"] = *vc.SSLSupportMethod
-	} else {
+	}
+	if vc.CloudFrontDefaultCertificate != nil {
 		m["cloudfront_default_certificate"] = *vc.CloudFrontDefaultCertificate
 	}
 	if vc.MinimumProtocolVersion != nil {
@@ -889,16 +891,16 @@ func flattenViewerCertificate(vc *cloudfront.ViewerCertificate) *schema.Set {
 func viewerCertificateHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	if v, ok := m["iam_certificate_id"]; ok {
+	if v, ok := m["iam_certificate_id"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 		buf.WriteString(fmt.Sprintf("%s-", m["ssl_support_method"].(string)))
-	} else if v, ok := m["acm_certificate_arn"]; ok {
+	} else if v, ok := m["acm_certificate_arn"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 		buf.WriteString(fmt.Sprintf("%s-", m["ssl_support_method"].(string)))
 	} else {
 		buf.WriteString(fmt.Sprintf("%t-", m["cloudfront_default_certificate"].(bool)))
 	}
-	if v, ok := m["minimum_protocol_version"]; ok {
+	if v, ok := m["minimum_protocol_version"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 	return hashcode.String(buf.String())
