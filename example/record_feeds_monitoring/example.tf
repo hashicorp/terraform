@@ -55,7 +55,7 @@ resource "nsone_datafeed" "useast1_feed" {
 
 resource "nsone_zone" "tld" {
     zone = "${var.tld}"
-    ttl = 60
+    ttl = 600
 }
 
 # In real life, you may want to get the ELB names from other terraform config, for example:

@@ -4,14 +4,12 @@ project=$1
 version=$2
 iteration=$3
 
-cd /go/src/github.com/bobtfish/terraform-provider-nsone
-go get
-go build .
+go get github.com/bobtfish/${project}
 mkdir /dist && cd /dist
-ln -s /go/bin bin
-fpm -s dir -t deb --name ${project} \
+mkdir /tmp/usrbin
+ln -s /nail/opt/bin/${project} /tmp/usrbin/${project}
+fpm -s dir -t deb --deb-no-default-config-files --name ${project} \
     --iteration ${iteration} --version ${version} \
-    --prefix /usr/ \
-    ./bin/
-rm bin
+    /tmp/usrbin/${project}=/usr/bin/ \
+    /go/bin/${project}=/nail/opt/bin/
 
