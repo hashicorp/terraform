@@ -9,9 +9,16 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+// ACL Network ACLs all contain an explicit deny-all rule that cannot be
+// destroyed or changed by users. This rule is numbered very high to be a
+// catch-all.
+// See http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html#default-network-acl
+const awsDefaultAclRuleNumber = 32767
+
 func resourceAwsDefaultNetworkAcl() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDefaultNetworkAclCreate,
+                // We reuse aws_network_acl's read method, the operations are the same
 		Read:   resourceAwsNetworkAclRead,
 		Delete: resourceAwsDefaultNetworkAclDelete,
 		Update: resourceAwsDefaultNetworkAclUpdate,
@@ -255,8 +262,8 @@ func revokeRulesForType(netaclId, rType string, meta interface{}) error {
 	networkAcl := resp.NetworkAcls[0]
 	for _, e := range networkAcl.Entries {
 		// Skip the default rules added by AWS. They can be neither
-		// configured or deleted by users.
-		if *e.RuleNumber == 32767 {
+                // configured or deleted by users. See http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html#default-network-acl
+                if *e.RuleNumber == awsDefaultAclRuleNumber {
 			continue
 		}
 
