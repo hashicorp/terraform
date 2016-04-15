@@ -28,22 +28,18 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 				Computed: false,
 			},
 			"subnet_id": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Computed:   false,
-				Deprecated: "Attribute subnet_id is deprecated on default_network_acl resources. Use subnet_ids instead",
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			// We want explicit managment of Subnets here, so we do not allow them to be
 			// computed. Instead, an empty config will enforce just that; removal of the
 			// any Subnets that have been assigned to the Default Network ACL. Because we
 			// can't actually remove them, this will be a continual plan
 			"subnet_ids": &schema.Schema{
-				Type:          schema.TypeSet,
-				Optional:      true,
-				ConflictsWith: []string{"subnet_id"},
-				Elem:          &schema.Schema{Type: schema.TypeString},
-				Set:           schema.HashString,
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 			// We want explicit managment of Rules here, so we do not allow them to be
 			// computed. Instead, an empty config will enforce just that; removal of the
@@ -139,12 +135,7 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 }
 
 func resourceAwsDefaultNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
 	d.SetId(d.Get("default_network_acl_id").(string))
-	if err := setTags(conn, d); err != nil {
-		return err
-	}
-
 	log.Printf("[DEBUG] Revoking ingress rules for Default Network ACL for %s", d.Id())
 	err := revokeRulesForType(d.Id(), "ingress", meta)
 	if err != nil {
@@ -173,23 +164,6 @@ func resourceAwsDefaultNetworkAclUpdate(d *schema.ResourceData, meta interface{}
 
 	if d.HasChange("egress") {
 		err := updateNetworkAclEntries(d, "egress", conn)
-		if err != nil {
-			return err
-		}
-	}
-
-	if d.HasChange("subnet_id") {
-		//associate new subnet with the acl.
-		_, n := d.GetChange("subnet_id")
-		newSubnet := n.(string)
-		association, err := findNetworkAclAssociation(newSubnet, conn)
-		if err != nil {
-			return fmt.Errorf("Failed to update Default Netowrk ACL %s with Subnet %s: %s", d.Id(), newSubnet, err)
-		}
-		_, err = conn.ReplaceNetworkAclAssociation(&ec2.ReplaceNetworkAclAssociationInput{
-			AssociationId: association.NetworkAclAssociationId,
-			NetworkAclId:  aws.String(d.Id()),
-		})
 		if err != nil {
 			return err
 		}
