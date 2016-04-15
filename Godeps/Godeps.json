@@ -848,7 +848,7 @@
 		},
 		{
 			"ImportPath": "github.com/joyent/gosdc/cloudapi",
-			"Rev": "15a29f7e5094f2dcd4d1d0ec1ee9da5d031d16e9"
+			"Rev": "0697a5c4f39a71a4f9e3b154380b47dbfcc3da6e"
 		},
 		{
 			"ImportPath": "github.com/joyent/gosign/auth",
