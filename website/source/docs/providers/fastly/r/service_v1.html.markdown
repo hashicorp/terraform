@@ -76,8 +76,8 @@ resource "aws_s3_bucket" "website" {
 **Note:** For an AWS S3 Bucket, the Backend address is
 `<domain>.s3-website-<region>.amazonaws.com`. The `default_host` attribute
 should be set to `<bucket_name>.s3-website-<region>.amazonaws.com`. See the
-Fastly documentation on [Amazon S3][fastly-s3]
-append, delete, regex, or regex_repeat
+Fastly documentation on [Amazon S3][fastly-s3].
+
 ## Argument Reference
 
 The following arguments are supported:

@@ -89,11 +89,25 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 				Config: testAccServiceV1HeadersConfig(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
+					testAccCheckFastlyServiceV1HeaderAttributes(&service, name, []string{"http.x-amz-request-id", "http.Server"}, nil),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "name", name),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "header.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccServiceV1HeadersConfig_update(name, domainName1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
 					testAccCheckFastlyServiceV1HeaderAttributes(&service, name, []string{"http.x-amz-request-id", "http.Server"}, []string{"http.server-name"}),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "name", name),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "header.#", "3"),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "header.1147514417.source", "server.identity"),
 				),
 			},
 		},
@@ -171,6 +185,39 @@ resource "fastly_service_v1" "foo" {
     type        = "cache"
     action      = "delete"
     name        = "remove s3 server"
+  }
+
+  force_destroy = true
+}`, name, domain)
+}
+
+func testAccServiceV1HeadersConfig_update(name, domain string) string {
+	return fmt.Sprintf(`
+resource "fastly_service_v1" "foo" {
+  name = "%s"
+
+  domain {
+    name    = "%s"
+    comment = "tf-testing-domain"
+  }
+
+  backend {
+    address = "aws.amazon.com"
+    name    = "amazon docs"
+  }
+
+  header {
+    destination = "http.x-amz-request-id"
+    type        = "cache"
+    action      = "delete"
+    name        = "remove x-amz-request-id"
+  }
+
+  header {
+    destination = "http.Server"
+    type        = "cache"
+    action      = "delete"
+    name        = "DESTROY S3"
   }
 
   header {

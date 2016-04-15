@@ -494,7 +494,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			remove := ohs.Difference(nhs).List()
 			add := nhs.Difference(ohs).List()
 
-			// Delete removed domains
+			// Delete removed headers
 			for _, dRaw := range remove {
 				df := dRaw.(map[string]interface{})
 				opts := gofastly.DeleteHeaderInput{
@@ -651,7 +651,6 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
 		}
 
-		// Refresh Domains
 		hl := flattenHeaders(headerList)
 
 		if err := d.Set("header", hl); err != nil {
