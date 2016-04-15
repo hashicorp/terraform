@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -18,7 +19,8 @@ type GraphNodeConfigVariable struct {
 	Module string
 	Value  *config.RawConfig
 
-	depPrefix string
+	ModuleTree *module.Tree
+	ModulePath []string
 }
 
 func (n *GraphNodeConfigVariable) Name() string {
@@ -123,6 +125,12 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 			&EvalVariableBlock{
 				Config:    &config,
 				Variables: variables,
+			},
+
+			&EvalTypeCheckVariable{
+				Variables:  variables,
+				ModulePath: n.ModulePath,
+				ModuleTree: n.ModuleTree,
 			},
 
 			&EvalSetVariables{

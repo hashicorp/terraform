@@ -162,6 +162,17 @@ const (
 	VariableTypeMap
 )
 
+func (v VariableType) Printable() string {
+	switch v {
+	case VariableTypeString:
+		return "string"
+	case VariableTypeMap:
+		return "map"
+	default:
+		return "unknown"
+	}
+}
+
 // ProviderConfigName returns the name of the provider configuration in
 // the given mapping that maps to the proper provider configuration
 // for this resource.
