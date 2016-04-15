@@ -85,8 +85,8 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloudfront.DistributionConfig) error {
 	var err error
 
-	d.Set("enabled", *distributionConfig.Enabled)
-	d.Set("price_class", *distributionConfig.PriceClass)
+	d.Set("enabled", distributionConfig.Enabled)
+	d.Set("price_class", distributionConfig.PriceClass)
 
 	err = d.Set("default_cache_behavior", flattenDefaultCacheBehavior(distributionConfig.DefaultCacheBehavior))
 	if err != nil {
@@ -98,18 +98,18 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 	}
 
 	if distributionConfig.CallerReference != nil {
-		d.Set("caller_reference", *distributionConfig.CallerReference)
+		d.Set("caller_reference", distributionConfig.CallerReference)
 	}
 	if distributionConfig.Comment != nil {
 		if *distributionConfig.Comment != "" {
-			d.Set("comment", *distributionConfig.Comment)
+			d.Set("comment", distributionConfig.Comment)
 		}
 	}
 	if distributionConfig.DefaultRootObject != nil {
-		d.Set("default_root_object", *distributionConfig.DefaultRootObject)
+		d.Set("default_root_object", distributionConfig.DefaultRootObject)
 	}
 	if distributionConfig.WebACLId != nil {
-		d.Set("web_acl_id", *distributionConfig.WebACLId)
+		d.Set("web_acl_id", distributionConfig.WebACLId)
 	}
 
 	if distributionConfig.CustomErrorResponses != nil {

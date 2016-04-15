@@ -502,11 +502,11 @@ func resourceAwsCloudFrontDistributionRead(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-	d.Set("status", *resp.Distribution.Status)
-	d.Set("domain_name", *resp.Distribution.DomainName)
+	d.Set("status", resp.Distribution.Status)
+	d.Set("domain_name", resp.Distribution.DomainName)
 	d.Set("last_modified_time", aws.String(resp.Distribution.LastModifiedTime.String()))
-	d.Set("in_progress_validation_batches", *resp.Distribution.InProgressInvalidationBatches)
-	d.Set("etag", *resp.ETag)
+	d.Set("in_progress_validation_batches", resp.Distribution.InProgressInvalidationBatches)
+	d.Set("etag", resp.ETag)
 	return nil
 }
 
