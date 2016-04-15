@@ -65,6 +65,8 @@ resource "aws_lambda_function" "test_lambda" {
 * `subnet_ids` - (Required) A list of subnet IDs associated with the Lambda function.
 * `security_group_ids` - (Required) A list of security group IDs associated with the Lambda function.
 
+~> **NOTE:** if both `subnet_ids` and `security_group_ids` are empty then vpc_config is considered to be empty or unset.
+
 ## Attributes Reference
 
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
