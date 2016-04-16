@@ -69,6 +69,14 @@ type ResourceProvider interface {
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
+
+	// DataSources returns all of the available data sources that this
+	// provider implements.
+	DataSources() []DataSource
+
+	// RefreshData refreshes the data for a given data instance, which
+	// will be of one of the types returned by DataSources.
+	RefreshData(*InstanceInfo, *InstanceState) (*InstanceState, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
@@ -79,6 +87,11 @@ type ResourceProviderCloser interface {
 
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
+	Name string
+}
+
+// DataSource is a data source that a resource provider implements.
+type DataSource struct {
 	Name string
 }
 
@@ -94,8 +107,18 @@ func ResourceProviderFactoryFixed(p ResourceProvider) ResourceProviderFactory {
 	}
 }
 
-func ProviderSatisfies(p ResourceProvider, n string) bool {
+func ProviderHasResource(p ResourceProvider, n string) bool {
 	for _, rt := range p.Resources() {
+		if rt.Name == n {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ProviderHasDataSource(p ResourceProvider, n string) bool {
+	for _, rt := range p.DataSources() {
 		if rt.Name == n {
 			return true
 		}

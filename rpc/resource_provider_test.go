@@ -292,6 +292,63 @@ func TestResourceProvider_resources(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_refreshdata(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	p.RefreshDataReturn = &terraform.InstanceState{
+		ID: "bob",
+	}
+
+	// Refresh
+	info := &terraform.InstanceInfo{}
+	state := &terraform.InstanceState{}
+	newState, err := provider.RefreshData(info, state)
+	if !p.RefreshDataCalled {
+		t.Fatal("RefreshData should be called")
+	}
+	if !reflect.DeepEqual(p.RefreshDataState, state) {
+		t.Fatalf("bad: %#v", p.RefreshDataState)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+	if !reflect.DeepEqual(p.RefreshDataReturn, newState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
+func TestResourceProvider_datasources(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	expected := []terraform.DataSource{
+		{"foo"},
+		{"bar"},
+	}
+
+	p.DataSourcesReturn = expected
+
+	// DataSources
+	result := provider.DataSources()
+	if !p.DataSourcesCalled {
+		t.Fatal("DataSources should be called")
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
 func TestResourceProvider_validate(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 	client, server := testClientServer(t)

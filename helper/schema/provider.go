@@ -204,3 +204,16 @@ func (p *Provider) Resources() []terraform.ResourceType {
 
 	return result
 }
+
+// RefreshData implementation of terraform.ResourceProvider interface.
+func (p *Provider) RefreshData(
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState) (*terraform.InstanceState, error) {
+
+	return nil, fmt.Errorf("RefreshData not yet implemented")
+}
+
+// DataSources implementation of terraform.ResourceProvider interface.
+func (p *Provider) DataSources() []terraform.DataSource {
+	return []terraform.DataSource{}
+}
