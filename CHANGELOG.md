@@ -4,6 +4,7 @@ FEATURES:
 
  * **New command:** `terraform fmt` to automatically normalize config file style [GH-4955]
  * **New interpolation function:** `jsonencode` [GH-5890]
+ * **New provider:** `cobbler` [GH-5969]
  * **New provider:** `fastly` [GH-5814]
  * **New resource:** `aws_cloudfront_distribution` [GH-5221]
  * **New resource:** `aws_cloudfront_origin_access_identity` [GH-5221]
