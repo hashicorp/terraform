@@ -356,9 +356,7 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
 		req.Shortname = aws.String(lt.TypeName)
 	}
 
-	if customJson, ok := d.GetOk("custom_json"); ok {
-		req.CustomJson = aws.String(customJson.(string))
-	}
+	req.CustomJson = aws.String(d.Get("custom_json").(string))
 
 	log.Printf("[DEBUG] Creating OpsWorks layer: %s", d.Id())
 
@@ -411,9 +409,7 @@ func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.Ops
 		req.Shortname = aws.String(lt.TypeName)
 	}
 
-	if customJson, ok := d.GetOk("custom_json"); ok {
-		req.CustomJson = aws.String(customJson.(string))
-	}
+	req.CustomJson = aws.String(d.Get("custom_json").(string))
 
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
 
