@@ -14,6 +14,7 @@ FEATURES:
  * **New resource:** `consul_key_prefix` [GH-5988]
  * **New resource:** `triton_fabric` [GH-5920]
  * **New resource:** `triton_vlan` [GH-5920]
+ * **New resource:** `aws_opsworks_application` [GH-4419]
 
 IMPROVEMENTS:
 
