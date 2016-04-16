@@ -155,7 +155,7 @@ func testAccCheckAwsOpsworksApplicationDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAwsOpsworksApplicationCreate = testAccAwsOpsworksStackConfigNoVpcCreate("") + `
+var testAccAwsOpsworksApplicationCreate = testAccAwsOpsworksStackConfigNoVpcCreate("tf-ops-acc-application") + `
 resource "aws_opsworks_application" "tf-acc-app" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
   name = "tf-ops-acc-application"
@@ -168,7 +168,7 @@ resource "aws_opsworks_application" "tf-acc-app" {
 }
 `
 
-var testAccAwsOpsworksApplicationUpdate = testAccAwsOpsworksStackConfigNoVpcCreate("") + `
+var testAccAwsOpsworksApplicationUpdate = testAccAwsOpsworksStackConfigNoVpcCreate("tf-ops-acc-application") + `
 resource "aws_opsworks_application" "tf-acc-app" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
   name = "tf-ops-acc-application"
