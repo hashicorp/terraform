@@ -566,6 +566,10 @@
 			"Rev": "025617847eb2cf9bd1d851bc3b22ed28e6245ce5"
 		},
 		{
+			"ImportPath": "github.com/fatih/structs",
+			"Rev": "73c4e3dc02a78deaba8640d5f3a8c236ec1352bf"
+		},
+		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Rev": "bf97c77db7c945cbcdbf09d56c6f87a66f54537b"
 		},
@@ -855,8 +859,17 @@
 			"Rev": "a1f3aa7d52213987117e47d721bcc9a499994d5f"
 		},
 		{
+			"ImportPath": "github.com/jtopjian/cobblerclient",
+			"Comment": "v0.3.0-33-g53d1c0a",
+			"Rev": "53d1c0a0b003aabfa7ecfa848d856606cb481196"
+		},
+		{
 			"ImportPath": "github.com/kardianos/osext",
 			"Rev": "29ae4ffbc9a6fe9fb2bc5029050ce6996ea1d3bc"
+		},
+		{
+			"ImportPath": "github.com/kolo/xmlrpc",
+			"Rev": "0826b98aaa29c0766956cb40d45cf7482a597671"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
