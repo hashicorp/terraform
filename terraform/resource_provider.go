@@ -70,6 +70,18 @@ type ResourceProvider interface {
 	// with the latest information.
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
 
+	// ValidateDataSource is called once at the beginning with the raw
+	// configuration (no interpolation done) and can return a list of warnings
+	// and/or errors.
+	//
+	// This is called once per data source instance.
+	//
+	// This should not assume any of the values in the resource configuration
+	// are valid since it is possible they have to be interpolated still.
+	// The primary use case of this call is to check that the required keys
+	// are set and that the general structure is correct.
+	ValidateDataSource(string, *ResourceConfig) ([]string, []error)
+
 	// DataSources returns all of the available data sources that this
 	// provider implements.
 	DataSources() []DataSource

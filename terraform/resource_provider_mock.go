@@ -10,59 +10,65 @@ type MockResourceProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
-	CloseCalled                  bool
-	CloseError                   error
-	InputCalled                  bool
-	InputInput                   UIInput
-	InputConfig                  *ResourceConfig
-	InputReturnConfig            *ResourceConfig
-	InputReturnError             error
-	InputFn                      func(UIInput, *ResourceConfig) (*ResourceConfig, error)
-	ApplyCalled                  bool
-	ApplyInfo                    *InstanceInfo
-	ApplyState                   *InstanceState
-	ApplyDiff                    *InstanceDiff
-	ApplyFn                      func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error)
-	ApplyReturn                  *InstanceState
-	ApplyReturnError             error
-	ConfigureCalled              bool
-	ConfigureConfig              *ResourceConfig
-	ConfigureFn                  func(*ResourceConfig) error
-	ConfigureReturnError         error
-	DiffCalled                   bool
-	DiffInfo                     *InstanceInfo
-	DiffState                    *InstanceState
-	DiffDesired                  *ResourceConfig
-	DiffFn                       func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error)
-	DiffReturn                   *InstanceDiff
-	DiffReturnError              error
-	RefreshCalled                bool
-	RefreshInfo                  *InstanceInfo
-	RefreshState                 *InstanceState
-	RefreshFn                    func(*InstanceInfo, *InstanceState) (*InstanceState, error)
-	RefreshReturn                *InstanceState
-	RefreshReturnError           error
-	ResourcesCalled              bool
-	ResourcesReturn              []ResourceType
-	RefreshDataCalled            bool
-	RefreshDataInfo              *InstanceInfo
-	RefreshDataState             *InstanceState
-	RefreshDataFn                func(*InstanceInfo, *InstanceState) (*InstanceState, error)
-	RefreshDataReturn            *InstanceState
-	RefreshDataReturnError       error
-	DataSourcesCalled            bool
-	DataSourcesReturn            []DataSource
-	ValidateCalled               bool
-	ValidateConfig               *ResourceConfig
-	ValidateFn                   func(*ResourceConfig) ([]string, []error)
-	ValidateReturnWarns          []string
-	ValidateReturnErrors         []error
-	ValidateResourceFn           func(string, *ResourceConfig) ([]string, []error)
-	ValidateResourceCalled       bool
-	ValidateResourceType         string
-	ValidateResourceConfig       *ResourceConfig
-	ValidateResourceReturnWarns  []string
-	ValidateResourceReturnErrors []error
+	CloseCalled                    bool
+	CloseError                     error
+	InputCalled                    bool
+	InputInput                     UIInput
+	InputConfig                    *ResourceConfig
+	InputReturnConfig              *ResourceConfig
+	InputReturnError               error
+	InputFn                        func(UIInput, *ResourceConfig) (*ResourceConfig, error)
+	ApplyCalled                    bool
+	ApplyInfo                      *InstanceInfo
+	ApplyState                     *InstanceState
+	ApplyDiff                      *InstanceDiff
+	ApplyFn                        func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error)
+	ApplyReturn                    *InstanceState
+	ApplyReturnError               error
+	ConfigureCalled                bool
+	ConfigureConfig                *ResourceConfig
+	ConfigureFn                    func(*ResourceConfig) error
+	ConfigureReturnError           error
+	DiffCalled                     bool
+	DiffInfo                       *InstanceInfo
+	DiffState                      *InstanceState
+	DiffDesired                    *ResourceConfig
+	DiffFn                         func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error)
+	DiffReturn                     *InstanceDiff
+	DiffReturnError                error
+	RefreshCalled                  bool
+	RefreshInfo                    *InstanceInfo
+	RefreshState                   *InstanceState
+	RefreshFn                      func(*InstanceInfo, *InstanceState) (*InstanceState, error)
+	RefreshReturn                  *InstanceState
+	RefreshReturnError             error
+	ResourcesCalled                bool
+	ResourcesReturn                []ResourceType
+	RefreshDataCalled              bool
+	RefreshDataInfo                *InstanceInfo
+	RefreshDataState               *InstanceState
+	RefreshDataFn                  func(*InstanceInfo, *InstanceState) (*InstanceState, error)
+	RefreshDataReturn              *InstanceState
+	RefreshDataReturnError         error
+	DataSourcesCalled              bool
+	DataSourcesReturn              []DataSource
+	ValidateCalled                 bool
+	ValidateConfig                 *ResourceConfig
+	ValidateFn                     func(*ResourceConfig) ([]string, []error)
+	ValidateReturnWarns            []string
+	ValidateReturnErrors           []error
+	ValidateResourceFn             func(string, *ResourceConfig) ([]string, []error)
+	ValidateResourceCalled         bool
+	ValidateResourceType           string
+	ValidateResourceConfig         *ResourceConfig
+	ValidateResourceReturnWarns    []string
+	ValidateResourceReturnErrors   []error
+	ValidateDataSourceFn           func(string, *ResourceConfig) ([]string, []error)
+	ValidateDataSourceCalled       bool
+	ValidateDataSourceType         string
+	ValidateDataSourceConfig       *ResourceConfig
+	ValidateDataSourceReturnWarns  []string
+	ValidateDataSourceReturnErrors []error
 }
 
 func (p *MockResourceProvider) Close() error {
@@ -182,6 +188,21 @@ func (p *MockResourceProvider) Resources() []ResourceType {
 
 	p.ResourcesCalled = true
 	return p.ResourcesReturn
+}
+
+func (p *MockResourceProvider) ValidateDataSource(t string, c *ResourceConfig) ([]string, []error) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ValidateDataSourceCalled = true
+	p.ValidateDataSourceType = t
+	p.ValidateDataSourceConfig = c
+
+	if p.ValidateDataSourceFn != nil {
+		return p.ValidateDataSourceFn(t, c)
+	}
+
+	return p.ValidateDataSourceReturnWarns, p.ValidateDataSourceReturnErrors
 }
 
 func (p *MockResourceProvider) RefreshData(

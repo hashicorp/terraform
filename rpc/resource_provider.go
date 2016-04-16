@@ -142,6 +142,30 @@ func (p *ResourceProvider) Diff(
 	return resp.Diff, err
 }
 
+func (p *ResourceProvider) ValidateDataSource(
+	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	var resp ResourceProviderValidateResourceResponse
+	args := ResourceProviderValidateResourceArgs{
+		Config: c,
+		Type:   t,
+	}
+
+	err := p.Client.Call(p.Name+".ValidateDataSource", &args, &resp)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	var errs []error
+	if len(resp.Errors) > 0 {
+		errs = make([]error, len(resp.Errors))
+		for i, err := range resp.Errors {
+			errs[i] = err
+		}
+	}
+
+	return resp.Warnings, errs
+}
+
 func (p *ResourceProvider) Refresh(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState) (*terraform.InstanceState, error) {
@@ -386,6 +410,21 @@ func (s *ResourceProviderServer) Resources(
 	nothing interface{},
 	result *[]terraform.ResourceType) error {
 	*result = s.Provider.Resources()
+	return nil
+}
+
+func (s *ResourceProviderServer) ValidateDataSource(
+	args *ResourceProviderValidateResourceArgs,
+	reply *ResourceProviderValidateResourceResponse) error {
+	warns, errs := s.Provider.ValidateDataSource(args.Type, args.Config)
+	berrs := make([]*BasicError, len(errs))
+	for i, err := range errs {
+		berrs[i] = NewBasicError(err)
+	}
+	*reply = ResourceProviderValidateResourceResponse{
+		Warnings: warns,
+		Errors:   berrs,
+	}
 	return nil
 }
 
