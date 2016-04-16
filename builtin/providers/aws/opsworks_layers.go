@@ -109,6 +109,12 @@ func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 			Set:      schema.HashString,
 		},
 
+		"custom_json": &schema.Schema{
+			Type:      schema.TypeString,
+			StateFunc: normalizeJson,
+			Optional:  true,
+		},
+
 		"auto_healing": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
@@ -288,6 +294,14 @@ func (lt *opsworksLayerType) Read(d *schema.ResourceData, client *opsworks.OpsWo
 		d.Set("short_name", layer.Shortname)
 	}
 
+	if v := layer.CustomJson; v == nil {
+		if err := d.Set("custom_json", ""); err != nil {
+			return err
+		}
+	} else if err := d.Set("custom_json", normalizeJson(*v)); err != nil {
+		return err
+	}
+
 	lt.SetAttributeMap(d, layer.Attributes)
 	lt.SetLifecycleEventConfiguration(d, layer.LifecycleEventConfiguration)
 	lt.SetCustomRecipes(d, layer.CustomRecipes)
@@ -342,6 +356,10 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
 		req.Shortname = aws.String(lt.TypeName)
 	}
 
+	if customJson, ok := d.GetOk("custom_json"); ok {
+		req.CustomJson = aws.String(customJson.(string))
+	}
+
 	log.Printf("[DEBUG] Creating OpsWorks layer: %s", d.Id())
 
 	resp, err := client.CreateLayer(req)
@@ -391,6 +409,10 @@ func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.Ops
 		req.Shortname = aws.String(d.Get("short_name").(string))
 	} else {
 		req.Shortname = aws.String(lt.TypeName)
+	}
+
+	if customJson, ok := d.GetOk("custom_json"); ok {
+		req.CustomJson = aws.String(customJson.(string))
 	}
 
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
