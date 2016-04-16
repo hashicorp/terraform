@@ -13,13 +13,66 @@ func resourceUser() *schema.Resource {
 		Read:   resourceUserRead,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				Description: "",
 			},
 			"password_hash": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
+			},
+			"ssh_authorized_keys": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"uid": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+			"gecos": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"home_dir": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"no_create_home": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+			"primary_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"groups": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"no_user_group": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+			"no_log_init": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+			"shell": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 		},
@@ -33,7 +86,6 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(id)
-	d.Set("id", id)
 	return nil
 }
 
@@ -56,9 +108,28 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func buildUser(d *schema.ResourceData, c *cache) (string, error) {
-	u := &types.User{}
-	u.Name = d.Get("name").(string)
-	u.PasswordHash = d.Get("password_hash").(string)
+	var uid *uint
+	if value, ok := d.GetOk("uid"); ok {
+		u := uint(value.(int))
+		uid = &u
+	}
+
+	u := &types.User{
+		Name:              d.Get("name").(string),
+		PasswordHash:      d.Get("password_hash").(string),
+		SSHAuthorizedKeys: castSliceInterface(d.Get("ssh_authorized_keys").([]interface{})),
+		Create: &types.UserCreate{
+			Uid:          uid,
+			GECOS:        d.Get("gecos").(string),
+			Homedir:      d.Get("home_dir").(string),
+			NoCreateHome: d.Get("no_create_home").(bool),
+			PrimaryGroup: d.Get("primary_group").(string),
+			Groups:       castSliceInterface(d.Get("groups").([]interface{})),
+			NoUserGroup:  d.Get("no_user_group").(bool),
+			NoLogInit:    d.Get("no_log_init").(bool),
+			Shell:        d.Get("shell").(string),
+		},
+	}
 
 	return c.addUser(u), nil
 }

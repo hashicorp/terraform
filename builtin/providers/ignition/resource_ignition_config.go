@@ -75,9 +75,8 @@ func resourceConfig() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"rendered": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "rendered template",
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -122,6 +121,7 @@ func renderConfig(d *schema.ResourceData, c *cache) (string, error) {
 	}
 
 	bytes, err := json.MarshalIndent(i, "  ", "  ")
+
 	if err != nil {
 		return "", err
 	}

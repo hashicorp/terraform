@@ -44,3 +44,12 @@ func hash(s string) string {
 	sha := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sha[:])
 }
+
+func castSliceInterface(i []interface{}) []string {
+	var o []string
+	for _, value := range i {
+		o = append(o, value.(string))
+	}
+
+	return o
+}
