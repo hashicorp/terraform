@@ -68,6 +68,7 @@ BUG FIXES:
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
  * provider/aws: Show human-readable error message when failing to read an EBS volume [GH-6038]
  * provider/aws: set ASG `health_check_grace_period` default to 300 [GH-5830]
+ * provider/aws: wait for IAM instance profile to propagate when creating Opsworks stacks [GH-6049]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
