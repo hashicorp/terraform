@@ -225,12 +225,12 @@ func resourceAwsOpsworksSetStackCustomCookbooksSource(d *schema.ResourceData, v 
 		if v.Username != nil {
 			m["username"] = *v.Username
 		}
-		if v.Password != nil {
-			m["password"] = *v.Password
-		}
 		if v.Revision != nil {
 			m["revision"] = *v.Revision
 		}
+		// v.Password will, on read, contain the placeholder string
+		// "*****FILTERED*****", so we ignore it on read and let persist
+		// the value already in the state.
 		nv = append(nv, m)
 	}
 
