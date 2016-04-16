@@ -15,6 +15,7 @@ FEATURES:
  * **New resource:** `triton_fabric` [GH-5920]
  * **New resource:** `triton_vlan` [GH-5920]
  * **New resource:** `aws_opsworks_application` [GH-4419]
+ * **New resource:** `aws_opsworks_instance` [GH-4276]
 
 IMPROVEMENTS:
 
