@@ -33,6 +33,14 @@ type Provider struct {
 	// Diff, etc. to the proper resource.
 	ResourcesMap map[string]*Resource
 
+	// DataSourcesMap is the collection of available data sources that
+	// this provider implements, with a Resource instance defining
+	// the schema and Read operation of each.
+	//
+	// Resource instances for data sources must have a Read function
+	// and must *not* implement Create, Update or Delete.
+	DataSourcesMap map[string]*Resource
+
 	// ConfigureFunc is a function for configuring the provider. If the
 	// provider doesn't need to be configured, this can be omitted.
 	//
@@ -68,7 +76,19 @@ func (p *Provider) InternalValidate() error {
 
 	for k, r := range p.ResourcesMap {
 		if err := r.InternalValidate(nil); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
+			return fmt.Errorf("resource %s: %s", k, err)
+		}
+	}
+
+	for k, r := range p.DataSourcesMap {
+		if err := r.InternalValidate(nil); err != nil {
+			return fmt.Errorf("data source %s: %s", k, err)
+		}
+
+		if r.Create != nil || r.Update != nil || r.Delete != nil {
+			return fmt.Errorf(
+				"data source %s: must not have Create, Update or Delete", k,
+			)
 		}
 	}
 
@@ -210,10 +230,28 @@ func (p *Provider) RefreshData(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState) (*terraform.InstanceState, error) {
 
-	return nil, fmt.Errorf("RefreshData not yet implemented")
+	r, ok := p.DataSourcesMap[info.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown data source: %s", info.Type)
+	}
+
+	return r.Refresh(s, p.meta)
 }
 
 // DataSources implementation of terraform.ResourceProvider interface.
 func (p *Provider) DataSources() []terraform.DataSource {
-	return []terraform.DataSource{}
+	keys := make([]string, 0, len(p.DataSourcesMap))
+	for k, _ := range p.DataSourcesMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	result := make([]terraform.DataSource, 0, len(keys))
+	for _, k := range keys {
+		result = append(result, terraform.DataSource{
+			Name: k,
+		})
+	}
+
+	return result
 }
