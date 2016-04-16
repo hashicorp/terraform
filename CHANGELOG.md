@@ -35,6 +35,7 @@ IMPROVEMENTS:
  * provider/aws: `aws_redshift_cluster` allows usernames with underscore in it [GH-5935]
  * provider/aws: normalise json for `aws_sns_topic` [GH-6089]
  * provider/aws: normalize json for `aws_cloudwatch_event_rule` [GH-6025]
+ * provider/aws: Opsworks layers now support `custom_json` argument [GH-4272]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/cloudstack: Deprecate `ipaddress` in favour of `ip_address` in all resources [GH-6010]
  * provider/cloudstack: Deprecate allowing names (instead of IDs) for parameters that reference other resources [GH-6123]
