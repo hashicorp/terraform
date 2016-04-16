@@ -1,10 +1,17 @@
 #!/bin/bash
 
+set -e
+
 # This script assumes Ubuntu 14.04 is being used.
 # It will create a standard Cobbler environment that can be used for acceptance testing.
 
+# With this enviornment spun up, the config should be:
+#  COBBLER_URL=http://127.0.0.1:25151
+#  COBBLER_USERNAME=cobbler
+#  COBBLER_PASSWORD=cobbler
+
 sudo apt-get update
-sudo apt-get install -y git make mercurial
+sudo apt-get install -y build-essential git mercurial
 
 cd
 echo 'export PATH=$PATH:$HOME/terraform:$HOME/go/bin' >> ~/.bashrc
@@ -63,8 +70,9 @@ sudo sed -i -e 's/^manage_dns: 0/manage_dns: 1/' /etc/cobbler/settings
 sudo sed -i -e 's/^next_server:.*/next_server: 127.0.0.1/' /etc/cobbler/settings
 sudo sed -i -e 's/^server:.*/server: 127.0.0.1/' /etc/cobbler/settings
 
-sudo tee /etc/cobbler/users.digets <<EOF
-cobbler:Cobbler:8e9c0aa3ae45bb39347866c41cb4d293
+# User: cobbler / Pass: cobbler
+sudo tee /etc/cobbler/users.digest <<EOF
+cobbler:Cobbler:2d6bae81669d707b72c0bd9806e01f3
 EOF
 
 # The stock version of Cobbler in the Ubuntu repository still has the old cobbler homepage URL
