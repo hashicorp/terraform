@@ -25,12 +25,14 @@ var ignitionResource = &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"replace": &schema.Schema{
 						Type:     schema.TypeList,
+						ForceNew: true,
 						Optional: true,
 						MaxItems: 1,
 						Elem:     configReferenceResource,
 					},
 					"append": &schema.Schema{
 						Type:     schema.TypeList,
+						ForceNew: true,
 						Optional: true,
 						Elem:     configReferenceResource,
 					},
@@ -42,14 +44,14 @@ var ignitionResource = &schema.Resource{
 var configReferenceResource = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"source": &schema.Schema{
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The URL of the config. Supported schemes are http. Note: When using http, it is advisable to use the verification option to ensure the contents haven’t been modified.",
+			Type:     schema.TypeString,
+			ForceNew: true,
+			Required: true,
 		},
 		"verification": &schema.Schema{
-			Type:        schema.TypeString,
-			Required:    true,
-			Description: "The hash of the config (SHA512)",
+			Type:     schema.TypeString,
+			ForceNew: true,
+			Required: true,
 		},
 	},
 }
@@ -75,6 +77,18 @@ func resourceConfig() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"arrays": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"filesystems": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"files": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -255,12 +269,30 @@ func buildStorage(d *schema.ResourceData, c *cache) (types.Storage, error) {
 	}
 
 	for _, id := range d.Get("arrays").([]interface{}) {
-		d, ok := c.arrays[id.(string)]
+		a, ok := c.arrays[id.(string)]
 		if !ok {
 			return storage, fmt.Errorf("invalid raid %q, unknown raid id", id)
 		}
 
-		storage.Arrays = append(storage.Arrays, *d)
+		storage.Arrays = append(storage.Arrays, *a)
+	}
+
+	for _, id := range d.Get("filesystems").([]interface{}) {
+		f, ok := c.filesystems[id.(string)]
+		if !ok {
+			return storage, fmt.Errorf("invalid filesystem %q, unknown filesystem id", id)
+		}
+
+		storage.Filesystems = append(storage.Filesystems, *f)
+	}
+
+	for _, id := range d.Get("files").([]interface{}) {
+		f, ok := c.files[id.(string)]
+		if !ok {
+			return storage, fmt.Errorf("invalid file %q, unknown file id", id)
+		}
+
+		storage.Files = append(storage.Files, *f)
 	}
 
 	return storage, nil
