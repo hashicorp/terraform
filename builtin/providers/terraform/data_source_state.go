@@ -8,23 +8,19 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 )
 
-func resourceRemoteState() *schema.Resource {
+func dataSourceRemoteState() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceRemoteStateCreate,
-		Read:   resourceRemoteStateRead,
-		Delete: resourceRemoteStateDelete,
+		Read: dataSourceRemoteStateRead,
 
 		Schema: map[string]*schema.Schema{
 			"backend": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"config": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"output": &schema.Schema{
@@ -35,11 +31,7 @@ func resourceRemoteState() *schema.Resource {
 	}
 }
 
-func resourceRemoteStateCreate(d *schema.ResourceData, meta interface{}) error {
-	return resourceRemoteStateRead(d, meta)
-}
-
-func resourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	backend := d.Get("backend").(string)
 	config := make(map[string]string)
 	for k, v := range d.Get("config").(map[string]interface{}) {
@@ -67,10 +59,5 @@ func resourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(time.Now().UTC().String())
 	d.Set("output", outputs)
-	return nil
-}
-
-func resourceRemoteStateDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
 	return nil
 }
