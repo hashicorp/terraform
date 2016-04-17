@@ -13,10 +13,9 @@ func resourceUser() *schema.Resource {
 		Read:   resourceUserRead,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "",
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"password_hash": &schema.Schema{
 				Type:     schema.TypeString,
@@ -108,18 +107,12 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func buildUser(d *schema.ResourceData, c *cache) (string, error) {
-	var uid *uint
-	if value, ok := d.GetOk("uid"); ok {
-		u := uint(value.(int))
-		uid = &u
-	}
-
-	u := &types.User{
+	return c.addUser(&types.User{
 		Name:              d.Get("name").(string),
 		PasswordHash:      d.Get("password_hash").(string),
 		SSHAuthorizedKeys: castSliceInterface(d.Get("ssh_authorized_keys").([]interface{})),
 		Create: &types.UserCreate{
-			Uid:          uid,
+			Uid:          getUInt(d, "uid"),
 			GECOS:        d.Get("gecos").(string),
 			Homedir:      d.Get("home_dir").(string),
 			NoCreateHome: d.Get("no_create_home").(bool),
@@ -129,7 +122,5 @@ func buildUser(d *schema.ResourceData, c *cache) (string, error) {
 			NoLogInit:    d.Get("no_log_init").(bool),
 			Shell:        d.Get("shell").(string),
 		},
-	}
-
-	return c.addUser(u), nil
+	}), nil
 }

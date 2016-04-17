@@ -7,7 +7,7 @@ import (
 	"github.com/coreos/ignition/config/types"
 )
 
-func TestIngnitiondUser(t *testing.T) {
+func TestIngnitionUser(t *testing.T) {
 	testIgnition(t, `
 		resource "ignition_user" "foo" {
 			name = "foo"

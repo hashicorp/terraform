@@ -68,7 +68,25 @@ func resourceConfig() *schema.Resource {
 				ForceNew: true,
 				Elem:     ignitionResource,
 			},
+			"disks": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"arrays": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"users": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"groups": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -142,6 +160,11 @@ func buildConfig(d *schema.ResourceData, c *cache) (*types.Config, error) {
 		return nil, err
 	}
 
+	config.Storage, err = buildStorage(d, c)
+	if err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
@@ -198,10 +221,49 @@ func buildPasswd(d *schema.ResourceData, c *cache) (types.Passwd, error) {
 	passwd := types.Passwd{}
 
 	for _, id := range d.Get("users").([]interface{}) {
-		passwd.Users = append(passwd.Users, *c.users[id.(string)])
+		u, ok := c.users[id.(string)]
+		if !ok {
+			return passwd, fmt.Errorf("invalid user %q, unknown user id", id)
+		}
+
+		passwd.Users = append(passwd.Users, *u)
+	}
+
+	for _, id := range d.Get("groups").([]interface{}) {
+		g, ok := c.groups[id.(string)]
+		if !ok {
+			return passwd, fmt.Errorf("invalid group %q, unknown group id", id)
+		}
+
+		passwd.Groups = append(passwd.Groups, *g)
 	}
 
 	return passwd, nil
+
+}
+
+func buildStorage(d *schema.ResourceData, c *cache) (types.Storage, error) {
+	storage := types.Storage{}
+
+	for _, id := range d.Get("disks").([]interface{}) {
+		d, ok := c.disks[id.(string)]
+		if !ok {
+			return storage, fmt.Errorf("invalid disk %q, unknown disk id", id)
+		}
+
+		storage.Disks = append(storage.Disks, *d)
+	}
+
+	for _, id := range d.Get("arrays").([]interface{}) {
+		d, ok := c.arrays[id.(string)]
+		if !ok {
+			return storage, fmt.Errorf("invalid raid %q, unknown raid id", id)
+		}
+
+		storage.Arrays = append(storage.Arrays, *d)
+	}
+
+	return storage, nil
 
 }
 
