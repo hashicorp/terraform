@@ -52,6 +52,7 @@ IMPROVEMENTS:
  * provider/openstack: Add value_specs argument and attribute for routers [GH-4898]
  * provider/openstack: Allow subnets with no gateway [GH-6060]
  * provider/openstack: Enable Token Authentication [GH-6081]
+ * provider/postgresql: New `ssl_mode` argument allowing different SSL usage tradeoffs [GH-6008]
  * provider/vsphere: Support for linked clones and Windows-specific guest config options [GH-6087]
  *provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
 
