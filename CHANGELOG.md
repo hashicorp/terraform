@@ -51,6 +51,7 @@ IMPROVEMENTS:
  * provider/google: `addons_config` and `subnetwork` added as attributes to `google_container_cluster` [GH-5871]
  * provider/openstack: Add value_specs argument and attribute for routers [GH-4898]
  * provider/openstack: Allow subnets with no gateway [GH-6060]
+ * provider/openstack: Enable Token Authentication [GH-6081]
  * provider/vsphere: Support for linked clones and Windows-specific guest config options [GH-6087]
  *provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
 
