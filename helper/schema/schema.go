@@ -553,7 +553,7 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 			switch t := v.Elem.(type) {
 			case *Resource:
-				if err := t.InternalValidate(topSchemaMap); err != nil {
+				if err := t.InternalValidate(topSchemaMap, true); err != nil {
 					return err
 				}
 			case *Schema:

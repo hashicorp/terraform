@@ -395,11 +395,13 @@ func TestResourceApply_isNewResource(t *testing.T) {
 
 func TestResourceInternalValidate(t *testing.T) {
 	cases := []struct {
-		In  *Resource
-		Err bool
+		In       *Resource
+		Writable bool
+		Err      bool
 	}{
 		{
 			nil,
+			true,
 			true,
 		},
 
@@ -415,6 +417,7 @@ func TestResourceInternalValidate(t *testing.T) {
 				},
 			},
 			true,
+			true,
 		},
 
 		// Update undefined for non-ForceNew field
@@ -428,6 +431,7 @@ func TestResourceInternalValidate(t *testing.T) {
 					},
 				},
 			},
+			true,
 			true,
 		},
 
@@ -445,11 +449,41 @@ func TestResourceInternalValidate(t *testing.T) {
 				},
 			},
 			true,
+			true,
+		},
+
+		// non-writable doesn't need Update, Create or Delete
+		{
+			&Resource{
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			false,
+			false,
+		},
+
+		// non-writable *must not* have Create
+		{
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			false,
+			true,
 		},
 	}
 
 	for i, tc := range cases {
-		err := tc.In.InternalValidate(schemaMap{})
+		err := tc.In.InternalValidate(schemaMap{}, tc.Writable)
 		if err != nil != tc.Err {
 			t.Fatalf("%d: bad: %s", i, err)
 		}

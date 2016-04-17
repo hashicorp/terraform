@@ -14,6 +14,10 @@ import (
 // The Resource schema is an abstraction that allows provider writers to
 // worry only about CRUD operations while off-loading validation, diff
 // generation, etc. to this higher level library.
+//
+// In spite of the name, this struct is not used only for terraform resources,
+// but also for data sources. In the case of data sources, the Create,
+// Update and Delete functions must not be provided.
 type Resource struct {
 	// Schema is the schema for the configuration of this resource.
 	//
@@ -260,13 +264,20 @@ func (r *Resource) Refresh(
 // Provider.InternalValidate() will automatically call this for all of
 // the resources it manages, so you don't need to call this manually if it
 // is part of a Provider.
-func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
+func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error {
 	if r == nil {
 		return errors.New("resource is nil")
 	}
+
+	if !writable {
+		if r.Create != nil || r.Update != nil || r.Delete != nil {
+			return fmt.Errorf("must not implement Create, Update or Delete")
+		}
+	}
+
 	tsm := topSchemaMap
 
-	if r.isTopLevel() {
+	if r.isTopLevel() && writable {
 		// All non-Computed attributes must be ForceNew if Update is not defined
 		if r.Update == nil {
 			nonForceNewAttrs := make([]string, 0)
