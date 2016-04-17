@@ -16,3 +16,17 @@ func TestProvider(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+
+func TestValidateUnit(t *testing.T) {
+	if err := validateUnit(""); err == nil {
+		t.Fatalf("error not found, expected error")
+	}
+
+	if err := validateUnit("[foo]qux"); err == nil {
+		t.Fatalf("error not found, expected error")
+	}
+
+	if err := validateUnit("[foo]\nqux=foo\nfoo"); err == nil {
+		t.Fatalf("error not found, expected error")
+	}
+}

@@ -94,6 +94,18 @@ func resourceConfig() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"systemd": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"networkd": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"users": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -169,12 +181,22 @@ func buildConfig(d *schema.ResourceData, c *cache) (*types.Config, error) {
 		return nil, err
 	}
 
-	config.Passwd, err = buildPasswd(d, c)
+	config.Storage, err = buildStorage(d, c)
 	if err != nil {
 		return nil, err
 	}
 
-	config.Storage, err = buildStorage(d, c)
+	config.Systemd, err = buildSystemd(d, c)
+	if err != nil {
+		return nil, err
+	}
+
+	config.Networkd, err = buildNetworkd(d, c)
+	if err != nil {
+		return nil, err
+	}
+
+	config.Passwd, err = buildPasswd(d, c)
 	if err != nil {
 		return nil, err
 	}
@@ -231,31 +253,6 @@ func buildConfigReference(raw map[string]interface{}) (*types.ConfigReference, e
 	return r, nil
 }
 
-func buildPasswd(d *schema.ResourceData, c *cache) (types.Passwd, error) {
-	passwd := types.Passwd{}
-
-	for _, id := range d.Get("users").([]interface{}) {
-		u, ok := c.users[id.(string)]
-		if !ok {
-			return passwd, fmt.Errorf("invalid user %q, unknown user id", id)
-		}
-
-		passwd.Users = append(passwd.Users, *u)
-	}
-
-	for _, id := range d.Get("groups").([]interface{}) {
-		g, ok := c.groups[id.(string)]
-		if !ok {
-			return passwd, fmt.Errorf("invalid group %q, unknown group id", id)
-		}
-
-		passwd.Groups = append(passwd.Groups, *g)
-	}
-
-	return passwd, nil
-
-}
-
 func buildStorage(d *schema.ResourceData, c *cache) (types.Storage, error) {
 	storage := types.Storage{}
 
@@ -296,6 +293,62 @@ func buildStorage(d *schema.ResourceData, c *cache) (types.Storage, error) {
 	}
 
 	return storage, nil
+
+}
+
+func buildSystemd(d *schema.ResourceData, c *cache) (types.Systemd, error) {
+	systemd := types.Systemd{}
+
+	for _, id := range d.Get("systemd").([]interface{}) {
+		u, ok := c.systemdUnits[id.(string)]
+		if !ok {
+			return systemd, fmt.Errorf("invalid systemd unit %q, unknown systemd unit id", id)
+		}
+
+		systemd.Units = append(systemd.Units, *u)
+	}
+
+	return systemd, nil
+
+}
+
+func buildNetworkd(d *schema.ResourceData, c *cache) (types.Networkd, error) {
+	networkd := types.Networkd{}
+
+	for _, id := range d.Get("networkd").([]interface{}) {
+		u, ok := c.networkdUnits[id.(string)]
+		if !ok {
+			return networkd, fmt.Errorf("invalid networkd unit %q, unknown networkd unit id", id)
+		}
+
+		networkd.Units = append(networkd.Units, *u)
+	}
+
+	return networkd, nil
+}
+
+func buildPasswd(d *schema.ResourceData, c *cache) (types.Passwd, error) {
+	passwd := types.Passwd{}
+
+	for _, id := range d.Get("users").([]interface{}) {
+		u, ok := c.users[id.(string)]
+		if !ok {
+			return passwd, fmt.Errorf("invalid user %q, unknown user id", id)
+		}
+
+		passwd.Users = append(passwd.Users, *u)
+	}
+
+	for _, id := range d.Get("groups").([]interface{}) {
+		g, ok := c.groups[id.(string)]
+		if !ok {
+			return passwd, fmt.Errorf("invalid group %q, unknown group id", id)
+		}
+
+		passwd.Groups = append(passwd.Groups, *g)
+	}
+
+	return passwd, nil
 
 }
 
