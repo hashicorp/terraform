@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v61",
+	"GodepVersion": "v62",
 	"Packages": [
 		"./..."
 	],
@@ -207,6 +207,10 @@
 		{
 			"ImportPath": "github.com/ajg/form",
 			"Rev": "c9e1c3ae1f869d211cdaa085d23c6af2f5f83866"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/units",
+			"Rev": "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
 		},
 		{
 			"ImportPath": "github.com/apparentlymart/go-cidr/cidr",
@@ -542,6 +546,20 @@
 			"ImportPath": "github.com/coreos/etcd/pkg/types",
 			"Comment": "v2.3.0-alpha.0-652-ge552791",
 			"Rev": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
+		},
+		{
+			"ImportPath": "github.com/coreos/go-semver/semver",
+			"Rev": "37bb68f88c4418889f0a9bfea4a5333d36bd15d5"
+		},
+		{
+			"ImportPath": "github.com/coreos/go-systemd/unit",
+			"Comment": "v5",
+			"Rev": "7b2428fec40033549c68f54e26e89e7ca9a9ce31"
+		},
+		{
+			"ImportPath": "github.com/coreos/ignition/config/types",
+			"Comment": "v0.4.0-3-gd5e2176",
+			"Rev": "d5e21763171a55a0c687016ef3062197c9349cc0"
 		},
 		{
 			"ImportPath": "github.com/cyberdelia/heroku-go/v3",
