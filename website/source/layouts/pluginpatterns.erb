@@ -1,0 +1,28 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+					<a href="/docs/plugins/index.html">&laquo; Documentation Home</a>
+				</li>
+
+				<li<%= sidebar_current(/^docs-plugins-patterns/) %>>
+					<a href="/docs/plugins/patterns/index.html">Plugin Design Patterns</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-plugins-patterns-providers") %>>
+							<a href="/docs/plugins/patterns/providers.html">Provider Patterns</a>
+						</li>
+						<li<%= sidebar_current("docs-plugins-patterns-resources") %>>
+							<a href="/docs/plugins/patterns/resources.html">Resource Patterns</a>
+						</li>
+						<li<%= sidebar_current("docs-plugins-patterns-provisioners") %>>
+							<a href="/docs/plugins/patterns/provisioners.html">Provisioner Patterns</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>
