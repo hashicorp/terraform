@@ -75,20 +75,14 @@ func (p *Provider) InternalValidate() error {
 	}
 
 	for k, r := range p.ResourcesMap {
-		if err := r.InternalValidate(nil); err != nil {
+		if err := r.InternalValidate(nil, true); err != nil {
 			return fmt.Errorf("resource %s: %s", k, err)
 		}
 	}
 
 	for k, r := range p.DataSourcesMap {
-		if err := r.InternalValidate(nil); err != nil {
+		if err := r.InternalValidate(nil, false); err != nil {
 			return fmt.Errorf("data source %s: %s", k, err)
-		}
-
-		if r.Create != nil || r.Update != nil || r.Delete != nil {
-			return fmt.Errorf(
-				"data source %s: must not have Create, Update or Delete", k,
-			)
 		}
 	}
 
