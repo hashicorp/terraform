@@ -33,6 +33,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",
+				ForceNew: true,
 			},
 
 			"vpc_id": &schema.Schema{
