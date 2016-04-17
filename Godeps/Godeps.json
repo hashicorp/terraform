@@ -205,12 +205,28 @@
 			"Rev": "0290933f5e8afd933f2823fce32bf2847e6ea603"
 		},
 		{
+			"ImportPath": "github.com/Unknwon/com",
+			"Rev": "28b053d5a2923b87ce8c5a08f3af779894a72758"
+		},
+		{
+			"ImportPath": "github.com/Unknwon/macaron",
+			"Rev": "9b82b0372a4edf52f66fbc8feaa6aafe0123001d"
+		},
+		{
+			"ImportPath": "github.com/Unknwon/macaron/inject",
+			"Rev": "9b82b0372a4edf52f66fbc8feaa6aafe0123001d"
+		},
+		{
 			"ImportPath": "github.com/ajg/form",
 			"Rev": "c9e1c3ae1f869d211cdaa085d23c6af2f5f83866"
 		},
 		{
 			"ImportPath": "github.com/apparentlymart/go-cidr/cidr",
 			"Rev": "a3ebdb999b831ecb6ab8a226e31b07b2b9061c47"
+		},
+		{
+			"ImportPath": "github.com/apparentlymart/go-grafana-api",
+			"Rev": "d49f95c81c580a4e7a15244b9b12dce8f60750f4"
 		},
 		{
 			"ImportPath": "github.com/apparentlymart/go-rundeck-api/rundeck",
@@ -664,6 +680,35 @@
 			"Rev": "2a60fc2ba6c19de80291203597d752e9ba58e4c0"
 		},
 		{
+			"ImportPath": "github.com/gosimple/slug",
+			"Rev": "ea39c588e0a5b1064e0f98d7307e6c2f286f32e8"
+		},
+		{
+			"ImportPath": "github.com/grafana/grafana/pkg/api/dtos",
+			"Comment": "v2.6.0-179-gc0cf0cb",
+			"Rev": "c0cf0cb802adad24252ce1307c4c896edd566870"
+		},
+		{
+			"ImportPath": "github.com/grafana/grafana/pkg/log",
+			"Comment": "v2.6.0-179-gc0cf0cb",
+			"Rev": "c0cf0cb802adad24252ce1307c4c896edd566870"
+		},
+		{
+			"ImportPath": "github.com/grafana/grafana/pkg/models",
+			"Comment": "v2.6.0-179-gc0cf0cb",
+			"Rev": "c0cf0cb802adad24252ce1307c4c896edd566870"
+		},
+		{
+			"ImportPath": "github.com/grafana/grafana/pkg/setting",
+			"Comment": "v2.6.0-179-gc0cf0cb",
+			"Rev": "c0cf0cb802adad24252ce1307c4c896edd566870"
+		},
+		{
+			"ImportPath": "github.com/grafana/grafana/pkg/util",
+			"Comment": "v2.6.0-179-gc0cf0cb",
+			"Rev": "c0cf0cb802adad24252ce1307c4c896edd566870"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/atlas-go/archive",
 			"Comment": "20141209094003-90-g0008886",
 			"Rev": "0008886ebfa3b424bed03e2a5cbe4a2568ea0ff6"
@@ -884,6 +929,10 @@
 		{
 			"ImportPath": "github.com/lusis/go-artifactory/src/artifactory.v401",
 			"Rev": "7e4ce345df825841661d1b3ffbb1327083d4a22f"
+		},
+		{
+			"ImportPath": "github.com/macaron-contrib/session",
+			"Rev": "d392059301313eee8059c85a4e698f22c664ef78"
 		},
 		{
 			"ImportPath": "github.com/masterzen/simplexml/dom",
@@ -1168,6 +1217,10 @@
 			"Rev": "a09b5b4eb58195b6fb3898496586b8d6aeb558e0"
 		},
 		{
+			"ImportPath": "github.com/rainycape/unidecode",
+			"Rev": "cb7f23ec59bec0d61b19c56cd88cee3d0cc1870c"
+		},
+		{
 			"ImportPath": "github.com/satori/go.uuid",
 			"Rev": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
 		},
@@ -1410,6 +1463,11 @@
 		{
 			"ImportPath": "google.golang.org/cloud/internal",
 			"Rev": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
+		},
+		{
+			"ImportPath": "gopkg.in/ini.v1",
+			"Comment": "v1.8.5",
+			"Rev": "77178f22699a4ecafce485fb8d86b7afeb7e3e28"
 		}
 	]
 }
