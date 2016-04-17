@@ -29,7 +29,6 @@ func TestIngnitionUser(t *testing.T) {
 		}		
 		
 		resource "ignition_config" "test" {
-			ignition {}
 			users = [
 				"${ignition_user.foo.id}",
 				"${ignition_user.qux.id}",

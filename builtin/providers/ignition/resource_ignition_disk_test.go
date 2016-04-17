@@ -20,7 +20,6 @@ func TestIngnitionDisk(t *testing.T) {
 		}
 		
 		resource "ignition_config" "test" {
-			ignition {}
 			disks = [
 				"${ignition_disk.foo.id}",
 			]

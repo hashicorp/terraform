@@ -15,7 +15,6 @@ func TestIngnitionNetworkdUnit(t *testing.T) {
 		}
 
 		resource "ignition_config" "test" {
-			ignition {}
 			networkd = [
 				"${ignition_networkd_unit.foo.id}",
 			]

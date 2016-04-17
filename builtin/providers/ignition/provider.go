@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"sync"
 
 	"github.com/coreos/go-systemd/unit"
@@ -182,4 +183,20 @@ func validateUnit(content string) error {
 	}
 
 	return err
+}
+
+func buildURL(raw string) (types.Url, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return types.Url{}, err
+	}
+
+	return types.Url(*u), nil
+}
+
+func buildHash(raw string) (types.Hash, error) {
+	h := types.Hash{}
+	err := h.UnmarshalJSON([]byte(fmt.Sprintf("%q", raw)))
+
+	return h, err
 }

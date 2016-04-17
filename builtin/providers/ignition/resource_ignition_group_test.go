@@ -20,7 +20,6 @@ func TestIngnitionGroup(t *testing.T) {
 		}		
 		
 		resource "ignition_config" "test" {
-			ignition {}
 			groups = [
 				"${ignition_group.foo.id}",
 				"${ignition_group.qux.id}",

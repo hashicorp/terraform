@@ -22,7 +22,6 @@ func TestIngnitionSystemdUnit(t *testing.T) {
 		}
 
 		resource "ignition_config" "test" {
-			ignition {}
 			systemd = [
 				"${ignition_systemd_unit.foo.id}",
 			]

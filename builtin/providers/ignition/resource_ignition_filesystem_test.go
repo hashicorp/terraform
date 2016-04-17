@@ -33,7 +33,6 @@ func TestIngnitionFilesystem(t *testing.T) {
 		}
 
 		resource "ignition_config" "test" {
-			ignition {}
 			filesystems = [
 				"${ignition_filesystem.foo.id}",
 				"${ignition_filesystem.qux.id}",

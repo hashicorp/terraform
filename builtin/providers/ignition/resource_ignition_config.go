@@ -3,44 +3,12 @@ package ignition
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/coreos/ignition/config/types"
 )
 
-var ignitionResource = &schema.Resource{
-	Create: resourceIgnitionFileCreate,
-	Delete: resourceIgnitionFileDelete,
-	Exists: resourceIgnitionFileExists,
-	Read:   resourceIgnitionFileRead,
-	Schema: map[string]*schema.Schema{
-		"config": &schema.Schema{
-			Type:     schema.TypeList,
-			Optional: true,
-			MaxItems: 1,
-			ForceNew: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"replace": &schema.Schema{
-						Type:     schema.TypeList,
-						ForceNew: true,
-						Optional: true,
-						MaxItems: 1,
-						Elem:     configReferenceResource,
-					},
-					"append": &schema.Schema{
-						Type:     schema.TypeList,
-						ForceNew: true,
-						Optional: true,
-						Elem:     configReferenceResource,
-					},
-				},
-			},
-		},
-	},
-}
 var configReferenceResource = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"source": &schema.Schema{
@@ -59,64 +27,72 @@ var configReferenceResource = &schema.Resource{
 func resourceConfig() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceIgnitionFileCreate,
+		Update: resourceIgnitionFileCreate,
 		Delete: resourceIgnitionFileDelete,
 		Exists: resourceIgnitionFileExists,
 		Read:   resourceIgnitionFileRead,
 		Schema: map[string]*schema.Schema{
-			"ignition": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
-				ForceNew: true,
-				Elem:     ignitionResource,
-			},
 			"disks": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"arrays": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"filesystems": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"files": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"systemd": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"networkd": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"users": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"groups": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"replace": &schema.Schema{
+							Type:     schema.TypeList,
+							ForceNew: true,
+							Optional: true,
+							MaxItems: 1,
+							Elem:     configReferenceResource,
+						},
+						"append": &schema.Schema{
+							Type:     schema.TypeList,
+							ForceNew: true,
+							Optional: true,
+							Elem:     configReferenceResource,
+						},
+					},
+				},
 			},
 			"rendered": &schema.Schema{
 				Type:     schema.TypeString,
@@ -210,7 +186,7 @@ func buildIgnition(d *schema.ResourceData) (types.Ignition, error) {
 	i := types.Ignition{}
 	i.Version.UnmarshalJSON([]byte(`"2.0.0"`))
 
-	rr := d.Get("ignition.0.config.0.replace.0").(map[string]interface{})
+	rr := d.Get("config.0.replace.0").(map[string]interface{})
 	if len(rr) != 0 {
 		i.Config.Replace, err = buildConfigReference(rr)
 		if err != nil {
@@ -218,7 +194,7 @@ func buildIgnition(d *schema.ResourceData) (types.Ignition, error) {
 		}
 	}
 
-	ar := d.Get("ignition.0.config.0.append").([]interface{})
+	ar := d.Get("config.0.append").([]interface{})
 	if len(ar) != 0 {
 		for _, rr := range ar {
 			r, err := buildConfigReference(rr.(map[string]interface{}))
@@ -350,20 +326,4 @@ func buildPasswd(d *schema.ResourceData, c *cache) (types.Passwd, error) {
 
 	return passwd, nil
 
-}
-
-func buildURL(raw string) (types.Url, error) {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return types.Url{}, err
-	}
-
-	return types.Url(*u), nil
-}
-
-func buildHash(raw string) (types.Hash, error) {
-	h := types.Hash{}
-	err := h.UnmarshalJSON([]byte(fmt.Sprintf("%q", raw)))
-
-	return h, err
 }

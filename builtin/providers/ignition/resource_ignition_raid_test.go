@@ -17,7 +17,6 @@ func TestIngnitionRaid(t *testing.T) {
 		}
 		
 		resource "ignition_config" "test" {
-			ignition {}
 			arrays = [
 				"${ignition_raid.foo.id}",
 			]
