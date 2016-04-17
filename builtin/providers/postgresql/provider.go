@@ -38,7 +38,7 @@ func Provider() terraform.ResourceProvider {
 			"ssl_mode": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "require",
+				Default:     "prefer",
 				Description: "Connection mode for postgresql server",
 			},
 		},
