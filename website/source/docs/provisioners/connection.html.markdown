@@ -47,19 +47,10 @@ provisioner "file" {
 
 **The following arguments are supported by all connection types:**
 
-* `type` - The connection type that should be used. Valid types are "ssh" and "winrm"
+* `type` - The connection type that should be used. Valid types are "ssh", "winrm" and "docker"
   This defaults to "ssh".
 
-* `user` - The user that we should use for the connection. Defaults to "root" when
-  using type "ssh" and defaults to "Administrator" when using type "winrm".
-
-* `password` - The password we should use for the connection. In some cases this is
-  provided by the provider.
-
 * `host` - The address of the resource to connect to. This is provided by the provider.
-
-* `port` - The port to connect to. Defaults to 22 when using type "ssh" and defaults
-  to 5985 when using type "winrm".
 
 * `timeout` - The timeout to wait for the connection to become available. This defaults
   to 5 minutes. Should be provided as a string like "30s" or "5m".
@@ -67,6 +58,13 @@ provisioner "file" {
 * `script_path` - The path used to copy scripts meant for remote execution.
 
 **Additional arguments only supported by the "ssh" connection type:**
+
+* `user` - The user that we should use for the connection. Defaults to "root".
+
+* `password` - The password we should use for the connection. In some cases this is
+  provided by the provider.
+
+* `port` - The port to connect to. Defaults to 22.
 
 * `private_key` - The contents of an SSH key to use for the connection. These can
   be loaded from a file on disk using the [`file()` interpolation
@@ -79,11 +77,27 @@ provisioner "file" {
 
 **Additional arguments only supported by the "winrm" connection type:**
 
+* `user` - The user that we should use for the connection. Defaults to "Administrator".
+
+* `password` - The password we should use for the connection. In some cases this is
+  provided by the provider.
+
+* `port` - The port to connect to. Defaults to 5985.
+
 * `https` - Set to true to connect using HTTPS instead of HTTP.
 
 * `insecure` - Set to true to not validate the HTTPS certificate chain.
 
 * `cacert` - The CA certificate to validate against.
+
+**Additional arguments only supported by the "docker" connection type:**
+
+* `containerId` - Id of container to connects to. This is only relevant with the
+  [null_resource](/docs/provisioners/null_resource.html) as it is automatically
+  provided by the `docker` provider.
+
+* `cert_path` - (Optional) Path to a directory with certificate information
+  for connecting to the Docker host via TLS.
 
 <a id="bastion"></a>
 ## Connecting through a Bastion Host with SSH
