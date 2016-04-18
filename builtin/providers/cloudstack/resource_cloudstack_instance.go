@@ -110,6 +110,12 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+
+			"group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -218,6 +224,11 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetUserdata(ud)
 	}
 
+	// If there is a group supplied, add it to the parameter struct
+	if group, ok := d.GetOk("group"); ok {
+		p.SetGroup(group.(string))
+	}
+
 	// Create the new instance
 	r, err := cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
@@ -255,6 +266,7 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("display_name", vm.Displayname)
 	d.Set("network_id", vm.Nic[0].Networkid)
 	d.Set("ip_address", vm.Nic[0].Ipaddress)
+	d.Set("group", vm.Group)
 
 	setValueOrID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrID(d, "template", vm.Templatename, vm.Templateid)
@@ -288,6 +300,26 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		d.SetPartial("display_name")
+	}
+
+	// Check if the group is changed and if so, update the virtual machine
+	if d.HasChange("group") {
+		log.Printf("[DEBUG] Group changed for %s, starting update", name)
+
+		// Create a new parameter struct
+		p := cs.VirtualMachine.NewUpdateVirtualMachineParams(d.Id())
+
+		// Set the new group
+		p.SetGroup(d.Get("group").(string))
+
+		// Update the display name
+		_, err := cs.VirtualMachine.UpdateVirtualMachine(p)
+		if err != nil {
+			return fmt.Errorf(
+				"Error updating the group for instance %s: %s", name, err)
+		}
+
+		d.SetPartial("group")
 	}
 
 	// Attributes that require reboot to update
