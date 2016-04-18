@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -156,6 +157,110 @@ func resourceServiceV1() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+
+			"header": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// required fields
+						"name": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "A name to refer to this Header object",
+						},
+						"action": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "One of set, append, delete, regex, or regex_repeat",
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								var found bool
+								for _, t := range []string{"set", "append", "delete", "regex", "regex_repeat"} {
+									if v.(string) == t {
+										found = true
+									}
+								}
+								if !found {
+									es = append(es, fmt.Errorf(
+										"Fastly Header action is case sensitive and must be one of 'set', 'append', 'delete', 'regex', or 'regex_repeat'; found: %s", v.(string)))
+								}
+								return
+							},
+						},
+						"type": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Type to manipulate: request, fetch, cache, response",
+							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+								var found bool
+								for _, t := range []string{"request", "fetch", "cache", "response"} {
+									if v.(string) == t {
+										found = true
+									}
+								}
+								if !found {
+									es = append(es, fmt.Errorf(
+										"Fastly Header type is case sensitive and must be one of 'request', 'fetch', 'cache', or 'response'; found: %s", v.(string)))
+								}
+								return
+							},
+						},
+						"destination": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Header this affects",
+						},
+						// Optional fields, defaults where they exist
+						"ignore_if_set": &schema.Schema{
+							Type:        schema.TypeBool,
+							Optional:    true,
+							Default:     false,
+							Description: "Don't add the header if it is already. (Only applies to 'set' action.). Default `false`",
+						},
+						"source": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "Variable to be used as a source for the header content (Does not apply to 'delete' action.)",
+						},
+						"regex": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "Regular expression to use (Only applies to 'regex' and 'regex_repeat' actions.)",
+						},
+						"substitution": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: "Value to substitute in place of regular expression. (Only applies to 'regex' and 'regex_repeat'.)",
+						},
+						"priority": &schema.Schema{
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     100,
+							Description: "Lower priorities execute first. (Default: 100.)",
+						},
+						// These fields represent Fastly options that Terraform does not
+						// currently support
+						"request_condition": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Optional name of a RequestCondition to apply.",
+						},
+						"cache_condition": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Optional name of a CacheCondition to apply.",
+						},
+						"response_condition": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Optional name of a ResponseCondition to apply.",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -194,7 +299,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 	// DefaultTTL, a new Version must be created first, and updates posted to that
 	// Version. Loop these attributes and determine if we need to create a new version first
 	var needsChange bool
-	for _, v := range []string{"domain", "backend", "default_host", "default_ttl"} {
+	for _, v := range []string{"domain", "backend", "default_host", "default_ttl", "header"} {
 		if d.HasChange(v) {
 			needsChange = true
 		}
@@ -369,6 +474,60 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		if d.HasChange("header") {
+			// Note: we don't utilize the PUT endpoint to update a Header, we simply
+			// destroy it and create a new one. This is how Terraform works with nested
+			// sub resources, we only get the full diff not a partial set item diff.
+			// Because this is done on a new version of the configuration, this is
+			// considered safe
+			oh, nh := d.GetChange("header")
+			if oh == nil {
+				oh = new(schema.Set)
+			}
+			if nh == nil {
+				nh = new(schema.Set)
+			}
+
+			ohs := oh.(*schema.Set)
+			nhs := nh.(*schema.Set)
+
+			remove := ohs.Difference(nhs).List()
+			add := nhs.Difference(ohs).List()
+
+			// Delete removed headers
+			for _, dRaw := range remove {
+				df := dRaw.(map[string]interface{})
+				opts := gofastly.DeleteHeaderInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    df["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Header Removal opts: %#v", opts)
+				err := conn.DeleteHeader(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new Headers
+			for _, dRaw := range add {
+				opts, err := buildHeader(dRaw.(map[string]interface{}))
+				if err != nil {
+					log.Printf("[DEBUG] Error building Header: %s", err)
+					return err
+				}
+				opts.Service = d.Id()
+				opts.Version = latestVersion
+
+				log.Printf("[DEBUG] Fastly Header Addition opts: %#v", opts)
+				_, err = conn.CreateHeader(opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// validate version
 		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
 		valid, msg, err := conn.ValidateVersion(&gofastly.ValidateVersionInput{
@@ -447,6 +606,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		// TODO: update go-fastly to support an ActiveVersion struct, which contains
 		// domain and backend info in the response. Here we do 2 additional queries
 		// to find out that info
+		log.Printf("[DEBUG] Refreshing Domains for (%s)", d.Id())
 		domainList, err := conn.ListDomains(&gofastly.ListDomainsInput{
 			Service: d.Id(),
 			Version: s.ActiveVersion.Number,
@@ -464,6 +624,7 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// Refresh Backends
+		log.Printf("[DEBUG] Refreshing Backends for (%s)", d.Id())
 		backendList, err := conn.ListBackends(&gofastly.ListBackendsInput{
 			Service: d.Id(),
 			Version: s.ActiveVersion.Number,
@@ -478,6 +639,24 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("backend", bl); err != nil {
 			log.Printf("[WARN] Error setting Backends for (%s): %s", d.Id(), err)
 		}
+
+		// refresh headers
+		log.Printf("[DEBUG] Refreshing Headers for (%s)", d.Id())
+		headerList, err := conn.ListHeaders(&gofastly.ListHeadersInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		hl := flattenHeaders(headerList)
+
+		if err := d.Set("header", hl); err != nil {
+			log.Printf("[WARN] Error setting Headers for (%s): %s", d.Id(), err)
+		}
+
 	} else {
 		log.Printf("[DEBUG] Active Version for Service (%s) is empty, no state to refresh", d.Id())
 	}
@@ -590,7 +769,7 @@ func findService(id string, meta interface{}) (*gofastly.Service, error) {
 
 	l, err := conn.ListServices(&gofastly.ListServicesInput{})
 	if err != nil {
-		return nil, fmt.Errorf("[WARN] Error listing servcies when deleting Fastly Service (%s): %s", id, err)
+		return nil, fmt.Errorf("[WARN] Error listing services when deleting Fastly Service (%s): %s", id, err)
 	}
 
 	for _, s := range l {
@@ -601,4 +780,78 @@ func findService(id string, meta interface{}) (*gofastly.Service, error) {
 	}
 
 	return nil, fastlyNoServiceFoundErr
+}
+
+func flattenHeaders(headerList []*gofastly.Header) []map[string]interface{} {
+	var hl []map[string]interface{}
+	for _, h := range headerList {
+		// Convert Header to a map for saving to state.
+		nh := map[string]interface{}{
+			"name":               h.Name,
+			"action":             h.Action,
+			"ignore_if_set":      h.IgnoreIfSet,
+			"type":               h.Type,
+			"destination":        h.Destination,
+			"source":             h.Source,
+			"regex":              h.Regex,
+			"substitution":       h.Substitution,
+			"priority":           int(h.Priority),
+			"request_condition":  h.RequestCondition,
+			"cache_condition":    h.CacheCondition,
+			"response_condition": h.ResponseCondition,
+		}
+
+		for k, v := range nh {
+			if v == "" {
+				delete(nh, k)
+			}
+		}
+
+		hl = append(hl, nh)
+	}
+	return hl
+}
+
+func buildHeader(headerMap interface{}) (*gofastly.CreateHeaderInput, error) {
+	df := headerMap.(map[string]interface{})
+	opts := gofastly.CreateHeaderInput{
+		Name:              df["name"].(string),
+		IgnoreIfSet:       df["ignore_if_set"].(bool),
+		Destination:       df["destination"].(string),
+		Priority:          uint(df["priority"].(int)),
+		Source:            df["source"].(string),
+		Regex:             df["regex"].(string),
+		Substitution:      df["substitution"].(string),
+		RequestCondition:  df["request_condition"].(string),
+		CacheCondition:    df["cache_condition"].(string),
+		ResponseCondition: df["response_condition"].(string),
+	}
+
+	act := strings.ToLower(df["action"].(string))
+	switch act {
+	case "set":
+		opts.Action = gofastly.HeaderActionSet
+	case "append":
+		opts.Action = gofastly.HeaderActionAppend
+	case "delete":
+		opts.Action = gofastly.HeaderActionDelete
+	case "regex":
+		opts.Action = gofastly.HeaderActionRegex
+	case "regex_repeat":
+		opts.Action = gofastly.HeaderActionRegexRepeat
+	}
+
+	ty := strings.ToLower(df["type"].(string))
+	switch ty {
+	case "request":
+		opts.Type = gofastly.HeaderTypeRequest
+	case "fetch":
+		opts.Type = gofastly.HeaderTypeFetch
+	case "cache":
+		opts.Type = gofastly.HeaderTypeCache
+	case "response":
+		opts.Type = gofastly.HeaderTypeResponse
+	}
+
+	return &opts, nil
 }
