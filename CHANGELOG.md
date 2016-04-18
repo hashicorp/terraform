@@ -12,6 +12,7 @@ FEATURES:
  * **New resource:** `aws_s3_bucket_notification` [GH-5473]
  * **New resource:** `cloudstack_static_nat` [GH-6004]
  * **New resource:** `consul_key_prefix` [GH-5988]
+ * **New resource:** `aws_default_network_acl` [GH-6165]
  * **New resource:** `triton_fabric` [GH-5920]
  * **New resource:** `triton_vlan` [GH-5920]
  * **New resource:** `aws_opsworks_application` [GH-4419]
