@@ -429,7 +429,7 @@ func TestValidateS3BucketLifecycleStorageClass(t *testing.T) {
 	for _, v := range invalidStorageClass {
 		_, errors := validateS3BucketLifecycleStorageClass(v, "storage_class")
 		if len(errors) == 0 {
-			t.Fatalf("%q should be invalid storage class: %q", v)
+			t.Fatalf("%q should be invalid storage class", v)
 		}
 	}
 }

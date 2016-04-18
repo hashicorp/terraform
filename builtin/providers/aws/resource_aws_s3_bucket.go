@@ -1284,7 +1284,7 @@ func expirationHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
 	}
 	if v, ok := m["expired_object_delete_marker"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(bool)))
+		buf.WriteString(fmt.Sprintf("%t-", v.(bool)))
 	}
 	return hashcode.String(buf.String())
 }
