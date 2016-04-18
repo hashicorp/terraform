@@ -1056,6 +1056,47 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
+	m := testModule(t, "apply-module-grandchild-provider-inherit")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var callLock sync.Mutex
+	called := false
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if _, ok := c.Get("value"); !ok {
+			return fmt.Errorf("value is not found")
+		}
+		callLock.Lock()
+		called = true
+		callLock.Unlock()
+
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	callLock.Lock()
+	defer callLock.Unlock()
+	if called != true {
+		t.Fatalf("err: configure never called")
+	}
+}
+
 // This tests an issue where all the providers in a module but not
 // in the root weren't being added to the root properly. In this test
 // case: aws is explicitly added to root, but "test" should be added to.
