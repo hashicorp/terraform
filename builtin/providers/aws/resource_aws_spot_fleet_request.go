@@ -38,6 +38,18 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"vpc_security_group_ids": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
+						},
+						"associate_public_ip_address": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 						"ebs_block_device": &schema.Schema{
 							Type:     schema.TypeSet,
 							Optional: true,
