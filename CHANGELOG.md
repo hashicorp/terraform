@@ -49,6 +49,7 @@ IMPROVEMENTS:
  * provider/google: Make "project" attribute on provider configuration optional [GH-6112]
  * provider/google: Read more common configuration values from the environment and clarify precedence ordering [GH-6114]
  * provider/google: `addons_config` and `subnetwork` added as attributes to `google_container_cluster` [GH-5871]
+ * provider/fastly: Add support for Request Headers [GH-6197]
  * provider/openstack: Add value_specs argument and attribute for routers [GH-4898]
  * provider/openstack: Allow subnets with no gateway [GH-6060]
  * provider/openstack: Enable Token Authentication [GH-6081]
