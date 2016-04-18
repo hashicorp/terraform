@@ -19,7 +19,7 @@ var configReferenceResource = &schema.Resource{
 		"verification": &schema.Schema{
 			Type:     schema.TypeString,
 			ForceNew: true,
-			Required: true,
+			Optional: true,
 		},
 	},
 }
@@ -72,27 +72,18 @@ func resourceConfig() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"config": &schema.Schema{
+			"replace": &schema.Schema{
 				Type:     schema.TypeList,
+				ForceNew: true,
 				Optional: true,
 				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"replace": &schema.Schema{
-							Type:     schema.TypeList,
-							ForceNew: true,
-							Optional: true,
-							MaxItems: 1,
-							Elem:     configReferenceResource,
-						},
-						"append": &schema.Schema{
-							Type:     schema.TypeList,
-							ForceNew: true,
-							Optional: true,
-							Elem:     configReferenceResource,
-						},
-					},
-				},
+				Elem:     configReferenceResource,
+			},
+			"append": &schema.Schema{
+				Type:     schema.TypeList,
+				ForceNew: true,
+				Optional: true,
+				Elem:     configReferenceResource,
 			},
 			"rendered": &schema.Schema{
 				Type:     schema.TypeString,
@@ -186,7 +177,7 @@ func buildIgnition(d *schema.ResourceData) (types.Ignition, error) {
 	i := types.Ignition{}
 	i.Version.UnmarshalJSON([]byte(`"2.0.0"`))
 
-	rr := d.Get("config.0.replace.0").(map[string]interface{})
+	rr := d.Get("replace.0").(map[string]interface{})
 	if len(rr) != 0 {
 		i.Config.Replace, err = buildConfigReference(rr)
 		if err != nil {
@@ -194,7 +185,7 @@ func buildIgnition(d *schema.ResourceData) (types.Ignition, error) {
 		}
 	}
 
-	ar := d.Get("config.0.append").([]interface{})
+	ar := d.Get("append").([]interface{})
 	if len(ar) != 0 {
 		for _, rr := range ar {
 			r, err := buildConfigReference(rr.(map[string]interface{}))

@@ -13,11 +13,9 @@ import (
 func TestIngnitionFileReplace(t *testing.T) {
 	testIgnition(t, `
 		resource "ignition_config" "test" {
-			config {
-			   	replace {
-			   		source = "foo"
-			   		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-			   	}
+			replace {
+				source = "foo"
+				verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 			}
 		}
 	`, func(c *types.Config) error {
@@ -41,16 +39,14 @@ func TestIngnitionFileReplace(t *testing.T) {
 func TestIngnitionFileAppend(t *testing.T) {
 	testIgnition(t, `
 		resource "ignition_config" "test" {
-		    config {
-			   	append {
-			   		source = "foo"
-			   		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-			   	}
+			append {
+				source = "foo"
+				verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+			}
 
-		    	append {
-		    		source = "foo"
-		    		verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-		    	}
+		    append {
+		    	source = "foo"
+		    	verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 			}
 		}
 	`, func(c *types.Config) error {
