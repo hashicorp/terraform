@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v61",
+	"GodepVersion": "v62",
 	"Packages": [
 		"./..."
 	],
@@ -760,11 +760,11 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hil",
-			"Rev": "59cce4313fb7be2d9064afbdb3cacd76737cfa3c"
+			"Rev": "0640fefa3817883b16b77bf760c4c3a6f2589545"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hil/ast",
-			"Rev": "59cce4313fb7be2d9064afbdb3cacd76737cfa3c"
+			"Rev": "0640fefa3817883b16b77bf760c4c3a6f2589545"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/logutils",
