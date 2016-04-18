@@ -8,7 +8,7 @@ description: |-
 
 # aws\_elasticache\_security\_<wbr>group
 
-Provides an ElastiCache Security Group to control access to one or more cache 
+Provides an ElastiCache Security Group to control access to one or more cache
 clusters.
 
 ~> **NOTE:** ElastiCache Security Groups are for use only when working with an
@@ -20,12 +20,10 @@ ElastiCache cluster **outside** of a VPC. If you are using a VPC, see the
 ```
 resource "aws_security_group" "bar" {
     name = "security-group"
-    description = "security group"
 }
 
 resource "aws_elasticache_security_group" "bar" {
     name = "elasticache-security-group"
-    description = "elasticache security group"
     security_group_names = ["${aws_security_group.bar.name}"]
 }
 ```
@@ -34,10 +32,9 @@ resource "aws_elasticache_security_group" "bar" {
 
 The following arguments are supported:
 
-* `description` – (Required) description for the cache security group
-* `name` – (Required) Name for the cache security group. This value is stored as 
-a lowercase string
-* `security_group_names` – (Required) List of EC2 security group names to be 
+* `name` – (Required) Name for the cache security group. This value is stored as a lowercase string.
+* `description` – (Optional) description for the cache security group. Defaults to "Managed by Terraform".
+* `security_group_names` – (Required) List of EC2 security group names to be
 authorized for ingress to the cache security group
 
 
