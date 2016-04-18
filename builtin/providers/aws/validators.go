@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -363,6 +364,27 @@ func validateLogGroupName(v interface{}, k string) (ws []string, errors []error)
 			"%q isn't a valid log group name (alphanumeric characters, underscores,"+
 				" hyphens, slashes, hash signs and dots are allowed): %q",
 			k, value))
+	}
+
+	return
+}
+
+func validateS3BucketLifecycleTimestamp(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	_, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT00:00:00Z", value))
+	if err != nil {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be parsed as RFC3339 Timestamp Format", value))
+	}
+
+	return
+}
+
+func validateS3BucketLifecycleStorageClass(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.TransitionStorageClassStandardIa && value != s3.TransitionStorageClassGlacier {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of '%q', '%q'", k, s3.TransitionStorageClassStandardIa, s3.TransitionStorageClassGlacier))
 	}
 
 	return
