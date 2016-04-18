@@ -57,6 +57,7 @@ IMPROVEMENTS:
  * provider/postgresql: New `ssl_mode` argument allowing different SSL usage tradeoffs [GH-6008]
  * provider/vsphere: Support for linked clones and Windows-specific guest config options [GH-6087]
  *provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
+ * provider/cloudstack: Add group attribute to `cloudstack_instance` resource [GH-6023]
 
 BUG FIXES:
 
@@ -82,7 +83,6 @@ BUG FIXES:
  * provider/openstack: Fix Access Address Detection [GH-6181]
  * provider/triton: Firewall status on `triton_machine` resources is reflected correctly [GH-6119]
  * provider/vsphere: Add error handling to `vsphere_folder` [GH-6095]
- * provider/cloudstack: Add group attribute to `cloudstack_instance` resource [GH-6023] 
 
 ## 0.6.14 (March 21, 2016)
 
