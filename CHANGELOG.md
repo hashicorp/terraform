@@ -82,6 +82,7 @@ BUG FIXES:
  * provider/openstack: Fix Access Address Detection [GH-6181]
  * provider/triton: Firewall status on `triton_machine` resources is reflected correctly [GH-6119]
  * provider/vsphere: Add error handling to `vsphere_folder` [GH-6095]
+ * provider/cloudstack: Add group attribute to `cloudstack_instance` resource [GH-6023] 
 
 ## 0.6.14 (March 21, 2016)
 
