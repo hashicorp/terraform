@@ -100,7 +100,7 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNoSnapshotInstanceConfig,
+				Config: testAccNoSnapshotInstanceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.no_snapshot", &nosnap),
 				),
@@ -447,12 +447,13 @@ resource "aws_db_instance" "snapshot" {
 }`, acctest.RandInt())
 }
 
-var testAccNoSnapshotInstanceConfig = `
+func testAccNoSnapshotInstanceConfig() string {
+	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
 }
 resource "aws_db_instance" "no_snapshot" {
-	identifier = "foobarbaz-test-terraform-snapshot-2"
+	identifier = "tf-test-%s"
 
 	allocated_storage = 5
 	engine = "mysql"
@@ -469,7 +470,8 @@ resource "aws_db_instance" "no_snapshot" {
 	skip_final_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
 }
-`
+`, acctest.RandString(5))
+}
 
 var testAccSnapshotInstanceConfig_enhancedMonitoring = `
 resource "aws_iam_role" "enhanced_policy_role" {
