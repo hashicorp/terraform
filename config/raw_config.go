@@ -132,12 +132,12 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 
 		// None of the variables we need are computed, meaning we should
 		// be able to properly evaluate.
-		out, _, err := hil.Eval(root, config)
+		result, err := hil.Eval(root, config)
 		if err != nil {
 			return "", err
 		}
 
-		return out.(string), nil
+		return result.Value.(string), nil
 	})
 }
 
