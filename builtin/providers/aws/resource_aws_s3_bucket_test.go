@@ -359,11 +359,11 @@ func TestAccAWSS3Bucket_Lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "lifecycle_rule.0.prefix", "path1/"),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "lifecycle_rule.0.expiration.3381184022.days", "365"),
+						"aws_s3_bucket.bucket", "lifecycle_rule.0.expiration.2613713285.days", "365"),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "lifecycle_rule.0.expiration.3381184022.date", ""),
+						"aws_s3_bucket.bucket", "lifecycle_rule.0.expiration.2613713285.date", ""),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "lifecycle_rule.0.expiration.3381184022.expired_object_delete_marker", "false"),
+						"aws_s3_bucket.bucket", "lifecycle_rule.0.expiration.2613713285.expired_object_delete_marker", "false"),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "lifecycle_rule.0.transition.2000431762.date", ""),
 					resource.TestCheckResourceAttr(
@@ -381,11 +381,11 @@ func TestAccAWSS3Bucket_Lifecycle(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "lifecycle_rule.1.prefix", "path2/"),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.1267664759.date", "2016-01-12"),
+						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.2855832418.date", "2016-01-12"),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.1267664759.days", "0"),
+						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.2855832418.days", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.1267664759.expired_object_delete_marker", "false"),
+						"aws_s3_bucket.bucket", "lifecycle_rule.1.expiration.2855832418.expired_object_delete_marker", "false"),
 				),
 			},
 			resource.TestStep{
