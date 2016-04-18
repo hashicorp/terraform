@@ -30,6 +30,10 @@ For more information about Network ACLs, see the AWS Documentation on
 
 ## Basic Example Usage, with default rules
 
+The following config gives the Default Network ACL the same rules that AWS 
+includes, but pulls the resource under management by Terraform. This means that 
+any ACL rules added or changed will be detected as drift.
+
 ```
 resource "aws_vpc" "mainvpc" {
   cidr_block = "10.1.0.0/16"
@@ -60,6 +64,9 @@ resource "aws_default_network_acl" "default" {
 
 ## Example config to deny all Egress traffic, allowing Ingress
 
+The following denies all Egress traffic by omitting any `egress` rules, while
+including the default `ingress` rule to allow all traffic.
+
 ```
 resource "aws_vpc" "mainvpc" {
   cidr_block = "10.1.0.0/16"
@@ -79,6 +86,24 @@ resource "aws_default_network_acl" "default" {
 
 }
 ```
+
+## Example config to deny all traffic to any Subnet in the Default Network ACL:
+
+This config denies all traffic in the Default ACL. This can be useful if you 
+want a locked down default to force all resources in the VPC to assign a 
+non-default ACL.
+
+```
+resource "aws_vpc" "mainvpc" {
+  cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_default_network_acl" "default" {
+  default_network_acl_id = "${aws_vpc.mainvpc.default_network_acl_id}"
+  # no rules defined, deny all traffic in this ACL
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:

@@ -34,13 +34,6 @@ func resourceAwsDefaultNetworkAcl() *schema.Resource {
 				ForceNew: true,
 				Computed: false,
 			},
-			// subnet_id is a deprecated value in aws_network_acl, so we don't support
-			// using it here. We do re-use aws_network_acl's READ method which will
-			// attempt to set this value, so we include it here
-			"subnet_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			// We want explicit management of Subnets here, so we do not allow them to be
 			// computed. Instead, an empty config will enforce just that; removal of the
 			// any Subnets that have been assigned to the Default Network ACL. Because we
