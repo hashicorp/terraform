@@ -21,7 +21,7 @@ func resourceCloudStackFirewall() *schema.Resource {
 		Delete: resourceCloudStackFirewallDelete,
 
 		Schema: map[string]*schema.Schema{
-			"ip_address": &schema.Schema{
+			"ip_address_id": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
@@ -32,8 +32,8 @@ func resourceCloudStackFirewall() *schema.Resource {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				Deprecated:    "Please use the `ip_address` field instead",
-				ConflictsWith: []string{"ip_address"},
+				Deprecated:    "Please use the `ip_address_id` field instead",
+				ConflictsWith: []string{"ip_address_id"},
 			},
 
 			"managed": &schema.Schema{
@@ -109,12 +109,12 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	ipaddress, ok := d.GetOk("ip_address")
+	ipaddress, ok := d.GetOk("ip_address_id")
 	if !ok {
 		ipaddress, ok = d.GetOk("ipaddress")
 	}
 	if !ok {
-		return errors.New("Either `ip_address` or [deprecated] `ipaddress` must be provided.")
+		return errors.New("Either `ip_address_id` or [deprecated] `ipaddress` must be provided.")
 	}
 
 	// Retrieve the ipaddress ID

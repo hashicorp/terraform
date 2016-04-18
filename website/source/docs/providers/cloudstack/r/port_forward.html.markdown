@@ -14,13 +14,13 @@ Creates port forwards.
 
 ```
 resource "cloudstack_port_forward" "default" {
-  ip_address = "192.168.0.1"
+  ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
 
   forward {
     protocol = "tcp"
     private_port = 80
     public_port = 8080
-    virtual_machine = "server-1"
+    virtual_machine_id = "f8141e2f-4e7e-4c63-9362-986c908b7ea7"
   }
 }
 ```
@@ -29,8 +29,8 @@ resource "cloudstack_port_forward" "default" {
 
 The following arguments are supported:
 
-* `ip_address` - (Required) The IP address for which to create the port forwards.
-    Changing this forces a new resource to be created.
+* `ip_address_id` - (Required) The IP address ID for which to create the port
+    forwards. Changing this forces a new resource to be created.
 
 * `ipaddress` - (Required, Deprecated) The IP address for which to create the port
     forwards. Changing this forces a new resource to be created.
@@ -51,7 +51,10 @@ The `forward` block supports:
 
 * `public_port` - (Required) The public port to forward from.
 
-* `virtual_machine` - (Required) The name or ID of the virtual machine to forward to.
+* `virtual_machine_id` - (Required) The ID of the virtual machine to forward to.
+
+* `virtual_machine` - (Required, Deprecated) The name or ID of the virtual
+    machine to forward to.
 
 ## Attributes Reference
 

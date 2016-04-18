@@ -14,34 +14,42 @@ Creates a new Google SQL User on a Google SQL User Instance. For more informatio
 
 Example creating a SQL User.
 
-```
+```js
 resource "google_sql_database_instance" "master" {
-	name = "master-instance"
+  name = "master-instance"
 
-    settings {
-        tier = "D0"
-    }
+  settings {
+    tier = "D0"
+  }
 }
 
 resource "google_sql_user" "users" {
-	name = "me"
-	instance = "${google_sql_database_instance.master.name}"
-	host = "me.com"
+  name     = "me"
+  instance = "${google_sql_database_instance.master.name}"
+  host     = "me.com"
 }
-
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the user.
-  Changing this forces a new resource to be created.
-
 * `host` - (Required) The host the user can connect from. Can be an IP address.
-  Changing this forces a new resource to be created.
+    Changing this forces a new resource to be created.
+
+* `instance` - (Required) The name of the Cloud SQL instance. Changing this
+    forces a new resource to be created.
+
+* `name` - (Required) The name of the user. Changing this forces a new resource
+    to be created.
 
 * `password` - (Required) The users password. Can be updated.
 
-* `instance` - (Required) The name of the Cloud SQL instance.
-  Changing this forces a new resource to be created.
+- - -
+
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
+
+## Attributes Reference
+
+Only the arguments listed above are exposed as attributes.

@@ -24,7 +24,23 @@ func resourceComputeTargetHttpProxy() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"url_map": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
 			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -34,22 +50,17 @@ func resourceComputeTargetHttpProxy() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"url_map": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
 		},
 	}
 }
 
 func resourceComputeTargetHttpProxyCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	proxy := &compute.TargetHttpProxy{
 		Name:   d.Get("name").(string),
@@ -62,7 +73,7 @@ func resourceComputeTargetHttpProxyCreate(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] TargetHttpProxy insert request: %#v", proxy)
 	op, err := config.clientCompute.TargetHttpProxies.Insert(
-		config.Project, proxy).Do()
+		project, proxy).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating TargetHttpProxy: %s", err)
 	}
@@ -80,13 +91,18 @@ func resourceComputeTargetHttpProxyCreate(d *schema.ResourceData, meta interface
 func resourceComputeTargetHttpProxyUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	d.Partial(true)
 
 	if d.HasChange("url_map") {
 		url_map := d.Get("url_map").(string)
 		url_map_ref := &compute.UrlMapReference{UrlMap: url_map}
 		op, err := config.clientCompute.TargetHttpProxies.SetUrlMap(
-			config.Project, d.Id(), url_map_ref).Do()
+			project, d.Id(), url_map_ref).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating target: %s", err)
 		}
@@ -107,8 +123,13 @@ func resourceComputeTargetHttpProxyUpdate(d *schema.ResourceData, meta interface
 func resourceComputeTargetHttpProxyRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	proxy, err := config.clientCompute.TargetHttpProxies.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Target HTTP Proxy %q because it's gone", d.Get("name").(string))
@@ -130,10 +151,15 @@ func resourceComputeTargetHttpProxyRead(d *schema.ResourceData, meta interface{}
 func resourceComputeTargetHttpProxyDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the TargetHttpProxy
 	log.Printf("[DEBUG] TargetHttpProxy delete request")
 	op, err := config.clientCompute.TargetHttpProxies.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting TargetHttpProxy: %s", err)
 	}

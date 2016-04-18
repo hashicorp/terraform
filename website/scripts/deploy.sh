@@ -64,15 +64,29 @@ if [ -z "$NO_UPLOAD" ]; then
 
   # The s3cmd guessed mime type for text files is often wrong. This is
   # problematic for some assets, so force their mime types to be correct.
+  echo "Overriding javascript mime-types..."
   s3cmd \
     --mime-type="application/javascript" \
-    modify "s3://hc-sites/$PROJECT/latest/**/*.js"
+    --exclude "*" \
+    --include "*.js" \
+    --recursive \
+    modify "s3://hc-sites/$PROJECT/latest/"
+
+  echo "Overriding css mime-types..."
   s3cmd \
     --mime-type="text/css" \
-    modify "s3://hc-sites/$PROJECT/latest/**/*.css"
+    --exclude "*" \
+    --include "*.css" \
+    --recursive \
+    modify "s3://hc-sites/$PROJECT/latest/"
+
+  echo "Overriding svg mime-types..."
   s3cmd \
     --mime-type="image/svg+xml" \
-    modify "s3://hc-sites/$PROJECT/latest/**/*.svg"
+    --exclude "*" \
+    --include "*.svg" \
+    --recursive \
+    modify "s3://hc-sites/$PROJECT/latest/"
 fi
 
 # Perform a soft-purge of the surrogate key.

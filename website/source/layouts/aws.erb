@@ -52,6 +52,18 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-cloudfront/) %>>
+                    <a href="#">CloudFront Resources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-aws-resource-cloudfront-distribution") %>>
+                            <a href="/docs/providers/aws/r/cloudfront_distribution.html">aws_cloudfront_distribution</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-resource-cloudfront-origin-access-identity") %>>
+                            <a href="/docs/providers/aws/r/cloudfront_origin_access_identity.html">aws_cloudfront_origin_access_identity</a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li<%= sidebar_current(/^docs-aws-resource-cloudtrail/) %>>
                     <a href="#">CloudTrail Resources</a>
                     <ul class="nav nav-visible">
@@ -466,6 +478,10 @@
                             <a href="/docs/providers/aws/r/opsworks_haproxy_layer.html">aws_opsworks_haproxy_layer</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-instance") %>>
+                            <a href="/docs/providers/aws/r/opsworks_instance.html">aws_opsworks_instance</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-opsworks-java-app-layer") %>>
                             <a href="/docs/providers/aws/r/opsworks_java_app_layer.html">aws_opsworks_java_app_layer</a>
                         </li>
@@ -496,6 +512,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-opsworks-static-web-layer") %>>
                             <a href="/docs/providers/aws/r/opsworks_static_web_layer.html">aws_opsworks_static_web_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-application") %>>
+                            <a href="/docs/providers/aws/r/opsworks_application.html">aws_opsworks_application</a>
                         </li>
 
                     </ul>

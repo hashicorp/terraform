@@ -94,14 +94,8 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project ID
-		projectid, e := retrieveID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
 	}
 
 	// Retrieve the zone ID

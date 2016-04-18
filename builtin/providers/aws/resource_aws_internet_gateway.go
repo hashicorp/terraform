@@ -45,6 +45,18 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetId(*ig.InternetGatewayId)
 	log.Printf("[INFO] InternetGateway ID: %s", d.Id())
 
+	resource.Retry(5*time.Minute, func() *resource.RetryError {
+		igRaw, _, err := IGStateRefreshFunc(conn, d.Id())()
+		if igRaw != nil {
+			return nil
+		}
+		if err == nil {
+			return resource.RetryableError(err)
+		} else {
+			return resource.NonRetryableError(err)
+		}
+	})
+
 	err = setTags(conn, d)
 	if err != nil {
 		return err

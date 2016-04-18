@@ -18,7 +18,7 @@ quickdev: generate
 # Shorthand for quickly building the core of Terraform. Note that some
 # changes will require a rebuild of everything, in which case the dev
 # target should be used.
-core-dev: fmtcheck generate
+core-dev: generate
 	go install github.com/hashicorp/terraform
 
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")

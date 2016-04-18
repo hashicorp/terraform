@@ -225,12 +225,12 @@ func resourceAwsOpsworksSetStackCustomCookbooksSource(d *schema.ResourceData, v 
 		if v.Username != nil {
 			m["username"] = *v.Username
 		}
-		if v.Password != nil {
-			m["password"] = *v.Password
-		}
 		if v.Revision != nil {
 			m["revision"] = *v.Revision
 		}
+		// v.Password will, on read, contain the placeholder string
+		// "*****FILTERED*****", so we ignore it on read and let persist
+		// the value already in the state.
 		nv = append(nv, m)
 	}
 
@@ -341,7 +341,8 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 				// Service Role Arn: [...] is not yet propagated, please try again in a couple of minutes
 				propErr := "not yet propagated"
 				trustErr := "not the necessary trust relationship"
-				if opserr.Code() == "ValidationException" && (strings.Contains(opserr.Message(), trustErr) || strings.Contains(opserr.Message(), propErr)) {
+				validateErr := "validate IAM role permission"
+				if opserr.Code() == "ValidationException" && (strings.Contains(opserr.Message(), trustErr) || strings.Contains(opserr.Message(), propErr) || strings.Contains(opserr.Message(), validateErr)) {
 					log.Printf("[INFO] Waiting for service IAM role to propagate")
 					return resource.RetryableError(cerr)
 				}

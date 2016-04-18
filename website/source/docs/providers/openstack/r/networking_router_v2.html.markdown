@@ -48,6 +48,8 @@ The following arguments are supported:
 * `tenant_id` - (Optional) The owner of the floating IP. Required if admin wants
     to create a router for another tenant. Changing this creates a new router.
 
+* `value_specs` - (Optional) Map of additional driver-specific options.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -57,3 +59,4 @@ The following attributes are exported:
 * `admin_state_up` - See Argument Reference above.
 * `external_gateway` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+* `value_specs` - See Argument Reference above.
