@@ -1173,7 +1173,7 @@
 		},
 		{
 			"ImportPath": "github.com/sethvargo/go-fastly",
-			"Rev": "382fee1e5e1adf3cc112fadf4f0a8a98e269ea3c"
+			"Rev": "b00964ba5a45ca385e9299c9803d6d2a8105d65b"
 		},
 		{
 			"ImportPath": "github.com/soniah/dnsmadeeasy",
