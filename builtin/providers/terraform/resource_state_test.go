@@ -46,7 +46,7 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 
 const testAccState_basic = `
 resource "terraform_remote_state" "foo" {
-	backend = "_local"
+	backend = "local"
 
 	config {
 		path = "./test-fixtures/basic.tfstate"

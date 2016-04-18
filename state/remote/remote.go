@@ -19,7 +19,7 @@ type Payload struct {
 	Data []byte
 }
 
-// Factory is the factory function to create a remote client.
+// factory is the factory function to create a remote client.
 type Factory func(map[string]string) (Client, error)
 
 // NewClient returns a new Client with the given type and configuration.
@@ -43,7 +43,5 @@ var BuiltinClients = map[string]Factory{
 	"s3":          s3Factory,
 	"swift":       swiftFactory,
 	"artifactory": artifactoryFactory,
-
-	// This is used for development purposes only.
-	"_local": fileFactory,
+	"local":       fileFactory,
 }
