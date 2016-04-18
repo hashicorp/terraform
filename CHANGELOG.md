@@ -61,6 +61,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Providers are now correctly inherited down a nested module tree [GH-6186]
  * provider/aws: Convert protocols to standard format for Security Groups [GH-5881]
  * provider/aws: Fix Lambda VPC integration (missing `vpc_id` field in schema) [GH-6157]
  * provider/aws: Fix `aws_route panic` when destination CIDR block is nil [GH-5781]
