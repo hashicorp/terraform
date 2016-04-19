@@ -86,6 +86,9 @@ func (p *CreateDiskOfferingParams) toURLValues() url.Values {
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
 	}
+	if v, found := p.p["provisioningtype"]; found {
+		u.Set("provisioningtype", v.(string))
+	}
 	if v, found := p.p["storagetype"]; found {
 		u.Set("storagetype", v.(string))
 	}
@@ -207,6 +210,14 @@ func (p *CreateDiskOfferingParams) SetName(v string) {
 	return
 }
 
+func (p *CreateDiskOfferingParams) SetProvisioningtype(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["provisioningtype"] = v
+	return
+}
+
 func (p *CreateDiskOfferingParams) SetStoragetype(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -266,6 +277,7 @@ type CreateDiskOfferingResponse struct {
 	Maxiops                   int64  `json:"maxiops,omitempty"`
 	Miniops                   int64  `json:"miniops,omitempty"`
 	Name                      string `json:"name,omitempty"`
+	Provisioningtype          string `json:"provisioningtype,omitempty"`
 	Storagetype               string `json:"storagetype,omitempty"`
 	Tags                      string `json:"tags,omitempty"`
 }
@@ -381,6 +393,7 @@ type UpdateDiskOfferingResponse struct {
 	Maxiops                   int64  `json:"maxiops,omitempty"`
 	Miniops                   int64  `json:"miniops,omitempty"`
 	Name                      string `json:"name,omitempty"`
+	Provisioningtype          string `json:"provisioningtype,omitempty"`
 	Storagetype               string `json:"storagetype,omitempty"`
 	Tags                      string `json:"tags,omitempty"`
 }
@@ -451,8 +464,16 @@ func (p *ListDiskOfferingsParams) toURLValues() url.Values {
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
+	if v, found := p.p["isrecursive"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isrecursive", vv)
+	}
 	if v, found := p.p["keyword"]; found {
 		u.Set("keyword", v.(string))
+	}
+	if v, found := p.p["listall"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("listall", vv)
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
@@ -484,11 +505,27 @@ func (p *ListDiskOfferingsParams) SetId(v string) {
 	return
 }
 
+func (p *ListDiskOfferingsParams) SetIsrecursive(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isrecursive"] = v
+	return
+}
+
 func (p *ListDiskOfferingsParams) SetKeyword(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
 	p.p["keyword"] = v
+	return
+}
+
+func (p *ListDiskOfferingsParams) SetListall(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["listall"] = v
 	return
 }
 
@@ -633,6 +670,7 @@ type DiskOffering struct {
 	Maxiops                   int64  `json:"maxiops,omitempty"`
 	Miniops                   int64  `json:"miniops,omitempty"`
 	Name                      string `json:"name,omitempty"`
+	Provisioningtype          string `json:"provisioningtype,omitempty"`
 	Storagetype               string `json:"storagetype,omitempty"`
 	Tags                      string `json:"tags,omitempty"`
 }

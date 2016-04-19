@@ -112,6 +112,9 @@ func (p *CreateServiceOfferingParams) toURLValues() url.Values {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("offerha", vv)
 	}
+	if v, found := p.p["provisioningtype"]; found {
+		u.Set("provisioningtype", v.(string))
+	}
 	if v, found := p.p["serviceofferingdetails"]; found {
 		i := 0
 		for k, vv := range v.(map[string]string) {
@@ -300,6 +303,14 @@ func (p *CreateServiceOfferingParams) SetOfferha(v bool) {
 	return
 }
 
+func (p *CreateServiceOfferingParams) SetProvisioningtype(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["provisioningtype"] = v
+	return
+}
+
 func (p *CreateServiceOfferingParams) SetServiceofferingdetails(v map[string]string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -387,6 +398,7 @@ type CreateServiceOfferingResponse struct {
 	Name                      string            `json:"name,omitempty"`
 	Networkrate               int               `json:"networkrate,omitempty"`
 	Offerha                   bool              `json:"offerha,omitempty"`
+	Provisioningtype          string            `json:"provisioningtype,omitempty"`
 	Serviceofferingdetails    map[string]string `json:"serviceofferingdetails,omitempty"`
 	Storagetype               string            `json:"storagetype,omitempty"`
 	Systemvmtype              string            `json:"systemvmtype,omitempty"`
@@ -551,6 +563,7 @@ type UpdateServiceOfferingResponse struct {
 	Name                      string            `json:"name,omitempty"`
 	Networkrate               int               `json:"networkrate,omitempty"`
 	Offerha                   bool              `json:"offerha,omitempty"`
+	Provisioningtype          string            `json:"provisioningtype,omitempty"`
 	Serviceofferingdetails    map[string]string `json:"serviceofferingdetails,omitempty"`
 	Storagetype               string            `json:"storagetype,omitempty"`
 	Systemvmtype              string            `json:"systemvmtype,omitempty"`
@@ -572,12 +585,20 @@ func (p *ListServiceOfferingsParams) toURLValues() url.Values {
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
+	if v, found := p.p["isrecursive"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isrecursive", vv)
+	}
 	if v, found := p.p["issystem"]; found {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("issystem", vv)
 	}
 	if v, found := p.p["keyword"]; found {
 		u.Set("keyword", v.(string))
+	}
+	if v, found := p.p["listall"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("listall", vv)
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
@@ -615,6 +636,14 @@ func (p *ListServiceOfferingsParams) SetId(v string) {
 	return
 }
 
+func (p *ListServiceOfferingsParams) SetIsrecursive(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isrecursive"] = v
+	return
+}
+
 func (p *ListServiceOfferingsParams) SetIssystem(v bool) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -628,6 +657,14 @@ func (p *ListServiceOfferingsParams) SetKeyword(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["keyword"] = v
+	return
+}
+
+func (p *ListServiceOfferingsParams) SetListall(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["listall"] = v
 	return
 }
 
@@ -796,6 +833,7 @@ type ServiceOffering struct {
 	Name                      string            `json:"name,omitempty"`
 	Networkrate               int               `json:"networkrate,omitempty"`
 	Offerha                   bool              `json:"offerha,omitempty"`
+	Provisioningtype          string            `json:"provisioningtype,omitempty"`
 	Serviceofferingdetails    map[string]string `json:"serviceofferingdetails,omitempty"`
 	Storagetype               string            `json:"storagetype,omitempty"`
 	Systemvmtype              string            `json:"systemvmtype,omitempty"`

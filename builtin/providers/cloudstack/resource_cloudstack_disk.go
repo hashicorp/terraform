@@ -78,7 +78,8 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	name := d.Get("name").(string)
 
 	// Create a new parameter struct
-	p := cs.Volume.NewCreateVolumeParams(name)
+	p := cs.Volume.NewCreateVolumeParams()
+	p.SetName(name)
 
 	// Retrieve the disk_offering ID
 	diskofferingid, e := retrieveID(cs, "disk_offering", d.Get("disk_offering").(string))

@@ -51,6 +51,15 @@ func (p *AddClusterParams) toURLValues() url.Values {
 	if v, found := p.p["hypervisor"]; found {
 		u.Set("hypervisor", v.(string))
 	}
+	if v, found := p.p["ovm3cluster"]; found {
+		u.Set("ovm3cluster", v.(string))
+	}
+	if v, found := p.p["ovm3pool"]; found {
+		u.Set("ovm3pool", v.(string))
+	}
+	if v, found := p.p["ovm3vip"]; found {
+		u.Set("ovm3vip", v.(string))
+	}
 	if v, found := p.p["password"]; found {
 		u.Set("password", v.(string))
 	}
@@ -129,6 +138,30 @@ func (p *AddClusterParams) SetHypervisor(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["hypervisor"] = v
+	return
+}
+
+func (p *AddClusterParams) SetOvm3cluster(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3cluster"] = v
+	return
+}
+
+func (p *AddClusterParams) SetOvm3pool(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3pool"] = v
+	return
+}
+
+func (p *AddClusterParams) SetOvm3vip(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ovm3vip"] = v
 	return
 }
 
@@ -260,6 +293,7 @@ type AddClusterResponse struct {
 	Managedstate          string `json:"managedstate,omitempty"`
 	Memoryovercommitratio string `json:"memoryovercommitratio,omitempty"`
 	Name                  string `json:"name,omitempty"`
+	Ovm3vip               string `json:"ovm3vip,omitempty"`
 	Podid                 string `json:"podid,omitempty"`
 	Podname               string `json:"podname,omitempty"`
 	Zoneid                string `json:"zoneid,omitempty"`
@@ -439,6 +473,7 @@ type UpdateClusterResponse struct {
 	Managedstate          string `json:"managedstate,omitempty"`
 	Memoryovercommitratio string `json:"memoryovercommitratio,omitempty"`
 	Name                  string `json:"name,omitempty"`
+	Ovm3vip               string `json:"ovm3vip,omitempty"`
 	Podid                 string `json:"podid,omitempty"`
 	Podname               string `json:"podname,omitempty"`
 	Zoneid                string `json:"zoneid,omitempty"`
@@ -711,6 +746,7 @@ type Cluster struct {
 	Managedstate          string `json:"managedstate,omitempty"`
 	Memoryovercommitratio string `json:"memoryovercommitratio,omitempty"`
 	Name                  string `json:"name,omitempty"`
+	Ovm3vip               string `json:"ovm3vip,omitempty"`
 	Podid                 string `json:"podid,omitempty"`
 	Podname               string `json:"podname,omitempty"`
 	Zoneid                string `json:"zoneid,omitempty"`

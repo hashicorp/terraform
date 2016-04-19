@@ -257,7 +257,7 @@ func (s *AddressService) NewDisassociateIpAddressParams(id string) *Disassociate
 	return p
 }
 
-// Disassociates an ip address from the account.
+// Disassociates an IP address from the account.
 func (s *AddressService) DisassociateIpAddress(p *DisassociateIpAddressParams) (*DisassociateIpAddressResponse, error) {
 	resp, err := s.cs.newRequest("disassociateIpAddress", p.toURLValues())
 	if err != nil {
@@ -364,6 +364,9 @@ func (p *ListPublicIpAddressesParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["projectid"]; found {
 		u.Set("projectid", v.(string))
+	}
+	if v, found := p.p["state"]; found {
+		u.Set("state", v.(string))
 	}
 	if v, found := p.p["tags"]; found {
 		i := 0
@@ -526,6 +529,14 @@ func (p *ListPublicIpAddressesParams) SetProjectid(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["projectid"] = v
+	return
+}
+
+func (p *ListPublicIpAddressesParams) SetState(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["state"] = v
 	return
 }
 
@@ -729,7 +740,7 @@ func (s *AddressService) NewUpdateIpAddressParams(id string) *UpdateIpAddressPar
 	return p
 }
 
-// Updates an ip address
+// Updates an IP address
 func (s *AddressService) UpdateIpAddress(p *UpdateIpAddressParams) (*UpdateIpAddressResponse, error) {
 	resp, err := s.cs.newRequest("updateIpAddress", p.toURLValues())
 	if err != nil {

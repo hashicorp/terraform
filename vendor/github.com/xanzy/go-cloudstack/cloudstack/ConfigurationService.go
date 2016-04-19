@@ -322,6 +322,8 @@ type ListCapabilitiesResponse struct {
 
 type Capability struct {
 	Allowusercreateprojects   bool   `json:"allowusercreateprojects,omitempty"`
+	Allowuserexpungerecovervm bool   `json:"allowuserexpungerecovervm,omitempty"`
+	Allowuserviewdestroyedvm  bool   `json:"allowuserviewdestroyedvm,omitempty"`
 	Apilimitinterval          int    `json:"apilimitinterval,omitempty"`
 	Apilimitmax               int    `json:"apilimitmax,omitempty"`
 	Cloudstackversion         string `json:"cloudstackversion,omitempty"`

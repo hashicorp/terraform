@@ -90,7 +90,7 @@ func (s *NATService) NewEnableStaticNatParams(ipaddressid string, virtualmachine
 	return p
 }
 
-// Enables static nat for given ip address
+// Enables static NAT for given IP address
 func (s *NATService) EnableStaticNat(p *EnableStaticNatParams) (*EnableStaticNatResponse, error) {
 	resp, err := s.cs.newRequest("enableStaticNat", p.toURLValues())
 	if err != nil {
@@ -202,7 +202,7 @@ func (s *NATService) NewCreateIpForwardingRuleParams(ipaddressid string, protoco
 	return p
 }
 
-// Creates an ip forwarding rule
+// Creates an IP forwarding rule
 func (s *NATService) CreateIpForwardingRule(p *CreateIpForwardingRuleParams) (*CreateIpForwardingRuleResponse, error) {
 	resp, err := s.cs.newRequest("createIpForwardingRule", p.toURLValues())
 	if err != nil {
@@ -300,7 +300,7 @@ func (s *NATService) NewDeleteIpForwardingRuleParams(id string) *DeleteIpForward
 	return p
 }
 
-// Deletes an ip forwarding rule
+// Deletes an IP forwarding rule
 func (s *NATService) DeleteIpForwardingRule(p *DeleteIpForwardingRuleParams) (*DeleteIpForwardingRuleResponse, error) {
 	resp, err := s.cs.newRequest("deleteIpForwardingRule", p.toURLValues())
 	if err != nil {
@@ -522,7 +522,7 @@ func (s *NATService) GetIpForwardingRuleByID(id string) (*IpForwardingRule, int,
 	return nil, l.Count, fmt.Errorf("There is more then one result for IpForwardingRule UUID: %s!", id)
 }
 
-// List the ip forwarding rules
+// List the IP forwarding rules
 func (s *NATService) ListIpForwardingRules(p *ListIpForwardingRulesParams) (*ListIpForwardingRulesResponse, error) {
 	resp, err := s.cs.newRequest("listIpForwardingRules", p.toURLValues())
 	if err != nil {
@@ -604,7 +604,7 @@ func (s *NATService) NewDisableStaticNatParams(ipaddressid string) *DisableStati
 	return p
 }
 
-// Disables static rule for given ip address
+// Disables static rule for given IP address
 func (s *NATService) DisableStaticNat(p *DisableStaticNatParams) (*DisableStaticNatResponse, error) {
 	resp, err := s.cs.newRequest("disableStaticNat", p.toURLValues())
 	if err != nil {
