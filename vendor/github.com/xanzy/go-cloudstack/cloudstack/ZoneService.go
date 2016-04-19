@@ -263,7 +263,6 @@ type CreateZoneResponse struct {
 		Resourcetype string `json:"resourcetype,omitempty"`
 		Value        string `json:"value,omitempty"`
 	} `json:"tags,omitempty"`
-	Vlan      string `json:"vlan,omitempty"`
 	Zonetoken string `json:"zonetoken,omitempty"`
 }
 
@@ -531,7 +530,6 @@ type UpdateZoneResponse struct {
 		Resourcetype string `json:"resourcetype,omitempty"`
 		Value        string `json:"value,omitempty"`
 	} `json:"tags,omitempty"`
-	Vlan      string `json:"vlan,omitempty"`
 	Zonetoken string `json:"zonetoken,omitempty"`
 }
 
@@ -860,7 +858,6 @@ type Zone struct {
 		Resourcetype string `json:"resourcetype,omitempty"`
 		Value        string `json:"value,omitempty"`
 	} `json:"tags,omitempty"`
-	Vlan      string `json:"vlan,omitempty"`
 	Zonetoken string `json:"zonetoken,omitempty"`
 }
 

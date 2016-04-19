@@ -99,6 +99,7 @@ type StartSystemVmResponse struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`
@@ -196,6 +197,7 @@ type RebootSystemVmResponse struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`
@@ -305,6 +307,7 @@ type StopSystemVmResponse struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`
@@ -402,6 +405,7 @@ type DestroySystemVmResponse struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`
@@ -665,6 +669,7 @@ type SystemVm struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`
@@ -774,6 +779,7 @@ type MigrateSystemVmResponse struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`
@@ -878,6 +884,7 @@ type ChangeServiceForSystemVmResponse struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`
@@ -1003,6 +1010,7 @@ type ScaleSystemVmResponse struct {
 	Gateway              string `json:"gateway,omitempty"`
 	Hostid               string `json:"hostid,omitempty"`
 	Hostname             string `json:"hostname,omitempty"`
+	Hypervisor           string `json:"hypervisor,omitempty"`
 	Id                   string `json:"id,omitempty"`
 	Jobid                string `json:"jobid,omitempty"`
 	Jobstatus            int    `json:"jobstatus,omitempty"`

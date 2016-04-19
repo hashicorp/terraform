@@ -181,6 +181,8 @@ type CreateSecurityGroupResponse struct {
 		Resourcetype string `json:"resourcetype,omitempty"`
 		Value        string `json:"value,omitempty"`
 	} `json:"tags,omitempty"`
+	Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+	Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 }
 
 type DeleteSecurityGroupParams struct {
@@ -1196,4 +1198,6 @@ type SecurityGroup struct {
 		Resourcetype string `json:"resourcetype,omitempty"`
 		Value        string `json:"value,omitempty"`
 	} `json:"tags,omitempty"`
+	Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+	Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 }
