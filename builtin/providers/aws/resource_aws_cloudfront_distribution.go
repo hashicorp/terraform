@@ -543,7 +543,10 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 	}
 
 	// Distribution needs to be in deployed state again before it can be deleted.
-	resourceAwsCloudFrontDistributionWaitUntilDeployed(d.Id(), meta)
+	err = resourceAwsCloudFrontDistributionWaitUntilDeployed(d.Id(), meta)
+	if err != nil {
+		return err
+	}
 
 	// now delete
 	params := &cloudfront.DeleteDistributionInput{
