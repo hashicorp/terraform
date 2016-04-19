@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -152,7 +155,26 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Route create config: %s", createOpts)
 
 	// Create the route
-	_, err := conn.CreateRoute(createOpts)
+	var err error
+
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, err = conn.CreateRoute(createOpts)
+
+		if err != nil {
+			ec2err, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+			if ec2err.Code() == "InvalidParameterException" {
+				log.Printf("[DEBUG] Trying to create route again: %q", ec2err.Message())
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("Error creating route: %s", err)
 	}
@@ -269,8 +291,29 @@ func resourceAwsRouteDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] Route delete opts: %s", deleteOpts)
 
-	resp, err := conn.DeleteRoute(deleteOpts)
-	log.Printf("[DEBUG] Route delete result: %s", resp)
+	var err error
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		log.Printf("[DEBUG] Trying to delete route with opts %s", deleteOpts)
+		resp, err := conn.DeleteRoute(deleteOpts)
+		log.Printf("[DEBUG] Route delete result: %s", resp)
+
+		if err == nil {
+			return nil
+		}
+
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
+			return resource.NonRetryableError(err)
+		}
+		if ec2err.Code() == "InvalidParameterException" {
+			log.Printf("[DEBUG] Trying to delete route again: %q",
+				ec2err.Message())
+			return resource.RetryableError(err)
+		}
+
+		return resource.NonRetryableError(err)
+	})
+
 	if err != nil {
 		return err
 	}
