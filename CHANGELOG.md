@@ -41,6 +41,7 @@ IMPROVEMENTS:
  * provider/aws: normalize json for `aws_cloudwatch_event_rule` [GH-6025]
  * provider/aws: Opsworks layers now support `custom_json` argument [GH-4272]
  * provider/aws: Added migration for `tier` attribute in `aws_elastic_beanstalk_environment` [GH-6167] 
+ * provier/aws: Use resource.Retry for route creation and deletion [GH-6225]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
  * provider/cloudstack: Deprecate `ipaddress` in favour of `ip_address` in all resources [GH-6010]
  * provider/cloudstack: Deprecate allowing names (instead of IDs) for parameters that reference other resources [GH-6123]
