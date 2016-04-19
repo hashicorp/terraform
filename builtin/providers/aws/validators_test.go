@@ -433,3 +433,30 @@ func TestValidateS3BucketLifecycleStorageClass(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 255),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketLifecycleRuleId(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketLifecycleRuleId(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid lifecycle rule id", v)
+		}
+	}
+}

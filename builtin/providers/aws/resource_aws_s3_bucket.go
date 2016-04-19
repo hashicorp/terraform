@@ -189,17 +189,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(string)
-								if len(value) > 255 {
-									errors = append(errors, fmt.Errorf(
-										"%q cannot exceed 255 characters", k))
-								}
-								return
-							},
+							Type:         schema.TypeString,
+							Optional:     true,
+							Computed:     true,
+							ValidateFunc: validateS3BucketLifecycleRuleId,
 						},
 						"prefix": &schema.Schema{
 							Type:     schema.TypeString,

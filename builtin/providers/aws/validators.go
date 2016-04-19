@@ -389,3 +389,12 @@ func validateS3BucketLifecycleStorageClass(v interface{}, k string) (ws []string
 
 	return
 }
+
+func validateS3BucketLifecycleRuleId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot exceed 255 characters", k))
+	}
+	return
+}
