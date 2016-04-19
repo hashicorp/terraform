@@ -565,18 +565,20 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			rule := make(map[string]interface{})
 
 			// ID
-			if *lifecycleRule.ID != "" {
+			if lifecycleRule.ID != nil && *lifecycleRule.ID != "" {
 				rule["id"] = *lifecycleRule.ID
 			}
 			// Prefix
-			if *lifecycleRule.Prefix != "" {
+			if lifecycleRule.Prefix != nil && *lifecycleRule.Prefix != "" {
 				rule["prefix"] = *lifecycleRule.Prefix
 			}
 			// Enabled
-			if *lifecycleRule.Status == s3.ExpirationStatusEnabled {
-				rule["enabled"] = true
-			} else {
-				rule["enabled"] = false
+			if lifecycleRule.Status != nil {
+				if *lifecycleRule.Status == s3.ExpirationStatusEnabled {
+					rule["enabled"] = true
+				} else {
+					rule["enabled"] = false
+				}
 			}
 
 			// AbortIncompleteMultipartUploadDays
