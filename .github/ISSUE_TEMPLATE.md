@@ -32,7 +32,7 @@ What should have happened?
 What actually happened?
 
 ### Steps to Reproduce
-Please list the steps requires to reproduce the issue, for example:
+Please list the steps required to reproduce the issue, for example:
 1. `terraform apply`
 
 ### Important Factoids
