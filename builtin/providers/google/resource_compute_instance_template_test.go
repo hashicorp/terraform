@@ -2,13 +2,13 @@ package google
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
-	"strings"
 )
 
 func TestAccComputeInstanceTemplate_basic(t *testing.T) {
