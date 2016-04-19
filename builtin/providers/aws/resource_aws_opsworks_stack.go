@@ -310,6 +310,10 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 		DefaultOs:                 aws.String(d.Get("default_os").(string)),
 		UseOpsworksSecurityGroups: aws.Bool(d.Get("use_opsworks_security_groups").(bool)),
 	}
+	req.ConfigurationManager = &opsworks.StackConfigurationManager{
+		Name:     aws.String(d.Get("configuration_manager_name").(string)),
+		Version:  aws.String(d.Get("configuration_manager_version").(string)),
+	}
 	inVpc := false
 	if vpcId, ok := d.GetOk("vpc_id"); ok {
 		req.VpcId = aws.String(vpcId.(string))
