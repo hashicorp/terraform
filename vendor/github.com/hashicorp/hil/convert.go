@@ -16,23 +16,6 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 		}, nil
 	}
 
-	var sliceVal []interface{}
-	if err := mapstructure.WeakDecode(input, &sliceVal); err == nil {
-		elements := make([]ast.Variable, len(sliceVal))
-		for i, element := range sliceVal {
-			varElement, err := InterfaceToVariable(element)
-			if err != nil {
-				return ast.Variable{}, err
-			}
-			elements[i] = varElement
-		}
-
-		return ast.Variable{
-			Type:  ast.TypeList,
-			Value: elements,
-		}, nil
-	}
-
 	var mapVal map[string]interface{}
 	if err := mapstructure.WeakDecode(input, &mapVal); err == nil {
 		elements := make(map[string]ast.Variable)
@@ -46,6 +29,23 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 
 		return ast.Variable{
 			Type:  ast.TypeMap,
+			Value: elements,
+		}, nil
+	}
+
+	var sliceVal []interface{}
+	if err := mapstructure.WeakDecode(input, &sliceVal); err == nil {
+		elements := make([]ast.Variable, len(sliceVal))
+		for i, element := range sliceVal {
+			varElement, err := InterfaceToVariable(element)
+			if err != nil {
+				return ast.Variable{}, err
+			}
+			elements[i] = varElement
+		}
+
+		return ast.Variable{
+			Type:  ast.TypeList,
 			Value: elements,
 		}, nil
 	}
