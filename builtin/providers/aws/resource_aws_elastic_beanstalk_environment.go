@@ -43,6 +43,9 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 		Update: resourceAwsElasticBeanstalkEnvironmentUpdate,
 		Delete: resourceAwsElasticBeanstalkEnvironmentDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsElasticBeanstalkEnvironmentMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
