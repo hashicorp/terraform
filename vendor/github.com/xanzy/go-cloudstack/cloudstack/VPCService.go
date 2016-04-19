@@ -295,12 +295,13 @@ type CreateVPCResponse struct {
 		Zonename          string   `json:"zonename,omitempty"`
 		Zonesnetworkspans []string `json:"zonesnetworkspans,omitempty"`
 	} `json:"network,omitempty"`
-	Networkdomain   string `json:"networkdomain,omitempty"`
-	Project         string `json:"project,omitempty"`
-	Projectid       string `json:"projectid,omitempty"`
-	Regionlevelvpc  bool   `json:"regionlevelvpc,omitempty"`
-	Restartrequired bool   `json:"restartrequired,omitempty"`
-	Service         []struct {
+	Networkdomain      string `json:"networkdomain,omitempty"`
+	Project            string `json:"project,omitempty"`
+	Projectid          string `json:"projectid,omitempty"`
+	Redundantvpcrouter bool   `json:"redundantvpcrouter,omitempty"`
+	Regionlevelvpc     bool   `json:"regionlevelvpc,omitempty"`
+	Restartrequired    bool   `json:"restartrequired,omitempty"`
+	Service            []struct {
 		Capability []struct {
 			Canchooseservicecapability bool   `json:"canchooseservicecapability,omitempty"`
 			Name                       string `json:"name,omitempty"`
@@ -779,12 +780,13 @@ type VPC struct {
 		Zonename          string   `json:"zonename,omitempty"`
 		Zonesnetworkspans []string `json:"zonesnetworkspans,omitempty"`
 	} `json:"network,omitempty"`
-	Networkdomain   string `json:"networkdomain,omitempty"`
-	Project         string `json:"project,omitempty"`
-	Projectid       string `json:"projectid,omitempty"`
-	Regionlevelvpc  bool   `json:"regionlevelvpc,omitempty"`
-	Restartrequired bool   `json:"restartrequired,omitempty"`
-	Service         []struct {
+	Networkdomain      string `json:"networkdomain,omitempty"`
+	Project            string `json:"project,omitempty"`
+	Projectid          string `json:"projectid,omitempty"`
+	Redundantvpcrouter bool   `json:"redundantvpcrouter,omitempty"`
+	Regionlevelvpc     bool   `json:"regionlevelvpc,omitempty"`
+	Restartrequired    bool   `json:"restartrequired,omitempty"`
+	Service            []struct {
 		Capability []struct {
 			Canchooseservicecapability bool   `json:"canchooseservicecapability,omitempty"`
 			Name                       string `json:"name,omitempty"`
@@ -1086,12 +1088,13 @@ type UpdateVPCResponse struct {
 		Zonename          string   `json:"zonename,omitempty"`
 		Zonesnetworkspans []string `json:"zonesnetworkspans,omitempty"`
 	} `json:"network,omitempty"`
-	Networkdomain   string `json:"networkdomain,omitempty"`
-	Project         string `json:"project,omitempty"`
-	Projectid       string `json:"projectid,omitempty"`
-	Regionlevelvpc  bool   `json:"regionlevelvpc,omitempty"`
-	Restartrequired bool   `json:"restartrequired,omitempty"`
-	Service         []struct {
+	Networkdomain      string `json:"networkdomain,omitempty"`
+	Project            string `json:"project,omitempty"`
+	Projectid          string `json:"projectid,omitempty"`
+	Redundantvpcrouter bool   `json:"redundantvpcrouter,omitempty"`
+	Regionlevelvpc     bool   `json:"regionlevelvpc,omitempty"`
+	Restartrequired    bool   `json:"restartrequired,omitempty"`
+	Service            []struct {
 		Capability []struct {
 			Canchooseservicecapability bool   `json:"canchooseservicecapability,omitempty"`
 			Name                       string `json:"name,omitempty"`
@@ -1135,10 +1138,26 @@ func (p *RestartVPCParams) toURLValues() url.Values {
 	if p.p == nil {
 		return u
 	}
+	if v, found := p.p["cleanup"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("cleanup", vv)
+	}
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
+	if v, found := p.p["makeredundant"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("makeredundant", vv)
+	}
 	return u
+}
+
+func (p *RestartVPCParams) SetCleanup(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["cleanup"] = v
+	return
 }
 
 func (p *RestartVPCParams) SetId(v string) {
@@ -1146,6 +1165,14 @@ func (p *RestartVPCParams) SetId(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["id"] = v
+	return
+}
+
+func (p *RestartVPCParams) SetMakeredundant(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["makeredundant"] = v
 	return
 }
 
@@ -1281,12 +1308,13 @@ type RestartVPCResponse struct {
 		Zonename          string   `json:"zonename,omitempty"`
 		Zonesnetworkspans []string `json:"zonesnetworkspans,omitempty"`
 	} `json:"network,omitempty"`
-	Networkdomain   string `json:"networkdomain,omitempty"`
-	Project         string `json:"project,omitempty"`
-	Projectid       string `json:"projectid,omitempty"`
-	Regionlevelvpc  bool   `json:"regionlevelvpc,omitempty"`
-	Restartrequired bool   `json:"restartrequired,omitempty"`
-	Service         []struct {
+	Networkdomain      string `json:"networkdomain,omitempty"`
+	Project            string `json:"project,omitempty"`
+	Projectid          string `json:"projectid,omitempty"`
+	Redundantvpcrouter bool   `json:"redundantvpcrouter,omitempty"`
+	Regionlevelvpc     bool   `json:"regionlevelvpc,omitempty"`
+	Restartrequired    bool   `json:"restartrequired,omitempty"`
+	Service            []struct {
 		Capability []struct {
 			Canchooseservicecapability bool   `json:"canchooseservicecapability,omitempty"`
 			Name                       string `json:"name,omitempty"`

@@ -407,7 +407,7 @@ func (s *NetworkACLService) NewUpdateNetworkACLItemParams(id string) *UpdateNetw
 	return p
 }
 
-// Updates ACL Item with specified Id
+// Updates ACL item with specified ID
 func (s *NetworkACLService) UpdateNetworkACLItem(p *UpdateNetworkACLItemParams) (*UpdateNetworkACLItemResponse, error) {
 	resp, err := s.cs.newRequest("updateNetworkACLItem", p.toURLValues())
 	if err != nil {
@@ -502,7 +502,7 @@ func (s *NetworkACLService) NewDeleteNetworkACLParams(id string) *DeleteNetworkA
 	return p
 }
 
-// Deletes a Network ACL
+// Deletes a network ACL
 func (s *NetworkACLService) DeleteNetworkACL(p *DeleteNetworkACLParams) (*DeleteNetworkACLResponse, error) {
 	resp, err := s.cs.newRequest("deleteNetworkACL", p.toURLValues())
 	if err != nil {
@@ -899,7 +899,7 @@ func (s *NetworkACLService) NewCreateNetworkACLListParams(name string, vpcid str
 	return p
 }
 
-// Creates a Network ACL for the given VPC
+// Creates a network ACL for the given VPC
 func (s *NetworkACLService) CreateNetworkACLList(p *CreateNetworkACLListParams) (*CreateNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("createNetworkACLList", p.toURLValues())
 	if err != nil {
@@ -974,7 +974,7 @@ func (s *NetworkACLService) NewDeleteNetworkACLListParams(id string) *DeleteNetw
 	return p
 }
 
-// Deletes a Network ACL
+// Deletes a network ACL
 func (s *NetworkACLService) DeleteNetworkACLList(p *DeleteNetworkACLListParams) (*DeleteNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("deleteNetworkACLList", p.toURLValues())
 	if err != nil {
@@ -1063,7 +1063,7 @@ func (s *NetworkACLService) NewReplaceNetworkACLListParams(aclid string) *Replac
 	return p
 }
 
-// Replaces ACL associated with a Network or private gateway
+// Replaces ACL associated with a network or private gateway
 func (s *NetworkACLService) ReplaceNetworkACLList(p *ReplaceNetworkACLListParams) (*ReplaceNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("replaceNetworkACLList", p.toURLValues())
 	if err != nil {
@@ -1444,7 +1444,7 @@ func (s *NetworkACLService) NewUpdateNetworkACLListParams(id string) *UpdateNetw
 	return p
 }
 
-// Updates Network ACL list
+// Updates network ACL list
 func (s *NetworkACLService) UpdateNetworkACLList(p *UpdateNetworkACLListParams) (*UpdateNetworkACLListResponse, error) {
 	resp, err := s.cs.newRequest("updateNetworkACLList", p.toURLValues())
 	if err != nil {

@@ -103,8 +103,10 @@ type StartRouterResponse struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -155,6 +157,7 @@ type StartRouterResponse struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }
@@ -238,8 +241,10 @@ type RebootRouterResponse struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -290,6 +295,7 @@ type RebootRouterResponse struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }
@@ -385,8 +391,10 @@ type StopRouterResponse struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -437,6 +445,7 @@ type StopRouterResponse struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }
@@ -520,8 +529,10 @@ type DestroyRouterResponse struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -572,6 +583,7 @@ type DestroyRouterResponse struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }
@@ -646,8 +658,10 @@ type ChangeServiceForRouterResponse struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -698,6 +712,7 @@ type ChangeServiceForRouterResponse struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }
@@ -1063,8 +1078,10 @@ type Router struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -1115,6 +1132,7 @@ type Router struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }

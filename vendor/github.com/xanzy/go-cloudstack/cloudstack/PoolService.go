@@ -514,6 +514,10 @@ func (p *UpdateStoragePoolParams) toURLValues() url.Values {
 		vv := strconv.FormatInt(v.(int64), 10)
 		u.Set("capacityiops", vv)
 	}
+	if v, found := p.p["enabled"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("enabled", vv)
+	}
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
 	}
@@ -537,6 +541,14 @@ func (p *UpdateStoragePoolParams) SetCapacityiops(v int64) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["capacityiops"] = v
+	return
+}
+
+func (p *UpdateStoragePoolParams) SetEnabled(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["enabled"] = v
 	return
 }
 

@@ -415,8 +415,10 @@ type StopInternalLoadBalancerVMResponse struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -467,6 +469,7 @@ type StopInternalLoadBalancerVMResponse struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }
@@ -550,8 +553,10 @@ type StartInternalLoadBalancerVMResponse struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -602,6 +607,7 @@ type StartInternalLoadBalancerVMResponse struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }
@@ -945,8 +951,10 @@ type InternalLoadBalancerVM struct {
 	Guestmacaddress     string `json:"guestmacaddress,omitempty"`
 	Guestnetmask        string `json:"guestnetmask,omitempty"`
 	Guestnetworkid      string `json:"guestnetworkid,omitempty"`
+	Guestnetworkname    string `json:"guestnetworkname,omitempty"`
 	Hostid              string `json:"hostid,omitempty"`
 	Hostname            string `json:"hostname,omitempty"`
+	Hypervisor          string `json:"hypervisor,omitempty"`
 	Id                  string `json:"id,omitempty"`
 	Ip6dns1             string `json:"ip6dns1,omitempty"`
 	Ip6dns2             string `json:"ip6dns2,omitempty"`
@@ -997,6 +1005,7 @@ type InternalLoadBalancerVM struct {
 	Templateid          string `json:"templateid,omitempty"`
 	Version             string `json:"version,omitempty"`
 	Vpcid               string `json:"vpcid,omitempty"`
+	Vpcname             string `json:"vpcname,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
 }

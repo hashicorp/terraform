@@ -1139,7 +1139,7 @@ func (s *ProjectService) GetProjectInvitationByID(id string) (*ProjectInvitation
 	return nil, l.Count, fmt.Errorf("There is more then one result for ProjectInvitation UUID: %s!", id)
 }
 
-// Lists projects and provides detailed information for listed projects
+// Lists project invitations and provides detailed information for listed invitations
 func (s *ProjectService) ListProjectInvitations(p *ListProjectInvitationsParams) (*ListProjectInvitationsResponse, error) {
 	resp, err := s.cs.newRequest("listProjectInvitations", p.toURLValues())
 	if err != nil {
@@ -1302,7 +1302,7 @@ func (s *ProjectService) NewDeleteProjectInvitationParams(id string) *DeleteProj
 	return p
 }
 
-// Accepts or declines project invitation
+// Deletes project invitation
 func (s *ProjectService) DeleteProjectInvitation(p *DeleteProjectInvitationParams) (*DeleteProjectInvitationResponse, error) {
 	resp, err := s.cs.newRequest("deleteProjectInvitation", p.toURLValues())
 	if err != nil {
