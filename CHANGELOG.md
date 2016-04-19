@@ -22,6 +22,7 @@ IMPROVEMENTS:
 
  * command/apply: Output will now show periodic status updates of slow resources. [GH-6163]
  * core: Variables passed between modules are now type checked [GH-6185]
+ * core: Smaller release binaries by stripping debug information [GH-6238]
  * provider/aws: Add support for Step Scaling in `aws_autoscaling_policy` [GH-4277]
  * provider/aws: Add support for `cname_prefix` to `aws_elastic_beanstalk_environment` resource [GH-5966]
  * provider/aws: Add support for trigger_configuration to `aws_codedeploy_deployment_group` [GH-5599]
