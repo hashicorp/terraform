@@ -71,8 +71,8 @@ func resourceAwsCloudFrontOriginAccessIdentityRead(d *schema.ResourceData, meta 
 	flattenOriginAccessIdentityConfig(d, resp.CloudFrontOriginAccessIdentity.CloudFrontOriginAccessIdentityConfig)
 	// Update other attributes outside of DistributionConfig
 	d.SetId(*resp.CloudFrontOriginAccessIdentity.Id)
-	d.Set("etag", *resp.ETag)
-	d.Set("s3_canonical_user_id", *resp.CloudFrontOriginAccessIdentity.S3CanonicalUserId)
+	d.Set("etag", resp.ETag)
+	d.Set("s3_canonical_user_id", resp.CloudFrontOriginAccessIdentity.S3CanonicalUserId)
 	d.Set("cloudfront_access_identity_path", fmt.Sprintf("origin-access-identity/cloudfront/%s", *resp.CloudFrontOriginAccessIdentity.Id))
 	return nil
 }
@@ -124,7 +124,7 @@ func expandOriginAccessIdentityConfig(d *schema.ResourceData) *cloudfront.Origin
 
 func flattenOriginAccessIdentityConfig(d *schema.ResourceData, originAccessIdentityConfig *cloudfront.OriginAccessIdentityConfig) {
 	if originAccessIdentityConfig.Comment != nil {
-		d.Set("comment", *originAccessIdentityConfig.Comment)
+		d.Set("comment", originAccessIdentityConfig.Comment)
 	}
-	d.Set("caller_reference", *originAccessIdentityConfig.CallerReference)
+	d.Set("caller_reference", originAccessIdentityConfig.CallerReference)
 }

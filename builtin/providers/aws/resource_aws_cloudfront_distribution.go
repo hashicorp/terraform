@@ -492,15 +492,21 @@ func resourceAwsCloudFrontDistributionRead(d *schema.ResourceData, meta interfac
 	}
 
 	// Update attributes from DistributionConfig
-	flattenDistributionConfig(d, resp.Distribution.DistributionConfig)
+	err = flattenDistributionConfig(d, resp.Distribution.DistributionConfig)
+	if err != nil {
+		return err
+	}
 	// Update other attributes outside of DistributionConfig
 	d.SetId(*resp.Distribution.Id)
-	d.Set("active_trusted_signers", flattenActiveTrustedSigners(resp.Distribution.ActiveTrustedSigners))
-	d.Set("status", *resp.Distribution.Status)
-	d.Set("domain_name", *resp.Distribution.DomainName)
+	err = d.Set("active_trusted_signers", flattenActiveTrustedSigners(resp.Distribution.ActiveTrustedSigners))
+	if err != nil {
+		return err
+	}
+	d.Set("status", resp.Distribution.Status)
+	d.Set("domain_name", resp.Distribution.DomainName)
 	d.Set("last_modified_time", aws.String(resp.Distribution.LastModifiedTime.String()))
-	d.Set("in_progress_validation_batches", *resp.Distribution.InProgressInvalidationBatches)
-	d.Set("etag", *resp.ETag)
+	d.Set("in_progress_validation_batches", resp.Distribution.InProgressInvalidationBatches)
+	d.Set("etag", resp.ETag)
 	return nil
 }
 
@@ -537,7 +543,10 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 	}
 
 	// Distribution needs to be in deployed state again before it can be deleted.
-	resourceAwsCloudFrontDistributionWaitUntilDeployed(d.Id(), meta)
+	err = resourceAwsCloudFrontDistributionWaitUntilDeployed(d.Id(), meta)
+	if err != nil {
+		return err
+	}
 
 	// now delete
 	params := &cloudfront.DeleteDistributionInput{

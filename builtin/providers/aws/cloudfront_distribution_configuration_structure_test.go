@@ -193,23 +193,31 @@ func customErrorResponsesConfFirst() map[string]interface{} {
 
 func viewerCertificateConfSetCloudFrontDefault() map[string]interface{} {
 	return map[string]interface{}{
+		"acm_certificate_arn":            "",
 		"cloudfront_default_certificate": true,
+		"iam_certificate_id":             "",
+		"minimum_protocol_version":       "",
+		"ssl_support_method":             "",
 	}
 }
 
 func viewerCertificateConfSetIAM() map[string]interface{} {
 	return map[string]interface{}{
-		"iam_certificate_id":       "iamcert-01234567",
-		"ssl_support_method":       "vip",
-		"minimum_protocol_version": "TLSv1",
+		"acm_certificate_arn":            "",
+		"cloudfront_default_certificate": false,
+		"iam_certificate_id":             "iamcert-01234567",
+		"ssl_support_method":             "vip",
+		"minimum_protocol_version":       "TLSv1",
 	}
 }
 
 func viewerCertificateConfSetACM() map[string]interface{} {
 	return map[string]interface{}{
-		"acm_certificate_arn":      "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012",
-		"ssl_support_method":       "sni-only",
-		"minimum_protocol_version": "TLSv1",
+		"acm_certificate_arn":            "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012",
+		"cloudfront_default_certificate": false,
+		"iam_certificate_id":             "",
+		"ssl_support_method":             "sni-only",
+		"minimum_protocol_version":       "TLSv1",
 	}
 }
 
@@ -985,5 +993,35 @@ func TestCloudFrontStructure_falttenViewerCertificate_acm_certificate_arn(t *tes
 
 	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out to be %v, got %v, diff: %v", in, out, diff)
+	}
+}
+
+func TestCloudFrontStructure_viewerCertificateHash_IAM(t *testing.T) {
+	in := viewerCertificateConfSetIAM()
+	out := viewerCertificateHash(in)
+	expected := 1157261784
+
+	if expected != out {
+		t.Fatalf("Expected %v, got %v", expected, out)
+	}
+}
+
+func TestCloudFrontStructure_viewerCertificateHash_ACM(t *testing.T) {
+	in := viewerCertificateConfSetACM()
+	out := viewerCertificateHash(in)
+	expected := 2883600425
+
+	if expected != out {
+		t.Fatalf("Expected %v, got %v", expected, out)
+	}
+}
+
+func TestCloudFrontStructure_viewerCertificateHash_default(t *testing.T) {
+	in := viewerCertificateConfSetCloudFrontDefault()
+	out := viewerCertificateHash(in)
+	expected := 69840937
+
+	if expected != out {
+		t.Fatalf("Expected %v, got %v", expected, out)
 	}
 }

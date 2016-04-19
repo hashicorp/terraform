@@ -82,42 +82,74 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 // aws_cloudfront_distribution resource.
 //
 // Used by the aws_cloudfront_distribution Read function.
-func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloudfront.DistributionConfig) {
-	d.Set("origins", flattenOrigins(distributionConfig.Origins))
-	d.Set("enabled", *distributionConfig.Enabled)
-	d.Set("default_cache_behavior", flattenDefaultCacheBehavior(distributionConfig.DefaultCacheBehavior))
-	d.Set("viewer_certificate", flattenViewerCertificate(distributionConfig.ViewerCertificate))
-	d.Set("price_class", *distributionConfig.PriceClass)
+func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloudfront.DistributionConfig) error {
+	var err error
+
+	d.Set("enabled", distributionConfig.Enabled)
+	d.Set("price_class", distributionConfig.PriceClass)
+
+	err = d.Set("default_cache_behavior", flattenDefaultCacheBehavior(distributionConfig.DefaultCacheBehavior))
+	if err != nil {
+		return err
+	}
+	err = d.Set("viewer_certificate", flattenViewerCertificate(distributionConfig.ViewerCertificate))
+	if err != nil {
+		return err
+	}
 
 	if distributionConfig.CallerReference != nil {
-		d.Set("caller_reference", *distributionConfig.CallerReference)
+		d.Set("caller_reference", distributionConfig.CallerReference)
 	}
 	if distributionConfig.Comment != nil {
 		if *distributionConfig.Comment != "" {
-			d.Set("comment", *distributionConfig.Comment)
+			d.Set("comment", distributionConfig.Comment)
 		}
 	}
 	if distributionConfig.DefaultRootObject != nil {
-		d.Set("default_root_object", *distributionConfig.DefaultRootObject)
-	}
-	if distributionConfig.CustomErrorResponses != nil {
-		d.Set("custom_error_response", flattenCustomErrorResponses(distributionConfig.CustomErrorResponses))
-	}
-	if distributionConfig.CacheBehaviors != nil {
-		d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
-	}
-	if distributionConfig.Logging != nil && *distributionConfig.Logging.Enabled {
-		d.Set("logging_config", flattenLoggingConfig(distributionConfig.Logging))
-	}
-	if distributionConfig.Aliases != nil {
-		d.Set("aliases", flattenAliases(distributionConfig.Aliases))
-	}
-	if distributionConfig.Restrictions != nil {
-		d.Set("restrictions", flattenRestrictions(distributionConfig.Restrictions))
+		d.Set("default_root_object", distributionConfig.DefaultRootObject)
 	}
 	if distributionConfig.WebACLId != nil {
-		d.Set("web_acl_id", *distributionConfig.WebACLId)
+		d.Set("web_acl_id", distributionConfig.WebACLId)
 	}
+
+	if distributionConfig.CustomErrorResponses != nil {
+		err = d.Set("custom_error_response", flattenCustomErrorResponses(distributionConfig.CustomErrorResponses))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.CacheBehaviors != nil {
+		err = d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.Logging != nil && *distributionConfig.Logging.Enabled {
+		err = d.Set("logging_config", flattenLoggingConfig(distributionConfig.Logging))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.Aliases != nil {
+		err = d.Set("aliases", flattenAliases(distributionConfig.Aliases))
+		if err != nil {
+			return err
+		}
+	}
+	if distributionConfig.Restrictions != nil {
+		err = d.Set("restrictions", flattenRestrictions(distributionConfig.Restrictions))
+		if err != nil {
+			return err
+		}
+	}
+	if *distributionConfig.Origins.Quantity > 0 {
+		err = d.Set("origin", flattenOrigins(distributionConfig.Origins))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func expandDefaultCacheBehavior(m map[string]interface{}) *cloudfront.DefaultCacheBehavior {
@@ -872,10 +904,12 @@ func flattenViewerCertificate(vc *cloudfront.ViewerCertificate) *schema.Set {
 	if vc.IAMCertificateId != nil {
 		m["iam_certificate_id"] = *vc.IAMCertificateId
 		m["ssl_support_method"] = *vc.SSLSupportMethod
-	} else if vc.ACMCertificateArn != nil {
+	}
+	if vc.ACMCertificateArn != nil {
 		m["acm_certificate_arn"] = *vc.ACMCertificateArn
 		m["ssl_support_method"] = *vc.SSLSupportMethod
-	} else {
+	}
+	if vc.CloudFrontDefaultCertificate != nil {
 		m["cloudfront_default_certificate"] = *vc.CloudFrontDefaultCertificate
 	}
 	if vc.MinimumProtocolVersion != nil {
@@ -889,16 +923,16 @@ func flattenViewerCertificate(vc *cloudfront.ViewerCertificate) *schema.Set {
 func viewerCertificateHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	if v, ok := m["iam_certificate_id"]; ok {
+	if v, ok := m["iam_certificate_id"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 		buf.WriteString(fmt.Sprintf("%s-", m["ssl_support_method"].(string)))
-	} else if v, ok := m["acm_certificate_arn"]; ok {
+	} else if v, ok := m["acm_certificate_arn"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 		buf.WriteString(fmt.Sprintf("%s-", m["ssl_support_method"].(string)))
 	} else {
 		buf.WriteString(fmt.Sprintf("%t-", m["cloudfront_default_certificate"].(bool)))
 	}
-	if v, ok := m["minimum_protocol_version"]; ok {
+	if v, ok := m["minimum_protocol_version"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 	return hashcode.String(buf.String())
