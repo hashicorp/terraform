@@ -63,6 +63,11 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Optional: true,
 				Default:  128,
 			},
+			"publish": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			"role": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -106,6 +111,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Computed: true,
 			},
 			"last_modified": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"version": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -159,6 +168,7 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 		FunctionName: aws.String(functionName),
 		Handler:      aws.String(d.Get("handler").(string)),
 		MemorySize:   aws.Int64(int64(d.Get("memory_size").(int))),
+		Publish:      aws.Bool(d.Get("publish").(bool)),
 		Role:         aws.String(iamRole),
 		Runtime:      aws.String(d.Get("runtime").(string)),
 		Timeout:      aws.Int64(int64(d.Get("timeout").(int))),
@@ -190,7 +200,7 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
 	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
-		_, err := conn.CreateFunction(params)
+		createFunctionOutput, err := conn.CreateFunction(params)
 		if err != nil {
 			log.Printf("[ERROR] Received %q, retrying CreateFunction", err)
 			if awserr, ok := err.(awserr.Error); ok {
@@ -202,6 +212,7 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 			log.Printf("[DEBUG] Error creating Lambda Function: %s", err)
 			return resource.NonRetryableError(err)
 		}
+		d.Set("version", createFunctionOutput.Version)
 		return nil
 	})
 	if err != nil {
@@ -222,6 +233,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	params := &lambda.GetFunctionInput{
 		FunctionName: aws.String(d.Get("function_name").(string)),
+		Qualifier:    aws.String(d.Get("version").(string)),
 	}
 
 	getFunctionOutput, err := conn.GetFunction(params)
@@ -245,6 +257,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("handler", function.Handler)
 	d.Set("memory_size", function.MemorySize)
 	d.Set("last_modified", function.LastModified)
+	d.Set("version", function.Version)
 	d.Set("role", function.Role)
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
@@ -284,40 +297,13 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 
 	d.Partial(true)
 
-	codeReq := &lambda.UpdateFunctionCodeInput{
-		FunctionName: aws.String(d.Id()),
-	}
-
-	codeUpdate := false
-	if v, ok := d.GetOk("filename"); ok && d.HasChange("source_code_hash") {
-		file, err := loadFileContent(v.(string))
-		if err != nil {
-			return fmt.Errorf("Unable to load %q: %s", v.(string), err)
-		}
-		codeReq.ZipFile = file
-		codeUpdate = true
-	}
-	if d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
-		codeReq.S3Bucket = aws.String(d.Get("s3_bucket").(string))
-		codeReq.S3Key = aws.String(d.Get("s3_key").(string))
-		codeReq.S3ObjectVersion = aws.String(d.Get("s3_object_version").(string))
-		codeUpdate = true
-	}
-
-	log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
-	if codeUpdate {
-		_, err := conn.UpdateFunctionCode(codeReq)
-		if err != nil {
-			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)
-		}
-
-		d.SetPartial("filename")
-		d.SetPartial("source_code_hash")
-		d.SetPartial("s3_bucket")
-		d.SetPartial("s3_key")
-		d.SetPartial("s3_object_version")
-	}
-
+	// UpdateFunctionConfiguration only updates the $LATEST version of the function
+	// So we first update the configuration info, and then update/publish the code.
+	// The other way (update/publish code and then update configuration)
+	// wouldn't apply the config changes to the published version.
+	// NOTE: When using "publish" = true, updating configuration without changes
+	// to the code will change config of the $LATEST version, but nothing will be published.
+	// These changes will take effect only when new code is published.
 	configReq := &lambda.UpdateFunctionConfigurationInput{
 		FunctionName: aws.String(d.Id()),
 	}
@@ -356,6 +342,45 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("role")
 		d.SetPartial("timeout")
 	}
+
+	codeReq := &lambda.UpdateFunctionCodeInput{
+		FunctionName: aws.String(d.Id()),
+		Publish:      aws.Bool(d.Get("publish").(bool)),
+	}
+
+	codeUpdate := false
+	if v, ok := d.GetOk("filename"); ok && d.HasChange("source_code_hash") {
+		file, err := loadFileContent(v.(string))
+		if err != nil {
+			return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+		}
+		codeReq.ZipFile = file
+		codeUpdate = true
+	}
+	if d.HasChange("s3_bucket") || d.HasChange("s3_key") || d.HasChange("s3_object_version") {
+		codeReq.S3Bucket = aws.String(d.Get("s3_bucket").(string))
+		codeReq.S3Key = aws.String(d.Get("s3_key").(string))
+		codeReq.S3ObjectVersion = aws.String(d.Get("s3_object_version").(string))
+		codeUpdate = true
+	}
+
+	log.Printf("[DEBUG] Send Update Lambda Function Code request: %#v", codeReq)
+	if codeUpdate {
+		updateFunctionCodeOutput, err := conn.UpdateFunctionCode(codeReq)
+		if err != nil {
+			return fmt.Errorf("Error modifying Lambda Function Code %s: %s", d.Id(), err)
+		}
+
+		d.Set("version", updateFunctionCodeOutput.Version)
+
+		d.SetPartial("version")
+		d.SetPartial("filename")
+		d.SetPartial("source_code_hash")
+		d.SetPartial("s3_bucket")
+		d.SetPartial("s3_key")
+		d.SetPartial("s3_object_version")
+	}
+
 	d.Partial(false)
 
 	return resourceAwsLambdaFunctionRead(d, meta)
