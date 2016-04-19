@@ -5,7 +5,7 @@ default: test vet
 
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
-	@sh -c "'$(CURDIR)/scripts/build.sh'"
+	@TF_RELEASE=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing Terraform locally. These are put
 # into ./bin/ as well as $GOPATH/bin
