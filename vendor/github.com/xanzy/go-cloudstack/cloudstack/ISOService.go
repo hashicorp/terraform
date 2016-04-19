@@ -112,6 +112,8 @@ type AttachIsoResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -248,6 +250,8 @@ type AttachIsoResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -268,6 +272,8 @@ type AttachIsoResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -349,6 +355,8 @@ type DetachIsoResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -485,6 +493,8 @@ type DetachIsoResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -505,6 +515,8 @@ type DetachIsoResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -1214,6 +1226,10 @@ func (p *UpdateIsoParams) toURLValues() url.Values {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("passwordenabled", vv)
 	}
+	if v, found := p.p["requireshvm"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("requireshvm", vv)
+	}
 	if v, found := p.p["sortkey"]; found {
 		vv := strconv.Itoa(v.(int))
 		u.Set("sortkey", vv)
@@ -1298,6 +1314,14 @@ func (p *UpdateIsoParams) SetPasswordenabled(v bool) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["passwordenabled"] = v
+	return
+}
+
+func (p *UpdateIsoParams) SetRequireshvm(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["requireshvm"] = v
 	return
 }
 
@@ -1515,7 +1539,7 @@ func (s *ISOService) NewCopyIsoParams(destzoneid string, id string) *CopyIsoPara
 	return p
 }
 
-// Copies an iso from one zone to another.
+// Copies an ISO from one zone to another.
 func (s *ISOService) CopyIso(p *CopyIsoParams) (*CopyIsoResponse, error) {
 	resp, err := s.cs.newRequest("copyIso", p.toURLValues())
 	if err != nil {
@@ -1703,7 +1727,7 @@ func (s *ISOService) NewUpdateIsoPermissionsParams(id string) *UpdateIsoPermissi
 	return p
 }
 
-// Updates iso permissions
+// Updates ISO permissions
 func (s *ISOService) UpdateIsoPermissions(p *UpdateIsoPermissionsParams) (*UpdateIsoPermissionsResponse, error) {
 	resp, err := s.cs.newRequest("updateIsoPermissions", p.toURLValues())
 	if err != nil {

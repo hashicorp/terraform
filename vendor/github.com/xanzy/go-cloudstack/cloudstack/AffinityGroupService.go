@@ -45,6 +45,9 @@ func (p *CreateAffinityGroupParams) toURLValues() url.Values {
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
 	}
+	if v, found := p.p["projectid"]; found {
+		u.Set("projectid", v.(string))
+	}
 	if v, found := p.p["type"]; found {
 		u.Set("type", v.(string))
 	}
@@ -80,6 +83,14 @@ func (p *CreateAffinityGroupParams) SetName(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["name"] = v
+	return
+}
+
+func (p *CreateAffinityGroupParams) SetProjectid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["projectid"] = v
 	return
 }
 
@@ -143,6 +154,8 @@ type CreateAffinityGroupResponse struct {
 	Domainid          string   `json:"domainid,omitempty"`
 	Id                string   `json:"id,omitempty"`
 	Name              string   `json:"name,omitempty"`
+	Project           string   `json:"project,omitempty"`
+	Projectid         string   `json:"projectid,omitempty"`
 	Type              string   `json:"type,omitempty"`
 	VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 }
@@ -167,6 +180,9 @@ func (p *DeleteAffinityGroupParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
+	}
+	if v, found := p.p["projectid"]; found {
+		u.Set("projectid", v.(string))
 	}
 	return u
 }
@@ -200,6 +216,14 @@ func (p *DeleteAffinityGroupParams) SetName(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["name"] = v
+	return
+}
+
+func (p *DeleteAffinityGroupParams) SetProjectid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["projectid"] = v
 	return
 }
 
@@ -286,6 +310,9 @@ func (p *ListAffinityGroupsParams) toURLValues() url.Values {
 		vv := strconv.Itoa(v.(int))
 		u.Set("pagesize", vv)
 	}
+	if v, found := p.p["projectid"]; found {
+		u.Set("projectid", v.(string))
+	}
 	if v, found := p.p["type"]; found {
 		u.Set("type", v.(string))
 	}
@@ -367,6 +394,14 @@ func (p *ListAffinityGroupsParams) SetPagesize(v int) {
 	return
 }
 
+func (p *ListAffinityGroupsParams) SetProjectid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["projectid"] = v
+	return
+}
+
 func (p *ListAffinityGroupsParams) SetType(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -401,6 +436,16 @@ func (s *AffinityGroupService) GetAffinityGroupID(name string) (string, error) {
 	l, err := s.ListAffinityGroups(p)
 	if err != nil {
 		return "", err
+	}
+
+	if l.Count == 0 {
+		// If no matches, search all projects
+		p.p["projectid"] = "-1"
+
+		l, err = s.ListAffinityGroups(p)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	if l.Count == 0 {
@@ -453,6 +498,21 @@ func (s *AffinityGroupService) GetAffinityGroupByID(id string) (*AffinityGroup, 
 	}
 
 	if l.Count == 0 {
+		// If no matches, search all projects
+		p.p["projectid"] = "-1"
+
+		l, err = s.ListAffinityGroups(p)
+		if err != nil {
+			if strings.Contains(err.Error(), fmt.Sprintf(
+				"Invalid parameter id value=%s due to incorrect long value format, "+
+					"or entity does not exist", id)) {
+				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
+			}
+			return nil, -1, err
+		}
+	}
+
+	if l.Count == 0 {
 		return nil, l.Count, fmt.Errorf("No match found for %s: %+v", id, l)
 	}
 
@@ -488,6 +548,8 @@ type AffinityGroup struct {
 	Domainid          string   `json:"domainid,omitempty"`
 	Id                string   `json:"id,omitempty"`
 	Name              string   `json:"name,omitempty"`
+	Project           string   `json:"project,omitempty"`
+	Projectid         string   `json:"projectid,omitempty"`
 	Type              string   `json:"type,omitempty"`
 	VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 }
@@ -592,6 +654,8 @@ type UpdateVMAffinityGroupResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -728,6 +792,8 @@ type UpdateVMAffinityGroupResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -748,6 +814,8 @@ type UpdateVMAffinityGroupResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`

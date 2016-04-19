@@ -39,6 +39,9 @@ func (p *CreateSnapshotParams) toURLValues() url.Values {
 	if v, found := p.p["domainid"]; found {
 		u.Set("domainid", v.(string))
 	}
+	if v, found := p.p["name"]; found {
+		u.Set("name", v.(string))
+	}
 	if v, found := p.p["policyid"]; found {
 		u.Set("policyid", v.(string))
 	}
@@ -65,6 +68,14 @@ func (p *CreateSnapshotParams) SetDomainid(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["domainid"] = v
+	return
+}
+
+func (p *CreateSnapshotParams) SetName(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["name"] = v
 	return
 }
 
@@ -144,6 +155,7 @@ type CreateSnapshotResponse struct {
 	Id           string `json:"id,omitempty"`
 	Intervaltype string `json:"intervaltype,omitempty"`
 	Name         string `json:"name,omitempty"`
+	Physicalsize int64  `json:"physicalsize,omitempty"`
 	Project      string `json:"project,omitempty"`
 	Projectid    string `json:"projectid,omitempty"`
 	Revertable   bool   `json:"revertable,omitempty"`
@@ -484,6 +496,7 @@ type Snapshot struct {
 	Id           string `json:"id,omitempty"`
 	Intervaltype string `json:"intervaltype,omitempty"`
 	Name         string `json:"name,omitempty"`
+	Physicalsize int64  `json:"physicalsize,omitempty"`
 	Project      string `json:"project,omitempty"`
 	Projectid    string `json:"projectid,omitempty"`
 	Revertable   bool   `json:"revertable,omitempty"`
@@ -1072,6 +1085,7 @@ type RevertSnapshotResponse struct {
 	Id           string `json:"id,omitempty"`
 	Intervaltype string `json:"intervaltype,omitempty"`
 	Name         string `json:"name,omitempty"`
+	Physicalsize int64  `json:"physicalsize,omitempty"`
 	Project      string `json:"project,omitempty"`
 	Projectid    string `json:"projectid,omitempty"`
 	Revertable   bool   `json:"revertable,omitempty"`
@@ -1622,6 +1636,8 @@ type RevertToVMSnapshotResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -1758,6 +1774,8 @@ type RevertToVMSnapshotResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -1778,6 +1796,8 @@ type RevertToVMSnapshotResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`

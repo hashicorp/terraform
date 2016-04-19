@@ -59,9 +59,9 @@ type CloudStackClient struct {
 	AffinityGroup    *AffinityGroupService
 	Alert            *AlertService
 	Asyncjob         *AsyncjobService
+	Authentication   *AuthenticationService
 	AutoScale        *AutoScaleService
 	Baremetal        *BaremetalService
-	BigSwitchVNS     *BigSwitchVNSService
 	Certificate      *CertificateService
 	CloudIdentifier  *CloudIdentifierService
 	Cluster          *ClusterService
@@ -91,11 +91,11 @@ type CloudStackClient struct {
 	Pool             *PoolService
 	PortableIP       *PortableIPService
 	Project          *ProjectService
+	Quota            *QuotaService
 	Region           *RegionService
 	Resourcemetadata *ResourcemetadataService
 	Resourcetags     *ResourcetagsService
 	Router           *RouterService
-	S3               *S3Service
 	SSH              *SSHService
 	SecurityGroup    *SecurityGroupService
 	ServiceOffering  *ServiceOfferingService
@@ -140,9 +140,9 @@ func newClient(apiurl string, apikey string, secret string, async bool, verifyss
 	cs.AffinityGroup = NewAffinityGroupService(cs)
 	cs.Alert = NewAlertService(cs)
 	cs.Asyncjob = NewAsyncjobService(cs)
+	cs.Authentication = NewAuthenticationService(cs)
 	cs.AutoScale = NewAutoScaleService(cs)
 	cs.Baremetal = NewBaremetalService(cs)
-	cs.BigSwitchVNS = NewBigSwitchVNSService(cs)
 	cs.Certificate = NewCertificateService(cs)
 	cs.CloudIdentifier = NewCloudIdentifierService(cs)
 	cs.Cluster = NewClusterService(cs)
@@ -172,11 +172,11 @@ func newClient(apiurl string, apikey string, secret string, async bool, verifyss
 	cs.Pool = NewPoolService(cs)
 	cs.PortableIP = NewPortableIPService(cs)
 	cs.Project = NewProjectService(cs)
+	cs.Quota = NewQuotaService(cs)
 	cs.Region = NewRegionService(cs)
 	cs.Resourcemetadata = NewResourcemetadataService(cs)
 	cs.Resourcetags = NewResourcetagsService(cs)
 	cs.Router = NewRouterService(cs)
-	cs.S3 = NewS3Service(cs)
 	cs.SSH = NewSSHService(cs)
 	cs.SecurityGroup = NewSecurityGroupService(cs)
 	cs.ServiceOffering = NewServiceOfferingService(cs)
@@ -417,6 +417,14 @@ func NewAsyncjobService(cs *CloudStackClient) *AsyncjobService {
 	return &AsyncjobService{cs: cs}
 }
 
+type AuthenticationService struct {
+	cs *CloudStackClient
+}
+
+func NewAuthenticationService(cs *CloudStackClient) *AuthenticationService {
+	return &AuthenticationService{cs: cs}
+}
+
 type AutoScaleService struct {
 	cs *CloudStackClient
 }
@@ -431,14 +439,6 @@ type BaremetalService struct {
 
 func NewBaremetalService(cs *CloudStackClient) *BaremetalService {
 	return &BaremetalService{cs: cs}
-}
-
-type BigSwitchVNSService struct {
-	cs *CloudStackClient
-}
-
-func NewBigSwitchVNSService(cs *CloudStackClient) *BigSwitchVNSService {
-	return &BigSwitchVNSService{cs: cs}
 }
 
 type CertificateService struct {
@@ -673,6 +673,14 @@ func NewProjectService(cs *CloudStackClient) *ProjectService {
 	return &ProjectService{cs: cs}
 }
 
+type QuotaService struct {
+	cs *CloudStackClient
+}
+
+func NewQuotaService(cs *CloudStackClient) *QuotaService {
+	return &QuotaService{cs: cs}
+}
+
 type RegionService struct {
 	cs *CloudStackClient
 }
@@ -703,14 +711,6 @@ type RouterService struct {
 
 func NewRouterService(cs *CloudStackClient) *RouterService {
 	return &RouterService{cs: cs}
-}
-
-type S3Service struct {
-	cs *CloudStackClient
-}
-
-func NewS3Service(cs *CloudStackClient) *S3Service {
-	return &S3Service{cs: cs}
 }
 
 type SSHService struct {

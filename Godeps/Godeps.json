@@ -1265,8 +1265,8 @@
 		},
 		{
 			"ImportPath": "github.com/xanzy/go-cloudstack/cloudstack",
-			"Comment": "v1.2.0-61-g252eb1b",
-			"Rev": "252eb1b665d77aa31dedd435fab0a7da57b2d8c1"
+			"Comment": "2.0.0",
+			"Rev": "6e28220a0503ff25e2c1480791e23d12872140ac"
 		},
 		{
 			"ImportPath": "github.com/xanzy/ssh-agent",

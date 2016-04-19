@@ -1026,6 +1026,10 @@ func (p *CreateVpnCustomerGatewayParams) toURLValues() url.Values {
 	if v, found := p.p["esppolicy"]; found {
 		u.Set("esppolicy", v.(string))
 	}
+	if v, found := p.p["forceencap"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("forceencap", vv)
+	}
 	if v, found := p.p["gateway"]; found {
 		u.Set("gateway", v.(string))
 	}
@@ -1041,6 +1045,9 @@ func (p *CreateVpnCustomerGatewayParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
+	}
+	if v, found := p.p["projectid"]; found {
+		u.Set("projectid", v.(string))
 	}
 	return u
 }
@@ -1093,6 +1100,14 @@ func (p *CreateVpnCustomerGatewayParams) SetEsppolicy(v string) {
 	return
 }
 
+func (p *CreateVpnCustomerGatewayParams) SetForceencap(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["forceencap"] = v
+	return
+}
+
 func (p *CreateVpnCustomerGatewayParams) SetGateway(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -1130,6 +1145,14 @@ func (p *CreateVpnCustomerGatewayParams) SetName(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["name"] = v
+	return
+}
+
+func (p *CreateVpnCustomerGatewayParams) SetProjectid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["projectid"] = v
 	return
 }
 
@@ -1189,6 +1212,7 @@ type CreateVpnCustomerGatewayResponse struct {
 	Dpd         bool   `json:"dpd,omitempty"`
 	Esplifetime int64  `json:"esplifetime,omitempty"`
 	Esppolicy   string `json:"esppolicy,omitempty"`
+	Forceencap  bool   `json:"forceencap,omitempty"`
 	Gateway     string `json:"gateway,omitempty"`
 	Id          string `json:"id,omitempty"`
 	Ikelifetime int64  `json:"ikelifetime,omitempty"`
@@ -1405,6 +1429,7 @@ type CreateVpnConnectionResponse struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`
@@ -1651,6 +1676,10 @@ func (p *UpdateVpnCustomerGatewayParams) toURLValues() url.Values {
 	if v, found := p.p["esppolicy"]; found {
 		u.Set("esppolicy", v.(string))
 	}
+	if v, found := p.p["forceencap"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("forceencap", vv)
+	}
 	if v, found := p.p["gateway"]; found {
 		u.Set("gateway", v.(string))
 	}
@@ -1718,6 +1747,14 @@ func (p *UpdateVpnCustomerGatewayParams) SetEsppolicy(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["esppolicy"] = v
+	return
+}
+
+func (p *UpdateVpnCustomerGatewayParams) SetForceencap(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["forceencap"] = v
 	return
 }
 
@@ -1826,6 +1863,7 @@ type UpdateVpnCustomerGatewayResponse struct {
 	Dpd         bool   `json:"dpd,omitempty"`
 	Esplifetime int64  `json:"esplifetime,omitempty"`
 	Esppolicy   string `json:"esppolicy,omitempty"`
+	Forceencap  bool   `json:"forceencap,omitempty"`
 	Gateway     string `json:"gateway,omitempty"`
 	Id          string `json:"id,omitempty"`
 	Ikelifetime int64  `json:"ikelifetime,omitempty"`
@@ -1936,6 +1974,7 @@ type ResetVpnConnectionResponse struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`
@@ -2198,6 +2237,7 @@ type VpnCustomerGateway struct {
 	Dpd         bool   `json:"dpd,omitempty"`
 	Esplifetime int64  `json:"esplifetime,omitempty"`
 	Esppolicy   string `json:"esppolicy,omitempty"`
+	Forceencap  bool   `json:"forceencap,omitempty"`
 	Gateway     string `json:"gateway,omitempty"`
 	Id          string `json:"id,omitempty"`
 	Ikelifetime int64  `json:"ikelifetime,omitempty"`
@@ -2646,6 +2686,7 @@ type VpnConnection struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`
@@ -2761,6 +2802,7 @@ type UpdateVpnConnectionResponse struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`
