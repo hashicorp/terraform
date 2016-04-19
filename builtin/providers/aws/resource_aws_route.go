@@ -155,11 +155,10 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Route create config: %s", createOpts)
 
 	// Create the route
-	var out *ec2.CreateRouteOutput
 	var err error
 
 	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
-		out, err = conn.CreateRoute(createOpts)
+		_, err = conn.CreateRoute(createOpts)
 
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
