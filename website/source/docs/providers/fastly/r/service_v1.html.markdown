@@ -64,6 +64,12 @@ resource "fastly_service_v1" "demo" {
     name        = "remove x-amz-request-id"
   }
 
+  gzip {
+    name          = "file extensions and content types"
+    extensions    = ["css", "js"]
+    content_types = ["text/html", "text/css"]
+  }
+
   default_host = "${aws_s3_bucket.website.name}.s3-website-us-west-2.amazonaws.com"
 
   force_destroy = true
@@ -94,6 +100,8 @@ The following arguments are supported:
 Service. Defined below.
 * `backend` - (Required) A set of Backends to service requests from your Domains.
 Defined below.
+* `gzip` - (Required) A set of gzip rules to control automatic gzipping of
+content. Defined below.
 * `header` - (Optional) A set of Headers to manipulate for each request. Defined
 below.
 * `default_host` - (Optional) The default hostname
@@ -125,6 +133,15 @@ Default `200`
 * `ssl_check_cert` - (Optional) Be strict on checking SSL certs. Default `true`
 * `weight` - (Optional) How long to wait for the first bytes in milliseconds.
 Default `100`
+
+The `gzip` block supports:
+
+* `name` - (Required) A unique name
+* `content_types` - (Optional) content-type for each type of content you wish to 
+have dynamically gzipped. Ex: `["text/html", "text/css"]`
+* `extensions` - (Optional) File extensions for each file type to dynamically 
+gzip. Ex: `["css", "js"]`
+
 
 The `Header` block supports adding, removing, or modifying Request and Response
 headers. See Fastly's documentation on 
