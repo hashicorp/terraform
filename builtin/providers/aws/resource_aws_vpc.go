@@ -140,6 +140,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	vpcid := d.Id()
 	d.Set("cidr_block", vpc.CidrBlock)
 	d.Set("dhcp_options_id", vpc.DhcpOptionsId)
+	d.Set("instance_tenancy", vpc.InstanceTenancy)
 
 	// Tags
 	d.Set("tags", tagsToMap(vpc.Tags))
