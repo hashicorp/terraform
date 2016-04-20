@@ -156,7 +156,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_support", *resp.EnableDnsSupport)
+	d.Set("enable_dns_support", *resp.EnableDnsSupport.Value)
 	attribute = "enableDnsHostnames"
 	DescribeAttrOpts = &ec2.DescribeVpcAttributeInput{
 		Attribute: &attribute,
@@ -166,7 +166,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames)
+	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames.Value)
 
 	DescribeClassiclinkOpts := &ec2.DescribeVpcClassicLinkInput{
 		VpcIds: []*string{&vpcid},
