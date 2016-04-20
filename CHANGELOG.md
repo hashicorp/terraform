@@ -92,6 +92,7 @@ BUG FIXES:
  * provider/openstack: Fix Access Address Detection [GH-6181]
  * provider/openstack: Fix admin_state_up on openstack_lb_member_v1 [GH-6267]
  * provider/triton: Firewall status on `triton_machine` resources is reflected correctly [GH-6119]
+ * provider/triton: Fix time out when applying updates to Triton machine metadata [GH-6149]
  * provider/vsphere: Add error handling to `vsphere_folder` [GH-6095]
 
 ## 0.6.14 (March 21, 2016)
