@@ -7,7 +7,12 @@ package date
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"time"
+
+	"github.com/Azure/go-autorest/autorest"
 )
 
 const (
@@ -27,6 +32,28 @@ func ParseDate(date string) (d Date, err error) {
 	d = Date{}
 	d.Time, err = time.Parse(rfc3339FullDate, date)
 	return d, err
+}
+
+func readDate(r io.Reader) (Date, error) {
+	b, err := ioutil.ReadAll(r)
+	if err == nil {
+		return ParseDate(string(b))
+	}
+	return Date{}, err
+}
+
+// ByUnmarshallingDate returns a RespondDecorator that decodes the http.Response Body into a Date
+// pointed to by d.
+func ByUnmarshallingDate(d *Date) autorest.RespondDecorator {
+	return func(r autorest.Responder) autorest.Responder {
+		return autorest.ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil {
+				*d, err = readDate(resp.Body)
+			}
+			return err
+		})
+	}
 }
 
 // MarshalBinary preserves the Date as a byte array conforming to RFC3339 full-date (i.e.,

@@ -115,7 +115,7 @@ func resourceArmNetworkSecurityRuleCreate(d *schema.ResourceData, meta interface
 	destination_port_range := d.Get("destination_port_range").(string)
 	source_address_prefix := d.Get("source_address_prefix").(string)
 	destination_address_prefix := d.Get("destination_address_prefix").(string)
-	priority := d.Get("priority").(int)
+	priority := int32(d.Get("priority").(int))
 	access := d.Get("access").(string)
 	direction := d.Get("direction").(string)
 	protocol := d.Get("protocol").(string)

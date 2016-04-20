@@ -337,13 +337,13 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 		data := configRaw.(map[string]interface{})
 
 		subnet_id := data["subnet_id"].(string)
-		private_ip_allocation_method := data["private_ip_address_allocation"].(string)
+		ip_allocation_method := data["private_ip_address_allocation"].(string)
 
 		properties := network.InterfaceIPConfigurationPropertiesFormat{
 			Subnet: &network.Subnet{
 				ID: &subnet_id,
 			},
-			PrivateIPAllocationMethod: &private_ip_allocation_method,
+			PrivateIPAllocationMethod: network.IPAllocationMethod(ip_allocation_method),
 		}
 
 		if v := data["private_ip_address"].(string); v != "" {

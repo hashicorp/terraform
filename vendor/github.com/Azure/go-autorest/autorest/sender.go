@@ -1,6 +1,7 @@
 package autorest
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -65,32 +66,15 @@ func SendWithSender(s Sender, r *http.Request, decorators ...SendDecorator) (*ht
 }
 
 // AfterDelay returns a SendDecorator that delays for the passed time.Duration before
-// invoking the Sender.
+// invoking the Sender. The delay may be terminated by closing the optional channel on the
+// http.Request. If canceled, no further Senders are invoked.
 func AfterDelay(d time.Duration) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			time.Sleep(d)
+			if DelayForBackoff(d, 1, r.Cancel) != nil {
+				return nil, fmt.Errorf("autorest: AfterDelay canceled before full delay")
+			}
 			return s.Do(r)
-		})
-	}
-}
-
-// AfterRetryDelay returns a SendDecorator that delays for the number of seconds specified in the
-// Retry-After header of the prior response when polling is required.
-func AfterRetryDelay(defaultDelay time.Duration, codes ...int) SendDecorator {
-	delay := time.Duration(0)
-	return func(s Sender) Sender {
-		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			if delay > time.Duration(0) {
-				time.Sleep(delay)
-			}
-			resp, err := s.Do(r)
-			if ResponseRequiresPolling(resp, codes...) {
-				delay = GetPollingDelay(resp, defaultDelay)
-			} else {
-				delay = time.Duration(0)
-			}
-			return resp, err
 		})
 	}
 }
@@ -100,19 +84,6 @@ func AsIs() SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			return s.Do(r)
-		})
-	}
-}
-
-// WithLogging returns a SendDecorator that implements simple before and after logging of the
-// request.
-func WithLogging(logger *log.Logger) SendDecorator {
-	return func(s Sender) Sender {
-		return SenderFunc(func(r *http.Request) (*http.Response, error) {
-			logger.Printf("Sending %s %s\n", r.Method, r.URL)
-			resp, err := s.Do(r)
-			logger.Printf("%s %s received %s\n", r.Method, r.URL, resp.Status)
-			return resp, err
 		})
 	}
 }
@@ -139,7 +110,7 @@ func DoErrorIfStatusCode(codes ...int) SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if err == nil && ResponseHasStatusCode(resp, codes...) {
-				err = NewErrorWithStatusCode("autorest", "DoErrorIfStatusCode", resp.StatusCode, "%v %v failed with %s",
+				err = NewErrorWithResponse("autorest", "DoErrorIfStatusCode", resp, "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)
@@ -157,7 +128,7 @@ func DoErrorUnlessStatusCode(codes ...int) SendDecorator {
 		return SenderFunc(func(r *http.Request) (*http.Response, error) {
 			resp, err := s.Do(r)
 			if err == nil && !ResponseHasStatusCode(resp, codes...) {
-				err = NewErrorWithStatusCode("autorest", "DoErrorUnlessStatusCode", resp.StatusCode, "%v %v failed with %s",
+				err = NewErrorWithResponse("autorest", "DoErrorUnlessStatusCode", resp, "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)
@@ -167,9 +138,37 @@ func DoErrorUnlessStatusCode(codes ...int) SendDecorator {
 	}
 }
 
-// DoRetryForAttempts returns a SendDecorator that retries the request for up to the specified
+// DoPollForStatusCodes returns a SendDecorator that polls if the http.Response contains one of the
+// passed status codes. It expects the http.Response to contain a Location header providing the
+// URL at which to poll (using GET) and will poll until the time passed is equal to or greater than
+// the supplied duration. It will delay between requests for the duration specified in the
+// RetryAfter header or, if the header is absent, the passed delay. Polling may be canceled by
+// closing the optional channel on the http.Request.
+func DoPollForStatusCodes(duration time.Duration, delay time.Duration, codes ...int) SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
+			resp, err = s.Do(r)
+
+			if err == nil && ResponseHasStatusCode(resp, codes...) {
+				r, err = NewPollingRequest(resp, r.Cancel)
+
+				for err == nil && ResponseHasStatusCode(resp, codes...) {
+					Respond(resp,
+						ByClosing())
+					resp, err = SendWithSender(s, r,
+						AfterDelay(GetRetryAfter(resp, delay)))
+				}
+			}
+
+			return resp, err
+		})
+	}
+}
+
+// DoRetryForAttempts returns a SendDecorator that retries a failed request for up to the specified
 // number of attempts, exponentially backing off between requests using the supplied backoff
-// time.Duration (which may be zero).
+// time.Duration (which may be zero). Retrying may be canceled by closing the optional channel on
+// the http.Request.
 func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
@@ -178,7 +177,7 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 				if err == nil {
 					return resp, err
 				}
-				DelayForBackoff(backoff, attempt)
+				DelayForBackoff(backoff, attempt, r.Cancel)
 			}
 			return resp, err
 		})
@@ -187,7 +186,8 @@ func DoRetryForAttempts(attempts int, backoff time.Duration) SendDecorator {
 
 // DoRetryForDuration returns a SendDecorator that retries the request until the total time is equal
 // to or greater than the specified duration, exponentially backing off between requests using the
-// supplied backoff time.Duration (which may be zero).
+// supplied backoff time.Duration (which may be zero). Retrying may be canceled by closing the
+// optional channel on the http.Request.
 func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 	return func(s Sender) Sender {
 		return SenderFunc(func(r *http.Request) (resp *http.Response, err error) {
@@ -197,15 +197,41 @@ func DoRetryForDuration(d time.Duration, backoff time.Duration) SendDecorator {
 				if err == nil {
 					return resp, err
 				}
-				DelayForBackoff(backoff, attempt)
+				DelayForBackoff(backoff, attempt, r.Cancel)
 			}
 			return resp, err
 		})
 	}
 }
 
-// DelayForBackoff invokes time.Sleep for the supplied backoff duration raised to the power of
-// passed attempt (i.e., an exponential backoff delay). Backoff may be zero.
-func DelayForBackoff(backoff time.Duration, attempt int) {
-	time.Sleep(time.Duration(math.Pow(float64(backoff), float64(attempt))))
+// WithLogging returns a SendDecorator that implements simple before and after logging of the
+// request.
+func WithLogging(logger *log.Logger) SendDecorator {
+	return func(s Sender) Sender {
+		return SenderFunc(func(r *http.Request) (*http.Response, error) {
+			logger.Printf("Sending %s %s", r.Method, r.URL)
+			resp, err := s.Do(r)
+			if err != nil {
+				logger.Printf("%s %s received error '%v'", r.Method, r.URL, err)
+			} else {
+				logger.Printf("%s %s received %s", r.Method, r.URL, resp.Status)
+			}
+			return resp, err
+		})
+	}
+}
+
+// DelayForBackoff invokes time.After for the supplied backoff duration raised to the power of
+// passed attempt (i.e., an exponential backoff delay). Backoff may be zero. The delay may be
+// canceled by closing the passed channel.
+func DelayForBackoff(backoff time.Duration, attempt int, cancel <-chan struct{}) error {
+	if cancel == nil {
+		cancel = make(chan struct{})
+	}
+	select {
+	case <-time.After(time.Duration(math.Pow(float64(backoff), float64(attempt)))):
+	case <-cancel:
+		return fmt.Errorf("autorest: Delay canceled")
+	}
+	return nil
 }

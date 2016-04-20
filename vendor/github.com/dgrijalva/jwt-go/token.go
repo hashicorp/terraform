@@ -96,7 +96,7 @@ func ParseFromRequest(req *http.Request, keyFunc Keyfunc) (token *Token, err err
 	// Look for an Authorization header
 	if ah := req.Header.Get("Authorization"); ah != "" {
 		// Should be a bearer token
-		if len(ah) > 6 && strings.ToUpper(ah[0:6]) == "BEARER" {
+		if len(ah) > 6 && strings.ToUpper(ah[0:7]) == "BEARER " {
 			return Parse(ah[7:], keyFunc)
 		}
 	}

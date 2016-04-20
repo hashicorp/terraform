@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -15,6 +13,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
 )
@@ -83,10 +83,10 @@ func withPollWatcher() autorest.SendDecorator {
 			fmt.Printf("[DEBUG] Sending Azure RM Request %q to %q\n", r.Method, r.URL)
 			resp, err := s.Do(r)
 			fmt.Printf("[DEBUG] Received Azure RM Request status code %s for %s\n", resp.Status, r.URL)
-			if autorest.ResponseRequiresPolling(resp) {
+			if autorest.NewPollingRequest(resp, nil) {
 				fmt.Printf("[DEBUG] Azure RM request will poll %s after %d seconds\n",
-					autorest.GetPollingLocation(resp),
-					int(autorest.GetPollingDelay(resp, time.Duration(0))/time.Second))
+					autorest.GetLocation(resp),
+					int(autorest.GetRetryAfter(resp, time.Duration(0))/time.Second))
 			}
 			return resp, err
 		})

@@ -7,149 +7,134 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
-		},
-		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/azure",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
-		},
-		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/date",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
-		},
-		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/Azure/go-autorest/autorest/to",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
-		},
-		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/github.com/dgrijalva/jwt-go",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
-		},
-		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/golang.org/x/crypto/pkcs12",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
-		},
-		{
-			"ImportPath": "github.com/Azure/azure-sdk-for-go/Godeps/_workspace/src/golang.org/x/crypto/pkcs12/internal/rc2",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
-		},
-		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/arm/cdn",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/arm/compute",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/arm/network",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/arm/resources/resources",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/arm/scheduler",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/arm/storage",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/core/http",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/core/tls",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/affinitygroup",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/hostedservice",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/location",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/networksecuritygroup",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/osimage",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/sql",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/storageservice",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/virtualmachine",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/virtualmachinedisk",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/virtualmachineimage",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/virtualnetwork",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/management/vmutils",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/storage",
-			"Comment": "v1.2-315-g1cb9dff",
-			"Rev": "1cb9dff8c37b2918ad1ebd7b294d01100a153d27"
+			"Comment": "v2.0.0-beta-5-ge5f9a53",
+			"Rev": "e5f9a534a679e41e67215b440d6bc154814ba66c"
+		},
+		{
+			"ImportPath": "github.com/Azure/go-autorest/autorest",
+			"Comment": "v6.0.0",
+			"Rev": "c6f4f7f3678803fbe8975c884e80affad9d31998"
+		},
+		{
+			"ImportPath": "github.com/Azure/go-autorest/autorest/azure",
+			"Comment": "v6.0.0",
+			"Rev": "c6f4f7f3678803fbe8975c884e80affad9d31998"
+		},
+		{
+			"ImportPath": "github.com/Azure/go-autorest/autorest/date",
+			"Comment": "v6.0.0",
+			"Rev": "c6f4f7f3678803fbe8975c884e80affad9d31998"
+		},
+		{
+			"ImportPath": "github.com/Azure/go-autorest/autorest/to",
+			"Comment": "v6.0.0",
+			"Rev": "c6f4f7f3678803fbe8975c884e80affad9d31998"
 		},
 		{
 			"ImportPath": "github.com/CenturyLinkCloud/clc-sdk",
@@ -551,6 +536,11 @@
 		{
 			"ImportPath": "github.com/cyberdelia/heroku-go/v3",
 			"Rev": "81c5afa1abcf69cc18ccc24fa3716b5a455c9208"
+		},
+		{
+			"ImportPath": "github.com/dgrijalva/jwt-go",
+			"Comment": "v2.4.0-11-gf219341",
+			"Rev": "f2193411bd642f7db03249fd79d5292c9b34916a"
 		},
 		{
 			"ImportPath": "github.com/digitalocean/godo",
@@ -1293,6 +1283,14 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/pkcs12",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/pkcs12/internal/rc2",
 			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{

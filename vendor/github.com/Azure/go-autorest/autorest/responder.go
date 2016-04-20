@@ -97,6 +97,90 @@ func ByClosingIfError() RespondDecorator {
 	}
 }
 
+// ByUnmarshallingBool returns a RespondDecorator that decodes the http.Response Body into a bool
+// pointed to by b.
+func ByUnmarshallingBool(b *bool) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil {
+				*b, err = readBool(resp.Body)
+			}
+			return err
+		})
+	}
+}
+
+// ByUnmarshallingFloat32 returns a RespondDecorator that decodes the http.Response Body into a
+// float32 pointed to by f.
+func ByUnmarshallingFloat32(f *float32) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil {
+				*f, err = readFloat32(resp.Body)
+			}
+			return err
+		})
+	}
+}
+
+// ByUnmarshallingFloat64 returns a RespondDecorator that decodes the http.Response Body into a
+// float64 pointed to by f.
+func ByUnmarshallingFloat64(f *float64) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil {
+				*f, err = readFloat64(resp.Body)
+			}
+			return err
+		})
+	}
+}
+
+// ByUnmarshallingInt32 returns a RespondDecorator that decodes the http.Response Body into an
+// int32 pointed to by i.
+func ByUnmarshallingInt32(i *int32) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil {
+				*i, err = readInt32(resp.Body)
+			}
+			return err
+		})
+	}
+}
+
+// ByUnmarshallingInt64 returns a RespondDecorator that decodes the http.Response Body into an
+// int64 pointed to by i.
+func ByUnmarshallingInt64(i *int64) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil {
+				*i, err = readInt64(resp.Body)
+			}
+			return err
+		})
+	}
+}
+
+// ByUnmarshallingString returns a RespondDecorator that decodes the http.Response Body into a
+// string pointed to by s.
+func ByUnmarshallingString(s *string) RespondDecorator {
+	return func(r Responder) Responder {
+		return ResponderFunc(func(resp *http.Response) error {
+			err := r.Respond(resp)
+			if err == nil {
+				*s, err = readString(resp.Body)
+			}
+			return err
+		})
+	}
+}
+
 // ByUnmarshallingJSON returns a RespondDecorator that decodes a JSON document returned in the
 // response Body into the value pointed to by v.
 func ByUnmarshallingJSON(v interface{}) RespondDecorator {
@@ -133,7 +217,7 @@ func WithErrorUnlessStatusCode(codes ...int) RespondDecorator {
 		return ResponderFunc(func(resp *http.Response) error {
 			err := r.Respond(resp)
 			if err == nil && !ResponseHasStatusCode(resp, codes...) {
-				err = NewErrorWithStatusCode("autorest", "WithErrorUnlessStatusCode", resp.StatusCode, "%v %v failed with %s",
+				err = NewErrorWithResponse("autorest", "WithErrorUnlessStatusCode", resp, "%v %v failed with %s",
 					resp.Request.Method,
 					resp.Request.URL,
 					resp.Status)
