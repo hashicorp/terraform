@@ -90,6 +90,7 @@ BUG FIXES:
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
  * provider/openstack: Fix resizing when Flavor Name changes [GH-6020]
  * provider/openstack: Fix Access Address Detection [GH-6181]
+ * provider/openstack: Fix admin_state_up on openstack_lb_member_v1 [GH-6267]
  * provider/triton: Firewall status on `triton_machine` resources is reflected correctly [GH-6119]
  * provider/vsphere: Add error handling to `vsphere_folder` [GH-6095]
 
