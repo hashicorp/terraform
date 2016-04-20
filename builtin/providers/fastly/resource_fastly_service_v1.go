@@ -147,7 +147,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     100,
-							Description: "How long to wait for the first bytes in milliseconds",
+							Description: "The portion of traffic to send to a specific origins. Each origin receives weight/total of the traffic.",
 						},
 					},
 				},
