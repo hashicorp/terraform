@@ -246,9 +246,10 @@ var testAccLBV1Pool_fullstack = fmt.Sprintf(`
 	}
 
 	resource "openstack_lb_vip_v1" "vip_1" {
-		name = "vip_1"
-		subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-		protocol = "TCP"
-		port = 80
-		pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+                name = "vip_1"
+                subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+                protocol = "TCP"
+                port = 80
+                pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+                admin_state_up = true
 	}`)

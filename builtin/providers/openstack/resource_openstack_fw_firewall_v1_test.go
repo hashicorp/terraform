@@ -128,9 +128,10 @@ resource "openstack_fw_policy_v1" "accept_test_policy_1" {
 
 const testFirewallConfigUpdated = `
 resource "openstack_fw_firewall_v1" "accept_test" {
-	name = "accept_test"
-	description = "terraform acceptance test"
-	policy_id = "${openstack_fw_policy_v1.accept_test_policy_2.id}"
+        name = "accept_test"
+        description = "terraform acceptance test"
+        policy_id = "${openstack_fw_policy_v1.accept_test_policy_2.id}"
+        admin_state_up = true
 }
 
 resource "openstack_fw_policy_v1" "accept_test_policy_2" {
