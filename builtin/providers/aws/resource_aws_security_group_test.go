@@ -1497,14 +1497,9 @@ provider "aws" {
 	region = "us-east-1"
 }
 
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
 resource "aws_security_group" "other_web" {
   name        = "tf_other_acc_tests"
   description = "Used in the terraform acceptance tests"
-  vpc_id = "${aws_vpc.foo.id}"
 
   tags {
     Name = "tf-acc-test"
@@ -1514,7 +1509,6 @@ resource "aws_security_group" "other_web" {
 resource "aws_security_group" "web" {
   name        = "terraform_acceptance_test_example"
   description = "Used in the terraform acceptance tests"
-  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol  = "tcp"
