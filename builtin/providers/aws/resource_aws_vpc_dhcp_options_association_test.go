@@ -14,7 +14,11 @@ func TestAccAWSDHCPOptionsAssociation_basic(t *testing.T) {
 	var d ec2.DhcpOptions
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() { testAccPreCheck(t) },
+
+		DisableIDRefresh: true,
+		IDRefreshName:    "aws_vpc_dhcp_options_association.foo",
+
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDHCPOptionsAssociationDestroy,
 		Steps: []resource.TestStep{
