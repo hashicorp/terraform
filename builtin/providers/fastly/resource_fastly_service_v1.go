@@ -158,6 +158,41 @@ func resourceServiceV1() *schema.Resource {
 				Optional: true,
 			},
 
+			"gzip": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// required fields
+						"name": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "A name to refer to this gzip condition",
+						},
+						// optional fields
+						"content_types": &schema.Schema{
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "Content types to apply automatic gzip to",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+						"extensions": &schema.Schema{
+							Type:        schema.TypeSet,
+							Optional:    true,
+							Description: "File extensions to apply automatic gzip to. Do not include '.'",
+							Elem:        &schema.Schema{Type: schema.TypeString},
+						},
+						// These fields represent Fastly options that Terraform does not
+						// currently support
+						"cache_condition": &schema.Schema{
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "Optional name of a CacheCondition to apply.",
+						},
+					},
+				},
+			},
+
 			"header": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -299,7 +334,14 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 	// DefaultTTL, a new Version must be created first, and updates posted to that
 	// Version. Loop these attributes and determine if we need to create a new version first
 	var needsChange bool
-	for _, v := range []string{"domain", "backend", "default_host", "default_ttl", "header"} {
+	for _, v := range []string{
+		"domain",
+		"backend",
+		"default_host",
+		"default_ttl",
+		"header",
+		"gzip",
+	} {
 		if d.HasChange(v) {
 			needsChange = true
 		}
@@ -528,6 +570,96 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// Find differences in Gzips
+		if d.HasChange("gzip") {
+			// Note: we don't utilize the PUT endpoint to update a Gzip rule, we simply
+			// destroy it and create a new one. This is how Terraform works with nested
+			// sub resources, we only get the full diff not a partial set item diff.
+			// Because this is done on a new version of the configuration, this is
+			// considered safe
+			og, ng := d.GetChange("gzip")
+			if og == nil {
+				og = new(schema.Set)
+			}
+			if ng == nil {
+				ng = new(schema.Set)
+			}
+
+			ogs := og.(*schema.Set)
+			ngs := ng.(*schema.Set)
+
+			remove := ogs.Difference(ngs).List()
+			add := ngs.Difference(ogs).List()
+
+			// Delete removed gzip rules
+			for _, dRaw := range remove {
+				df := dRaw.(map[string]interface{})
+				opts := gofastly.DeleteGzipInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    df["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Gzip Removal opts: %#v", opts)
+				err := conn.DeleteGzip(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new Gzips
+			for _, dRaw := range add {
+				df := dRaw.(map[string]interface{})
+				opts := gofastly.CreateGzipInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    df["name"].(string),
+				}
+
+				// Fastly API will fill in ContentTypes or Extensions with default
+				// values if they are omitted, which is not what we want. Ex: creating a
+				// gzip rule for content types of "text/html", and not supplying any
+				// extensions, will apply automatic values to extensions for css, js,
+				// html.  Given Go's nature of default values, and go-fastly's usage of
+				// omitempty for empty strings, we need to pre-fill the ContentTypes and
+				// Extensions with and empty space " " in order to not receive the
+				// default values for each field. This space is checked and then ignored
+				// in the flattenGzips function.
+				//
+				// I've opened a support case with Fastly to find if this is a bug or
+				// feature. If feature, we'll update the go-fastly library to not use
+				// omitempty in the definition. If bug, we'll have to weather it until
+				// they fix it
+				opts.Extensions = " "
+				opts.ContentTypes = " "
+				if v, ok := df["content_types"]; ok {
+					if len(v.(*schema.Set).List()) > 0 {
+						var cl []string
+						for _, c := range v.(*schema.Set).List() {
+							cl = append(cl, c.(string))
+						}
+						opts.ContentTypes = strings.Join(cl, " ")
+					}
+				}
+
+				if v, ok := df["extensions"]; ok {
+					if len(v.(*schema.Set).List()) > 0 {
+						var el []string
+						for _, e := range v.(*schema.Set).List() {
+							el = append(el, e.(string))
+						}
+						opts.Extensions = strings.Join(el, " ")
+					}
+				}
+
+				log.Printf("[DEBUG] Fastly Gzip Addition opts: %#v", opts)
+				_, err := conn.CreateGzip(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// validate version
 		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
 		valid, msg, err := conn.ValidateVersion(&gofastly.ValidateVersionInput{
@@ -655,6 +787,23 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 
 		if err := d.Set("header", hl); err != nil {
 			log.Printf("[WARN] Error setting Headers for (%s): %s", d.Id(), err)
+		}
+
+		// refresh gzips
+		log.Printf("[DEBUG] Refreshing Gzips for (%s)", d.Id())
+		gzipsList, err := conn.ListGzips(&gofastly.ListGzipsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		gl := flattenGzips(gzipsList)
+
+		if err := d.Set("gzip", gl); err != nil {
+			log.Printf("[WARN] Error setting Gzips for (%s): %s", d.Id(), err)
 		}
 
 	} else {
@@ -854,4 +1003,48 @@ func buildHeader(headerMap interface{}) (*gofastly.CreateHeaderInput, error) {
 	}
 
 	return &opts, nil
+}
+
+func flattenGzips(gzipsList []*gofastly.Gzip) []map[string]interface{} {
+	var gl []map[string]interface{}
+	for _, g := range gzipsList {
+		// Convert Gzip to a map for saving to state.
+		ng := map[string]interface{}{
+			"name":            g.Name,
+			"cache_condition": g.CacheCondition,
+		}
+
+		// Fastly API provides default values for Extensions or ContentTypes, in the
+		// event that you do not specify them. To work around this, if they are
+		// omitted we'll use an empty space as a sentinel value to indicate not to
+		// include them, and filter on that
+		if g.Extensions != "" && g.Extensions != " " {
+			e := strings.Split(g.Extensions, " ")
+			var et []interface{}
+			for _, ev := range e {
+				et = append(et, ev)
+			}
+			ng["extensions"] = schema.NewSet(schema.HashString, et)
+		}
+
+		if g.ContentTypes != "" && g.ContentTypes != " " {
+			c := strings.Split(g.ContentTypes, " ")
+			var ct []interface{}
+			for _, cv := range c {
+				ct = append(ct, cv)
+			}
+			ng["content_types"] = schema.NewSet(schema.HashString, ct)
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range ng {
+			if v == "" {
+				delete(ng, k)
+			}
+		}
+
+		gl = append(gl, ng)
+	}
+
+	return gl
 }
