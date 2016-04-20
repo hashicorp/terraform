@@ -195,6 +195,10 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceNetworkingRouterV2Update(d *schema.ResourceData, meta interface{}) error {
+	routerId := d.Id()
+	osMutexKV.Lock(routerId)
+	defer osMutexKV.Unlock(routerId)
+
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {

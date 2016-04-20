@@ -1,9 +1,13 @@
 package openstack
 
 import (
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// This is a global MutexKV for use within this plugin.
+var osMutexKV = mutexkv.NewMutexKV()
 
 // Provider returns a schema.Provider for OpenStack.
 func Provider() terraform.ResourceProvider {
@@ -96,6 +100,7 @@ func Provider() terraform.ResourceProvider {
 			"openstack_networking_port_v2":             resourceNetworkingPortV2(),
 			"openstack_networking_router_v2":           resourceNetworkingRouterV2(),
 			"openstack_networking_router_interface_v2": resourceNetworkingRouterInterfaceV2(),
+			"openstack_networking_router_route_v2":     resourceNetworkingRouterRouteV2(),
 			"openstack_objectstorage_container_v1":     resourceObjectStorageContainerV1(),
 		},
 
