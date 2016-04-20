@@ -115,6 +115,34 @@ func TestAccTritonMachine_firewall(t *testing.T) {
 	})
 }
 
+func TestAccTritonMachine_metadata(t *testing.T) {
+	machineName := fmt.Sprintf("acctest-%d", acctest.RandInt())
+	basic := fmt.Sprintf(testAccTritonMachine_basic, machineName)
+	add_metadata := fmt.Sprintf(testAccTritonMachine_basic, machineName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckTritonMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: basic,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+				),
+			},
+			resource.TestStep{
+				Config: add_metadata,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckTritonMachineExists("triton_machine.test"),
+					resource.TestCheckResourceAttr(
+						"triton_machine.test", "user_data", "hello"),
+				),
+			},
+		},
+	})
+}
+
 var testAccTritonMachine_basic = `
 resource "triton_machine" "test" {
   name = "%s"
@@ -143,5 +171,19 @@ resource "triton_machine" "test" {
   image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
 
 	firewall_enabled = 1
+}
+`
+
+var testAccTritonMachine_metadata_1 = `
+resource "triton_machine" "test" {
+  name = "%s"
+  package = "t4-standard-128M"
+  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
+
+  user_data = "hello"
+
+  tags = {
+	test = "hello!"
+  }
 }
 `
