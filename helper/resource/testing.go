@@ -61,6 +61,18 @@ type TestCase struct {
 	// Steps are the apply sequences done within the context of the
 	// same state. Each step can have its own check to verify correctness.
 	Steps []TestStep
+
+	// The settings below control the "ID-only refresh test." This is
+	// an enabled-by-default test that tests that a refresh can be
+	// refreshed with only an ID to result in the same attributes.
+	// This validates completeness of Refresh.
+	//
+	// DisableIDRefresh, if true, willl not do the id-only refresh test.
+	//
+	// IDRefreshName is the name of the resource to check. This will
+	// default to the first non-nil primary resource in the state.
+	DisableIDRefresh bool
+	IDRefreshName    string
 }
 
 // TestStep is a single apply sequence of a test, done within the
@@ -163,7 +175,7 @@ func Test(t TestT, c TestCase) {
 
 		// If we've never checked an id-only refresh and our state isn't
 		// empty, find the first resource and test it.
-		if idRefreshCheck == nil && !state.Empty() {
+		if !c.DisableIDRefresh && idRefreshCheck == nil && !state.Empty() {
 			// Find the first non-nil resource in the state
 			for _, m := range state.Modules {
 				if len(m.Resources) > 0 {
@@ -196,8 +208,10 @@ func Test(t TestT, c TestCase) {
 	}
 
 	// If we never checked an id-only refresh, it is a failure.
-	if !errored && len(c.Steps) > 0 && idRefreshCheck == nil {
-		t.Error("ID-only refresh check never ran.")
+	if !c.DisableIDRefresh {
+		if !errored && len(c.Steps) > 0 && idRefreshCheck == nil {
+			t.Error("ID-only refresh check never ran.")
+		}
 	}
 
 	// If we have a state, then run the destroy
