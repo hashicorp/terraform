@@ -548,7 +548,9 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		Bucket: aws.String(d.Id()),
 	})
 	if err != nil {
-		return err
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() != 404 {
+			return err
+		}
 	}
 	log.Printf("[DEBUG] S3 Bucket: %s, lifecycle: %v", d.Id(), lifecycle)
 	if len(lifecycle.Rules) > 0 {
