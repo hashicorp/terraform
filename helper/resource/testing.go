@@ -14,7 +14,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-getter"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -206,7 +205,7 @@ func Test(t TestT, c TestCase) {
 				log.Printf(
 					"[WARN] Test: Running ID-only refresh check on %s",
 					idRefreshCheck.Primary.ID)
-				if err := testIDOnlyRefresh(opts, idRefreshCheck); err != nil {
+				if err := testIDOnlyRefresh(opts, step, idRefreshCheck); err != nil {
 					t.Error(fmt.Sprintf(
 						"ID-Only refresh test failure: %s", err))
 					break
@@ -261,7 +260,7 @@ func UnitTest(t TestT, c TestCase) {
 	Test(t, c)
 }
 
-func testIDOnlyRefresh(opts terraform.ContextOpts, r *terraform.ResourceState) error {
+func testIDOnlyRefresh(opts terraform.ContextOpts, step TestStep, r *terraform.ResourceState) error {
 	// TODO: We guard by this right now so master doesn't explode. We
 	// need to remove this eventually to make this part of the normal tests.
 	if os.Getenv("TF_ACC_IDONLY") == "" {
@@ -280,10 +279,13 @@ func testIDOnlyRefresh(opts terraform.ContextOpts, r *terraform.ResourceState) e
 		},
 	}
 
-	// Empty module
-	mod := module.NewTree("root", &config.Config{})
-	if err := mod.Load(nil, module.GetModeGet); err != nil {
-		return fmt.Errorf("Error loading modules: %s", err)
+	// Create the config module. We use the full config because Refresh
+	// doesn't have access to it and we may need things like provider
+	// configurations. The initial implementation of id-only checks used
+	// an empty config module, but that caused the aforementioned problems.
+	mod, err := testModule(opts, step)
+	if err != nil {
+		return err
 	}
 
 	// Initialize the context
@@ -305,7 +307,7 @@ func testIDOnlyRefresh(opts terraform.ContextOpts, r *terraform.ResourceState) e
 	}
 
 	// Refresh!
-	state, err := ctx.Refresh()
+	state, err = ctx.Refresh()
 	if err != nil {
 		return fmt.Errorf("Error refreshing: %s", err)
 	}
@@ -344,45 +346,9 @@ func testStep(
 	opts terraform.ContextOpts,
 	state *terraform.State,
 	step TestStep) (*terraform.State, error) {
-	if step.PreConfig != nil {
-		step.PreConfig()
-	}
-
-	cfgPath, err := ioutil.TempDir("", "tf-test")
+	mod, err := testModule(opts, step)
 	if err != nil {
-		return state, fmt.Errorf(
-			"Error creating temporary directory for config: %s", err)
-	}
-	defer os.RemoveAll(cfgPath)
-
-	// Write the configuration
-	cfgF, err := os.Create(filepath.Join(cfgPath, "main.tf"))
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error creating temporary file for config: %s", err)
-	}
-
-	_, err = io.Copy(cfgF, strings.NewReader(step.Config))
-	cfgF.Close()
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error creating temporary file for config: %s", err)
-	}
-
-	// Parse the configuration
-	mod, err := module.NewTreeModule("", cfgPath)
-	if err != nil {
-		return state, fmt.Errorf(
-			"Error loading configuration: %s", err)
-	}
-
-	// Load the modules
-	modStorage := &getter.FolderStorage{
-		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
-	}
-	err = mod.Load(modStorage, module.GetModeGet)
-	if err != nil {
-		return state, fmt.Errorf("Error downloading modules: %s", err)
+		return state, err
 	}
 
 	// Build the context
@@ -483,6 +449,53 @@ func testStep(
 
 	// Made it here? Good job test step!
 	return state, nil
+}
+
+func testModule(
+	opts terraform.ContextOpts,
+	step TestStep) (*module.Tree, error) {
+	if step.PreConfig != nil {
+		step.PreConfig()
+	}
+
+	cfgPath, err := ioutil.TempDir("", "tf-test")
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error creating temporary directory for config: %s", err)
+	}
+	defer os.RemoveAll(cfgPath)
+
+	// Write the configuration
+	cfgF, err := os.Create(filepath.Join(cfgPath, "main.tf"))
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error creating temporary file for config: %s", err)
+	}
+
+	_, err = io.Copy(cfgF, strings.NewReader(step.Config))
+	cfgF.Close()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error creating temporary file for config: %s", err)
+	}
+
+	// Parse the configuration
+	mod, err := module.NewTreeModule("", cfgPath)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error loading configuration: %s", err)
+	}
+
+	// Load the modules
+	modStorage := &getter.FolderStorage{
+		StorageDir: filepath.Join(cfgPath, ".tfmodules"),
+	}
+	err = mod.Load(modStorage, module.GetModeGet)
+	if err != nil {
+		return nil, fmt.Errorf("Error downloading modules: %s", err)
+	}
+
+	return mod, nil
 }
 
 // ComposeTestCheckFunc lets you compose multiple TestCheckFuncs into
