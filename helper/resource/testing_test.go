@@ -12,6 +12,11 @@ import (
 func init() {
 	testTesting = true
 
+	// TODO: Remove when we remove the guard on id checks
+	if err := os.Setenv("TF_ACC_IDONLY", "1"); err != nil {
+		panic(err)
+	}
+
 	if err := os.Setenv(TestEnvVar, "1"); err != nil {
 		panic(err)
 	}
@@ -21,17 +26,23 @@ func TestTest(t *testing.T) {
 	mp := testProvider()
 	mp.DiffReturn = nil
 
-	mp.ApplyReturn = &terraform.InstanceState{
-		ID: "foo",
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
 	}
+
 	var refreshCount int32
 	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
 		atomic.AddInt32(&refreshCount, 1)
-		if atomic.LoadInt32(&refreshCount) == 1 {
-			return &terraform.InstanceState{ID: "foo"}, nil
-		} else {
-			return nil, nil
-		}
+		return &terraform.InstanceState{ID: "foo"}, nil
 	}
 
 	checkDestroy := false
@@ -93,17 +104,23 @@ func TestTest_idRefresh(t *testing.T) {
 	mp := testProvider()
 	mp.DiffReturn = nil
 
-	mp.ApplyReturn = &terraform.InstanceState{
-		ID: "foo",
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
 	}
+
 	var refreshCount int32
 	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
 		atomic.AddInt32(&refreshCount, 1)
-		if atomic.LoadInt32(&refreshCount) < expectedRefresh {
-			return &terraform.InstanceState{ID: "foo"}, nil
-		} else {
-			return nil, nil
-		}
+		return &terraform.InstanceState{ID: "foo"}, nil
 	}
 
 	mt := new(mockT)
@@ -138,9 +155,19 @@ func TestTest_idRefreshFail(t *testing.T) {
 	mp := testProvider()
 	mp.DiffReturn = nil
 
-	mp.ApplyReturn = &terraform.InstanceState{
-		ID: "foo",
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
 	}
+
 	var refreshCount int32
 	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
 		atomic.AddInt32(&refreshCount, 1)
@@ -171,6 +198,7 @@ func TestTest_idRefreshFail(t *testing.T) {
 	if !mt.failed() {
 		t.Fatal("test didn't fail")
 	}
+	t.Logf("failure reason: %s", mt.failMessage())
 
 	// See declaration of expectedRefresh for why that number
 	if refreshCount != expectedRefresh {
