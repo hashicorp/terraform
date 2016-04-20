@@ -64,8 +64,7 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 			}
 		},
 
-		IDRefreshName:   "aws_vpc_peering_connection.foo",
-		IDRefreshIgnore: []string{"auto_accept"},
+		DisableIDRefresh: true,
 
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSVpcPeeringConnectionDestroy,
