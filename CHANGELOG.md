@@ -17,6 +17,7 @@ FEATURES:
  * **New resource:** `triton_vlan` [GH-5920]
  * **New resource:** `aws_opsworks_application` [GH-4419]
  * **New resource:** `aws_opsworks_instance` [GH-4276]
+ * **New resource:** `openstack_networking_router_route_v2` [GH-6207]
 
 IMPROVEMENTS:
 
