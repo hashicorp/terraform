@@ -70,8 +70,11 @@ type TestCase struct {
 	//
 	// IDRefreshName is the name of the resource to check. This will
 	// default to the first non-nil primary resource in the state.
+	//
+	// IDRefreshIgnore is a list of configuration keys that will be ignored.
 	DisableIDRefresh bool
 	IDRefreshName    string
+	IDRefreshIgnore  []string
 }
 
 // TestStep is a single apply sequence of a test, done within the
@@ -205,7 +208,7 @@ func Test(t TestT, c TestCase) {
 				log.Printf(
 					"[WARN] Test: Running ID-only refresh check on %s",
 					idRefreshCheck.Primary.ID)
-				if err := testIDOnlyRefresh(opts, step, idRefreshCheck); err != nil {
+				if err := testIDOnlyRefresh(c, opts, step, idRefreshCheck); err != nil {
 					log.Printf("[ERROR] Test: ID-only test failed: %s", err)
 					t.Error(fmt.Sprintf(
 						"ID-Only refresh test failure: %s", err))
@@ -261,7 +264,7 @@ func UnitTest(t TestT, c TestCase) {
 	Test(t, c)
 }
 
-func testIDOnlyRefresh(opts terraform.ContextOpts, step TestStep, r *terraform.ResourceState) error {
+func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r *terraform.ResourceState) error {
 	// TODO: We guard by this right now so master doesn't explode. We
 	// need to remove this eventually to make this part of the normal tests.
 	if os.Getenv("TF_ACC_IDONLY") == "" {
@@ -323,6 +326,12 @@ func testIDOnlyRefresh(opts terraform.ContextOpts, step TestStep, r *terraform.R
 	}
 	actual := actualR.Primary.Attributes
 	expected := r.Primary.Attributes
+	// Remove fields we're ignoring
+	for _, v := range c.IDRefreshIgnore {
+		delete(actual, v)
+		delete(expected, v)
+	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		// Determine only the different attributes
 		for k, v := range expected {
