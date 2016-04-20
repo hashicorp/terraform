@@ -31,6 +31,7 @@ func resourceAwsVpc() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"enable_dns_hostnames": &schema.Schema{
@@ -140,6 +141,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	vpcid := d.Id()
 	d.Set("cidr_block", vpc.CidrBlock)
 	d.Set("dhcp_options_id", vpc.DhcpOptionsId)
+	d.Set("instance_tenancy", vpc.InstanceTenancy)
 
 	// Tags
 	d.Set("tags", tagsToMap(vpc.Tags))

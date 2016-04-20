@@ -289,7 +289,14 @@ func testIDOnlyRefresh(opts terraform.ContextOpts, r *terraform.ResourceState) e
 	}
 
 	// Verify attribute equivalence.
-	actual := state.RootModule().Resources[name].Primary.Attributes
+	actualR := state.RootModule().Resources[name]
+	if actualR == nil {
+		return fmt.Errorf("Resource gone!")
+	}
+	if actualR.Primary == nil {
+		return fmt.Errorf("Resource has no primary instance")
+	}
+	actual := actualR.Primary.Attributes
 	expected := r.Primary.Attributes
 	if !reflect.DeepEqual(actual, expected) {
 		// Determine only the different attributes
