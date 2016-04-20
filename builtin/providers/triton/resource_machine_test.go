@@ -117,8 +117,8 @@ func TestAccTritonMachine_firewall(t *testing.T) {
 
 func TestAccTritonMachine_metadata(t *testing.T) {
 	machineName := fmt.Sprintf("acctest-%d", acctest.RandInt())
-	basic := fmt.Sprintf(testAccTritonMachine_basic, machineName)
-	add_metadata := fmt.Sprintf(testAccTritonMachine_basic, machineName)
+	basic := fmt.Sprintf(testAccTritonMachine_metadata_1, machineName)
+	add_metadata := fmt.Sprintf(testAccTritonMachine_metadata_1, machineName)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -144,10 +144,14 @@ func TestAccTritonMachine_metadata(t *testing.T) {
 }
 
 var testAccTritonMachine_basic = `
+provider "triton" {
+  url = "https://us-west-1.api.joyentcloud.com"
+}
+
 resource "triton_machine" "test" {
   name = "%s"
-  package = "t4-standard-128M"
-  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
+  package = "g3-standard-0.25-smartos"
+  image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
   tags = {
 	test = "hello!"
@@ -156,29 +160,41 @@ resource "triton_machine" "test" {
 `
 
 var testAccTritonMachine_firewall_0 = `
+provider "triton" {
+  url = "https://us-west-1.api.joyentcloud.com"
+}
+
 resource "triton_machine" "test" {
   name = "%s"
-  package = "t4-standard-128M"
-  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
+  package = "g3-standard-0.25-smartos"
+  image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
 	firewall_enabled = 0
 }
 `
 var testAccTritonMachine_firewall_1 = `
+provider "triton" {
+  url = "https://us-west-1.api.joyentcloud.com"
+}
+
 resource "triton_machine" "test" {
   name = "%s"
-  package = "t4-standard-128M"
-  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
+  package = "g3-standard-0.25-smartos"
+  image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
 	firewall_enabled = 1
 }
 `
 
 var testAccTritonMachine_metadata_1 = `
+provider "triton" {
+  url = "https://us-west-1.api.joyentcloud.com"
+}
+
 resource "triton_machine" "test" {
   name = "%s"
-  package = "t4-standard-128M"
-  image = "eb9fc1ea-e19a-11e5-bb27-8b954d8c125c"
+  package = "g3-standard-0.25-smartos"
+  image = "c20b4b7c-e1a6-11e5-9a4d-ef590901732e"
 
   user_data = "hello"
 
