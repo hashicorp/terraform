@@ -206,6 +206,7 @@ func Test(t TestT, c TestCase) {
 					"[WARN] Test: Running ID-only refresh check on %s",
 					idRefreshCheck.Primary.ID)
 				if err := testIDOnlyRefresh(opts, step, idRefreshCheck); err != nil {
+					log.Printf("[ERROR] Test: ID-only test failed: %s", err)
 					t.Error(fmt.Sprintf(
 						"ID-Only refresh test failure: %s", err))
 					break
