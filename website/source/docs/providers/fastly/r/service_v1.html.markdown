@@ -131,8 +131,7 @@ Default `1000`
 Default `200`
 * `port` - (Optional) The port number Backend responds on. Default `80`
 * `ssl_check_cert` - (Optional) Be strict on checking SSL certs. Default `true`
-* `weight` - (Optional) How long to wait for the first bytes in milliseconds.
-Default `100`
+* `weight` - (Optional) The [portion of traffic](https://docs.fastly.com/guides/performance-tuning/load-balancing-configuration.html#how-weight-affects-load-balancing) to send to this Backend. Each Backend receives `weight / total` of the traffic. Default `100`
 
 The `gzip` block supports:
 
