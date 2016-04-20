@@ -181,6 +181,9 @@ func Test(t TestT, c TestCase) {
 			// this fails. If refresh isn't read-only, then this will have
 			// caught a different bug.
 			if idRefreshCheck != nil {
+				log.Printf(
+					"[WARN] Test: Running ID-only refresh check on %s",
+					idRefreshCheck.Primary.ID)
 				if err := testIDOnlyRefresh(opts, idRefreshCheck); err != nil {
 					t.Error(fmt.Sprintf(
 						"ID-Only refresh test failure: %s", err))
@@ -188,6 +191,11 @@ func Test(t TestT, c TestCase) {
 				}
 			}
 		}
+	}
+
+	// If we never checked an id-only refresh, it is a failure
+	if idRefreshCheck == nil {
+		t.Error("ID-only refresh check never ran.")
 	}
 
 	// If we have a state, then run the destroy
