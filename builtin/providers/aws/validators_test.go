@@ -382,3 +382,81 @@ func TestValidateLogGroupName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateS3BucketLifecycleTimestamp(t *testing.T) {
+	validDates := []string{
+		"2016-01-01",
+		"2006-01-02",
+	}
+
+	for _, v := range validDates {
+		_, errors := validateS3BucketLifecycleTimestamp(v, "date")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid date: %q", v, errors)
+		}
+	}
+
+	invalidDates := []string{
+		"Jan 01 2016",
+		"20160101",
+	}
+
+	for _, v := range invalidDates {
+		_, errors := validateS3BucketLifecycleTimestamp(v, "date")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid date", v)
+		}
+	}
+}
+
+func TestValidateS3BucketLifecycleStorageClass(t *testing.T) {
+	validStorageClass := []string{
+		"STANDARD_IA",
+		"GLACIER",
+	}
+
+	for _, v := range validStorageClass {
+		_, errors := validateS3BucketLifecycleStorageClass(v, "storage_class")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid storage class: %q", v, errors)
+		}
+	}
+
+	invalidStorageClass := []string{
+		"STANDARD",
+		"1234",
+	}
+	for _, v := range invalidStorageClass {
+		_, errors := validateS3BucketLifecycleStorageClass(v, "storage_class")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid storage class", v)
+		}
+	}
+}
+
+func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 255),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketLifecycleRuleId(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketLifecycleRuleId(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid lifecycle rule id", v)
+		}
+	}
+}
