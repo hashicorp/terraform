@@ -7,11 +7,14 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
@@ -145,6 +148,7 @@ func Test(t TestT, c TestCase) {
 	var state *terraform.State
 
 	// Go through each step and run it
+	var idRefreshCheck *terraform.ResourceState
 	for i, step := range c.Steps {
 		var err error
 		log.Printf("[WARN] Test: Executing step %d", i)
@@ -153,6 +157,36 @@ func Test(t TestT, c TestCase) {
 			t.Error(fmt.Sprintf(
 				"Step %d error: %s", i, err))
 			break
+		}
+
+		// If we've never checked an id-only refresh and our state isn't
+		// empty, find the first resource and test it.
+		if idRefreshCheck == nil && !state.Empty() {
+			// Find the first non-nil resource in the state
+			for _, m := range state.Modules {
+				if len(m.Resources) > 0 {
+					for _, v := range m.Resources {
+						if v != nil && v.Primary != nil {
+							idRefreshCheck = v
+							break
+						}
+					}
+				}
+			}
+
+			// If we have an instance to check for refreshes, do it
+			// immediately. We do it in the middle of another test
+			// because it shouldn't affect the overall state (refresh
+			// is read-only semantically) and we want to fail early if
+			// this fails. If refresh isn't read-only, then this will have
+			// caught a different bug.
+			if idRefreshCheck != nil {
+				if err := testIDOnlyRefresh(opts, idRefreshCheck); err != nil {
+					t.Error(fmt.Sprintf(
+						"ID-Only refresh test failure: %s", err))
+					break
+				}
+			}
 		}
 	}
 
@@ -193,6 +227,65 @@ func UnitTest(t TestT, c TestCase) {
 		}
 	}()
 	Test(t, c)
+}
+
+func testIDOnlyRefresh(opts terraform.ContextOpts, r *terraform.ResourceState) error {
+	name := fmt.Sprintf("%s.foo", r.Type)
+
+	// Build the state. The state is just the resource with an ID. There
+	// are no attributes. We only set what is needed to perform a refresh.
+	state := terraform.NewState()
+	state.RootModule().Resources[name] = &terraform.ResourceState{
+		Type: r.Type,
+		Primary: &terraform.InstanceState{
+			ID: r.Primary.ID,
+		},
+	}
+
+	// Empty module
+	mod := module.NewTree("root", &config.Config{})
+	if err := mod.Load(nil, module.GetModeGet); err != nil {
+		return fmt.Errorf("Error loading modules: %s", err)
+	}
+
+	// Initialize the context
+	opts.Module = mod
+	opts.State = state
+	ctx := terraform.NewContext(&opts)
+	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
+		if len(es) > 0 {
+			estrs := make([]string, len(es))
+			for i, e := range es {
+				estrs[i] = e.Error()
+			}
+			return fmt.Errorf(
+				"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
+				ws, estrs)
+		}
+
+		log.Printf("[WARN] Config warnings: %#v", ws)
+	}
+
+	// Refresh!
+	state, err := ctx.Refresh()
+	if err != nil {
+		return fmt.Errorf("Error refreshing: %s", err)
+	}
+
+	// Verify attribute equivalence.
+	println(state.String())
+	actual := state.RootModule().Resources[name].Primary.Attributes
+	expected := r.Primary.Attributes
+	if !reflect.DeepEqual(actual, expected) {
+		// TODO: determine attribute difference
+
+		return fmt.Errorf(
+			"Attributes not equivalent. Top is what we received, bottom is expected."+
+				"\n\n%s\n\n%s",
+			spew.Sdump(actual), spew.Sdump(expected))
+	}
+
+	return nil
 }
 
 func testStep(
