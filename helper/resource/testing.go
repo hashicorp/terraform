@@ -273,7 +273,6 @@ func testIDOnlyRefresh(opts terraform.ContextOpts, r *terraform.ResourceState) e
 	}
 
 	// Verify attribute equivalence.
-	println(state.String())
 	actual := state.RootModule().Resources[name].Primary.Attributes
 	expected := r.Primary.Attributes
 	if !reflect.DeepEqual(actual, expected) {
