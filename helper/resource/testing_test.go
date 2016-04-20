@@ -145,6 +145,47 @@ func TestTest_idRefresh(t *testing.T) {
 	}
 }
 
+func TestTest_idRefreshDisable(t *testing.T) {
+	mp := testProvider()
+	mp.DiffReturn = nil
+
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
+	}
+
+	var refreshCount int32
+	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
+		atomic.AddInt32(&refreshCount, 1)
+		return &terraform.InstanceState{ID: "foo"}, nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		DisableIDRefresh: true,
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+			},
+		},
+	})
+
+	if mt.failed() {
+		t.Fatal("test failed")
+	}
+}
+
 func TestTest_idRefreshFail(t *testing.T) {
 	// Refresh count should be 3:
 	//   1.) initial Ref/Plan/Apply
