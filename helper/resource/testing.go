@@ -179,6 +179,14 @@ func Test(t TestT, c TestCase) {
 			// Find the first non-nil resource in the state
 			for _, m := range state.Modules {
 				if len(m.Resources) > 0 {
+					if c.IDRefreshName != "" {
+						if v, ok := m.Resources[c.IDRefreshName]; ok {
+							idRefreshCheck = v
+						}
+
+						break
+					}
+
 					for _, v := range m.Resources {
 						if v != nil && v.Primary != nil {
 							idRefreshCheck = v
