@@ -149,11 +149,13 @@ func Test(t TestT, c TestCase) {
 
 	// Go through each step and run it
 	var idRefreshCheck *terraform.ResourceState
+	errored := false
 	for i, step := range c.Steps {
 		var err error
 		log.Printf("[WARN] Test: Executing step %d", i)
 		state, err = testStep(opts, state, step)
 		if err != nil {
+			errored = true
 			t.Error(fmt.Sprintf(
 				"Step %d error: %s", i, err))
 			break
@@ -194,7 +196,7 @@ func Test(t TestT, c TestCase) {
 	}
 
 	// If we never checked an id-only refresh, it is a failure
-	if idRefreshCheck == nil {
+	if !errored && idRefreshCheck == nil {
 		t.Error("ID-only refresh check never ran.")
 	}
 
