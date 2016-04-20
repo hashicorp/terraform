@@ -316,10 +316,8 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	if err := d.Set("vgw_telemetry", telemetryToMapList(vpnConnection.VgwTelemetry)); err != nil {
 		return err
 	}
-	if vpnConnection.Routes != nil {
-		if err := d.Set("routes", routesToMapList(vpnConnection.Routes)); err != nil {
-			return err
-		}
+	if err := d.Set("routes", routesToMapList(vpnConnection.Routes)); err != nil {
+		return err
 	}
 
 	return nil
