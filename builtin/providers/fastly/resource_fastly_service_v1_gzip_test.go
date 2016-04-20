@@ -6,9 +6,100 @@ import (
 
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	gofastly "github.com/sethvargo/go-fastly"
 )
+
+func TestFastlyServiceV1_FlattenGzips(t *testing.T) {
+	cases := []struct {
+		remote []*gofastly.Gzip
+		local  []map[string]interface{}
+	}{
+		{
+			remote: []*gofastly.Gzip{
+				&gofastly.Gzip{
+					Name:       "somegzip",
+					Extensions: "css",
+				},
+			},
+			local: []map[string]interface{}{
+				map[string]interface{}{
+					"name":       "somegzip",
+					"extensions": schema.NewSet(schema.HashString, []interface{}{"css"}),
+				},
+			},
+		},
+		{
+			remote: []*gofastly.Gzip{
+				&gofastly.Gzip{
+					Name:         "somegzip",
+					Extensions:   "css json js",
+					ContentTypes: "text/html",
+				},
+				&gofastly.Gzip{
+					Name:         "someothergzip",
+					Extensions:   "css js",
+					ContentTypes: "text/html text/xml",
+				},
+			},
+			local: []map[string]interface{}{
+				map[string]interface{}{
+					"name":          "somegzip",
+					"extensions":    schema.NewSet(schema.HashString, []interface{}{"css", "json", "js"}),
+					"content_types": schema.NewSet(schema.HashString, []interface{}{"text/html"}),
+				},
+				map[string]interface{}{
+					"name":          "someothergzip",
+					"extensions":    schema.NewSet(schema.HashString, []interface{}{"css", "js"}),
+					"content_types": schema.NewSet(schema.HashString, []interface{}{"text/html", "text/xml"}),
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		out := flattenGzips(c.remote)
+		// loop, because deepequal wont work with our sets
+		expectedCount := len(c.local)
+		var found int
+		for _, o := range out {
+			for _, l := range c.local {
+				if o["name"].(string) == l["name"].(string) {
+					found++
+					if o["extensions"] == nil && l["extensions"] != nil {
+						t.Fatalf("output extensions are nil, local are not")
+					}
+
+					if o["extensions"] != nil {
+						oex := o["extensions"].(*schema.Set)
+						lex := l["extensions"].(*schema.Set)
+						if !oex.Equal(lex) {
+							t.Fatalf("Extensions don't match, expected: %#v, got: %#v", lex, oex)
+						}
+					}
+
+					if o["content_types"] == nil && l["content_types"] != nil {
+						t.Fatalf("output content types are nil, local are not")
+					}
+
+					if o["content_types"] != nil {
+						oct := o["content_types"].(*schema.Set)
+						lct := l["content_types"].(*schema.Set)
+						if !oct.Equal(lct) {
+							t.Fatalf("ContentTypes don't match, expected: %#v, got: %#v", lct, oct)
+						}
+					}
+
+				}
+			}
+		}
+
+		if found != expectedCount {
+			t.Fatalf("Found and expected mismatch: %d / %d", found, expectedCount)
+		}
+	}
+}
 
 func TestAccFastlyServiceV1_gzips_basic(t *testing.T) {
 	var service gofastly.ServiceDetail
