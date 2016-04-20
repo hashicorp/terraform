@@ -186,7 +186,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"computer_name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
+							ForceNew: true,
 						},
 
 						"admin_username": &schema.Schema{
