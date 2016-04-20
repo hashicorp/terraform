@@ -553,6 +553,10 @@
 			"Rev": "81c5afa1abcf69cc18ccc24fa3716b5a455c9208"
 		},
 		{
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
+		},
+		{
 			"ImportPath": "github.com/digitalocean/godo",
 			"Comment": "v0.9.0-20-gf75d769",
 			"Rev": "f75d769b07edce8a73682dcf325b4404f366ab3d"
