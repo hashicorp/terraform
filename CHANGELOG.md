@@ -79,6 +79,7 @@ BUG FIXES:
  * provider/aws: Guard against empty responses from Lambda Permissions [GH-5838]
  * provider/aws: Normalize and compact SQS Redrive, Policy JSON [GH-5888]
  * provider/aws: Remove CloudTrail Trail from state if not found [GH-6024]
+ * provider/aws: Fix crash in AWS S3 Bucket when website index/error is empty [GH-6269]
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
  * provider/aws: Show human-readable error message when failing to read an EBS volume [GH-6038]
  * provider/aws: set ASG `health_check_grace_period` default to 300 [GH-5830]
