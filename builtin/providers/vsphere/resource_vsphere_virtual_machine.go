@@ -84,6 +84,7 @@ type virtualMachine struct {
 	dnsServers            []string
 	bootableVmdk          bool
 	linkedClone           bool
+	skipCustomization     bool
 	windowsOptionalConfig windowsOptConfig
 	customConfigurations  map[string](types.AnyType)
 }
@@ -194,6 +195,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				ForceNew: true,
+			},
+
+			"skip_customization": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
 			},
 
 			"custom_configuration_parameters": &schema.Schema{
@@ -435,6 +443,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("linked_clone"); ok {
 		vm.linkedClone = v.(bool)
+	}
+
+	if v, ok := d.GetOk("skip_customization"); ok {
+		vm.skipCustomization = v.(bool)
 	}
 
 	if raw, ok := d.GetOk("dns_suffixes"); ok {
@@ -1568,16 +1580,20 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		return err
 	}
 
-	taskb, err := newVM.Customize(context.TODO(), customSpec)
-	if err != nil {
-		return err
+	if vm.skipCustomization {
+		log.Printf("[DEBUG] VM customization skipped")
+	} else {
+		log.Printf("[DEBUG] VM customization starting")
+		taskb, err := newVM.Customize(context.TODO(), customSpec)
+		if err != nil {
+			return err
+		}
+		_, err = taskb.WaitForResult(context.TODO(), nil)
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] VM customization finished")
 	}
-
-	_, err = taskb.WaitForResult(context.TODO(), nil)
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] VM customization finished")
 
 	for i := 1; i < len(vm.hardDisks); i++ {
 		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, vm.hardDisks[i].vmdkPath)
