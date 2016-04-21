@@ -14,9 +14,11 @@ import (
 
 func TestAccAWSSQSQueue_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		PreCheck:         func() { testAccPreCheck(t) },
+		DisableIDRefresh: true,
+		IDRefreshName:    "aws_sqs_queue.queue-with-defaults",
+		Providers:        testAccProviders,
+		CheckDestroy:     testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSQSConfigWithDefaults,
@@ -36,9 +38,11 @@ func TestAccAWSSQSQueue_basic(t *testing.T) {
 
 func TestAccAWSSQSQueue_redrivePolicy(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		PreCheck:         func() { testAccPreCheck(t) },
+		DisableIDRefresh: true,
+		IDRefreshName:    "aws_sqs_queue.my_dead_letter_queue",
+		Providers:        testAccProviders,
+		CheckDestroy:     testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSQSConfigWithRedrive(acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)),
@@ -53,9 +57,11 @@ func TestAccAWSSQSQueue_redrivePolicy(t *testing.T) {
 // Tests formatting and compacting of Policy, Redrive json
 func TestAccAWSSQSQueue_Policybasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		PreCheck:         func() { testAccPreCheck(t) },
+		DisableIDRefresh: true,
+		IDRefreshName:    "aws_sqs_queue.test-email-events",
+		Providers:        testAccProviders,
+		CheckDestroy:     testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSQSConfig_PolicyFormat,
