@@ -66,15 +66,12 @@ type TestCase struct {
 	// refreshed with only an ID to result in the same attributes.
 	// This validates completeness of Refresh.
 	//
-	// DisableIDRefresh, if true, willl not do the id-only refresh test.
-	//
 	// IDRefreshName is the name of the resource to check. This will
 	// default to the first non-nil primary resource in the state.
 	//
 	// IDRefreshIgnore is a list of configuration keys that will be ignored.
-	DisableIDRefresh bool
-	IDRefreshName    string
-	IDRefreshIgnore  []string
+	IDRefreshName   string
+	IDRefreshIgnore []string
 }
 
 // TestStep is a single apply sequence of a test, done within the
@@ -163,6 +160,7 @@ func Test(t TestT, c TestCase) {
 
 	// Go through each step and run it
 	var idRefreshCheck *terraform.ResourceState
+	idRefresh := c.IDRefreshName != ""
 	errored := false
 	for i, step := range c.Steps {
 		var err error
@@ -177,24 +175,15 @@ func Test(t TestT, c TestCase) {
 
 		// If we've never checked an id-only refresh and our state isn't
 		// empty, find the first resource and test it.
-		if !c.DisableIDRefresh && idRefreshCheck == nil && !state.Empty() {
+		if idRefresh && idRefreshCheck == nil && !state.Empty() {
 			// Find the first non-nil resource in the state
 			for _, m := range state.Modules {
 				if len(m.Resources) > 0 {
-					if c.IDRefreshName != "" {
-						if v, ok := m.Resources[c.IDRefreshName]; ok {
-							idRefreshCheck = v
-						}
-
-						break
+					if v, ok := m.Resources[c.IDRefreshName]; ok {
+						idRefreshCheck = v
 					}
 
-					for _, v := range m.Resources {
-						if v != nil && v.Primary != nil {
-							idRefreshCheck = v
-							break
-						}
-					}
+					break
 				}
 			}
 
@@ -219,7 +208,7 @@ func Test(t TestT, c TestCase) {
 	}
 
 	// If we never checked an id-only refresh, it is a failure.
-	if !c.DisableIDRefresh {
+	if idRefresh {
 		if !errored && len(c.Steps) > 0 && idRefreshCheck == nil {
 			t.Error("ID-only refresh check never ran.")
 		}
