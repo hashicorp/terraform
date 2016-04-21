@@ -355,10 +355,6 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Dependencies: n.StateDependencies(),
 					State:        &state,
 				},
-				&EvalDiffTainted{
-					Diff: &diff,
-					Name: n.stateId(),
-				},
 				&EvalWriteDiff{
 					Name: n.stateId(),
 					Diff: &diff,
@@ -540,37 +536,12 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Diff: nil,
 				},
 
-				&EvalIf{
-					If: func(ctx EvalContext) (bool, error) {
-						return tainted, nil
-					},
-					Then: &EvalSequence{
-						Nodes: []EvalNode{
-							&EvalWriteStateTainted{
-								Name:         n.stateId(),
-								ResourceType: n.Resource.Type,
-								Provider:     n.Resource.Provider,
-								Dependencies: n.StateDependencies(),
-								State:        &state,
-								Index:        -1,
-							},
-							&EvalIf{
-								If: func(ctx EvalContext) (bool, error) {
-									return !n.Resource.Lifecycle.CreateBeforeDestroy, nil
-								},
-								Then: &EvalClearPrimaryState{
-									Name: n.stateId(),
-								},
-							},
-						},
-					},
-					Else: &EvalWriteState{
-						Name:         n.stateId(),
-						ResourceType: n.Resource.Type,
-						Provider:     n.Resource.Provider,
-						Dependencies: n.StateDependencies(),
-						State:        &state,
-					},
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
 				},
 				&EvalApplyPost{
 					Info:  info,

@@ -112,9 +112,14 @@ func formatPlanModuleExpand(
 			symbol = "-"
 		}
 
+		taintStr := ""
+		if rdiff.DestroyTainted {
+			taintStr = " (tainted)"
+		}
+
 		buf.WriteString(opts.Color.Color(fmt.Sprintf(
-			"[%s]%s %s\n",
-			color, symbol, name)))
+			"[%s]%s %s%s\n",
+			color, symbol, name, taintStr)))
 
 		// Get all the attributes that are changing, and sort them. Also
 		// determine the longest key so that we can align them all.

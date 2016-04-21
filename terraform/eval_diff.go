@@ -104,7 +104,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		diff = new(InstanceDiff)
 	}
 
-	// Require a destroy if there is no ID and it requires new.
+	// Require a destroy if there is an ID and it requires new.
 	if diff.RequiresNew() && state != nil && state.ID != "" {
 		diff.Destroy = true
 	}
@@ -212,41 +212,6 @@ func (n *EvalDiffDestroyModule) Eval(ctx EvalContext) (interface{}, error) {
 		modDiff = diff.AddModule(n.Path)
 	}
 	modDiff.Destroy = true
-
-	return nil, nil
-}
-
-// EvalDiffTainted is an EvalNode implementation that writes the diff to
-// the full diff.
-type EvalDiffTainted struct {
-	Name string
-	Diff **InstanceDiff
-}
-
-// TODO: test
-func (n *EvalDiffTainted) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-
-	// Get a read lock so we can access this instance
-	lock.RLock()
-	defer lock.RUnlock()
-
-	// Look for the module state. If we don't have one, then it doesn't matter.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	// Look for the resource state. If we don't have one, then it is okay.
-	rs := mod.Resources[n.Name]
-	if rs == nil {
-		return nil, nil
-	}
-
-	// If we have tainted, then mark it on the diff
-	if len(rs.Tainted) > 0 {
-		(*n.Diff).DestroyTainted = true
-	}
 
 	return nil, nil
 }

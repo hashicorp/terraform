@@ -308,6 +308,11 @@ func (m schemaMap) Diff(
 	result := new(terraform.InstanceDiff)
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
+	// Make sure to mark if the resource is tainted
+	if s != nil {
+		result.DestroyTainted = s.Tainted
+	}
+
 	d := &ResourceData{
 		schema: m,
 		state:  s,
@@ -329,6 +334,9 @@ func (m schemaMap) Diff(
 		// Create the new diff
 		result2 := new(terraform.InstanceDiff)
 		result2.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+
+		// Preserve the DestroyTainted flag
+		result2.DestroyTainted = result.DestroyTainted
 
 		// Reset the data to not contain state. We have to call init()
 		// again in order to reset the FieldReaders.

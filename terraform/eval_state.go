@@ -1,8 +1,6 @@
 package terraform
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // EvalReadState is an EvalNode implementation that reads the
 // primary InstanceState for a specific resource out of the state.
@@ -14,31 +12,6 @@ type EvalReadState struct {
 func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	return readInstanceFromState(ctx, n.Name, n.Output, func(rs *ResourceState) (*InstanceState, error) {
 		return rs.Primary, nil
-	})
-}
-
-// EvalReadStateTainted is an EvalNode implementation that reads a
-// tainted InstanceState for a specific resource out of the state
-type EvalReadStateTainted struct {
-	Name   string
-	Output **InstanceState
-	// Index indicates which instance in the Tainted list to target, or -1 for
-	// the last item.
-	Index int
-}
-
-func (n *EvalReadStateTainted) Eval(ctx EvalContext) (interface{}, error) {
-	return readInstanceFromState(ctx, n.Name, n.Output, func(rs *ResourceState) (*InstanceState, error) {
-		// Get the index. If it is negative, then we get the last one
-		idx := n.Index
-		if idx < 0 {
-			idx = len(rs.Tainted) - 1
-		}
-		if idx >= 0 && idx < len(rs.Tainted) {
-			return rs.Tainted[idx], nil
-		} else {
-			return nil, fmt.Errorf("bad tainted index: %d, for resource: %#v", idx, rs)
-		}
 	})
 }
 
@@ -163,33 +136,6 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
 		func(rs *ResourceState) error {
 			rs.Primary = *n.State
-			return nil
-		},
-	)
-}
-
-// EvalWriteStateTainted is an EvalNode implementation that writes
-// an InstanceState out to the Tainted list of a resource in the state.
-type EvalWriteStateTainted struct {
-	Name         string
-	ResourceType string
-	Provider     string
-	Dependencies []string
-	State        **InstanceState
-	// Index indicates which instance in the Tainted list to target, or -1 to append.
-	Index int
-}
-
-// EvalWriteStateTainted is an EvalNode implementation that writes the
-// one of the tainted InstanceStates for a specific resource out of the state.
-func (n *EvalWriteStateTainted) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
-		func(rs *ResourceState) error {
-			if n.Index == -1 {
-				rs.Tainted = append(rs.Tainted, *n.State)
-			} else {
-				rs.Tainted[n.Index] = *n.State
-			}
 			return nil
 		},
 	)
