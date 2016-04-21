@@ -285,7 +285,8 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 // EvalUndeposeState is an EvalNode implementation that reads the
 // InstanceState for a specific resource out of the state.
 type EvalUndeposeState struct {
-	Name string
+	Name  string
+	State **InstanceState
 }
 
 // TODO: test
@@ -316,7 +317,7 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	// Undepose
 	idx := len(rs.Deposed) - 1
 	rs.Primary = rs.Deposed[idx]
-	rs.Deposed[idx] = nil
+	rs.Deposed[idx] = *n.State
 
 	return nil, nil
 }

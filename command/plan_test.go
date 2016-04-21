@@ -764,10 +764,12 @@ foo = "bar"
 
 const testPlanBackupStr = `
 ID = bar
+Tainted = false
 `
 
 const testPlanDisableBackupStr = `
 ID = bar
+Tainted = false
 `
 
 const testPlanNoStateStr = `
@@ -776,8 +778,10 @@ const testPlanNoStateStr = `
 
 const testPlanStateStr = `
 ID = bar
+Tainted = false
 `
 
 const testPlanStateDefaultStr = `
 ID = bar
+Tainted = false
 `

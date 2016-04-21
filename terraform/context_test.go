@@ -107,8 +107,12 @@ func testDiffFn(
 	info *InstanceInfo,
 	s *InstanceState,
 	c *ResourceConfig) (*InstanceDiff, error) {
-	var diff InstanceDiff
+	diff := new(InstanceDiff)
 	diff.Attributes = make(map[string]*ResourceAttrDiff)
+
+	if s != nil {
+		diff.DestroyTainted = s.Tainted
+	}
 
 	for k, v := range c.Raw {
 		if _, ok := v.(string); !ok {
@@ -181,17 +185,21 @@ func testDiffFn(
 		}
 	}
 
-	for k, v := range diff.Attributes {
-		if v.NewComputed {
-			continue
-		}
+	// If we recreate this resource because it's tainted, we keep all attrs
+	if !diff.RequiresNew() {
+		for k, v := range diff.Attributes {
+			if v.NewComputed {
+				continue
+			}
 
-		old, ok := s.Attributes[k]
-		if !ok {
-			continue
-		}
-		if old == v.New {
-			delete(diff.Attributes, k)
+			old, ok := s.Attributes[k]
+			if !ok {
+				continue
+			}
+
+			if old == v.New {
+				delete(diff.Attributes, k)
+			}
 		}
 	}
 
@@ -202,7 +210,7 @@ func testDiffFn(
 		}
 	}
 
-	return &diff, nil
+	return diff, nil
 }
 
 func testProvider(prefix string) *MockResourceProvider {
@@ -276,9 +284,8 @@ root
 `
 
 const testContextRefreshModuleStr = `
-aws_instance.web: (1 tainted)
-  ID = <not created>
-  Tainted ID 1 = bar
+aws_instance.web: (tainted)
+  ID = bar
 
 module.child:
   aws_instance.web:
@@ -300,7 +307,6 @@ const testContextRefreshOutputPartialStr = `
 `
 
 const testContextRefreshTaintedStr = `
-aws_instance.web: (1 tainted)
-  ID = <not created>
-  Tainted ID 1 = foo
+aws_instance.web: (tainted)
+  ID = foo
 `

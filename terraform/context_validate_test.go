@@ -651,10 +651,9 @@ func TestContext2Validate_tainted(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-							},
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
 						},
 					},
 				},

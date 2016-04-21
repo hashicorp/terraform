@@ -120,7 +120,11 @@ func (n *GraphNodeConfigResource) VarWalk(fn func(config.InterpolatedVariable)) 
 }
 
 func (n *GraphNodeConfigResource) Name() string {
-	return n.Resource.Id() + " (destroy)"
+	result := n.Resource.Id()
+	if n.Destroy {
+		result += " (destroy)"
+	}
+	return result
 }
 
 // GraphNodeDotter impl.

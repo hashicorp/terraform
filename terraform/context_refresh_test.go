@@ -324,10 +324,9 @@ func TestContext2Refresh_modules(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-							},
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
 						},
 					},
 				},
@@ -580,10 +579,9 @@ func TestContext2Refresh_tainted(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-							},
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
 						},
 					},
 				},
@@ -600,7 +598,8 @@ func TestContext2Refresh_tainted(t *testing.T) {
 
 	p.RefreshFn = nil
 	p.RefreshReturn = &InstanceState{
-		ID: "foo",
+		ID:      "foo",
+		Tainted: true,
 	}
 
 	s, err := ctx.Refresh()
