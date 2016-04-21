@@ -23,10 +23,13 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 		"^arn:aws:s3:::")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:      func() { testAccPreCheck(t) },
-		IDRefreshName: "aws_s3_bucket.bucket",
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckAWSS3BucketDestroy,
+		PreCheck: func() { testAccPreCheck(t) },
+		/*
+			IDRefreshName:   "aws_s3_bucket.bucket",
+			IDRefreshIgnore: []string{"force_destroy"},
+		*/
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSS3BucketConfig(rInt),
