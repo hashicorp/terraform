@@ -42,7 +42,7 @@ IMPROVEMENTS:
  * provider/aws: normalise json for `aws_sns_topic` [GH-6089]
  * provider/aws: normalize json for `aws_cloudwatch_event_rule` [GH-6025]
  * provider/aws: Opsworks layers now support `custom_json` argument [GH-4272]
- * provider/aws: Added migration for `tier` attribute in `aws_elastic_beanstalk_environment` [GH-6167] 
+ * provider/aws: Added migration for `tier` attribute in `aws_elastic_beanstalk_environment` [GH-6167]
  * provider/aws: Use resource.Retry for route creation and deletion [GH-6225]
  * provider/aws: Add support S3 Bucket Lifecycle Rule [GH-6220]
  * provider/clc: Override default `account` alias in provider config [GH-5785]
@@ -86,6 +86,8 @@ BUG FIXES:
  * provider/aws: Don't read back `aws_opsworks_stack` cookbooks source password [GH-6203]
  * provider/aws: Resolves DefaultOS and ConfigurationManager conflict on `aws_opsworks_stack` [GH-6244]
  * provider/aws: Renaming `aws_elastic_beanstalk_configuration_template``option_settings` to `setting` [GH-6043]
+ * provider/aws: `aws_customer_gateway` will properly populate `bgp_asn`
+     on refresh. [no issue]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
@@ -214,7 +216,7 @@ BUG FIXES:
   * provider/aws: Fix a bug where listener protocol on `aws_elb` resources was case insensitive ([#5376](https://github.com/hashicorp/terraform/issues/5376))
   * provider/aws: Fix a bug which caused panics creating rules on security groups in EC2 Classic ([#5329](https://github.com/hashicorp/terraform/issues/5329))
   * provider/aws: Fix crash when `aws_lambda_function` VpcId is nil ([#5182](https://github.com/hashicorp/terraform/issues/5182))
-  * provider/aws: Fix error with parsing JSON in `aws_s3_bucket` policy attribute ([#5474](https://github.com/hashicorp/terraform/issues/5474))  
+  * provider/aws: Fix error with parsing JSON in `aws_s3_bucket` policy attribute ([#5474](https://github.com/hashicorp/terraform/issues/5474))
   * provider/aws: `aws_lambda_function` can be properly updated, either via `s3_object_version` or via `filename` & `source_code_hash` as described in docs ([#5239](https://github.com/hashicorp/terraform/issues/5239))
   * provider/google: Fix managed instance group preemptible instance creation ([#4834](https://github.com/hashicorp/terraform/issues/4834))
   * provider/openstack: Account for a 403 reply when os-tenant-networks is disabled ([#5432](https://github.com/hashicorp/terraform/issues/5432))
