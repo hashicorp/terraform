@@ -61,7 +61,7 @@ The following arguments are supported:
     * `warning`
     * `critical`
 * `notify_no_data` (Optional) A boolean indicating whether this monitor will notify when data stops reporting. Defaults
-    to false.
+    to true.
 * `no_data_timeframe` (Optional) The number of minutes before a monitor will notify when data stops reporting. Must be at
     least 2x the monitor timeframe for metric alerts or 2 minutes for service checks. Default: 2x timeframe for
     metric alerts, 2 minutes for service checks.
