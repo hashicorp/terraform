@@ -138,6 +138,14 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	// In the import case this will be empty
+	if _, ok := d.GetOk("zone_id"); !ok {
+		d.Set("zone_id", d.Id())
+	}
+	if _, ok := d.GetOk("name"); !ok {
+		d.Set("name", zone.HostedZone.Name)
+	}
+
 	if !*zone.HostedZone.Config.PrivateZone {
 		ns := make([]string, len(zone.DelegationSet.NameServers))
 		for i := range zone.DelegationSet.NameServers {
