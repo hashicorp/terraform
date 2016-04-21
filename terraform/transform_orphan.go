@@ -316,11 +316,7 @@ func (n *graphNodeOrphanResource) dependableName() string {
 }
 
 // GraphNodeDestroyable impl.
-func (n *graphNodeOrphanResource) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
-	if mode != DestroyPrimary {
-		return nil
-	}
-
+func (n *graphNodeOrphanResource) DestroyNode() GraphNodeDestroy {
 	return n
 }
 
@@ -350,11 +346,7 @@ func (n *graphNodeOrphanResourceFlat) Path() []string {
 }
 
 // GraphNodeDestroyable impl.
-func (n *graphNodeOrphanResourceFlat) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
-	if mode != DestroyPrimary {
-		return nil
-	}
-
+func (n *graphNodeOrphanResourceFlat) DestroyNode() GraphNodeDestroy {
 	return n
 }
 
