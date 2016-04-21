@@ -214,7 +214,7 @@ func resourceAwsOpsworksStackCustomCookbooksSource(d *schema.ResourceData) *opsw
 
 func resourceAwsOpsworksSetStackCustomCookbooksSource(d *schema.ResourceData, v *opsworks.Source) {
 	nv := make([]interface{}, 0, 1)
-	if v != nil {
+	if v != nil && v.Type != nil && *v.Type != "" {
 		m := make(map[string]interface{})
 		if v.Type != nil {
 			m["type"] = *v.Type
