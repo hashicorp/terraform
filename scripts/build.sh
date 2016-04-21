@@ -47,16 +47,8 @@ gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -ldflags "${LD_FLAGS}" \
-    -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
-    $(go list ./... | grep -v /vendor/)
-
-# Make sure "terraform-terraform" is renamed properly
-for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
-    set +e
-    mv ${PLATFORM}/terraform-terraform.exe ${PLATFORM}/terraform.exe 2>/dev/null
-    mv ${PLATFORM}/terraform-terraform ${PLATFORM}/terraform 2>/dev/null
-    set -e
-done
+    -output "pkg/{{.OS}}_{{.Arch}}/terraform" \
+    .
 
 # Move all the compiled things to the $GOPATH/bin
 GOPATH=${GOPATH:-$(go env GOPATH)}
