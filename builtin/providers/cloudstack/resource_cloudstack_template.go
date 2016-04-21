@@ -207,7 +207,11 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the template details
-	t, count, err := cs.Template.GetTemplateByID(d.Id(), "executable")
+	t, count, err := cs.Template.GetTemplateByID(
+		d.Id(),
+		"executable",
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf(

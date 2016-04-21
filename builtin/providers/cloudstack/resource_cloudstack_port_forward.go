@@ -103,7 +103,12 @@ func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{
 	}
 
 	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(cs, "ip_address", ipaddress.(string))
+	ipaddressid, e := retrieveID(
+		cs,
+		"ip_address",
+		ipaddress.(string),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if e != nil {
 		return e.Error()
 	}
@@ -189,12 +194,20 @@ func createPortForward(
 	}
 
 	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine.(string))
+	virtualmachineid, e := retrieveID(
+		cs,
+		"virtual_machine",
+		virtualmachine.(string),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if e != nil {
 		return e.Error()
 	}
 
-	vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(virtualmachineid)
+	vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(
+		virtualmachineid,
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		return err
 	}
@@ -326,9 +339,9 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 		// set to make sure we end up in a consistent state
 		forwards := o.(*schema.Set).Intersection(n.(*schema.Set))
 
-		// First loop through all the new forwards and create (before destroy) them
-		if nrs.Len() > 0 {
-			err := createPortForwards(d, meta, forwards, nrs)
+		// First loop through all the old forwards and delete them
+		if ors.Len() > 0 {
+			err := deletePortForwards(d, meta, forwards, ors)
 
 			// We need to update this first to preserve the correct state
 			d.Set("forward", forwards)
@@ -338,9 +351,9 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 			}
 		}
 
-		// Then loop through all the old forwards and delete them
-		if ors.Len() > 0 {
-			err := deletePortForwards(d, meta, forwards, ors)
+		// Then loop through all the new forwards and create them
+		if nrs.Len() > 0 {
+			err := createPortForwards(d, meta, forwards, nrs)
 
 			// We need to update this first to preserve the correct state
 			d.Set("forward", forwards)

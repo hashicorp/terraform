@@ -174,7 +174,12 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		// Retrieve the network ID
-		networkid, e := retrieveID(cs, "network", network.(string))
+		networkid, e := retrieveID(
+			cs,
+			"network",
+			network.(string),
+			cloudstack.WithProject(d.Get("project").(string)),
+		)
 		if e != nil {
 			return e.Error()
 		}
@@ -250,7 +255,10 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the virtual machine details
-	vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(d.Id())
+	vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf("[DEBUG] Instance %s does no longer exist", d.Get("name").(string))
