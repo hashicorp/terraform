@@ -472,9 +472,14 @@ func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 			k := fmt.Sprintf("var.%s.%s", args[0].(string), args[1].(string))
 			v, ok := vs[k]
 			if !ok {
-				return "", fmt.Errorf(
-					"lookup in '%s' failed to find '%s'",
-					args[0].(string), args[1].(string))
+				k = fmt.Sprintf("var.%s.*", args[0].(string))
+				v, ok = vs[k]
+				
+				if !ok {
+					return "", fmt.Errorf(
+						"lookup in '%s' failed to find '%s'",
+						args[0].(string), args[1].(string))
+				}
 			}
 			if v.Type != ast.TypeString {
 				return "", fmt.Errorf(
