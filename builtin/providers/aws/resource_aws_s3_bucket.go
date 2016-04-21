@@ -871,7 +871,12 @@ func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) err
 	ws := d.Get("website").([]interface{})
 
 	if len(ws) == 1 {
-		w := ws[0].(map[string]interface{})
+		var w map[string]interface{}
+		if ws[0] != nil {
+			w = ws[0].(map[string]interface{})
+		} else {
+			w = make(map[string]interface{})
+		}
 		return resourceAwsS3BucketWebsitePut(s3conn, d, w)
 	} else if len(ws) == 0 {
 		return resourceAwsS3BucketWebsiteDelete(s3conn, d)
@@ -883,10 +888,19 @@ func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) err
 func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, website map[string]interface{}) error {
 	bucket := d.Get("bucket").(string)
 
-	indexDocument := website["index_document"].(string)
-	errorDocument := website["error_document"].(string)
-	redirectAllRequestsTo := website["redirect_all_requests_to"].(string)
-	routingRules := website["routing_rules"].(string)
+	var indexDocument, errorDocument, redirectAllRequestsTo, routingRules string
+	if v, ok := website["index_document"]; ok {
+		indexDocument = v.(string)
+	}
+	if v, ok := website["error_document"]; ok {
+		errorDocument = v.(string)
+	}
+	if v, ok := website["redirect_all_requests_to"]; ok {
+		redirectAllRequestsTo = v.(string)
+	}
+	if v, ok := website["routing_rules"]; ok {
+		routingRules = v.(string)
+	}
 
 	if indexDocument == "" && redirectAllRequestsTo == "" {
 		return fmt.Errorf("Must specify either index_document or redirect_all_requests_to.")
