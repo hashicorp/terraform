@@ -544,11 +544,9 @@ func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
 func TestAccAWSSecurityGroup_drift(t *testing.T) {
 	var group ec2.SecurityGroup
 	resource.Test(t, resource.TestCase{
-		PreCheck:         func() { testAccPreCheck(t) },
-		DisableIDRefresh: true,
-		IDRefreshName:    "aws_security_group.web",
-		Providers:        testAccProviders,
-		CheckDestroy:     testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfig_drift(),
@@ -576,11 +574,9 @@ func TestAccAWSSecurityGroup_drift_complex(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:         func() { testAccPreCheck(t) },
-		DisableIDRefresh: true,
-		IDRefreshName:    "aws_security_group.web",
-		Providers:        testAccProviders,
-		CheckDestroy:     testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfig_drift_complex(),
