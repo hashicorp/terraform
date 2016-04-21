@@ -84,6 +84,7 @@ BUG FIXES:
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
  * provider/aws: Show human-readable error message when failing to read an EBS volume [GH-6038]
  * provider/aws: set ASG `health_check_grace_period` default to 300 [GH-5830]
+ * provider/aws: Fix issue with with Opsworks and empty Custom Cook Book sources [GH-6078]
  * provider/aws: wait for IAM instance profile to propagate when creating Opsworks stacks [GH-6049]
  * provider/aws: Don't read back `aws_opsworks_stack` cookbooks source password [GH-6203]
  * provider/aws: Resolves DefaultOS and ConfigurationManager conflict on `aws_opsworks_stack` [GH-6244]
