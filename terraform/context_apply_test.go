@@ -831,14 +831,13 @@ func TestContext2Apply_countTainted(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-								Attributes: map[string]string{
-									"foo":  "foo",
-									"type": "aws_instance",
-								},
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
 							},
+							Tainted: true,
 						},
 					},
 				},
@@ -2666,13 +2665,12 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-								Attributes: map[string]string{
-									"id": "bar",
-								},
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"id": "bar",
 							},
+							Tainted: true,
 						},
 					},
 				},
@@ -3182,14 +3180,13 @@ func TestContext2Apply_taint(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.bar": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "baz",
-								Attributes: map[string]string{
-									"num":  "2",
-									"type": "aws_instance",
-								},
+						Primary: &InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"num":  "2",
+								"type": "aws_instance",
 							},
+							Tainted: true,
 						},
 					},
 				},
@@ -3236,14 +3233,13 @@ func TestContext2Apply_taintDep(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "baz",
-								Attributes: map[string]string{
-									"num":  "2",
-									"type": "aws_instance",
-								},
+						Primary: &InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"num":  "2",
+								"type": "aws_instance",
 							},
+							Tainted: true,
 						},
 					},
 					"aws_instance.bar": &ResourceState{
@@ -3299,14 +3295,13 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "baz",
-								Attributes: map[string]string{
-									"num":  "2",
-									"type": "aws_instance",
-								},
+						Primary: &InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"num":  "2",
+								"type": "aws_instance",
 							},
+							Tainted: true,
 						},
 					},
 					"aws_instance.bar": &ResourceState{
@@ -4115,10 +4110,9 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 					Path: rootModulePath,
 					Resources: map[string]*ResourceState{
 						"aws_instance.ifailedprovisioners": &ResourceState{
-							Tainted: []*InstanceState{
-								&InstanceState{
-									ID: "ifailedprovisioners",
-								},
+							Primary: &InstanceState{
+								ID:      "ifailedprovisioners",
+								Tainted: true,
 							},
 						},
 					},
@@ -4162,9 +4156,8 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.iambeingadded:
   ID = foo
-aws_instance.ifailedprovisioners: (1 tainted)
-  ID = <not created>
-  Tainted ID 1 = ifailedprovisioners
+aws_instance.ifailedprovisioners: (tainted)
+  ID = ifailedprovisioners
 		`)
 	if actual != expected {
 		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)

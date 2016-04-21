@@ -311,7 +311,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Config:      &resourceConfig,
 					Provider:    &provider,
 					State:       &state,
-					Output:      &diff,
+					OutputDiff:  &diff,
 					OutputState: &state,
 				},
 				&EvalCheckPreventDestroy{
@@ -366,7 +366,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	// Apply
 	var diffApply *InstanceDiff
 	var err error
-	var createNew, tainted bool
+	var createNew bool
 	var createBeforeDestroyEnabled bool
 	var wasChangeType DiffChangeType
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
@@ -430,11 +430,12 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				},
 
 				&EvalDiff{
-					Info:     info,
-					Config:   &resourceConfig,
-					Provider: &provider,
-					State:    &state,
-					Output:   &diffApply,
+					Info:       info,
+					Config:     &resourceConfig,
+					Provider:   &provider,
+					Diff:       &diffApply,
+					State:      &state,
+					OutputDiff: &diffApply,
 				},
 				&EvalIgnoreChanges{
 					Resource:      n.Resource,
@@ -485,20 +486,22 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Resource:       n.Resource,
 					InterpResource: resource,
 					CreateNew:      &createNew,
-					Tainted:        &tainted,
 					Error:          &err,
 				},
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if createBeforeDestroyEnabled {
-							tainted = err != nil
-						}
-
-						failure := tainted || err != nil
-						return createBeforeDestroyEnabled && failure, nil
+						return createBeforeDestroyEnabled && err != nil, nil
 					},
 					Then: &EvalUndeposeState{
-						Name: n.stateId(),
+						Name:  n.stateId(),
+						State: &state,
+					},
+					Else: &EvalWriteState{
+						Name:         n.stateId(),
+						ResourceType: n.Resource.Type,
+						Provider:     n.Resource.Provider,
+						Dependencies: n.StateDependencies(),
+						State:        &state,
 					},
 				},
 
@@ -510,13 +513,6 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Diff: nil,
 				},
 
-				&EvalWriteState{
-					Name:         n.stateId(),
-					ResourceType: n.Resource.Type,
-					Provider:     n.Resource.Provider,
-					Dependencies: n.StateDependencies(),
-					State:        &state,
-				},
 				&EvalApplyPost{
 					Info:  info,
 					State: &state,
