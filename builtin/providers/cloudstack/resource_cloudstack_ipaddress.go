@@ -74,7 +74,12 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	}
 	if ok {
 		// Retrieve the network ID
-		networkid, e := retrieveID(cs, "network", network.(string))
+		networkid, e := retrieveID(
+			cs,
+			"network",
+			network.(string),
+			cloudstack.WithProject(d.Get("project").(string)),
+		)
 		if e != nil {
 			return e.Error()
 		}
@@ -89,7 +94,12 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	}
 	if ok {
 		// Retrieve the vpc ID
-		vpcid, e := retrieveID(cs, "vpc", vpc.(string))
+		vpcid, e := retrieveID(
+			cs,
+			"vpc",
+			vpc.(string),
+			cloudstack.WithProject(d.Get("project").(string)),
+		)
 		if e != nil {
 			return e.Error()
 		}
@@ -118,7 +128,10 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the IP address details
-	ip, count, err := cs.Address.GetPublicIpAddressByID(d.Id())
+	ip, count, err := cs.Address.GetPublicIpAddressByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf(
