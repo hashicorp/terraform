@@ -417,6 +417,11 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// In the import case, we won't have this
+	if _, ok := d.GetOk("bucket"); !ok {
+		d.Set("bucket", d.Id())
+	}
+
 	// Read the policy
 	pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
 		Bucket: aws.String(d.Id()),
