@@ -391,7 +391,8 @@ resource "aws_network_acl" "foos" {
 		from_port = 443
 		to_port = 443
 	}
-	subnet_id = "${aws_subnet.blob.id}"
+
+	subnet_ids = ["${aws_subnet.blob.id}"]
 }
 `
 const testAccAWSNetworkAclIngressConfigChange = `
@@ -416,7 +417,7 @@ resource "aws_network_acl" "foos" {
 		from_port = 0
 		to_port = 22
 	}
-	subnet_id = "${aws_subnet.blob.id}"
+	subnet_ids = ["${aws_subnet.blob.id}"]
 }
 `
 
@@ -528,11 +529,11 @@ resource "aws_subnet" "new" {
 }
 resource "aws_network_acl" "roll" {
 	vpc_id = "${aws_vpc.foo.id}"
-	subnet_id = "${aws_subnet.new.id}"
+	subnet_ids = ["${aws_subnet.new.id}"]
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
-	subnet_id = "${aws_subnet.old.id}"
+	subnet_ids = ["${aws_subnet.old.id}"]
 }
 `
 
@@ -555,7 +556,7 @@ resource "aws_subnet" "new" {
 }
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
-	subnet_id = "${aws_subnet.new.id}"
+	subnet_ids = ["${aws_subnet.new.id}"]
 }
 `
 
