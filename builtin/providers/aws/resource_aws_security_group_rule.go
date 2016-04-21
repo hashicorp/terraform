@@ -6,6 +6,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -153,7 +154,25 @@ information and instructions for recovery. Error message: %s`, awsErr.Message())
 	d.SetId(id)
 	log.Printf("[DEBUG] Security group rule ID set to %s", id)
 
-	return resourceAwsSecurityGroupRuleRead(d, meta)
+	pollsWhereNotFound := 0
+	for {
+		retErr := resourceAwsSecurityGroupRuleRead(d, meta)
+		if retErr != nil || d.Id() != "" {
+			if pollsWhereNotFound > 0 {
+				log.Printf("[DEBUG] %d attempts had to be made for Secuirty Group (%s) to return Rule (%s)", pollsWhereNotFound, sg_id, id)
+			}
+			return retErr
+		} else {
+			pollsWhereNotFound++
+			if pollsWhereNotFound > 100 {
+				log.Printf("[DEBUG] Gave up waiting for Secuirty Group (%s) to return Rule (%s) after creation", sg_id, id)
+				return nil
+			}
+			d.SetId(id)
+			time.Sleep(4 * time.Second)
+			continue
+		}
+	}
 }
 
 func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) error {
