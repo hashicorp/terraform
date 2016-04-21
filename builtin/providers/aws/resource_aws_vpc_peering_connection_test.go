@@ -63,9 +63,6 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 				t.Fatal("AWS_ACCOUNT_ID must be set")
 			}
 		},
-
-		DisableIDRefresh: true,
-
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSVpcPeeringConnectionDestroy,
 		Steps: []resource.TestStep{
