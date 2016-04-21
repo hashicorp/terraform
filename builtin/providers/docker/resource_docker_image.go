@@ -26,6 +26,16 @@ func resourceDockerImage() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"username": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"password": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }

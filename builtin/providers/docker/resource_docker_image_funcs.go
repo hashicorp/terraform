@@ -108,7 +108,7 @@ func fetchLocalImages(data *Data, client *dc.Client) error {
 	return nil
 }
 
-func pullImage(data *Data, client *dc.Client, image string) error {
+func pullImage(data *Data, d *schema.ResourceData, client *dc.Client, image string) error {
 	// TODO: Test local registry handling. It should be working
 	// based on the code that was ported over
 
@@ -146,8 +146,17 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 		pullOpts.Repository = image
 	}
 
-	if err := client.PullImage(pullOpts, dc.AuthConfiguration{}); err != nil {
-		return fmt.Errorf("Error pulling image %s: %s\n", image, err)
+	if d.Get("username") != nil && d.Get("password") != nil {
+		u := d.Get("username").(string)
+		p := d.Get("password").(string)
+		authConfig := dc.AuthConfiguration{Username: u, Password: p, Email: "", ServerAddress: pullOpts.Registry}
+		if err := client.PullImage(pullOpts, authConfig); err != nil {
+			return fmt.Errorf("Error pulling image w/Auth %s: %s\n", image, err)
+		}
+	} else {
+		if err := client.PullImage(pullOpts, dc.AuthConfiguration{}); err != nil {
+			return fmt.Errorf("Error pulling image %s: %s\n", image, err)
+		}
 	}
 
 	return fetchLocalImages(data, client)
@@ -188,7 +197,7 @@ func findImage(d *schema.ResourceData, client *dc.Client) (*dc.APIImages, error)
 	foundImage := searchLocalImages(data, imageName)
 
 	if d.Get("keep_updated").(bool) || foundImage == nil {
-		if err := pullImage(&data, client, imageName); err != nil {
+		if err := pullImage(&data, d, client, imageName); err != nil {
 			return nil, fmt.Errorf("Unable to pull image %s: %s", imageName, err)
 		}
 	}
