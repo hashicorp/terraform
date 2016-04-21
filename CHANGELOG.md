@@ -64,6 +64,7 @@ IMPROVEMENTS:
  * provider/postgresql: New `ssl_mode` argument allowing different SSL usage tradeoffs [GH-6008]
  * provider/vsphere: Support for linked clones and Windows-specific guest config options [GH-6087]
  * provider/vsphere: Checking for Powered Off State before `vsphere_virtual_machine` deletion [GH-6283]
+ * provider/vsphere: Support mounting ISO images to virtual cdrom drives [GH-4243]
  * provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
  * provider/cloudstack: Add group attribute to `cloudstack_instance` resource [GH-6023]
 
