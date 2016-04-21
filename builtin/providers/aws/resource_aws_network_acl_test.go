@@ -15,9 +15,10 @@ func TestAccAWSNetworkAcl_EgressAndIngressRules(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSNetworkAclEgressNIngressConfig,
@@ -57,9 +58,10 @@ func TestAccAWSNetworkAcl_OnlyIngressRules_basic(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.foos",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSNetworkAclIngressConfig,
@@ -88,9 +90,10 @@ func TestAccAWSNetworkAcl_OnlyIngressRules_update(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.foos",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSNetworkAclIngressConfig,
@@ -142,9 +145,10 @@ func TestAccAWSNetworkAcl_OnlyEgressRules(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.bond",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSNetworkAclEgressConfig,
@@ -160,9 +164,10 @@ func TestAccAWSNetworkAcl_OnlyEgressRules(t *testing.T) {
 func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSNetworkAclSubnetConfig,
@@ -196,9 +201,10 @@ func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSNetworkAclSubnet_SubnetIds,
@@ -622,7 +628,7 @@ resource "aws_subnet" "four" {
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
 	subnet_ids = [
-		"${aws_subnet.one.id}", 
+		"${aws_subnet.one.id}",
 		"${aws_subnet.three.id}",
 		"${aws_subnet.four.id}",
 	]
