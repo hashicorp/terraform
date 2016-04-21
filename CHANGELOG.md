@@ -63,7 +63,8 @@ IMPROVEMENTS:
  * provider/openstack: Enable Token Authentication [GH-6081]
  * provider/postgresql: New `ssl_mode` argument allowing different SSL usage tradeoffs [GH-6008]
  * provider/vsphere: Support for linked clones and Windows-specific guest config options [GH-6087]
- *provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
+ * provider/vsphere: Checking for Powered Off State before `vsphere_virtual_machine` deletion [GH-6283]
+ * provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
  * provider/cloudstack: Add group attribute to `cloudstack_instance` resource [GH-6023]
 
 BUG FIXES:
@@ -87,8 +88,7 @@ BUG FIXES:
  * provider/aws: Don't read back `aws_opsworks_stack` cookbooks source password [GH-6203]
  * provider/aws: Resolves DefaultOS and ConfigurationManager conflict on `aws_opsworks_stack` [GH-6244]
  * provider/aws: Renaming `aws_elastic_beanstalk_configuration_template``option_settings` to `setting` [GH-6043]
- * provider/aws: `aws_customer_gateway` will properly populate `bgp_asn`
-     on refresh. [no issue]
+ * provider/aws: `aws_customer_gateway` will properly populate `bgp_asn` on refresh. [no issue]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
