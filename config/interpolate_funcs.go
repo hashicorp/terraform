@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -53,6 +54,7 @@ func Funcs() map[string]ast.Function {
 		"split":        interpolationFuncSplit(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+		"urlencode":    interpolationURLEncode(),
 	}
 }
 
@@ -710,6 +712,17 @@ func interpolationFuncUUID() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return uuid.GenerateUUID()
+		},
+	}
+}
+
+func interpolationURLEncode() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			return url.QueryEscape(s), nil
 		},
 	}
 }
