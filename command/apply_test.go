@@ -1361,16 +1361,20 @@ const applyVarFileJSON = `
 
 const testApplyDisableBackupStr = `
 ID = bar
+Tainted = false
 `
 
 const testApplyDisableBackupStateStr = `
 ID = bar
+Tainted = false
 `
 
 const testApplyStateStr = `
 ID = bar
+Tainted = false
 `
 
 const testApplyStateDiffStr = `
 ID = bar
+Tainted = false
 `

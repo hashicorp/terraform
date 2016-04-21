@@ -69,8 +69,9 @@ type EvalDiff struct {
 	Info        *InstanceInfo
 	Config      **ResourceConfig
 	Provider    *ResourceProvider
+	Diff        **InstanceDiff
 	State       **InstanceState
-	Output      **InstanceDiff
+	OutputDiff  **InstanceDiff
 	OutputState **InstanceState
 }
 
@@ -104,6 +105,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		diff = new(InstanceDiff)
 	}
 
+	// Preserve the DestroyTainted flag
+	if n.Diff != nil {
+		diff.DestroyTainted = (*n.Diff).DestroyTainted
+	}
+
 	// Require a destroy if there is an ID and it requires new.
 	if diff.RequiresNew() && state != nil && state.ID != "" {
 		diff.Destroy = true
@@ -135,7 +141,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Update our output
-	*n.Output = diff
+	*n.OutputDiff = diff
 
 	// Update the state if we care
 	if n.OutputState != nil {

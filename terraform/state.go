@@ -327,7 +327,7 @@ func (s *State) removeInstance(path []string, r *ResourceState, v *InstanceState
 	}
 
 	// Check lists
-	lists := [][]*InstanceState{r.Tainted, r.Deposed}
+	lists := [][]*InstanceState{r.Deposed}
 	for _, is := range lists {
 		for i, instance := range is {
 			if instance == v {
@@ -861,7 +861,11 @@ func (m *ModuleState) String() string {
 		}
 
 		for idx, t := range rs.Deposed {
-			buf.WriteString(fmt.Sprintf("  Deposed ID %d = %s\n", idx+1, t.ID))
+			taintStr := ""
+			if t.Tainted {
+				taintStr = " (tainted)"
+			}
+			buf.WriteString(fmt.Sprintf("  Deposed ID %d = %s%s\n", idx+1, t.ID, taintStr))
 		}
 
 		if len(rs.Dependencies) > 0 {
@@ -1030,11 +1034,14 @@ type ResourceState struct {
 	// Deposed is used in the mechanics of CreateBeforeDestroy: the existing
 	// Primary is Deposed to get it out of the way for the replacement Primary to
 	// be created by Apply. If the replacement Primary creates successfully, the
-	// Deposed instance is cleaned up. If there were problems creating the
-	// replacement, the instance remains in the Deposed list so it can be
-	// destroyed in a future run. Functionally, Deposed instances are very
-	// similar to Tainted instances in that Terraform is only tracking them in
-	// order to remember to destroy them.
+	// Deposed instance is cleaned up.
+	//
+	// If there were problems creating the replacement Primary, the Deposed
+	// instance and the (now tainted) replacement Primary will be swapped so the
+	// tainted replacement will be cleaned up instead.
+	//
+	// An instance will remain in the Deposed list until it is successfully
+	// destroyed and purged.
 	Deposed []*InstanceState `json:"deposed,omitempty"`
 
 	// Provider is used when a resource is connected to a provider with an alias.
@@ -1071,22 +1078,21 @@ func (s *ResourceState) Equal(other *ResourceState) bool {
 		return false
 	}
 
-	// Tainted
-	if s.Primary.Tainted != other.Primary.Tainted {
-		return false
-	}
-
 	return true
 }
 
 // Taint marks a resource as tainted.
 func (r *ResourceState) Taint() {
-	r.Primary.Tainted = true
+	if r.Primary != nil {
+		r.Primary.Tainted = true
+	}
 }
 
 // Untaint unmarks a resource as tainted.
 func (r *ResourceState) Untaint() {
-	r.Primary.Tainted = false
+	if r.Primary != nil {
+		r.Primary.Tainted = false
+	}
 }
 
 func (r *ResourceState) init() {

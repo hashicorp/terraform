@@ -1718,10 +1718,9 @@ func TestContext2Plan_taint(t *testing.T) {
 					},
 					"aws_instance.bar": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "baz",
-							},
+						Primary: &InstanceState{
+							ID:      "baz",
+							Tainted: true,
 						},
 					},
 				},
@@ -1748,57 +1747,6 @@ func TestContext2Plan_taint(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_multiple_taint(t *testing.T) {
-	m := testModule(t, "plan-taint")
-	p := testProvider("aws")
-	p.DiffFn = testDiffFn
-	s := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{"num": "2"},
-						},
-					},
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "baz",
-							},
-							&InstanceState{
-								ID: "zip",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	ctx := testContext2(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-		State: s,
-	})
-
-	plan, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanMultipleTaintStr)
-	if actual != expected {
-		t.Fatalf("bad:\n%s", actual)
-	}
-}
-
 // Fails about 50% of the time before the fix for GH-4982, covers the fix.
 func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 	m := testModule(t, "plan-taint-interpolated-count")
@@ -1811,8 +1759,9 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
 						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{ID: "bar"},
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
 						},
 					},
 					"aws_instance.foo.1": &ResourceState{
@@ -1849,9 +1798,8 @@ DESTROY/CREATE: aws_instance.foo.0
 
 STATE:
 
-aws_instance.foo.0: (1 tainted)
-  ID = <not created>
-  Tainted ID 1 = bar
+aws_instance.foo.0: (tainted)
+  ID = bar
 aws_instance.foo.1:
   ID = bar
 aws_instance.foo.2:

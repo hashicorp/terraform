@@ -603,8 +603,10 @@ const testPlanNoStateStr = `
 
 const testPlanStateStr = `
 ID = bar
+Tainted = false
 `
 
 const testPlanStateDefaultStr = `
 ID = bar
+Tainted = false
 `
