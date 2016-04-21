@@ -246,6 +246,19 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
+	// If we don't have a zone ID we're doing an import. Parse it from the ID.
+	if _, ok := d.GetOk("zone_id"); !ok {
+		parts := strings.Split(d.Id(), "_")
+		d.Set("zone_id", parts[0])
+		d.Set("name", parts[1])
+		d.Set("type", parts[2])
+		if len(parts) > 3 {
+			d.Set("set_identifier", parts[3])
+		}
+
+		d.Set("weight", -1)
+	}
+
 	record, err := findRecord(d, meta)
 	if err != nil {
 		switch err {
@@ -261,6 +274,18 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	err = d.Set("records", flattenResourceRecords(record.ResourceRecords))
 	if err != nil {
 		return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", d.Id(), err)
+	}
+
+	if alias := record.AliasTarget; alias != nil {
+		if _, ok := d.GetOk("alias"); !ok {
+			d.Set("alias", []interface{}{
+				map[string]interface{}{
+					"zone_id": *alias.HostedZoneId,
+					"name":    *alias.DNSName,
+					"evaluate_target_health": *alias.EvaluateTargetHealth,
+				},
+			})
+		}
 	}
 
 	d.Set("ttl", record.TTL)
