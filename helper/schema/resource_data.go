@@ -290,6 +290,10 @@ func (d *ResourceData) State() *terraform.InstanceState {
 		result.Attributes["id"] = d.Id()
 	}
 
+	if d.state != nil {
+		result.Tainted = d.state.Tainted
+	}
+
 	return &result
 }
 
