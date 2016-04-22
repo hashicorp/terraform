@@ -424,8 +424,8 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    10 * time.Minute,
-		MinTimeout: 5 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
 	}
 
 	// Wait, catching any errors
