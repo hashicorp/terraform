@@ -26,3 +26,6 @@ The command-line flags are all optional. The list of available flags are:
     a period-separated list. Example: "foo" would reference the module
     "foo" but "foo.bar" would reference the "bar" module in the "foo"
     module.
+* `-format=format_name` - The format to render the outputs in. Possible
+    options are "display" and "json". Default is "display"; a human readable
+    format. This option is only valid when no output name is specified.
