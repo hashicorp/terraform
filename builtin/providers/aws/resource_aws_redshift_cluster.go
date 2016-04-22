@@ -265,8 +265,8 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    5 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
