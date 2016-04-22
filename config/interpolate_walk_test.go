@@ -109,7 +109,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 	cases := []struct {
 		Input  interface{}
 		Output interface{}
-		Value  string
+		Value  interface{}
 	}{
 		{
 			Input: map[string]interface{}{
@@ -159,7 +159,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Value: NewStringList([]string{"bar", "baz"}).String(),
+			Value: []interface{}{"bar", "baz"},
 		},
 
 		{
@@ -170,7 +170,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				},
 			},
 			Output: map[string]interface{}{},
-			Value:  NewStringList([]string{UnknownVariableValue, "baz"}).String(),
+			Value:  []interface{}{UnknownVariableValue, "baz"},
 		},
 	}
 

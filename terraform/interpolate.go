@@ -63,7 +63,7 @@ func (i *Interpolater) Values(
 			if err != nil {
 				return nil, fmt.Errorf("invalid default map value for %s: %v", v.Name, v.Default)
 			}
-			// Potentially TODO(jen20): check against declared type
+
 			result[n] = variable
 		}
 	}
@@ -230,21 +230,26 @@ func (i *Interpolater) valueResourceVar(
 		return nil
 	}
 
-	var attr string
-	var err error
 	if v.Multi && v.Index == -1 {
-		attr, err = i.computeResourceMultiVariable(scope, v)
+		variable, err := i.computeResourceMultiVariable(scope, v)
+		if err != nil {
+			return err
+		}
+		if variable == nil {
+			return fmt.Errorf("no error reported by variable %q is nil", v.Name)
+		}
+		result[n] = *variable
 	} else {
-		attr, err = i.computeResourceVariable(scope, v)
-	}
-	if err != nil {
-		return err
+		variable, err := i.computeResourceVariable(scope, v)
+		if err != nil {
+			return err
+		}
+		if variable == nil {
+			return fmt.Errorf("no error reported by variable %q is nil", v.Name)
+		}
+		result[n] = *variable
 	}
 
-	result[n] = ast.Variable{
-		Value: attr,
-		Type:  ast.TypeString,
-	}
 	return nil
 }
 
@@ -334,7 +339,7 @@ func (i *Interpolater) valueUserVar(
 
 func (i *Interpolater) computeResourceVariable(
 	scope *InterpolationScope,
-	v *config.ResourceVariable) (string, error) {
+	v *config.ResourceVariable) (*ast.Variable, error) {
 	id := v.ResourceId()
 	if v.Multi {
 		id = fmt.Sprintf("%s.%d", id, v.Index)
@@ -343,16 +348,18 @@ func (i *Interpolater) computeResourceVariable(
 	i.StateLock.RLock()
 	defer i.StateLock.RUnlock()
 
+	unknownVariable := unknownVariable()
+
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
 	module, _, err := i.resourceVariableInfo(scope, v)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// If we have no module in the state yet or count, return empty
 	if module == nil || len(module.Resources) == 0 {
-		return "", nil
+		return nil, nil
 	}
 
 	// Get the resource out from the state. We know the state exists
@@ -374,12 +381,13 @@ func (i *Interpolater) computeResourceVariable(
 	}
 
 	if attr, ok := r.Primary.Attributes[v.Field]; ok {
-		return attr, nil
+		return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
 	}
 
 	// computed list attribute
 	if _, ok := r.Primary.Attributes[v.Field+".#"]; ok {
-		return i.interpolateListAttribute(v.Field, r.Primary.Attributes)
+		variable, err := i.interpolateListAttribute(v.Field, r.Primary.Attributes)
+		return &variable, err
 	}
 
 	// At apply time, we can't do the "maybe has it" check below
@@ -402,13 +410,13 @@ func (i *Interpolater) computeResourceVariable(
 			// Lists and sets make this
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
-				return attr, nil
+				return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
 			}
 
 			// Maps make this
 			key = fmt.Sprintf("%s", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
-				return attr, nil
+				return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
 			}
 		}
 	}
@@ -418,7 +426,7 @@ MISSING:
 	// semantic level. If we reached this point and don't have variables,
 	// just return the computed value.
 	if scope == nil && scope.Resource == nil {
-		return config.UnknownVariableValue, nil
+		return &unknownVariable, nil
 	}
 
 	// If the operation is refresh, it isn't an error for a value to
@@ -432,10 +440,10 @@ MISSING:
 	// For an input walk, computed values are okay to return because we're only
 	// looking for missing variables to prompt the user for.
 	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkDestroy || i.Operation == walkInput {
-		return config.UnknownVariableValue, nil
+		return &unknownVariable, nil
 	}
 
-	return "", fmt.Errorf(
+	return nil, fmt.Errorf(
 		"Resource '%s' does not have attribute '%s' "+
 			"for variable '%s'",
 		id,
@@ -445,21 +453,23 @@ MISSING:
 
 func (i *Interpolater) computeResourceMultiVariable(
 	scope *InterpolationScope,
-	v *config.ResourceVariable) (string, error) {
+	v *config.ResourceVariable) (*ast.Variable, error) {
 	i.StateLock.RLock()
 	defer i.StateLock.RUnlock()
+
+	unknownVariable := unknownVariable()
 
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
 	module, cr, err := i.resourceVariableInfo(scope, v)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Get the count so we know how many to iterate over
 	count, err := cr.Count()
 	if err != nil {
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"Error reading %s count: %s",
 			v.ResourceId(),
 			err)
@@ -467,7 +477,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 
 	// If we have no module in the state yet or count, return empty
 	if module == nil || len(module.Resources) == 0 || count == 0 {
-		return "", nil
+		return &ast.Variable{Type: ast.TypeString, Value: ""}, nil
 	}
 
 	var values []string
@@ -489,32 +499,37 @@ func (i *Interpolater) computeResourceMultiVariable(
 			continue
 		}
 
-		attr, ok := r.Primary.Attributes[v.Field]
-		if !ok {
-			// computed list attribute
-			_, ok := r.Primary.Attributes[v.Field+".#"]
-			if !ok {
-				continue
+		if singleAttr, ok := r.Primary.Attributes[v.Field]; ok {
+			if singleAttr == config.UnknownVariableValue {
+				return &unknownVariable, nil
 			}
-			attr, err = i.interpolateListAttribute(v.Field, r.Primary.Attributes)
-			if err != nil {
-				return "", err
-			}
-		}
 
-		if config.IsStringList(attr) {
-			for _, s := range config.StringList(attr).Slice() {
-				values = append(values, s)
-			}
+			values = append(values, singleAttr)
 			continue
 		}
 
-		// If any value is unknown, the whole thing is unknown
-		if attr == config.UnknownVariableValue {
-			return config.UnknownVariableValue, nil
+		// computed list attribute
+		_, ok = r.Primary.Attributes[v.Field+".#"]
+		if !ok {
+			continue
+		}
+		multiAttr, err := i.interpolateListAttribute(v.Field, r.Primary.Attributes)
+		if err != nil {
+			return nil, err
 		}
 
-		values = append(values, attr)
+		if multiAttr == unknownVariable {
+			return &ast.Variable{Type: ast.TypeString, Value: ""}, nil
+		}
+
+		for _, element := range multiAttr.Value.([]ast.Variable) {
+			strVal := element.Value.(string)
+			if strVal == config.UnknownVariableValue {
+				return &unknownVariable, nil
+			}
+
+			values = append(values, strVal)
+		}
 	}
 
 	if len(values) == 0 {
@@ -529,10 +544,10 @@ func (i *Interpolater) computeResourceMultiVariable(
 		// For an input walk, computed values are okay to return because we're only
 		// looking for missing variables to prompt the user for.
 		if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkDestroy || i.Operation == walkInput {
-			return config.UnknownVariableValue, nil
+			return &unknownVariable, nil
 		}
 
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"Resource '%s' does not have attribute '%s' "+
 				"for variable '%s'",
 			v.ResourceId(),
@@ -540,12 +555,13 @@ func (i *Interpolater) computeResourceMultiVariable(
 			v.FullKey())
 	}
 
-	return config.NewStringList(values).String(), nil
+	variable, err := hil.InterfaceToVariable(values)
+	return &variable, err
 }
 
 func (i *Interpolater) interpolateListAttribute(
 	resourceID string,
-	attributes map[string]string) (string, error) {
+	attributes map[string]string) (ast.Variable, error) {
 
 	attr := attributes[resourceID+".#"]
 	log.Printf("[DEBUG] Interpolating computed list attribute %s (%s)",
@@ -556,7 +572,7 @@ func (i *Interpolater) interpolateListAttribute(
 	// unknown". We must honor that meaning here so computed references can be
 	// treated properly during the plan phase.
 	if attr == config.UnknownVariableValue {
-		return attr, nil
+		return unknownVariable(), nil
 	}
 
 	// Otherwise we gather the values from the list-like attribute and return
@@ -570,7 +586,7 @@ func (i *Interpolater) interpolateListAttribute(
 	}
 
 	sort.Strings(members)
-	return config.NewStringList(members).String(), nil
+	return hil.InterfaceToVariable(members)
 }
 
 func (i *Interpolater) resourceVariableInfo(

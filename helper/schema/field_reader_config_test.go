@@ -305,6 +305,7 @@ func testConfigInterpolate(
 	t *testing.T,
 	raw map[string]interface{},
 	vs map[string]ast.Variable) *terraform.ResourceConfig {
+
 	rc, err := config.NewRawConfig(raw)
 	if err != nil {
 		t.Fatalf("err: %s", err)
