@@ -14,6 +14,7 @@ import (
 	clcprovider "github.com/hashicorp/terraform/builtin/providers/clc"
 	cloudflareprovider "github.com/hashicorp/terraform/builtin/providers/cloudflare"
 	cloudstackprovider "github.com/hashicorp/terraform/builtin/providers/cloudstack"
+	cobblerprovider "github.com/hashicorp/terraform/builtin/providers/cobbler"
 	consulprovider "github.com/hashicorp/terraform/builtin/providers/consul"
 	datadogprovider "github.com/hashicorp/terraform/builtin/providers/datadog"
 	digitaloceanprovider "github.com/hashicorp/terraform/builtin/providers/digitalocean"
@@ -61,6 +62,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"clc":          clcprovider.Provider,
 	"cloudflare":   cloudflareprovider.Provider,
 	"cloudstack":   cloudstackprovider.Provider,
+	"cobbler":      cobblerprovider.Provider,
 	"consul":       consulprovider.Provider,
 	"datadog":      datadogprovider.Provider,
 	"digitalocean": digitaloceanprovider.Provider,
