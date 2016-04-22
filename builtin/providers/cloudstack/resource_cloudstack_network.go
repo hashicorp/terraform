@@ -202,18 +202,15 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) error {
-	cs := meta.(*cloudstack.CloudStackClient)
+	n, count, err := getNetwork(d, meta.(*cloudstack.CloudStackClient))
 
-	// Get the virtual machine details
-	n, count, err := cs.Network.GetNetworkByID(d.Id())
 	if err != nil {
 		if count == 0 {
 			log.Printf(
-				"[DEBUG] Network %s does no longer exist", d.Get("name").(string))
+				"[DEBUG] Network %s no longer exists", d.Get("name").(string))
 			d.SetId("")
 			return nil
 		}
-
 		return err
 	}
 
@@ -246,6 +243,32 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	setValueOrID(d, "zone", n.Zonename, n.Zoneid)
 
 	return nil
+}
+
+func getNetwork(d *schema.ResourceData, cs *cloudstack.CloudStackClient) (*cloudstack.Network, int, error) {
+	// If there is a project supplied, we retrieve and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project ID
+		projectid, e := retrieveID(cs, "project", project.(string))
+		if e != nil {
+			return nil, 0, e.Error()
+		}
+
+		params := cs.Network.NewListNetworksParams()
+		params.SetId(d.Id())
+		params.SetProjectid(projectid)
+
+		response, err := cs.Network.ListNetworks(params)
+		if err != nil {
+			return nil, 0, fmt.Errorf("Error listing network %s: %s", d.Id(), err)
+		}
+		if response.Count != 1 {
+			return nil, response.Count, fmt.Errorf("Error listing network %s: Got %d networks", d.Id(), response.Count)
+		}
+		return response.Networks[0], response.Count, nil
+	} else {
+		return cs.Network.GetNetworkByID(d.Id())
+	}
 }
 
 func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
