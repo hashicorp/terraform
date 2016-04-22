@@ -1,7 +1,6 @@
 package config
 
 import (
-	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -23,6 +22,31 @@ import (
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/go-homedir"
 )
+
+// stringSliceToVariableValue converts a string slice into the value
+// required to be returned from interpolation functions which return
+// TypeList.
+func stringSliceToVariableValue(values []string) []ast.Variable {
+	output := make([]ast.Variable, len(values))
+	for index, value := range values {
+		output[index] = ast.Variable{
+			Type:  ast.TypeString,
+			Value: value,
+		}
+	}
+	return output
+}
+
+func listVariableValueToStringSlice(values []ast.Variable) ([]string, error) {
+	output := make([]string, len(values))
+	for index, value := range values {
+		if value.Type != ast.TypeString {
+			return []string{}, fmt.Errorf("list has non-string element (%T)", value.Type.String())
+		}
+		output[index] = value.Value.(string)
+	}
+	return output, nil
+}
 
 // Funcs is the mapping of built-in functions for configuration.
 func Funcs() map[string]ast.Function {
@@ -61,14 +85,23 @@ func Funcs() map[string]ast.Function {
 // (e.g. as returned by "split") of any empty strings.
 func interpolationFuncCompact() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString},
-		ReturnType: ast.TypeString,
+		ArgTypes:   []ast.Type{ast.TypeList},
+		ReturnType: ast.TypeList,
 		Variadic:   false,
 		Callback: func(args []interface{}) (interface{}, error) {
-			if !IsStringList(args[0].(string)) {
-				return args[0].(string), nil
+			inputList := args[0].([]ast.Variable)
+
+			var outputList []string
+			for _, val := range inputList {
+				if strVal, ok := val.Value.(string); ok {
+					if strVal == "" {
+						continue
+					}
+
+					outputList = append(outputList, strVal)
+				}
 			}
-			return StringList(args[0].(string)).Compact().String(), nil
+			return stringSliceToVariableValue(outputList), nil
 		},
 	}
 }
@@ -189,39 +222,32 @@ func interpolationFuncCoalesce() ast.Function {
 // compat we do this.
 func interpolationFuncConcat() ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeString},
-		ReturnType:   ast.TypeString,
+		ArgTypes:     []ast.Type{ast.TypeAny},
+		ReturnType:   ast.TypeList,
 		Variadic:     true,
-		VariadicType: ast.TypeString,
+		VariadicType: ast.TypeAny,
 		Callback: func(args []interface{}) (interface{}, error) {
-			var b bytes.Buffer
-			var finalList []string
-
-			var isDeprecated = true
+			var finalListElements []string
 
 			for _, arg := range args {
-				argument := arg.(string)
-
-				if len(argument) == 0 {
+				// Append strings for backward compatibility
+				if argument, ok := arg.(string); ok {
+					finalListElements = append(finalListElements, argument)
 					continue
 				}
 
-				if IsStringList(argument) {
-					isDeprecated = false
-					finalList = append(finalList, StringList(argument).Slice()...)
-				} else {
-					finalList = append(finalList, argument)
+				// Otherwise variables
+				if argument, ok := arg.([]ast.Variable); ok {
+					for _, element := range argument {
+						finalListElements = append(finalListElements, element.Value.(string))
+					}
+					continue
 				}
 
-				// Deprecated concat behaviour
-				b.WriteString(argument)
+				return nil, fmt.Errorf("arguments to concat() must be a string or list")
 			}
 
-			if isDeprecated {
-				return b.String(), nil
-			}
-
-			return NewStringList(finalList).String(), nil
+			return stringSliceToVariableValue(finalListElements), nil
 		},
 	}
 }
@@ -266,10 +292,10 @@ func interpolationFuncFormat() ast.Function {
 // string formatting on lists.
 func interpolationFuncFormatList() ast.Function {
 	return ast.Function{
-		ArgTypes:     []ast.Type{ast.TypeString},
+		ArgTypes:     []ast.Type{ast.TypeAny},
 		Variadic:     true,
 		VariadicType: ast.TypeAny,
-		ReturnType:   ast.TypeString,
+		ReturnType:   ast.TypeList,
 		Callback: func(args []interface{}) (interface{}, error) {
 			// Make a copy of the variadic part of args
 			// to avoid modifying the original.
@@ -280,15 +306,15 @@ func interpolationFuncFormatList() ast.Function {
 			// Confirm along the way that all lists have the same length (n).
 			var n int
 			for i := 1; i < len(args); i++ {
-				s, ok := args[i].(string)
+				s, ok := args[i].([]ast.Variable)
 				if !ok {
 					continue
 				}
-				if !IsStringList(s) {
-					continue
-				}
 
-				parts := StringList(s).Slice()
+				parts, err := listVariableValueToStringSlice(s)
+				if err != nil {
+					return nil, err
+				}
 
 				// otherwise the list is sent down to be indexed
 				varargs[i-1] = parts
@@ -325,7 +351,7 @@ func interpolationFuncFormatList() ast.Function {
 				}
 				list[i] = fmt.Sprintf(format, fmtargs...)
 			}
-			return NewStringList(list).String(), nil
+			return stringSliceToVariableValue(list), nil
 		},
 	}
 }
@@ -334,13 +360,13 @@ func interpolationFuncFormatList() ast.Function {
 // find the index of a specific element in a list
 func interpolationFuncIndex() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
 		ReturnType: ast.TypeInt,
 		Callback: func(args []interface{}) (interface{}, error) {
-			haystack := StringList(args[0].(string)).Slice()
+			haystack := args[0].([]ast.Variable)
 			needle := args[1].(string)
 			for index, element := range haystack {
-				if needle == element {
+				if needle == element.Value {
 					return index, nil
 				}
 			}
@@ -353,13 +379,28 @@ func interpolationFuncIndex() ast.Function {
 // multi-variable values to be joined by some character.
 func interpolationFuncJoin() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
-		ReturnType: ast.TypeString,
+		ArgTypes:     []ast.Type{ast.TypeString},
+		Variadic:     true,
+		VariadicType: ast.TypeList,
+		ReturnType:   ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			var list []string
+
+			if len(args) < 2 {
+				return nil, fmt.Errorf("not enough arguments to join()")
+			}
+
 			for _, arg := range args[1:] {
-				parts := StringList(arg.(string)).Slice()
-				list = append(list, parts...)
+				if parts, ok := arg.(ast.Variable); ok {
+					for _, part := range parts.Value.([]ast.Variable) {
+						list = append(list, part.Value.(string))
+					}
+				}
+				if parts, ok := arg.([]ast.Variable); ok {
+					for _, part := range parts {
+						list = append(list, part.Value.(string))
+					}
+				}
 			}
 
 			return strings.Join(list, args[0].(string)), nil
@@ -413,19 +454,20 @@ func interpolationFuncReplace() ast.Function {
 
 func interpolationFuncLength() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString},
+		ArgTypes:   []ast.Type{ast.TypeAny},
 		ReturnType: ast.TypeInt,
 		Variadic:   false,
 		Callback: func(args []interface{}) (interface{}, error) {
-			if !IsStringList(args[0].(string)) {
-				return len(args[0].(string)), nil
+			subject := args[0]
+
+			switch typedSubject := subject.(type) {
+			case string:
+				return len(typedSubject), nil
+			case []ast.Variable:
+				return len(typedSubject), nil
 			}
 
-			length := 0
-			for _, arg := range args {
-				length += StringList(arg.(string)).Length()
-			}
-			return length, nil
+			return 0, fmt.Errorf("arguments to length() must be a string or list")
 		},
 	}
 }
@@ -454,11 +496,12 @@ func interpolationFuncSignum() ast.Function {
 func interpolationFuncSplit() ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
-		ReturnType: ast.TypeString,
+		ReturnType: ast.TypeList,
 		Callback: func(args []interface{}) (interface{}, error) {
 			sep := args[0].(string)
 			s := args[1].(string)
-			return NewStringList(strings.Split(s, sep)).String(), nil
+			elements := strings.Split(s, sep)
+			return stringSliceToVariableValue(elements), nil
 		},
 	}
 }
@@ -495,10 +538,10 @@ func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
 // wrap if the index is larger than the number of elements in the multi-variable value.
 func interpolationFuncElement() ast.Function {
 	return ast.Function{
-		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			list := StringList(args[0].(string))
+			list := args[0].([]ast.Variable)
 
 			index, err := strconv.Atoi(args[1].(string))
 			if err != nil || index < 0 {
@@ -506,7 +549,9 @@ func interpolationFuncElement() ast.Function {
 					"invalid number for index, got %s", args[1])
 			}
 
-			v := list.Element(index)
+			resolvedIndex := index % len(list)
+
+			v := list[resolvedIndex].Value
 			return v, nil
 		},
 	}
@@ -528,12 +573,8 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 
 			sort.Strings(keys)
 
-			variable, err := hil.InterfaceToVariable(keys)
-			if err != nil {
-				return nil, err
-			}
-
-			return variable.Value, nil
+			//Keys are guaranteed to be strings
+			return stringSliceToVariableValue(keys), nil
 		},
 	}
 }

@@ -215,8 +215,15 @@ func TestConfigValidate_moduleVarInt(t *testing.T) {
 
 func TestConfigValidate_moduleVarMap(t *testing.T) {
 	c := testConfig(t, "validate-module-var-map")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should be invalid")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
+func TestConfigValidate_moduleVarList(t *testing.T) {
+	c := testConfig(t, "validate-module-var-list")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
 	}
 }
 
@@ -367,10 +374,10 @@ func TestConfigValidate_varDefault(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_varDefaultBadType(t *testing.T) {
-	c := testConfig(t, "validate-var-default-bad-type")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
+func TestConfigValidate_varDefaultListType(t *testing.T) {
+	c := testConfig(t, "validate-var-default-list-type")
+	if err := c.Validate(); err != nil {
+		t.Fatal("should be valid: %s", err)
 	}
 }
 
