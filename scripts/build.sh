@@ -35,12 +35,18 @@ if ! which gox > /dev/null; then
     go get -u github.com/mitchellh/gox
 fi
 
+LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}"
+# In relase mode we don't want debug information in the binary
+if [[ -n "${TF_RELEASE}" ]]; then
+    LD_FLAGS="-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -s -w"
+fi
+
 # Build!
 echo "==> Building..."
 gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
-    -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" \
+    -ldflags "${LD_FLAGS}" \
     -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
     $(go list ./... | grep -v /vendor/)
 

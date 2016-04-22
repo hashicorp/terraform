@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -305,6 +307,58 @@ func flattenAccessLog(l *elb.AccessLog) []map[string]interface{} {
 	return result
 }
 
+// Takes the result of flatmap.Expand for an array of step adjustments and
+// returns a []*autoscaling.StepAdjustment.
+func expandStepAdjustments(configured []interface{}) ([]*autoscaling.StepAdjustment, error) {
+	var adjustments []*autoscaling.StepAdjustment
+
+	// Loop over our configured step adjustments and create an array
+	// of aws-sdk-go compatible objects. We're forced to convert strings
+	// to floats here because there's no way to detect whether or not
+	// an uninitialized, optional schema element is "0.0" deliberately.
+	// With strings, we can test for "", which is definitely an empty
+	// struct value.
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+		a := &autoscaling.StepAdjustment{
+			ScalingAdjustment: aws.Int64(int64(data["scaling_adjustment"].(int))),
+		}
+		if data["metric_interval_lower_bound"] != "" {
+			bound := data["metric_interval_lower_bound"]
+			switch bound := bound.(type) {
+			case string:
+				f, err := strconv.ParseFloat(bound, 64)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"metric_interval_lower_bound must be a float value represented as a string")
+				}
+				a.MetricIntervalLowerBound = aws.Float64(f)
+			default:
+				return nil, fmt.Errorf(
+					"metric_interval_lower_bound isn't a string. This is a bug. Please file an issue.")
+			}
+		}
+		if data["metric_interval_upper_bound"] != "" {
+			bound := data["metric_interval_upper_bound"]
+			switch bound := bound.(type) {
+			case string:
+				f, err := strconv.ParseFloat(bound, 64)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"metric_interval_upper_bound must be a float value represented as a string")
+				}
+				a.MetricIntervalUpperBound = aws.Float64(f)
+			default:
+				return nil, fmt.Errorf(
+					"metric_interval_upper_bound isn't a string. This is a bug. Please file an issue.")
+			}
+		}
+		adjustments = append(adjustments, a)
+	}
+
+	return adjustments, nil
+}
+
 // Flattens a health check into something that flatmap.Flatten()
 // can handle
 func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
@@ -562,6 +616,24 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
+}
+
+// Flattens step adjustments into a list of map[string]interface.
+func flattenStepAdjustments(adjustments []*autoscaling.StepAdjustment) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(adjustments))
+	for _, raw := range adjustments {
+		a := map[string]interface{}{
+			"scaling_adjustment": *raw.ScalingAdjustment,
+		}
+		if raw.MetricIntervalUpperBound != nil {
+			a["metric_interval_upper_bound"] = *raw.MetricIntervalUpperBound
+		}
+		if raw.MetricIntervalLowerBound != nil {
+			a["metric_interval_lower_bound"] = *raw.MetricIntervalLowerBound
+		}
+		result = append(result, a)
+	}
+	return result
 }
 
 func flattenResourceRecords(recs []*route53.ResourceRecord) []string {
@@ -944,4 +1016,84 @@ func flattenCloudWachLogMetricTransformations(ts []*cloudwatchlogs.MetricTransfo
 	m["value"] = *ts[0].MetricValue
 
 	return m
+}
+
+func flattenBeanstalkAsg(list []*elasticbeanstalk.AutoScalingGroup) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkInstances(list []*elasticbeanstalk.Instance) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Id != nil {
+			strs = append(strs, *r.Id)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkLc(list []*elasticbeanstalk.LaunchConfiguration) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkElb(list []*elasticbeanstalk.LoadBalancer) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkSqs(list []*elasticbeanstalk.Queue) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.URL != nil {
+			strs = append(strs, *r.URL)
+		}
+	}
+	return strs
+}
+
+func flattenBeanstalkTrigger(list []*elasticbeanstalk.Trigger) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.Name != nil {
+			strs = append(strs, *r.Name)
+		}
+	}
+	return strs
+}
+
+// There are several parts of the AWS API that will sort lists of strings,
+// causing diffs inbetweeen resources that use lists. This avoids a bit of
+// code duplication for pre-sorts that can be used for things like hash
+// functions, etc.
+func sortInterfaceSlice(in []interface{}) []interface{} {
+	a := []string{}
+	b := []interface{}{}
+	for _, v := range in {
+		a = append(a, v.(string))
+	}
+
+	sort.Strings(a)
+
+	for _, v := range a {
+		b = append(b, v)
+	}
+
+	return b
 }

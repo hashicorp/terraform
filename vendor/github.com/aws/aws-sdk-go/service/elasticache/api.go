@@ -1021,6 +1021,39 @@ func (c *ElastiCache) DescribeSnapshotsPages(input *DescribeSnapshotsInput, fn f
 	})
 }
 
+const opListAllowedNodeTypeModifications = "ListAllowedNodeTypeModifications"
+
+// ListAllowedNodeTypeModificationsRequest generates a request for the ListAllowedNodeTypeModifications operation.
+func (c *ElastiCache) ListAllowedNodeTypeModificationsRequest(input *ListAllowedNodeTypeModificationsInput) (req *request.Request, output *ListAllowedNodeTypeModificationsOutput) {
+	op := &request.Operation{
+		Name:       opListAllowedNodeTypeModifications,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListAllowedNodeTypeModificationsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListAllowedNodeTypeModificationsOutput{}
+	req.Data = output
+	return
+}
+
+// The ListAllowedNodeTypeModifications action lists all available node types
+// that you can scale your Redis cluster's or replication group's current node
+// type up to.
+//
+// When you use the ModifyCacheCluster or ModifyReplicationGroup APIs to scale
+// up your cluster or replication group, the value of the CacheNodeType parameter
+// must be one of the node types returned by this action.
+func (c *ElastiCache) ListAllowedNodeTypeModifications(input *ListAllowedNodeTypeModificationsInput) (*ListAllowedNodeTypeModificationsOutput, error) {
+	req, out := c.ListAllowedNodeTypeModificationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a request for the ListTagsForResource operation.
@@ -1323,7 +1356,12 @@ func (c *ElastiCache) RevokeCacheSecurityGroupIngress(input *RevokeCacheSecurity
 type AddTagsToResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the resource to which the tags are to be added, for example arn:aws:elasticache:us-west-2:0123456789:cluster:myCluster.
+	// The Amazon Resource Name (ARN) of the resource to which the tags are to be
+	// added, for example arn:aws:elasticache:us-west-2:0123456789:cluster:myCluster
+	// or arn:aws:elasticache:us-west-2:0123456789:snapshot:mySnapshot.
+	//
+	// For more information on ARNs, go to Amazon Resource Names (ARNs) and AWS
+	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).
 	ResourceName *string `type:"string" required:"true"`
 
 	// A list of cost allocation tags to be added to this resource. A tag is a key-value
@@ -1469,7 +1507,7 @@ type CacheCluster struct {
 	// cluster.
 	Engine *string `type:"string"`
 
-	// The version of the cache engine version that is used in this cache cluster.
+	// The version of the cache engine that is used in this cache cluster.
 	EngineVersion *string `type:"string"`
 
 	// Describes a notification topic and its status. Notification topics are used
@@ -1846,6 +1884,8 @@ type CopySnapshotInput struct {
 	// The name of an existing snapshot from which to copy.
 	SourceSnapshotName *string `type:"string" required:"true"`
 
+	TargetBucket *string `type:"string"`
+
 	// A name for the copied snapshot.
 	TargetSnapshotName *string `type:"string" required:"true"`
 }
@@ -1952,6 +1992,12 @@ type CreateCacheClusterInput struct {
 	// The version number of the cache engine to be used for this cache cluster.
 	// To view the supported cache engine versions, use the DescribeCacheEngineVersions
 	// action.
+	//
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
+	// but you cannot downgrade to an earlier engine version. If you want to use
+	// an earlier engine version, you must delete the existing cache cluster or
+	// replication group and create it anew with the earlier engine version.
 	EngineVersion *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the Amazon Simple Notification Service
@@ -1999,9 +2045,8 @@ type CreateCacheClusterInput struct {
 	// Default: System chosen Availability Zones.
 	//
 	// Example: One Memcached node in each of three different Availability Zones:
-	// PreferredAvailabilityZones.member.1=us-west-2a&PreferredAvailabilityZones.member.2=us-west-2b&PreferredAvailabilityZones.member.3=us-west-2c
 	//
-	// Example: All three Memcached nodes in one Availability Zone: PreferredAvailabilityZones.member.1=us-west-2a&PreferredAvailabilityZones.member.2=us-west-2a&PreferredAvailabilityZones.member.3=us-west-2a
+	// Example: All three Memcached nodes in one Availability Zone:
 	PreferredAvailabilityZones []*string `locationNameList:"PreferredAvailabilityZone" type:"list"`
 
 	// Specifies the weekly time range during which maintenance on the cache cluster
@@ -2298,6 +2343,12 @@ type CreateReplicationGroupInput struct {
 	// The version number of the cache engine to be used for the cache clusters
 	// in this replication group. To view the supported cache engine versions, use
 	// the DescribeCacheEngineVersions action.
+	//
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
+	// but you cannot downgrade to an earlier engine version. If you want to use
+	// an earlier engine version, you must delete the existing cache cluster or
+	// replication group and create it anew with the earlier engine version.
 	EngineVersion *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the Amazon Simple Notification Service
@@ -2330,8 +2381,7 @@ type CreateReplicationGroupInput struct {
 	//
 	// Default: system chosen availability zones.
 	//
-	// Example: One Redis cache cluster in each of three availability zones. PreferredAvailabilityZones.member.1=us-west-2a
-	// PreferredAvailabilityZones.member.2=us-west-2c PreferredAvailabilityZones.member.3=us-west-2c
+	// Example: One Redis cache cluster in each of three availability zones.
 	PreferredCacheClusterAZs []*string `locationNameList:"AvailabilityZone" type:"list"`
 
 	// Specifies the weekly time range during which maintenance on the cache cluster
@@ -3606,12 +3656,73 @@ func (s Event) GoString() string {
 	return s.String()
 }
 
+// The input parameters for the ListAllowedNodeTypeModifications action.
+type ListAllowedNodeTypeModificationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the cache cluster you want to scale up to a larger node instanced
+	// type. ElastiCache uses the cluster id to identify the current node type of
+	// this cluster and from that to to create a list of node types you can scale
+	// up to.
+	//
+	// Important: You must provide a value for either the CacheClusterId or the
+	// ReplicationGroupId.
+	CacheClusterId *string `type:"string"`
+
+	// The name of the replication group want to scale up to a larger node type.
+	// ElastiCache uses the replication group id to identify the current node type
+	// being used by this replication group, and from that to create a list of node
+	// types you can scale up to.
+	//
+	// Important: You must provide a value for either the CacheClusterId or the
+	// ReplicationGroupId.
+	ReplicationGroupId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListAllowedNodeTypeModificationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListAllowedNodeTypeModificationsInput) GoString() string {
+	return s.String()
+}
+
+// Represents the allowed node types you can use to modify your cache cluster
+// or replication group.
+type ListAllowedNodeTypeModificationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A string list, each element of which specifies a cache node type which you
+	// can use to scale your cache cluster or replication group.
+	//
+	// When scaling up a Redis cluster or replication group using ModifyCacheCluster
+	// or ModifyReplicationGroup, use a value from this list for the CacheNodeType
+	// parameter.
+	ScaleUpModifications []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s ListAllowedNodeTypeModificationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListAllowedNodeTypeModificationsOutput) GoString() string {
+	return s.String()
+}
+
 // The input parameters for the ListTagsForResource action.
 type ListTagsForResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the resource for which you want the list of tags, for example
-	// arn:aws:elasticache:us-west-2:0123456789:cluster:myCluster.
+	// The Amazon Resource Name (ARN) of the resource for which you want the list
+	// of tags, for example arn:aws:elasticache:us-west-2:0123456789:cluster:myCluster
+	// or arn:aws:elasticache:us-west-2:0123456789:snapshot:mySnapshot.
+	//
+	// For more information on ARNs, go to Amazon Resource Names (ARNs) and AWS
+	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).
 	ResourceName *string `type:"string" required:"true"`
 }
 
@@ -3678,6 +3789,11 @@ type ModifyCacheClusterInput struct {
 	// 2 (7 - 5) cache node IDs to remove.
 	CacheNodeIdsToRemove []*string `locationNameList:"CacheNodeId" type:"list"`
 
+	// A valid cache node type that you want to scale this cache cluster to. The
+	// value of this parameter must be one of the ScaleUpModifications values returned
+	// by the ListAllowedCacheNodeTypeModification action.
+	CacheNodeType *string `type:"string"`
+
 	// The name of the cache parameter group to apply to this cache cluster. This
 	// change is asynchronously applied as soon as possible for parameters when
 	// the ApplyImmediately parameter is specified as true for this request.
@@ -3694,6 +3810,12 @@ type ModifyCacheClusterInput struct {
 	CacheSecurityGroupNames []*string `locationNameList:"CacheSecurityGroupName" type:"list"`
 
 	// The upgraded version of the cache engine to be run on the cache nodes.
+	//
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
+	// but you cannot downgrade to an earlier engine version. If you want to use
+	// an earlier engine version, you must delete the existing cache cluster and
+	// create it anew with the earlier engine version.
 	EngineVersion *string `type:"string"`
 
 	// The list of Availability Zones where the new Memcached cache nodes will be
@@ -3706,12 +3828,12 @@ type ModifyCacheClusterInput struct {
 	//
 	// This option is only supported on Memcached clusters.
 	//
-	// Scenarios:   Scenario 1: You have 3 active nodes and wish to add 2 nodes.
+	// Scenarios:  Scenario 1: You have 3 active nodes and wish to add 2 nodes.
 	// Specify NumCacheNodes=5 (3 + 2) and optionally specify two Availability Zones
-	// for the two new nodes.  Scenario 2: You have 3 active nodes and 2 nodes pending
+	// for the two new nodes. Scenario 2: You have 3 active nodes and 2 nodes pending
 	// creation (from the scenario 1 call) and want to add 1 more node. Specify
 	// NumCacheNodes=6 ((3 + 2) + 1) and optionally specify an Availability Zone
-	// for the new node.  Scenario 3: You want to cancel all pending actions. Specify
+	// for the new node. Scenario 3: You want to cancel all pending actions. Specify
 	// NumCacheNodes=3 to cancel all pending actions.
 	//
 	// The Availability Zone placement of nodes pending creation cannot be modified.
@@ -3726,14 +3848,16 @@ type ModifyCacheClusterInput struct {
 	//
 	// Impact of new add/remove requests upon pending requests
 	//
-	//   Scenarios Pending action New Request Results   Scenario-1 Delete Delete
-	// The new delete, pending or immediate, replaces the pending delete.   Scenario-2
-	// Delete Create The new create, pending or immediate, replaces the pending
-	// delete.   Scenario-3 Create Delete The new delete, pending or immediate,
-	// replaces the pending create.   Scenario-4 Create Create The new create is
-	// added to the pending create. Important:If the new create request is Apply
-	// Immediately - Yes, all creates are performed immediately. If the new create
-	// request is Apply Immediately - No, all creates are pending.   Example: NewAvailabilityZones.member.1=us-west-2a&NewAvailabilityZones.member.2=us-west-2b&NewAvailabilityZones.member.3=us-west-2c
+	//  Scenario-1  Pending Action: Delete New Request: Delete Result: The new
+	// delete, pending or immediate, replaces the pending delete.  Scenario-2  Pending
+	// Action: Delete New Request: Create Result: The new create, pending or immediate,
+	// replaces the pending delete.  Scenario-3  Pending Action: Create New Request:
+	// Delete Result: The new delete, pending or immediate, replaces the pending
+	// create.  Scenario-4  Pending Action: Create New Request: Create Result: The
+	// new create is added to the pending create. Important:If the new create request
+	// is Apply Immediately - Yes, all creates are performed immediately. If the
+	// new create request is Apply Immediately - No, all creates are pending.
+	// Example:
 	NewAvailabilityZones []*string `locationNameList:"PreferredAvailabilityZone" type:"list"`
 
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic to which notifications
@@ -3937,6 +4061,11 @@ type ModifyReplicationGroupInput struct {
 	//  Redis versions earlier than 2.8.6. T1 and T2 cache node types.
 	AutomaticFailoverEnabled *bool `type:"boolean"`
 
+	// A valid cache node type that you want to scale this replication group to.
+	// The value of this parameter must be one of the ScaleUpModifications values
+	// returned by the ListAllowedCacheNodeTypeModification action.
+	CacheNodeType *string `type:"string"`
+
 	// The name of the cache parameter group to apply to all of the clusters in
 	// this replication group. This change is asynchronously applied as soon as
 	// possible for parameters when the ApplyImmediately parameter is specified
@@ -3955,6 +4084,12 @@ type ModifyReplicationGroupInput struct {
 
 	// The upgraded version of the cache engine to be run on the cache clusters
 	// in the replication group.
+	//
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
+	// but you cannot downgrade to an earlier engine version. If you want to use
+	// an earlier engine version, you must delete the existing replication group
+	// and create it anew with the earlier engine version.
 	EngineVersion *string `type:"string"`
 
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic to which notifications
@@ -3977,9 +4112,9 @@ type ModifyReplicationGroupInput struct {
 	//  sun mon tue wed thu fri sat  Example: sun:05:00-sun:09:00
 	PreferredMaintenanceWindow *string `type:"string"`
 
-	// If this parameter is specified, ElastiCache will promote each of the cache
-	// clusters in the specified replication group to the primary role. The nodes
-	// of all other cache clusters in the replication group will be read replicas.
+	// If this parameter is specified, ElastiCache will promote the specified cluster
+	// in the specified replication group to the primary role. The nodes of all
+	// other clusters in the replication group will be read replicas.
 	PrimaryClusterId *string `type:"string"`
 
 	// A description for the replication group. Maximum length is 255 characters.
@@ -4229,6 +4364,10 @@ type PendingModifiedValues struct {
 	// the cache cluster. A node ID is a numeric identifier (0001, 0002, etc.).
 	CacheNodeIdsToRemove []*string `locationNameList:"CacheNodeId" type:"list"`
 
+	// The cache node type that this cache cluster or replication group will be
+	// scaled to.
+	CacheNodeType *string `type:"string"`
+
 	// The new cache engine version that the cache cluster will run.
 	EngineVersion *string `type:"string"`
 
@@ -4259,6 +4398,10 @@ type PurchaseReservedCacheNodesOfferingInput struct {
 	CacheNodeCount *int64 `type:"integer"`
 
 	// A customer-specified identifier to track this reservation.
+	//
+	// Note:The Reserved Cache Node ID is an unique customer-specified identifier
+	// to track this reservation. If this parameter is not specified, ElastiCache
+	// automatically generates an identifier for the reservation.
 	//
 	// Example: myreservationID
 	ReservedCacheNodeId *string `type:"string"`
@@ -4362,8 +4505,12 @@ func (s RecurringCharge) GoString() string {
 type RemoveTagsFromResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the ElastiCache resource from which you want the listed tags
-	// removed, for example arn:aws:elasticache:us-west-2:0123456789:cluster:myCluster.
+	// The Amazon Resource Name (ARN) of the resource from which you want the tags
+	// removed, for example arn:aws:elasticache:us-west-2:0123456789:cluster:myCluster
+	// or arn:aws:elasticache:us-west-2:0123456789:snapshot:mySnapshot.
+	//
+	// For more information on ARNs, go to Amazon Resource Names (ARNs) and AWS
+	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).
 	ResourceName *string `type:"string" required:"true"`
 
 	// A list of TagKeys identifying the tags you want removed from the named resource.
@@ -4590,7 +4737,7 @@ type ResetCacheParameterGroupInput struct {
 
 	// An array of parameter names to be reset. If you are not resetting the entire
 	// cache parameter group, you must specify at least one parameter name.
-	ParameterNameValues []*ParameterNameValue `locationNameList:"ParameterNameValue" type:"list" required:"true"`
+	ParameterNameValues []*ParameterNameValue `locationNameList:"ParameterNameValue" type:"list"`
 
 	// If true, all parameters in the cache parameter group will be reset to default
 	// values. If false, no such action occurs.

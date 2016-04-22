@@ -78,6 +78,10 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container wrong entrypoint: %s", c.Config.Entrypoint)
 		}
 
+		if c.Config.User != "root:root" {
+			return fmt.Errorf("Container wrong user: %s", c.Config.User)
+		}
+
 		if c.HostConfig.RestartPolicy.Name == "on-failure" {
 			if c.HostConfig.RestartPolicy.MaximumRetryCount != 5 {
 				return fmt.Errorf("Container has wrong restart policy max retry count: %d", c.HostConfig.RestartPolicy.MaximumRetryCount)
@@ -217,6 +221,7 @@ resource "docker_container" "foo" {
 	name = "tf-test"
 	image = "${docker_image.foo.latest}"
 	entrypoint = ["/bin/bash", "-c", "ping localhost"]
+	user = "root:root"
 	restart = "on-failure"
 	max_retry_count = 5
 	memory = 512

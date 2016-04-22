@@ -374,7 +374,7 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEn
 
 // Deletes the draft configuration associated with the running environment.
 //
-//  Updating a running environment with any configuration changes creates a
+// Updating a running environment with any configuration changes creates a
 // draft configuration set. You can get the draft configuration using DescribeConfigurationSettings
 // while the update is in progress or if the update fails. The DeploymentStatus
 // for the draft configuration indicates whether the deployment is in process
@@ -622,7 +622,7 @@ func (c *ElasticBeanstalk) DescribeEventsRequest(input *DescribeEventsInput) (re
 
 // Returns list of event descriptions matching criteria up to the last 6 weeks.
 //
-//  This action returns the most recent 1,000 events from the specified NextToken.
+// This action returns the most recent 1,000 events from the specified NextToken.
 func (c *ElasticBeanstalk) DescribeEvents(input *DescribeEventsInput) (*DescribeEventsOutput, error) {
 	req, out := c.DescribeEventsRequest(input)
 	err := req.Send()
@@ -1323,6 +1323,7 @@ func (s CheckDNSAvailabilityOutput) GoString() string {
 	return s.String()
 }
 
+// Request to create or update a group of environments.
 type ComposeEnvironmentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1332,7 +1333,7 @@ type ComposeEnvironmentsInput struct {
 	// The name of the group to which the target environments belong. Specify a
 	// group name only if the environment name defined in each target environment's
 	// manifest ends with a + (plus) character. See Environment Manifest (env.yaml)
-	// (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-mgmt-compose.html#environment-mgmt-compose-envyaml)
+	// (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-cfg-manifest.html)
 	// for details.
 	GroupName *string `min:"1" type:"string"`
 
@@ -1512,12 +1513,13 @@ func (s ConfigurationSettingsDescription) GoString() string {
 	return s.String()
 }
 
+// Request to create an application.
 type CreateApplicationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the application.
 	//
-	//  Constraint: This name must be unique within your account. If the specified
+	// Constraint: This name must be unique within your account. If the specified
 	// name already exists, the action returns an InvalidParameterValue error.
 	ApplicationName *string `min:"1" type:"string" required:"true"`
 
@@ -1592,6 +1594,7 @@ func (s CreateApplicationVersionInput) GoString() string {
 	return s.String()
 }
 
+// Request to create a configuration template.
 type CreateConfigurationTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1692,7 +1695,7 @@ type CreateEnvironmentInput struct {
 	// The name of the group to which the target environment belongs. Specify a
 	// group name only if the environment's name is specified in an environment
 	// manifest and not with the environment name parameter. See Environment Manifest
-	// (env.yaml) (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-mgmt-compose.html#environment-mgmt-compose-envyaml)
+	// (env.yaml) (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-cfg-manifest.html)
 	// for details.
 	GroupName *string `min:"1" type:"string"`
 
@@ -1784,6 +1787,7 @@ func (s CreateStorageLocationOutput) GoString() string {
 	return s.String()
 }
 
+// Request to delete an application.
 type DeleteApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1819,6 +1823,7 @@ func (s DeleteApplicationOutput) GoString() string {
 	return s.String()
 }
 
+// Request to delete an application version.
 type DeleteApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1860,6 +1865,7 @@ func (s DeleteApplicationVersionOutput) GoString() string {
 	return s.String()
 }
 
+// Request to delete a configuration template.
 type DeleteConfigurationTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1894,6 +1900,7 @@ func (s DeleteConfigurationTemplateOutput) GoString() string {
 	return s.String()
 }
 
+// Request to delete a draft environment configuration.
 type DeleteEnvironmentConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1969,6 +1976,7 @@ func (s DescribeApplicationVersionsOutput) GoString() string {
 	return s.String()
 }
 
+// Request to describe one or more applications.
 type DescribeApplicationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2187,6 +2195,7 @@ func (s DescribeEnvironmentHealthOutput) GoString() string {
 	return s.String()
 }
 
+// Request to describe the resources in an environment.
 type DescribeEnvironmentResourcesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2233,6 +2242,7 @@ func (s DescribeEnvironmentResourcesOutput) GoString() string {
 	return s.String()
 }
 
+// Request to describe one or more environments.
 type DescribeEnvironmentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2275,6 +2285,7 @@ func (s DescribeEnvironmentsInput) GoString() string {
 	return s.String()
 }
 
+// Request to retrieve a list of events for an environment.
 type DescribeEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2545,7 +2556,7 @@ func (s EnvironmentInfoDescription) GoString() string {
 // A link to another environment, defined in the environment's manifest. Links
 // provide connection information in system properties that can be used to connect
 // to another environment in the same group. See Environment Manifest (env.yaml)
-// (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-mgmt-compose.html#environment-mgmt-compose-envyaml)
+// (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-cfg-manifest.html)
 // for details.
 type EnvironmentLink struct {
 	_ struct{} `type:"structure"`
@@ -3023,25 +3034,27 @@ func (s RebuildEnvironmentOutput) GoString() string {
 	return s.String()
 }
 
+// Request to retrieve logs from an environment and store them in your Elastic
+// Beanstalk storage bucket.
 type RequestEnvironmentInfoInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the environment of the requested data.
 	//
-	//  If no such environment is found, RequestEnvironmentInfo returns an InvalidParameterValue
+	// If no such environment is found, RequestEnvironmentInfo returns an InvalidParameterValue
 	// error.
 	//
-	//  Condition: You must specify either this or an EnvironmentName, or both.
+	// Condition: You must specify either this or an EnvironmentName, or both.
 	// If you do not specify either, AWS Elastic Beanstalk returns MissingRequiredParameter
 	// error.
 	EnvironmentId *string `type:"string"`
 
 	// The name of the environment of the requested data.
 	//
-	//  If no such environment is found, RequestEnvironmentInfo returns an InvalidParameterValue
+	// If no such environment is found, RequestEnvironmentInfo returns an InvalidParameterValue
 	// error.
 	//
-	//  Condition: You must specify either this or an EnvironmentId, or both. If
+	// Condition: You must specify either this or an EnvironmentId, or both. If
 	// you do not specify either, AWS Elastic Beanstalk returns MissingRequiredParameter
 	// error.
 	EnvironmentName *string `min:"4" type:"string"`
@@ -3116,14 +3129,15 @@ func (s RestartAppServerOutput) GoString() string {
 	return s.String()
 }
 
+// Request to download logs retrieved with RequestEnvironmentInfo.
 type RetrieveEnvironmentInfoInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the data's environment.
 	//
-	//  If no such environment is found, returns an InvalidParameterValue error.
+	// If no such environment is found, returns an InvalidParameterValue error.
 	//
-	//  Condition: You must specify either this or an EnvironmentName, or both.
+	// Condition: You must specify either this or an EnvironmentName, or both.
 	// If you do not specify either, AWS Elastic Beanstalk returns MissingRequiredParameter
 	// error.
 	EnvironmentId *string `type:"string"`
@@ -3411,6 +3425,7 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// Request to terminate an environment.
 type TerminateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3475,6 +3490,7 @@ func (s Trigger) GoString() string {
 	return s.String()
 }
 
+// Request to update an application.
 type UpdateApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3567,6 +3583,7 @@ func (s UpdateConfigurationTemplateInput) GoString() string {
 	return s.String()
 }
 
+// Request to update an environment.
 type UpdateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3579,7 +3596,7 @@ type UpdateEnvironmentInput struct {
 
 	// The ID of the environment to update.
 	//
-	//  If no environment with this ID exists, AWS Elastic Beanstalk returns an
+	// If no environment with this ID exists, AWS Elastic Beanstalk returns an
 	// InvalidParameterValue error.
 	//
 	// Condition: You must specify either this or an EnvironmentName, or both.
@@ -3598,7 +3615,7 @@ type UpdateEnvironmentInput struct {
 	// The name of the group to which the target environment belongs. Specify a
 	// group name only if the environment's name is specified in an environment
 	// manifest and not with the environment name or environment ID parameters.
-	// See Environment Manifest (env.yaml) (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-mgmt-compose.html#environment-mgmt-compose-envyaml)
+	// See Environment Manifest (env.yaml) (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-cfg-manifest.html)
 	// for details.
 	GroupName *string `min:"1" type:"string"`
 

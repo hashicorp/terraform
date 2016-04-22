@@ -97,6 +97,7 @@ const testAccGithubTeamConfig = `
 resource "github_team" "foo" {
 	name = "foo"
 	description = "Terraform acc test group"
+	privacy = "secret"
 }
 `
 
@@ -104,5 +105,6 @@ const testAccGithubTeamUpdateConfig = `
 resource "github_team" "foo" {
 	name = "foo2"
 	description = "Terraform acc test group - updated"
+	privacy = "closed"
 }
 `

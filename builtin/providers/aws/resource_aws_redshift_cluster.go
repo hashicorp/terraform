@@ -265,8 +265,8 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    5 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
@@ -424,8 +424,8 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    10 * time.Minute,
-		MinTimeout: 5 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
 	}
 
 	// Wait, catching any errors
@@ -579,7 +579,7 @@ func validateRedshiftClusterFinalSnapshotIdentifier(v interface{}, k string) (ws
 
 func validateRedshiftClusterMasterUsername(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^\w+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters in %q", k))
 	}

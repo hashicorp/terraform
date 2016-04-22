@@ -23,9 +23,68 @@ type EvalConfig struct {
 // semantic check on an AST tree. This will be called with the root node.
 type SemanticChecker func(ast.Node) error
 
+// EvalType represents the type of the output returned from a HIL
+// evaluation.
+type EvalType uint32
+
+const (
+	TypeInvalid EvalType = 0
+	TypeString  EvalType = 1 << iota
+	TypeList
+	TypeMap
+)
+
+//go:generate stringer -type=EvalType
+
+// EvaluationResult is a struct returned from the hil.Eval function,
+// representing the result of an interpolation. Results are returned in their
+// "natural" Go structure rather than in terms of the HIL AST.  For the types
+// currently implemented, this means that the Value field can be interpreted as
+// the following Go types:
+//     TypeInvalid: undefined
+//     TypeString:  string
+//     TypeList:    []interface{}
+//     TypeMap:     map[string]interface{}
+type EvaluationResult struct {
+	Type  EvalType
+	Value interface{}
+}
+
+// InvalidResult is a structure representing the result of a HIL interpolation
+// which has invalid syntax, missing variables, or some other type of error.
+// The error is described out of band in the accompanying error return value.
+var InvalidResult = EvaluationResult{Type: TypeInvalid, Value: nil}
+
+func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
+	output, outputType, err := internalEval(root, config)
+	if err != nil {
+		return InvalidResult, err
+	}
+
+	switch outputType {
+	case ast.TypeList:
+		return EvaluationResult{
+			Type:  TypeList,
+			Value: hilListToGoSlice(output.([]ast.Variable)),
+		}, nil
+	case ast.TypeMap:
+		return EvaluationResult{
+			Type:  TypeMap,
+			Value: hilMapToGoMap(output.(map[string]ast.Variable)),
+		}, nil
+	case ast.TypeString:
+		return EvaluationResult{
+			Type:  TypeString,
+			Value: output,
+		}, nil
+	default:
+		return InvalidResult, fmt.Errorf("unknown type %s as interpolation output", outputType)
+	}
+}
+
 // Eval evaluates the given AST tree and returns its output value, the type
 // of the output, and any error that occurred.
-func Eval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
+func internalEval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
 	// Copy the scope so we can add our builtins
 	if config == nil {
 		config = new(EvalConfig)
@@ -145,8 +204,8 @@ func evalNode(raw ast.Node) (EvalNode, error) {
 		return &evalIndex{n}, nil
 	case *ast.Call:
 		return &evalCall{n}, nil
-	case *ast.Concat:
-		return &evalConcat{n}, nil
+	case *ast.Output:
+		return &evalOutput{n}, nil
 	case *ast.LiteralNode:
 		return &evalLiteralNode{n}, nil
 	case *ast.VariableAccess:
@@ -200,16 +259,35 @@ func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Ty
 	if err != nil {
 		return nil, ast.TypeInvalid, err
 	}
+
 	key, keyType, err := evalKey.Eval(scope, stack)
-
-	// Last sanity check
-	if targetType != ast.TypeList {
-		return nil, ast.TypeInvalid, fmt.Errorf("target for indexing must be ast.TypeList, is %s", targetType)
-	}
-	if keyType != ast.TypeInt {
-		return nil, ast.TypeInvalid, fmt.Errorf("key for indexing must be ast.TypeInt, is %s", keyType)
+	if err != nil {
+		return nil, ast.TypeInvalid, err
 	}
 
+	variableName := v.Index.Target.(*ast.VariableAccess).Name
+
+	switch targetType {
+	case ast.TypeList:
+		if keyType != ast.TypeInt {
+			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing list %q must be an int, is %s", variableName, keyType)
+		}
+
+		return v.evalListIndex(variableName, target, key)
+	case ast.TypeMap:
+		if keyType != ast.TypeString {
+			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing map %q must be a string, is %s", variableName, keyType)
+		}
+
+		return v.evalMapIndex(variableName, target, key)
+	default:
+		return nil, ast.TypeInvalid, fmt.Errorf("target %q for indexing must be ast.TypeList or ast.TypeMap, is %s", variableName, targetType)
+	}
+}
+
+func (v *evalIndex) evalListIndex(variableName string, target interface{}, key interface{}) (interface{}, ast.Type, error) {
+	// We assume type checking was already done and we can assume that target
+	// is a list and key is an int
 	list, ok := target.([]ast.Variable)
 	if !ok {
 		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to []Variable")
@@ -225,7 +303,7 @@ func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Ty
 	}
 
 	if keyInt < 0 || len(list) < keyInt+1 {
-		return nil, ast.TypeInvalid, fmt.Errorf("index %d out of range (max %d)", keyInt, len(list))
+		return nil, ast.TypeInvalid, fmt.Errorf("index %d out of range for list %s (max %d)", keyInt, variableName, len(list))
 	}
 
 	returnVal := list[keyInt].Value
@@ -234,9 +312,60 @@ func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Ty
 	return returnVal, returnType, nil
 }
 
-type evalConcat struct{ *ast.Concat }
+func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key interface{}) (interface{}, ast.Type, error) {
+	// We assume type checking was already done and we can assume that target
+	// is a map and key is a string
+	vmap, ok := target.(map[string]ast.Variable)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to map[string]Variable")
+	}
 
-func (v *evalConcat) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
+	keyString, ok := key.(string)
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to string")
+	}
+
+	if len(vmap) == 0 {
+		return nil, ast.TypeInvalid, fmt.Errorf("map is empty")
+	}
+
+	value, ok := vmap[keyString]
+	if !ok {
+		return nil, ast.TypeInvalid, fmt.Errorf("key %q does not exist in map %s", keyString, variableName)
+	}
+
+	return value.Value, value.Type, nil
+}
+
+// hilListToGoSlice converts an ast.Variable into a []interface{}. We assume that
+// the type checking is already done since this is internal and only used in output
+// evaluation.
+func hilListToGoSlice(variable []ast.Variable) []interface{} {
+	output := make([]interface{}, len(variable))
+
+	for index, element := range variable {
+		output[index] = element.Value
+	}
+
+	return output
+}
+
+// hilMapToGoMap converts an ast.Variable into a map[string]interface{}. We assume
+// that the type checking is already done since this is internal and only used in
+// output evaluation.
+func hilMapToGoMap(variable map[string]ast.Variable) map[string]interface{} {
+	output := make(map[string]interface{})
+
+	for key, element := range variable {
+		output[key] = element.Value
+	}
+
+	return output
+}
+
+type evalOutput struct{ *ast.Output }
+
+func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
 	// The expressions should all be on the stack in reverse
 	// order. So pop them off, reverse their order, and concatenate.
 	nodes := make([]*ast.LiteralNode, 0, len(v.Exprs))
@@ -244,6 +373,15 @@ func (v *evalConcat) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 		nodes = append(nodes, stack.Pop().(*ast.LiteralNode))
 	}
 
+	// Special case the single list and map
+	if len(nodes) == 1 && nodes[0].Typex == ast.TypeList {
+		return nodes[0].Value, ast.TypeList, nil
+	}
+	if len(nodes) == 1 && nodes[0].Typex == ast.TypeMap {
+		return nodes[0].Value, ast.TypeMap, nil
+	}
+
+	// Otherwise concatenate the strings
 	var buf bytes.Buffer
 	for i := len(nodes) - 1; i >= 0; i-- {
 		buf.WriteString(nodes[i].Value.(string))

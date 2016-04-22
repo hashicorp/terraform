@@ -526,6 +526,33 @@ func TestexpandElasticacheParameters(t *testing.T) {
 	}
 }
 
+func TestExpandStepAdjustments(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"metric_interval_lower_bound": "1.0",
+			"metric_interval_upper_bound": "2.0",
+			"scaling_adjustment":          1,
+		},
+	}
+	parameters, err := expandStepAdjustments(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &autoscaling.StepAdjustment{
+		MetricIntervalLowerBound: aws.Float64(1.0),
+		MetricIntervalUpperBound: aws.Float64(2.0),
+		ScalingAdjustment:        aws.Int64(int64(1)),
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
 func TestFlattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*rds.Parameter
@@ -725,6 +752,30 @@ func TestFlattenAttachment(t *testing.T) {
 
 	if result["attachment_id"] != "at-002" {
 		t.Fatalf("expected attachment_id to be at-002, but got %s", result["attachment_id"])
+	}
+}
+
+func TestflattenStepAdjustments(t *testing.T) {
+	expanded := []*autoscaling.StepAdjustment{
+		&autoscaling.StepAdjustment{
+			MetricIntervalLowerBound: aws.Float64(1.0),
+			MetricIntervalUpperBound: aws.Float64(2.0),
+			ScalingAdjustment:        aws.Int64(int64(1)),
+		},
+	}
+
+	result := flattenStepAdjustments(expanded)[0]
+	if result == nil {
+		t.Fatal("expected result to have value, but got nil")
+	}
+	if result["metric_interval_lower_bound"] != float64(1.0) {
+		t.Fatalf("expected metric_interval_lower_bound to be 1.0, but got %d", result["metric_interval_lower_bound"])
+	}
+	if result["metric_interval_upper_bound"] != float64(2.0) {
+		t.Fatalf("expected metric_interval_upper_bound to be 1.0, but got %d", result["metric_interval_upper_bound"])
+	}
+	if result["scaling_adjustment"] != int64(1) {
+		t.Fatalf("expected scaling_adjustment to be 1, but got %d", result["scaling_adjustment"])
 	}
 }
 

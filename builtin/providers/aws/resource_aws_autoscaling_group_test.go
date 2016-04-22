@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -18,21 +19,25 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 	var group autoscaling.Group
 	var lc autoscaling.LaunchConfiguration
 
+	randName := fmt.Sprintf("terraform-test-%s", acctest.RandString(10))
+
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_autoscaling_group.bar",
+		IDRefreshIgnore: []string{"force_delete", "metrics_granularity", "wait_for_capacity_timeout"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfig,
+				Config: testAccAWSAutoScalingGroupConfig(randName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupHealthyCapacity(&group, 2),
-					testAccCheckAWSAutoScalingGroupAttributes(&group),
+					testAccCheckAWSAutoScalingGroupAttributes(&group, randName),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
+						"aws_autoscaling_group.bar", "name", randName),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "max_size", "5"),
 					resource.TestCheckResourceAttr(
@@ -53,7 +58,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfigUpdate,
+				Config: testAccAWSAutoScalingGroupConfigUpdate(randName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.new", &lc),
@@ -139,13 +144,15 @@ func TestAccAWSAutoScalingGroup_terminationPolicies(t *testing.T) {
 func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 	var group autoscaling.Group
 
+	randName := fmt.Sprintf("tfautotags-%s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfig,
+				Config: testAccAWSAutoScalingGroupConfig(randName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAutoscalingTags(&group.Tags, "Foo", map[string]interface{}{
@@ -156,7 +163,7 @@ func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfigUpdate,
+				Config: testAccAWSAutoScalingGroupConfigUpdate(randName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAutoscalingTagNotExists(&group.Tags, "Foo"),
@@ -217,7 +224,7 @@ func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccAWSAutoScalingGroupConfigWithLoadBalancer),
+				Config: testAccAWSAutoScalingGroupConfigWithLoadBalancer,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(&group),
@@ -230,17 +237,18 @@ func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 func TestAccAWSAutoScalingGroup_withPlacementGroup(t *testing.T) {
 	var group autoscaling.Group
 
+	randName := fmt.Sprintf("tf_placement_test-%s", acctest.RandString(5))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoScalingGroupConfig_withPlacementGroup,
+				Config: testAccAWSAutoScalingGroupConfig_withPlacementGroup(randName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "placement_group", "tf_placement_test"),
+						"aws_autoscaling_group.bar", "placement_group", randName),
 				),
 			},
 		},
@@ -310,14 +318,14 @@ func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group) resource.TestCheckFunc {
+func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.AvailabilityZones[0] != "us-west-2a" {
 			return fmt.Errorf("Bad availability_zones: %#v", group.AvailabilityZones[0])
 		}
 
-		if *group.AutoScalingGroupName != "foobar3-terraform-test" {
-			return fmt.Errorf("Bad name: %s", *group.AutoScalingGroupName)
+		if *group.AutoScalingGroupName != name {
+			return fmt.Errorf("Bad Autoscaling Group name, expected (%s), got (%s)", name, *group.AutoScalingGroupName)
 		}
 
 		if *group.MaxSize != 5 {
@@ -539,23 +547,23 @@ resource "aws_autoscaling_group" "bar" {
 }
 `
 
-const testAccAWSAutoScalingGroupConfig = `
+func testAccAWSAutoScalingGroupConfig(name string) string {
+	return fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
   instance_type = "t1.micro"
 }
 
 resource "aws_placement_group" "test" {
-  name = "test"
+  name = "%s"
   strategy = "cluster"
 }
 
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
-  name = "foobar3-terraform-test"
+  name = "%s"
   max_size = 5
   min_size = 2
-  health_check_grace_period = 300
   health_check_type = "ELB"
   desired_capacity = 4
   force_delete = true
@@ -569,9 +577,11 @@ resource "aws_autoscaling_group" "bar" {
     propagate_at_launch = true
   }
 }
-`
+`, name, name)
+}
 
-const testAccAWSAutoScalingGroupConfigUpdate = `
+func testAccAWSAutoScalingGroupConfigUpdate(name string) string {
+	return fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
   instance_type = "t1.micro"
@@ -584,7 +594,7 @@ resource "aws_launch_configuration" "new" {
 
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
-  name = "foobar3-terraform-test"
+  name = "%s"
   max_size = 5
   min_size = 2
   health_check_grace_period = 300
@@ -601,7 +611,8 @@ resource "aws_autoscaling_group" "bar" {
     propagate_at_launch = true
   }
 }
-`
+`, name)
+}
 
 const testAccAWSAutoScalingGroupConfigWithLoadBalancer = `
 resource "aws_vpc" "foo" {
@@ -669,7 +680,6 @@ resource "aws_launch_configuration" "foobar" {
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["${aws_subnet.foo.availability_zone}"]
 	vpc_zone_identifier = ["${aws_subnet.foo.id}"]
-  name = "foobar3-terraform-test"
   max_size = 2
   min_size = 2
   health_check_grace_period = 300
@@ -748,20 +758,21 @@ resource "aws_autoscaling_group" "bar" {
 }
 `
 
-const testAccAWSAutoScalingGroupConfig_withPlacementGroup = `
+func testAccAWSAutoScalingGroupConfig_withPlacementGroup(name string) string {
+	return fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
   instance_type = "c3.large"
 }
 
 resource "aws_placement_group" "test" {
-  name = "tf_placement_test"
+  name = "%s"
   strategy = "cluster"
 }
 
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
-  name = "foobar3-terraform-test"
+  name = "%s"
   max_size = 1
   min_size = 1
   health_check_grace_period = 300
@@ -779,7 +790,8 @@ resource "aws_autoscaling_group" "bar" {
     propagate_at_launch = true
   }
 }
-`
+`, name, name)
+}
 
 const testAccAWSAutoscalingMetricsCollectionConfig_allMetricsCollected = `
 resource "aws_launch_configuration" "foobar" {

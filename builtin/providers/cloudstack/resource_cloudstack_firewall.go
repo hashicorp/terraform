@@ -1,6 +1,7 @@
 package cloudstack
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -20,10 +21,19 @@ func resourceCloudStackFirewall() *schema.Resource {
 		Delete: resourceCloudStackFirewallDelete,
 
 		Schema: map[string]*schema.Schema{
+			"ip_address_id": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ipaddress"},
+			},
+
 			"ipaddress": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Please use the `ip_address_id` field instead",
+				ConflictsWith: []string{"ip_address_id"},
 			},
 
 			"managed": &schema.Schema{
@@ -99,8 +109,16 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
+	ipaddress, ok := d.GetOk("ip_address_id")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if !ok {
+		return errors.New("Either `ip_address_id` or [deprecated] `ipaddress` must be provided.")
+	}
+
 	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
+	ipaddressid, e := retrieveID(cs, "ip_address", ipaddress.(string))
 	if e != nil {
 		return e.Error()
 	}

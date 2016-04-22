@@ -69,9 +69,10 @@ func TestAccAWSRoute53Zone_basic(t *testing.T) {
 	var td route53.ResourceTagSet
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53ZoneDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_zone.main",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53ZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53ZoneConfig,
@@ -90,9 +91,10 @@ func TestAccAWSRoute53Zone_updateComment(t *testing.T) {
 	var td route53.ResourceTagSet
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53ZoneDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_zone.main",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53ZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53ZoneConfig,
@@ -122,9 +124,10 @@ func TestAccAWSRoute53Zone_private_basic(t *testing.T) {
 	var zone route53.GetHostedZoneOutput
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRoute53ZoneDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_zone.main",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53ZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53PrivateZoneConfig,
@@ -153,6 +156,7 @@ func TestAccAWSRoute53Zone_private_region(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
+		IDRefreshName:     "aws_route53_zone.main",
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testAccCheckRoute53ZoneDestroyWithProviders(&providers),
 		Steps: []resource.TestStep{
@@ -310,7 +314,7 @@ func testAccLoadTagsR53(zone *route53.GetHostedZoneOutput, td *route53.ResourceT
 
 const testAccRoute53ZoneConfig = `
 resource "aws_route53_zone" "main" {
-	name = "hashicorp.com"
+	name = "hashicorp.com."
 	comment = "Custom comment"
 
 	tags {
@@ -322,7 +326,7 @@ resource "aws_route53_zone" "main" {
 
 const testAccRoute53ZoneConfigUpdateComment = `
 resource "aws_route53_zone" "main" {
-	name = "hashicorp.com"
+	name = "hashicorp.com."
 	comment = "Change Custom Comment"
 
 	tags {
@@ -341,7 +345,7 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_route53_zone" "main" {
-	name = "hashicorp.com"
+	name = "hashicorp.com."
 	vpc_id = "${aws_vpc.main.id}"
 }
 `
@@ -367,7 +371,7 @@ resource "aws_vpc" "main" {
 
 resource "aws_route53_zone" "main" {
 	provider = "aws.west"
-	name = "hashicorp.com"
+	name = "hashicorp.com."
 	vpc_id = "${aws_vpc.main.id}"
 	vpc_region = "us-east-1"
 }

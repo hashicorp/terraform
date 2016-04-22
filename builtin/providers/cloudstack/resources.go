@@ -11,9 +11,6 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-// UnlimitedResourceID is a "special" ID to define an unlimited resource
-const UnlimitedResourceID = "-1"
-
 // Define a regexp for parsing the port
 var splitPorts = regexp.MustCompile(`^(\d+)(?:-(\d+))?$`)
 
@@ -28,11 +25,11 @@ func (e *retrieveError) Error() error {
 }
 
 func setValueOrID(d *schema.ResourceData, key string, value string, id string) {
-	if isID(d.Get(key).(string)) {
+	if cloudstack.IsID(d.Get(key).(string)) {
 		// If the given id is an empty string, check if the configured value matches
 		// the UnlimitedResourceID in which case we set id to UnlimitedResourceID
-		if id == "" && d.Get(key).(string) == UnlimitedResourceID {
-			id = UnlimitedResourceID
+		if id == "" && d.Get(key).(string) == cloudstack.UnlimitedResourceID {
+			id = cloudstack.UnlimitedResourceID
 		}
 
 		d.Set(key, id)
@@ -41,9 +38,13 @@ func setValueOrID(d *schema.ResourceData, key string, value string, id string) {
 	}
 }
 
-func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string, e *retrieveError) {
+func retrieveID(
+	cs *cloudstack.CloudStackClient,
+	name string,
+	value string,
+	opts ...cloudstack.OptionFunc) (id string, e *retrieveError) {
 	// If the supplied value isn't a ID, try to retrieve the ID ourselves
-	if isID(value) {
+	if cloudstack.IsID(value) {
 		return value, nil
 	}
 
@@ -54,7 +55,7 @@ func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string,
 	case "disk_offering":
 		id, err = cs.DiskOffering.GetDiskOfferingID(value)
 	case "virtual_machine":
-		id, err = cs.VirtualMachine.GetVirtualMachineID(value)
+		id, err = cs.VirtualMachine.GetVirtualMachineID(value, opts...)
 	case "service_offering":
 		id, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":
@@ -64,14 +65,20 @@ func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string,
 	case "vpc_offering":
 		id, err = cs.VPC.GetVPCOfferingID(value)
 	case "vpc":
-		id, err = cs.VPC.GetVPCID(value)
+		id, err = cs.VPC.GetVPCID(value, opts...)
 	case "network":
-		id, err = cs.Network.GetNetworkID(value)
+		id, err = cs.Network.GetNetworkID(value, opts...)
 	case "zone":
 		id, err = cs.Zone.GetZoneID(value)
-	case "ipaddress":
+	case "ip_address":
 		p := cs.Address.NewListPublicIpAddressesParams()
 		p.SetIpaddress(value)
+		for _, fn := range opts {
+			if e := fn(cs, p); e != nil {
+				err = e
+				break
+			}
+		}
 		l, e := cs.Address.ListPublicIpAddresses(p)
 		if e != nil {
 			err = e
@@ -109,7 +116,7 @@ func retrieveID(cs *cloudstack.CloudStackClient, name, value string) (id string,
 
 func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (id string, e *retrieveError) {
 	// If the supplied value isn't a ID, try to retrieve the ID ourselves
-	if isID(value) {
+	if cloudstack.IsID(value) {
 		return value, nil
 	}
 
@@ -121,12 +128,6 @@ func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (
 	}
 
 	return id, nil
-}
-
-// ID can be either a UUID or a UnlimitedResourceID
-func isID(id string) bool {
-	re := regexp.MustCompile(`^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|-1)$`)
-	return re.MatchString(id)
 }
 
 // RetryFunc is the function retried n times
@@ -183,12 +184,8 @@ func setCidrList(rule map[string]interface{}, cidrList string) {
 	rule["cidr_list"] = cidrs
 }
 
-type projectidSetter interface {
-	SetProjectid(string)
-}
-
 // If there is a project supplied, we retrieve and set the project id
-func setProjectid(p projectidSetter, cs *cloudstack.CloudStackClient, d *schema.ResourceData) error {
+func setProjectid(p cloudstack.ProjectIDSetter, cs *cloudstack.CloudStackClient, d *schema.ResourceData) error {
 	if project, ok := d.GetOk("project"); ok {
 		projectid, e := retrieveID(cs, "project", project.(string))
 		if e != nil {

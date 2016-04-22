@@ -20,6 +20,7 @@ a new team will be created. When destroyed, that team will be removed.
 resource "github_team" "some_team" {
 	name = "some-team"
 	description = "Some cool team"
+	privacy = "closed"
 }
 ```
 
@@ -29,6 +30,8 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the team.
 * `description` - (Optional) A description of the team.
+* `privacy` - (Optional) The level of privacy for the team. Must be one of `secret` or `closed`.
+               Defaults to `secret`.
 
 ## Attributes Reference
 

@@ -29,6 +29,12 @@ resource "clc_load_balancer_pool" "pool" {
       ipAddress = "${clc_server.node.0.private_ip_address}"
       privatePort = 3000
     }
+  nodes
+    {
+      status = "enabled"
+      ipAddress = "${clc_server.node.1.private_ip_address}"
+      privatePort = 3000
+    }
 }
 
 output "pool" {

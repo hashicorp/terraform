@@ -50,6 +50,12 @@ func init() {
 			}, nil
 		},
 
+		"fmt": func() (cli.Command, error) {
+			return &command.FmtCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"get": func() (cli.Command, error) {
 			return &command.GetCommand{
 				Meta: meta,

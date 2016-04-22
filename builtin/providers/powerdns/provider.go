@@ -1,8 +1,6 @@
 package powerdns
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -13,13 +11,13 @@ func Provider() terraform.ResourceProvider {
 			"api_key": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("PDNS_API_KEY"),
+				DefaultFunc: schema.EnvDefaultFunc("PDNS_API_KEY", nil),
 				Description: "REST API authentication key",
 			},
 			"server_url": {
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("PDNS_SERVER_URL"),
+				DefaultFunc: schema.EnvDefaultFunc("PDNS_SERVER_URL", nil),
 				Description: "Location of PowerDNS server",
 			},
 		},
@@ -39,14 +37,4 @@ func providerConfigure(data *schema.ResourceData) (interface{}, error) {
 	}
 
 	return config.Client()
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
-	}
 }

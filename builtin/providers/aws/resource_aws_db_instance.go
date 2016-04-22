@@ -829,6 +829,10 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		d.SetPartial("storage_type")
 		req.StorageType = aws.String(d.Get("storage_type").(string))
 		requestUpdate = true
+
+		if *req.StorageType == "io1" {
+			req.Iops = aws.Int64(int64(d.Get("iops").(int)))
+		}
 	}
 	if d.HasChange("auto_minor_version_upgrade") {
 		d.SetPartial("auto_minor_version_upgrade")

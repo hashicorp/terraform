@@ -44,9 +44,10 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 			},
 
 			"protocol": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				ForceNew:  true,
+				StateFunc: protocolStateFunc,
 			},
 
 			"cidr_blocks": &schema.Schema{
@@ -411,7 +412,8 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 
 	perm.FromPort = aws.Int64(int64(d.Get("from_port").(int)))
 	perm.ToPort = aws.Int64(int64(d.Get("to_port").(int)))
-	perm.IpProtocol = aws.String(d.Get("protocol").(string))
+	protocol := protocolForValue(d.Get("protocol").(string))
+	perm.IpProtocol = aws.String(protocol)
 
 	// build a group map that behaves like a set
 	groups := make(map[string]bool)

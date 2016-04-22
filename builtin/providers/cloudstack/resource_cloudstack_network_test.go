@@ -44,8 +44,6 @@ func TestAccCloudStackNetwork_vpc(t *testing.T) {
 					testAccCheckCloudStackNetworkExists(
 						"cloudstack_network.foo", &network),
 					testAccCheckCloudStackNetworkVPCAttributes(&network),
-					resource.TestCheckResourceAttr(
-						"cloudstack_network.foo", "vpc", "terraform-vpc"),
 				),
 			},
 		},
@@ -187,7 +185,7 @@ resource "cloudstack_network" "foo" {
 	name = "terraform-network"
 	cidr = "%s"
 	network_offering = "%s"
-	vpc = "${cloudstack_vpc.foobar.name}"
+	vpc_id = "${cloudstack_vpc.foobar.id}"
 	zone = "${cloudstack_vpc.foobar.zone}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,

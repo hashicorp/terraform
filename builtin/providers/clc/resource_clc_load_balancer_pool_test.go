@@ -29,6 +29,15 @@ func TestAccLBPoolBasic(t *testing.T) {
 					resource.TestCheckResourceAttr("clc_load_balancer_pool.acc_test_pool", "port", "80"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccCheckLBPConfigUpdates,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLBPExists("clc_load_balancer_pool.acc_test_pool", &pool),
+					resource.TestCheckResourceAttr("clc_load_balancer.acc_test_lbp", "description", "description modified"),
+					resource.TestCheckResourceAttr("clc_load_balancer.acc_test_lbp", "status", "disabled"),
+					resource.TestCheckResourceAttr("clc_load_balancer_pool.acc_test_pool", "nodes.0.privatePort", "8080"),
+				),
+			},
 		},
 	})
 }
@@ -85,7 +94,7 @@ resource "clc_group" "acc_test_lbp_group" {
 # need a server here because we need to reference an ip owned by this account
 resource "clc_server" "acc_test_lbp_server" {
   name_template		= "node"
-  description		= "load balanced in ${clc_load_balancer.acc_test_lbp.id}"
+  description		= "load balanced"
   source_server_id	= "UBUNTU-14-64-TEMPLATE"
   type			= "standard"
   group_id		= "${clc_group.acc_test_lbp_group.id}"
@@ -101,6 +110,7 @@ resource "clc_load_balancer" "acc_test_lbp" {
   name			= "acc_test_lb"
   description		= "load balancer test"
   status		= "enabled"
+  depends_on            = ["clc_server.acc_test_lbp_server"]
 }
 
 resource "clc_load_balancer_pool" "acc_test_pool" {
@@ -113,5 +123,51 @@ resource "clc_load_balancer_pool" "acc_test_pool" {
       ipAddress		= "${clc_server.acc_test_lbp_server.private_ip_address}"
       privatePort	= 80
     }
+  depends_on            = ["clc_server.acc_test_lbp_server"]
+}
+`
+
+const testAccCheckLBPConfigUpdates = `
+variable "dc" { default = "IL1" }
+
+resource "clc_group" "acc_test_lbp_group" {
+  location_id		= "${var.dc}"
+  name			= "acc_test_lbp_group"
+  parent		= "Default Group"
+}
+
+# need a server here because we need to reference an ip owned by this account
+resource "clc_server" "acc_test_lbp_server" {
+  name_template		= "node"
+  description		= "load balanced"
+  source_server_id	= "UBUNTU-14-64-TEMPLATE"
+  type			= "standard"
+  group_id		= "${clc_group.acc_test_lbp_group.id}"
+  cpu			= 1
+  memory_mb		= 1024
+  password		= "Green123$"
+  power_state		= "started"
+
+}
+
+resource "clc_load_balancer" "acc_test_lbp" {
+  data_center		= "${var.dc}"
+  name			= "acc_test_lb"
+  description		= "description modified"
+  status		= "disabled"
+  depends_on            = ["clc_server.acc_test_lbp_server"]
+}
+
+resource "clc_load_balancer_pool" "acc_test_pool" {
+  port			= 80
+  data_center		= "${var.dc}"
+  load_balancer		= "${clc_load_balancer.acc_test_lbp.id}"
+  nodes
+    {
+      status		= "enabled"
+      ipAddress		= "${clc_server.acc_test_lbp_server.private_ip_address}"
+      privatePort	= 8080
+    }
+  depends_on            = ["clc_server.acc_test_lbp_server"]
 }
 `

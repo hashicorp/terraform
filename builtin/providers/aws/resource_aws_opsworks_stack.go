@@ -214,7 +214,7 @@ func resourceAwsOpsworksStackCustomCookbooksSource(d *schema.ResourceData) *opsw
 
 func resourceAwsOpsworksSetStackCustomCookbooksSource(d *schema.ResourceData, v *opsworks.Source) {
 	nv := make([]interface{}, 0, 1)
-	if v != nil {
+	if v != nil && v.Type != nil && *v.Type != "" {
 		m := make(map[string]interface{})
 		if v.Type != nil {
 			m["type"] = *v.Type
@@ -225,12 +225,12 @@ func resourceAwsOpsworksSetStackCustomCookbooksSource(d *schema.ResourceData, v 
 		if v.Username != nil {
 			m["username"] = *v.Username
 		}
-		if v.Password != nil {
-			m["password"] = *v.Password
-		}
 		if v.Revision != nil {
 			m["revision"] = *v.Revision
 		}
+		// v.Password will, on read, contain the placeholder string
+		// "*****FILTERED*****", so we ignore it on read and let persist
+		// the value already in the state.
 		nv = append(nv, m)
 	}
 
@@ -310,6 +310,10 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 		DefaultOs:                 aws.String(d.Get("default_os").(string)),
 		UseOpsworksSecurityGroups: aws.Bool(d.Get("use_opsworks_security_groups").(bool)),
 	}
+	req.ConfigurationManager = &opsworks.StackConfigurationManager{
+		Name:    aws.String(d.Get("configuration_manager_name").(string)),
+		Version: aws.String(d.Get("configuration_manager_version").(string)),
+	}
 	inVpc := false
 	if vpcId, ok := d.GetOk("vpc_id"); ok {
 		req.VpcId = aws.String(vpcId.(string))
@@ -341,7 +345,8 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 				// Service Role Arn: [...] is not yet propagated, please try again in a couple of minutes
 				propErr := "not yet propagated"
 				trustErr := "not the necessary trust relationship"
-				if opserr.Code() == "ValidationException" && (strings.Contains(opserr.Message(), trustErr) || strings.Contains(opserr.Message(), propErr)) {
+				validateErr := "validate IAM role permission"
+				if opserr.Code() == "ValidationException" && (strings.Contains(opserr.Message(), trustErr) || strings.Contains(opserr.Message(), propErr) || strings.Contains(opserr.Message(), validateErr)) {
 					log.Printf("[INFO] Waiting for service IAM role to propagate")
 					return resource.RetryableError(cerr)
 				}

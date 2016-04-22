@@ -146,8 +146,8 @@ type Change struct {
 	// string "dns#change".
 	Kind string `json:"kind,omitempty"`
 
-	// StartTime: The time that this operation was started by the server.
-	// This is in RFC3339 text format.
+	// StartTime: The time that this operation was started by the server
+	// (output only). This is in RFC3339 text format.
 	StartTime string `json:"startTime,omitempty"`
 
 	// Status: Status of the operation (output only).

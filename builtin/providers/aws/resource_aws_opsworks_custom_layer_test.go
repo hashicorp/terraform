@@ -129,6 +129,9 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "ebs_volume.1266957920.iops", "3000",
 					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_custom_layer.tf-acc", "custom_json", `{"layer_key":"layer_value2"}`,
+					),
 				),
 			},
 		},
@@ -268,6 +271,7 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
     raid_level = 1
     iops = 3000
   }
+  custom_json = "{\"layer_key\": \"layer_value2\"}"
 }
 
 %s

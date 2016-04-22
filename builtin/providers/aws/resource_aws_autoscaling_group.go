@@ -80,7 +80,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"health_check_grace_period": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  300,
 			},
 
 			"health_check_type": &schema.Schema{
@@ -273,7 +273,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("max_size", g.MaxSize)
 	d.Set("placement_group", g.PlacementGroup)
 	d.Set("name", g.AutoScalingGroupName)
-	d.Set("tag", g.Tags)
+	d.Set("tag", autoscalingTagDescriptionsToSlice(g.Tags))
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
 
 	// If no termination polices are explicitly configured and the upstream state

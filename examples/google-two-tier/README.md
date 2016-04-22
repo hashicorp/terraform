@@ -11,6 +11,17 @@ getting your application onto the servers. However, you could do so either via
 management tool, or by pre-baking configured images with
 [Packer](https://packer.io/docs/builders/googlecompute.html).
 
+You will need to generate SSH keys as follows:
+
+```sh
+$ ssh-keygen -f ~/.ssh/gcloud_id_rsa
+# press <Enter> when asked (twice) for a pass-phrase
+```
+
+Then [download your credentials from Google Cloud Console](https://www.terraform.io/docs/providers/google/#credentials); suggested path for downloaded file is `~/.gcloud/Terraform.json`.
+
+Optionally update `variables.tf` to specify a default value for the `project_name` variable, and check other variables.
+
 After you run `terraform apply` on this configuration, it will
 automatically output the public IP address of the load balancer.
 After your instance registers, the LB should respond with a simple header:
@@ -33,7 +44,7 @@ terraform apply \
 	-var="region=us-central1" \
 	-var="region_zone=us-central1-f" \
 	-var="project_name=my-project-id-123" \
-	-var="account_file_path=~/.gcloud/Terraform.json" \
+	-var="credentials_file_path=~/.gcloud/Terraform.json" \
 	-var="public_key_path=~/.ssh/gcloud_id_rsa.pub" \
 	-var="private_key_path=~/.ssh/gcloud_id_rsa"
 ```
