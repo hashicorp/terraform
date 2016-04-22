@@ -141,7 +141,10 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the volume details
-	v, count, err := cs.Volume.GetVolumeByID(d.Id())
+	v, count, err := cs.Volume.GetVolumeByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			d.SetId("")
@@ -152,7 +155,7 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("name", v.Name)
-	d.Set("attach", v.Attached != "")           // If attached this will contain a timestamp when attached
+	d.Set("attach", v.Attached != "")           // If attached this contains a timestamp when attached
 	d.Set("size", int(v.Size/(1024*1024*1024))) // Needed to get GB's again
 
 	setValueOrID(d, "disk_offering", v.Diskofferingname, v.Diskofferingid)
@@ -161,7 +164,10 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 
 	if v.Attached != "" {
 		// Get the virtual machine details
-		vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(v.Virtualmachineid)
+		vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(
+			v.Virtualmachineid,
+			cloudstack.WithProject(d.Get("project").(string)),
+		)
 		if err != nil {
 			return err
 		}
@@ -290,12 +296,17 @@ func resourceCloudStackDiskAttach(d *schema.ResourceData, meta interface{}) erro
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// First check if the disk isn't already attached
-	if attached, err := isAttached(cs, d.Id()); err != nil || attached {
+	if attached, err := isAttached(d, meta); err != nil || attached {
 		return err
 	}
 
 	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
+	virtualmachineid, e := retrieveID(
+		cs,
+		"virtual_machine",
+		d.Get("virtual_machine").(string),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if e != nil {
 		return e.Error()
 	}
@@ -329,7 +340,7 @@ func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) erro
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Check if the volume is actually attached, before detaching
-	if attached, err := isAttached(cs, d.Id()); err != nil || !attached {
+	if attached, err := isAttached(d, meta); err != nil || !attached {
 		return err
 	}
 
@@ -342,7 +353,12 @@ func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) erro
 	// Detach the currently attached volume
 	if _, err := cs.Volume.DetachVolume(p); err != nil {
 		// Retrieve the virtual_machine ID
-		virtualmachineid, e := retrieveID(cs, "virtual_machine", d.Get("virtual_machine").(string))
+		virtualmachineid, e := retrieveID(
+			cs,
+			"virtual_machine",
+			d.Get("virtual_machine").(string),
+			cloudstack.WithProject(d.Get("project").(string)),
+		)
 		if e != nil {
 			return e.Error()
 		}
@@ -372,9 +388,14 @@ func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func isAttached(cs *cloudstack.CloudStackClient, id string) (bool, error) {
+func isAttached(d *schema.ResourceData, meta interface{}) (bool, error) {
+	cs := meta.(*cloudstack.CloudStackClient)
+
 	// Get the volume details
-	v, _, err := cs.Volume.GetVolumeByID(id)
+	v, _, err := cs.Volume.GetVolumeByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		return false, err
 	}
