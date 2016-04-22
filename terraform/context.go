@@ -225,6 +225,8 @@ func (c *Context) Input(mode InputMode) error {
 				continue
 			case config.VariableTypeMap:
 				continue
+			case config.VariableTypeList:
+				continue
 			case config.VariableTypeString:
 				// Good!
 			default:

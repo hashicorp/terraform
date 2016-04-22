@@ -158,6 +158,7 @@ type VariableType byte
 const (
 	VariableTypeUnknown VariableType = iota
 	VariableTypeString
+	VariableTypeList
 	VariableTypeMap
 )
 
@@ -167,6 +168,8 @@ func (v VariableType) Printable() string {
 		return "string"
 	case VariableTypeMap:
 		return "map"
+	case VariableTypeList:
+		return "list"
 	default:
 		return "unknown"
 	}
@@ -348,16 +351,30 @@ func (c *Config) Validate() error {
 				m.Id()))
 		}
 
-		// Check that the configuration can all be strings
+		// Check that the configuration can all be strings, lists or maps
 		raw := make(map[string]interface{})
 		for k, v := range m.RawConfig.Raw {
 			var strVal string
-			if err := mapstructure.WeakDecode(v, &strVal); err != nil {
-				errs = append(errs, fmt.Errorf(
-					"%s: variable %s must be a string value",
-					m.Id(), k))
+			if err := mapstructure.WeakDecode(v, &strVal); err == nil {
+				raw[k] = strVal
+				continue
 			}
-			raw[k] = strVal
+
+			var mapVal map[string]interface{}
+			if err := mapstructure.WeakDecode(v, &mapVal); err == nil {
+				raw[k] = mapVal
+				continue
+			}
+
+			var sliceVal []interface{}
+			if err := mapstructure.WeakDecode(v, &sliceVal); err == nil {
+				raw[k] = sliceVal
+				continue
+			}
+
+			errs = append(errs, fmt.Errorf(
+				"%s: variable %s must be a string, list or map value",
+				m.Id(), k))
 		}
 
 		// Check for invalid count variables
@@ -705,7 +722,8 @@ func (c *Config) validateVarContextFn(
 
 			if rv.Multi && rv.Index == -1 {
 				*errs = append(*errs, fmt.Errorf(
-					"%s: multi-variable must be in a slice", source))
+					"%s: use of the splat ('*') operator must be wrapped in a list declaration",
+					source))
 			}
 		}
 	}
@@ -813,6 +831,7 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 var typeStringMap = map[string]VariableType{
 	"string": VariableTypeString,
 	"map":    VariableTypeMap,
+	"list":   VariableTypeList,
 }
 
 // Type returns the type of variable this is.
@@ -872,9 +891,9 @@ func (v *Variable) inferTypeFromDefault() VariableType {
 		return VariableTypeString
 	}
 
-	var strVal string
-	if err := mapstructure.WeakDecode(v.Default, &strVal); err == nil {
-		v.Default = strVal
+	var s string
+	if err := mapstructure.WeakDecode(v.Default, &s); err == nil {
+		v.Default = s
 		return VariableTypeString
 	}
 
@@ -882,6 +901,12 @@ func (v *Variable) inferTypeFromDefault() VariableType {
 	if err := mapstructure.WeakDecode(v.Default, &m); err == nil {
 		v.Default = m
 		return VariableTypeMap
+	}
+
+	var l []string
+	if err := mapstructure.WeakDecode(v.Default, &l); err == nil {
+		v.Default = l
+		return VariableTypeList
 	}
 
 	return VariableTypeUnknown
