@@ -84,6 +84,7 @@ BUG FIXES:
  * provider/aws: Fix potential crash when receiving malformed `aws_route` API responses [GH-5867]
  * provider/aws: Guard against empty responses from Lambda Permissions [GH-5838]
  * provider/aws: Normalize and compact SQS Redrive, Policy JSON [GH-5888]
+ * provider/aws: Fix issue updating ElasticBeanstalk Configuraiton Templates [GH-6307]
  * provider/aws: Remove CloudTrail Trail from state if not found [GH-6024]
  * provider/aws: Fix crash in AWS S3 Bucket when website index/error is empty [GH-6269]
  * provider/aws: Report better error message in `aws_route53_record` when `set_identifier` is required [GH-5777]
