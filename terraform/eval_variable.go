@@ -60,6 +60,10 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 			continue
 		}
 
+		if proposedValue == config.UnknownVariableValue {
+			continue
+		}
+
 		switch declaredType {
 		case config.VariableTypeString:
 			// This will need actual verification once we aren't dealing with
@@ -75,6 +79,14 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 		case config.VariableTypeMap:
 			switch proposedValue.(type) {
 			case map[string]interface{}:
+				continue
+			default:
+				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
+					name, modulePathDescription, declaredType.Printable(), proposedValue)
+			}
+		case config.VariableTypeList:
+			switch proposedValue.(type) {
+			case []interface{}:
 				continue
 			default:
 				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",

@@ -284,18 +284,35 @@ func DetectVariables(root ast.Node) ([]InterpolatedVariable, error) {
 			return n
 		}
 
-		vn, ok := n.(*ast.VariableAccess)
-		if !ok {
+		switch vn := n.(type) {
+		case *ast.VariableAccess:
+			v, err := NewInterpolatedVariable(vn.Name)
+			if err != nil {
+				resultErr = err
+				return n
+			}
+			result = append(result, v)
+		case *ast.Index:
+			if va, ok := vn.Target.(*ast.VariableAccess); ok {
+				v, err := NewInterpolatedVariable(va.Name)
+				if err != nil {
+					resultErr = err
+					return n
+				}
+				result = append(result, v)
+			}
+			if va, ok := vn.Key.(*ast.VariableAccess); ok {
+				v, err := NewInterpolatedVariable(va.Name)
+				if err != nil {
+					resultErr = err
+					return n
+				}
+				result = append(result, v)
+			}
+		default:
 			return n
 		}
 
-		v, err := NewInterpolatedVariable(vn.Name)
-		if err != nil {
-			resultErr = err
-			return n
-		}
-
-		result = append(result, v)
 		return n
 	}
 

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 )
@@ -210,6 +211,11 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	})
 }
 
+func interfaceToVariableSwallowError(input interface{}) ast.Variable {
+	variable, _ := hil.InterfaceToVariable(input)
+	return variable
+}
+
 func TestInterpolator_resourceMultiAttributes(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
@@ -251,31 +257,24 @@ func TestInterpolator_resourceMultiAttributes(t *testing.T) {
 		Path: rootModulePath,
 	}
 
-	name_servers := []string{
+	name_servers := []interface{}{
 		"ns-1334.awsdns-38.org",
 		"ns-1680.awsdns-18.co.uk",
 		"ns-498.awsdns-62.com",
 		"ns-601.awsdns-11.net",
 	}
-	expectedNameServers := config.NewStringList(name_servers).String()
 
 	// More than 1 element
-	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
-		Value: expectedNameServers,
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers",
+		interfaceToVariableSwallowError(name_servers))
 
 	// Exactly 1 element
-	testInterpolate(t, i, scope, "aws_route53_zone.yada.listeners", ast.Variable{
-		Value: config.NewStringList([]string{"red"}).String(),
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.listeners",
+		interfaceToVariableSwallowError([]interface{}{"red"}))
 
 	// Zero elements
-	testInterpolate(t, i, scope, "aws_route53_zone.yada.nothing", ast.Variable{
-		Value: config.NewStringList([]string{}).String(),
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.nothing",
+		interfaceToVariableSwallowError([]interface{}{}))
 
 	// Maps still need to work
 	testInterpolate(t, i, scope, "aws_route53_zone.yada.tags.Name", ast.Variable{
@@ -290,7 +289,7 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 		Path: rootModulePath,
 	}
 
-	name_servers := []string{
+	name_servers := []interface{}{
 		"ns-1334.awsdns-38.org",
 		"ns-1680.awsdns-18.co.uk",
 		"ns-498.awsdns-62.com",
@@ -302,50 +301,38 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 	}
 
 	// More than 1 element
-	expectedNameServers := config.NewStringList(name_servers[0:4]).String()
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.name_servers", ast.Variable{
-		Value: expectedNameServers,
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.name_servers",
+		interfaceToVariableSwallowError(name_servers[0:4]))
+
 	// More than 1 element in both
-	expectedNameServers = config.NewStringList(name_servers).String()
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.name_servers", ast.Variable{
-		Value: expectedNameServers,
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.name_servers",
+		interfaceToVariableSwallowError(name_servers))
 
 	// Exactly 1 element
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.listeners", ast.Variable{
-		Value: config.NewStringList([]string{"red"}).String(),
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.listeners",
+		interfaceToVariableSwallowError([]interface{}{"red"}))
+
 	// Exactly 1 element in both
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.listeners", ast.Variable{
-		Value: config.NewStringList([]string{"red", "blue"}).String(),
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.listeners",
+		interfaceToVariableSwallowError([]interface{}{"red", "blue"}))
 
 	// Zero elements
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.nothing", ast.Variable{
-		Value: config.NewStringList([]string{}).String(),
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.nothing",
+		interfaceToVariableSwallowError([]interface{}{}))
+
 	// Zero + 1 element
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.special", ast.Variable{
-		Value: config.NewStringList([]string{"extra"}).String(),
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.special",
+		interfaceToVariableSwallowError([]interface{}{"extra"}))
 
 	// Maps still need to work
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.tags.Name", ast.Variable{
 		Value: "reindeer",
 		Type:  ast.TypeString,
 	})
+
 	// Maps still need to work in both
-	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.tags.Name", ast.Variable{
-		Value: config.NewStringList([]string{"reindeer", "white-hart"}).String(),
-		Type:  ast.TypeString,
-	})
+	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.tags.Name",
+		interfaceToVariableSwallowError([]interface{}{"reindeer", "white-hart"}))
 }
 
 func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {

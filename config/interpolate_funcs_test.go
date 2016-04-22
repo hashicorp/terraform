@@ -17,21 +17,21 @@ func TestInterpolateFuncCompact(t *testing.T) {
 			// empty string within array
 			{
 				`${compact(split(",", "a,,b"))}`,
-				NewStringList([]string{"a", "b"}).String(),
+				[]interface{}{"a", "b"},
 				false,
 			},
 
 			// empty string at the end of array
 			{
 				`${compact(split(",", "a,b,"))}`,
-				NewStringList([]string{"a", "b"}).String(),
+				[]interface{}{"a", "b"},
 				false,
 			},
 
 			// single empty string
 			{
 				`${compact(split(",", ""))}`,
-				NewStringList([]string{}).String(),
+				[]interface{}{},
 				false,
 			},
 		},
@@ -174,76 +174,52 @@ func TestInterpolateFuncCoalesce(t *testing.T) {
 	})
 }
 
-func TestInterpolateFuncDeprecatedConcat(t *testing.T) {
-	testFunction(t, testFunctionConfig{
-		Cases: []testFunctionCase{
-			{
-				`${concat("foo", "bar")}`,
-				"foobar",
-				false,
-			},
-
-			{
-				`${concat("foo")}`,
-				"foo",
-				false,
-			},
-
-			{
-				`${concat()}`,
-				nil,
-				true,
-			},
-		},
-	})
-}
-
 func TestInterpolateFuncConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			// String + list
 			{
 				`${concat("a", split(",", "b,c"))}`,
-				NewStringList([]string{"a", "b", "c"}).String(),
+				[]interface{}{"a", "b", "c"},
 				false,
 			},
 
 			// List + string
 			{
 				`${concat(split(",", "a,b"), "c")}`,
-				NewStringList([]string{"a", "b", "c"}).String(),
+				[]interface{}{"a", "b", "c"},
 				false,
 			},
 
 			// Single list
 			{
 				`${concat(split(",", ",foo,"))}`,
-				NewStringList([]string{"", "foo", ""}).String(),
+				[]interface{}{"", "foo", ""},
 				false,
 			},
 			{
 				`${concat(split(",", "a,b,c"))}`,
-				NewStringList([]string{"a", "b", "c"}).String(),
+				[]interface{}{"a", "b", "c"},
 				false,
 			},
 
 			// Two lists
 			{
 				`${concat(split(",", "a,b,c"), split(",", "d,e"))}`,
-				NewStringList([]string{"a", "b", "c", "d", "e"}).String(),
+				[]interface{}{"a", "b", "c", "d", "e"},
 				false,
 			},
 			// Two lists with different separators
 			{
 				`${concat(split(",", "a,b,c"), split(" ", "d e"))}`,
-				NewStringList([]string{"a", "b", "c", "d", "e"}).String(),
+				[]interface{}{"a", "b", "c", "d", "e"},
 				false,
 			},
 
 			// More lists
 			{
 				`${concat(split(",", "a,b"), split(",", "c,d"), split(",", "e,f"), split(",", "0,1"))}`,
-				NewStringList([]string{"a", "b", "c", "d", "e", "f", "0", "1"}).String(),
+				[]interface{}{"a", "b", "c", "d", "e", "f", "0", "1"},
 				false,
 			},
 		},
@@ -338,7 +314,7 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 			// formatlist applies to each list element in turn
 			{
 				`${formatlist("<%s>", split(",", "A,B"))}`,
-				NewStringList([]string{"<A>", "<B>"}).String(),
+				[]interface{}{"<A>", "<B>"},
 				false,
 			},
 			// formatlist repeats scalar elements
@@ -362,7 +338,7 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 			// Works with lists of length 1 [GH-2240]
 			{
 				`${formatlist("%s.id", split(",", "demo-rest-elb"))}`,
-				NewStringList([]string{"demo-rest-elb.id"}).String(),
+				[]interface{}{"demo-rest-elb.id"},
 				false,
 			},
 		},
@@ -371,6 +347,11 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 
 func TestInterpolateFuncIndex(t *testing.T) {
 	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.list1": interfaceToVariableSwallowError([]string{"notfoo", "stillnotfoo", "bar"}),
+			"var.list2": interfaceToVariableSwallowError([]string{"foo"}),
+			"var.list3": interfaceToVariableSwallowError([]string{"foo", "spam", "bar", "eggs"}),
+		},
 		Cases: []testFunctionCase{
 			{
 				`${index("test", "")}`,
@@ -379,22 +360,19 @@ func TestInterpolateFuncIndex(t *testing.T) {
 			},
 
 			{
-				fmt.Sprintf(`${index("%s", "foo")}`,
-					NewStringList([]string{"notfoo", "stillnotfoo", "bar"}).String()),
+				`${index(var.list1, "foo")}`,
 				nil,
 				true,
 			},
 
 			{
-				fmt.Sprintf(`${index("%s", "foo")}`,
-					NewStringList([]string{"foo"}).String()),
+				`${index(var.list2, "foo")}`,
 				"0",
 				false,
 			},
 
 			{
-				fmt.Sprintf(`${index("%s", "bar")}`,
-					NewStringList([]string{"foo", "spam", "bar", "eggs"}).String()),
+				`${index(var.list3, "bar")}`,
 				"2",
 				false,
 			},
@@ -404,6 +382,10 @@ func TestInterpolateFuncIndex(t *testing.T) {
 
 func TestInterpolateFuncJoin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.a_list":        interfaceToVariableSwallowError([]string{"foo"}),
+			"var.a_longer_list": interfaceToVariableSwallowError([]string{"foo", "bar", "baz"}),
+		},
 		Cases: []testFunctionCase{
 			{
 				`${join(",")}`,
@@ -412,24 +394,13 @@ func TestInterpolateFuncJoin(t *testing.T) {
 			},
 
 			{
-				fmt.Sprintf(`${join(",", "%s")}`,
-					NewStringList([]string{"foo"}).String()),
+				`${join(",", var.a_list)}`,
 				"foo",
 				false,
 			},
 
-			/*
-				TODO
-				{
-					`${join(",", "foo", "bar")}`,
-					"foo,bar",
-					false,
-				},
-			*/
-
 			{
-				fmt.Sprintf(`${join(".", "%s")}`,
-					NewStringList([]string{"foo", "bar", "baz"}).String()),
+				`${join(".", var.a_longer_list)}`,
 				"foo.bar.baz",
 				false,
 			},
@@ -632,37 +603,37 @@ func TestInterpolateFuncSplit(t *testing.T) {
 
 			{
 				`${split(",", "")}`,
-				NewStringList([]string{""}).String(),
+				[]interface{}{""},
 				false,
 			},
 
 			{
 				`${split(",", "foo")}`,
-				NewStringList([]string{"foo"}).String(),
+				[]interface{}{"foo"},
 				false,
 			},
 
 			{
 				`${split(",", ",,,")}`,
-				NewStringList([]string{"", "", "", ""}).String(),
+				[]interface{}{"", "", "", ""},
 				false,
 			},
 
 			{
 				`${split(",", "foo,")}`,
-				NewStringList([]string{"foo", ""}).String(),
+				[]interface{}{"foo", ""},
 				false,
 			},
 
 			{
 				`${split(",", ",foo,")}`,
-				NewStringList([]string{"", "foo", ""}).String(),
+				[]interface{}{"", "foo", ""},
 				false,
 			},
 
 			{
 				`${split(".", "foo.bar.baz")}`,
-				NewStringList([]string{"foo", "bar", "baz"}).String(),
+				[]interface{}{"foo", "bar", "baz"},
 				false,
 			},
 		},
@@ -810,43 +781,47 @@ func TestInterpolateFuncValues(t *testing.T) {
 	})
 }
 
+func interfaceToVariableSwallowError(input interface{}) ast.Variable {
+	variable, _ := hil.InterfaceToVariable(input)
+	return variable
+}
+
 func TestInterpolateFuncElement(t *testing.T) {
 	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.a_list":       interfaceToVariableSwallowError([]string{"foo", "baz"}),
+			"var.a_short_list": interfaceToVariableSwallowError([]string{"foo"}),
+		},
 		Cases: []testFunctionCase{
 			{
-				fmt.Sprintf(`${element("%s", "1")}`,
-					NewStringList([]string{"foo", "baz"}).String()),
+				`${element(var.a_list, "1")}`,
 				"baz",
 				false,
 			},
 
 			{
-				fmt.Sprintf(`${element("%s", "0")}`,
-					NewStringList([]string{"foo"}).String()),
+				`${element(var.a_short_list, "0")}`,
 				"foo",
 				false,
 			},
 
 			// Invalid index should wrap vs. out-of-bounds
 			{
-				fmt.Sprintf(`${element("%s", "2")}`,
-					NewStringList([]string{"foo", "baz"}).String()),
+				`${element(var.a_list, "2")}`,
 				"foo",
 				false,
 			},
 
 			// Negative number should fail
 			{
-				fmt.Sprintf(`${element("%s", "-1")}`,
-					NewStringList([]string{"foo"}).String()),
+				`${element(var.a_short_list, "-1")}`,
 				nil,
 				true,
 			},
 
 			// Too many args
 			{
-				fmt.Sprintf(`${element("%s", "0", "2")}`,
-					NewStringList([]string{"foo", "baz"}).String()),
+				`${element(var.a_list, "0", "2")}`,
 				nil,
 				true,
 			},
