@@ -69,6 +69,7 @@ IMPROVEMENTS:
  * provider/google: Deprecate unused "region" attribute in `global_forwarding_rule`; this attribute was never used anywhere in the computation of the resource [GH-6112]
  * provider/cloudstack: Add group attribute to `cloudstack_instance` resource [GH-6023]
  * provider/azurerm: Provider meaningful error message when credentials not correct [GH-6290]
+ * provider/cloudstack: Improve support for using projects [GH-6282]
 
 BUG FIXES:
 
