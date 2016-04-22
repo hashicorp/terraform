@@ -158,6 +158,14 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_ip", address.PrivateIpAddress)
 	d.Set("public_ip", address.PublicIp)
 
+	// On import (domain never set, which it must've been if we created),
+	// set the 'vpc' attribute depending on if we're in a VPC.
+	if _, ok := d.GetOk("domain"); !ok {
+		d.Set("vpc", *address.Domain == "vpc")
+	}
+
+	d.Set("domain", address.Domain)
+
 	return nil
 }
 
