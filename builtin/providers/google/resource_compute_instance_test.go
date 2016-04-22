@@ -371,6 +371,47 @@ func TestAccComputeInstance_subnet_custom(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_address_auto(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_address_auto(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceHasAnyAddress(&instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_address_custom(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var address = "10.0.200.200"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_address_custom(instanceName, address),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceHasAddress(&instance, address),
+				),
+			},
+		},
+	})
+}
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -521,6 +562,30 @@ func testAccCheckComputeInstanceHasSubnet(instance *compute.Instance) resource.T
 		for _, i := range instance.NetworkInterfaces {
 			if i.Subnetwork == "" {
 				return fmt.Errorf("no subnet")
+			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckComputeInstanceHasAnyAddress(instance *compute.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, i := range instance.NetworkInterfaces {
+			if i.NetworkIP == "" {
+				return fmt.Errorf("no address")
+			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckComputeInstanceHasAddress(instance *compute.Instance, address string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, i := range instance.NetworkInterfaces {
+			if i.NetworkIP != address {
+				return fmt.Errorf("Wrong address found: expected %v, got %v", address, i.NetworkIP)
 			}
 		}
 
@@ -879,4 +944,61 @@ func testAccComputeInstance_subnet_custom(instance string) string {
 		}
 
 	}`, acctest.RandString(10), acctest.RandString(10), instance)
+}
+
+func testAccComputeInstance_address_auto(instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "inst-test-network" {
+		name = "inst-test-network-%s"
+	}
+	resource "google_compute_subnetwork" "inst-test-subnetwork" {
+		name = "inst-test-subnetwork-%s"
+		ip_cidr_range = "10.0.0.0/16"
+		region = "us-central1"
+		network = "${google_compute_network.inst-test-network.self_link}"
+	}
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-7-wheezy-v20160301"
+		}
+
+		network_interface {
+			subnetwork = "${google_compute_subnetwork.inst-test-subnetwork.name}"
+			access_config {	}
+		}
+
+	}`, acctest.RandString(10), acctest.RandString(10), instance)
+}
+
+func testAccComputeInstance_address_custom(instance, address string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "inst-test-network" {
+		name = "inst-test-network-%s"
+	}
+	resource "google_compute_subnetwork" "inst-test-subnetwork" {
+		name = "inst-test-subnetwork-%s"
+		ip_cidr_range = "10.0.0.0/16"
+		region = "us-central1"
+		network = "${google_compute_network.inst-test-network.self_link}"
+	}
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-7-wheezy-v20160301"
+		}
+
+		network_interface {
+			subnetwork = "${google_compute_subnetwork.inst-test-subnetwork.name}"
+		    address = "%s"
+			access_config {	}
+		}
+
+	}`, acctest.RandString(10), acctest.RandString(10), instance, address)
 }
