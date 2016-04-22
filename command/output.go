@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"sort"
@@ -17,9 +18,11 @@ func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
 	var module string
+	var format string
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
+	cmdFlags.StringVar(&format, "format", "display", "format")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 
 	if err := cmdFlags.Parse(args); err != nil {
@@ -80,10 +83,33 @@ func (c *OutputCommand) Run(args []string) int {
 		}
 		sort.Strings(ks)
 
-		for _, k := range ks {
-			v := mod.Outputs[k]
-			c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
+		switch format {
+		case "json":
+			j := make(map[string]interface{})
+
+			for _, k := range ks {
+				v := mod.Outputs[k]
+				j[k] = v
+			}
+
+			out, err := json.Marshal(j)
+
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error exporting outputs to json: %s", err))
+				return 1
+			}
+
+			c.Ui.Output(string(out))
+		case "display":
+			for _, k := range ks {
+				v := mod.Outputs[k]
+				c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
+			}
+		default:
+			c.Ui.Error(fmt.Sprintf("Unknown output format: %s", format))
+			return 1
 		}
+
 		return 0
 	}
 
@@ -117,6 +143,11 @@ Options:
 
   -module=name     If specified, returns the outputs for a
                    specific module
+
+	-format=name     If specified, returns the outputs in the format
+									 specified. Only valid when all outputs are
+									 rendered. Possible options [display, json].
+									 Default "display".
 
 `
 	return strings.TrimSpace(helpText)
