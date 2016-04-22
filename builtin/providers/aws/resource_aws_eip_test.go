@@ -16,9 +16,10 @@ func TestAccAWSEIP_basic(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEIPDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPConfig,
@@ -35,9 +36,10 @@ func TestAccAWSEIP_instance(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEIPDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPInstanceConfig,
@@ -62,9 +64,10 @@ func TestAccAWSEIP_network_interface(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEIPDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPNetworkInterfaceConfig,
@@ -82,9 +85,10 @@ func TestAccAWSEIP_twoEIPsOneNetworkInterface(t *testing.T) {
 	var one, two ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEIPDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_eip.one",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSEIPDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPMultiNetworkInterfaceConfig,
