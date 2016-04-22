@@ -41,6 +41,7 @@ IMPROVEMENTS:
  * provider/aws: `aws_redshift_cluster` allows usernames with underscore in it [GH-5935]
  * provider/aws: normalise json for `aws_sns_topic` [GH-6089]
  * provider/aws: normalize json for `aws_cloudwatch_event_rule` [GH-6025]
+ * provider/aws: increase timeout for aws_redshift_cluster [GH-6305]
  * provider/aws: Opsworks layers now support `custom_json` argument [GH-4272]
  * provider/aws: Added migration for `tier` attribute in `aws_elastic_beanstalk_environment` [GH-6167]
  * provider/aws: Use resource.Retry for route creation and deletion [GH-6225]
