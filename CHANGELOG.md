@@ -105,6 +105,7 @@ BUG FIXES:
  * provider/triton: Firewall status on `triton_machine` resources is reflected correctly [GH-6119]
  * provider/triton: Fix time out when applying updates to Triton machine metadata [GH-6149]
  * provider/vsphere: Add error handling to `vsphere_folder` [GH-6095]
+ * provider/cloudstack: Fix mashalling errors when using CloudStack 4.7.x (or newer) [GH-#226]
 
 ## 0.6.14 (March 21, 2016)
 
