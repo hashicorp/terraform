@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -379,6 +380,14 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 		opts.KeyName = aws.String(v.(string))
 	}
 
+	if v, ok := d["weighted_capacity"]; ok {
+		wc, err := strconv.ParseFloat(v.(string), 64)
+		if err != nil {
+			return nil, err
+		}
+		opts.WeightedCapacity = aws.Float64(wc)
+	}
+
 	blockDevices, err := readSpotFleetBlockDeviceMappingsFromConfig(d, conn)
 	if err != nil {
 		return nil, err
@@ -711,6 +720,10 @@ func launchSpecToMap(
 
 	if l.SubnetId != nil {
 		m["subnet_id"] = aws.StringValue(l.SubnetId)
+	}
+
+	if l.WeightedCapacity != nil {
+		m["weighted_capacity"] = fmt.Sprintf("%.3f", aws.Float64Value(l.WeightedCapacity))
 	}
 
 	// m["security_groups"] = securityGroupsToSet(l.SecutiryGroups)
