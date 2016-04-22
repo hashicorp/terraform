@@ -48,7 +48,12 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 		// that at the current time we are dealing with a type system consisting only
 		// of strings and maps - where the only valid inter-module variable type is
 		// string.
-		// proposedValue := n.Variables[name]
+		_, ok := n.Variables[name]
+		if !ok {
+			// This means the default value should be used as no overriding value
+			// has been set. Therefore we should continue as no check is necessary.
+			continue
+		}
 
 		switch declaredType {
 		case config.VariableTypeString:
