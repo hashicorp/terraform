@@ -226,10 +226,10 @@ Options:
   -module=name     If specified, returns the outputs for a
                    specific module
 
-	-format=name     If specified, returns the outputs in the format
-									 specified. Only valid when all outputs are
-									 rendered. Possible options [display, json].
-									 Default "display".
+  -format=name     If specified, returns the outputs in the format
+                   specified. Only valid when all outputs are
+                   rendered. Possible options [display, json].
+                   Default "display".
 
 `
 	return strings.TrimSpace(helpText)
