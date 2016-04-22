@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"sort"
@@ -19,9 +20,11 @@ func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
 	var module string
+	var format string
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
+	cmdFlags.StringVar(&format, "format", "display", "format")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 
 	if err := cmdFlags.Parse(args); err != nil {
@@ -81,8 +84,24 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if name == "" {
-		c.Ui.Output(outputsAsString(state))
-		return 0
+		switch format {
+		case "json":
+			out, err := json.Marshal(state.RootModule().Outputs)
+
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error exporting outputs to json: %s", err))
+				return 1
+			}
+
+			c.Ui.Output(string(out))
+			return 0
+		case "display":
+			c.Ui.Output(outputsAsString(state))
+			return 0
+		default:
+			c.Ui.Error(fmt.Sprintf("Unknown output format: %s", format))
+			return 1
+		}
 	}
 
 	v, ok := mod.Outputs[name]
@@ -206,6 +225,11 @@ Options:
 
   -module=name     If specified, returns the outputs for a
                    specific module
+
+	-format=name     If specified, returns the outputs in the format
+									 specified. Only valid when all outputs are
+									 rendered. Possible options [display, json].
+									 Default "display".
 
 `
 	return strings.TrimSpace(helpText)
