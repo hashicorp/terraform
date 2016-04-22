@@ -93,6 +93,7 @@ BUG FIXES:
  * provider/aws: Resolves DefaultOS and ConfigurationManager conflict on `aws_opsworks_stack` [GH-6244]
  * provider/aws: Renaming `aws_elastic_beanstalk_configuration_template``option_settings` to `setting` [GH-6043]
  * provider/aws: `aws_customer_gateway` will properly populate `bgp_asn` on refresh. [no issue]
+ * provider/aws: provider/aws: Refresh state on `aws_directory_service_directory` not found [GH-6294]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
