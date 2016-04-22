@@ -362,6 +362,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
+	d.Set("cross_zone_load_balancing", lbAttrs.CrossZoneLoadBalancing.Enabled)
 	if lbAttrs.AccessLog != nil {
 		if err := d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog)); err != nil {
 			return err
