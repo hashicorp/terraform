@@ -95,6 +95,7 @@ BUG FIXES:
  * provider/aws: `aws_customer_gateway` will properly populate `bgp_asn` on refresh. [no issue]
  * provider/aws: provider/aws: Refresh state on `aws_directory_service_directory` not found [GH-6294]
  * provider/aws: `aws_elb` `cross_zone_load_balancing` is not refreshed in the state file [GH-6295]
+ * provider/aws: `aws_autoscaling_group` will properly populate `tag` on refresh. [no issue]
  * provider/azurerm: Fix detection of `azurerm_storage_account` resources removed manually [GH-5878]
  * provider/docker: Docker Image will be deleted on destroy [GH-5801]
  * provider/openstack: Fix Disabling DHCP on Subnets [GH-6052]
