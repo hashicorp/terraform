@@ -125,7 +125,10 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the VPC details
-	v, count, err := cs.VPC.GetVPCByID(d.Id())
+	v, count, err := cs.VPC.GetVPCByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf(
