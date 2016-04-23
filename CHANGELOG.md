@@ -1770,7 +1770,7 @@ BUG FIXES:
   * providers/aws: Retry deleting subnet for some time while AWS eventually
       destroys dependencies. ([#357](https://github.com/hashicorp/terraform/issues/357))
   * providers/aws: More robust destroy for route53 records. ([#342](https://github.com/hashicorp/terraform/issues/342))
-  * providers/aws: ELB generates much more correct plans without extranneous
+  * providers/aws: ELB generates much more correct plans without extraneous
       data.
   * providers/aws: ELB works properly with dynamically changing
       count of instances.
