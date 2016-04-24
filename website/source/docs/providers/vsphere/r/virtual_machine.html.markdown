@@ -51,7 +51,6 @@ resource "vsphere_virtual_machine" "lb" {
   }
 
   disk {
-    datastore = "STO/VMFS135-STO"
     datastore = "EAST/VMFS01-EAST"
     template = "Templates/Centos7"
   }
