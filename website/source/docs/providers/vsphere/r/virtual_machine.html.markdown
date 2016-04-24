@@ -29,6 +29,34 @@ resource "vsphere_virtual_machine" "web" {
 }
 ```
 
+## Example Usage VMware Cluster
+
+```
+resource "vsphere_virtual_machine" "lb" {
+  name   = "lb01"
+  folder = "Loadbalancers"
+  vcpu   = 2
+  memory = 4096
+  domain = "MYDOMAIN"
+  datacenter = "EAST"
+  cluster = "Production Cluster"
+  resource_pool = "Production Cluster/Resources/Production Servers"
+
+  gateway = "10.20.30.254"
+
+  network_interface {
+      label = "10_20_30_VMNet"
+      ipv4_address = "10.20.30.40"
+      ipv4_prefix_length = "24"
+  }
+
+  disk {
+    datastore = "EAST/VMFS01-EAST"
+    template = "Templates/Centos7"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -38,7 +66,7 @@ The following arguments are supported:
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
 * `datacenter` - (Optional) The name of a Datacenter in which to launch the virtual machine
 * `cluster` - (Optional) Name of a Cluster in which to launch the virtual machine
-* `resource_pool` (Optional) The name of a Resource Pool in which to launch the virtual machine
+* `resource_pool` (Optional) The name of a Resource Pool in which to launch the virtual machine. Requires full path (see cluster example).
 * `gateway` - (Optional) Gateway IP address to use for all network interfaces
 * `domain` - (Optional) A FQDN for the virtual machine; defaults to "vsphere.local"
 * `time_zone` - (Optional) The [Linux](https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/timezone.html) or [Windows](https://msdn.microsoft.com/en-us/library/ms912391.aspx) time zone to set on the virtual machine. Defaults to "Etc/UTC"
