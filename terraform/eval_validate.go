@@ -119,11 +119,10 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	// If the resouce name doesn't match the name regular
 	// expression, show a warning.
 	if !config.NameRegexp.Match([]byte(n.ResourceName)) {
-		warns = append(warns, fmt.Sprintf(
+		errs = append(errs, fmt.Errorf(
 			"%s: resource name can only contain letters, numbers, "+
-				"dashes, and underscores.\n"+
-				"This will be an error in Terraform 0.4",
-			n.ResourceName))
+				"dashes, and underscores."+
+				n.ResourceName))
 	}
 
 	if len(warns) == 0 && len(errs) == 0 {

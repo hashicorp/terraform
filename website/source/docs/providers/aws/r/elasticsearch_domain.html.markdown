@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_elasticsearch_domain"
-sidebar_current: "docs-aws-elasticsearch-domain"
+sidebar_current: "docs-aws-resource-elasticsearch-domain"
 description: |-
   Provides an ElasticSearch Domain.
 ---
@@ -37,6 +37,10 @@ CONFIG
 	snapshot_options {
 		automated_snapshot_start_hour = 23
 	}
+	
+	tags {
+      Domain = "TestDomain"
+    }
 }
 ```
 
@@ -50,12 +54,14 @@ The following arguments are supported:
 * `ebs_options` - (Optional) EBS related options, see below.
 * `cluster_config` - (Optional) Cluster configuration of the domain, see below.
 * `snapshot_options` - (Optional) Snapshot related options, see below.
+* `tags` - (Optional) A mapping of tags to assign to the resource
 
 **ebs_options** supports the following attributes:
 
 * `ebs_enabled` - (Required) Whether EBS volumes are attached to data nodes in the domain
 * `volume_type` - (Optional) The type of EBS volumes attached to data nodes.
-* `volume_size` - (Optional) The size of EBS volumes attached to data nodes.
+* `volume_size` - The size of EBS volumes attached to data nodes.
+**Required** if `ebs_enabled` is set to `true`.
 * `iops` - (Optional) The baseline input/output (I/O) performance of EBS volumes
 	attached to data nodes. Applicable only for the Provisioned IOPS EBS volume type.
 

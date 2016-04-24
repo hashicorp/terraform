@@ -108,25 +108,6 @@ The usage of maps, strings, etc. is documented fully in the
 [interpolation syntax](/docs/configuration/interpolation.html)
 page.
 
-## Environment Variables
-
-Environment variables can be used to set the value of a variable.
-The key of the environment variable must be `TF_VAR_name` and the value
-is the value of the variable.
-
-For example, given the configuration below:
-
-```
-variable "image" {}
-```
-
-The variable can be set via an environment variable:
-
-```
-$ TF_VAR_image=foo terraform apply
-...
-```
-
 ## Syntax
 
 The full syntax is:
@@ -149,3 +130,66 @@ VALUE
 	...
 }
 ```
+
+## Environment Variables
+
+Environment variables can be used to set the value of a variable.
+The key of the environment variable must be `TF_VAR_name` and the value
+is the value of the variable.
+
+For example, given the configuration below:
+
+```
+variable "image" {}
+```
+
+The variable can be set via an environment variable:
+
+```
+$ TF_VAR_image=foo terraform apply
+...
+```
+
+## Variable Files
+
+Variables can be collected in files and passed all at once using the 
+`-var-file=foo` flag. 
+
+The flag can be used multiple times per command invocation:
+
+```
+terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
+```
+
+**Note** If a variable is defined in more than one file passed, the last 
+variable file (reading left to right) will be the definition used. Put more 
+simply, the last time a variable is defined is the one which will be used.
+
+##Example: 
+
+Both these files have the variable `baz` defined:
+
+_foo.tfvars_
+```
+variable "baz" { 
+    default = "foo"
+}
+```
+
+_bar.tfvars_
+```
+variable "baz" { 
+    default = "bar"
+}
+```
+
+When they are passed in the following order:
+
+```
+terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
+```
+
+The result will be that `baz` will contain the value `bar` because `bar.tfvars`
+has the last definition loaded.
+
+

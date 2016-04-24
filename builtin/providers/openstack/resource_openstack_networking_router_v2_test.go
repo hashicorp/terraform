@@ -91,10 +91,12 @@ var testAccNetworkingV2Router_basic = fmt.Sprintf(`
   resource "openstack_networking_router_v2" "foo" {
     name = "router"
     admin_state_up = "true"
+    distributed = "false"
   }`)
 
 var testAccNetworkingV2Router_update = fmt.Sprintf(`
   resource "openstack_networking_router_v2" "foo" {
     name = "router_2"
     admin_state_up = "true"
+    distributed = "false"
   }`)

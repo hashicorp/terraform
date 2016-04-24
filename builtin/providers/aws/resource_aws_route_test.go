@@ -32,7 +32,9 @@ func TestAccAWSRoute_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
@@ -93,7 +95,9 @@ func TestAccAWSRoute_changeCidr(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
@@ -109,6 +113,44 @@ func TestAccAWSRoute_changeCidr(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
 					testAccCheckRouteTableExists("aws_route_table.foo", &routeTable),
+					testCheckChange,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRoute_noopdiff(t *testing.T) {
+	var route ec2.Route
+	var routeTable ec2.RouteTable
+
+	testCheck := func(s *terraform.State) error {
+		return nil
+	}
+
+	testCheckChange := func(s *terraform.State) error {
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRouteDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSRouteNoopChange,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRouteExists("aws_route.test", &route),
+					testCheck,
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSRouteNoopChange,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRouteExists("aws_route.test", &route),
+					testAccCheckRouteTableExists("aws_route_table.test", &routeTable),
 					testCheckChange,
 				),
 			},
@@ -294,5 +336,32 @@ resource "aws_route" "bar" {
 	route_table_id = "${aws_route_table.foo.id}"
 	destination_cidr_block = "0.0.0.0/0"
 	gateway_id = "${aws_internet_gateway.foo.id}"
+}
+`)
+
+var testAccAWSRouteNoopChange = fmt.Sprint(`
+resource "aws_vpc" "test" {
+  cidr_block = "10.10.0.0/16"
+}
+
+resource "aws_route_table" "test" {
+  vpc_id = "${aws_vpc.test.id}"
+}
+
+resource "aws_subnet" "test" {
+  vpc_id = "${aws_vpc.test.id}"
+  cidr_block = "10.10.10.0/24"
+}
+
+resource "aws_route" "test" {
+  route_table_id = "${aws_route_table.test.id}"
+  destination_cidr_block = "0.0.0.0/0"
+  instance_id = "${aws_instance.nat.id}"
+}
+
+resource "aws_instance" "nat" {
+  ami = "ami-9abea4fb"
+  instance_type = "t2.nano"
+  subnet_id = "${aws_subnet.test.id}"
 }
 `)

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -131,6 +132,43 @@ func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupRuleIngressConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group_rule.ingress_1", "from_port", "80"),
+					testRuleCount,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroupRule_Ingress_Protocol(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	testRuleCount := func(*terraform.State) error {
+		if len(group.IpPermissions) != 1 {
+			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
+				1, len(group.IpPermissions))
+		}
+
+		rule := group.IpPermissions[0]
+		if *rule.FromPort != int64(80) {
+			return fmt.Errorf("Wrong Security Group port setting, expected %d, got %d",
+				80, int(*rule.FromPort))
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleIngress_protocolConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
@@ -342,6 +380,24 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_Issue5310(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleIssue5310,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.issue_5310", &group),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
 	var group ec2.SecurityGroup
 
@@ -523,6 +579,55 @@ resource "aws_security_group_rule" "ingress_1" {
   cidr_blocks = ["10.0.0.0/8"]
 
   security_group_id = "${aws_security_group.web.id}"
+}
+`
+
+const testAccAWSSecurityGroupRuleIngress_protocolConfig = `
+resource "aws_vpc" "tftest" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "tf-testing"
+  }
+}
+
+resource "aws_security_group" "web" {
+  vpc_id = "${aws_vpc.tftest.id}"
+
+  tags {
+    Name = "tf-acc-test"
+  }
+}
+
+resource "aws_security_group_rule" "ingress_1" {
+  type        = "ingress"
+  protocol    = "6"
+  from_port   = 80
+  to_port     = 8000
+  cidr_blocks = ["10.0.0.0/8"]
+
+  security_group_id = "${aws_security_group.web.id}"
+}
+
+`
+
+const testAccAWSSecurityGroupRuleIssue5310 = `
+provider "aws" {
+        region = "us-east-1"
+}
+
+resource "aws_security_group" "issue_5310" {
+    name = "terraform-test-issue_5310"
+    description = "SG for test of issue 5310"
+}
+
+resource "aws_security_group_rule" "issue_5310" {
+    type = "ingress"
+    from_port = 0
+    to_port = 65535
+    protocol = "tcp"
+    security_group_id = "${aws_security_group.issue_5310.id}"
+    self = true
 }
 `
 
@@ -750,7 +855,7 @@ var testAccAWSSecurityGroupRuleRace = func() string {
 			name   = "tf-sg-rule-race-group-%d"
 			vpc_id = "${aws_vpc.default.id}"
 		}
-	`, genRandInt()))
+	`, acctest.RandInt()))
 	for i := 1; i < iterations; i++ {
 		b.WriteString(fmt.Sprintf(`
 			resource "aws_security_group_rule" "ingress%d" {

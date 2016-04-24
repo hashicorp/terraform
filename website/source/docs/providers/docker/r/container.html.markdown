@@ -42,6 +42,9 @@ The following arguments are supported:
     container to run as an executable. For example, to run `/usr/bin/myprogram`
     when starting a container, set the entrypoint to be
     `["/usr/bin/myprogram"]`.
+* `user` - (Optional, string) User used for run the first process. Format is
+    `user` or `user:group` which user and group can be passed literraly or
+    by name.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
 * `labels` - (Optional, map of strings) Key/value pairs to set as labels on the
@@ -51,7 +54,7 @@ The following arguments are supported:
 * `hostname` - (Optional, string) Hostname of the container.
 * `domainname` - (Optional, string) Domain name of the container.
 * `restart` - (Optional, string) The restart policy for the container. Must be
-  one of "no", "on-failure", "always".
+  one of "no", "on-failure", "always", "unless-stopped".
 * `max_retry_count` - (Optional, int) The maximum amount of times to an attempt
   a restart when `restart` is set to "on-failure"
 * `must_run` - (Optional, bool) If true, then the Docker container will be

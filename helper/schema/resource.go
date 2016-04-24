@@ -142,6 +142,7 @@ func (r *Resource) Apply(
 	err = nil
 	if data.Id() == "" {
 		// We're creating, it is a new resource.
+		data.MarkNewResource()
 		err = r.Create(data, meta)
 	} else {
 		if r.Update == nil {

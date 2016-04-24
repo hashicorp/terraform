@@ -36,6 +36,10 @@ The following arguments are supported:
     (must be "true" or "false" if provided). Changing this updates the
     `admin_state_up` of an existing router.
 
+* `distributed` - (Optional) Indicates whether or not to create a
+    distributed router. The default policy setting in Neutron restricts
+    usage of this property to administrative users only.
+
 * `external_gateway` - (Optional) The network UUID of an external gateway for
     the router. A router with an external gateway is required if any compute
     instances or load balancers will be using floating IPs. Changing this
@@ -43,6 +47,8 @@ The following arguments are supported:
 
 * `tenant_id` - (Optional) The owner of the floating IP. Required if admin wants
     to create a router for another tenant. Changing this creates a new router.
+
+* `value_specs` - (Optional) Map of additional driver-specific options.
 
 ## Attributes Reference
 
@@ -53,3 +59,4 @@ The following attributes are exported:
 * `admin_state_up` - See Argument Reference above.
 * `external_gateway` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
+* `value_specs` - See Argument Reference above.

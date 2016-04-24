@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/mitchellh/hashstructure"
 )
 
 func TestReadWriteStateV1(t *testing.T) {
@@ -25,7 +27,10 @@ func TestReadWriteStateV1(t *testing.T) {
 	}
 
 	// Checksum before the write
-	chksum := checksumStruct(t, state)
+	chksum, err := hashstructure.Hash(state, nil)
+	if err != nil {
+		t.Fatalf("hash: %s", err)
+	}
 
 	buf := new(bytes.Buffer)
 	if err := testWriteStateV1(state, buf); err != nil {
@@ -33,7 +38,11 @@ func TestReadWriteStateV1(t *testing.T) {
 	}
 
 	// Checksum after the write
-	chksumAfter := checksumStruct(t, state)
+	chksumAfter, err := hashstructure.Hash(state, nil)
+	if err != nil {
+		t.Fatalf("hash: %s", err)
+	}
+
 	if chksumAfter != chksum {
 		t.Fatalf("structure changed during serialization!")
 	}

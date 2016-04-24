@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -35,9 +34,7 @@ func resourceAwsElasticacheSecurityGroup() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -121,24 +118,24 @@ func resourceAwsElasticacheSecurityGroupDelete(d *schema.ResourceData, meta inte
 
 	log.Printf("[DEBUG] Cache security group delete: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteCacheSecurityGroup(&elasticache.DeleteCacheSecurityGroupInput{
 			CacheSecurityGroupName: aws.String(d.Id()),
 		})
 		if err != nil {
 			apierr, ok := err.(awserr.Error)
 			if !ok {
-				return err
+				return resource.RetryableError(err)
 			}
-			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code)
+			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code())
 			switch apierr.Code() {
 			case "InvalidCacheSecurityGroupState":
-				return err
+				return resource.RetryableError(err)
 			case "DependencyViolation":
 				// If it is a dependency violation, we want to retry
-				return err
+				return resource.RetryableError(err)
 			default:
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 		}
 		return nil

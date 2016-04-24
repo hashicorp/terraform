@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -17,37 +16,6 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 		Delete: resourceComputeInstanceTemplateDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"can_ip_forward": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: true,
-			},
-
-			"instance_description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"machine_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"disk": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
@@ -124,10 +92,54 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				},
 			},
 
+			"machine_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"automatic_restart": &schema.Schema{
+				Type:       schema.TypeBool,
+				Optional:   true,
+				Default:    true,
+				ForceNew:   true,
+				Deprecated: "Please use `scheduling.automatic_restart` instead",
+			},
+
+			"can_ip_forward": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"instance_description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"metadata": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"metadata_fingerprint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"network_interface": &schema.Schema{
@@ -138,7 +150,13 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"network": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"subnetwork": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 
@@ -159,19 +177,23 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				},
 			},
 
-			"automatic_restart": &schema.Schema{
-				Type:       schema.TypeBool,
-				Optional:   true,
-				Default:    true,
-				ForceNew:   true,
-				Deprecated: "Please use `scheduling.automatic_restart` instead",
-			},
-
 			"on_host_maintenance": &schema.Schema{
 				Type:       schema.TypeString,
 				Optional:   true,
 				ForceNew:   true,
 				Deprecated: "Please use `scheduling.on_host_maintenance` instead",
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"scheduling": &schema.Schema{
@@ -200,6 +222,11 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"service_account": &schema.Schema{
@@ -234,22 +261,10 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
-			},
-
-			"metadata_fingerprint": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Set:      schema.HashString,
 			},
 
 			"tags_fingerprint": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -328,21 +343,64 @@ func buildDisks(d *schema.ResourceData, meta interface{}) ([]*compute.AttachedDi
 	return disks, nil
 }
 
-func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.NetworkInterface) {
+func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.NetworkInterface, error) {
 	// Build up the list of networks
+	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return nil, err
+	}
+
 	networksCount := d.Get("network_interface.#").(int)
 	networkInterfaces := make([]*compute.NetworkInterface, 0, networksCount)
 	for i := 0; i < networksCount; i++ {
 		prefix := fmt.Sprintf("network_interface.%d", i)
 
-		source := "global/networks/"
+		var networkName, subnetworkName string
 		if v, ok := d.GetOk(prefix + ".network"); ok {
-			source += v.(string)
+			networkName = v.(string)
+		}
+		if v, ok := d.GetOk(prefix + ".subnetwork"); ok {
+			subnetworkName = v.(string)
+		}
+
+		if networkName == "" && subnetworkName == "" {
+			return nil, fmt.Errorf("network or subnetwork must be provided")
+		}
+		if networkName != "" && subnetworkName != "" {
+			return nil, fmt.Errorf("network or subnetwork must not both be provided")
+		}
+
+		var networkLink, subnetworkLink string
+		if networkName != "" {
+			network, err := config.clientCompute.Networks.Get(
+				project, networkName).Do()
+			if err != nil {
+				return nil, fmt.Errorf("Error referencing network '%s': %s",
+					networkName, err)
+			}
+			networkLink = network.SelfLink
+		} else {
+			// lookup subnetwork link using region and subnetwork name
+			region, err := getRegion(d, config)
+			if err != nil {
+				return nil, err
+			}
+			subnetwork, err := config.clientCompute.Subnetworks.Get(
+				project, region, subnetworkName).Do()
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error referencing subnetwork '%s' in region '%s': %s",
+					subnetworkName, region, err)
+			}
+			subnetworkLink = subnetwork.SelfLink
 		}
 
 		// Build the networkInterface
 		var iface compute.NetworkInterface
-		iface.Network = source
+		iface.Network = networkLink
+		iface.Subnetwork = subnetworkLink
 
 		accessConfigsCount := d.Get(prefix + ".access_config.#").(int)
 		iface.AccessConfigs = make([]*compute.AccessConfig, accessConfigsCount)
@@ -356,11 +414,16 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) (error, []*compute.
 
 		networkInterfaces = append(networkInterfaces, &iface)
 	}
-	return nil, networkInterfaces
+	return networkInterfaces, nil
 }
 
 func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	instanceProperties := &compute.InstanceProperties{}
 
@@ -377,7 +440,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 	instanceProperties.Metadata = metadata
-	err, networks := buildNetworks(d, meta)
+	networks, err := buildNetworks(d, meta)
 	if err != nil {
 		return err
 	}
@@ -394,6 +457,9 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		instanceProperties.Scheduling.OnHostMaintenance = v.(string)
 	}
 
+	forceSendFieldsScheduling := make([]string, 0, 3)
+	var hasSendMaintenance bool
+	hasSendMaintenance = false
 	if v, ok := d.GetOk("scheduling"); ok {
 		_schedulings := v.([]interface{})
 		if len(_schedulings) > 1 {
@@ -403,16 +469,25 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 
 		if vp, okp := _scheduling["automatic_restart"]; okp {
 			instanceProperties.Scheduling.AutomaticRestart = vp.(bool)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "AutomaticRestart")
 		}
 
 		if vp, okp := _scheduling["on_host_maintenance"]; okp {
 			instanceProperties.Scheduling.OnHostMaintenance = vp.(string)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "OnHostMaintenance")
+			hasSendMaintenance = true
 		}
 
 		if vp, okp := _scheduling["preemptible"]; okp {
 			instanceProperties.Scheduling.Preemptible = vp.(bool)
+			forceSendFieldsScheduling = append(forceSendFieldsScheduling, "Preemptible")
+			if vp.(bool) && !hasSendMaintenance {
+				instanceProperties.Scheduling.OnHostMaintenance = "TERMINATE"
+				forceSendFieldsScheduling = append(forceSendFieldsScheduling, "OnHostMaintenance")
+			}
 		}
 	}
+	instanceProperties.Scheduling.ForceSendFields = forceSendFieldsScheduling
 
 	serviceAccountsCount := d.Get("service_account.#").(int)
 	serviceAccounts := make([]*compute.ServiceAccount, 0, serviceAccountsCount)
@@ -444,7 +519,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 	}
 
 	op, err := config.clientCompute.InstanceTemplates.Insert(
-		config.Project, &instanceTemplate).Do()
+		project, &instanceTemplate).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating instance: %s", err)
 	}
@@ -463,8 +538,13 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	instanceTemplate, err := config.clientCompute.InstanceTemplates.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Instance Template %q because it's gone", d.Get("name").(string))
@@ -494,8 +574,13 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 func resourceComputeInstanceTemplateDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	op, err := config.clientCompute.InstanceTemplates.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting instance template: %s", err)
 	}

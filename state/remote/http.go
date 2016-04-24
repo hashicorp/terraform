@@ -138,7 +138,7 @@ func (c *HTTPClient) Put(data []byte) error {
 	}
 
 	// Prepare the request
-	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-MD5", b64)
 	req.ContentLength = int64(len(data))
 

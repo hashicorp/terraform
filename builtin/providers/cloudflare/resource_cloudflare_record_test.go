@@ -75,6 +75,42 @@ func TestAccCLOudflareRecord_Updated(t *testing.T) {
 	})
 }
 
+func TestAccCLOudflareRecord_forceNewRecord(t *testing.T) {
+	var afterCreate, afterUpdate cloudflare.Record
+	domain := os.Getenv("CLOUDFLARE_DOMAIN")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCLOudflareRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckCLoudFlareRecordConfig_basic, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCLOudflareRecordExists("cloudflare_record.foobar", &afterCreate),
+				),
+			},
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfig_forceNew, domain, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCLOudflareRecordExists("cloudflare_record.foobar", &afterUpdate),
+					testAccCheckCloudFlareRecordRecreated(t, &afterCreate, &afterUpdate),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckCloudFlareRecordRecreated(t *testing.T,
+	before, after *cloudflare.Record) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if before.Id == after.Id {
+			t.Fatalf("Expected change of Record Ids, but both were %v", before.Id)
+		}
+		return nil
+	}
+}
+
 func testAccCheckCLOudflareRecordDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*cloudflare.Client)
 
@@ -162,5 +198,15 @@ resource "cloudflare_record" "foobar" {
 	name = "terraform"
 	value = "192.168.0.11"
 	type = "A"
+	ttl = 3600
+}`
+
+const testAccCheckCloudFlareRecordConfig_forceNew = `
+resource "cloudflare_record" "foobar" {
+	domain = "%s"
+
+	name = "terraform"
+	value = "%s"
+	type = "CNAME"
 	ttl = 3600
 }`

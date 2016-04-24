@@ -55,10 +55,23 @@ func resourceAwsEcsService() *schema.Resource {
 				Optional: true,
 			},
 
+			"deployment_maximum_percent": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  200,
+			},
+
+			"deployment_minimum_healthy_percent": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  100,
+			},
+
 			"load_balancer": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"elb_name": &schema.Schema{
@@ -94,6 +107,10 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		TaskDefinition: aws.String(d.Get("task_definition").(string)),
 		DesiredCount:   aws.Int64(int64(d.Get("desired_count").(int))),
 		ClientToken:    aws.String(resource.UniqueId()),
+		DeploymentConfiguration: &ecs.DeploymentConfiguration{
+			MaximumPercent:        aws.Int64(int64(d.Get("deployment_maximum_percent").(int))),
+			MinimumHealthyPercent: aws.Int64(int64(d.Get("deployment_minimum_healthy_percent").(int))),
+		},
 	}
 
 	if v, ok := d.GetOk("cluster"); ok {
@@ -115,21 +132,21 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	// See https://github.com/hashicorp/terraform/issues/2869
 	var out *ecs.CreateServiceOutput
 	var err error
-	err = resource.Retry(2*time.Minute, func() error {
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		out, err = conn.CreateService(&input)
 
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
 			if !ok {
-				return &resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 			if ec2err.Code() == "InvalidParameterException" {
 				log.Printf("[DEBUG] Trying to create ECS service again: %q",
 					ec2err.Message())
-				return err
+				return resource.RetryableError(err)
 			}
 
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		return nil
@@ -208,6 +225,11 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if service.DeploymentConfiguration != nil {
+		d.Set("deployment_maximum_percent", *service.DeploymentConfiguration.MaximumPercent)
+		d.Set("deployment_minimum_healthy_percent", *service.DeploymentConfiguration.MinimumHealthyPercent)
+	}
+
 	if service.LoadBalancers != nil {
 		d.Set("load_balancers", flattenEcsLoadBalancers(service.LoadBalancers))
 	}
@@ -231,6 +253,13 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("task_definition") {
 		_, n := d.GetChange("task_definition")
 		input.TaskDefinition = aws.String(n.(string))
+	}
+
+	if d.HasChange("deployment_maximum_percent") || d.HasChange("deployment_minimum_healthy_percent") {
+		input.DeploymentConfiguration = &ecs.DeploymentConfiguration{
+			MaximumPercent:        aws.Int64(int64(d.Get("deployment_maximum_percent").(int))),
+			MinimumHealthyPercent: aws.Int64(int64(d.Get("deployment_minimum_healthy_percent").(int))),
+		}
 	}
 
 	out, err := conn.UpdateService(&input)
@@ -280,7 +309,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Wait until the ECS service is drained
-	err = resource.Retry(5*time.Minute, func() error {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		input := ecs.DeleteServiceInput{
 			Service: aws.String(d.Id()),
 			Cluster: aws.String(d.Get("cluster").(string)),
@@ -294,16 +323,16 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		if ec2err.Code() == "InvalidParameterException" {
 			// Prevent "The service cannot be stopped while deployments are active."
 			log.Printf("[DEBUG] Trying to delete ECS service again: %q",
 				ec2err.Message())
-			return err
+			return resource.RetryableError(err)
 		}
 
-		return &resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 
 	})
 	if err != nil {

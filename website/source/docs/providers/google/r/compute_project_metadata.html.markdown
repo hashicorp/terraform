@@ -12,13 +12,13 @@ Manages metadata common to all instances for a project in GCE.
 
 ## Example Usage
 
-```
+```js
 resource "google_compute_project_metadata" "default" {
-    metadata {
-        foo = "bar"
-        fizz = "buzz"
-        13 = "42"
-    }
+  metadata {
+    foo  = "bar"
+    fizz = "buzz"
+    13   = "42"
+  }
 }
 ```
 
@@ -26,11 +26,14 @@ resource "google_compute_project_metadata" "default" {
 
 The following arguments are supported:
 
-* `metadata` - (Required) A series of key value pairs. Changing this resource updates
-    the GCE state.
+* `metadata` - (Required) A series of key value pairs. Changing this resource
+    updates the GCE state.
+
+- - -
+
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
 
 ## Attributes Reference
 
-The following attributes are exported:
-
-* `metadata` - Common instance metadata.
+Only the arguments listed above are exposed as attributes.

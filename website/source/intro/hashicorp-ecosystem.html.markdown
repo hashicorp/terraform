@@ -8,7 +8,7 @@ description: |-
 
 # Terraform and the HashiCorp Ecosystem
 
-HashiCorp is the creator of the open source projects Vagrant, Packer, Terraform, Serf, and Consul, and the commercial product Atlas. Terraform is just one piece of the ecosystem HashiCorp has built to make application delivery a versioned, auditable, repeatable, and collaborative process. To learn more about our beliefs on the qualities of the modern datacenter and responsible application delivery, read [The Atlas Mindset: Version Control for Infrastructure](https://hashicorp.com/blog/atlas-mindset.html/?utm_source=terraform&utm_campaign=HashicorpEcosystem).
+HashiCorp is the creator of the open source projects Vagrant, Packer, Terraform, Serf, and Consul, and the commercial product Atlas. Terraform is just one piece of the ecosystem HashiCorp has built to make application delivery a versioned, auditable, repeatable, and collaborative process. To learn more about our beliefs on the qualities of the modern datacenter and responsible application delivery, read [The Atlas Mindset: Version Control for Infrastructure](https://hashicorp.com/blog/atlas-mindset.html?utm_source=terraform&utm_campaign=HashicorpEcosystem).
 
 If you are using Terraform to create, combine, and modify infrastructure, it’s likely that you are using base images to configure that infrastructure. Packer is our tool for building those base images, such as AMIs, OpenStack images, Docker containers, and more.
 

@@ -12,6 +12,11 @@ import (
 func init() {
 	testTesting = true
 
+	// TODO: Remove when we remove the guard on id checks
+	if err := os.Setenv("TF_ACC_IDONLY", "1"); err != nil {
+		panic(err)
+	}
+
 	if err := os.Setenv(TestEnvVar, "1"); err != nil {
 		panic(err)
 	}
@@ -21,17 +26,23 @@ func TestTest(t *testing.T) {
 	mp := testProvider()
 	mp.DiffReturn = nil
 
-	mp.ApplyReturn = &terraform.InstanceState{
-		ID: "foo",
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
 	}
+
 	var refreshCount int32
 	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
 		atomic.AddInt32(&refreshCount, 1)
-		if atomic.LoadInt32(&refreshCount) == 1 {
-			return &terraform.InstanceState{ID: "foo"}, nil
-		} else {
-			return nil, nil
-		}
+		return &terraform.InstanceState{ID: "foo"}, nil
 	}
 
 	checkDestroy := false
@@ -80,6 +91,172 @@ func TestTest(t *testing.T) {
 	}
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
+	}
+}
+
+func TestTest_idRefresh(t *testing.T) {
+	// Refresh count should be 3:
+	//   1.) initial Ref/Plan/Apply
+	//   2.) post Ref/Plan/Apply for plan-check
+	//   3.) id refresh check
+	var expectedRefresh int32 = 3
+
+	mp := testProvider()
+	mp.DiffReturn = nil
+
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
+	}
+
+	var refreshCount int32
+	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
+		atomic.AddInt32(&refreshCount, 1)
+		return &terraform.InstanceState{ID: "foo"}, nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		IDRefreshName: "test_instance.foo",
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+			},
+		},
+	})
+
+	if mt.failed() {
+		t.Fatalf("test failed: %s", mt.failMessage())
+	}
+
+	// See declaration of expectedRefresh for why that number
+	if refreshCount != expectedRefresh {
+		t.Fatalf("bad refresh count: %d", refreshCount)
+	}
+}
+
+func TestTest_idRefreshCustomName(t *testing.T) {
+	// Refresh count should be 3:
+	//   1.) initial Ref/Plan/Apply
+	//   2.) post Ref/Plan/Apply for plan-check
+	//   3.) id refresh check
+	var expectedRefresh int32 = 3
+
+	mp := testProvider()
+	mp.DiffReturn = nil
+
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
+	}
+
+	var refreshCount int32
+	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
+		atomic.AddInt32(&refreshCount, 1)
+		return &terraform.InstanceState{ID: "foo"}, nil
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		IDRefreshName: "test_instance.foo",
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+			},
+		},
+	})
+
+	if mt.failed() {
+		t.Fatalf("test failed: %s", mt.failMessage())
+	}
+
+	// See declaration of expectedRefresh for why that number
+	if refreshCount != expectedRefresh {
+		t.Fatalf("bad refresh count: %d", refreshCount)
+	}
+}
+
+func TestTest_idRefreshFail(t *testing.T) {
+	// Refresh count should be 3:
+	//   1.) initial Ref/Plan/Apply
+	//   2.) post Ref/Plan/Apply for plan-check
+	//   3.) id refresh check
+	var expectedRefresh int32 = 3
+
+	mp := testProvider()
+	mp.DiffReturn = nil
+
+	mp.ApplyFn = func(
+		info *terraform.InstanceInfo,
+		state *terraform.InstanceState,
+		diff *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+		if !diff.Destroy {
+			return &terraform.InstanceState{
+				ID: "foo",
+			}, nil
+		}
+
+		return nil, nil
+	}
+
+	var refreshCount int32
+	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
+		atomic.AddInt32(&refreshCount, 1)
+		if atomic.LoadInt32(&refreshCount) == expectedRefresh-1 {
+			return &terraform.InstanceState{
+				ID:         "foo",
+				Attributes: map[string]string{"foo": "bar"},
+			}, nil
+		} else if atomic.LoadInt32(&refreshCount) < expectedRefresh {
+			return &terraform.InstanceState{ID: "foo"}, nil
+		} else {
+			return nil, nil
+		}
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		IDRefreshName: "test_instance.foo",
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test didn't fail")
+	}
+	t.Logf("failure reason: %s", mt.failMessage())
+
+	// See declaration of expectedRefresh for why that number
+	if refreshCount != expectedRefresh {
+		t.Fatalf("bad refresh count: %d", refreshCount)
 	}
 }
 
@@ -194,7 +371,7 @@ func TestComposeTestCheckFunc(t *testing.T) {
 				},
 				func(*terraform.State) error { return nil },
 			},
-			Result: "error",
+			Result: "Check 1/2 error: error",
 		},
 
 		{
@@ -204,7 +381,7 @@ func TestComposeTestCheckFunc(t *testing.T) {
 					return fmt.Errorf("error")
 				},
 			},
-			Result: "error",
+			Result: "Check 2/2 error: error",
 		},
 
 		{

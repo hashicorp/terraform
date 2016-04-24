@@ -340,7 +340,7 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
-			"Error waiting for Directory Service (%s) to become available: %#v",
+			"Error waiting for Directory Service (%s) to become available: %s",
 			d.Id(), err)
 	}
 
@@ -401,10 +401,17 @@ func resourceAwsDirectoryServiceDirectoryRead(d *schema.ResourceData, meta inter
 	out, err := dsconn.DescribeDirectories(&input)
 	if err != nil {
 		return err
+
+	}
+
+	if len(out.DirectoryDescriptions) == 0 {
+		log.Printf("[WARN] Directory %s not found", d.Id())
+		d.SetId("")
+		return nil
 	}
 
 	dir := out.DirectoryDescriptions[0]
-	log.Printf("[DEBUG] Received DS directory: %s", *dir)
+	log.Printf("[DEBUG] Received DS directory: %s", dir)
 
 	d.Set("access_url", *dir.AccessUrl)
 	d.Set("alias", *dir.Alias)

@@ -62,6 +62,11 @@ func resourceDigitalOceanRecord() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+
+			"fqdn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -146,6 +151,10 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("priority", strconv.Itoa(rec.Priority))
 	d.Set("port", strconv.Itoa(rec.Port))
 
+	en := constructFqdn(rec.Name, d.Get("domain").(string))
+	log.Printf("[DEBUG] Constructed FQDN: %s", en)
+	d.Set("fqdn", en)
+
 	return nil
 }
 
@@ -195,4 +204,13 @@ func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	return nil
+}
+
+func constructFqdn(name, domain string) string {
+	rn := strings.ToLower(strings.TrimSuffix(name, "."))
+	domain = strings.TrimSuffix(domain, ".")
+	if !strings.HasSuffix(rn, domain) {
+		rn = strings.Join([]string{name, domain}, ".")
+	}
+	return rn
 }

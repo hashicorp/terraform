@@ -45,7 +45,11 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 
 	// Write all the variables out
 	for _, v := range config.Variables {
-		nodes = append(nodes, &GraphNodeConfigVariable{Variable: v})
+		nodes = append(nodes, &GraphNodeConfigVariable{
+			Variable:   v,
+			ModuleTree: t.Module,
+			ModulePath: g.Path,
+		})
 	}
 
 	// Write all the provider configs out

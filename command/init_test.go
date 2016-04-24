@@ -161,7 +161,7 @@ func TestInit_remoteState(t *testing.T) {
 	}
 
 	args := []string{
-		"-backend", "http",
+		"-backend", "HTTP",
 		"-backend-config", "address=" + conf.Config["address"],
 		testFixturePath("init"),
 		tmp,

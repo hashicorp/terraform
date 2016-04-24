@@ -1,3 +1,5 @@
+// +build fixtures
+
 package secgroups
 
 import (
@@ -206,6 +208,42 @@ func mockAddRuleResponse(t *testing.T) {
     "group": {},
     "ip_protocol": "TCP",
     "to_port": 22,
+    "parent_group_id": "{groupID}",
+    "ip_range": {
+      "cidr": "0.0.0.0/0"
+    },
+    "id": "{ruleID}"
+  }
+}`)
+	})
+}
+
+func mockAddRuleResponseICMPZero(t *testing.T) {
+	th.Mux.HandleFunc("/os-security-group-rules", func(w http.ResponseWriter, r *http.Request) {
+		th.TestMethod(t, r, "POST")
+		th.TestHeader(t, r, "X-Auth-Token", fake.TokenID)
+
+		th.TestJSONRequest(t, r, `
+{
+  "security_group_rule": {
+    "from_port": 0,
+    "ip_protocol": "ICMP",
+    "to_port": 0,
+    "parent_group_id": "{groupID}",
+    "cidr": "0.0.0.0/0"
+  }
+}	`)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		fmt.Fprintf(w, `
+{
+  "security_group_rule": {
+    "from_port": 0,
+    "group": {},
+    "ip_protocol": "ICMP",
+    "to_port": 0,
     "parent_group_id": "{groupID}",
     "ip_range": {
       "cidr": "0.0.0.0/0"

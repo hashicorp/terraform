@@ -11,14 +11,27 @@ import (
 	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// Overview
-//
 // This is the Amazon DynamoDB API Reference. This guide provides descriptions
-// and samples of the low-level DynamoDB API. For information about DynamoDB
-// application development, see the Amazon DynamoDB Developer Guide (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/).
+// of the low-level DynamoDB API.
 //
-// Instead of making the requests to the low-level DynamoDB API directly from
-// your application, we recommend that you use the AWS Software Development
+// This guide is intended for use with the following DynamoDB documentation:
+//
+//    Amazon DynamoDB Getting Started Guide (http://docs.aws.amazon.com/amazondynamodb/latest/gettingstartedguide/)
+// - provides hands-on exercises that help you learn the basics of working with
+// DynamoDB. If you are new to DynamoDB, we recommend that you begin with the
+// Getting Started Guide.
+//
+//    Amazon DynamoDB Developer Guide (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/)
+// - contains detailed information about DynamoDB concepts, usage, and best
+// practices.
+//
+//    Amazon DynamoDB Streams API Reference (http://docs.aws.amazon.com/dynamodbstreams/latest/APIReference/)
+// - provides descriptions and samples of the DynamoDB Streams API. (For more
+// information, see Capturing Table Activity with DynamoDB Streams (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html)
+// in the Amazon DynamoDB Developer Guide.)
+//
+//   Instead of making the requests to the low-level DynamoDB API directly
+// from your application, we recommend that you use the AWS Software Development
 // Kits (SDKs). The easy-to-use libraries in the AWS SDKs make it unnecessary
 // to call the low-level DynamoDB API directly from your application. The libraries
 // take care of request authentication, serialization, and connection management.
@@ -36,9 +49,8 @@ import (
 //  Managing Tables
 //
 //   CreateTable - Creates a table with user-specified provisioned throughput
-// settings. You must designate one attribute as the hash primary key for the
-// table; you can optionally designate a second attribute as the range primary
-// key. DynamoDB creates indexes on these key attributes for fast data access.
+// settings. You must define a primary key for the table - either a simple primary
+// key (partition key), or a composite primary key (partition key and sort key).
 // Optionally, you can create one or more secondary indexes, which provide fast
 // data access using non-key attributes.
 //
@@ -70,10 +82,10 @@ import (
 // Both eventually consistent and strongly consistent reads can be used.
 //
 //   Query - Returns one or more items from a table or a secondary index. You
-// must provide a specific hash key value. You can narrow the scope of the query
-// using comparison operators against a range key value, or on the index key.
-// Query supports either eventual or strong consistency. A single response has
-// a size limit of 1 MB.
+// must provide a specific value for the partition key. You can narrow the scope
+// of the query using comparison operators against a sort key value, or on the
+// index key. Query supports either eventual or strong consistency. A single
+// response has a size limit of 1 MB.
 //
 //   Scan - Reads every item in a table; the result set is eventually consistent.
 // You can limit the number of items returned by filtering the data attributes,
@@ -163,10 +175,10 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 
 	// Handlers
 	svc.Handlers.Sign.PushBack(v4.Sign)
-	svc.Handlers.Build.PushBack(jsonrpc.Build)
-	svc.Handlers.Unmarshal.PushBack(jsonrpc.Unmarshal)
-	svc.Handlers.UnmarshalMeta.PushBack(jsonrpc.UnmarshalMeta)
-	svc.Handlers.UnmarshalError.PushBack(jsonrpc.UnmarshalError)
+	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
+	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
+	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)
+	svc.Handlers.UnmarshalError.PushBackNamed(jsonrpc.UnmarshalErrorHandler)
 
 	// Run custom client initialization if present
 	if initClient != nil {

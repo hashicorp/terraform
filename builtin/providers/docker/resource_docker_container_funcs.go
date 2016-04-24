@@ -58,6 +58,10 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		createOpts.Config.Entrypoint = stringListToStringSlice(v.([]interface{}))
 	}
 
+	if v, ok := d.GetOk("user"); ok {
+		createOpts.Config.User = v.(string)
+	}
+
 	exposedPorts := map[dc.Port]struct{}{}
 	portBindings := map[dc.Port][]dc.PortBinding{}
 
@@ -185,7 +189,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	creationTime = time.Now()
-	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
+	if err := client.StartContainer(retContainer.ID, nil); err != nil {
 		return fmt.Errorf("Unable to start container: %s", err)
 	}
 

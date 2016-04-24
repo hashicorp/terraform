@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -894,7 +894,7 @@ func (s *AccountService) NewLockAccountParams(account string, domainid string) *
 	return p
 }
 
-// Locks an account
+// This deprecated function used to locks an account. Look for the API DisableAccount instead
 func (s *AccountService) LockAccount(p *LockAccountParams) (*LockAccountResponse, error) {
 	resp, err := s.cs.newRequest("lockAccount", p.toURLValues())
 	if err != nil {
@@ -1130,11 +1130,17 @@ func (s *AccountService) NewListAccountsParams() *ListAccountsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *AccountService) GetAccountID(name string) (string, error) {
+func (s *AccountService) GetAccountID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListAccountsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListAccounts(p)
 	if err != nil {
@@ -1160,13 +1166,13 @@ func (s *AccountService) GetAccountID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *AccountService) GetAccountByName(name string) (*Account, int, error) {
-	id, err := s.GetAccountID(name)
+func (s *AccountService) GetAccountByName(name string, opts ...OptionFunc) (*Account, int, error) {
+	id, err := s.GetAccountID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetAccountByID(id)
+	r, count, err := s.GetAccountByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -1174,11 +1180,17 @@ func (s *AccountService) GetAccountByName(name string) (*Account, int, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *AccountService) GetAccountByID(id string) (*Account, int, error) {
+func (s *AccountService) GetAccountByID(id string, opts ...OptionFunc) (*Account, int, error) {
 	p := &ListAccountsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListAccounts(p)
 	if err != nil {
@@ -1512,7 +1524,7 @@ func (s *AccountService) NewAddAccountToProjectParams(projectid string) *AddAcco
 	return p
 }
 
-// Adds acoount to a project
+// Adds account to a project
 func (s *AccountService) AddAccountToProject(p *AddAccountToProjectParams) (*AddAccountToProjectResponse, error) {
 	resp, err := s.cs.newRequest("addAccountToProject", p.toURLValues())
 	if err != nil {
@@ -1716,26 +1728,22 @@ func (s *AccountService) NewListProjectAccountsParams(projectid string) *ListPro
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *AccountService) GetProjectAccountID(keyword string, projectid string) (string, error) {
+func (s *AccountService) GetProjectAccountID(keyword string, projectid string, opts ...OptionFunc) (string, error) {
 	p := &ListProjectAccountsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 	p.p["projectid"] = projectid
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListProjectAccounts(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListProjectAccounts(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1830,4 +1838,66 @@ type ProjectAccount struct {
 	Vpcavailable      string `json:"vpcavailable,omitempty"`
 	Vpclimit          string `json:"vpclimit,omitempty"`
 	Vpctotal          int64  `json:"vpctotal,omitempty"`
+}
+
+type GetSolidFireAccountIdParams struct {
+	p map[string]interface{}
+}
+
+func (p *GetSolidFireAccountIdParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["accountid"]; found {
+		u.Set("accountid", v.(string))
+	}
+	if v, found := p.p["storageid"]; found {
+		u.Set("storageid", v.(string))
+	}
+	return u
+}
+
+func (p *GetSolidFireAccountIdParams) SetAccountid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["accountid"] = v
+	return
+}
+
+func (p *GetSolidFireAccountIdParams) SetStorageid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["storageid"] = v
+	return
+}
+
+// You should always use this function to get a new GetSolidFireAccountIdParams instance,
+// as then you are sure you have configured all required params
+func (s *AccountService) NewGetSolidFireAccountIdParams(accountid string, storageid string) *GetSolidFireAccountIdParams {
+	p := &GetSolidFireAccountIdParams{}
+	p.p = make(map[string]interface{})
+	p.p["accountid"] = accountid
+	p.p["storageid"] = storageid
+	return p
+}
+
+// Get SolidFire Account ID
+func (s *AccountService) GetSolidFireAccountId(p *GetSolidFireAccountIdParams) (*GetSolidFireAccountIdResponse, error) {
+	resp, err := s.cs.newRequest("getSolidFireAccountId", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r GetSolidFireAccountIdResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+type GetSolidFireAccountIdResponse struct {
+	SolidFireAccountId int64 `json:"solidFireAccountId,omitempty"`
 }

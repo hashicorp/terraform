@@ -193,12 +193,21 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 
 func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 	addr := fmt.Sprintf("%s:%d", c.endpoint.Host, c.endpoint.Port)
-	return winrmcp.New(addr, &winrmcp.Config{
+
+	config := winrmcp.Config{
 		Auth: winrmcp.Auth{
 			User:     c.connInfo.User,
 			Password: c.connInfo.Password,
 		},
+		Https:                 c.connInfo.HTTPS,
+		Insecure:              c.connInfo.Insecure,
 		OperationTimeout:      c.Timeout(),
 		MaxOperationsPerShell: 15, // lowest common denominator
-	})
+	}
+
+	if c.connInfo.CACert != nil {
+		config.CACertBytes = *c.connInfo.CACert
+	}
+
+	return winrmcp.New(addr, &config)
 }

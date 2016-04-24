@@ -202,7 +202,7 @@ func testStateOutput(t *testing.T, path string, expected string) {
 	actual := strings.TrimSpace(newState.String())
 	expected = strings.TrimSpace(expected)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("expected:\n%s\nactual:\n%s", expected, actual)
 	}
 }
 

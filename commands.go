@@ -50,6 +50,12 @@ func init() {
 			}, nil
 		},
 
+		"fmt": func() (cli.Command, error) {
+			return &command.FmtCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"get": func() (cli.Command, error) {
 			return &command.GetCommand{
 				Meta: meta,
@@ -110,6 +116,12 @@ func init() {
 			}, nil
 		},
 
+		"validate": func() (cli.Command, error) {
+			return &command.ValidateCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Meta:              meta,
@@ -117,6 +129,12 @@ func init() {
 				Version:           Version,
 				VersionPrerelease: VersionPrerelease,
 				CheckFunc:         commandVersionCheck,
+			}, nil
+		},
+
+		"untaint": func() (cli.Command, error) {
+			return &command.UntaintCommand{
+				Meta: meta,
 			}, nil
 		},
 	}

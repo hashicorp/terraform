@@ -146,11 +146,12 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Give the destroy a chance to take effect
-	return resource.Retry(1*time.Minute, func() error {
+	return resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err = client.RetrieveDomain(d.Id())
 		if err == nil {
 			log.Printf("[INFO] Retrying until domain disappears...")
-			return fmt.Errorf("Domain seems to still exist; will check again.")
+			return resource.RetryableError(
+				fmt.Errorf("Domain seems to still exist; will check again."))
 		}
 		log.Printf("[INFO] Got error looking for domain, seems gone: %s", err)
 		return nil

@@ -22,6 +22,8 @@ resource "aws_ebs_volume" "example" {
 }
 ```
 
+~> **NOTE**: One of `size` or `snapshot_id` is required when specifying an EBS volume 
+
 ## Argument Reference
 
 The following arguments are supported:

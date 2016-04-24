@@ -16,7 +16,6 @@ func TestResourceProvisioner_impl(t *testing.T) {
 
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"attributes":             []interface{}{"key1 { subkey1 = value1 }"},
 		"environment":            "_default",
 		"node_name":              "nodename1",
 		"run_list":               []interface{}{"cookbook::recipe"},
@@ -144,6 +143,79 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 		p.useSudo = !p.PreventSudo
 
 		err = p.runChefClient(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
+func TestResourceProvider_fetchChefCertificates(t *testing.T) {
+	cases := map[string]struct {
+		Config   *terraform.ResourceConfig
+		KnifeCmd string
+		ConfDir  string
+		Commands map[string]bool
+	}{
+		"Sudo": {
+			Config: testConfig(t, map[string]interface{}{
+				"fetch_chef_certificates": true,
+				"node_name":               "nodename1",
+				"run_list":                []interface{}{"cookbook::recipe"},
+				"server_url":              "https://chef.local",
+				"validation_client_name":  "validator",
+				"validation_key_path":     "test-fixtures/validator.pem",
+			}),
+
+			KnifeCmd: linuxKnifeCmd,
+
+			ConfDir: linuxConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf(`sudo %s ssl fetch -c %s`,
+					linuxKnifeCmd,
+					path.Join(linuxConfDir, "client.rb")): true,
+			},
+		},
+
+		"NoSudo": {
+			Config: testConfig(t, map[string]interface{}{
+				"fetch_chef_certificates": true,
+				"node_name":               "nodename1",
+				"prevent_sudo":            true,
+				"run_list":                []interface{}{"cookbook::recipe"},
+				"server_url":              "https://chef.local",
+				"validation_client_name":  "validator",
+				"validation_key_path":     "test-fixtures/validator.pem",
+			}),
+
+			KnifeCmd: windowsKnifeCmd,
+
+			ConfDir: windowsConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf(`%s ssl fetch -c %s`,
+					windowsKnifeCmd,
+					path.Join(windowsConfDir, "client.rb")): true,
+			},
+		},
+	}
+
+	r := new(ResourceProvisioner)
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+
+		p, err := r.decodeConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.fetchChefCertificates = p.fetchChefCertificatesFunc(tc.KnifeCmd, tc.ConfDir)
+		p.useSudo = !p.PreventSudo
+
+		err = p.fetchChefCertificates(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}

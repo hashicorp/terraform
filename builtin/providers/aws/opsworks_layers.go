@@ -67,6 +67,11 @@ func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 			Optional: true,
 		},
 
+		"elastic_load_balancer": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+
 		"custom_setup_recipes": &schema.Schema{
 			Type:     schema.TypeList,
 			Optional: true,
@@ -102,6 +107,12 @@ func (lt *opsworksLayerType) SchemaResource() *schema.Resource {
 			Optional: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
+		},
+
+		"custom_json": &schema.Schema{
+			Type:      schema.TypeString,
+			StateFunc: normalizeJson,
+			Optional:  true,
 		},
 
 		"auto_healing": &schema.Schema{
@@ -271,11 +282,11 @@ func (lt *opsworksLayerType) Read(d *schema.ResourceData, client *opsworks.OpsWo
 	d.Set("auto_assign_elastic_ips", layer.AutoAssignElasticIps)
 	d.Set("auto_assign_public_ips", layer.AutoAssignPublicIps)
 	d.Set("custom_instance_profile_arn", layer.CustomInstanceProfileArn)
-	d.Set("custom_security_group_ids", unwrapAwsStringList(layer.CustomSecurityGroupIds))
+	d.Set("custom_security_group_ids", flattenStringList(layer.CustomSecurityGroupIds))
 	d.Set("auto_healing", layer.EnableAutoHealing)
 	d.Set("install_updates_on_boot", layer.InstallUpdatesOnBoot)
 	d.Set("name", layer.Name)
-	d.Set("system_packages", unwrapAwsStringList(layer.Packages))
+	d.Set("system_packages", flattenStringList(layer.Packages))
 	d.Set("stack_id", layer.StackId)
 	d.Set("use_ebs_optimized_instances", layer.UseEbsOptimizedInstances)
 
@@ -283,10 +294,38 @@ func (lt *opsworksLayerType) Read(d *schema.ResourceData, client *opsworks.OpsWo
 		d.Set("short_name", layer.Shortname)
 	}
 
+	if v := layer.CustomJson; v == nil {
+		if err := d.Set("custom_json", ""); err != nil {
+			return err
+		}
+	} else if err := d.Set("custom_json", normalizeJson(*v)); err != nil {
+		return err
+	}
+
 	lt.SetAttributeMap(d, layer.Attributes)
 	lt.SetLifecycleEventConfiguration(d, layer.LifecycleEventConfiguration)
 	lt.SetCustomRecipes(d, layer.CustomRecipes)
 	lt.SetVolumeConfigurations(d, layer.VolumeConfigurations)
+
+	/* get ELB */
+	ebsRequest := &opsworks.DescribeElasticLoadBalancersInput{
+		LayerIds: []*string{
+			aws.String(d.Id()),
+		},
+	}
+	loadBalancers, err := client.DescribeElasticLoadBalancers(ebsRequest)
+	if err != nil {
+		return err
+	}
+
+	if loadBalancers.ElasticLoadBalancers == nil || len(loadBalancers.ElasticLoadBalancers) == 0 {
+		d.Set("elastic_load_balancer", "")
+	} else {
+		loadBalancer := loadBalancers.ElasticLoadBalancers[0]
+		if loadBalancer != nil {
+			d.Set("elastic_load_balancer", loadBalancer.ElasticLoadBalancerName)
+		}
+	}
 
 	return nil
 }
@@ -298,12 +337,12 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
 		AutoAssignPublicIps:         aws.Bool(d.Get("auto_assign_public_ips").(bool)),
 		CustomInstanceProfileArn:    aws.String(d.Get("custom_instance_profile_arn").(string)),
 		CustomRecipes:               lt.CustomRecipes(d),
-		CustomSecurityGroupIds:      makeAwsStringSet(d.Get("custom_security_group_ids").(*schema.Set)),
+		CustomSecurityGroupIds:      expandStringSet(d.Get("custom_security_group_ids").(*schema.Set)),
 		EnableAutoHealing:           aws.Bool(d.Get("auto_healing").(bool)),
 		InstallUpdatesOnBoot:        aws.Bool(d.Get("install_updates_on_boot").(bool)),
 		LifecycleEventConfiguration: lt.LifecycleEventConfiguration(d),
 		Name:                     aws.String(d.Get("name").(string)),
-		Packages:                 makeAwsStringSet(d.Get("system_packages").(*schema.Set)),
+		Packages:                 expandStringSet(d.Get("system_packages").(*schema.Set)),
 		Type:                     aws.String(lt.TypeName),
 		StackId:                  aws.String(d.Get("stack_id").(string)),
 		UseEbsOptimizedInstances: aws.Bool(d.Get("use_ebs_optimized_instances").(bool)),
@@ -317,6 +356,8 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
 		req.Shortname = aws.String(lt.TypeName)
 	}
 
+	req.CustomJson = aws.String(d.Get("custom_json").(string))
+
 	log.Printf("[DEBUG] Creating OpsWorks layer: %s", d.Id())
 
 	resp, err := client.CreateLayer(req)
@@ -327,6 +368,18 @@ func (lt *opsworksLayerType) Create(d *schema.ResourceData, client *opsworks.Ops
 	layerId := *resp.LayerId
 	d.SetId(layerId)
 	d.Set("id", layerId)
+
+	loadBalancer := aws.String(d.Get("elastic_load_balancer").(string))
+	if loadBalancer != nil && *loadBalancer != "" {
+		log.Printf("[DEBUG] Attaching load balancer: %s", *loadBalancer)
+		_, err := client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
+			ElasticLoadBalancerName: loadBalancer,
+			LayerId:                 &layerId,
+		})
+		if err != nil {
+			return err
+		}
+	}
 
 	return lt.Read(d, client)
 }
@@ -339,12 +392,12 @@ func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.Ops
 		AutoAssignPublicIps:         aws.Bool(d.Get("auto_assign_public_ips").(bool)),
 		CustomInstanceProfileArn:    aws.String(d.Get("custom_instance_profile_arn").(string)),
 		CustomRecipes:               lt.CustomRecipes(d),
-		CustomSecurityGroupIds:      makeAwsStringSet(d.Get("custom_security_group_ids").(*schema.Set)),
+		CustomSecurityGroupIds:      expandStringSet(d.Get("custom_security_group_ids").(*schema.Set)),
 		EnableAutoHealing:           aws.Bool(d.Get("auto_healing").(bool)),
 		InstallUpdatesOnBoot:        aws.Bool(d.Get("install_updates_on_boot").(bool)),
 		LifecycleEventConfiguration: lt.LifecycleEventConfiguration(d),
 		Name:                     aws.String(d.Get("name").(string)),
-		Packages:                 makeAwsStringSet(d.Get("system_packages").(*schema.Set)),
+		Packages:                 expandStringSet(d.Get("system_packages").(*schema.Set)),
 		UseEbsOptimizedInstances: aws.Bool(d.Get("use_ebs_optimized_instances").(bool)),
 		Attributes:               lt.AttributeMap(d),
 		VolumeConfigurations:     lt.VolumeConfigurations(d),
@@ -356,7 +409,38 @@ func (lt *opsworksLayerType) Update(d *schema.ResourceData, client *opsworks.Ops
 		req.Shortname = aws.String(lt.TypeName)
 	}
 
+	req.CustomJson = aws.String(d.Get("custom_json").(string))
+
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
+
+	if d.HasChange("elastic_load_balancer") {
+		lbo, lbn := d.GetChange("elastic_load_balancer")
+
+		loadBalancerOld := aws.String(lbo.(string))
+		loadBalancerNew := aws.String(lbn.(string))
+
+		if loadBalancerOld != nil && *loadBalancerOld != "" {
+			log.Printf("[DEBUG] Dettaching load balancer: %s", *loadBalancerOld)
+			_, err := client.DetachElasticLoadBalancer(&opsworks.DetachElasticLoadBalancerInput{
+				ElasticLoadBalancerName: loadBalancerOld,
+				LayerId:                 aws.String(d.Id()),
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		if loadBalancerNew != nil && *loadBalancerNew != "" {
+			log.Printf("[DEBUG] Attaching load balancer: %s", *loadBalancerNew)
+			_, err := client.AttachElasticLoadBalancer(&opsworks.AttachElasticLoadBalancerInput{
+				ElasticLoadBalancerName: loadBalancerNew,
+				LayerId:                 aws.String(d.Id()),
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	_, err := client.UpdateLayer(req)
 	if err != nil {
@@ -467,11 +551,11 @@ func (lt *opsworksLayerType) SetLifecycleEventConfiguration(d *schema.ResourceDa
 
 func (lt *opsworksLayerType) CustomRecipes(d *schema.ResourceData) *opsworks.Recipes {
 	return &opsworks.Recipes{
-		Configure: makeAwsStringList(d.Get("custom_configure_recipes").([]interface{})),
-		Deploy:    makeAwsStringList(d.Get("custom_deploy_recipes").([]interface{})),
-		Setup:     makeAwsStringList(d.Get("custom_setup_recipes").([]interface{})),
-		Shutdown:  makeAwsStringList(d.Get("custom_shutdown_recipes").([]interface{})),
-		Undeploy:  makeAwsStringList(d.Get("custom_undeploy_recipes").([]interface{})),
+		Configure: expandStringList(d.Get("custom_configure_recipes").([]interface{})),
+		Deploy:    expandStringList(d.Get("custom_deploy_recipes").([]interface{})),
+		Setup:     expandStringList(d.Get("custom_setup_recipes").([]interface{})),
+		Shutdown:  expandStringList(d.Get("custom_shutdown_recipes").([]interface{})),
+		Undeploy:  expandStringList(d.Get("custom_undeploy_recipes").([]interface{})),
 	}
 }
 
@@ -487,11 +571,11 @@ func (lt *opsworksLayerType) SetCustomRecipes(d *schema.ResourceData, v *opswork
 		return
 	}
 
-	d.Set("custom_configure_recipes", unwrapAwsStringList(v.Configure))
-	d.Set("custom_deploy_recipes", unwrapAwsStringList(v.Deploy))
-	d.Set("custom_setup_recipes", unwrapAwsStringList(v.Setup))
-	d.Set("custom_shutdown_recipes", unwrapAwsStringList(v.Shutdown))
-	d.Set("custom_undeploy_recipes", unwrapAwsStringList(v.Undeploy))
+	d.Set("custom_configure_recipes", flattenStringList(v.Configure))
+	d.Set("custom_deploy_recipes", flattenStringList(v.Deploy))
+	d.Set("custom_setup_recipes", flattenStringList(v.Setup))
+	d.Set("custom_shutdown_recipes", flattenStringList(v.Shutdown))
+	d.Set("custom_undeploy_recipes", flattenStringList(v.Undeploy))
 }
 
 func (lt *opsworksLayerType) VolumeConfigurations(d *schema.ResourceData) []*opsworks.VolumeConfiguration {

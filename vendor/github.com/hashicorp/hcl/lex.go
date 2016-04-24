@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"unicode"
+	"unicode/utf8"
 )
 
 type lexModeValue byte
@@ -14,17 +15,23 @@ const (
 
 // lexMode returns whether we're going to be parsing in JSON
 // mode or HCL mode.
-func lexMode(v string) lexModeValue {
-	for _, r := range v {
+func lexMode(v []byte) lexModeValue {
+	var (
+		r      rune
+		w      int
+		offset int
+	)
+
+	for {
+		r, w = utf8.DecodeRune(v[offset:])
+		offset += w
 		if unicode.IsSpace(r) {
 			continue
 		}
-
 		if r == '{' {
 			return lexModeJson
-		} else {
-			return lexModeHcl
 		}
+		break
 	}
 
 	return lexModeHcl

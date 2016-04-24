@@ -15,9 +15,10 @@ func TestAccAWSENI_basic(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfig,
@@ -28,6 +29,38 @@ func TestAccAWSENI_basic(t *testing.T) {
 						"aws_network_interface.bar", "private_ips.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_network_interface.bar", "tags.Name", "bar_interface"),
+					resource.TestCheckResourceAttr(
+						"aws_network_interface.bar", "description", "Managed by Terraform"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSENI_updatedDescription(t *testing.T) {
+	var conf ec2.NetworkInterface
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSENIConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSENIExists("aws_network_interface.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_network_interface.bar", "description", "Managed by Terraform"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSENIConfigUpdatedDescription,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSENIExists("aws_network_interface.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_network_interface.bar", "description", "Updated ENI Description"),
 				),
 			},
 		},
@@ -38,9 +71,10 @@ func TestAccAWSENI_attached(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigWithAttachment,
@@ -61,9 +95,10 @@ func TestAccAWSENI_ignoreExternalAttachment(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigExternalAttachment,
@@ -81,9 +116,10 @@ func TestAccAWSENI_sourceDestCheck(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigWithSourceDestCheck,
@@ -101,9 +137,10 @@ func TestAccAWSENI_computedIPs(t *testing.T) {
 	var conf ec2.NetworkInterface
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSENIDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_interface.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSENIDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSENIConfigWithNoPrivateIPs,
@@ -279,6 +316,42 @@ resource "aws_network_interface" "bar" {
     subnet_id = "${aws_subnet.foo.id}"
     private_ips = ["172.16.10.100"]
     security_groups = ["${aws_security_group.foo.id}"]
+    description = "Managed by Terraform"
+    tags {
+        Name = "bar_interface"
+    }
+}
+`
+
+const testAccAWSENIConfigUpdatedDescription = `
+resource "aws_vpc" "foo" {
+    cidr_block = "172.16.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+    vpc_id = "${aws_vpc.foo.id}"
+    cidr_block = "172.16.10.0/24"
+    availability_zone = "us-west-2a"
+}
+
+resource "aws_security_group" "foo" {
+  vpc_id = "${aws_vpc.foo.id}"
+  description = "foo"
+  name = "foo"
+
+        egress {
+                from_port = 0
+                to_port = 0
+                protocol = "tcp"
+                cidr_blocks = ["10.0.0.0/16"]
+        }
+}
+
+resource "aws_network_interface" "bar" {
+    subnet_id = "${aws_subnet.foo.id}"
+    private_ips = ["172.16.10.100"]
+    security_groups = ["${aws_security_group.foo.id}"]
+    description = "Updated ENI Description"
     tags {
         Name = "bar_interface"
     }
@@ -333,7 +406,7 @@ resource "aws_subnet" "foo" {
     cidr_block = "172.16.10.0/24"
     availability_zone = "us-west-2a"
         tags {
-            Name = "tf-eni-test"
+            Name = "tf-foo-eni-test"
         }
 }
 
@@ -342,7 +415,7 @@ resource "aws_subnet" "bar" {
     cidr_block = "172.16.11.0/24"
     availability_zone = "us-west-2a"
         tags {
-            Name = "tf-eni-test"
+            Name = "tf-bar-eni-test"
         }
 }
 
@@ -359,7 +432,7 @@ resource "aws_instance" "foo" {
     associate_public_ip_address = false
     private_ip = "172.16.11.50"
     tags {
-        Name = "tf-eni-test"
+        Name = "foo-tf-eni-test"
     }
 }
 

@@ -38,11 +38,9 @@ type Client struct {
 	Dst string
 	Pwd string
 
-	// Dir, if true, tells the Client it is downloading a directory (versus
-	// a single file). This distinction is necessary since filenames and
-	// directory names follow the same format so disambiguating is impossible
-	// without knowing ahead of time.
-	Dir bool
+	// Mode is the method of download the client will use. See ClientMode
+	// for documentation.
+	Mode ClientMode
 
 	// Detectors is the list of detectors that are tried on the source.
 	// If this is nil, then the default Detectors will be used.
@@ -55,12 +53,27 @@ type Client struct {
 	// Getters is the map of protocols supported by this client. If this
 	// is nil, then the default Getters variable will be used.
 	Getters map[string]Getter
+
+	// Dir, if true, tells the Client it is downloading a directory (versus
+	// a single file). This distinction is necessary since filenames and
+	// directory names follow the same format so disambiguating is impossible
+	// without knowing ahead of time.
+	//
+	// WARNING: deprecated. If Mode is set, that will take precedence.
+	Dir bool
 }
 
 // Get downloads the configured source to the destination.
 func (c *Client) Get() error {
 	// Store this locally since there are cases we swap this
-	dir := c.Dir
+	mode := c.Mode
+	if mode == ClientModeInvalid {
+		if c.Dir {
+			mode = ClientModeDir
+		} else {
+			mode = ClientModeFile
+		}
+	}
 
 	// Default decompressor value
 	decompressors := c.Decompressors
@@ -166,9 +179,9 @@ func (c *Client) Get() error {
 		// Swap the download directory to be our temporary path and
 		// store the old values.
 		decompressDst = dst
-		decompressDir = dir
+		decompressDir = mode != ClientModeFile
 		dst = filepath.Join(td, "archive")
-		dir = false
+		mode = ClientModeFile
 	}
 
 	// Determine if we have a checksum
@@ -178,13 +191,6 @@ func (c *Client) Get() error {
 		// Delete the query parameter if we have it.
 		q.Del("checksum")
 		u.RawQuery = q.Encode()
-
-		// If we're getting a directory, then this is an error. You cannot
-		// checksum a directory. TODO: test
-		if dir {
-			return fmt.Errorf(
-				"checksum cannot be specified for directory download")
-		}
 
 		// Determine the checksum hash type
 		checksumType := ""
@@ -216,9 +222,18 @@ func (c *Client) Get() error {
 		checksumValue = b
 	}
 
+	// For now, any means file. In the future, we'll ask the getter
+	// what it thinks it is.
+	if mode == ClientModeAny {
+		mode = ClientModeFile
+
+		// Destination is the base name of the URL path
+		dst = filepath.Join(dst, filepath.Base(u.Path))
+	}
+
 	// If we're not downloading a directory, then just download the file
 	// and return.
-	if !dir {
+	if mode == ClientModeFile {
 		err := g.GetFile(dst, u)
 		if err != nil {
 			return err
@@ -240,13 +255,17 @@ func (c *Client) Get() error {
 
 			// Swap the information back
 			dst = decompressDst
-			dir = decompressDir
+			if decompressDir {
+				mode = ClientModeAny
+			} else {
+				mode = ClientModeFile
+			}
 		}
 
 		// We check the dir value again because it can be switched back
 		// if we were unarchiving. If we're still only Get-ing a file, then
 		// we're done.
-		if !dir {
+		if mode == ClientModeFile {
 			return nil
 		}
 	}
@@ -256,6 +275,13 @@ func (c *Client) Get() error {
 	// In the case we have a decompressor we don't Get because it was Get
 	// above.
 	if decompressor == nil {
+		// If we're getting a directory, then this is an error. You cannot
+		// checksum a directory. TODO: test
+		if checksumHash != nil {
+			return fmt.Errorf(
+				"checksum cannot be specified for directory download")
+		}
+
 		// We're downloading a directory, which might require a bit more work
 		// if we're specifying a subdir.
 		err := g.Get(dst, u)

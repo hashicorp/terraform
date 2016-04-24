@@ -995,6 +995,8 @@ type PublicKey struct {
 	ValidityStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// The DER encoded public key value in PKCS#1 format.
+	//
+	// Value is automatically base64 encoded/decoded by the SDK.
 	Value []byte `type:"blob"`
 }
 

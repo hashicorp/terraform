@@ -16,6 +16,7 @@ type ListOpts struct {
 	ID           string `q:"id"`
 	Name         string `q:"name"`
 	AdminStateUp *bool  `q:"admin_state_up"`
+	Distributed  *bool  `q:"distributed"`
 	Status       string `q:"status"`
 	TenantID     string `q:"tenant_id"`
 	Limit        int    `q:"limit"`
@@ -41,13 +42,49 @@ func List(c *gophercloud.ServiceClient, opts ListOpts) pagination.Pager {
 	})
 }
 
+// CreateOptsBuilder is the interface options structs have to satisfy in order
+// to be used in the main Create operation in this package. Since many
+// extensions decorate or modify the common logic, it is useful for them to
+// satisfy a basic interface in order for them to be used.
+type CreateOptsBuilder interface {
+	ToRouterCreateMap() (map[string]interface{}, error)
+}
+
 // CreateOpts contains all the values needed to create a new router. There are
 // no required values.
 type CreateOpts struct {
 	Name         string
 	AdminStateUp *bool
+	Distributed  *bool
 	TenantID     string
 	GatewayInfo  *GatewayInfo
+}
+
+// ToRouterCreateMap casts a CreateOpts struct to a map.
+func (opts CreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
+	r := make(map[string]interface{})
+
+	if gophercloud.MaybeString(opts.Name) != nil {
+		r["name"] = opts.Name
+	}
+
+	if opts.AdminStateUp != nil {
+		r["admin_state_up"] = opts.AdminStateUp
+	}
+
+	if opts.Distributed != nil {
+		r["distributed"] = opts.Distributed
+	}
+
+	if gophercloud.MaybeString(opts.TenantID) != nil {
+		r["tenant_id"] = opts.TenantID
+	}
+
+	if opts.GatewayInfo != nil {
+		r["external_gateway_info"] = opts.GatewayInfo
+	}
+
+	return map[string]interface{}{"router": r}, nil
 }
 
 // Create accepts a CreateOpts struct and uses the values to create a new
@@ -58,29 +95,15 @@ type CreateOpts struct {
 // GatewayInfo struct. The external gateway for the router must be plugged into
 // an external network (it is external if its `router:external' field is set to
 // true).
-func Create(c *gophercloud.ServiceClient, opts CreateOpts) CreateResult {
-	type router struct {
-		Name         *string      `json:"name,omitempty"`
-		AdminStateUp *bool        `json:"admin_state_up,omitempty"`
-		TenantID     *string      `json:"tenant_id,omitempty"`
-		GatewayInfo  *GatewayInfo `json:"external_gateway_info,omitempty"`
-	}
-
-	type request struct {
-		Router router `json:"router"`
-	}
-
-	reqBody := request{Router: router{
-		Name:         gophercloud.MaybeString(opts.Name),
-		AdminStateUp: opts.AdminStateUp,
-		TenantID:     gophercloud.MaybeString(opts.TenantID),
-	}}
-
-	if opts.GatewayInfo != nil {
-		reqBody.Router.GatewayInfo = opts.GatewayInfo
-	}
-
+func Create(c *gophercloud.ServiceClient, opts CreateOptsBuilder) CreateResult {
 	var res CreateResult
+
+	reqBody, err := opts.ToRouterCreateMap()
+	if err != nil {
+		res.Err = err
+		return res
+	}
+
 	_, res.Err = c.Post(rootURL(c), reqBody, &res.Body, nil)
 	return res
 }
@@ -96,6 +119,7 @@ func Get(c *gophercloud.ServiceClient, id string) GetResult {
 type UpdateOpts struct {
 	Name         string
 	AdminStateUp *bool
+	Distributed  *bool
 	GatewayInfo  *GatewayInfo
 	Routes       []Route
 }
@@ -109,6 +133,7 @@ func Update(c *gophercloud.ServiceClient, id string, opts UpdateOpts) UpdateResu
 	type router struct {
 		Name         *string      `json:"name,omitempty"`
 		AdminStateUp *bool        `json:"admin_state_up,omitempty"`
+		Distributed  *bool        `json:"distributed,omitempty"`
 		GatewayInfo  *GatewayInfo `json:"external_gateway_info,omitempty"`
 		Routes       []Route      `json:"routes"`
 	}
@@ -120,6 +145,7 @@ func Update(c *gophercloud.ServiceClient, id string, opts UpdateOpts) UpdateResu
 	reqBody := request{Router: router{
 		Name:         gophercloud.MaybeString(opts.Name),
 		AdminStateUp: opts.AdminStateUp,
+		Distributed:  opts.Distributed,
 	}}
 
 	if opts.GatewayInfo != nil {

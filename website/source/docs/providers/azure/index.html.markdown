@@ -20,7 +20,7 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Azure Provider
 provider "azure" {
-  settings_file = "${file("credentials.publishsettings")}"
+  publish_settings = "${file("credentials.publishsettings")}"
 }
 
 # Create a web server

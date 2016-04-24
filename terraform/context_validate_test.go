@@ -576,10 +576,10 @@ func TestContext2Validate_resourceNameSymbol(t *testing.T) {
 	})
 
 	w, e := c.Validate()
-	if len(w) == 0 {
+	if len(w) > 0 {
 		t.Fatalf("bad: %#v", w)
 	}
-	if len(e) > 0 {
+	if len(e) == 0 {
 		t.Fatalf("bad: %s", e)
 	}
 }

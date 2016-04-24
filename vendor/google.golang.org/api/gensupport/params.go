@@ -14,6 +14,15 @@ import (
 // that safely builds up URL parameters for encoding.
 type URLParams map[string][]string
 
+// Get returns the first value for the given key, or "".
+func (u URLParams) Get(key string) string {
+	vs := u[key]
+	if len(vs) == 0 {
+		return ""
+	}
+	return vs[0]
+}
+
 // Set sets the key to value.
 // It replaces any existing values.
 func (u URLParams) Set(key, value string) {

@@ -106,7 +106,11 @@ func resourceAwsNatGatewayRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Set NAT Gateway attributes
 	ng := ngRaw.(*ec2.NatGateway)
+	d.Set("subnet_id", ng.SubnetId)
+
+	// Address
 	address := ng.NatGatewayAddresses[0]
+	d.Set("allocation_id", address.AllocationId)
 	d.Set("network_interface_id", address.NetworkInterfaceId)
 	d.Set("private_ip", address.PrivateIp)
 	d.Set("public_ip", address.PublicIp)

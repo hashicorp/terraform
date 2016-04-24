@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-
 	//"google.golang.org/api/storage/v1"
 )
 
@@ -21,7 +20,7 @@ func testAclObjectName() string {
 }
 
 func TestAccGoogleStorageObjectAcl_basic(t *testing.T) {
-	bucketName := testAclBucketName()
+	bucketName := testBucketName()
 	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)
@@ -49,7 +48,7 @@ func TestAccGoogleStorageObjectAcl_basic(t *testing.T) {
 }
 
 func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
-	bucketName := testAclBucketName()
+	bucketName := testBucketName()
 	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)
@@ -99,7 +98,7 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 }
 
 func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
-	bucketName := testAclBucketName()
+	bucketName := testBucketName()
 	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)
@@ -149,7 +148,7 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 }
 
 func TestAccGoogleStorageObjectAcl_predefined(t *testing.T) {
-	bucketName := testAclBucketName()
+	bucketName := testBucketName()
 	objectName := testAclObjectName()
 	objectData := []byte("data data data")
 	ioutil.WriteFile(tfObjectAcl.Name(), objectData, 0644)

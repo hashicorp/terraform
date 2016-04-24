@@ -84,12 +84,19 @@ func resourceDockerContainer() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"user": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"dns": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 
 			"publish_all_ports": &schema.Schema{
@@ -105,9 +112,9 @@ func resourceDockerContainer() *schema.Resource {
 				Default:  "no",
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(string)
-					if !regexp.MustCompile(`^(no|on-failure|always)$`).MatchString(value) {
+					if !regexp.MustCompile(`^(no|on-failure|always|unless-stopped)$`).MatchString(value) {
 						es = append(es, fmt.Errorf(
-							"%q must be one of \"no\", \"on-failure\", or \"always\"", k))
+							"%q must be one of \"no\", \"on-failure\", \"always\" or \"unless-stopped\"", k))
 					}
 					return
 				},
@@ -229,7 +236,7 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 
 			"links": &schema.Schema{
@@ -237,7 +244,7 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 
 			"ip_address": &schema.Schema{
@@ -343,7 +350,7 @@ func resourceDockerContainer() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      stringSetHash,
+				Set:      schema.HashString,
 			},
 
 			"uploads": &schema.Schema{
@@ -473,8 +480,4 @@ func resourceDockerUploadsHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
-}
-
-func stringSetHash(v interface{}) int {
-	return hashcode.String(v.(string))
 }

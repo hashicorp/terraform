@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -440,6 +440,8 @@ type DeployVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -576,6 +578,8 @@ type DeployVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -596,6 +600,8 @@ type DeployVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -645,7 +651,7 @@ func (s *VirtualMachineService) NewDestroyVirtualMachineParams(id string) *Destr
 	return p
 }
 
-// Destroys a virtual machine. Once destroyed, only the administrator can recover it.
+// Destroys a virtual machine.
 func (s *VirtualMachineService) DestroyVirtualMachine(p *DestroyVirtualMachineParams) (*DestroyVirtualMachineResponse, error) {
 	resp, err := s.cs.newRequest("destroyVirtualMachine", p.toURLValues())
 	if err != nil {
@@ -689,6 +695,8 @@ type DestroyVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -825,6 +833,8 @@ type DestroyVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -845,6 +855,8 @@ type DestroyVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -926,6 +938,8 @@ type RebootVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -1062,6 +1076,8 @@ type RebootVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -1082,6 +1098,8 @@ type RebootVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -1185,6 +1203,8 @@ type StartVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -1321,6 +1341,8 @@ type StartVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -1341,6 +1363,8 @@ type StartVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -1434,6 +1458,8 @@ type StopVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -1570,6 +1596,8 @@ type StopVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -1590,6 +1618,8 @@ type StopVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -1671,6 +1701,8 @@ type ResetPasswordForVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -1807,6 +1839,8 @@ type ResetPasswordForVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -1827,6 +1861,8 @@ type ResetPasswordForVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -1868,6 +1904,9 @@ func (p *UpdateVirtualMachineParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["id"]; found {
 		u.Set("id", v.(string))
+	}
+	if v, found := p.p["instancename"]; found {
+		u.Set("instancename", v.(string))
 	}
 	if v, found := p.p["isdynamicallyscalable"]; found {
 		vv := strconv.FormatBool(v.(bool))
@@ -1941,6 +1980,14 @@ func (p *UpdateVirtualMachineParams) SetId(v string) {
 	return
 }
 
+func (p *UpdateVirtualMachineParams) SetInstancename(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["instancename"] = v
+	return
+}
+
 func (p *UpdateVirtualMachineParams) SetIsdynamicallyscalable(v bool) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -2005,6 +2052,8 @@ type UpdateVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -2141,6 +2190,8 @@ type UpdateVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -2161,6 +2212,8 @@ type UpdateVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -2222,6 +2275,9 @@ func (p *ListVirtualMachinesParams) toURLValues() url.Values {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("isrecursive", vv)
 	}
+	if v, found := p.p["keypair"]; found {
+		u.Set("keypair", v.(string))
+	}
 	if v, found := p.p["keyword"]; found {
 		u.Set("keyword", v.(string))
 	}
@@ -2274,6 +2330,9 @@ func (p *ListVirtualMachinesParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["templateid"]; found {
 		u.Set("templateid", v.(string))
+	}
+	if v, found := p.p["userid"]; found {
+		u.Set("userid", v.(string))
 	}
 	if v, found := p.p["vpcid"]; found {
 		u.Set("vpcid", v.(string))
@@ -2388,6 +2447,14 @@ func (p *ListVirtualMachinesParams) SetIsrecursive(v bool) {
 	return
 }
 
+func (p *ListVirtualMachinesParams) SetKeypair(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["keypair"] = v
+	return
+}
+
 func (p *ListVirtualMachinesParams) SetKeyword(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -2492,6 +2559,14 @@ func (p *ListVirtualMachinesParams) SetTemplateid(v string) {
 	return
 }
 
+func (p *ListVirtualMachinesParams) SetUserid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["userid"] = v
+	return
+}
+
 func (p *ListVirtualMachinesParams) SetVpcid(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -2517,25 +2592,21 @@ func (s *VirtualMachineService) NewListVirtualMachinesParams() *ListVirtualMachi
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VirtualMachineService) GetVirtualMachineID(name string) (string, error) {
+func (s *VirtualMachineService) GetVirtualMachineID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListVirtualMachinesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListVirtualMachines(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVirtualMachines(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -2557,13 +2628,13 @@ func (s *VirtualMachineService) GetVirtualMachineID(name string) (string, error)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VirtualMachineService) GetVirtualMachineByName(name string) (*VirtualMachine, int, error) {
-	id, err := s.GetVirtualMachineID(name)
+func (s *VirtualMachineService) GetVirtualMachineByName(name string, opts ...OptionFunc) (*VirtualMachine, int, error) {
+	id, err := s.GetVirtualMachineID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetVirtualMachineByID(id)
+	r, count, err := s.GetVirtualMachineByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -2571,11 +2642,17 @@ func (s *VirtualMachineService) GetVirtualMachineByName(name string) (*VirtualMa
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VirtualMachineService) GetVirtualMachineByID(id string) (*VirtualMachine, int, error) {
+func (s *VirtualMachineService) GetVirtualMachineByID(id string, opts ...OptionFunc) (*VirtualMachine, int, error) {
 	p := &ListVirtualMachinesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListVirtualMachines(p)
 	if err != nil {
@@ -2585,21 +2662,6 @@ func (s *VirtualMachineService) GetVirtualMachineByID(id string) (*VirtualMachin
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVirtualMachines(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -2640,6 +2702,8 @@ type VirtualMachine struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -2776,6 +2840,8 @@ type VirtualMachine struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -2796,6 +2862,8 @@ type VirtualMachine struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -2938,6 +3006,8 @@ type RestoreVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -3074,6 +3144,8 @@ type RestoreVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -3094,6 +3166,8 @@ type RestoreVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -3182,6 +3256,8 @@ type ChangeServiceForVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -3318,6 +3394,8 @@ type ChangeServiceForVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -3338,6 +3416,8 @@ type ChangeServiceForVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -3541,6 +3621,8 @@ type AssignVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -3677,6 +3759,8 @@ type AssignVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -3697,6 +3781,8 @@ type AssignVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -3800,6 +3886,8 @@ type MigrateVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -3936,6 +4024,8 @@ type MigrateVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -3956,6 +4046,8 @@ type MigrateVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -4065,6 +4157,8 @@ type MigrateVirtualMachineWithVolumeResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -4201,6 +4295,8 @@ type MigrateVirtualMachineWithVolumeResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -4221,6 +4317,8 @@ type MigrateVirtualMachineWithVolumeResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -4281,6 +4379,8 @@ type RecoverVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -4417,6 +4517,8 @@ type RecoverVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -4437,6 +4539,8 @@ type RecoverVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -4663,6 +4767,8 @@ type AddNicToVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -4799,6 +4905,8 @@ type AddNicToVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -4819,6 +4927,8 @@ type AddNicToVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -4912,6 +5022,8 @@ type RemoveNicFromVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -5048,6 +5160,8 @@ type RemoveNicFromVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -5068,6 +5182,8 @@ type RemoveNicFromVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`
@@ -5161,6 +5277,8 @@ type UpdateDefaultNicForVirtualMachineResponse struct {
 		Domainid          string   `json:"domainid,omitempty"`
 		Id                string   `json:"id,omitempty"`
 		Name              string   `json:"name,omitempty"`
+		Project           string   `json:"project,omitempty"`
+		Projectid         string   `json:"projectid,omitempty"`
 		Type              string   `json:"type,omitempty"`
 		VirtualmachineIds []string `json:"virtualmachineIds,omitempty"`
 	} `json:"affinitygroup,omitempty"`
@@ -5297,6 +5415,8 @@ type UpdateDefaultNicForVirtualMachineResponse struct {
 			Resourcetype string `json:"resourcetype,omitempty"`
 			Value        string `json:"value,omitempty"`
 		} `json:"tags,omitempty"`
+		Virtualmachinecount int      `json:"virtualmachinecount,omitempty"`
+		Virtualmachineids   []string `json:"virtualmachineids,omitempty"`
 	} `json:"securitygroup,omitempty"`
 	Serviceofferingid   string `json:"serviceofferingid,omitempty"`
 	Serviceofferingname string `json:"serviceofferingname,omitempty"`
@@ -5317,6 +5437,8 @@ type UpdateDefaultNicForVirtualMachineResponse struct {
 	Templatedisplaytext string `json:"templatedisplaytext,omitempty"`
 	Templateid          string `json:"templateid,omitempty"`
 	Templatename        string `json:"templatename,omitempty"`
+	Userid              string `json:"userid,omitempty"`
+	Username            string `json:"username,omitempty"`
 	Vgpu                string `json:"vgpu,omitempty"`
 	Zoneid              string `json:"zoneid,omitempty"`
 	Zonename            string `json:"zonename,omitempty"`

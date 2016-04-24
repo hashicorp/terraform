@@ -32,7 +32,7 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 
 		log.Printf(
 			"[TRACE] Graph after step %T:\n\n%s",
-			step, g.String())
+			step, g.StringWithNodeTypes())
 	}
 
 	// Validate the graph structure
@@ -136,9 +136,6 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 
 		// Make sure all the connections that are proxies are connected through
 		&ProxyTransformer{},
-
-		// Make sure we have a single root
-		&RootTransformer{},
 	}
 
 	// If we're on the root path, then we do a bunch of other stuff.
@@ -149,15 +146,16 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			// their dependencies.
 			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
 
-			// Prune the providers and provisioners. This must happen
-			// only once because flattened modules might depend on empty
-			// providers.
+			// Prune the providers. This must happen only once because flattened
+			// modules might depend on empty providers.
 			&PruneProviderTransformer{},
-			&PruneProvisionerTransformer{},
 
 			// Create the destruction nodes
 			&DestroyTransformer{FullDestroy: b.Destroy},
-			&CreateBeforeDestroyTransformer{},
+			b.conditional(&conditionalOpts{
+				If:   func() bool { return !b.Destroy },
+				Then: &CreateBeforeDestroyTransformer{},
+			}),
 			b.conditional(&conditionalOpts{
 				If:   func() bool { return !b.Verbose },
 				Then: &PruneDestroyTransformer{Diff: b.Diff, State: b.State},
@@ -170,16 +168,14 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			&CloseProviderTransformer{},
 			&CloseProvisionerTransformer{},
 
-			// Make sure we have a single root after the above changes.
-			// This is the 2nd root transformer. In practice this shouldn't
-			// actually matter as the RootTransformer is idempotent.
-			&RootTransformer{},
-
 			// Perform the transitive reduction to make our graph a bit
 			// more sane if possible (it usually is possible).
 			&TransitiveReductionTransformer{},
 		)
 	}
+
+	// Make sure we have a single root
+	steps = append(steps, &RootTransformer{})
 
 	// Remove nils
 	for i, s := range steps {

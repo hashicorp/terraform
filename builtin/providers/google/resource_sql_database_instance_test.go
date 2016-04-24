@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -20,7 +21,7 @@ import (
 
 func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
-	databaseID := genRandInt()
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -64,7 +65,7 @@ func TestAccGoogleSqlDatabaseInstance_basic2(t *testing.T) {
 
 func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
-	databaseID := genRandInt()
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -87,7 +88,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 
 func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
-	databaseID := genRandInt()
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -120,7 +121,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 
 func TestAccGoogleSqlDatabaseInstance_settings_downgrade(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
-	databaseID := genRandInt()
+	databaseID := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

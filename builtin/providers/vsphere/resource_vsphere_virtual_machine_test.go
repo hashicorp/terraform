@@ -75,6 +75,69 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_diskInitType(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	gateway := os.Getenv("VSPHERE_NETWORK_GATEWAY")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL")
+	ip_address := os.Getenv("VSPHERE_NETWORK_IP_ADDRESS")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVSphereVirtualMachineConfig_initType,
+					locationOpt,
+					gateway,
+					label,
+					ip_address,
+					datastoreOpt,
+					template,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.thin", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "name", "terraform-test"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.#", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.0.type", "thin"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "disk.1.type", "eager_zeroed"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.thin", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
 func TestAccVSphereVirtualMachine_dhcp(t *testing.T) {
 	var vm virtualMachine
 	var locationOpt string
@@ -325,6 +388,71 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
+	cdromDatastore := os.Getenv("VSPHERE_CDROM_DATASTORE")
+	cdromPath := os.Getenv("VSPHERE_CDROM_PATH")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVsphereVirtualMachineConfig_cdrom,
+					locationOpt,
+					label,
+					datastoreOpt,
+					template,
+					cdromDatastore,
+					cdromPath,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.with_cdrom", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "name", "terraform-test-with-cdrom"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "cdrom.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "cdrom.0.datastore", cdromDatastore),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "cdrom.0.path", cdromPath),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
@@ -356,9 +484,9 @@ func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 			}
 		}
 
-		_, err = object.NewSearchIndex(client.Client).FindChild(context.TODO(), folder, rs.Primary.Attributes["name"])
+		v, err := object.NewSearchIndex(client.Client).FindChild(context.TODO(), folder, rs.Primary.Attributes["name"])
 
-		if err == nil {
+		if v != nil {
 			return fmt.Errorf("Record still exists")
 		}
 	}
@@ -521,6 +649,30 @@ resource "vsphere_virtual_machine" "foo" {
     }
 }
 `
+const testAccCheckVSphereVirtualMachineConfig_initType = `
+resource "vsphere_virtual_machine" "thin" {
+    name = "terraform-test"
+%s
+    vcpu = 2
+    memory = 4096
+    gateway = "%s"
+    network_interface {
+        label = "%s"
+        ipv4_address = "%s"
+        ipv4_prefix_length = 24
+    }
+    disk {
+%s
+        template = "%s"
+        iops = 500
+        type = "thin"
+    }
+    disk {
+        size = 1
+        iops = 500
+    }
+}
+`
 const testAccCheckVSphereVirtualMachineConfig_dhcp = `
 resource "vsphere_virtual_machine" "bar" {
     name = "terraform-test"
@@ -577,7 +729,7 @@ resource "vsphere_virtual_machine" "folder" {
 
 const testAccCheckVSphereVirtualMachineConfig_createWithFolder = `
 resource "vsphere_folder" "with_folder" {
-	path = "%s"	
+	path = "%s"
 %s
 }
 resource "vsphere_virtual_machine" "with_folder" {
@@ -592,6 +744,27 @@ resource "vsphere_virtual_machine" "with_folder" {
     disk {
 %s
         template = "%s"
+    }
+}
+`
+
+const testAccCheckVsphereVirtualMachineConfig_cdrom = `
+resource "vsphere_virtual_machine" "with_cdrom" {
+    name = "terraform-test-with-cdrom"
+%s
+    vcpu = 2
+    memory = 4096
+    network_interface {
+        label = "%s"
+    }
+    disk {
+%s
+        template = "%s"
+    }
+
+    cdrom {
+        datastore = "%s"
+        path = "%s"
     }
 }
 `

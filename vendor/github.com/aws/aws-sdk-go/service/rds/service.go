@@ -18,23 +18,41 @@ import (
 // up developers to focus on what makes their applications and businesses unique.
 //
 //  Amazon RDS gives you access to the capabilities of a MySQL, MariaDB, PostgreSQL,
-// Microsoft SQL Server, Oracle, or Aurora database server. This means the code,
-// applications, and tools you already use today with your existing databases
-// work with Amazon RDS without modification. Amazon RDS automatically backs
-// up your database and maintains the database software that powers your DB
-// instance. Amazon RDS is flexible: you can scale your database instance's
-// compute resources and storage capacity to meet your application's demand.
-// As with all Amazon Web Services, there are no up-front investments, and you
-// pay only for the resources you use.
+// Microsoft SQL Server, Oracle, or Amazon Aurora database server. These capabilities
+// mean that the code, applications, and tools you already use today with your
+// existing databases work with Amazon RDS without modification. Amazon RDS
+// automatically backs up your database and maintains the database software
+// that powers your DB instance. Amazon RDS is flexible: you can scale your
+// database instance's compute resources and storage capacity to meet your application's
+// demand. As with all Amazon Web Services, there are no up-front investments,
+// and you pay only for the resources you use.
 //
-//  This is an interface reference for Amazon RDS. It contains documentation
-// for a programming or command line interface you can use to manage Amazon
-// RDS. Note that Amazon RDS is asynchronous, which means that some interfaces
-// might require techniques such as polling or callback functions to determine
-// when a command has been applied. In this reference, the parameter descriptions
-// indicate whether a command is applied immediately, on the next instance reboot,
-// or during the maintenance window. For a summary of the Amazon RDS interfaces,
-// go to Available RDS Interfaces (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Interfaces).
+//  This interface reference for Amazon RDS contains documentation for a programming
+// or command line interface you can use to manage Amazon RDS. Note that Amazon
+// RDS is asynchronous, which means that some interfaces might require techniques
+// such as polling or callback functions to determine when a command has been
+// applied. In this reference, the parameter descriptions indicate whether a
+// command is applied immediately, on the next instance reboot, or during the
+// maintenance window. The reference structure is as follows, and we list following
+// some related topics from the user guide.
+//
+// Amazon RDS API Reference
+//
+//  For the alphabetical list of API actions, see API Actions (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Operations.html).
+//
+// For the alphabetical list of data types, see Data Types (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Types.html).
+//
+// For a list of common query parameters, see Common Parameters (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonParameters.html).
+//
+// For descriptions of the error codes, see Common Errors (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonErrors.html).
+//
+//  Amazon RDS User Guide
+//
+//  For a summary of the Amazon RDS interfaces, see Available RDS Interfaces
+// (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Interfaces).
+//
+// For more information about how to use the Query API, see Using the Query
+// API (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Using_the_Query_API.html).
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type RDS struct {
@@ -82,10 +100,10 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 
 	// Handlers
 	svc.Handlers.Sign.PushBack(v4.Sign)
-	svc.Handlers.Build.PushBack(query.Build)
-	svc.Handlers.Unmarshal.PushBack(query.Unmarshal)
-	svc.Handlers.UnmarshalMeta.PushBack(query.UnmarshalMeta)
-	svc.Handlers.UnmarshalError.PushBack(query.UnmarshalError)
+	svc.Handlers.Build.PushBackNamed(query.BuildHandler)
+	svc.Handlers.Unmarshal.PushBackNamed(query.UnmarshalHandler)
+	svc.Handlers.UnmarshalMeta.PushBackNamed(query.UnmarshalMetaHandler)
+	svc.Handlers.UnmarshalError.PushBackNamed(query.UnmarshalErrorHandler)
 
 	// Run custom client initialization if present
 	if initClient != nil {

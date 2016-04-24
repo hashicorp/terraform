@@ -30,6 +30,11 @@ type validator struct {
 	errors []string
 }
 
+// There's no validation to be done on the contents of []byte values. Prepare
+// to check validateAny arguments against that type so we can quickly skip
+// them.
+var byteSliceType = reflect.TypeOf([]byte(nil))
+
 // validateAny will validate any struct, slice or map type. All validations
 // are also performed recursively for nested types.
 func (v *validator) validateAny(value reflect.Value, path string) {
@@ -42,6 +47,10 @@ func (v *validator) validateAny(value reflect.Value, path string) {
 	case reflect.Struct:
 		v.validateStruct(value, path)
 	case reflect.Slice:
+		if value.Type() == byteSliceType {
+			// We don't need to validate the contents of []byte.
+			return
+		}
 		for i := 0; i < value.Len(); i++ {
 			v.validateAny(value.Index(i), path+fmt.Sprintf("[%d]", i))
 		}

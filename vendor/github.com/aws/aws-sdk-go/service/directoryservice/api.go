@@ -171,7 +171,7 @@ func (c *DirectoryService) CreateSnapshotRequest(input *CreateSnapshotInput) (re
 	return
 }
 
-// Creates a snapshot of a Simple AD directory.
+// Creates a snapshot of a Simple AD or Microsoft AD directory in the AWS cloud.
 //
 //  You cannot take snapshots of AD Connector directories.
 func (c *DirectoryService) CreateSnapshot(input *CreateSnapshotInput) (*CreateSnapshotOutput, error) {
@@ -296,6 +296,33 @@ func (c *DirectoryService) DeleteTrust(input *DeleteTrustInput) (*DeleteTrustOut
 	return out, err
 }
 
+const opDeregisterEventTopic = "DeregisterEventTopic"
+
+// DeregisterEventTopicRequest generates a request for the DeregisterEventTopic operation.
+func (c *DirectoryService) DeregisterEventTopicRequest(input *DeregisterEventTopicInput) (req *request.Request, output *DeregisterEventTopicOutput) {
+	op := &request.Operation{
+		Name:       opDeregisterEventTopic,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeregisterEventTopicInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeregisterEventTopicOutput{}
+	req.Data = output
+	return
+}
+
+// Removes the specified directory as a publisher to the specified SNS topic.
+func (c *DirectoryService) DeregisterEventTopic(input *DeregisterEventTopicInput) (*DeregisterEventTopicOutput, error) {
+	req, out := c.DeregisterEventTopicRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeDirectories = "DescribeDirectories"
 
 // DescribeDirectoriesRequest generates a request for the DescribeDirectories operation.
@@ -330,6 +357,37 @@ func (c *DirectoryService) DescribeDirectoriesRequest(input *DescribeDirectories
 // You can also specify a maximum number of return results with the Limit parameter.
 func (c *DirectoryService) DescribeDirectories(input *DescribeDirectoriesInput) (*DescribeDirectoriesOutput, error) {
 	req, out := c.DescribeDirectoriesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeEventTopics = "DescribeEventTopics"
+
+// DescribeEventTopicsRequest generates a request for the DescribeEventTopics operation.
+func (c *DirectoryService) DescribeEventTopicsRequest(input *DescribeEventTopicsInput) (req *request.Request, output *DescribeEventTopicsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEventTopics,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEventTopicsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeEventTopicsOutput{}
+	req.Data = output
+	return
+}
+
+// Obtains information about which SNS topics receive status messages from the
+// specified directory.
+//
+// If no input parameters are provided, such as DirectoryId or TopicName, this
+// request describes all of the associations in the account.
+func (c *DirectoryService) DescribeEventTopics(input *DescribeEventTopicsInput) (*DescribeEventTopicsOutput, error) {
+	req, out := c.DescribeEventTopicsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -558,6 +616,38 @@ func (c *DirectoryService) GetSnapshotLimitsRequest(input *GetSnapshotLimitsInpu
 // Obtains the manual snapshot limits for a directory.
 func (c *DirectoryService) GetSnapshotLimits(input *GetSnapshotLimitsInput) (*GetSnapshotLimitsOutput, error) {
 	req, out := c.GetSnapshotLimitsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opRegisterEventTopic = "RegisterEventTopic"
+
+// RegisterEventTopicRequest generates a request for the RegisterEventTopic operation.
+func (c *DirectoryService) RegisterEventTopicRequest(input *RegisterEventTopicInput) (req *request.Request, output *RegisterEventTopicOutput) {
+	op := &request.Operation{
+		Name:       opRegisterEventTopic,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RegisterEventTopicInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RegisterEventTopicOutput{}
+	req.Data = output
+	return
+}
+
+// Associates a directory with an SNS topic. This establishes the directory
+// as a publisher to the specified SNS topic. You can then receive email or
+// text (SMS) messages when the status of your directory changes. You get notified
+// if your directory goes from an Active status to an Impaired or Inoperable
+// status. You also receive a notification when the directory returns to an
+// Active status.
+func (c *DirectoryService) RegisterEventTopic(input *RegisterEventTopicInput) (*RegisterEventTopicOutput, error) {
+	req, out := c.RegisterEventTopicRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -960,7 +1050,7 @@ func (s CreateMicrosoftADOutput) GoString() string {
 type CreateSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier of the directory to take a snapshot of.
+	// The identifier of the directory of which to take a snapshot.
 	DirectoryId *string `type:"string" required:"true"`
 
 	// The descriptive name to apply to the snapshot.
@@ -1160,6 +1250,42 @@ func (s DeleteTrustOutput) GoString() string {
 	return s.String()
 }
 
+// Removes the specified directory as a publisher to the specified SNS topic.
+type DeregisterEventTopicInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Directory ID to remove as a publisher. This directory will no longer
+	// send messages to the specified SNS topic.
+	DirectoryId *string `type:"string" required:"true"`
+
+	// The name of the SNS topic from which to remove the directory as a publisher.
+	TopicName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeregisterEventTopicInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeregisterEventTopicInput) GoString() string {
+	return s.String()
+}
+
+type DeregisterEventTopicOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeregisterEventTopicOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeregisterEventTopicOutput) GoString() string {
+	return s.String()
+}
+
 // Contains the inputs for the DescribeDirectories operation.
 type DescribeDirectoriesInput struct {
 	_ struct{} `type:"structure"`
@@ -1215,6 +1341,48 @@ func (s DescribeDirectoriesOutput) String() string {
 
 // GoString returns the string representation
 func (s DescribeDirectoriesOutput) GoString() string {
+	return s.String()
+}
+
+type DescribeEventTopicsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Directory ID for which to get the list of associated SNS topics. If this
+	// member is null, associations for all Directory IDs are returned.
+	DirectoryId *string `type:"string"`
+
+	// A list of SNS topic names for which to obtain the information. If this member
+	// is null, all associations for the specified Directory ID are returned.
+	//
+	// An empty list results in an InvalidParameterException being thrown.
+	TopicNames []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeEventTopicsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEventTopicsInput) GoString() string {
+	return s.String()
+}
+
+type DescribeEventTopicsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of SNS topic names that receive status messages from the specified
+	// Directory ID.
+	EventTopics []*EventTopic `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeEventTopicsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEventTopicsOutput) GoString() string {
 	return s.String()
 }
 
@@ -1746,6 +1914,37 @@ func (s EnableSsoOutput) GoString() string {
 	return s.String()
 }
 
+// Information about SNS topic and AWS Directory Service directory associations.
+type EventTopic struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time of when you associated your directory with the SNS topic.
+	CreatedDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The Directory ID of an AWS Directory Service directory that will publish
+	// status messages to an SNS topic.
+	DirectoryId *string `type:"string"`
+
+	// The topic registration status.
+	Status *string `type:"string" enum:"TopicStatus"`
+
+	// The SNS topic ARN (Amazon Resource Name).
+	TopicArn *string `type:"string"`
+
+	// The name of an AWS SNS topic the receives status messages from the directory.
+	TopicName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s EventTopic) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EventTopic) GoString() string {
+	return s.String()
+}
+
 // Contains the inputs for the GetDirectoryLimits operation.
 type GetDirectoryLimitsInput struct {
 	_ struct{} `type:"structure"`
@@ -1859,6 +2058,41 @@ func (s RadiusSettings) String() string {
 
 // GoString returns the string representation
 func (s RadiusSettings) GoString() string {
+	return s.String()
+}
+
+type RegisterEventTopicInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Directory ID that will publish status messages to the SNS topic.
+	DirectoryId *string `type:"string" required:"true"`
+
+	// The SNS topic name to which the directory will publish status messages. This
+	// SNS topic must be in the same region as the specified Directory ID.
+	TopicName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RegisterEventTopicInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegisterEventTopicInput) GoString() string {
+	return s.String()
+}
+
+type RegisterEventTopicOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s RegisterEventTopicOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegisterEventTopicOutput) GoString() string {
 	return s.String()
 }
 
@@ -2143,6 +2377,17 @@ const (
 	SnapshotTypeAuto = "Auto"
 	// @enum SnapshotType
 	SnapshotTypeManual = "Manual"
+)
+
+const (
+	// @enum TopicStatus
+	TopicStatusRegistered = "Registered"
+	// @enum TopicStatus
+	TopicStatusTopicnotfound = "Topic not found"
+	// @enum TopicStatus
+	TopicStatusFailed = "Failed"
+	// @enum TopicStatus
+	TopicStatusDeleted = "Deleted"
 )
 
 const (

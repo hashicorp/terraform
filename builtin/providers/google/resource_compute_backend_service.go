@@ -20,10 +20,36 @@ func resourceComputeBackendService() *schema.Resource {
 		Delete: resourceComputeBackendServiceDelete,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					re := `^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$`
+					if !regexp.MustCompile(re).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q (%q) doesn't match regexp %q", k, value, re))
+					}
+					return
+				},
+			},
+
+			"health_checks": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Required: true,
+				Set:      schema.HashString,
+			},
+
 			"backend": &schema.Schema{
 				Type: schema.TypeSet,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"balancing_mode": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -35,10 +61,6 @@ func resourceComputeBackendService() *schema.Resource {
 							Default:  1,
 						},
 						"description": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"group": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -66,32 +88,9 @@ func resourceComputeBackendService() *schema.Resource {
 				Optional: true,
 			},
 
-			"region": &schema.Schema{
+			"fingerprint": &schema.Schema{
 				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-			},
-
-			"health_checks": &schema.Schema{
-				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
-				Set:      schema.HashString,
-			},
-
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					re := `^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$`
-					if !regexp.MustCompile(re).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q (%q) doesn't match regexp %q", k, value, re))
-					}
-					return
-				},
+				Computed: true,
 			},
 
 			"port_name": &schema.Schema{
@@ -100,25 +99,32 @@ func resourceComputeBackendService() *schema.Resource {
 				Computed: true,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"protocol": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"timeout_sec": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-			},
-
-			"fingerprint": &schema.Schema{
+			"region": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"timeout_sec": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
 				Computed: true,
 			},
 		},
@@ -159,9 +165,14 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		service.TimeoutSec = int64(v.(int))
 	}
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] Creating new Backend Service: %#v", service)
 	op, err := config.clientCompute.BackendServices.Insert(
-		config.Project, &service).Do()
+		project, &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating backend service: %s", err)
 	}
@@ -181,8 +192,13 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	service, err := config.clientCompute.BackendServices.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
@@ -210,6 +226,11 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 
 func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	hc := d.Get("health_checks").(*schema.Set).List()
 	healthChecks := make([]string, 0, len(hc))
@@ -241,7 +262,7 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)
 	op, err := config.clientCompute.BackendServices.Update(
-		config.Project, d.Id(), &service).Do()
+		project, d.Id(), &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating backend service: %s", err)
 	}
@@ -259,9 +280,14 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 func resourceComputeBackendServiceDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] Deleting backend service %s", d.Id())
 	op, err := config.clientCompute.BackendServices.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting backend service: %s", err)
 	}
@@ -300,7 +326,7 @@ func expandBackends(configured []interface{}) []*compute.Backend {
 		if v, ok := data["max_rate_per_instance"]; ok {
 			b.MaxRatePerInstance = v.(float64)
 		}
-		if v, ok := data["max_rate_per_instance"]; ok {
+		if v, ok := data["max_utilization"]; ok {
 			b.MaxUtilization = v.(float64)
 		}
 

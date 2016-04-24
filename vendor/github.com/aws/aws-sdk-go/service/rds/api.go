@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
 const opAddSourceIdentifierToSubscription = "AddSourceIdentifierToSubscription"
@@ -52,6 +54,8 @@ func (c *RDS) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &AddTagsToResourceOutput{}
 	req.Data = output
 	return
@@ -127,8 +131,9 @@ func (c *RDS) AuthorizeDBSecurityGroupIngressRequest(input *AuthorizeDBSecurityG
 //
 //  You cannot authorize ingress from an EC2 security group in one region to
 // an Amazon RDS DB instance in another. You cannot authorize ingress from a
-// VPC security group in one VPC to an Amazon RDS DB instance in another.  For
-// an overview of CIDR ranges, go to the Wikipedia Tutorial (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+// VPC security group in one VPC to an Amazon RDS DB instance in another.
+//
+//  For an overview of CIDR ranges, go to the Wikipedia Tutorial (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
 func (c *RDS) AuthorizeDBSecurityGroupIngress(input *AuthorizeDBSecurityGroupIngressInput) (*AuthorizeDBSecurityGroupIngressOutput, error) {
 	req, out := c.AuthorizeDBSecurityGroupIngressRequest(input)
 	err := req.Send()
@@ -211,7 +216,7 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 	return
 }
 
-// Copies the specified DBSnapshot. The source DB snapshot must be in the "available"
+// Copies the specified DB snapshot. The source DB snapshot must be in the "available"
 // state.
 //
 // If you are copying from a shared manual DB snapshot, the SourceDBSnapshotIdentifier
@@ -674,6 +679,8 @@ func (c *RDS) DeleteDBClusterParameterGroupRequest(input *DeleteDBClusterParamet
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBClusterParameterGroupOutput{}
 	req.Data = output
 	return
@@ -777,6 +784,8 @@ func (c *RDS) DeleteDBParameterGroupRequest(input *DeleteDBParameterGroupInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBParameterGroupOutput{}
 	req.Data = output
 	return
@@ -805,6 +814,8 @@ func (c *RDS) DeleteDBSecurityGroupRequest(input *DeleteDBSecurityGroupInput) (r
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBSecurityGroupOutput{}
 	req.Data = output
 	return
@@ -864,6 +875,8 @@ func (c *RDS) DeleteDBSubnetGroupRequest(input *DeleteDBSubnetGroupInput) (req *
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteDBSubnetGroupOutput{}
 	req.Data = output
 	return
@@ -920,6 +933,8 @@ func (c *RDS) DeleteOptionGroupRequest(input *DeleteOptionGroupInput) (req *requ
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &DeleteOptionGroupOutput{}
 	req.Data = output
 	return
@@ -2203,7 +2218,7 @@ func (c *RDS) ModifyDBSnapshotAttributeRequest(input *ModifyDBSnapshotAttributeI
 //
 // To share a manual DB snapshot with other AWS accounts, specify restore as
 // the AttributeName and use the ValuesToAdd parameter to add a list of the
-// AWS account ids that are authorized to retore the manual DB snapshot. Uses
+// AWS account ids that are authorized to restore the manual DB snapshot. Uses
 // the value all to make the manual DB snapshot public and can by copied or
 // restored by all AWS accounts. Do not add the all value for any manual DB
 // snapshots that contain private information that you do not want to be available
@@ -2454,6 +2469,8 @@ func (c *RDS) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 	}
 
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
 	output = &RemoveTagsFromResourceOutput{}
 	req.Data = output
 	return
@@ -2629,9 +2646,8 @@ func (c *RDS) RestoreDBInstanceFromDBSnapshotRequest(input *RestoreDBInstanceFro
 }
 
 // Creates a new DB instance from a DB snapshot. The target database is created
-// from the source database restore point with the most of original configuration,
-// but in a system chosen availability zone with the default security group,
-// the default subnet group, and the default DB parameter group. By default,
+// from the source database restore point with the most of original configuration
+// with the default security group and the default DB parameter group. By default,
 // the new DB instance is created as a single-AZ deployment except when the
 // instance is a SQL Server instance that has an option group that is associated
 // with mirroring; in this case, the instance becomes a mirrored AZ deployment
@@ -2674,10 +2690,13 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 	return
 }
 
-// Restores a DB instance to an arbitrary point-in-time. Users can restore to
-// any point in time before the LatestRestorableTime for up to BackupRetentionPeriod
-// days. The target database is created with the most of original configuration,
-// but in a system chosen availability zone with the default security group,
+// Restores a DB instance to an arbitrary point in time. You can restore to
+// any point in time before the time identified by the LatestRestorableTime
+// property. You can restore to a point up to the number of days specified by
+// the BackupRetentionPeriod property.
+//
+//  The target database is created with most of the original configuration,
+// but in a system-selected availability zone, with the default security group,
 // the default subnet group, and the default DB parameter group. By default,
 // the new DB instance is created as a single-AZ deployment except when the
 // instance is a SQL Server instance that has an option group that is associated
@@ -2833,6 +2852,8 @@ type ApplyPendingMaintenanceActionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The pending maintenance action to apply to this resource.
+	//
+	// Valid values: system-update, db-upgrade
 	ApplyAction *string `type:"string" required:"true"`
 
 	// A value that specifies the type of opt-in request, or undoes an opt-in request.
@@ -3134,6 +3155,23 @@ type CopyDBSnapshotInput struct {
 	// otherwise false. The default is false.
 	CopyTags *bool `type:"boolean"`
 
+	// The AWS Key Management Service (AWS KMS) key identifier for an encrypted
+	// DB snapshot. The KMS key identifier is the Amazon Resource Name (ARN) or
+	// the KMS key alias for the KMS encryption key.
+	//
+	// If you copy an unencrypted DB snapshot and specify a value for the KmsKeyId
+	// parameter, Amazon RDS encrypts the target DB snapshot using the specified
+	// KMS encryption key.
+	//
+	// If you copy an encrypted DB snapshot from your AWS account, you can specify
+	// a value for KmsKeyId to encrypt the copy with a new KMS encryption key. If
+	// you don't specify a value for KmsKeyId then the copy of the DB snapshot is
+	// encrypted with the same KMS key as the source DB snapshot.
+	//
+	// If you copy an encrypted DB snapshot that is shared from another AWS account,
+	// then you must specify a value for KmsKeyId.
+	KmsKeyId *string `type:"string"`
+
 	// The identifier for the source DB snapshot.
 	//
 	// If you are copying from a shared manual DB snapshot, this must be the ARN
@@ -3292,6 +3330,11 @@ type CreateDBClusterInput struct {
 	DBClusterParameterGroupName *string `type:"string"`
 
 	// A DB subnet group to associate with this DB cluster.
+	//
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
+	//
+	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
 	// The name for your database of up to 8 alpha-numeric characters. If you do
@@ -3705,6 +3748,13 @@ type CreateDBInstanceInput struct {
 	//  If there is no DB subnet group, then it is a non-VPC DB instance.
 	DBSubnetGroupName *string `type:"string"`
 
+	// Specify the Active Directory Domain to create the instance in.
+	Domain *string `type:"string"`
+
+	// Specify the name of the IAM role to be used when making API calls to the
+	// Directory Service.
+	DomainIAMRoleName *string `type:"string"`
+
 	// The name of the database engine to be used for this instance.
 	//
 	//  Valid Values: MySQL | mariadb | oracle-se1 | oracle-se | oracle-ee | sqlserver-ee
@@ -3727,7 +3777,7 @@ type CreateDBInstanceInput struct {
 	// ap-southeast-2, eu-west-1, sa-east-1, us-west-1, us-west-2):  5.5.40 | 5.5.40a
 	// Version 5.5 (Available in all regions):  5.5.40b | 5.5.41 | 5.5.42 Version
 	// 5.6 (Available in all regions):  5.6.19a | 5.6.19b | 5.6.21 | 5.6.21b | 5.6.22
-	// | 5.6.23  MariaDB
+	// | 5.6.23 | 5.6.27 Version 5.7 (Available in all regions):  5.7.10  MariaDB
 	//
 	//  Version 10.0 (Available in all regions except AWS GovCloud (US) Region
 	// (us-gov-west-1)):  10.0.17   Oracle Database Enterprise Edition (oracle-ee)
@@ -3786,7 +3836,10 @@ type CreateDBInstanceInput struct {
 	// The amount of Provisioned IOPS (input/output operations per second) to be
 	// initially allocated for the DB instance.
 	//
-	//  Constraints: To use PIOPS, this value must be an integer greater than 1000.
+	// Constraints: Must be a multiple between 3 and 10 of the storage amount for
+	// the DB instance. Must also be an integer multiple of 1000. For example, if
+	// the size of your DB instance is 500 GB, then your Iops value can be 2000,
+	// 3000, 4000, or 5000.
 	Iops *int64 `type:"integer"`
 
 	// The KMS key identifier for an encrypted DB instance.
@@ -3982,6 +4035,15 @@ type CreateDBInstanceInput struct {
 	// Constraints: Minimum 30-minute window.
 	PreferredMaintenanceWindow *string `type:"string"`
 
+	// A value that specifies the order in which an Aurora Replica is promoted to
+	// the primary instance after a failure of the existing primary instance. For
+	// more information, see  Fault Tolerance for an Aurora DB Cluster (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html#Aurora.Managing.FaultTolerance).
+	//
+	// Default: 1
+	//
+	// Valid Values: 0 - 15
+	PromotionTier *int64 `type:"integer"`
+
 	// Specifies the accessibility options for the DB instance. A value of true
 	// specifies an Internet-facing instance with a publicly resolvable DNS name,
 	// which resolves to a public IP address. A value of false specifies an internal
@@ -4106,7 +4168,11 @@ type CreateDBInstanceReadReplicaInput struct {
 	// region that are created from the same source DB instance must either: Specify
 	// DB subnet groups from the same VPC. All these Read Replicas will be created
 	// in the same VPC.Not specify a DB subnet group. All these Read Replicas will
-	// be created outside of any VPC.
+	// be created outside of any VPC.  Constraints: Must contain no more than 255
+	// alphanumeric characters, periods, underscores, spaces, or hyphens. Must not
+	// be default.
+	//
+	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be
@@ -4387,7 +4453,7 @@ type CreateDBSubnetGroupInput struct {
 	// The name for the DB subnet group. This value is stored as a lowercase string.
 	//
 	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
-	// underscores, or hyphens. Must not be default.
+	// underscores, spaces, or hyphens. Must not be default.
 	//
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string" required:"true"`
@@ -4606,9 +4672,9 @@ type DBCluster struct {
 	// same name is returned for the life of the DB cluster.
 	DatabaseName *string `type:"string"`
 
-	// If StorageEncrypted is true, the region-unique, immutable identifier for
-	// the encrypted DB cluster. This identifier is found in AWS CloudTrail log
-	// entries whenever the KMS key for the DB cluster is accessed.
+	// The region-unique, immutable identifier for the DB cluster. This identifier
+	// is found in AWS CloudTrail log entries whenever the KMS key for the DB cluster
+	// is accessed.
 	DbClusterResourceId *string `type:"string"`
 
 	// Specifies the earliest time to which a database can be restored with point-in-time
@@ -4686,6 +4752,11 @@ type DBClusterMember struct {
 	// Value that is true if the cluster member is the primary instance for the
 	// DB cluster and false otherwise.
 	IsClusterWriter *bool `type:"boolean"`
+
+	// A value that specifies the order in which an Aurora Replica is promoted to
+	// the primary instance after a failure of the existing primary instance. For
+	// more information, see  Fault Tolerance for an Aurora DB Cluster (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html#Aurora.Managing.FaultTolerance).
+	PromotionTier *int64 `type:"integer"`
 }
 
 // String returns the string representation
@@ -4968,10 +5039,13 @@ type DBInstance struct {
 	// part of a DB cluster, this can be a different port than the DB cluster port.
 	DbInstancePort *int64 `type:"integer"`
 
-	// If StorageEncrypted is true, the region-unique, immutable identifier for
-	// the encrypted DB instance. This identifier is found in AWS CloudTrail log
-	// entries whenever the KMS key for the DB instance is accessed.
+	// The region-unique, immutable identifier for the DB instance. This identifier
+	// is found in AWS CloudTrail log entries whenever the KMS key for the DB instance
+	// is accessed.
 	DbiResourceId *string `type:"string"`
+
+	// The Active Directory Domain membership records associated with the DB instance.
+	DomainMemberships []*DomainMembership `locationNameList:"DomainMembership" type:"list"`
 
 	// Specifies the connection endpoint.
 	Endpoint *Endpoint `type:"structure"`
@@ -5031,6 +5105,11 @@ type DBInstance struct {
 	// Specifies the weekly time range during which system maintenance can occur,
 	// in Universal Coordinated Time (UTC).
 	PreferredMaintenanceWindow *string `type:"string"`
+
+	// A value that specifies the order in which an Aurora Replica is promoted to
+	// the primary instance after a failure of the existing primary instance. For
+	// more information, see  Fault Tolerance for an Aurora DB Cluster (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html#Aurora.Managing.FaultTolerance).
+	PromotionTier *int64 `type:"integer"`
 
 	// Specifies the accessibility options for the DB instance. A value of true
 	// specifies an Internet-facing instance with a publicly resolvable DNS name,
@@ -5417,7 +5496,7 @@ type DBSubnetGroup struct {
 	// Provides the description of the DB subnet group.
 	DBSubnetGroupDescription *string `type:"string"`
 
-	// Specifies the name of the DB subnet group.
+	// The name of the DB subnet group.
 	DBSubnetGroupName *string `type:"string"`
 
 	// Provides the status of the DB subnet group.
@@ -5767,8 +5846,10 @@ type DeleteDBSubnetGroupInput struct {
 	//
 	// You cannot delete the default subnet group.  Constraints:
 	//
-	//  Must be 1 to 255 alphanumeric characters First character must be a letter
-	// Cannot end with a hyphen or contain two consecutive hyphens
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
+	//
+	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string" required:"true"`
 }
 
@@ -7605,6 +7686,35 @@ func (s DescribeReservedDBInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// An Active Directory Domain membership record associated with the DB instance.
+type DomainMembership struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the Active Directory Domain.
+	Domain *string `type:"string"`
+
+	// The fully qualified domain name of the Active Directory Domain.
+	FQDN *string `type:"string"`
+
+	// The name of the IAM role to be used when making API calls to the Directory
+	// Service.
+	IAMRoleName *string `type:"string"`
+
+	// The status of the DB instance's Active Directory Domain membership, such
+	// as joined, pending-join, failed etc).
+	Status *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DomainMembership) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DomainMembership) GoString() string {
+	return s.String()
+}
+
 type DownloadDBLogFilePortionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7631,7 +7741,8 @@ type DownloadDBLogFilePortionInput struct {
 	// If the NumberOfLines parameter is specified, then the block of lines returned
 	// can be from the beginning or the end of the log file, depending on the value
 	// of the Marker parameter. If neither Marker or NumberOfLines are specified,
-	// the entire log file is returned.
+	// the entire log file is returned up to a maximum of 10000 lines, starting
+	// with the most recent log entries first.
 	//
 	// If NumberOfLines is specified and Marker is not specified, then the most
 	// recent lines from the end of the log file are returned.
@@ -8002,10 +8113,16 @@ type ModifyDBClusterInput struct {
 
 	// A value that specifies whether the modifications in this request and any
 	// pending modifications are asynchronously applied as soon as possible, regardless
-	// of the PreferredMaintenanceWindow setting for the DB cluster.
+	// of the PreferredMaintenanceWindow setting for the DB cluster. If this parameter
+	// is set to false, changes to the DB cluster are applied during the next maintenance
+	// window.
 	//
-	// If this parameter is set to false, changes to the DB cluster are applied
-	// during the next maintenance window.
+	// The ApplyImmediately parameter only affects the NewDBClusterIdentifier and
+	// MasterUserPassword values. If you set the ApplyImmediately parameter value
+	// to false, then changes to the NewDBClusterIdentifier and MasterUserPassword
+	// values are applied during the next maintenance window. All other changes
+	// are applied immediately, regardless of the value of the ApplyImmediately
+	// parameter.
 	//
 	// Default: false
 	ApplyImmediately *bool `type:"boolean"`
@@ -8351,6 +8468,8 @@ type ModifyDBInstanceInput struct {
 	//
 	//  Valid Values: 1150-65535
 	//
+	// Type: Integer
+	//
 	//  Oracle
 	//
 	//  Default: 1521
@@ -8380,6 +8499,17 @@ type ModifyDBInstanceInput struct {
 	//  Must be 1 to 255 alphanumeric characters First character must be a letter
 	// Cannot end with a hyphen or contain two consecutive hyphens
 	DBSecurityGroups []*string `locationNameList:"DBSecurityGroupName" type:"list"`
+
+	// Specify the Active Directory Domain to move the instance to.
+	//
+	// The specified Active Directory Domain must be created prior to this operation.
+	// Currently only a SQL Server instance can be created in a Active Directory
+	// Domain.
+	Domain *string `type:"string"`
+
+	// Specify the name of the IAM role to be used when making API calls to the
+	// Directory Service.
+	DomainIAMRoleName *string `type:"string"`
 
 	// The version number of the database engine to upgrade to. Changing this parameter
 	// results in an outage and the change is applied during the next maintenance
@@ -8531,9 +8661,20 @@ type ModifyDBInstanceInput struct {
 	// Constraints: Must be at least 30 minutes
 	PreferredMaintenanceWindow *string `type:"string"`
 
-	// True to make the DB instance Internet-facing with a publicly resolvable DNS
-	// name, which resolves to a public IP address. False to make the DB instance
-	// internal with a DNS name that resolves to a private IP address.
+	// A value that specifies the order in which an Aurora Replica is promoted to
+	// the primary instance after a failure of the existing primary instance. For
+	// more information, see  Fault Tolerance for an Aurora DB Cluster (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.Managing.html#Aurora.Managing.FaultTolerance).
+	//
+	// Default: 1
+	//
+	// Valid Values: 0 - 15
+	PromotionTier *int64 `type:"integer"`
+
+	// Boolean value that indicates if the DB instance has a publicly resolvable
+	// DNS name. Set to True to make the DB instance Internet-facing with a publicly
+	// resolvable DNS name, which resolves to a public IP address. Set to False
+	// to make the DB instance internal with a DNS name that resolves to a private
+	// IP address.
 	//
 	// PubliclyAccessible only applies to DB instances in a VPC. The DB instance
 	// must be part of a public subnet and PubliclyAccessible must be true in order
@@ -8708,8 +8849,8 @@ type ModifyDBSubnetGroupInput struct {
 
 	// The name for the DB subnet group. This value is stored as a lowercase string.
 	//
-	// Constraints: Must contain no more than 255 alphanumeric characters or hyphens.
-	// Must not be "Default".
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
 	//
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string" required:"true"`
@@ -8974,8 +9115,9 @@ type OptionGroupMembership struct {
 	// The name of the option group that the instance belongs to.
 	OptionGroupName *string `type:"string"`
 
-	// The status of the DB instance's option group membership (e.g. in-sync, pending,
-	// pending-maintenance, applying).
+	// The status of the DB instance's option group membership. Valid values are:
+	// in-sync, pending-apply, pending-removal, pending-maintenance-apply, pending-maintenance-removal,
+	// applying, removing, and failed.
 	Status *string `type:"string"`
 }
 
@@ -9818,6 +9960,11 @@ type RestoreDBClusterFromSnapshotInput struct {
 	DBClusterIdentifier *string `type:"string" required:"true"`
 
 	// The name of the DB subnet group to use for the new DB cluster.
+	//
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
+	//
+	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
 	// The database name for the restored DB cluster.
@@ -9920,6 +10067,11 @@ type RestoreDBClusterToPointInTimeInput struct {
 	DBClusterIdentifier *string `type:"string" required:"true"`
 
 	// The DB subnet group name to use for the new DB cluster.
+	//
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
+	//
+	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
 	// The KMS key identifier to use when restoring an encrypted DB cluster from
@@ -10076,7 +10228,19 @@ type RestoreDBInstanceFromDBSnapshotInput struct {
 	DBSnapshotIdentifier *string `type:"string" required:"true"`
 
 	// The DB subnet group name to use for the new instance.
+	//
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
+	//
+	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
+
+	// Specify the Active Directory Domain to restore the instance in.
+	Domain *string `type:"string"`
+
+	// Specify the name of the IAM role to be used when making API calls to the
+	// Directory Service.
+	DomainIAMRoleName *string `type:"string"`
 
 	// The database engine to use for the new instance.
 	//
@@ -10232,7 +10396,19 @@ type RestoreDBInstanceToPointInTimeInput struct {
 	DBName *string `type:"string"`
 
 	// The DB subnet group name to use for the new instance.
+	//
+	// Constraints: Must contain no more than 255 alphanumeric characters, periods,
+	// underscores, spaces, or hyphens. Must not be default.
+	//
+	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
+
+	// Specify the Active Directory Domain to restore the instance in.
+	Domain *string `type:"string"`
+
+	// Specify the name of the IAM role to be used when making API calls to the
+	// Directory Service.
+	DomainIAMRoleName *string `type:"string"`
 
 	// The database engine to use for the new instance.
 	//
@@ -10241,7 +10417,7 @@ type RestoreDBInstanceToPointInTimeInput struct {
 	// Constraint: Must be compatible with the engine of the source
 	//
 	//  Valid Values: MySQL | mariadb | oracle-se1 | oracle-se | oracle-ee | sqlserver-ee
-	// | sqlserver-se | sqlserver-ex | sqlserver-web | postgres| aurora
+	// | sqlserver-se | sqlserver-ex | sqlserver-web | postgres | aurora
 	Engine *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be

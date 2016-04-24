@@ -32,7 +32,6 @@ The following arguments are supported:
 string.
 * `database_name` - (Optional) The name of the first database to be created when the cluster is created.
  If you do not provide a name, Amazon Redshift will create a default database called `dev`.
-* `cluster_type` - (Required) The type of the cluster. Valid values are `multi-node` and `single-node`
 * `node_type` - (Required) The node type to be provisioned for the cluster.
 * `master_password` - (Required) Password for the master DB user. Note that this may
     show up in logs, and it will be stored in the state file
@@ -51,10 +50,10 @@ string.
                                  The version selected runs on all the nodes in the cluster.
 * `allow_version_upgrade` - (Optional) If true , major version upgrades can be applied during the maintenance window to the Amazon Redshift engine that is running on the cluster. Default is true
 * `number_of_nodes` - (Optional) The number of compute nodes in the cluster. This parameter is required when the ClusterType parameter is specified as multi-node. Default is 1.
-* `publicly_accessible` - (Optional) If true , the cluster can be accessed from a public network.
+* `publicly_accessible` - (Optional) If true, the cluster can be accessed from a public network. Default is `true`.
 * `encrypted` - (Optional) If true , the data in the cluster is encrypted at rest.
 * `elastic_ip` - (Optional) The Elastic IP (EIP) address for the cluster.
-* `skip_final_snapshot` - (Optional) Determines whether a final snapshot of the cluster is created before Amazon Redshift deletes the cluster. If true , a final cluster snapshot is not created. If false , a final cluster snapshot is created before the cluster is deleted. Default is false.
+* `skip_final_snapshot` - (Optional) Determines whether a final snapshot of the cluster is created before Amazon Redshift deletes the cluster. If true , a final cluster snapshot is not created. If false , a final cluster snapshot is created before the cluster is deleted. Default is true.
 * `final_snapshot_identifier` - (Optional) The identifier of the final snapshot that is to be created immediately before deleting the cluster. If this parameter is provided, `skip_final_snapshot` must be false.                                                                                                     
 
 ## Attributes Reference

@@ -29,6 +29,22 @@ type GraphNodeConfigResource struct {
 	Path []string
 }
 
+func (n *GraphNodeConfigResource) Copy() *GraphNodeConfigResource {
+	ncr := &GraphNodeConfigResource{
+		Resource:    n.Resource.Copy(),
+		DestroyMode: n.DestroyMode,
+		Targets:     make([]ResourceAddress, 0, len(n.Targets)),
+		Path:        make([]string, 0, len(n.Path)),
+	}
+	for _, t := range n.Targets {
+		ncr.Targets = append(ncr.Targets, *t.Copy())
+	}
+	for _, p := range n.Path {
+		ncr.Path = append(ncr.Path, p)
+	}
+	return ncr
+}
+
 func (n *GraphNodeConfigResource) ConfigType() GraphNodeConfigType {
 	return GraphNodeConfigTypeResource
 }
@@ -247,7 +263,7 @@ func (n *GraphNodeConfigResource) DestroyNode(mode GraphNodeDestroyMode) GraphNo
 	}
 
 	result := &graphNodeResourceDestroy{
-		GraphNodeConfigResource: *n,
+		GraphNodeConfigResource: *n.Copy(),
 		Original:                n,
 	}
 	result.DestroyMode = mode
@@ -264,6 +280,13 @@ func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
 	// If there is no diff, then we aren't a noop since something needs to
 	// be done (such as a plan). We only check if we're a noop in a diff.
 	if opts.Diff == nil || opts.Diff.Empty() {
+		return false
+	}
+
+	// If the count has any interpolations, we can't prune this node since
+	// we need to be sure to evaluate the count so that splat variables work
+	// later (which need to know the full count).
+	if len(n.Resource.RawCount.Interpolations) > 0 {
 		return false
 	}
 

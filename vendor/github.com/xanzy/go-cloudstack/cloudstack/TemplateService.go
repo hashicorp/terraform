@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,6 +69,9 @@ func (p *CreateTemplateParams) toURLValues() url.Values {
 	if v, found := p.p["passwordenabled"]; found {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("passwordenabled", vv)
+	}
+	if v, found := p.p["projectid"]; found {
+		u.Set("projectid", v.(string))
 	}
 	if v, found := p.p["requireshvm"]; found {
 		vv := strconv.FormatBool(v.(bool))
@@ -161,6 +164,14 @@ func (p *CreateTemplateParams) SetPasswordenabled(v bool) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["passwordenabled"] = v
+	return
+}
+
+func (p *CreateTemplateParams) SetProjectid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["projectid"] = v
 	return
 }
 
@@ -708,6 +719,10 @@ func (p *UpdateTemplateParams) toURLValues() url.Values {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("passwordenabled", vv)
 	}
+	if v, found := p.p["requireshvm"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("requireshvm", vv)
+	}
 	if v, found := p.p["sortkey"]; found {
 		vv := strconv.Itoa(v.(int))
 		u.Set("sortkey", vv)
@@ -792,6 +807,14 @@ func (p *UpdateTemplateParams) SetPasswordenabled(v bool) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["passwordenabled"] = v
+	return
+}
+
+func (p *UpdateTemplateParams) SetRequireshvm(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["requireshvm"] = v
 	return
 }
 
@@ -1291,7 +1314,7 @@ func (s *TemplateService) NewListTemplatesParams(templatefilter string) *ListTem
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *TemplateService) GetTemplateID(name string, templatefilter string, zoneid string) (string, error) {
+func (s *TemplateService) GetTemplateID(name string, templatefilter string, zoneid string, opts ...OptionFunc) (string, error) {
 	p := &ListTemplatesParams{}
 	p.p = make(map[string]interface{})
 
@@ -1299,19 +1322,15 @@ func (s *TemplateService) GetTemplateID(name string, templatefilter string, zone
 	p.p["templatefilter"] = templatefilter
 	p.p["zoneid"] = zoneid
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListTemplates(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListTemplates(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1333,13 +1352,13 @@ func (s *TemplateService) GetTemplateID(name string, templatefilter string, zone
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *TemplateService) GetTemplateByName(name string, templatefilter string, zoneid string) (*Template, int, error) {
-	id, err := s.GetTemplateID(name, templatefilter, zoneid)
+func (s *TemplateService) GetTemplateByName(name string, templatefilter string, zoneid string, opts ...OptionFunc) (*Template, int, error) {
+	id, err := s.GetTemplateID(name, templatefilter, zoneid, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetTemplateByID(id, templatefilter)
+	r, count, err := s.GetTemplateByID(id, templatefilter, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -1347,12 +1366,18 @@ func (s *TemplateService) GetTemplateByName(name string, templatefilter string, 
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *TemplateService) GetTemplateByID(id string, templatefilter string) (*Template, int, error) {
+func (s *TemplateService) GetTemplateByID(id string, templatefilter string, opts ...OptionFunc) (*Template, int, error) {
 	p := &ListTemplatesParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
 	p.p["templatefilter"] = templatefilter
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListTemplates(p)
 	if err != nil {
@@ -1362,21 +1387,6 @@ func (s *TemplateService) GetTemplateByID(id string, templatefilter string) (*Te
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListTemplates(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1613,12 +1623,18 @@ func (s *TemplateService) NewListTemplatePermissionsParams(id string) *ListTempl
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *TemplateService) GetTemplatePermissionByID(id string) (*TemplatePermission, int, error) {
+func (s *TemplateService) GetTemplatePermissionByID(id string, opts ...OptionFunc) (*TemplatePermission, int, error) {
 	p := &ListTemplatePermissionsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListTemplatePermissions(p)
 	if err != nil {
@@ -1794,6 +1810,9 @@ func (p *PrepareTemplateParams) toURLValues() url.Values {
 	if p.p == nil {
 		return u
 	}
+	if v, found := p.p["storageid"]; found {
+		u.Set("storageid", v.(string))
+	}
 	if v, found := p.p["templateid"]; found {
 		u.Set("templateid", v.(string))
 	}
@@ -1801,6 +1820,14 @@ func (p *PrepareTemplateParams) toURLValues() url.Values {
 		u.Set("zoneid", v.(string))
 	}
 	return u
+}
+
+func (p *PrepareTemplateParams) SetStorageid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["storageid"] = v
+	return
 }
 
 func (p *PrepareTemplateParams) SetTemplateid(v string) {
@@ -1996,4 +2023,297 @@ func (s *TemplateService) UpgradeRouterTemplate(p *UpgradeRouterTemplateParams) 
 type UpgradeRouterTemplateResponse struct {
 	Jobid     string `json:"jobid,omitempty"`
 	Jobstatus int    `json:"jobstatus,omitempty"`
+}
+
+type GetUploadParamsForTemplateParams struct {
+	p map[string]interface{}
+}
+
+func (p *GetUploadParamsForTemplateParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["account"]; found {
+		u.Set("account", v.(string))
+	}
+	if v, found := p.p["bits"]; found {
+		vv := strconv.Itoa(v.(int))
+		u.Set("bits", vv)
+	}
+	if v, found := p.p["checksum"]; found {
+		u.Set("checksum", v.(string))
+	}
+	if v, found := p.p["details"]; found {
+		i := 0
+		for k, vv := range v.(map[string]string) {
+			u.Set(fmt.Sprintf("details[%d].key", i), k)
+			u.Set(fmt.Sprintf("details[%d].value", i), vv)
+			i++
+		}
+	}
+	if v, found := p.p["displaytext"]; found {
+		u.Set("displaytext", v.(string))
+	}
+	if v, found := p.p["domainid"]; found {
+		u.Set("domainid", v.(string))
+	}
+	if v, found := p.p["format"]; found {
+		u.Set("format", v.(string))
+	}
+	if v, found := p.p["hypervisor"]; found {
+		u.Set("hypervisor", v.(string))
+	}
+	if v, found := p.p["isdynamicallyscalable"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isdynamicallyscalable", vv)
+	}
+	if v, found := p.p["isextractable"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isextractable", vv)
+	}
+	if v, found := p.p["isfeatured"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isfeatured", vv)
+	}
+	if v, found := p.p["ispublic"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("ispublic", vv)
+	}
+	if v, found := p.p["isrouting"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("isrouting", vv)
+	}
+	if v, found := p.p["name"]; found {
+		u.Set("name", v.(string))
+	}
+	if v, found := p.p["ostypeid"]; found {
+		u.Set("ostypeid", v.(string))
+	}
+	if v, found := p.p["passwordenabled"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("passwordenabled", vv)
+	}
+	if v, found := p.p["projectid"]; found {
+		u.Set("projectid", v.(string))
+	}
+	if v, found := p.p["requireshvm"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("requireshvm", vv)
+	}
+	if v, found := p.p["sshkeyenabled"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("sshkeyenabled", vv)
+	}
+	if v, found := p.p["templatetag"]; found {
+		u.Set("templatetag", v.(string))
+	}
+	if v, found := p.p["zoneid"]; found {
+		u.Set("zoneid", v.(string))
+	}
+	return u
+}
+
+func (p *GetUploadParamsForTemplateParams) SetAccount(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["account"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetBits(v int) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["bits"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetChecksum(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["checksum"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetDetails(v map[string]string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["details"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetDisplaytext(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["displaytext"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetDomainid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["domainid"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetFormat(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["format"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetHypervisor(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["hypervisor"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetIsdynamicallyscalable(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isdynamicallyscalable"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetIsextractable(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isextractable"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetIsfeatured(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isfeatured"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetIspublic(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ispublic"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetIsrouting(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["isrouting"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetName(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["name"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetOstypeid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["ostypeid"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetPasswordenabled(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["passwordenabled"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetProjectid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["projectid"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetRequireshvm(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["requireshvm"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetSshkeyenabled(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["sshkeyenabled"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetTemplatetag(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["templatetag"] = v
+	return
+}
+
+func (p *GetUploadParamsForTemplateParams) SetZoneid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["zoneid"] = v
+	return
+}
+
+// You should always use this function to get a new GetUploadParamsForTemplateParams instance,
+// as then you are sure you have configured all required params
+func (s *TemplateService) NewGetUploadParamsForTemplateParams(displaytext string, format string, hypervisor string, name string, ostypeid string, zoneid string) *GetUploadParamsForTemplateParams {
+	p := &GetUploadParamsForTemplateParams{}
+	p.p = make(map[string]interface{})
+	p.p["displaytext"] = displaytext
+	p.p["format"] = format
+	p.p["hypervisor"] = hypervisor
+	p.p["name"] = name
+	p.p["ostypeid"] = ostypeid
+	p.p["zoneid"] = zoneid
+	return p
+}
+
+// upload an existing template into the CloudStack cloud.
+func (s *TemplateService) GetUploadParamsForTemplate(p *GetUploadParamsForTemplateParams) (*GetUploadParamsForTemplateResponse, error) {
+	resp, err := s.cs.newRequest("getUploadParamsForTemplate", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r GetUploadParamsForTemplateResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+type GetUploadParamsForTemplateResponse struct {
+	Expires   string `json:"expires,omitempty"`
+	Id        string `json:"id,omitempty"`
+	Metadata  string `json:"metadata,omitempty"`
+	PostURL   string `json:"postURL,omitempty"`
+	Signature string `json:"signature,omitempty"`
 }

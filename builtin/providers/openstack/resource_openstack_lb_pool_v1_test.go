@@ -231,18 +231,20 @@ var testAccLBV1Pool_fullstack = fmt.Sprintf(`
 		subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
 		lb_method = "ROUND_ROBIN"
 		monitor_ids = ["${openstack_lb_monitor_v1.monitor_1.id}"]
+	}
 
-		member {
-			address = "${openstack_compute_instance_v2.instance_1.access_ip_v4}"
-			port = 80
-			admin_state_up = "true"
-		}
+	resource "openstack_lb_member_v1" "member_1" {
+		pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+		address = "${openstack_compute_instance_v2.instance_1.access_ip_v4}"
+		port = 80
+		admin_state_up = true
+	}
 
-		member {
-			address = "${openstack_compute_instance_v2.instance_2.access_ip_v4}"
-			port = 80
-			admin_state_up = "true"
-		}
+	resource "openstack_lb_member_v1" "member_2" {
+		pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+		address = "${openstack_compute_instance_v2.instance_2.access_ip_v4}"
+		port = 80
+		admin_state_up = true
 	}
 
 	resource "openstack_lb_vip_v1" "vip_1" {
@@ -251,4 +253,5 @@ var testAccLBV1Pool_fullstack = fmt.Sprintf(`
 		protocol = "TCP"
 		port = 80
 		pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+		admin_state_up = true
 	}`)

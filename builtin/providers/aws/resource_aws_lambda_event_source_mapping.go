@@ -98,17 +98,15 @@ func resourceAwsLambdaEventSourceMappingCreate(d *schema.ResourceData, meta inte
 	//
 	// The role may exist, but the permissions may not have propagated, so we
 	// retry
-	err := resource.Retry(1*time.Minute, func() error {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		eventSourceMappingConfiguration, err := conn.CreateEventSourceMapping(params)
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "InvalidParameterValueException" {
-					// Retryable
-					return awserr
+					return resource.RetryableError(awserr)
 				}
 			}
-			// Not retryable
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		// No error
 		d.Set("uuid", eventSourceMappingConfiguration.UUID)
@@ -186,19 +184,16 @@ func resourceAwsLambdaEventSourceMappingUpdate(d *schema.ResourceData, meta inte
 		Enabled:      aws.Bool(d.Get("enabled").(bool)),
 	}
 
-	err := resource.Retry(1*time.Minute, func() error {
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 		_, err := conn.UpdateEventSourceMapping(params)
 		if err != nil {
 			if awserr, ok := err.(awserr.Error); ok {
 				if awserr.Code() == "InvalidParameterValueException" {
-					// Retryable
-					return awserr
+					return resource.RetryableError(awserr)
 				}
 			}
-			// Not retryable
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
-		// No error
 		return nil
 	})
 

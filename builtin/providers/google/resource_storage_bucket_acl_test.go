@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-
 	//"google.golang.org/api/storage/v1"
 )
 
@@ -19,12 +18,12 @@ var roleEntityBasic3_owner = "OWNER:user-yetanotheremail@gmail.com"
 
 var roleEntityBasic3_reader = "READER:user-yetanotheremail@gmail.com"
 
-func testAclBucketName() string {
+func testBucketName() string {
 	return fmt.Sprintf("%s-%d", "tf-test-acl-bucket", acctest.RandInt())
 }
 
 func TestAccGoogleStorageBucketAcl_basic(t *testing.T) {
-	bucketName := testAclBucketName()
+	bucketName := testBucketName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -42,7 +41,7 @@ func TestAccGoogleStorageBucketAcl_basic(t *testing.T) {
 }
 
 func TestAccGoogleStorageBucketAcl_upgrade(t *testing.T) {
-	bucketName := testAclBucketName()
+	bucketName := testBucketName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -77,7 +76,7 @@ func TestAccGoogleStorageBucketAcl_upgrade(t *testing.T) {
 }
 
 func TestAccGoogleStorageBucketAcl_downgrade(t *testing.T) {
-	bucketName := testAclBucketName()
+	bucketName := testBucketName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -112,6 +111,7 @@ func TestAccGoogleStorageBucketAcl_downgrade(t *testing.T) {
 }
 
 func TestAccGoogleStorageBucketAcl_predefined(t *testing.T) {
+	bucketName := testBucketName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

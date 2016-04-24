@@ -37,7 +37,8 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			},
 			"cluster_type": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 
 			"node_type": &schema.Schema{
@@ -144,7 +145,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			"publicly_accessible": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: true,
+				Default:  true,
 			},
 
 			"encrypted": &schema.Schema{
@@ -200,15 +201,20 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Port:                aws.Int64(int64(d.Get("port").(int))),
 		MasterUserPassword:  aws.String(d.Get("master_password").(string)),
 		MasterUsername:      aws.String(d.Get("master_username").(string)),
-		ClusterType:         aws.String(d.Get("cluster_type").(string)),
 		ClusterVersion:      aws.String(d.Get("cluster_version").(string)),
 		NodeType:            aws.String(d.Get("node_type").(string)),
 		DBName:              aws.String(d.Get("database_name").(string)),
 		AllowVersionUpgrade: aws.Bool(d.Get("allow_version_upgrade").(bool)),
+		PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
 	}
-	if d.Get("cluster_type") == "multi-node" {
+
+	if v := d.Get("number_of_nodes").(int); v > 1 {
+		createOpts.ClusterType = aws.String("multi-node")
 		createOpts.NumberOfNodes = aws.Int64(int64(d.Get("number_of_nodes").(int)))
+	} else {
+		createOpts.ClusterType = aws.String("single-node")
 	}
+
 	if v := d.Get("cluster_security_groups").(*schema.Set); v.Len() > 0 {
 		createOpts.ClusterSecurityGroups = expandStringList(v.List())
 	}
@@ -237,10 +243,6 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		createOpts.AutomatedSnapshotRetentionPeriod = aws.Int64(int64(v.(int)))
 	}
 
-	if v, ok := d.GetOk("publicly_accessible"); ok {
-		createOpts.PubliclyAccessible = aws.Bool(v.(bool))
-	}
-
 	if v, ok := d.GetOk("encrypted"); ok {
 		createOpts.Encrypted = aws.Bool(v.(bool))
 	}
@@ -263,8 +265,8 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    5 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
@@ -314,8 +316,19 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("encrypted", rsc.Encrypted)
 	d.Set("automated_snapshot_retention_period", rsc.AutomatedSnapshotRetentionPeriod)
 	d.Set("preferred_maintenance_window", rsc.PreferredMaintenanceWindow)
-	d.Set("endpoint", aws.String(fmt.Sprintf("%s:%d", *rsc.Endpoint.Address, *rsc.Endpoint.Port)))
+	if rsc.Endpoint != nil && rsc.Endpoint.Address != nil {
+		endpoint := *rsc.Endpoint.Address
+		if rsc.Endpoint.Port != nil {
+			endpoint = fmt.Sprintf("%s:%d", endpoint, *rsc.Endpoint.Port)
+		}
+		d.Set("endpoint", endpoint)
+	}
 	d.Set("cluster_parameter_group_name", rsc.ClusterParameterGroups[0].ParameterGroupName)
+	if len(rsc.ClusterNodes) > 1 {
+		d.Set("cluster_type", "multi-node")
+	} else {
+		d.Set("cluster_type", "single-node")
+	}
 
 	var vpcg []string
 	for _, g := range rsc.VpcSecurityGroups {
@@ -356,9 +369,12 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("number_of_nodes") {
-		log.Printf("[INFO] When changing the NumberOfNodes in a Redshift Cluster, NodeType is required")
-		req.NumberOfNodes = aws.Int64(int64(d.Get("number_of_nodes").(int)))
-		req.NodeType = aws.String(d.Get("node_type").(string))
+		if v := d.Get("number_of_nodes").(int); v > 1 {
+			req.ClusterType = aws.String("multi-node")
+			req.NumberOfNodes = aws.Int64(int64(d.Get("number_of_nodes").(int)))
+		} else {
+			req.ClusterType = aws.String("single-node")
+		}
 	}
 
 	if d.HasChange("cluster_security_groups") {
@@ -393,6 +409,10 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		req.AllowVersionUpgrade = aws.Bool(d.Get("allow_version_upgrade").(bool))
 	}
 
+	if d.HasChange("publicly_accessible") {
+		req.PubliclyAccessible = aws.Bool(d.Get("publicly_accessible").(bool))
+	}
+
 	log.Printf("[INFO] Modifying Redshift Cluster: %s", d.Id())
 	log.Printf("[DEBUG] Redshift Cluster Modify options: %s", req)
 	_, err := conn.ModifyCluster(req)
@@ -401,11 +421,11 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming"},
+		Pending:    []string{"creating", "deleting", "rebooting", "resizing", "renaming", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    10 * time.Minute,
-		MinTimeout: 5 * time.Second,
+		Timeout:    40 * time.Minute,
+		MinTimeout: 10 * time.Second,
 	}
 
 	// Wait, catching any errors
@@ -559,7 +579,7 @@ func validateRedshiftClusterFinalSnapshotIdentifier(v interface{}, k string) (ws
 
 func validateRedshiftClusterMasterUsername(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^\w+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters in %q", k))
 	}

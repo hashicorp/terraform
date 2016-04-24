@@ -8,6 +8,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -46,21 +47,25 @@ func TestAccAzureInstance_basic(t *testing.T) {
 func TestAccAzureInstance_separateHostedService(t *testing.T) {
 	var dpmt virtualmachine.DeploymentResponse
 
+	hostedServiceName := fmt.Sprintf("terraform-testing-service%d", acctest.RandInt())
+
+	config := fmt.Sprintf(testAccAzureInstance_separateHostedService, hostedServiceName, instanceName, testAccStorageServiceName)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAzureInstanceDestroyed(testAccHostedServiceName),
+		CheckDestroy: testAccCheckAzureInstanceDestroyed(hostedServiceName),
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAzureInstance_separateHostedService,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
-						"azure_instance.foo", testAccHostedServiceName, &dpmt),
+						"azure_instance.foo", hostedServiceName, &dpmt),
 					testAccCheckAzureInstanceBasicAttributes(&dpmt),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "name", instanceName),
 					resource.TestCheckResourceAttr(
-						"azure_instance.foo", "hosted_service_name", "terraform-testing-service"),
+						"azure_instance.foo", "hosted_service_name", hostedServiceName),
 					resource.TestCheckResourceAttr(
 						"azure_instance.foo", "location", "West US"),
 					resource.TestCheckResourceAttr(
@@ -441,7 +446,7 @@ resource "azure_instance" "foo" {
     }
 }`, instanceName, testAccStorageServiceName)
 
-var testAccAzureInstance_separateHostedService = fmt.Sprintf(`
+var testAccAzureInstance_separateHostedService = `
 resource "azure_hosted_service" "foo" {
 	name = "%s"
 	location = "West US"
@@ -464,7 +469,7 @@ resource "azure_instance" "foo" {
         public_port = 22
         private_port = 22
     }
-}`, testAccHostedServiceName, instanceName, testAccStorageServiceName)
+}`
 
 var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
@@ -503,7 +508,7 @@ resource "azure_security_group_rule" "foo" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, September 2015"
+    image = "Windows Server 2012 R2 Datacenter, January 2016"
     size = "Basic_A1"
     storage_service_name = "%s"
     location = "West US"
@@ -577,7 +582,7 @@ resource "azure_security_group_rule" "bar" {
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
-    image = "Windows Server 2012 R2 Datacenter, September 2015"
+    image = "Windows Server 2012 R2 Datacenter, January 2016"
     size = "Basic_A2"
     storage_service_name = "%s"
     location = "West US"

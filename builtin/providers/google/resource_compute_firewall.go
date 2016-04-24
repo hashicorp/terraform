@@ -26,11 +26,6 @@ func resourceComputeFirewall() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
 			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -51,45 +46,48 @@ func resourceComputeFirewall() *schema.Resource {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set: func(v interface{}) int {
-								return hashcode.String(v.(string))
-							},
+							Set:      schema.HashString,
 						},
 					},
 				},
 				Set: resourceComputeFirewallAllowHash,
 			},
 
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"source_ranges": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"source_tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"target_tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
-			},
-
-			"self_link": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -121,13 +119,18 @@ func resourceComputeFirewallAllowHash(v interface{}) int {
 func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	firewall, err := resourceFirewall(d, meta)
 	if err != nil {
 		return err
 	}
 
 	op, err := config.clientCompute.Firewalls.Insert(
-		config.Project, firewall).Do()
+		project, firewall).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating firewall: %s", err)
 	}
@@ -146,8 +149,13 @@ func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	firewall, err := config.clientCompute.Firewalls.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
@@ -168,6 +176,11 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	d.Partial(true)
 
 	firewall, err := resourceFirewall(d, meta)
@@ -176,7 +189,7 @@ func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	op, err := config.clientCompute.Firewalls.Update(
-		config.Project, d.Id(), firewall).Do()
+		project, d.Id(), firewall).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating firewall: %s", err)
 	}
@@ -194,9 +207,14 @@ func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeFirewallDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the firewall
 	op, err := config.clientCompute.Firewalls.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting firewall: %s", err)
 	}
@@ -215,9 +233,11 @@ func resourceFirewall(
 	meta interface{}) (*compute.Firewall, error) {
 	config := meta.(*Config)
 
+	project, _ := getProject(d, config)
+
 	// Look up the network to attach the firewall to
 	network, err := config.clientCompute.Networks.Get(
-		config.Project, d.Get("network").(string)).Do()
+		project, d.Get("network").(string)).Do()
 	if err != nil {
 		return nil, fmt.Errorf("Error reading network: %s", err)
 	}

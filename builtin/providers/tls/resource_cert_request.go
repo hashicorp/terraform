@@ -107,7 +107,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 
 	certReqBytes, err := x509.CreateCertificateRequest(rand.Reader, &certReq, key)
 	if err != nil {
-		fmt.Errorf("Error creating certificate request: %s", err)
+		return fmt.Errorf("Error creating certificate request: %s", err)
 	}
 	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertReqType, Bytes: certReqBytes}))
 

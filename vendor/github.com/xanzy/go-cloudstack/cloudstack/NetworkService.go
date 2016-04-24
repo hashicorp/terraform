@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -82,10 +82,9 @@ func (p *DedicatePublicIpRangeParams) SetProjectid(v string) {
 
 // You should always use this function to get a new DedicatePublicIpRangeParams instance,
 // as then you are sure you have configured all required params
-func (s *NetworkService) NewDedicatePublicIpRangeParams(account string, domainid string, id string) *DedicatePublicIpRangeParams {
+func (s *NetworkService) NewDedicatePublicIpRangeParams(domainid string, id string) *DedicatePublicIpRangeParams {
 	p := &DedicatePublicIpRangeParams{}
 	p.p = make(map[string]interface{})
-	p.p["account"] = account
 	p.p["domainid"] = domainid
 	p.p["id"] = id
 	return p
@@ -254,9 +253,6 @@ func (p *CreateNetworkParams) toURLValues() url.Values {
 	if v, found := p.p["subdomainaccess"]; found {
 		vv := strconv.FormatBool(v.(bool))
 		u.Set("subdomainaccess", vv)
-	}
-	if v, found := p.p["vlan"]; found {
-		u.Set("vlan", v.(string))
 	}
 	if v, found := p.p["vlan"]; found {
 		u.Set("vlan", v.(string))
@@ -939,25 +935,21 @@ func (s *NetworkService) NewListNetworksParams() *ListNetworksParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetworkID(keyword string) (string, error) {
+func (s *NetworkService) GetNetworkID(keyword string, opts ...OptionFunc) (string, error) {
 	p := &ListNetworksParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListNetworks(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListNetworks(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -979,13 +971,13 @@ func (s *NetworkService) GetNetworkID(keyword string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetworkByName(name string) (*Network, int, error) {
-	id, err := s.GetNetworkID(name)
+func (s *NetworkService) GetNetworkByName(name string, opts ...OptionFunc) (*Network, int, error) {
+	id, err := s.GetNetworkID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetNetworkByID(id)
+	r, count, err := s.GetNetworkByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -993,11 +985,17 @@ func (s *NetworkService) GetNetworkByName(name string) (*Network, int, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetworkByID(id string) (*Network, int, error) {
+func (s *NetworkService) GetNetworkByID(id string, opts ...OptionFunc) (*Network, int, error) {
 	p := &ListNetworksParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListNetworks(p)
 	if err != nil {
@@ -1007,21 +1005,6 @@ func (s *NetworkService) GetNetworkByID(id string) (*Network, int, error) {
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListNetworks(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1175,7 +1158,7 @@ func (s *NetworkService) NewRestartNetworkParams(id string) *RestartNetworkParam
 	return p
 }
 
-// Restarts the network; includes 1) restarting network elements - virtual routers, dhcp servers 2) reapplying all public ips 3) reapplying loadBalancing/portForwarding rules
+// Restarts the network; includes 1) restarting network elements - virtual routers, DHCP servers 2) reapplying all public IPs 3) reapplying loadBalancing/portForwarding rules
 func (s *NetworkService) RestartNetwork(p *RestartNetworkParams) (*RestartNetworkResponse, error) {
 	resp, err := s.cs.newRequest("restartNetwork", p.toURLValues())
 	if err != nil {
@@ -1805,11 +1788,17 @@ func (s *NetworkService) NewListPhysicalNetworksParams() *ListPhysicalNetworksPa
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetPhysicalNetworkID(name string) (string, error) {
+func (s *NetworkService) GetPhysicalNetworkID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListPhysicalNetworksParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListPhysicalNetworks(p)
 	if err != nil {
@@ -1835,13 +1824,13 @@ func (s *NetworkService) GetPhysicalNetworkID(name string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetPhysicalNetworkByName(name string) (*PhysicalNetwork, int, error) {
-	id, err := s.GetPhysicalNetworkID(name)
+func (s *NetworkService) GetPhysicalNetworkByName(name string, opts ...OptionFunc) (*PhysicalNetwork, int, error) {
+	id, err := s.GetPhysicalNetworkID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetPhysicalNetworkByID(id)
+	r, count, err := s.GetPhysicalNetworkByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -1849,11 +1838,17 @@ func (s *NetworkService) GetPhysicalNetworkByName(name string) (*PhysicalNetwork
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetPhysicalNetworkByID(id string) (*PhysicalNetwork, int, error) {
+func (s *NetworkService) GetPhysicalNetworkByID(id string, opts ...OptionFunc) (*PhysicalNetwork, int, error) {
 	p := &ListPhysicalNetworksParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListPhysicalNetworks(p)
 	if err != nil {
@@ -2414,11 +2409,17 @@ func (s *NetworkService) NewListNetworkServiceProvidersParams() *ListNetworkServ
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetworkServiceProviderID(name string) (string, error) {
+func (s *NetworkService) GetNetworkServiceProviderID(name string, opts ...OptionFunc) (string, error) {
 	p := &ListNetworkServiceProvidersParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["name"] = name
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListNetworkServiceProviders(p)
 	if err != nil {
@@ -2866,11 +2867,17 @@ func (s *NetworkService) NewListStorageNetworkIpRangeParams() *ListStorageNetwor
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetStorageNetworkIpRangeByID(id string) (*StorageNetworkIpRange, int, error) {
+func (s *NetworkService) GetStorageNetworkIpRangeByID(id string, opts ...OptionFunc) (*StorageNetworkIpRange, int, error) {
 	p := &ListStorageNetworkIpRangeParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListStorageNetworkIpRange(p)
 	if err != nil {
@@ -3115,12 +3122,18 @@ func (s *NetworkService) NewListPaloAltoFirewallNetworksParams(lbdeviceid string
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetPaloAltoFirewallNetworkID(keyword string, lbdeviceid string) (string, error) {
+func (s *NetworkService) GetPaloAltoFirewallNetworkID(keyword string, lbdeviceid string, opts ...OptionFunc) (string, error) {
 	p := &ListPaloAltoFirewallNetworksParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 	p.p["lbdeviceid"] = lbdeviceid
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListPaloAltoFirewallNetworks(p)
 	if err != nil {
@@ -3310,12 +3323,18 @@ func (s *NetworkService) NewListNetscalerLoadBalancerNetworksParams(lbdeviceid s
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNetscalerLoadBalancerNetworkID(keyword string, lbdeviceid string) (string, error) {
+func (s *NetworkService) GetNetscalerLoadBalancerNetworkID(keyword string, lbdeviceid string, opts ...OptionFunc) (string, error) {
 	p := &ListNetscalerLoadBalancerNetworksParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 	p.p["lbdeviceid"] = lbdeviceid
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListNetscalerLoadBalancerNetworks(p)
 	if err != nil {
@@ -3505,12 +3524,18 @@ func (s *NetworkService) NewListNiciraNvpDeviceNetworksParams(nvpdeviceid string
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *NetworkService) GetNiciraNvpDeviceNetworkID(keyword string, nvpdeviceid string) (string, error) {
+func (s *NetworkService) GetNiciraNvpDeviceNetworkID(keyword string, nvpdeviceid string, opts ...OptionFunc) (string, error) {
 	p := &ListNiciraNvpDeviceNetworksParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 	p.p["nvpdeviceid"] = nvpdeviceid
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
 
 	l, err := s.ListNiciraNvpDeviceNetworks(p)
 	if err != nil {
@@ -3708,4 +3733,292 @@ type ListNetworkIsolationMethodsResponse struct {
 
 type NetworkIsolationMethod struct {
 	Name string `json:"name,omitempty"`
+}
+
+type AddOpenDaylightControllerParams struct {
+	p map[string]interface{}
+}
+
+func (p *AddOpenDaylightControllerParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["password"]; found {
+		u.Set("password", v.(string))
+	}
+	if v, found := p.p["physicalnetworkid"]; found {
+		u.Set("physicalnetworkid", v.(string))
+	}
+	if v, found := p.p["url"]; found {
+		u.Set("url", v.(string))
+	}
+	if v, found := p.p["username"]; found {
+		u.Set("username", v.(string))
+	}
+	return u
+}
+
+func (p *AddOpenDaylightControllerParams) SetPassword(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["password"] = v
+	return
+}
+
+func (p *AddOpenDaylightControllerParams) SetPhysicalnetworkid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["physicalnetworkid"] = v
+	return
+}
+
+func (p *AddOpenDaylightControllerParams) SetUrl(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["url"] = v
+	return
+}
+
+func (p *AddOpenDaylightControllerParams) SetUsername(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["username"] = v
+	return
+}
+
+// You should always use this function to get a new AddOpenDaylightControllerParams instance,
+// as then you are sure you have configured all required params
+func (s *NetworkService) NewAddOpenDaylightControllerParams(password string, physicalnetworkid string, url string, username string) *AddOpenDaylightControllerParams {
+	p := &AddOpenDaylightControllerParams{}
+	p.p = make(map[string]interface{})
+	p.p["password"] = password
+	p.p["physicalnetworkid"] = physicalnetworkid
+	p.p["url"] = url
+	p.p["username"] = username
+	return p
+}
+
+// Adds an OpenDyalight controler
+func (s *NetworkService) AddOpenDaylightController(p *AddOpenDaylightControllerParams) (*AddOpenDaylightControllerResponse, error) {
+	resp, err := s.cs.newRequest("addOpenDaylightController", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r AddOpenDaylightControllerResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+
+	// If we have a async client, we need to wait for the async result
+	if s.cs.async {
+		b, err := s.cs.GetAsyncJobResult(r.JobID, s.cs.timeout)
+		if err != nil {
+			if err == AsyncTimeoutErr {
+				return &r, err
+			}
+			return nil, err
+		}
+
+		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(b, &r); err != nil {
+			return nil, err
+		}
+	}
+	return &r, nil
+}
+
+type AddOpenDaylightControllerResponse struct {
+	JobID             string `json:"jobid,omitempty"`
+	Id                string `json:"id,omitempty"`
+	Name              string `json:"name,omitempty"`
+	Physicalnetworkid string `json:"physicalnetworkid,omitempty"`
+	Url               string `json:"url,omitempty"`
+	Username          string `json:"username,omitempty"`
+}
+
+type DeleteOpenDaylightControllerParams struct {
+	p map[string]interface{}
+}
+
+func (p *DeleteOpenDaylightControllerParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["id"]; found {
+		u.Set("id", v.(string))
+	}
+	return u
+}
+
+func (p *DeleteOpenDaylightControllerParams) SetId(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["id"] = v
+	return
+}
+
+// You should always use this function to get a new DeleteOpenDaylightControllerParams instance,
+// as then you are sure you have configured all required params
+func (s *NetworkService) NewDeleteOpenDaylightControllerParams(id string) *DeleteOpenDaylightControllerParams {
+	p := &DeleteOpenDaylightControllerParams{}
+	p.p = make(map[string]interface{})
+	p.p["id"] = id
+	return p
+}
+
+// Removes an OpenDyalight controler
+func (s *NetworkService) DeleteOpenDaylightController(p *DeleteOpenDaylightControllerParams) (*DeleteOpenDaylightControllerResponse, error) {
+	resp, err := s.cs.newRequest("deleteOpenDaylightController", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r DeleteOpenDaylightControllerResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+
+	// If we have a async client, we need to wait for the async result
+	if s.cs.async {
+		b, err := s.cs.GetAsyncJobResult(r.JobID, s.cs.timeout)
+		if err != nil {
+			if err == AsyncTimeoutErr {
+				return &r, err
+			}
+			return nil, err
+		}
+
+		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(b, &r); err != nil {
+			return nil, err
+		}
+	}
+	return &r, nil
+}
+
+type DeleteOpenDaylightControllerResponse struct {
+	JobID             string `json:"jobid,omitempty"`
+	Id                string `json:"id,omitempty"`
+	Name              string `json:"name,omitempty"`
+	Physicalnetworkid string `json:"physicalnetworkid,omitempty"`
+	Url               string `json:"url,omitempty"`
+	Username          string `json:"username,omitempty"`
+}
+
+type ListOpenDaylightControllersParams struct {
+	p map[string]interface{}
+}
+
+func (p *ListOpenDaylightControllersParams) toURLValues() url.Values {
+	u := url.Values{}
+	if p.p == nil {
+		return u
+	}
+	if v, found := p.p["id"]; found {
+		u.Set("id", v.(string))
+	}
+	if v, found := p.p["physicalnetworkid"]; found {
+		u.Set("physicalnetworkid", v.(string))
+	}
+	return u
+}
+
+func (p *ListOpenDaylightControllersParams) SetId(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["id"] = v
+	return
+}
+
+func (p *ListOpenDaylightControllersParams) SetPhysicalnetworkid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["physicalnetworkid"] = v
+	return
+}
+
+// You should always use this function to get a new ListOpenDaylightControllersParams instance,
+// as then you are sure you have configured all required params
+func (s *NetworkService) NewListOpenDaylightControllersParams() *ListOpenDaylightControllersParams {
+	p := &ListOpenDaylightControllersParams{}
+	p.p = make(map[string]interface{})
+	return p
+}
+
+// This is a courtesy helper function, which in some cases may not work as expected!
+func (s *NetworkService) GetOpenDaylightControllerByID(id string, opts ...OptionFunc) (*OpenDaylightController, int, error) {
+	p := &ListOpenDaylightControllersParams{}
+	p.p = make(map[string]interface{})
+
+	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
+
+	l, err := s.ListOpenDaylightControllers(p)
+	if err != nil {
+		if strings.Contains(err.Error(), fmt.Sprintf(
+			"Invalid parameter id value=%s due to incorrect long value format, "+
+				"or entity does not exist", id)) {
+			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
+		}
+		return nil, -1, err
+	}
+
+	if l.Count == 0 {
+		return nil, l.Count, fmt.Errorf("No match found for %s: %+v", id, l)
+	}
+
+	if l.Count == 1 {
+		return l.OpenDaylightControllers[0], l.Count, nil
+	}
+	return nil, l.Count, fmt.Errorf("There is more then one result for OpenDaylightController UUID: %s!", id)
+}
+
+// Lists OpenDyalight controllers
+func (s *NetworkService) ListOpenDaylightControllers(p *ListOpenDaylightControllersParams) (*ListOpenDaylightControllersResponse, error) {
+	resp, err := s.cs.newRequest("listOpenDaylightControllers", p.toURLValues())
+	if err != nil {
+		return nil, err
+	}
+
+	var r ListOpenDaylightControllersResponse
+	if err := json.Unmarshal(resp, &r); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+type ListOpenDaylightControllersResponse struct {
+	Count                   int                       `json:"count"`
+	OpenDaylightControllers []*OpenDaylightController `json:"opendaylightcontroller"`
+}
+
+type OpenDaylightController struct {
+	Id                string `json:"id,omitempty"`
+	Name              string `json:"name,omitempty"`
+	Physicalnetworkid string `json:"physicalnetworkid,omitempty"`
+	Url               string `json:"url,omitempty"`
+	Username          string `json:"username,omitempty"`
 }

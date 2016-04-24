@@ -24,7 +24,7 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -35,6 +35,12 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
+			},
+			"distributed": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
 				Computed: true,
 			},
 			"external_gateway": &schema.Schema{
@@ -48,8 +54,57 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
+}
+
+// routerCreateOpts contains all the values needed to create a new router. There are
+// no required values.
+type RouterCreateOpts struct {
+	Name         string
+	AdminStateUp *bool
+	Distributed  *bool
+	TenantID     string
+	GatewayInfo  *routers.GatewayInfo
+	ValueSpecs   map[string]string
+}
+
+// ToRouterCreateMap casts a routerCreateOpts struct to a map.
+func (opts RouterCreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
+	r := make(map[string]interface{})
+
+	if gophercloud.MaybeString(opts.Name) != nil {
+		r["name"] = opts.Name
+	}
+
+	if opts.AdminStateUp != nil {
+		r["admin_state_up"] = opts.AdminStateUp
+	}
+
+	if opts.Distributed != nil {
+		r["distributed"] = opts.Distributed
+	}
+
+	if gophercloud.MaybeString(opts.TenantID) != nil {
+		r["tenant_id"] = opts.TenantID
+	}
+
+	if opts.GatewayInfo != nil {
+		r["external_gateway_info"] = opts.GatewayInfo
+	}
+
+	if opts.ValueSpecs != nil {
+		for k, v := range opts.ValueSpecs {
+			r[k] = v
+		}
+	}
+
+	return map[string]interface{}{"router": r}, nil
 }
 
 func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) error {
@@ -59,14 +114,20 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	createOpts := routers.CreateOpts{
-		Name:     d.Get("name").(string),
-		TenantID: d.Get("tenant_id").(string),
+	createOpts := RouterCreateOpts{
+		Name:       d.Get("name").(string),
+		TenantID:   d.Get("tenant_id").(string),
+		ValueSpecs: routerValueSpecs(d),
 	}
 
 	if asuRaw, ok := d.GetOk("admin_state_up"); ok {
 		asu := asuRaw.(bool)
 		createOpts.AdminStateUp = &asu
+	}
+
+	if dRaw, ok := d.GetOk("distributed"); ok {
+		d := dRaw.(bool)
+		createOpts.Distributed = &d
 	}
 
 	externalGateway := d.Get("external_gateway").(string)
@@ -126,6 +187,7 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", n.AdminStateUp)
+	d.Set("distributed", n.Distributed)
 	d.Set("tenant_id", n.TenantID)
 	d.Set("external_gateway", n.GatewayInfo.NetworkID)
 
@@ -133,6 +195,10 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceNetworkingRouterV2Update(d *schema.ResourceData, meta interface{}) error {
+	routerId := d.Id()
+	osMutexKV.Lock(routerId)
+	defer osMutexKV.Unlock(routerId)
+
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
@@ -226,4 +292,12 @@ func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId s
 		log.Printf("[DEBUG] OpenStack Router %s still active.\n", routerId)
 		return r, "ACTIVE", nil
 	}
+}
+
+func routerValueSpecs(d *schema.ResourceData) map[string]string {
+	m := make(map[string]string)
+	for key, val := range d.Get("value_specs").(map[string]interface{}) {
+		m[key] = val.(string)
+	}
+	return m
 }

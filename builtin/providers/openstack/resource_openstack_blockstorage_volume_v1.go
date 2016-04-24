@@ -26,7 +26,7 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"size": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -242,7 +242,7 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 			}
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"in-use", "attaching"},
+				Pending:    []string{"in-use", "attaching", "detaching"},
 				Target:     []string{"available"},
 				Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
 				Timeout:    10 * time.Minute,

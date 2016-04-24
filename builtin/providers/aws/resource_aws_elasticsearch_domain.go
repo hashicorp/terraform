@@ -37,13 +37,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
-					if !regexp.MustCompile(`^[0-9A-Za-z]+`).MatchString(value) {
+					if !regexp.MustCompile(`^[a-z][0-9a-z\-]{2,27}$`).MatchString(value) {
 						errors = append(errors, fmt.Errorf(
-							"%q must start with a letter or number", k))
-					}
-					if !regexp.MustCompile(`^[0-9A-Za-z][0-9a-z-]+$`).MatchString(value) {
-						errors = append(errors, fmt.Errorf(
-							"%q can only contain lowercase characters, numbers and hyphens", k))
+							"%q must start with a lowercase alphabet and be at least 3 and no more than 28 characters long. Valid characters are a-z (lowercase letters), 0-9, and - (hyphen).", k))
 					}
 					return
 				},
@@ -133,6 +129,7 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 					},
 				},
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -210,23 +207,34 @@ func resourceAwsElasticSearchDomainCreate(d *schema.ResourceData, meta interface
 	d.SetId(*out.DomainStatus.ARN)
 
 	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be created", d.Id())
-	err = resource.Retry(15*time.Minute, func() error {
+	err = resource.Retry(30*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		if !*out.DomainStatus.Processing && out.DomainStatus.Endpoint != nil {
 			return nil
 		}
 
-		return fmt.Errorf("%q: Timeout while waiting for the domain to be created", d.Id())
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for the domain to be created", d.Id()))
 	})
 	if err != nil {
 		return err
 	}
+
+	tags := tagsFromMapElasticsearchService(d.Get("tags").(map[string]interface{}))
+
+	if err := setTagsElasticsearchService(conn, d, *out.DomainStatus.ARN); err != nil {
+		return err
+	}
+
+	d.Set("tags", tagsToMapElasticsearchService(tags))
+	d.SetPartial("tags")
+	d.Partial(false)
 
 	log.Printf("[DEBUG] ElasticSearch domain %q created", d.Id())
 
@@ -276,11 +284,33 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("arn", *ds.ARN)
 
+	listOut, err := conn.ListTags(&elasticsearch.ListTagsInput{
+		ARN: ds.ARN,
+	})
+
+	if err != nil {
+		return err
+	}
+	var est []*elasticsearch.Tag
+	if len(listOut.TagList) > 0 {
+		est = listOut.TagList
+	}
+
+	d.Set("tags", tagsToMapElasticsearchService(est))
+
 	return nil
 }
 
 func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).esconn
+
+	d.Partial(true)
+
+	if err := setTagsElasticsearchService(conn, d, d.Id()); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
 
 	input := elasticsearch.UpdateElasticsearchDomainConfigInput{
 		DomainName: aws.String(d.Get("domain_name").(string)),
@@ -337,23 +367,26 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	err = resource.Retry(25*time.Minute, func() error {
+	err = resource.Retry(50*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		if *out.DomainStatus.Processing == false {
 			return nil
 		}
 
-		return fmt.Errorf("%q: Timeout while waiting for changes to be processed", d.Id())
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for changes to be processed", d.Id()))
 	})
 	if err != nil {
 		return err
 	}
+
+	d.Partial(false)
 
 	return resourceAwsElasticSearchDomainRead(d, meta)
 }
@@ -370,7 +403,7 @@ func resourceAwsElasticSearchDomainDelete(d *schema.ResourceData, meta interface
 	}
 
 	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be deleted", d.Get("domain_name").(string))
-	err = resource.Retry(15*time.Minute, func() error {
+	err = resource.Retry(15*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})
@@ -378,21 +411,22 @@ func resourceAwsElasticSearchDomainDelete(d *schema.ResourceData, meta interface
 		if err != nil {
 			awsErr, ok := err.(awserr.Error)
 			if !ok {
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 
 			if awsErr.Code() == "ResourceNotFoundException" {
 				return nil
 			}
 
-			return resource.RetryError{Err: awsErr}
+			return resource.NonRetryableError(err)
 		}
 
 		if !*out.DomainStatus.Processing {
 			return nil
 		}
 
-		return fmt.Errorf("%q: Timeout while waiting for the domain to be deleted", d.Id())
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for the domain to be deleted", d.Id()))
 	})
 
 	d.SetId("")

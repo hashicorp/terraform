@@ -45,6 +45,18 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetId(*ig.InternetGatewayId)
 	log.Printf("[INFO] InternetGateway ID: %s", d.Id())
 
+	resource.Retry(5*time.Minute, func() *resource.RetryError {
+		igRaw, _, err := IGStateRefreshFunc(conn, d.Id())()
+		if igRaw != nil {
+			return nil
+		}
+		if err == nil {
+			return resource.RetryableError(err)
+		} else {
+			return resource.NonRetryableError(err)
+		}
+	})
+
 	err = setTags(conn, d)
 	if err != nil {
 		return err
@@ -114,7 +126,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[INFO] Deleting Internet Gateway: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteInternetGateway(&ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: aws.String(d.Id()),
 		})
@@ -124,17 +136,17 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return err
+			return resource.RetryableError(err)
 		}
 
 		switch ec2err.Code() {
 		case "InvalidInternetGatewayID.NotFound":
 			return nil
 		case "DependencyViolation":
-			return err // retry
+			return resource.RetryableError(err) // retry
 		}
 
-		return resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 	})
 }
 
@@ -204,11 +216,12 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	// Wait for it to be fully detached before continuing
 	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"detaching"},
-		Target:  []string{"detached"},
-		Refresh: detachIGStateRefreshFunc(conn, d.Id(), vpcID.(string)),
-		Timeout: 5 * time.Minute,
-		Delay:   10 * time.Second,
+		Pending:        []string{"detaching"},
+		Target:         []string{"detached"},
+		Refresh:        detachIGStateRefreshFunc(conn, d.Id(), vpcID.(string)),
+		Timeout:        15 * time.Minute,
+		Delay:          10 * time.Second,
+		NotFoundChecks: 30,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(

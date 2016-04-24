@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -113,7 +113,7 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		return nil
 	}
 
-	astRoot, err := lang.Parse(v.String())
+	astRoot, err := hil.Parse(v.String())
 	if err != nil {
 		return err
 	}

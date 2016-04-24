@@ -286,6 +286,11 @@ type ResourceAttrDiff struct {
 	Type        DiffAttrType
 }
 
+// Empty returns true if the diff for this attr is neutral
+func (d *ResourceAttrDiff) Empty() bool {
+	return d.Old == d.New && !d.NewComputed && !d.NewRemoved
+}
+
 func (d *ResourceAttrDiff) GoString() string {
 	return fmt.Sprintf("*%#v", *d)
 }

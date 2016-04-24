@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang"
-	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -29,6 +29,7 @@ func resourceFile() *schema.Resource {
 				Description:   "Contents of the template",
 				ForceNew:      true,
 				ConflictsWith: []string{"filename"},
+				ValidateFunc:  validateTemplateAttribute,
 			},
 			"filename": &schema.Schema{
 				Type:        schema.TypeString,
@@ -133,7 +134,7 @@ func renderFile(d *schema.ResourceData) (string, error) {
 
 // execute parses and executes a template using vars.
 func execute(s string, vars map[string]interface{}) (string, error) {
-	root, err := lang.Parse(s)
+	root, err := hil.Parse(s)
 	if err != nil {
 		return "", err
 	}
@@ -152,25 +153,39 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 		}
 	}
 
-	cfg := lang.EvalConfig{
+	cfg := hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
 			VarMap:  varmap,
 			FuncMap: config.Funcs(),
 		},
 	}
 
-	out, typ, err := lang.Eval(root, &cfg)
+	result, err := hil.Eval(root, &cfg)
 	if err != nil {
 		return "", err
 	}
-	if typ != ast.TypeString {
-		return "", fmt.Errorf("unexpected output ast.Type: %v", typ)
+	if result.Type != hil.TypeString {
+		return "", fmt.Errorf("unexpected output hil.Type: %v", result.Type)
 	}
 
-	return out.(string), nil
+	return result.Value.(string), nil
 }
 
 func hash(s string) string {
 	sha := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sha[:])
+}
+
+func validateTemplateAttribute(v interface{}, key string) (ws []string, es []error) {
+	_, wasPath, err := pathorcontents.Read(v.(string))
+	if err != nil {
+		es = append(es, err)
+		return
+	}
+
+	if wasPath {
+		ws = append(ws, fmt.Sprintf("%s: looks like you specified a path instead of file contents. Use `file()` to load this path. Specifying a path directly is deprecated and will be removed in a future version.", key))
+	}
+
+	return
 }

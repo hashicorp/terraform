@@ -217,8 +217,6 @@ func (c *AtlasClient) Delete() error {
 			"HTTP error: %d\n\nBody: %s",
 			resp.StatusCode, c.readBody(resp.Body))
 	}
-
-	return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 }
 
 func (c *AtlasClient) readBody(b io.Reader) string {

@@ -1,0 +1,21 @@
+language: go
+
+go:
+  - 1.4
+  - 1.5
+  - tip
+
+env:
+  - "PATH=/home/travis/gopath/bin:$PATH"
+script:
+  - go get -u github.com/golang/lint/golint
+  - golint ./...
+  - test `gofmt -l . | wc -l` = 0
+  - make test
+
+install:
+  - go get -v -t . && make updatedeps
+
+matrix:
+    allow_failures:
+        - go: tip

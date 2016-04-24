@@ -23,6 +23,21 @@ type ResourceAddress struct {
 	Type         string
 }
 
+// Copy returns a copy of this ResourceAddress
+func (r *ResourceAddress) Copy() *ResourceAddress {
+	n := &ResourceAddress{
+		Path:         make([]string, 0, len(r.Path)),
+		Index:        r.Index,
+		InstanceType: r.InstanceType,
+		Name:         r.Name,
+		Type:         r.Type,
+	}
+	for _, p := range r.Path {
+		n.Path = append(n.Path, p)
+	}
+	return n
+}
+
 func ParseResourceAddress(s string) (*ResourceAddress, error) {
 	matches, err := tokenizeResourceAddress(s)
 	if err != nil {

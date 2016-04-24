@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -125,6 +127,35 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 				Set: resourceAwsCodeDeployTagFilterHash,
 			},
+
+			"trigger_configuration": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"trigger_events": &schema.Schema{
+							Type:     schema.TypeSet,
+							Required: true,
+							Set:      schema.HashString,
+							Elem: &schema.Schema{
+								Type:         schema.TypeString,
+								ValidateFunc: validateTriggerEvent,
+							},
+						},
+
+						"trigger_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"trigger_target_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceAwsCodeDeployTriggerConfigHash,
+			},
 		},
 	}
 }
@@ -154,24 +185,38 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		ec2TagFilters := buildEC2TagFilters(attr.(*schema.Set).List())
 		input.Ec2TagFilters = ec2TagFilters
 	}
+	if attr, ok := d.GetOk("trigger_configuration"); ok {
+		triggerConfigs := buildTriggerConfigs(attr.(*schema.Set).List())
+		input.TriggerConfigurations = triggerConfigs
+	}
 
 	// Retry to handle IAM role eventual consistency.
 	var resp *codedeploy.CreateDeploymentGroupOutput
 	var err error
-	err = resource.Retry(2*time.Minute, func() error {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		resp, err = conn.CreateDeploymentGroup(&input)
 		if err != nil {
+			retry := false
 			codedeployErr, ok := err.(awserr.Error)
 			if !ok {
-				return &resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 			if codedeployErr.Code() == "InvalidRoleException" {
+				retry = true
+			}
+			if codedeployErr.Code() == "InvalidTriggerConfigException" {
+				r := regexp.MustCompile("^Topic ARN .+ is not valid$")
+				if r.MatchString(codedeployErr.Message()) {
+					retry = true
+				}
+			}
+			if retry {
 				log.Printf("[DEBUG] Trying to create deployment group again: %q",
 					codedeployErr.Message())
-				return err
+				return resource.RetryableError(err)
 			}
 
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		return nil
 	})
@@ -205,6 +250,9 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		return err
 	}
 	if err := d.Set("on_premises_instance_tag_filter", onPremisesTagFiltersToMap(resp.DeploymentGroupInfo.OnPremisesInstanceTagFilters)); err != nil {
+		return err
+	}
+	if err := d.Set("trigger_configuration", triggerConfigsToMap(resp.DeploymentGroupInfo.TriggerConfigurations)); err != nil {
 		return err
 	}
 
@@ -242,6 +290,11 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		_, n := d.GetChange("ec2_tag_filter")
 		ec2Filters := buildEC2TagFilters(n.(*schema.Set).List())
 		input.Ec2TagFilters = ec2Filters
+	}
+	if d.HasChange("trigger_configuration") {
+		_, n := d.GetChange("trigger_configuration")
+		triggerConfigs := buildTriggerConfigs(n.(*schema.Set).List())
+		input.TriggerConfigurations = triggerConfigs
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
@@ -306,6 +359,23 @@ func buildEC2TagFilters(configured []interface{}) []*codedeploy.EC2TagFilter {
 	return filters
 }
 
+// buildTriggerConfigs converts a raw schema list into a list of
+// codedeploy.TriggerConfig.
+func buildTriggerConfigs(configured []interface{}) []*codedeploy.TriggerConfig {
+	configs := make([]*codedeploy.TriggerConfig, 0, len(configured))
+	for _, raw := range configured {
+		var config codedeploy.TriggerConfig
+		m := raw.(map[string]interface{})
+
+		config.TriggerEvents = expandStringSet(m["trigger_events"].(*schema.Set))
+		config.TriggerName = aws.String(m["trigger_name"].(string))
+		config.TriggerTargetArn = aws.String(m["trigger_target_arn"].(string))
+
+		configs = append(configs, &config)
+	}
+	return configs
+}
+
 // ec2TagFiltersToMap converts lists of tag filters into a []map[string]string.
 func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
 	result := make([]map[string]string, 0, len(list))
@@ -344,6 +414,19 @@ func onPremisesTagFiltersToMap(list []*codedeploy.TagFilter) []map[string]string
 	return result
 }
 
+// triggerConfigsToMap converts a list of []*codedeploy.TriggerConfig into a []map[string]interface{}
+func triggerConfigsToMap(list []*codedeploy.TriggerConfig) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, tc := range list {
+		item := make(map[string]interface{})
+		item["trigger_events"] = schema.NewSet(schema.HashString, flattenStringList(tc.TriggerEvents))
+		item["trigger_name"] = *tc.TriggerName
+		item["trigger_target_arn"] = *tc.TriggerTargetArn
+		result = append(result, item)
+	}
+	return result
+}
+
 func resourceAwsCodeDeployTagFilterHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -361,4 +444,43 @@ func resourceAwsCodeDeployTagFilterHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["trigger_name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["trigger_target_arn"].(string)))
+
+	if triggerEvents, ok := m["trigger_events"]; ok {
+		names := triggerEvents.(*schema.Set).List()
+		strings := make([]string, len(names))
+		for i, raw := range names {
+			strings[i] = raw.(string)
+		}
+		sort.Strings(strings)
+
+		for _, s := range strings {
+			buf.WriteString(fmt.Sprintf("%s-", s))
+		}
+	}
+	return hashcode.String(buf.String())
+}
+
+func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	triggerEvents := map[string]bool{
+		"DeploymentStart":   true,
+		"DeploymentStop":    true,
+		"DeploymentSuccess": true,
+		"DeploymentFailure": true,
+		"InstanceStart":     true,
+		"InstanceSuccess":   true,
+		"InstanceFailure":   true,
+	}
+
+	if !triggerEvents[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid event type value: %q", k, value))
+	}
+	return
 }

@@ -3,6 +3,7 @@ package google
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -38,15 +39,47 @@ func testAccPreCheck(t *testing.T) {
 		os.Setenv("GOOGLE_CREDENTIALS", string(creds))
 	}
 
-	if v := os.Getenv("GOOGLE_CREDENTIALS"); v == "" {
-		t.Fatal("GOOGLE_CREDENTIALS must be set for acceptance tests")
+	multiEnvSearch := func(ks []string) string {
+		for _, k := range ks {
+			if v := os.Getenv(k); v != "" {
+				return v
+			}
+		}
+		return ""
 	}
 
-	if v := os.Getenv("GOOGLE_PROJECT"); v == "" {
-		t.Fatal("GOOGLE_PROJECT must be set for acceptance tests")
+	creds := []string{
+		"GOOGLE_CREDENTIALS",
+		"GOOGLE_CLOUD_KEYFILE_JSON",
+		"GCLOUD_KEYFILE_JSON",
+	}
+	if v := multiEnvSearch(creds); v == "" {
+		t.Fatalf("One of %s must be set for acceptance tests", strings.Join(creds, ", "))
 	}
 
-	if v := os.Getenv("GOOGLE_REGION"); v != "us-central1" {
-		t.Fatal("GOOGLE_REGION must be set to us-central1 for acceptance tests")
+	projs := []string{
+		"GOOGLE_PROJECT",
+		"GCLOUD_PROJECT",
+		"CLOUDSDK_CORE_PROJECT",
+	}
+	if v := multiEnvSearch(projs); v == "" {
+		t.Fatalf("One of %s must be set for acceptance tests", strings.Join(creds, ", "))
+	}
+
+	regs := []string{
+		"GOOGLE_REGION",
+		"GCLOUD_REGION",
+		"CLOUDSDK_COMPUTE_REGION",
+	}
+	if v := multiEnvSearch(regs); v != "us-central-1" {
+		t.Fatalf("One of %s must be set to us-central-1 for acceptance tests", strings.Join(creds, ", "))
+	}
+}
+
+func TestProvider_getRegionFromZone(t *testing.T) {
+	expected := "us-central1"
+	actual := getRegionFromZone("us-central1-f")
+	if expected != actual {
+		t.Fatalf("Region (%s) did not match expected value: %s", actual, expected)
 	}
 }

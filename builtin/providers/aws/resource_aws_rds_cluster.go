@@ -71,6 +71,13 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"storage_encrypted": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
 			"final_snapshot_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -167,6 +174,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		Engine:              aws.String("aurora"),
 		MasterUserPassword:  aws.String(d.Get("master_password").(string)),
 		MasterUsername:      aws.String(d.Get("master_username").(string)),
+		StorageEncrypted:    aws.Bool(d.Get("storage_encrypted").(bool)),
 	}
 
 	if v := d.Get("database_name"); v.(string) != "" {
@@ -276,6 +284,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("engine", dbc.Engine)
 	d.Set("master_username", dbc.MasterUsername)
 	d.Set("port", dbc.Port)
+	d.Set("storage_encrypted", dbc.StorageEncrypted)
 	d.Set("backup_retention_period", dbc.BackupRetentionPeriod)
 	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
@@ -359,7 +368,7 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 	_, err := conn.DeleteDBCluster(&deleteOpts)
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"deleting", "backing-up", "modifying"},
+		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    5 * time.Minute,

@@ -1349,6 +1349,8 @@ type UploadLayerPartInput struct {
 	_ struct{} `type:"structure"`
 
 	// The base64-encoded layer part payload.
+	//
+	// LayerPartBlob is automatically base64 encoded/decoded by the SDK.
 	LayerPartBlob []byte `locationName:"layerPartBlob" type:"blob" required:"true"`
 
 	// The integer value of the first byte of the layer part.

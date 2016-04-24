@@ -35,6 +35,9 @@ type Router struct {
 	// Administrative state of the router.
 	AdminStateUp bool `json:"admin_state_up" mapstructure:"admin_state_up"`
 
+	// Whether router is disitrubted or not..
+	Distributed bool `json:"distributed" mapstructure:"distributed"`
+
 	// Human readable name for the router. Does not have to be unique.
 	Name string `json:"name" mapstructure:"name"`
 

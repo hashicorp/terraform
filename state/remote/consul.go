@@ -33,7 +33,10 @@ func consulFactory(conf map[string]string) (Client, error) {
 		} else {
 			username = auth
 		}
-		config.HttpAuth = &consulapi.HttpBasicAuth{username, password}
+		config.HttpAuth = &consulapi.HttpBasicAuth{
+			Username: username,
+			Password: password,
+		}
 	}
 
 	client, err := consulapi.NewClient(config)

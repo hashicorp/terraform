@@ -34,9 +34,9 @@ func testAccCheckPubsubTopicDestroy(s *terraform.State) error {
 		}
 
 		config := testAccProvider.Meta().(*Config)
-		_, err := config.clientPubsub.Projects.Topics.Get(rs.Primary.ID).Do()
-		if err != nil {
-			fmt.Errorf("Topic still present")
+		topic, _ := config.clientPubsub.Projects.Topics.Get(rs.Primary.ID).Do()
+		if topic != nil {
+			return fmt.Errorf("Topic still present")
 		}
 	}
 
@@ -56,7 +56,7 @@ func testAccPubsubTopicExists(n string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*Config)
 		_, err := config.clientPubsub.Projects.Topics.Get(rs.Primary.ID).Do()
 		if err != nil {
-			fmt.Errorf("Topic still present")
+			return fmt.Errorf("Topic does not exist")
 		}
 
 		return nil

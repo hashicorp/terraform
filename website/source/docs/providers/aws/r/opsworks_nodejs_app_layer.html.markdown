@@ -31,11 +31,13 @@ The following arguments are supported:
 * `auto_healing` - (Optional) Whether to enable auto-healing for the layer.
 * `install_updates_on_boot` - (Optional) Whether to install OS and package updates on each instance when it boots.
 * `instance_shutdown_timeout` - (Optional) The time, in seconds, that OpsWorks will wait for Chef to complete after triggering the Shutdown event.
+* `elastic_load_balancer` - (Optional) Name of an Elastic Load Balancer to attach to this layer
 * `drain_elb_on_shutdown` - (Optional) Whether to enable Elastic Load Balancing connection draining.
 * `nodejs_version` - (Optional) The version of NodeJS to use. Defaults to "0.10.38".
 * `system_packages` - (Optional) Names of a set of system packages to install on the layer's instances.
 * `use_ebs_optimized_instances` - (Optional) Whether to use EBS-optimized instances.
 * `ebs_volume` - (Optional) `ebs_volume` blocks, as described below, will each create an EBS volume and connect it to the layer's instances.
+* `custom_json` - (Optional) Custom JSON attributes to apply to the layer.
 
 The following extra optional arguments, all lists of Chef recipe names, allow
 custom Chef recipes to be applied to layer instances at the five different

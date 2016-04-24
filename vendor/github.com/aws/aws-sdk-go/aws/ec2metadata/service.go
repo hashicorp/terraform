@@ -3,7 +3,9 @@
 package ec2metadata
 
 import (
-	"io/ioutil"
+	"bytes"
+	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -91,23 +93,28 @@ type metadataOutput struct {
 
 func unmarshalHandler(r *request.Request) {
 	defer r.HTTPResponse.Body.Close()
-	b, err := ioutil.ReadAll(r.HTTPResponse.Body)
-	if err != nil {
+	b := &bytes.Buffer{}
+	if _, err := io.Copy(b, r.HTTPResponse.Body); err != nil {
 		r.Error = awserr.New("SerializationError", "unable to unmarshal EC2 metadata respose", err)
+		return
 	}
 
-	data := r.Data.(*metadataOutput)
-	data.Content = string(b)
+	if data, ok := r.Data.(*metadataOutput); ok {
+		data.Content = b.String()
+	}
 }
 
 func unmarshalError(r *request.Request) {
 	defer r.HTTPResponse.Body.Close()
-	_, err := ioutil.ReadAll(r.HTTPResponse.Body)
-	if err != nil {
+	b := &bytes.Buffer{}
+	if _, err := io.Copy(b, r.HTTPResponse.Body); err != nil {
 		r.Error = awserr.New("SerializationError", "unable to unmarshal EC2 metadata error respose", err)
+		return
 	}
 
-	// TODO extract the error...
+	// Response body format is not consistent between metadata endpoints.
+	// Grab the error message as a string and include that as the source error
+	r.Error = awserr.New("EC2MetadataError", "failed to make EC2Metadata request", errors.New(b.String()))
 }
 
 func validateEndpointHandler(r *request.Request) {
