@@ -79,10 +79,20 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"private_ip": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Computed:   true,
+				Deprecated: "Please use the `private_ips` field instead",
+			},
+
+			"private_ips": &schema.Schema{
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 
 			"source_dest_check": &schema.Schema{
@@ -1049,7 +1059,24 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-	if hasSubnet && associatePublicIPAddress {
+	private_ips := d.Get("private_ips").(*schema.Set).List()
+	if len(private_ips) != 0 {
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			AssociatePublicIpAddress: aws.Bool(associatePublicIPAddress),
+			DeviceIndex:              aws.Int64(int64(0)),
+			SubnetId:                 aws.String(subnetID),
+			Groups:                   groups,
+			PrivateIpAddresses:       expandPrivateIPAddresses(private_ips),
+		}
+
+		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
+			for _, v := range v.List() {
+				ni.Groups = append(ni.Groups, aws.String(v.(string)))
+			}
+		}
+
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
 		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
@@ -1147,4 +1174,14 @@ func iamInstanceProfileArnToName(ip *ec2.IamInstanceProfile) string {
 	}
 	parts := strings.Split(*ip.Arn, "/")
 	return parts[len(parts)-1]
+}
+
+//Flattens an array of private ip addresses into a []string, where the elements returned are the IP strings e.g. "192.168.0.0"
+func flattenInstancePrivateIpAddresses(dtos []*ec2.InstancePrivateIpAddress) []string {
+	ips := make([]string, 0, len(dtos))
+	for _, v := range dtos {
+		ip := *v.PrivateIpAddress
+		ips = append(ips, ip)
+	}
+	return ips
 }
