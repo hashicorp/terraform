@@ -33,6 +33,14 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 					// with non-converging diffs.
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if (len(value) < 1) || (len(value) > 20) {
+						errors = append(errors, fmt.Errorf(
+							"%q must contain from 1 to 20 alphanumeric characters or hyphens", k))
+					}
+					return
+				},
 			},
 			"configuration_endpoint": &schema.Schema{
 				Type:     schema.TypeString,
