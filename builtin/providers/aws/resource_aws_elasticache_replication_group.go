@@ -23,9 +23,10 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"replication_group_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateElastiCacheClusterId,
 			},
 			"replication_group_description": &schema.Schema{
 				Type:     schema.TypeString,
@@ -145,6 +146,7 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -237,12 +239,12 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	d.SetId(*resp.ReplicationGroup.ReplicationGroupId)
 
-	pending := []string{"creating"}
+	pending := []string{"creating", "modifying"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
 		Refresh:    cacheClusterReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
-		Timeout:    10 * time.Minute,
+		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
@@ -369,8 +371,8 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 
 	log.Printf("[DEBUG] Waiting for deletion: %v", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"creating", "available", "deleting"},
-		Target:     []string{""},
+		Pending:    []string{"creating", "modifying", "available", "deleting"},
+		Target:     []string{},
 		Refresh:    cacheClusterReplicationGroupStateRefreshFunc(conn, d.Id(), "", []string{}),
 		Timeout:    15 * time.Minute,
 		Delay:      20 * time.Second,
@@ -393,7 +395,7 @@ func cacheClusterReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache,
 		if err != nil {
 			apierr := err.(awserr.Error)
 			log.Printf("[DEBUG] message: %v, code: %v", apierr.Message(), apierr.Code())
-			if apierr.Message() == fmt.Sprintf("Cluster ReplicationGroup not found: %v", replicationGroupId) {
+			if apierr.Message() == fmt.Sprintf("ReplicationGroup %v not found.", replicationGroupId) {
 				log.Printf("[DEBUG] Detect deletion")
 				return nil, "", nil
 			}
