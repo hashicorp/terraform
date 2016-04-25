@@ -12,6 +12,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/aws: Fix issue with KMS Alias keys and name prefixes [GH-6328]
+ * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
 
 ## 0.6.15 (April 22, 2016)
 
