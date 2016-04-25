@@ -69,12 +69,53 @@ The following arguments are used to configure the VMware vSphere Provider:
   value is `false`. Can also be specified with the `VSPHERE_ALLOW_UNVERIFIED_SSL`
   environment variable.
 
+## Required Privileges
+
+In order to use Terraform provider as non priviledged user, a Role within
+vCenter must be assigned the following privileges:
+
+* Datastore
+   - Allocate space
+   - Browse datastore
+   - Low level file operations
+   - Remove file
+   - Update virtual machine files
+   - Update virtual machine metadata
+
+* Folder (all)
+   - Create folder
+   - Delete folder
+   - Move folder
+   - Rename folder
+
+* Network
+   - Assign network
+
+* Resource
+   - Apply recommendation
+   - Assign virtual machine to resource pool
+
+* Virtual Machine
+   - Configuration (all) - for now
+   - Guest Operations (all) - for now
+   - Interaction (all)
+   - Inventory (all)
+   - Provisioning (all)
+
+These settings were tested with [vSphere
+6.0](https://pubs.vmware.com/vsphere-60/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html)
+and [vSphere
+5.5](https://pubs.vmware.com/vsphere-55/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html).
+For additional information on roles and permissions, please refer to official
+VMware documentation.
+ 
 ## Acceptance Tests
 
 The VMware vSphere provider's acceptance tests require the above provider
 configuration fields to be set using the documented environment variables.
 
-In addition, the following environment variables are used in tests, and must be set to valid values for your VMware vSphere environment:
+In addition, the following environment variables are used in tests, and must be
+set to valid values for your VMware vSphere environment:
 
  * VSPHERE\_NETWORK\_GATEWAY
  * VSPHERE\_NETWORK\_IP\_ADDRESS
@@ -89,7 +130,8 @@ The following environment variables depend on your vSphere environment:
  * VSPHERE\_RESOURCE\_POOL
  * VSPHERE\_DATASTORE
 
-The following additional environment variables are needed for running the "Mount ISO as CDROM media" acceptance tests.
+The following additional environment variables are needed for running the
+"Mount ISO as CDROM media" acceptance tests.
 
  * VSPHERE\_CDROM\_DATASTORE
  * VSPHERE\_CDROM\_PATH
@@ -103,3 +145,5 @@ Once all these variables are in place, the tests can be run like this:
 ```
 make testacc TEST=./builtin/providers/vsphere
 ```
+
+
