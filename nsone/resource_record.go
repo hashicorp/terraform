@@ -58,7 +58,7 @@ func recordResource() *schema.Resource {
 			"use_client_subnet": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
+				Default:  false,
 			},
 			"answers": &schema.Schema{
 				Type:     schema.TypeSet,
