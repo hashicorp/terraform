@@ -706,6 +706,47 @@ func TestInterpolateFuncLookup(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncLookupWildCard(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.foo": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+					"*": ast.Variable{
+						Type:  ast.TypeString,
+						Value: "wild",
+					},
+				},
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${lookup(var.foo, "bar")}`,
+				"baz",
+				false,
+			},
+
+			// Invalid key
+			{
+				`${lookup(var.foo, "baz")}`,
+				"wild",
+				false,
+			},
+
+			// Too many args
+			{
+				`${lookup(var.foo, "bar", "baz")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncKeys(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
