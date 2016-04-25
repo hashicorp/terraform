@@ -2,6 +2,8 @@
 
 FEATURES:
 
+ * **New resource:** `aws_api_gateway_authorizer` [GH-6320]
+
 IMPROVEMENTS:
 
  * provider/vsphere: Add support for `memory_reservation` to ``vsphere_virtual_machine` [GH-6036]
