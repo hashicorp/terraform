@@ -62,6 +62,8 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "memory", "4096"),
 					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory_reservation", "4096"),
+					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.#", "2"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.0.template", template),
@@ -632,6 +634,7 @@ resource "vsphere_virtual_machine" "foo" {
 %s
     vcpu = 2
     memory = 4096
+    memory_reservation = 4096
     gateway = "%s"
     network_interface {
         label = "%s"
