@@ -168,6 +168,21 @@ func validateMaxLength(length int) schema.SchemaValidateFunc {
 	}
 }
 
+func validateIntegerInRange(min, max int) schema.SchemaValidateFunc {
+	return func(v interface{}, k string) (ws []string, errors []error) {
+		value := v.(int)
+		if value < min {
+			errors = append(errors, fmt.Errorf(
+				"%q cannot be lower than %d: %d", k, min, value))
+		}
+		if value > max {
+			errors = append(errors, fmt.Errorf(
+				"%q cannot be higher than %d: %d", k, max, value))
+		}
+		return
+	}
+}
+
 func validateCloudWatchEventTargetId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) > 64 {
