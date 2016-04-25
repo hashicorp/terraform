@@ -4,6 +4,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * provider/vsphere: Add support for `memory_reservation` to ``vsphere_virtual_machine` [GH-6036]
+
 BUG FIXES:
 
 ## 0.6.15 (April 22, 2016)
