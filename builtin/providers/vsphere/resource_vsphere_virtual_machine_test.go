@@ -62,6 +62,8 @@ func TestAccVSphereVirtualMachine_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "memory", "4096"),
 					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.foo", "memory_reservation", "4096"),
+					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.#", "2"),
 					resource.TestCheckResourceAttr(
 						"vsphere_virtual_machine.foo", "disk.0.template", template),
@@ -388,6 +390,71 @@ func TestAccVSphereVirtualMachine_createWithFolder(t *testing.T) {
 	})
 }
 
+func TestAccVSphereVirtualMachine_createWithCdrom(t *testing.T) {
+	var vm virtualMachine
+	var locationOpt string
+	var datastoreOpt string
+
+	if v := os.Getenv("VSPHERE_DATACENTER"); v != "" {
+		locationOpt += fmt.Sprintf("    datacenter = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_CLUSTER"); v != "" {
+		locationOpt += fmt.Sprintf("    cluster = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_RESOURCE_POOL"); v != "" {
+		locationOpt += fmt.Sprintf("    resource_pool = \"%s\"\n", v)
+	}
+	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
+		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
+	}
+	template := os.Getenv("VSPHERE_TEMPLATE")
+	label := os.Getenv("VSPHERE_NETWORK_LABEL_DHCP")
+	cdromDatastore := os.Getenv("VSPHERE_CDROM_DATASTORE")
+	cdromPath := os.Getenv("VSPHERE_CDROM_PATH")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVSphereVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testAccCheckVsphereVirtualMachineConfig_cdrom,
+					locationOpt,
+					label,
+					datastoreOpt,
+					template,
+					cdromDatastore,
+					cdromPath,
+				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVSphereVirtualMachineExists("vsphere_virtual_machine.with_cdrom", &vm),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "name", "terraform-test-with-cdrom"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "vcpu", "2"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "memory", "4096"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "disk.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "disk.0.template", template),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "cdrom.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "cdrom.0.datastore", cdromDatastore),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "cdrom.0.path", cdromPath),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "network_interface.#", "1"),
+					resource.TestCheckResourceAttr(
+						"vsphere_virtual_machine.with_cdrom", "network_interface.0.label", label),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVSphereVirtualMachineDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*govmomi.Client)
 	finder := find.NewFinder(client.Client, true)
@@ -567,6 +634,7 @@ resource "vsphere_virtual_machine" "foo" {
 %s
     vcpu = 2
     memory = 4096
+    memory_reservation = 4096
     gateway = "%s"
     network_interface {
         label = "%s"
@@ -664,7 +732,7 @@ resource "vsphere_virtual_machine" "folder" {
 
 const testAccCheckVSphereVirtualMachineConfig_createWithFolder = `
 resource "vsphere_folder" "with_folder" {
-	path = "%s"	
+	path = "%s"
 %s
 }
 resource "vsphere_virtual_machine" "with_folder" {
@@ -679,6 +747,27 @@ resource "vsphere_virtual_machine" "with_folder" {
     disk {
 %s
         template = "%s"
+    }
+}
+`
+
+const testAccCheckVsphereVirtualMachineConfig_cdrom = `
+resource "vsphere_virtual_machine" "with_cdrom" {
+    name = "terraform-test-with-cdrom"
+%s
+    vcpu = 2
+    memory = 4096
+    network_interface {
+        label = "%s"
+    }
+    disk {
+%s
+        template = "%s"
+    }
+
+    cdrom {
+        datastore = "%s"
+        path = "%s"
     }
 }
 `

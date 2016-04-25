@@ -17,6 +17,23 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 		Delete: resourceComputeGlobalForwardingRuleDelete,
 
 		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"target": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -31,38 +48,28 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 				Computed: true,
 			},
 
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"port_range": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"region": &schema.Schema{
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
+			"region": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please remove this attribute (it was never used)",
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-
-			"target": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
 			},
 		},
 	}
@@ -70,6 +77,11 @@ func resourceComputeGlobalForwardingRule() *schema.Resource {
 
 func resourceComputeGlobalForwardingRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	frule := &compute.ForwardingRule{
 		IPAddress:   d.Get("ip_address").(string),
@@ -81,7 +93,7 @@ func resourceComputeGlobalForwardingRuleCreate(d *schema.ResourceData, meta inte
 	}
 
 	op, err := config.clientCompute.GlobalForwardingRules.Insert(
-		config.Project, frule).Do()
+		project, frule).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating Global Forwarding Rule: %s", err)
 	}
@@ -100,13 +112,18 @@ func resourceComputeGlobalForwardingRuleCreate(d *schema.ResourceData, meta inte
 func resourceComputeGlobalForwardingRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	d.Partial(true)
 
 	if d.HasChange("target") {
 		target_name := d.Get("target").(string)
 		target_ref := &compute.TargetReference{Target: target_name}
 		op, err := config.clientCompute.GlobalForwardingRules.SetTarget(
-			config.Project, d.Id(), target_ref).Do()
+			project, d.Id(), target_ref).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating target: %s", err)
 		}
@@ -127,8 +144,13 @@ func resourceComputeGlobalForwardingRuleUpdate(d *schema.ResourceData, meta inte
 func resourceComputeGlobalForwardingRuleRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	frule, err := config.clientCompute.GlobalForwardingRules.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Global Forwarding Rule %q because it's gone", d.Get("name").(string))
@@ -151,10 +173,15 @@ func resourceComputeGlobalForwardingRuleRead(d *schema.ResourceData, meta interf
 func resourceComputeGlobalForwardingRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the GlobalForwardingRule
 	log.Printf("[DEBUG] GlobalForwardingRule delete request")
 	op, err := config.clientCompute.GlobalForwardingRules.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting GlobalForwardingRule: %s", err)
 	}

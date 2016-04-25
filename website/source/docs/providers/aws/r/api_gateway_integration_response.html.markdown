@@ -57,9 +57,9 @@ resource "aws_api_gateway_integration_response" "MyDemoIntegrationResponse" {
 
 The following arguments are supported:
 
-* `rest_api_id` - (Required) API Gateway ID
-* `resource_id` - (Required) API Gateway Resource ID
-* `http_method` - (Required) HTTP Method (GET, POST, PUT, DELETE, HEAD, OPTION)
-* `status_code` - (Required) Specify the HTTP status code.
-* `response_models` - (Optional) Specifies the  Model resources used for the response's content type
-* `response_parameters` - (Optional) Represents response parameters that can be sent back to the caller
+* `rest_api_id` - (Required) The ID of the associated REST API
+* `resource_id` - (Required) The API resource ID
+* `http_method` - (Required) The HTTP method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`)
+* `status_code` - (Required) The HTTP status code
+* `selection_pattern` - (Optional) Specifies the regular expression pattern used to choose an integration response based on the response from the backend
+* `response_templates` - (Optional) A map specifying the templates used to transform the integration response body

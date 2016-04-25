@@ -1,6 +1,7 @@
 package cloudstack
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -21,16 +22,31 @@ func resourceCloudStackPortForward() *schema.Resource {
 		Delete: resourceCloudStackPortForwardDelete,
 
 		Schema: map[string]*schema.Schema{
+			"ip_address_id": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"ipaddress"},
+			},
+
 			"ipaddress": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Please use the `ip_address_id` field instead",
+				ConflictsWith: []string{"ip_address_id"},
 			},
 
 			"managed": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"forward": &schema.Schema{
@@ -53,9 +69,15 @@ func resourceCloudStackPortForward() *schema.Resource {
 							Required: true,
 						},
 
-						"virtual_machine": &schema.Schema{
+						"virtual_machine_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+						},
+
+						"virtual_machine": &schema.Schema{
+							Type:       schema.TypeString,
+							Optional:   true,
+							Deprecated: "Please use the `virtual_machine_id` field instead",
 						},
 
 						"uuid": &schema.Schema{
@@ -72,8 +94,21 @@ func resourceCloudStackPortForward() *schema.Resource {
 func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
+	ipaddress, ok := d.GetOk("ip_address_id")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if !ok {
+		return errors.New("Either `ip_address_id` or [deprecated] `ipaddress` must be provided.")
+	}
+
 	// Retrieve the ipaddress ID
-	ipaddressid, e := retrieveID(cs, "ipaddress", d.Get("ipaddress").(string))
+	ipaddressid, e := retrieveID(
+		cs,
+		"ip_address",
+		ipaddress.(string),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if e != nil {
 		return e.Error()
 	}
@@ -149,13 +184,30 @@ func createPortForward(
 		return err
 	}
 
+	virtualmachine, ok := forward["virtual_machine_id"]
+	if !ok {
+		virtualmachine, ok = forward["virtual_machine"]
+	}
+	if !ok {
+		return errors.New(
+			"Either `virtual_machine_id` or [deprecated] `virtual_machine` must be provided.")
+	}
+
 	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", forward["virtual_machine"].(string))
+	virtualmachineid, e := retrieveID(
+		cs,
+		"virtual_machine",
+		virtualmachine.(string),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if e != nil {
 		return e.Error()
 	}
 
-	vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(virtualmachineid)
+	vm, _, err := cs.VirtualMachine.GetVirtualMachineByID(
+		virtualmachineid,
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		return err
 	}
@@ -188,6 +240,10 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 	p := cs.Firewall.NewListPortForwardingRulesParams()
 	p.SetIpaddressid(d.Id())
 	p.SetListall(true)
+
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
+	}
 
 	l, err := cs.Firewall.ListPortForwardingRules(p)
 	if err != nil {
@@ -237,12 +293,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			forward["protocol"] = f.Protocol
 			forward["private_port"] = privPort
 			forward["public_port"] = pubPort
-
-			if isID(forward["virtual_machine"].(string)) {
-				forward["virtual_machine"] = f.Virtualmachineid
-			} else {
-				forward["virtual_machine"] = f.Virtualmachinename
-			}
+			forward["virtual_machine_id"] = f.Virtualmachineid
 
 			forwards.Add(forward)
 		}
@@ -254,11 +305,11 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 		for uuid := range forwardMap {
 			// Make a dummy forward to hold the unknown UUID
 			forward := map[string]interface{}{
-				"protocol":        uuid,
-				"private_port":    0,
-				"public_port":     0,
-				"virtual_machine": uuid,
-				"uuid":            uuid,
+				"protocol":           uuid,
+				"private_port":       0,
+				"public_port":        0,
+				"virtual_machine_id": uuid,
+				"uuid":               uuid,
 			}
 
 			// Add the dummy forward to the forwards set
@@ -288,9 +339,9 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 		// set to make sure we end up in a consistent state
 		forwards := o.(*schema.Set).Intersection(n.(*schema.Set))
 
-		// First loop through all the new forwards and create (before destroy) them
-		if nrs.Len() > 0 {
-			err := createPortForwards(d, meta, forwards, nrs)
+		// First loop through all the old forwards and delete them
+		if ors.Len() > 0 {
+			err := deletePortForwards(d, meta, forwards, ors)
 
 			// We need to update this first to preserve the correct state
 			d.Set("forward", forwards)
@@ -300,9 +351,9 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 			}
 		}
 
-		// Then loop through all the old forwards and delete them
-		if ors.Len() > 0 {
-			err := deletePortForwards(d, meta, forwards, ors)
+		// Then loop through all the new forwards and create them
+		if nrs.Len() > 0 {
+			err := createPortForwards(d, meta, forwards, nrs)
 
 			// We need to update this first to preserve the correct state
 			d.Set("forward", forwards)

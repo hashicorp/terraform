@@ -12,10 +12,10 @@
     <%= stylesheet_link_tag "application" %>
 
     <!--[if lt IE 9]>
-      <%= javascript_include_tag "html5shiv", "respond.min" %>
+      <%= javascript_include_tag "ie-compat" %>
     <![endif]-->
 
     <%= yield_content :head %>
   </head>
 
-  <body id="page-<%= current_page.data.page_title ? "#{current_page.data.page_title}" : "home" %>" class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>">
+  <body id="page-<%= current_page.data.page_title ? "#{current_page.data.page_title}" : "home" %>" class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %> -displaying-bnr">

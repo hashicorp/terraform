@@ -226,6 +226,35 @@ func (c *EC2) WaitUntilImageAvailable(input *DescribeImagesInput) error {
 	return w.Wait()
 }
 
+func (c *EC2) WaitUntilImageExists(input *DescribeImagesInput) error {
+	waiterCfg := waiter.Config{
+		Operation:   "DescribeImages",
+		Delay:       15,
+		MaxAttempts: 40,
+		Acceptors: []waiter.WaitAcceptor{
+			{
+				State:    "success",
+				Matcher:  "path",
+				Argument: "length(Images[]) > `0`",
+				Expected: true,
+			},
+			{
+				State:    "retry",
+				Matcher:  "error",
+				Argument: "",
+				Expected: "InvalidAMIID.NotFound",
+			},
+		},
+	}
+
+	w := waiter.Waiter{
+		Client: c,
+		Input:  input,
+		Config: waiterCfg,
+	}
+	return w.Wait()
+}
+
 func (c *EC2) WaitUntilInstanceExists(input *DescribeInstancesInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeInstances",
@@ -242,7 +271,7 @@ func (c *EC2) WaitUntilInstanceExists(input *DescribeInstancesInput) error {
 				State:    "retry",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidInstanceIDNotFound",
+				Expected: "InvalidInstanceID.NotFound",
 			},
 		},
 	}
@@ -289,7 +318,7 @@ func (c *EC2) WaitUntilInstanceRunning(input *DescribeInstancesInput) error {
 				State:    "retry",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidInstanceIDNotFound",
+				Expected: "InvalidInstanceID.NotFound",
 			},
 		},
 	}
@@ -318,7 +347,7 @@ func (c *EC2) WaitUntilInstanceStatusOk(input *DescribeInstanceStatusInput) erro
 				State:    "retry",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidInstanceIDNotFound",
+				Expected: "InvalidInstanceID.NotFound",
 			},
 		},
 	}
@@ -417,7 +446,7 @@ func (c *EC2) WaitUntilKeyPairExists(input *DescribeKeyPairsInput) error {
 				State:    "retry",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidKeyPairNotFound",
+				Expected: "InvalidKeyPair.NotFound",
 			},
 		},
 	}
@@ -690,7 +719,7 @@ func (c *EC2) WaitUntilVolumeDeleted(input *DescribeVolumesInput) error {
 				State:    "success",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidVolumeNotFound",
+				Expected: "InvalidVolume.NotFound",
 			},
 		},
 	}
@@ -771,7 +800,7 @@ func (c *EC2) WaitUntilVpcPeeringConnectionExists(input *DescribeVpcPeeringConne
 				State:    "retry",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidVpcPeeringConnectionIDNotFound",
+				Expected: "InvalidVpcPeeringConnectionID.NotFound",
 			},
 		},
 	}

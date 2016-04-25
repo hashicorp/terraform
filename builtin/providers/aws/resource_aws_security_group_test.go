@@ -15,6 +15,123 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestProtocolStateFunc(t *testing.T) {
+	cases := []struct {
+		input    interface{}
+		expected string
+	}{
+		{
+			input:    "tcp",
+			expected: "tcp",
+		},
+		{
+			input:    6,
+			expected: "",
+		},
+		{
+			input:    "17",
+			expected: "udp",
+		},
+		{
+			input:    "all",
+			expected: "-1",
+		},
+		{
+			input:    "-1",
+			expected: "-1",
+		},
+		{
+			input:    -1,
+			expected: "",
+		},
+		{
+			input:    "1",
+			expected: "icmp",
+		},
+		{
+			input:    "icmp",
+			expected: "icmp",
+		},
+		{
+			input:    1,
+			expected: "",
+		},
+	}
+	for _, c := range cases {
+		result := protocolStateFunc(c.input)
+		if result != c.expected {
+			t.Errorf("Error matching protocol, expected (%s), got (%s)", c.expected, result)
+		}
+	}
+}
+
+func TestProtocolForValue(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "tcp",
+			expected: "tcp",
+		},
+		{
+			input:    "6",
+			expected: "tcp",
+		},
+		{
+			input:    "udp",
+			expected: "udp",
+		},
+		{
+			input:    "17",
+			expected: "udp",
+		},
+		{
+			input:    "all",
+			expected: "-1",
+		},
+		{
+			input:    "-1",
+			expected: "-1",
+		},
+		{
+			input:    "tCp",
+			expected: "tcp",
+		},
+		{
+			input:    "6",
+			expected: "tcp",
+		},
+		{
+			input:    "UDp",
+			expected: "udp",
+		},
+		{
+			input:    "17",
+			expected: "udp",
+		},
+		{
+			input:    "ALL",
+			expected: "-1",
+		},
+		{
+			input:    "icMp",
+			expected: "icmp",
+		},
+		{
+			input:    "1",
+			expected: "icmp",
+		},
+	}
+
+	for _, c := range cases {
+		result := protocolForValue(c.input)
+		if result != c.expected {
+			t.Errorf("Error matching protocol, expected (%s), got (%s)", c.expected, result)
+		}
+	}
+}
+
 func TestResourceAwsSecurityGroupIPPermGather(t *testing.T) {
 	raw := []*ec2.IpPermission{
 		&ec2.IpPermission{
@@ -119,9 +236,10 @@ func TestAccAWSSecurityGroup_basic(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfig,
@@ -152,9 +270,11 @@ func TestAccAWSSecurityGroup_namePrefix(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_security_group.baz",
+		IDRefreshIgnore: []string{"name_prefix"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupPrefixNameConfig,
@@ -186,9 +306,10 @@ func TestAccAWSSecurityGroup_self(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfigSelf,
@@ -225,9 +346,10 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfigVpc,
@@ -277,9 +399,10 @@ func TestAccAWSSecurityGroup_vpcNegOneIngress(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfigVpcNegOneIngress,
@@ -310,9 +433,10 @@ func TestAccAWSSecurityGroup_MultiIngress(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfigMultiIngress,
@@ -328,9 +452,10 @@ func TestAccAWSSecurityGroup_Change(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfig,
@@ -353,9 +478,10 @@ func TestAccAWSSecurityGroup_generatedName(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfig_generatedName,
@@ -382,9 +508,10 @@ func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
 
 	// VPC
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.worker",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfigDefaultEgress,
@@ -398,9 +525,10 @@ func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
 	// Classic
 	var group ec2.SecurityGroup
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfigClassic,
@@ -841,12 +969,17 @@ func testAccCheckAWSSecurityGroupExistsWithoutDefault(n string) resource.TestChe
 }
 
 const testAccAWSSecurityGroupConfig = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "web" {
   name = "terraform_acceptance_test_example"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
-    protocol = "tcp"
+    protocol = "6"
     from_port = 80
     to_port = 8000
     cidr_blocks = ["10.0.0.0/8"]
@@ -866,9 +999,14 @@ resource "aws_security_group" "web" {
 `
 
 const testAccAWSSecurityGroupConfigChange = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "web" {
   name = "terraform_acceptance_test_example"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol = "tcp"
@@ -894,9 +1032,14 @@ resource "aws_security_group" "web" {
 `
 
 const testAccAWSSecurityGroupConfigSelf = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "web" {
   name = "terraform_acceptance_test_example"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol = "tcp"
@@ -959,9 +1102,14 @@ resource "aws_security_group" "web" {
 }
 `
 const testAccAWSSecurityGroupConfigMultiIngress = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "worker" {
   name = "terraform_acceptance_test_example_1"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol = "tcp"
@@ -981,6 +1129,7 @@ resource "aws_security_group" "worker" {
 resource "aws_security_group" "web" {
   name = "terraform_acceptance_test_example_2"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol = "tcp"
@@ -1013,9 +1162,14 @@ resource "aws_security_group" "web" {
 `
 
 const testAccAWSSecurityGroupConfigTags = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "foo" {
-	name = "terraform_acceptance_test_example"
+  name = "terraform_acceptance_test_example"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol = "tcp"
@@ -1038,9 +1192,14 @@ resource "aws_security_group" "foo" {
 `
 
 const testAccAWSSecurityGroupConfigTagsUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "foo" {
   name = "terraform_acceptance_test_example"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol = "tcp"
@@ -1063,7 +1222,13 @@ resource "aws_security_group" "foo" {
 `
 
 const testAccAWSSecurityGroupConfig_generatedName = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "web" {
+  vpc_id = "${aws_vpc.foo.id}"
+
   ingress {
     protocol = "tcp"
     from_port = 80
@@ -1157,14 +1322,20 @@ resource "aws_security_group" "web" {
 
 func testAccAWSSecurityGroupConfig_drift_complex() string {
 	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "otherweb" {
   name        = "tf_acc_%d"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_security_group" "web" {
   name        = "tf_acc_%d"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol    = "tcp"
@@ -1215,8 +1386,13 @@ resource "aws_security_group" "web" {
 }
 
 const testAccAWSSecurityGroupCombindCIDRandGroups = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "two" {
 	name = "tf-test-1"
+	vpc_id = "${aws_vpc.foo.id}"
 	tags {
 		Name = "tf-test-1"
 	}
@@ -1224,6 +1400,7 @@ resource "aws_security_group" "two" {
 
 resource "aws_security_group" "one" {
 	name = "tf-test-2"
+	vpc_id = "${aws_vpc.foo.id}"
 	tags {
 		Name = "tf-test-w"
 	}
@@ -1231,6 +1408,7 @@ resource "aws_security_group" "one" {
 
 resource "aws_security_group" "three" {
 	name = "tf-test-3"
+	vpc_id = "${aws_vpc.foo.id}"
 	tags {
 		Name = "tf-test-3"
 	}
@@ -1238,6 +1416,7 @@ resource "aws_security_group" "three" {
 
 resource "aws_security_group" "mixed" {
   name = "tf-mix-test"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     from_port   = 80
@@ -1259,9 +1438,14 @@ resource "aws_security_group" "mixed" {
 `
 
 const testAccAWSSecurityGroupConfig_ingressWithCidrAndSGs = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
 resource "aws_security_group" "other_web" {
   name        = "tf_other_acc_tests"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   tags {
     Name = "tf-acc-test"
@@ -1271,6 +1455,7 @@ resource "aws_security_group" "other_web" {
 resource "aws_security_group" "web" {
   name        = "terraform_acceptance_test_example"
   description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
   ingress {
     protocol  = "tcp"

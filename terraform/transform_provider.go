@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
@@ -214,9 +215,11 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 		if pn, ok := v.(GraphNodeProvider); !ok || pn.ProviderName() == "" {
 			continue
 		}
-
 		// Does anything depend on this? If not, then prune it.
 		if s := g.UpEdges(v); s.Len() == 0 {
+			if nv, ok := v.(dag.NamedVertex); ok {
+				log.Printf("[DEBUG] Pruning provider with no dependencies: %s", nv.Name())
+			}
 			g.Remove(v)
 		}
 	}
@@ -340,7 +343,9 @@ func (n *graphNodeDisabledProviderFlat) ProviderName() string {
 
 // GraphNodeDependable impl.
 func (n *graphNodeDisabledProviderFlat) DependableName() []string {
-	return []string{n.Name()}
+	return modulePrefixList(
+		n.graphNodeDisabledProvider.DependableName(),
+		modulePrefixStr(n.PathValue))
 }
 
 func (n *graphNodeDisabledProviderFlat) DependentOn() []string {
@@ -349,13 +354,8 @@ func (n *graphNodeDisabledProviderFlat) DependentOn() []string {
 	// If we're in a module, then depend on our parent's provider
 	if len(n.PathValue) > 1 {
 		prefix := modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
-		if prefix != "" {
-			prefix += "."
-		}
-
-		result = append(result, fmt.Sprintf(
-			"%s%s",
-			prefix, n.graphNodeDisabledProvider.Name()))
+		result = modulePrefixList(
+			n.graphNodeDisabledProvider.DependableName(), prefix)
 	}
 
 	return result
@@ -474,13 +474,7 @@ func (n *graphNodeProviderFlat) DependentOn() []string {
 	// If we're in a module, then depend on our parent's provider
 	if len(n.PathValue) > 1 {
 		prefix := modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
-		if prefix != "" {
-			prefix += "."
-		}
-
-		result = append(result, fmt.Sprintf(
-			"%s%s",
-			prefix, n.graphNodeProvider.Name()))
+		result = modulePrefixList(n.graphNodeProvider.DependableName(), prefix)
 	}
 
 	return result

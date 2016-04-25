@@ -18,6 +18,13 @@ resource "aws_opsworks_stack" "main" {
     region = "us-west-1"
     service_role_arn = "${aws_iam_role.opsworks.arn}"
     default_instance_profile_arn = "${aws_iam_instance_profile.opsworks.arn}"
+    custom_json = <<EOT
+{
+ "foobar": {
+    "version": "1.0.0"
+  }
+}
+EOT
 }
 ```
 
@@ -38,6 +45,7 @@ The following arguments are supported:
 * `configuration_manager_version` - (Optional) Version of the configuratino manager to use. Defaults to "11.4".
 * `custom_cookbooks_source` - (Optional) When `use_custom_cookbooks` is set, provide this sub-object as
   described below.
+* `custom_json` - (Optional) User defined JSON passed to "Chef". Use a "here doc" for multiline JSON.
 * `default_os` - (Optional) Name of OS that will be installed on instances by default.
 * `default_root_device_type` - (Optional) Name of the type of root device instances will have by default.
 * `default_ssh_key_name` - (Optional) Name of the SSH keypair that instances will have by default.
@@ -51,6 +59,7 @@ The following arguments are supported:
 * `use_opsworks_security_groups` - (Optional) Boolean value controlling whether the standard OpsWorks
   security groups apply to created instances.
 * `vpc_id` - (Optional) The id of the VPC that this stack belongs to.
+* `custom_json` - (Optional) Custom JSON attributes to apply to the entire stack.
 
 The `custom_cookbooks_source` block supports the following arguments:
 

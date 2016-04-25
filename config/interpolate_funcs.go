@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -40,6 +41,7 @@ func Funcs() map[string]ast.Function {
 		"formatlist":   interpolationFuncFormatList(),
 		"index":        interpolationFuncIndex(),
 		"join":         interpolationFuncJoin(),
+		"jsonencode":   interpolationFuncJSONEncode(),
 		"length":       interpolationFuncLength(),
 		"lower":        interpolationFuncLower(),
 		"md5":          interpolationFuncMd5(),
@@ -360,6 +362,23 @@ func interpolationFuncJoin() ast.Function {
 			}
 
 			return strings.Join(list, args[0].(string)), nil
+		},
+	}
+}
+
+// interpolationFuncJSONEncode implements the "jsonencode" function that encodes
+// a string as its JSON representation.
+func interpolationFuncJSONEncode() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			s := args[0].(string)
+			jEnc, err := json.Marshal(s)
+			if err != nil {
+				return "", fmt.Errorf("failed to encode JSON data '%s'", s)
+			}
+			return string(jEnc), nil
 		},
 	}
 }

@@ -22,18 +22,6 @@ func resourceComputeNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipv4_range": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use google_compute_subnetwork resources instead.",
-			},
-
-			"gateway_ipv4": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"auto_create_subnetworks": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -52,6 +40,24 @@ func resourceComputeNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"gateway_ipv4": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ipv4_range": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use google_compute_subnetwork resources instead.",
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -62,6 +68,11 @@ func resourceComputeNetwork() *schema.Resource {
 
 func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	//
 	// Possible modes:
@@ -91,7 +102,7 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] Network insert request: %#v", network)
 	op, err := config.clientCompute.Networks.Insert(
-		config.Project, network).Do()
+		project, network).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating network: %s", err)
 	}
@@ -110,8 +121,13 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	network, err := config.clientCompute.Networks.Get(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing Network %q because it's gone", d.Get("name").(string))
@@ -133,9 +149,14 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 func resourceComputeNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	// Delete the network
 	op, err := config.clientCompute.Networks.Delete(
-		config.Project, d.Id()).Do()
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting network: %s", err)
 	}

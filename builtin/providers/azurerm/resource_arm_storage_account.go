@@ -200,7 +200,7 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	resp, err := client.GetProperties(resGroup, name)
 	if err != nil {
-		if resp.StatusCode == http.StatusNoContent {
+		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
 			return nil
 		}

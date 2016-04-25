@@ -1,6 +1,7 @@
 package cloudstack
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -16,16 +17,32 @@ func resourceCloudStackVPNConnection() *schema.Resource {
 		Delete: resourceCloudStackVPNConnectionDelete,
 
 		Schema: map[string]*schema.Schema{
-			"customergatewayid": &schema.Schema{
+			"customer_gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"customergatewayid": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `customer_gateway_id` field instead",
+			},
+
+			"vpn_gateway_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
 			"vpngatewayid": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `vpn_gateway_id` field instead",
 			},
 		},
 	}
@@ -34,10 +51,27 @@ func resourceCloudStackVPNConnection() *schema.Resource {
 func resourceCloudStackVPNConnectionCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
+	customergatewayid, ok := d.GetOk("customer_gateway_id")
+	if !ok {
+		customergatewayid, ok = d.GetOk("customergatewayid")
+	}
+	if !ok {
+		return errors.New(
+			"Either `customer_gateway_id` or [deprecated] `customergatewayid` must be provided.")
+	}
+
+	vpngatewayid, ok := d.GetOk("vpn_gateway_id")
+	if !ok {
+		vpngatewayid, ok = d.GetOk("vpngatewayid")
+	}
+	if !ok {
+		return errors.New("Either `vpn_gateway_id` or [deprecated] `vpngatewayid` must be provided.")
+	}
+
 	// Create a new parameter struct
 	p := cs.VPN.NewCreateVpnConnectionParams(
-		d.Get("customergatewayid").(string),
-		d.Get("vpngatewayid").(string),
+		customergatewayid.(string),
+		vpngatewayid.(string),
 	)
 
 	// Create the new VPN Connection
@@ -66,8 +100,8 @@ func resourceCloudStackVPNConnectionRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.Set("customergatewayid", v.S2scustomergatewayid)
-	d.Set("vpngatewayid", v.S2svpngatewayid)
+	d.Set("customer_gateway_id", v.S2scustomergatewayid)
+	d.Set("vpn_gateway_id", v.S2svpngatewayid)
 
 	return nil
 }

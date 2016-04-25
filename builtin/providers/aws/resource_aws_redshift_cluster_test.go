@@ -257,6 +257,10 @@ func TestResourceAWSRedshiftClusterMasterUsernameValidation(t *testing.T) {
 			Value:    randomString(129),
 			ErrCount: 1,
 		},
+		{
+			Value:    "testing_testing123",
+			ErrCount: 0,
+		},
 	}
 
 	for _, tc := range cases {
@@ -277,7 +281,7 @@ resource "aws_redshift_cluster" "default" {
   cluster_identifier = "tf-redshift-cluster-%d"
   availability_zone = "us-west-2a"
   database_name = "mydb"
-  master_username = "foo"
+  master_username = "foo_test"
   master_password = "Mustbe8characters"
   node_type = "dc1.large"
   automated_snapshot_retention_period = 7

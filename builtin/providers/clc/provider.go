@@ -30,6 +30,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("CLC_PASSWORD", nil),
 				Description: "Your CLC password",
 			},
+			"account": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CLC_ACCOUNT", ""),
+				Description: "Account alias override",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -53,6 +59,10 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, fmt.Errorf("Failed to create CLC config with provided details: %v", err)
 	}
 	config.UserAgent = fmt.Sprintf("terraform-clc terraform/%s", terraform.Version)
+	// user requested alias override or sub-account
+	if al := d.Get("account").(string); al != "" {
+		config.Alias = al
+	}
 
 	client := clc.New(config)
 	if err := client.Authenticate(); err != nil {

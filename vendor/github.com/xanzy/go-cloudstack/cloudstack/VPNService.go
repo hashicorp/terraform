@@ -1,5 +1,5 @@
 //
-// Copyright 2014, Sander van Harmelen
+// Copyright 2016, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -388,11 +388,17 @@ func (s *VPNService) NewListRemoteAccessVpnsParams() *ListRemoteAccessVpnsParams
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPNService) GetRemoteAccessVpnByID(id string) (*RemoteAccessVpn, int, error) {
+func (s *VPNService) GetRemoteAccessVpnByID(id string, opts ...OptionFunc) (*RemoteAccessVpn, int, error) {
 	p := &ListRemoteAccessVpnsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListRemoteAccessVpns(p)
 	if err != nil {
@@ -402,21 +408,6 @@ func (s *VPNService) GetRemoteAccessVpnByID(id string) (*RemoteAccessVpn, int, e
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListRemoteAccessVpns(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -926,11 +917,17 @@ func (s *VPNService) NewListVpnUsersParams() *ListVpnUsersParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPNService) GetVpnUserByID(id string) (*VpnUser, int, error) {
+func (s *VPNService) GetVpnUserByID(id string, opts ...OptionFunc) (*VpnUser, int, error) {
 	p := &ListVpnUsersParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListVpnUsers(p)
 	if err != nil {
@@ -940,21 +937,6 @@ func (s *VPNService) GetVpnUserByID(id string) (*VpnUser, int, error) {
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVpnUsers(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -1026,6 +1008,10 @@ func (p *CreateVpnCustomerGatewayParams) toURLValues() url.Values {
 	if v, found := p.p["esppolicy"]; found {
 		u.Set("esppolicy", v.(string))
 	}
+	if v, found := p.p["forceencap"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("forceencap", vv)
+	}
 	if v, found := p.p["gateway"]; found {
 		u.Set("gateway", v.(string))
 	}
@@ -1041,6 +1027,9 @@ func (p *CreateVpnCustomerGatewayParams) toURLValues() url.Values {
 	}
 	if v, found := p.p["name"]; found {
 		u.Set("name", v.(string))
+	}
+	if v, found := p.p["projectid"]; found {
+		u.Set("projectid", v.(string))
 	}
 	return u
 }
@@ -1093,6 +1082,14 @@ func (p *CreateVpnCustomerGatewayParams) SetEsppolicy(v string) {
 	return
 }
 
+func (p *CreateVpnCustomerGatewayParams) SetForceencap(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["forceencap"] = v
+	return
+}
+
 func (p *CreateVpnCustomerGatewayParams) SetGateway(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
@@ -1130,6 +1127,14 @@ func (p *CreateVpnCustomerGatewayParams) SetName(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["name"] = v
+	return
+}
+
+func (p *CreateVpnCustomerGatewayParams) SetProjectid(v string) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["projectid"] = v
 	return
 }
 
@@ -1189,6 +1194,7 @@ type CreateVpnCustomerGatewayResponse struct {
 	Dpd         bool   `json:"dpd,omitempty"`
 	Esplifetime int64  `json:"esplifetime,omitempty"`
 	Esppolicy   string `json:"esppolicy,omitempty"`
+	Forceencap  bool   `json:"forceencap,omitempty"`
 	Gateway     string `json:"gateway,omitempty"`
 	Id          string `json:"id,omitempty"`
 	Ikelifetime int64  `json:"ikelifetime,omitempty"`
@@ -1405,6 +1411,7 @@ type CreateVpnConnectionResponse struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`
@@ -1651,6 +1658,10 @@ func (p *UpdateVpnCustomerGatewayParams) toURLValues() url.Values {
 	if v, found := p.p["esppolicy"]; found {
 		u.Set("esppolicy", v.(string))
 	}
+	if v, found := p.p["forceencap"]; found {
+		vv := strconv.FormatBool(v.(bool))
+		u.Set("forceencap", vv)
+	}
 	if v, found := p.p["gateway"]; found {
 		u.Set("gateway", v.(string))
 	}
@@ -1718,6 +1729,14 @@ func (p *UpdateVpnCustomerGatewayParams) SetEsppolicy(v string) {
 		p.p = make(map[string]interface{})
 	}
 	p.p["esppolicy"] = v
+	return
+}
+
+func (p *UpdateVpnCustomerGatewayParams) SetForceencap(v bool) {
+	if p.p == nil {
+		p.p = make(map[string]interface{})
+	}
+	p.p["forceencap"] = v
 	return
 }
 
@@ -1826,6 +1845,7 @@ type UpdateVpnCustomerGatewayResponse struct {
 	Dpd         bool   `json:"dpd,omitempty"`
 	Esplifetime int64  `json:"esplifetime,omitempty"`
 	Esppolicy   string `json:"esppolicy,omitempty"`
+	Forceencap  bool   `json:"forceencap,omitempty"`
 	Gateway     string `json:"gateway,omitempty"`
 	Id          string `json:"id,omitempty"`
 	Ikelifetime int64  `json:"ikelifetime,omitempty"`
@@ -1936,6 +1956,7 @@ type ResetVpnConnectionResponse struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`
@@ -2076,25 +2097,21 @@ func (s *VPNService) NewListVpnCustomerGatewaysParams() *ListVpnCustomerGateways
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPNService) GetVpnCustomerGatewayID(keyword string) (string, error) {
+func (s *VPNService) GetVpnCustomerGatewayID(keyword string, opts ...OptionFunc) (string, error) {
 	p := &ListVpnCustomerGatewaysParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["keyword"] = keyword
 
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return "", err
+		}
+	}
+
 	l, err := s.ListVpnCustomerGateways(p)
 	if err != nil {
 		return "", err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVpnCustomerGateways(p)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	if l.Count == 0 {
@@ -2116,13 +2133,13 @@ func (s *VPNService) GetVpnCustomerGatewayID(keyword string) (string, error) {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPNService) GetVpnCustomerGatewayByName(name string) (*VpnCustomerGateway, int, error) {
-	id, err := s.GetVpnCustomerGatewayID(name)
+func (s *VPNService) GetVpnCustomerGatewayByName(name string, opts ...OptionFunc) (*VpnCustomerGateway, int, error) {
+	id, err := s.GetVpnCustomerGatewayID(name, opts...)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	r, count, err := s.GetVpnCustomerGatewayByID(id)
+	r, count, err := s.GetVpnCustomerGatewayByID(id, opts...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -2130,11 +2147,17 @@ func (s *VPNService) GetVpnCustomerGatewayByName(name string) (*VpnCustomerGatew
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPNService) GetVpnCustomerGatewayByID(id string) (*VpnCustomerGateway, int, error) {
+func (s *VPNService) GetVpnCustomerGatewayByID(id string, opts ...OptionFunc) (*VpnCustomerGateway, int, error) {
 	p := &ListVpnCustomerGatewaysParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListVpnCustomerGateways(p)
 	if err != nil {
@@ -2144,21 +2167,6 @@ func (s *VPNService) GetVpnCustomerGatewayByID(id string) (*VpnCustomerGateway, 
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVpnCustomerGateways(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -2198,6 +2206,7 @@ type VpnCustomerGateway struct {
 	Dpd         bool   `json:"dpd,omitempty"`
 	Esplifetime int64  `json:"esplifetime,omitempty"`
 	Esppolicy   string `json:"esppolicy,omitempty"`
+	Forceencap  bool   `json:"forceencap,omitempty"`
 	Gateway     string `json:"gateway,omitempty"`
 	Id          string `json:"id,omitempty"`
 	Ikelifetime int64  `json:"ikelifetime,omitempty"`
@@ -2357,11 +2366,17 @@ func (s *VPNService) NewListVpnGatewaysParams() *ListVpnGatewaysParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPNService) GetVpnGatewayByID(id string) (*VpnGateway, int, error) {
+func (s *VPNService) GetVpnGatewayByID(id string, opts ...OptionFunc) (*VpnGateway, int, error) {
 	p := &ListVpnGatewaysParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListVpnGateways(p)
 	if err != nil {
@@ -2371,21 +2386,6 @@ func (s *VPNService) GetVpnGatewayByID(id string) (*VpnGateway, int, error) {
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVpnGateways(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -2577,11 +2577,17 @@ func (s *VPNService) NewListVpnConnectionsParams() *ListVpnConnectionsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *VPNService) GetVpnConnectionByID(id string) (*VpnConnection, int, error) {
+func (s *VPNService) GetVpnConnectionByID(id string, opts ...OptionFunc) (*VpnConnection, int, error) {
 	p := &ListVpnConnectionsParams{}
 	p.p = make(map[string]interface{})
 
 	p.p["id"] = id
+
+	for _, fn := range opts {
+		if err := fn(s.cs, p); err != nil {
+			return nil, -1, err
+		}
+	}
 
 	l, err := s.ListVpnConnections(p)
 	if err != nil {
@@ -2591,21 +2597,6 @@ func (s *VPNService) GetVpnConnectionByID(id string) (*VpnConnection, int, error
 			return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
 		}
 		return nil, -1, err
-	}
-
-	if l.Count == 0 {
-		// If no matches, search all projects
-		p.p["projectid"] = "-1"
-
-		l, err = s.ListVpnConnections(p)
-		if err != nil {
-			if strings.Contains(err.Error(), fmt.Sprintf(
-				"Invalid parameter id value=%s due to incorrect long value format, "+
-					"or entity does not exist", id)) {
-				return nil, 0, fmt.Errorf("No match found for %s: %+v", id, l)
-			}
-			return nil, -1, err
-		}
 	}
 
 	if l.Count == 0 {
@@ -2646,6 +2637,7 @@ type VpnConnection struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`
@@ -2761,6 +2753,7 @@ type UpdateVpnConnectionResponse struct {
 	Dpd                  bool   `json:"dpd,omitempty"`
 	Esplifetime          int64  `json:"esplifetime,omitempty"`
 	Esppolicy            string `json:"esppolicy,omitempty"`
+	Forceencap           bool   `json:"forceencap,omitempty"`
 	Fordisplay           bool   `json:"fordisplay,omitempty"`
 	Gateway              string `json:"gateway,omitempty"`
 	Id                   string `json:"id,omitempty"`

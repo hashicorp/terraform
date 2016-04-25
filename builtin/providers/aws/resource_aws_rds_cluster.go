@@ -368,7 +368,7 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 	_, err := conn.DeleteDBCluster(&deleteOpts)
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"deleting", "backing-up", "modifying"},
+		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
 		Target:     []string{"destroyed"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
 		Timeout:    5 * time.Minute,

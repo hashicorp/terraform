@@ -57,6 +57,8 @@ func TestAccCloudStackInstance_update(t *testing.T) {
 						"cloudstack_instance.foobar", &instance),
 					testAccCheckCloudStackInstanceRenamedAndResized(&instance),
 					resource.TestCheckResourceAttr(
+						"cloudstack_instance.foobar", "name", "terraform-updated"),
+					resource.TestCheckResourceAttr(
 						"cloudstack_instance.foobar", "display_name", "terraform-updated"),
 					resource.TestCheckResourceAttr(
 						"cloudstack_instance.foobar", "service_offering", CLOUDSTACK_SERVICE_OFFERING_2),
@@ -80,7 +82,7 @@ func TestAccCloudStackInstance_fixedIP(t *testing.T) {
 					testAccCheckCloudStackInstanceExists(
 						"cloudstack_instance.foobar", &instance),
 					resource.TestCheckResourceAttr(
-						"cloudstack_instance.foobar", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS1),
+						"cloudstack_instance.foobar", "ip_address", CLOUDSTACK_NETWORK_1_IPADDRESS1),
 				),
 			},
 		},
@@ -166,7 +168,7 @@ func testAccCheckCloudStackInstanceAttributes(
 			return fmt.Errorf("Bad name: %s", instance.Name)
 		}
 
-		if instance.Displayname != "terraform" {
+		if instance.Displayname != "terraform-test" {
 			return fmt.Errorf("Bad display name: %s", instance.Displayname)
 		}
 
@@ -178,8 +180,8 @@ func testAccCheckCloudStackInstanceAttributes(
 			return fmt.Errorf("Bad template: %s", instance.Templatename)
 		}
 
-		if instance.Nic[0].Networkname != CLOUDSTACK_NETWORK_1 {
-			return fmt.Errorf("Bad network: %s", instance.Nic[0].Networkname)
+		if instance.Nic[0].Networkid != CLOUDSTACK_NETWORK_1 {
+			return fmt.Errorf("Bad network ID: %s", instance.Nic[0].Networkid)
 		}
 
 		return nil
@@ -189,6 +191,10 @@ func testAccCheckCloudStackInstanceAttributes(
 func testAccCheckCloudStackInstanceRenamedAndResized(
 	instance *cloudstack.VirtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+
+		if instance.Name != "terraform-updated" {
+			return fmt.Errorf("Bad name: %s", instance.Name)
+		}
 
 		if instance.Displayname != "terraform-updated" {
 			return fmt.Errorf("Bad display name: %s", instance.Displayname)
@@ -226,9 +232,9 @@ func testAccCheckCloudStackInstanceDestroy(s *terraform.State) error {
 var testAccCloudStackInstance_basic = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
-  display_name = "terraform"
+  display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   user_data = "foobar\nfoo\nbar"
@@ -241,10 +247,10 @@ resource "cloudstack_instance" "foobar" {
 
 var testAccCloudStackInstance_renameAndResize = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
-  name = "terraform-test"
+  name = "terraform-updated"
   display_name = "terraform-updated"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   user_data = "foobar\nfoo\nbar"
@@ -258,10 +264,10 @@ resource "cloudstack_instance" "foobar" {
 var testAccCloudStackInstance_fixedIP = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
-  display_name = "terraform"
+  display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
-  ipaddress = "%s"
+  network_id = "%s"
+  ip_address = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -279,10 +285,10 @@ resource "cloudstack_ssh_keypair" "foo" {
 
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
-  display_name = "terraform"
+  display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
-  ipaddress = "%s"
+  network_id = "%s"
+  ip_address = "%s"
   template = "%s"
   zone = "%s"
 	keypair = "${cloudstack_ssh_keypair.foo.name}"
@@ -297,9 +303,9 @@ resource "cloudstack_instance" "foobar" {
 var testAccCloudStackInstance_project = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
-  display_name = "terraform"
+  display_name = "terraform-test"
   service_offering= "%s"
-	network = "%s"
+	network_id = "%s"
   template = "%s"
 	project = "%s"
   zone = "%s"

@@ -22,6 +22,12 @@ func resourceGithubTeam() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"privacy": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "secret",
+				ValidateFunc: validateValueFunc([]string{"secret", "closed"}),
+			},
 		},
 	}
 }
@@ -30,9 +36,11 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
+	p := d.Get("privacy").(string)
 	githubTeam, _, err := client.Organizations.CreateTeam(meta.(*Organization).name, &github.Team{
 		Name:        &n,
 		Description: &desc,
+		Privacy:     &p,
 	})
 	if err != nil {
 		return err
@@ -51,6 +59,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("description", team.Description)
 	d.Set("name", team.Name)
+	d.Set("privacy", team.Privacy)
 	return nil
 }
 
@@ -65,8 +74,10 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
+	privacy := d.Get("privacy").(string)
 	team.Description = &description
 	team.Name = &name
+	team.Privacy = &privacy
 
 	team, _, err = client.Organizations.EditTeam(*team.ID, team)
 	if err != nil {

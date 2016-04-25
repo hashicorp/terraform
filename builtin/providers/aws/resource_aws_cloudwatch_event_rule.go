@@ -213,7 +213,7 @@ func buildPutRuleInputStruct(d *schema.ResourceData) *events.PutRuleInput {
 		input.Description = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("event_pattern"); ok {
-		input.EventPattern = aws.String(v.(string))
+		input.EventPattern = aws.String(normalizeJson(v.(string)))
 	}
 	if v, ok := d.GetOk("role_arn"); ok {
 		input.RoleArn = aws.String(v.(string))

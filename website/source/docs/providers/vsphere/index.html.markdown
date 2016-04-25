@@ -89,6 +89,11 @@ The following environment variables depend on your vSphere environment:
  * VSPHERE\_RESOURCE\_POOL
  * VSPHERE\_DATASTORE
 
+The following additional environment variables are needed for running the "Mount ISO as CDROM media" acceptance tests.
+
+ * VSPHERE\_CDROM\_DATASTORE
+ * VSPHERE\_CDROM\_PATH
+
 
 These are used to set and verify attributes on the `vsphere_virtual_machine`
 resource in tests.

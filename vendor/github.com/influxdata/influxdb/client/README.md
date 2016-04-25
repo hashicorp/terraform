@@ -48,7 +48,6 @@ the configuration below.
 ```go
 package main
 
-import
 import (
 	"net/url"
 	"fmt"

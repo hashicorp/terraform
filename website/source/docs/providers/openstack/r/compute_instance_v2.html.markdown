@@ -118,10 +118,10 @@ The `network` block supports:
 
 The `block_device` block supports:
 
-* `uuid` - (Required) The UUID of the image, volume, or snapshot.
+* `uuid` - (Required unless `source_type` is set to `"blank"` ) The UUID of the image, volume, or snapshot.
 
 * `source_type` - (Required) The source type of the device. Must be one of
-    "image", "volume", or "snapshot".
+    "blank", "image", "volume", or "snapshot".
 
 * `volume_size` - The size of the volume to create (in gigabytes). Required
     in the following combinations: source=image and destination=volume,

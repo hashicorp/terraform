@@ -22,7 +22,7 @@ func resourceGithubMembership() *schema.Resource {
 			"role": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateRoleValueFunc([]string{"member", "admin"}),
+				ValidateFunc: validateValueFunc([]string{"member", "admin"}),
 				Default:      "member",
 			},
 		},
