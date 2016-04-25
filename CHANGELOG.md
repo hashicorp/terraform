@@ -6,7 +6,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
- * provider/vsphere: Add support for `memory_reservation` to ``vsphere_virtual_machine` [GH-6036]
+ * provider/azurerm: Increase timeout for ARM Template deployments to 40 minutes [GH-6319]
+ * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
 
 BUG FIXES:
 
