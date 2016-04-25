@@ -146,7 +146,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 
 			"load_balancing_rule": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -202,7 +202,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 
 			"probe": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -246,7 +246,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 
 			"inbound_nat_rule": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -294,7 +294,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 
 			"outbound_nat_rule": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -326,7 +326,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 
 			"inbound_nat_pool": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -335,7 +335,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 						},
 						"frontend_ip": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"protocol": &schema.Schema{
 							Type:     schema.TypeString,
@@ -400,13 +400,20 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 			outNatRules := config["outbound_nat_rules"].([]string)
 			rules := config["load_balancing_rules"].([]string)
 
+			//s1 := makeNetworkSubResourceRef(subnet)
+			p1 := network.PublicIPAddress{ID: &pubip}
+
+			s1 := network.Subnet{
+				ID: &subnet,
+			}
+
 			fipconfs = append(fipconfs, network.FrontendIPConfiguration{
 				Name: &name,
 				Properties: &network.FrontendIPConfigurationPropertiesFormat{
 					PrivateIPAddress:          &pubip,
 					PrivateIPAllocationMethod: network.IPAllocationMethod(allmeth),
-					Subnet:             makeNetworkSubResourceRef(subnet),
-					PublicIPAddress:    makeNetworkSubResourceRef(pubip),
+					Subnet:             &s1,
+					PublicIPAddress:    &p1,
 					InboundNatRules:    makeNetworkSubResourcesListRef(inNatRules),
 					InboundNatPools:    makeNetworkSubResourcesListRef(inNatPools),
 					OutboundNatRules:   makeNetworkSubResourcesListRef(outNatRules),
@@ -427,14 +434,20 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 		pools := []network.BackendAddressPool{}
 		for _, pool := range poolMaps {
 			name := pool["name"].(string)
-			ipConfigs := pool["backend_ips"].([]string)
+			var ipConfigs []string = pool["backend_ips"].([]string)
 			lbRules := pool["load_balancing_rules"].([]string)
 			outRule := pool["outbound_nat_rule"].(string)
+
+			var bIps = make([]network.InterfaceIPConfiguration, len(ipConfigs))
+			for i := range ipConfigs {
+				ent := network.InterfaceIPConfiguration{ID: &ipConfigs[i]}
+				bIps[i] = ent
+			}
 
 			pools = append(pools, network.BackendAddressPool{
 				Name: &name,
 				Properties: &network.BackendAddressPoolPropertiesFormat{
-					BackendIPConfigurations: makeNetworkSubResourcesListRef(ipConfigs),
+					BackendIPConfigurations: &bIps,
 					LoadBalancingRules:      makeNetworkSubResourcesListRef(lbRules),
 					OutboundNatRule:         makeNetworkSubResourceRef(outRule),
 				},
@@ -528,11 +541,12 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 			timeout := rule["timeout"].(int)
 			enableFloating := rule["enable_floating_ip"].(bool)
 
+			b1 := network.InterfaceIPConfiguration{ID: &backip}
 			inNatRules = append(inNatRules, network.InboundNatRule{
 				Name: &name,
 				Properties: &network.InboundNatRulePropertiesFormat{
 					FrontendIPConfiguration: makeNetworkSubResourceRef(frontip),
-					BackendIPConfiguration:  makeNetworkSubResourceRef(backip),
+					BackendIPConfiguration:  &b1,
 					Protocol:                network.TransportProtocol(proto),
 					FrontendPort:            &frontPort,
 					BackendPort:             &backPort,
@@ -619,7 +633,7 @@ func resourceArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[INFO] Issuing read request of load balancer '%s' off Azure.", name)
 
-	loadBalancer, err := lbClient.Get(resGrp, name)
+	loadBalancer, err := lbClient.Get(resGrp, name, "")
 	if err != nil {
 		return fmt.Errorf("Error reading the state of the load balancer off Azure: %s", err)
 	}
