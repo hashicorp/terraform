@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -40,6 +41,8 @@ func (c *InternalPluginCommand) Run(args []string) int {
 
 	pluginType := args[0]
 	pluginName := args[1]
+
+	log.SetPrefix(fmt.Sprintf("%s-%s (internal) ", pluginName, pluginType))
 
 	switch pluginType {
 	case "provider":
