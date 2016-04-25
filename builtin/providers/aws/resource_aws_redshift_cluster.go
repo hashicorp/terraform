@@ -375,6 +375,7 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		} else {
 			req.ClusterType = aws.String("single-node")
 		}
+		req.NodeType = aws.String(d.Get("node_type").(string))
 	}
 
 	if d.HasChange("cluster_security_groups") {
