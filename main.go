@@ -18,6 +18,8 @@ import (
 )
 
 func main() {
+	// Override global prefix set by go-dynect during init()
+	log.SetPrefix("")
 	os.Exit(realMain())
 }
 
