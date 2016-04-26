@@ -82,6 +82,21 @@ type ResourceProvider interface {
 	* Functions related to importing
 	*********************************************************************/
 
+	// ImportState requests that the given resource be imported.
+	//
+	// The returned InstanceState only requires ID be set. Importing
+	// will always call Refresh after the state to complete it.
+	//
+	// IMPORTANT: InstanceState doesn't have the resource type attached
+	// to it. A type must be specified on the state via the Ephemeral
+	// field on the state.
+	//
+	// This function can return multiple states. Normally, an import
+	// will map 1:1 to a physical resource. However, some resources map
+	// to multiple. For example, an AWS security group may contain many rules.
+	// Each rule is represented by a separate resource in Terraform,
+	// therefore multiple states are returned.
+	ImportState(*InstanceInfo) ([]*InstanceState, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
