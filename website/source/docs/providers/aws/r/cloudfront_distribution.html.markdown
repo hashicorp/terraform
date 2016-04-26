@@ -138,9 +138,7 @@ of several sub-resources - these resources are laid out below.
 
 #### <a name="default_cache_behavior"> `default_cache_behavior` Arguments
 
-The arguments for `default_cache_behavior` are the same as for
-[`cache_behavior`](#cache_behavior), except for the `path_pattern` argument is
-not required.
+The arguments for `default_cache_behavior` are the same as for [`cache_behavior`](#cache_behavior), except for the `path_pattern` argument is not required.
 
 #### <a name="logging_config"> `logging_config` Arguments
 
@@ -170,8 +168,7 @@ not required.
 
 #### <a name="restrictions"> `restrictions` Arguments
 
-The `restrictions` sub-resource takes another single sub-resource named
-`geo_restriction` (see the example for usage).
+The `restrictions` sub-resource takes another single sub-resource named `geo_restriction` (see the example for usage).
 
 The arguments of `geo_restriction` are:
 
