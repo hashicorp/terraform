@@ -173,7 +173,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	}
 
 	if v, ok := d.GetOk("preferred_cache_cluster_azs"); ok {
-		params.PreferredCacheClusterAZs = []*string{aws.String(v.(string))}
+		params.PreferredCacheClusterAZs = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("cache_node_type"); ok {
