@@ -132,6 +132,7 @@ resource "aws_api_gateway_method" "test" {
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "GET"
   authorization = "NONE"
+
   request_models = {
     "application/json" = "Error"
   }
@@ -142,9 +143,11 @@ resource "aws_api_gateway_method_response" "error" {
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
   status_code = "400"
+
   response_models = {
     "application/json" = "Error"
   }
+
 	response_parameters_in_json = <<PARAMS
 	{
 		"method.response.header.Content-Type": true
@@ -156,10 +159,12 @@ resource "aws_api_gateway_integration" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
+
   request_templates = {
     "application/json" = ""
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
+
   type = "MOCK"
 }
 
@@ -168,10 +173,12 @@ resource "aws_api_gateway_integration_response" "test" {
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
   status_code = "${aws_api_gateway_method_response.error.status_code}"
+
   response_templates = {
     "application/json" = ""
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
+	
 	response_parameters_in_json = <<PARAMS
 	{
 		"method.response.header.Content-Type": "integration.response.body.type"

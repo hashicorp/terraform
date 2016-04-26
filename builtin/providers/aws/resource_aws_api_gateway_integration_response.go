@@ -80,11 +80,11 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	}
 
 	_, err := conn.PutIntegrationResponse(&apigateway.PutIntegrationResponseInput{
-		HttpMethod:         aws.String(d.Get("http_method").(string)),
-		ResourceId:         aws.String(d.Get("resource_id").(string)),
-		RestApiId:          aws.String(d.Get("rest_api_id").(string)),
-		StatusCode:         aws.String(d.Get("status_code").(string)),
-		ResponseTemplates:  aws.StringMap(templates),
+		HttpMethod:        aws.String(d.Get("http_method").(string)),
+		ResourceId:        aws.String(d.Get("resource_id").(string)),
+		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
+		StatusCode:        aws.String(d.Get("status_code").(string)),
+		ResponseTemplates: aws.StringMap(templates),
 		ResponseParameters: aws.StringMap(parameters),
 	})
 	if err != nil {
