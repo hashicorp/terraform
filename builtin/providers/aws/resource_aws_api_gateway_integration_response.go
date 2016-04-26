@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -54,6 +55,11 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 				Optional: true,
 				Elem:     schema.TypeString,
 			},
+
+			"response_parameters_in_json": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -66,14 +72,20 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 		templates[k] = v.(string)
 	}
 
+	parameters := make(map[string]string)
+	if v, ok := d.GetOk("response_parameters_in_json"); ok {
+		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
+			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
+		}
+	}
+
 	_, err := conn.PutIntegrationResponse(&apigateway.PutIntegrationResponseInput{
-		HttpMethod:        aws.String(d.Get("http_method").(string)),
-		ResourceId:        aws.String(d.Get("resource_id").(string)),
-		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
-		StatusCode:        aws.String(d.Get("status_code").(string)),
-		ResponseTemplates: aws.StringMap(templates),
-		// TODO implement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
-		ResponseParameters: nil,
+		HttpMethod:         aws.String(d.Get("http_method").(string)),
+		ResourceId:         aws.String(d.Get("resource_id").(string)),
+		RestApiId:          aws.String(d.Get("rest_api_id").(string)),
+		StatusCode:         aws.String(d.Get("status_code").(string)),
+		ResponseTemplates:  aws.StringMap(templates),
+		ResponseParameters: aws.StringMap(parameters),
 	})
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration Response: %s", err)

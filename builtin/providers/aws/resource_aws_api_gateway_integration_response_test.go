@@ -45,6 +45,9 @@ func testAccCheckAWSAPIGatewayIntegrationResponseAttributes(conf *apigateway.Int
 		if *conf.ResponseTemplates["application/xml"] != "#set($inputRoot = $input.path('$'))\n{ }" {
 			return fmt.Errorf("wrong ResponseTemplate for application/xml")
 		}
+		if *conf.ResponseParameters["method.response.header.Content-Type"] != "integration.response.body.type" {
+			return fmt.Errorf("wrong ResponseParameters for header.Content-Type")
+		}
 		return nil
 	}
 }
@@ -117,57 +120,57 @@ const testAccAWSAPIGatewayIntegrationResponseConfig = `
 resource "aws_api_gateway_rest_api" "test" {
   name = "test"
 }
-
 resource "aws_api_gateway_resource" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   parent_id = "${aws_api_gateway_rest_api.test.root_resource_id}"
   path_part = "test"
 }
-
 resource "aws_api_gateway_method" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "GET"
   authorization = "NONE"
-
   request_models = {
     "application/json" = "Error"
   }
 }
-
 resource "aws_api_gateway_method_response" "error" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
   status_code = "400"
-
   response_models = {
     "application/json" = "Error"
   }
+	response_parameters_in_json = <<PARAMS
+	{
+		"method.response.header.Content-Type": true
+	}
+	PARAMS
 }
-
 resource "aws_api_gateway_integration" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
-
   request_templates = {
     "application/json" = ""
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
-
   type = "MOCK"
 }
-
 resource "aws_api_gateway_integration_response" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
   status_code = "${aws_api_gateway_method_response.error.status_code}"
-
   response_templates = {
     "application/json" = ""
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
+	response_parameters_in_json = <<PARAMS
+	{
+		"method.response.header.Content-Type": "integration.response.body.type"
+	}
+	PARAMS
 }
 `
