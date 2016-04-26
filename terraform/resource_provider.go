@@ -4,6 +4,10 @@ package terraform
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
 type ResourceProvider interface {
+	/*********************************************************************
+	* Functions related to the provider
+	*********************************************************************/
+
 	// Input is called to ask the provider to ask the user for input
 	// for completing the configuration if necesarry.
 	//
@@ -25,18 +29,6 @@ type ResourceProvider interface {
 	// set.
 	Validate(*ResourceConfig) ([]string, []error)
 
-	// ValidateResource is called once at the beginning with the raw
-	// configuration (no interpolation done) and can return a list of warnings
-	// and/or errors.
-	//
-	// This is called once per resource.
-	//
-	// This should not assume any of the values in the resource configuration
-	// are valid since it is possible they have to be interpolated still.
-	// The primary use case of this call is to check that the required keys
-	// are set and that the general structure is correct.
-	ValidateResource(string, *ResourceConfig) ([]string, []error)
-
 	// Configure configures the provider itself with the configuration
 	// given. This is useful for setting things like access keys.
 	//
@@ -48,6 +40,22 @@ type ResourceProvider interface {
 	// Resources returns all the available resource types that this provider
 	// knows how to manage.
 	Resources() []ResourceType
+
+	/*********************************************************************
+	* Functions related to individual resources
+	*********************************************************************/
+
+	// ValidateResource is called once at the beginning with the raw
+	// configuration (no interpolation done) and can return a list of warnings
+	// and/or errors.
+	//
+	// This is called once per resource.
+	//
+	// This should not assume any of the values in the resource configuration
+	// are valid since it is possible they have to be interpolated still.
+	// The primary use case of this call is to check that the required keys
+	// are set and that the general structure is correct.
+	ValidateResource(string, *ResourceConfig) ([]string, []error)
 
 	// Apply applies a diff to a specific resource and returns the new
 	// resource state along with an error.
@@ -69,6 +77,11 @@ type ResourceProvider interface {
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
+
+	/*********************************************************************
+	* Functions related to importing
+	*********************************************************************/
+
 }
 
 // ResourceProviderCloser is an interface that providers that can close
