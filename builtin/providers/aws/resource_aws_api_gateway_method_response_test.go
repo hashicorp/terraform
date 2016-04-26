@@ -125,11 +125,13 @@ const testAccAWSAPIGatewayMethodResponseConfig = `
 resource "aws_api_gateway_rest_api" "test" {
   name = "test"
 }
+
 resource "aws_api_gateway_resource" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   parent_id = "${aws_api_gateway_rest_api.test.root_resource_id}"
   path_part = "test"
 }
+
 resource "aws_api_gateway_method" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
@@ -139,6 +141,7 @@ resource "aws_api_gateway_method" "test" {
     "application/json" = "Error"
   }
 }
+
 resource "aws_api_gateway_method_response" "error" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
