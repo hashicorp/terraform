@@ -16,6 +16,7 @@ BUG FIXES:
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
  * provider/aws: Fix updating `number_of_nodes` on `aws_redshift_cluster` [GH-6333]
  * provider/aws: Fix bug where `aws_elastic_beanstalk_environment` update config template didn't work [GH-6342]
+ * provider/aws: Fix bug where `aws_elastic_beanstalk_environment` ignored `wait_for_ready_timeout` [GH-6358]
 
 ## 0.6.15 (April 22, 2016)
 
