@@ -16,6 +16,7 @@ import (
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/kardianos/osext"
+	"github.com/mitchellh/cli"
 )
 
 // Config is the structure of the configuration for the Terraform CLI.
@@ -90,7 +91,7 @@ func LoadConfig(path string) (*Config, error) {
 // Finally, we look at the list of plugins compiled into Terraform. If any of
 // them has not been found on disk we use the internal version. This allows
 // users to add / replace plugins without recompiling the main binary.
-func (c *Config) Discover() error {
+func (c *Config) Discover(ui cli.Ui) error {
 	// Look in ~/.terraform.d/plugins/
 	dir, err := ConfigDir()
 	if err != nil {
@@ -121,7 +122,12 @@ func (c *Config) Discover() error {
 	// Finally, if we have a plugin compiled into Terraform and we didn't find
 	// a replacement on disk, we'll just use the internal version.
 	for name, _ := range command.InternalProviders {
-		if _, found := c.Providers[name]; !found {
+		if path, found := c.Providers[name]; found {
+			ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provider.\n"+
+				"  If you did not expect to see this message you will need to remove the old plugin.\n"+
+				"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+		} else {
+
 			cmd, err := command.BuildPluginCommandString("provider", name)
 			if err != nil {
 				return err
@@ -130,7 +136,11 @@ func (c *Config) Discover() error {
 		}
 	}
 	for name, _ := range command.InternalProvisioners {
-		if _, found := c.Provisioners[name]; !found {
+		if path, found := c.Provisioners[name]; found {
+			ui.Warn(fmt.Sprintf("[WARN] %s overrides an internal plugin for %s-provisioner.\n"+
+				"  If you did not expect to see this message you will need to remove the old plugin.\n"+
+				"  See https://www.terraform.io/docs/internals/internal-plugins.html", path, name))
+		} else {
 			cmd, err := command.BuildPluginCommandString("provisioner", name)
 			if err != nil {
 				return err
