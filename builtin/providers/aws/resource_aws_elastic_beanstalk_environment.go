@@ -257,6 +257,10 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 	conn := meta.(*AWSClient).elasticbeanstalkconn
 
 	envId := d.Id()
+	waitForReadyTimeOut, err := time.ParseDuration(d.Get("wait_for_ready_timeout").(string))
+	if err != nil {
+		return err
+	}
 
 	updateOpts := elasticbeanstalk.UpdateEnvironmentInput{
 		EnvironmentId: aws.String(envId),
@@ -290,7 +294,7 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 	}
 
 	log.Printf("[DEBUG] Elastic Beanstalk Environment update opts: %s", updateOpts)
-	_, err := conn.UpdateEnvironment(&updateOpts)
+	_, err = conn.UpdateEnvironment(&updateOpts)
 	if err != nil {
 		return err
 	}
@@ -299,7 +303,7 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		Pending:    []string{"Launching", "Updating"},
 		Target:     []string{"Ready"},
 		Refresh:    environmentStateRefreshFunc(conn, d.Id()),
-		Timeout:    10 * time.Minute,
+		Timeout:    waitForReadyTimeOut,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
