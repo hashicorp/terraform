@@ -53,6 +53,8 @@ type ContextOpts struct {
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
 // NewContext. See the documentation for that.
+//
+// Extra functions on Context can be found in context_*.go files.
 type Context struct {
 	destroy      bool
 	diff         *Diff
