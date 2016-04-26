@@ -107,6 +107,21 @@ func TestProviderResources(t *testing.T) {
 				terraform.ResourceType{Name: "foo"},
 			},
 		},
+
+		{
+			P: &Provider{
+				ResourcesMap: map[string]*Resource{
+					"foo": nil,
+					"bar": &Resource{Importer: &ResourceImporter{}},
+					"baz": nil,
+				},
+			},
+			Result: []terraform.ResourceType{
+				terraform.ResourceType{Name: "bar", Importable: true},
+				terraform.ResourceType{Name: "baz"},
+				terraform.ResourceType{Name: "foo"},
+			},
+		},
 	}
 
 	for i, tc := range cases {
