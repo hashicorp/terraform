@@ -213,3 +213,7 @@ func (p *Provider) Resources() []terraform.ResourceType {
 
 	return result
 }
+
+func (p *Provider) ImportState(info *terraform.InstanceInfo) ([]*terraform.InstanceState, error) {
+	return nil, nil
+}
