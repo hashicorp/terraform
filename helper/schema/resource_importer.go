@@ -27,4 +27,18 @@ type ResourceImporter struct {
 // that was given to the function. In other cases (such as AWS security groups),
 // an import may fan out to multiple resources and this will have to return
 // multiple.
+//
+// To create the ResourceData structures for other resource types (if
+// you have to), instantiate your resource and call the Data function.
 type StateFunc func(*ResourceData, interface{}) ([]*ResourceData, error)
+
+// InternalValidate should be called to validate the structure of this
+// importer. This should be called in a unit test.
+//
+// Resource.InternalValidate() will automatically call this, so this doesn't
+// need to be called manually. Further, Resource.InternalValidate() is
+// automatically called by Provider.InternalValidate(), so you only need
+// to internal validate the provider.
+func (r *ResourceImporter) InternalValidate() error {
+	return nil
+}

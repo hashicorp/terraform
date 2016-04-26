@@ -78,6 +78,13 @@ type Resource struct {
 	Update UpdateFunc
 	Delete DeleteFunc
 	Exists ExistsFunc
+
+	// Importer is the ResourceImporter implementation for this resource.
+	// If this is nil, then this resource does not support importing. If
+	// this is non-nil, then it supports importing and ResourceImporter
+	// must be validated. The validity of ResourceImporter is verified
+	// by InternalValidate on Resource.
+	Importer *ResourceImporter
 }
 
 // See Resource documentation.
@@ -260,6 +267,13 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
 		}
 
 		tsm = schemaMap(r.Schema)
+
+		// If we have an importer, we need to verify the importer.
+		if r.Importer != nil {
+			if err := r.Importer.InternalValidate(); err != nil {
+				return err
+			}
+		}
 	}
 
 	return schemaMap(r.Schema).InternalValidate(tsm)
