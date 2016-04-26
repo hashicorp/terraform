@@ -55,6 +55,12 @@ type MockResourceProvider struct {
 	ValidateResourceConfig       *ResourceConfig
 	ValidateResourceReturnWarns  []string
 	ValidateResourceReturnErrors []error
+
+	ImportStateCalled      bool
+	ImportStateInfo        *InstanceInfo
+	ImportStateReturn      []*InstanceState
+	ImportStateReturnError error
+	ImportStateFn          func(*InstanceInfo) ([]*InstanceState, error)
 }
 
 func (p *MockResourceProvider) Close() error {
@@ -174,4 +180,17 @@ func (p *MockResourceProvider) Resources() []ResourceType {
 
 	p.ResourcesCalled = true
 	return p.ResourcesReturn
+}
+
+func (p *MockResourceProvider) ImportState(info *InstanceInfo) ([]*InstanceState, error) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ImportStateCalled = true
+	p.ImportStateInfo = info
+	if p.ImportStateFn != nil {
+		return p.ImportStateFn(info)
+	}
+
+	return p.ImportStateReturn, p.ImportStateReturnError
 }
