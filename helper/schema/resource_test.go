@@ -846,3 +846,51 @@ func TestResourceRefresh_migrateStateErr(t *testing.T) {
 		t.Fatal("expected error, but got none!")
 	}
 }
+
+func TestResourceData(t *testing.T) {
+	r := &Resource{
+		SchemaVersion: 2,
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	state := &terraform.InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"id":  "foo",
+			"foo": "42",
+		},
+	}
+
+	data := r.Data(state)
+	if data.Id() != "foo" {
+		t.Fatalf("err: %s", data.Id())
+	}
+	if v := data.Get("foo"); v != 42 {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestResourceData_blank(t *testing.T) {
+	r := &Resource{
+		SchemaVersion: 2,
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	data := r.Data(nil)
+	if data.Id() != "" {
+		t.Fatalf("err: %s", data.Id())
+	}
+	if v := data.Get("foo"); v != 0 {
+		t.Fatalf("bad: %#v", v)
+	}
+}
