@@ -97,7 +97,7 @@ of several sub-resources - these resources are laid out below.
 * `enabled` (Required) - Whether the distribution is enabled to accept end user requests for content.
 * `logging_config` (Optional) - The [logging configuration](#logging_config) that controls how logs are written to your distribution (maximum one).
 * `origin` (Required) - One or more [origins](#origin) for this distribution (multiples allowed).
-* `price_class` (Optional) - The price class for this distribution.
+* `price_class` (Optional) - The price class for this distribution. One of `PriceClass_All`, `PriceClass_200`, `PriceClass_100`
 * `restrictions` (Required) - The [restriction configuration](#restrictions) for this distribution (maximum one).
 * `viewer_certificate` (Required) - The [SSL configuration](#viewer_certificate) for this distribution (maximum one).
 * `web_acl_id` (Optional) - If you're using AWS WAF to filter CloudFront requests, the Id of the AWS WAF web ACL that is associated with the distribution.
