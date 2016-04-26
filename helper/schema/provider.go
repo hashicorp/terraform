@@ -197,8 +197,17 @@ func (p *Provider) Resources() []terraform.ResourceType {
 
 	result := make([]terraform.ResourceType, 0, len(keys))
 	for _, k := range keys {
+		resource := p.ResourcesMap[k]
+
+		// This isn't really possible (it'd fail InternalValidate), but
+		// we do it anyways to avoid a panic.
+		if resource == nil {
+			resource = &Resource{}
+		}
+
 		result = append(result, terraform.ResourceType{
-			Name: k,
+			Name:       k,
+			Importable: resource.Importer != nil,
 		})
 	}
 

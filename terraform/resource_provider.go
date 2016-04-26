@@ -79,7 +79,8 @@ type ResourceProviderCloser interface {
 
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
-	Name string
+	Name       string // Name of the resource, example "instance" (no provider prefix)
+	Importable bool   // Whether this resource supports importing
 }
 
 // ResourceProviderFactory is a function type that creates a new instance
