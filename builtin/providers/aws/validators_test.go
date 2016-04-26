@@ -520,3 +520,36 @@ func TestResourceAWSElastiCacheClusterIdValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateDbEventSubscriptionName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+		"Valid-Name1",
+	}
+	for _, v := range validNames {
+		_, errors := validateDbEventSubscriptionName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid RDS Event Subscription Name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"and here is another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		" ",
+		"_",
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateDbEventSubscriptionName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid RDS Event Subscription Name", v)
+		}
+	}
+}
