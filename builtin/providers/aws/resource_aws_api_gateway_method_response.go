@@ -75,11 +75,11 @@ func resourceAwsApiGatewayMethodResponseCreate(d *schema.ResourceData, meta inte
 	}
 
 	_, err := conn.PutMethodResponse(&apigateway.PutMethodResponseInput{
-		HttpMethod:     aws.String(d.Get("http_method").(string)),
-		ResourceId:     aws.String(d.Get("resource_id").(string)),
-		RestApiId:      aws.String(d.Get("rest_api_id").(string)),
-		StatusCode:     aws.String(d.Get("status_code").(string)),
-		ResponseModels: aws.StringMap(models),
+		HttpMethod:         aws.String(d.Get("http_method").(string)),
+		ResourceId:         aws.String(d.Get("resource_id").(string)),
+		RestApiId:          aws.String(d.Get("rest_api_id").(string)),
+		StatusCode:         aws.String(d.Get("status_code").(string)),
+		ResponseModels:     aws.StringMap(models),
 		ResponseParameters: aws.BoolMap(parameters),
 	})
 	if err != nil {
