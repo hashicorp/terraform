@@ -76,7 +76,6 @@ The following arguments are supported:
 * `network_interface` - (Required) Configures virtual network interfaces; see [Network Interfaces](#network-interfaces) below for details.
 * `disk` - (Required) Configures virtual disks; see [Disks](#disks) below for details
 * `cdrom` - (Optional) Configures a CDROM device and mounts an image as its media; see [CDROM](#cdrom) below for more details.
-* `boot_delay` - (Optional) Time in seconds to wait for machine network to be ready.
 * `windows_opt_config` - (Optional) Extra options for clones of Windows machines.
 * `linked_clone` - (Optional) Specifies if the new machine is a [linked clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396) of another machine or not.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
