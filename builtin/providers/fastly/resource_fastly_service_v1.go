@@ -296,6 +296,73 @@ func resourceServiceV1() *schema.Resource {
 					},
 				},
 			},
+
+			"s3logging": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required fields
+						"name": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this logging setup",
+						},
+						"bucket_name": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "S3 Bucket name to store logs in",
+						},
+						"s3_access_key": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_ACCESS_KEY", ""),
+							Description: "AWS Access Key",
+						},
+						"s3_secret_key": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_SECRET_KEY", ""),
+							Description: "AWS Secret Key",
+						},
+						// Optional fields
+						"path": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Path to store the files. Must end with a trailing slash",
+						},
+						"domain": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: "Bucket endpoint",
+						},
+						"gzip_level": &schema.Schema{
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     0,
+							Description: "Gzip Compression level",
+						},
+						"period": &schema.Schema{
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Default:     3600,
+							Description: "How frequently the logs should be transferred, in seconds (Default 3600)",
+						},
+						"format": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%h %l %u %t %r %>s",
+							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"timestamp_format": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%Y-%m-%dT%H:%M:%S.000",
+							Description: "specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`)",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -341,6 +408,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		"default_ttl",
 		"header",
 		"gzip",
+		"s3logging",
 	} {
 		if d.HasChange(v) {
 			needsChange = true
@@ -644,6 +712,78 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// find difference in s3logging
+		if d.HasChange("s3logging") {
+			// POST new Logging
+			// Note: we don't utilize the PUT endpoint to update a S3 Logs, we simply
+			// destroy it and create a new one. This is how Terraform works with nested
+			// sub resources, we only get the full diff not a partial set item diff.
+			// Because this is done on a new version of the configuration, this is
+			// considered safe
+			os, ns := d.GetChange("s3logging")
+			if os == nil {
+				os = new(schema.Set)
+			}
+			if ns == nil {
+				ns = new(schema.Set)
+			}
+
+			oss := os.(*schema.Set)
+			nss := ns.(*schema.Set)
+			removeS3Logging := oss.Difference(nss).List()
+			addS3Logging := nss.Difference(oss).List()
+
+			// DELETE old S3 Log configurations
+			for _, sRaw := range removeS3Logging {
+				sf := sRaw.(map[string]interface{})
+				opts := gofastly.DeleteS3Input{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    sf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly S3 Logging Removal opts: %#v", opts)
+				err := conn.DeleteS3(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated S3 Logging
+			for _, sRaw := range addS3Logging {
+				sf := sRaw.(map[string]interface{})
+
+				// Fastly API will not error if these are omitted, so we throw an error
+				// if any of these are empty
+				for _, sk := range []string{"s3_access_key", "s3_secret_key"} {
+					if sf[sk].(string) == "" {
+						return fmt.Errorf("[ERR] No %s found for S3 Log stream setup for Service (%s)", sk, d.Id())
+					}
+				}
+
+				opts := gofastly.CreateS3Input{
+					Service:         d.Id(),
+					Version:         latestVersion,
+					Name:            sf["name"].(string),
+					BucketName:      sf["bucket_name"].(string),
+					AccessKey:       sf["s3_access_key"].(string),
+					SecretKey:       sf["s3_secret_key"].(string),
+					Period:          uint(sf["period"].(int)),
+					GzipLevel:       uint(sf["gzip_level"].(int)),
+					Domain:          sf["domain"].(string),
+					Path:            sf["path"].(string),
+					Format:          sf["format"].(string),
+					TimestampFormat: sf["timestamp_format"].(string),
+				}
+
+				log.Printf("[DEBUG] Create S3 Logging Opts: %#v", opts)
+				_, err := conn.CreateS3(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// validate version
 		log.Printf("[DEBUG] Validating Fastly Service (%s), Version (%s)", d.Id(), latestVersion)
 		valid, msg, err := conn.ValidateVersion(&gofastly.ValidateVersionInput{
@@ -788,6 +928,23 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 
 		if err := d.Set("gzip", gl); err != nil {
 			log.Printf("[WARN] Error setting Gzips for (%s): %s", d.Id(), err)
+		}
+
+		// refresh S3 Logging
+		log.Printf("[DEBUG] Refreshing S3 Logging for (%s)", d.Id())
+		s3List, err := conn.ListS3s(&gofastly.ListS3sInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up S3 Logging for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		sl := flattenS3s(s3List)
+
+		if err := d.Set("s3logging", sl); err != nil {
+			log.Printf("[WARN] Error setting S3 Logging for (%s): %s", d.Id(), err)
 		}
 
 	} else {
@@ -1027,4 +1184,34 @@ func flattenGzips(gzipsList []*gofastly.Gzip) []map[string]interface{} {
 	}
 
 	return gl
+}
+
+func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
+	var sl []map[string]interface{}
+	for _, s := range s3List {
+		// Convert S3s to a map for saving to state.
+		ns := map[string]interface{}{
+			"name":             s.Name,
+			"bucket_name":      s.BucketName,
+			"s3_access_key":    s.AccessKey,
+			"s3_secret_key":    s.SecretKey,
+			"path":             s.Path,
+			"period":           s.Period,
+			"domain":           s.Domain,
+			"gzip_level":       s.GzipLevel,
+			"format":           s.Format,
+			"timestamp_format": s.TimestampFormat,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range ns {
+			if v == "" {
+				delete(ns, k)
+			}
+		}
+
+		sl = append(sl, ns)
+	}
+
+	return sl
 }
