@@ -265,7 +265,28 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
 	return schemaMap(r.Schema).InternalValidate(tsm)
 }
 
+// Data returns a ResourceData struct for this Resource. Each return value
+// is a separate copy and can be safely modified differently.
+//
+// The data returned from this function has no actual affect on the Resource
+// itself (including the state given to this function).
+//
+// This function is useful for unit tests and ResourceImporter functions.
+func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
+	result, err := schemaMap(r.Schema).Data(s, nil)
+	if err != nil {
+		// At the time of writing, this isn't possible (Data never returns
+		// non-nil errors). We panic to find this in the future if we have to.
+		// I don't see a reason for Data to ever return an error.
+		panic(err)
+	}
+
+	return result
+}
+
 // TestResourceData Yields a ResourceData filled with this resource's schema for use in unit testing
+//
+// TODO: May be able to be removed with the above ResourceData function.
 func (r *Resource) TestResourceData() *ResourceData {
 	return &ResourceData{
 		schema: r.Schema,
