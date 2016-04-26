@@ -1315,6 +1315,12 @@ type EphemeralState struct {
 	// used to connect to the resource for provisioning. For example,
 	// this could contain SSH or WinRM credentials.
 	ConnInfo map[string]string `json:"-"`
+
+	// Type is used to specify the resource type for this instance. This is only
+	// required for import operations (as documented). If the documentation
+	// doesn't state that you need to set this, then don't worry about
+	// setting it.
+	Type string `json:"-"`
 }
 
 func (e *EphemeralState) init() {
