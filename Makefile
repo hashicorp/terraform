@@ -19,7 +19,6 @@ quickdev: generate
 # changes will require a rebuild of everything, in which case the dev
 # target should be used.
 core-dev: generate
-	go install github.com/hashicorp/terraform
 	go install -tags 'core' github.com/hashicorp/terraform
 
 # Shorthand for quickly testing the core of Terraform (i.e. "not providers")
