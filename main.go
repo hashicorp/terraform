@@ -88,7 +88,7 @@ func wrappedMain() int {
 
 	// Load the configuration
 	config := BuiltinConfig
-	if err := config.Discover(); err != nil {
+	if err := config.Discover(Ui); err != nil {
 		Ui.Error(fmt.Sprintf("Error discovering plugins: %s", err))
 		return 1
 	}
