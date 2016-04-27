@@ -106,11 +106,13 @@ The `windows_opt_config` block supports:
 
 The `disk` block supports:
 
-* `template` - (Required if size not provided) Template for this disk.
+* `template` - (Required if size and bootable_vmdk_path not provided) Template for this disk.
 * `datastore` - (Optional) Datastore for this disk
-* `size` - (Required if template not provided) Size of this disk (in GB).
+* `size` - (Required if template and bootable_vmdks_path not provided) Size of this disk (in GB).
 * `iops` - (Optional) Number of virtual iops to allocate for this disk.
 * `type` - (Optional) 'eager_zeroed' (the default), or 'thin' are supported options.
+* `vmdk` - (Required if template and size not provided) Path to a vmdk in a vSphere datastore. 
+* `bootable` - (Optional) Set to 'true' if a vmdk was given and it should attempt to boot after creation.
 
 <a id="cdrom"></a>
 ## CDROM
