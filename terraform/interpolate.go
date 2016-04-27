@@ -384,9 +384,9 @@ func (i *Interpolater) computeResourceVariable(
 		return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
 	}
 
-	// computed list attribute
+	// computed list or map attribute
 	if _, ok := r.Primary.Attributes[v.Field+".#"]; ok {
-		variable, err := i.interpolateListAttribute(v.Field, r.Primary.Attributes)
+		variable, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
 		return &variable, err
 	}
 
@@ -513,7 +513,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 		if !ok {
 			continue
 		}
-		multiAttr, err := i.interpolateListAttribute(v.Field, r.Primary.Attributes)
+		multiAttr, err := i.interpolateComplexTypeAttribute(v.Field, r.Primary.Attributes)
 		if err != nil {
 			return nil, err
 		}
@@ -559,12 +559,12 @@ func (i *Interpolater) computeResourceMultiVariable(
 	return &variable, err
 }
 
-func (i *Interpolater) interpolateListAttribute(
+func (i *Interpolater) interpolateComplexTypeAttribute(
 	resourceID string,
 	attributes map[string]string) (ast.Variable, error) {
 
 	attr := attributes[resourceID+".#"]
-	log.Printf("[DEBUG] Interpolating computed list attribute %s (%s)",
+	log.Printf("[DEBUG] Interpolating computed complex type attribute %s (%s)",
 		resourceID, attr)
 
 	// In Terraform's internal dotted representation of list-like attributes, the
@@ -575,18 +575,37 @@ func (i *Interpolater) interpolateListAttribute(
 		return unknownVariable(), nil
 	}
 
-	// Otherwise we gather the values from the list-like attribute and return
-	// them.
-	var members []string
-	numberedListMember := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
-	for id, value := range attributes {
-		if numberedListMember.MatchString(id) {
-			members = append(members, value)
+	// At this stage we don't know whether the item is a list or a map, so we
+	// examine the keys to see whether they are all numeric.
+	var numericKeys []string
+	var allKeys []string
+	numberedListKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
+	otherListKey := regexp.MustCompile("^" + resourceID + "\\.([^#]+)$")
+	for id, _ := range attributes {
+		if numberedListKey.MatchString(id) {
+			numericKeys = append(numericKeys, id)
+		}
+		if submatches := otherListKey.FindAllStringSubmatch(id, -1); len(submatches) > 0 {
+			allKeys = append(allKeys, submatches[0][1])
 		}
 	}
 
-	sort.Strings(members)
-	return hil.InterfaceToVariable(members)
+	if len(numericKeys) == len(allKeys) {
+		// This is a list
+		var members []string
+		for _, key := range numericKeys {
+			members = append(members, attributes[key])
+		}
+		sort.Strings(members)
+		return hil.InterfaceToVariable(members)
+	} else {
+		// This is a map
+		members := make(map[string]interface{})
+		for _, key := range allKeys {
+			members[key] = attributes[resourceID+"."+key]
+		}
+		return hil.InterfaceToVariable(members)
+	}
 }
 
 func (i *Interpolater) resourceVariableInfo(
