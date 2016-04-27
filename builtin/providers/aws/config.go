@@ -412,19 +412,9 @@ func getCreds(key, secret, token, profile, credsfile string) *awsCredentials.Cre
 		Timeout: 100 * time.Millisecond,
 	}
 
-	r, err := c.Get(metadataURL)
-	// Flag to determine if we should add the EC2Meta data provider. Default false
-	var useIAM bool
-	if err == nil {
-		// AWS will add a "Server: EC2ws" header value for the metadata request. We
-		// check the headers for this value to ensure something else didn't just
-		// happent to be listening on that IP:Port
-		if r.Header["Server"] != nil && strings.Contains(r.Header["Server"][0], "EC2") {
-			useIAM = true
-		}
-	}
+	_, err := c.Get(metadataURL + "/meta-data/iam/security-credentials/")
 
-	if useIAM {
+	if err == nil {
 		log.Printf("[DEBUG] EC2 Metadata service found, adding EC2 Role Credential Provider")
 		providers = append(providers, &ec2rolecreds.EC2RoleProvider{
 			Client: ec2metadata.New(session.New(&aws.Config{
