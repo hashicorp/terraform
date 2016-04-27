@@ -183,6 +183,36 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			}),
 			false,
 		},
+
+		"native map": {
+			[]string{"map"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"bar": "baz",
+					"baz": "bar",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"map": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeMap,
+					Value: map[string]ast.Variable{
+						"bar": ast.Variable{
+							Type:  ast.TypeString,
+							Value: "baz",
+						},
+						"baz": ast.Variable{
+							Type:  ast.TypeString,
+							Value: "bar",
+						},
+					},
+				},
+			}),
+			false,
+		},
 	}
 
 	for name, tc := range cases {
