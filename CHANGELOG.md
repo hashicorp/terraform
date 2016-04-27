@@ -10,6 +10,7 @@ IMPROVEMENTS:
  * core: update HCL dependency to improve whitespace handling in `terraform fmt` [GH-6347]
  * provider/azurerm: Increase timeout for ARM Template deployments to 40 minutes [GH-6319]
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
+ * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
 
 BUG FIXES:
 
