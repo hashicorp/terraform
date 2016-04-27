@@ -549,6 +549,10 @@
 			"Rev": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
 		},
 		{
+			"ImportPath": "github.com/crackcomm/cloudflare",
+			"Rev": "40f33bf6a6721e6d266a98d29e5a94afbe0169ed"
+		},
+		{
 			"ImportPath": "github.com/cyberdelia/heroku-go/v3",
 			"Rev": "81c5afa1abcf69cc18ccc24fa3716b5a455c9208"
 		},
