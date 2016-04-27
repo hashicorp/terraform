@@ -26,6 +26,7 @@ BUG FIXES:
  * provider/aws: Respect `selection_pattern` in `aws_api_gateway_integration_response` (previously ignored field) [GH-5893]
  * provider/aws: Refresh state on `aws_sqs_queue` not found [GH-6381]
  * provider/aws: Omit `aws_cloudfront_distribution` custom_error fields when not explicitly set [GH-6382]
+ * provider/aws: Fix read of `aws_cloudwatch_log_group` after an update is applied [GH-6384]
 
 ## 0.6.15 (April 22, 2016)
 
