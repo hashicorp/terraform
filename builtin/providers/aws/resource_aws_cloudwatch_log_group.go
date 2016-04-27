@@ -117,14 +117,18 @@ func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{
 			}
 			log.Printf("[DEBUG] Setting retention for CloudWatch Log Group: %q: %s", name, input)
 			_, err = conn.PutRetentionPolicy(&input)
+			if err != nil {
+				return err
+			}
 		} else {
 			log.Printf("[DEBUG] Deleting retention for CloudWatch Log Group: %q", name)
 			_, err = conn.DeleteRetentionPolicy(&cloudwatchlogs.DeleteRetentionPolicyInput{
 				LogGroupName: aws.String(name),
 			})
+			if err != nil {
+				return err
+			}
 		}
-
-		return err
 	}
 
 	return resourceAwsCloudWatchLogGroupRead(d, meta)
