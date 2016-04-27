@@ -375,7 +375,7 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 	}
 
 	for _, route := range (*resp.RouteTables[0]).Routes {
-		if *route.DestinationCidrBlock == cidr {
+		if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == cidr {
 			return route, nil
 		}
 	}
