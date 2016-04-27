@@ -101,6 +101,10 @@ type TestStep struct {
 	// Destroy will create a destroy plan if set to true.
 	Destroy bool
 
+	// ExpectApplyError can be set to an error string for tests that expect
+	// an apply error to occur. Can be used to validate bad configurations.
+	ExpectApplyError string
+
 	// ExpectNonEmptyPlan can be set to true for specific types of tests that are
 	// looking to verify that a diff occurs
 	ExpectNonEmptyPlan bool
@@ -399,7 +403,12 @@ func testStep(
 	// Apply!
 	state, err = ctx.Apply()
 	if err != nil {
+		if strings.Contains(err.Error(), step.ExpectApplyError) {
+			return state, nil
+		}
 		return state, fmt.Errorf("Error applying: %s", err)
+	} else if len(step.ExpectApplyError) > 0 {
+		return state, fmt.Errorf("Expected apply error: %s", step.ExpectApplyError)
 	}
 
 	// Check! Excitement!

@@ -153,6 +153,31 @@ func TestAccAWSLaunchConfiguration_withEncryption(t *testing.T) {
 	})
 }
 
+func TestAccAWSLaunchConfiguration_withMultipleRootBlockDevices(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: `
+				resource "aws_launch_configuration" "foo" {
+					image_id = "ami-5189a661"
+					instance_type = "t2.micro"
+					root_block_device {
+						volume_type = "gp2"
+						volume_size = 10
+					}
+					root_block_device {
+						volume_type = "standard"
+						volume_size = 10
+					}
+				}`,
+				ExpectApplyError: "Cannot specify more than one root_block_device.",
+			},
+		},
+	})
+}
+
 func testAccCheckAWSLaunchConfigurationGeneratedNamePrefix(
 	resource, prefix string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {

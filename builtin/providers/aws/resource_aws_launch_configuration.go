@@ -231,11 +231,11 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			},
 
 			"root_block_device": &schema.Schema{
-				// TODO: This is a set because we don't support singleton
+				// TODO: This is a list because we don't support singleton
 				//       sub-resources today. We'll enforce that the set only ever has
 				//       length zero or one below. When TF gains support for
 				//       sub-resources this can be converted.
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -271,10 +271,6 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 							ForceNew: true,
 						},
 					},
-				},
-				Set: func(v interface{}) int {
-					// there can be only one root device; no need to hash anything
-					return 0
 				},
 			},
 		},
@@ -372,7 +368,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("root_block_device"); ok {
-		vL := v.(*schema.Set).List()
+		vL := v.([]interface{})
 		if len(vL) > 1 {
 			return fmt.Errorf("Cannot specify more than one root_block_device.")
 		}
