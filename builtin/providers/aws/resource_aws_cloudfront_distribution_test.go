@@ -396,7 +396,7 @@ variable rand_id {
 	default = %d
 }
 
-resource "aws_cloudfront_distribution" "no_optional_items" {
+resource "aws_cloudfront_distribution" "no_custom_error_responses" {
 	origin {
 		domain_name = "www.example.com"
 		origin_id = "myCustomOrigin"
@@ -447,7 +447,7 @@ variable rand_id {
 	default = %d
 }
 
-resource "aws_cloudfront_distribution" "no_custom_error_responses" {
+resource "aws_cloudfront_distribution" "no_optional_items" {
 	origin {
 		domain_name = "www.example.com"
 		origin_id = "myCustomOrigin"
