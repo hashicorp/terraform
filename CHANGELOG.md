@@ -12,6 +12,7 @@ IMPROVEMENTS:
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
  * provider/vsphere: Add ability to specify and mount bootable vmdk in `vsphere_virtual_machine` [GH-6146]
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
+ * provider/cloudflare: Add proxied option to `cloudflare_record` [GH-5508]
 
 BUG FIXES:
 
