@@ -41,7 +41,7 @@ servers in Amazon's RDS service.
 resource "aws_db_instance" "default" {
     engine = "mysql"
     engine_version = "5.6.17"
-    instance_class = "db.t1.micro"
+    instance_class = "db.t2.micro"
     name = "initial_db"
     username = "rootuser"
     password = "rootpasswd"

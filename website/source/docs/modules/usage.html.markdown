@@ -88,7 +88,7 @@ For example:
 ```
 resource "aws_instance" "client" {
   ami = "ami-408c7f28"
-  instance_type = "t1.micro"  
+  instance_type = "t2.micro"  
   availability_zone = "${module.consul.server_availability_zone}"
 }
 ```

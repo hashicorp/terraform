@@ -38,7 +38,7 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "license_model", "general-public-license"),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
+						"aws_db_instance.bar", "instance_class", "db.t2.micro"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "name", "baz"),
 					resource.TestCheckResourceAttr(
@@ -367,7 +367,7 @@ resource "aws_db_instance" "bar" {
 	allocated_storage = 10
 	engine = "MySQL"
 	engine_version = "5.6.21"
-	instance_class = "db.t1.micro"
+	instance_class = "db.t2.micro"
 	name = "baz"
 	password = "barbarbarbar"
 	username = "foo"
@@ -391,7 +391,7 @@ func testAccReplicaInstanceConfig(val int) string {
 		allocated_storage = 5
 		engine = "mysql"
 		engine_version = "5.6.21"
-		instance_class = "db.t1.micro"
+		instance_class = "db.t2.micro"
 		name = "baz"
 		password = "barbarbarbar"
 		username = "foo"
@@ -429,7 +429,7 @@ resource "aws_db_instance" "snapshot" {
 	allocated_storage = 5
 	engine = "mysql"
 	engine_version = "5.6.21"
-	instance_class = "db.t1.micro"
+	instance_class = "db.t2.micro"
 	name = "baz"
 	password = "barbarbarbar"
 	username = "foo"
@@ -458,7 +458,7 @@ resource "aws_db_instance" "no_snapshot" {
 	allocated_storage = 5
 	engine = "mysql"
 	engine_version = "5.6.21"
-	instance_class = "db.t1.micro"
+	instance_class = "db.t2.micro"
 	name = "baz"
 	password = "barbarbarbar"
 	username = "foo"

@@ -1468,7 +1468,7 @@ type CacheCluster struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -1608,7 +1608,7 @@ func (s CacheEngineVersion) GoString() string {
 //
 //  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 // cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 // cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 // generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 // cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -1950,7 +1950,7 @@ type CreateCacheClusterInput struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -2308,7 +2308,7 @@ type CreateReplicationGroupInput struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -3301,7 +3301,7 @@ type DescribeReservedCacheNodesInput struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -3376,7 +3376,7 @@ type DescribeReservedCacheNodesOfferingsInput struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -4615,7 +4615,7 @@ type ReservedCacheNode struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -4681,7 +4681,7 @@ type ReservedCacheNodesOffering struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,
@@ -4845,7 +4845,7 @@ type Snapshot struct {
 	//
 	//  General purpose:  Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium,
 	// cache.m3.medium, cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge Previous
-	// generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	// generation: cache.t2.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
 	// cache.m1.xlarge  Compute optimized: cache.c1.xlarge Memory optimized  Current
 	// generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
 	// cache.r3.8xlarge Previous generation: cache.m2.xlarge, cache.m2.2xlarge,

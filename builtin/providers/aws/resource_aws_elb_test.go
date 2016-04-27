@@ -895,7 +895,7 @@ resource "aws_elb" "bar" {
 resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-043a5034"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 }
 `
 
