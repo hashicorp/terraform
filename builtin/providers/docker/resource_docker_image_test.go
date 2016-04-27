@@ -44,9 +44,36 @@ func TestAccDockerImage_private(t *testing.T) {
 	})
 }
 
-func testAccDockerImageDestroy(s *terraform.State) error {
-	//client := testAccProvider.Meta().(*dc.Client)
+func TestAccDockerImage_destroy(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		CheckDestroy: func(s *terraform.State) error {
+			for _, rs := range s.RootModule().Resources {
+				if rs.Type != "docker_image" {
+					continue
+				}
 
+				client := testAccProvider.Meta().(*dc.Client)
+				_, err := client.InspectImage(rs.Primary.Attributes["latest"])
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerImageKeepLocallyConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("docker_image.foobarzoo", "latest", contentDigestRegexp),
+				),
+			},
+		},
+	})
+}
+
+func testAccDockerImageDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "docker_image" {
 			continue
@@ -74,5 +101,12 @@ const testAddDockerPrivateImageConfig = `
 resource "docker_image" "foobar" {
 	name = "gcr.io:443/google_containers/pause:0.8.0"
 	keep_updated = true
+}
+`
+
+const testAccDockerImageKeepLocallyConfig = `
+resource "docker_image" "foobarzoo" {
+	name = "crux:3.1"
+	keep_locally = true
 }
 `
