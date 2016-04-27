@@ -616,22 +616,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					Name:    df["name"].(string),
 				}
 
-				// Fastly API will fill in ContentTypes or Extensions with default
-				// values if they are omitted, which is not what we want. Ex: creating a
-				// gzip rule for content types of "text/html", and not supplying any
-				// extensions, will apply automatic values to extensions for css, js,
-				// html.  Given Go's nature of default values, and go-fastly's usage of
-				// omitempty for empty strings, we need to pre-fill the ContentTypes and
-				// Extensions with and empty space " " in order to not receive the
-				// default values for each field. This space is checked and then ignored
-				// in the flattenGzips function.
-				//
-				// I've opened a support case with Fastly to find if this is a bug or
-				// feature. If feature, we'll update the go-fastly library to not use
-				// omitempty in the definition. If bug, we'll have to weather it until
-				// they fix it
-				opts.Extensions = " "
-				opts.ContentTypes = " "
 				if v, ok := df["content_types"]; ok {
 					if len(v.(*schema.Set).List()) > 0 {
 						var cl []string
@@ -1014,11 +998,7 @@ func flattenGzips(gzipsList []*gofastly.Gzip) []map[string]interface{} {
 			"cache_condition": g.CacheCondition,
 		}
 
-		// Fastly API provides default values for Extensions or ContentTypes, in the
-		// event that you do not specify them. To work around this, if they are
-		// omitted we'll use an empty space as a sentinel value to indicate not to
-		// include them, and filter on that
-		if g.Extensions != "" && g.Extensions != " " {
+		if g.Extensions != "" {
 			e := strings.Split(g.Extensions, " ")
 			var et []interface{}
 			for _, ev := range e {
@@ -1027,7 +1007,7 @@ func flattenGzips(gzipsList []*gofastly.Gzip) []map[string]interface{} {
 			ng["extensions"] = schema.NewSet(schema.HashString, et)
 		}
 
-		if g.ContentTypes != "" && g.ContentTypes != " " {
+		if g.ContentTypes != "" {
 			c := strings.Split(g.ContentTypes, " ")
 			var ct []interface{}
 			for _, cv := range c {
