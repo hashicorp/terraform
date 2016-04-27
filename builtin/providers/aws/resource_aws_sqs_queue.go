@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -177,6 +178,14 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			log.Printf("ERROR Found %s", awsErr.Code())
+			if "AWS.SimpleQueueService.NonExistentQueue" == awsErr.Code() {
+				d.SetId("")
+				log.Printf("[DEBUG] SQS Queue (%s) not found", d.Get("name").(string))
+				return nil
+			}
+		}
 		return err
 	}
 
