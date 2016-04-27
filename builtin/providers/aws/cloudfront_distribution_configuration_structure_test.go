@@ -191,6 +191,13 @@ func customErrorResponsesConfFirst() map[string]interface{} {
 	return customErrorResponsesConf()[0].(map[string]interface{})
 }
 
+func customErrorResponseConfNoResponseCode() map[string]interface{} {
+	er := customErrorResponsesConf()[0].(map[string]interface{})
+	er["response_code"] = 0
+	er["response_page_path"] = ""
+	return er
+}
+
 func viewerCertificateConfSetCloudFrontDefault() map[string]interface{} {
 	return map[string]interface{}{
 		"acm_certificate_arn":            "",
@@ -756,6 +763,17 @@ func TestCloudFrontStructure_expandCustomErrorResponse(t *testing.T) {
 	}
 	if *er.ResponsePagePath != "/error-pages/404.html" {
 		t.Fatalf("Expected ResponsePagePath to be /error-pages/404.html, got %v", *er.ResponsePagePath)
+	}
+}
+
+func TestCloudFrontStructure_expandCustomErrorResponse_emptyResponseCode(t *testing.T) {
+	data := customErrorResponseConfNoResponseCode()
+	er := expandCustomErrorResponse(data)
+	if *er.ResponseCode != "" {
+		t.Fatalf("Expected ResponseCode to be empty string, got %v", *er.ResponseCode)
+	}
+	if *er.ResponsePagePath != "" {
+		t.Fatalf("Expected ResponsePagePath to be empty string, got %v", *er.ResponsePagePath)
 	}
 }
 
