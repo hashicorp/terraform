@@ -33,6 +33,7 @@ The following arguments are supported:
 * `type` - (Required) The type of the record
 * `ttl` - (Optional) The TTL of the record
 * `priority` - (Optional) The priority of the record
+* `proxied` - (Optional) Whether the record gets CloudFlares origin protection.
 
 ## Attributes Reference
 
@@ -45,4 +46,5 @@ The following attributes are exported:
 * `ttl` - The TTL of the record
 * `priority` - The priority of the record
 * `hostname` - The FQDN of the record
+* `proxied` - (Optional) Whether the record gets CloudFlares origin protection.
 
