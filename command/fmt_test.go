@@ -125,7 +125,6 @@ func TestFmt_directoryArg(t *testing.T) {
 }
 
 func TestFmt_stdinArg(t *testing.T) {
-	t.Skip("phinze is working on fixing this test")
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
@@ -150,7 +149,6 @@ func TestFmt_stdinArg(t *testing.T) {
 }
 
 func TestFmt_nonDefaultOptions(t *testing.T) {
-	t.Skip("phinze is working on fixing this test")
 	tempDir, err := fmtFixtureWriteDir()
 	if err != nil {
 		t.Fatalf("err: %s", err)
