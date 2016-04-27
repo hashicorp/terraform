@@ -32,19 +32,37 @@ func (d DefaultRetryer) MaxRetries() int {
 // RetryRules returns the delay duration before retrying this request again
 func (d DefaultRetryer) RetryRules(r *request.Request) time.Duration {
 	// Set the upper limit of delay in retrying at ~five minutes
+	minTime := 30
+	throttle := d.shouldThrottle(r)
+	if throttle {
+		minTime = 1000
+	}
+
 	retryCount := r.RetryCount
 	if retryCount > 13 {
 		retryCount = 13
+	} else if throttle && retryCount > 8 {
+		retryCount = 8
 	}
 
-	delay := (1 << uint(retryCount)) * (rand.Intn(30) + 30)
+	delay := (1 << uint(retryCount)) * (rand.Intn(30) + minTime)
 	return time.Duration(delay) * time.Millisecond
 }
 
-// ShouldRetry returns if the request should be retried.
+// ShouldRetry returns true if the request should be retried.
 func (d DefaultRetryer) ShouldRetry(r *request.Request) bool {
 	if r.HTTPResponse.StatusCode >= 500 {
 		return true
 	}
-	return r.IsErrorRetryable()
+	return r.IsErrorRetryable() || d.shouldThrottle(r)
+}
+
+// ShouldThrottle returns true if the request should be throttled.
+func (d DefaultRetryer) shouldThrottle(r *request.Request) bool {
+	if r.HTTPResponse.StatusCode == 502 ||
+		r.HTTPResponse.StatusCode == 503 ||
+		r.HTTPResponse.StatusCode == 504 {
+		return true
+	}
+	return r.IsErrorThrottle()
 }

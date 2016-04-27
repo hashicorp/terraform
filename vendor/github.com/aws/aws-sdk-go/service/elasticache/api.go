@@ -1884,8 +1884,6 @@ type CopySnapshotInput struct {
 	// The name of an existing snapshot from which to copy.
 	SourceSnapshotName *string `type:"string" required:"true"`
 
-	TargetBucket *string `type:"string"`
-
 	// A name for the copied snapshot.
 	TargetSnapshotName *string `type:"string" required:"true"`
 }
@@ -4737,7 +4735,7 @@ type ResetCacheParameterGroupInput struct {
 
 	// An array of parameter names to be reset. If you are not resetting the entire
 	// cache parameter group, you must specify at least one parameter name.
-	ParameterNameValues []*ParameterNameValue `locationNameList:"ParameterNameValue" type:"list"`
+	ParameterNameValues []*ParameterNameValue `locationNameList:"ParameterNameValue" type:"list" required:"true"`
 
 	// If true, all parameters in the cache parameter group will be reset to default
 	// values. If false, no such action occurs.

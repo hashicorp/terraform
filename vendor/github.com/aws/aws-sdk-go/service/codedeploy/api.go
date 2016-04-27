@@ -2803,7 +2803,7 @@ type ListDeploymentsInput struct {
 	// queued deployments in the resulting list. In Progress: Include in-progress
 	// deployments in the resulting list. Succeeded: Include successful deployments
 	// in the resulting list. Failed: Include failed deployments in the resulting
-	// list. Aborted: Include aborted deployments in the resulting list.
+	// list. Stopped: Include stopped deployments in the resulting list.
 	IncludeOnlyStatuses []*string `locationName:"includeOnlyStatuses" type:"list"`
 
 	// An identifier returned from the previous list deployments call. It can be
