@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New resource:** `aws_api_gateway_authorizer` [GH-6320]
+ * **New resource:** `api_gateway_account` [GH-6321]
 
 IMPROVEMENTS:
 
