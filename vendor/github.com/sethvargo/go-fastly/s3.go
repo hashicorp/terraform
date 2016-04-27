@@ -11,12 +11,12 @@ type S3 struct {
 	ServiceID string `mapstructure:"service_id"`
 	Version   string `mapstructure:"version"`
 
-	Name              string     `mapstructure:"name"`
-	BucketName        string     `mapstructure:"bucket_name"`
-	Domain            string     `mapstructure:"domain"`
-	AccessKey         string     `mapstructure:"access_key"`
-	SecretKey         string     `mapstructure:"secret_key"`
-	Path              string     `mapstructure:"path"`
+        Name              string     `mapstructure:"name"`
+        BucketName        string     `mapstructure:"bucket_name"`
+        Domain            string     `mapstructure:"domain"`
+        AccessKey         string     `mapstructure:"access_key"`
+        SecretKey         string     `mapstructure:"secret_key"`
+        Path              string     `mapstructure:"path"`
 	Period            uint       `mapstructure:"period"`
 	GzipLevel         uint       `mapstructure:"gzip_level"`
 	Format            string     `mapstructure:"format"`
@@ -77,12 +77,12 @@ type CreateS3Input struct {
 	Service string
 	Version string
 
-	Name              string `form:"name,omitempty"`
-	BucketName        string `form:"bucket_name,omitempty"`
-	Domain            string `form:"domain,omitempty"`
-	AccessKey         string `form:"access_key,omitempty"`
-	SecretKey         string `form:"secret_key,omitempty"`
-	Path              string `form:"path,omitempty"`
+        Name              string `form:"name,omitempty"`
+        BucketName        string `form:"bucket_name,omitempty"`
+        Domain            string `form:"domain,omitempty"`
+        AccessKey         string `form:"access_key,omitempty"`
+        SecretKey         string `form:"secret_key,omitempty"`
+        Path              string `form:"path,omitempty"`
 	Period            uint   `form:"period,omitempty"`
 	GzipLevel         uint   `form:"gzip_level,omitempty"`
 	Format            string `form:"format,omitempty"`
@@ -161,12 +161,12 @@ type UpdateS3Input struct {
 	// Name is the name of the S3 to update.
 	Name string
 
-	NewName           string `form:"name,omitempty"`
-	BucketName        string `form:"bucket_name,omitempty"`
-	Domain            string `form:"domain,omitempty"`
-	AccessKey         string `form:"access_key,omitempty"`
-	SecretKey         string `form:"secret_key,omitempty"`
-	Path              string `form:"path,omitempty"`
+        NewName           string `form:"name,omitempty"`
+        BucketName        string `form:"bucket_name,omitempty"`
+        Domain            string `form:"domain,omitempty"`
+        AccessKey         string `form:"access_key,omitempty"`
+        SecretKey         string `form:"secret_key,omitempty"`
+        Path              string `form:"path,omitempty"`
 	Period            uint   `form:"period,omitempty"`
 	GzipLevel         uint   `form:"gzip_level,omitempty"`
 	Format            string `form:"format,omitempty"`
