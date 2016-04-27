@@ -105,6 +105,24 @@ func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 	})
 }
 
+func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudFrontDistributionNoCustomErroResponseInfo,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.no_custom_error_responses",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudFrontDistributionDestroy(s *terraform.State) error {
 	for k, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_cloudfront_distribution" {
@@ -373,12 +391,63 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
 
-var testAccAWSCloudFrontDistributionNoOptionalItemsConfig = fmt.Sprintf(`
+var testAccAWSCloudFrontDistributionNoCustomErroResponseInfo = fmt.Sprintf(`
 variable rand_id {
 	default = %d
 }
 
 resource "aws_cloudfront_distribution" "no_optional_items" {
+	origin {
+		domain_name = "www.example.com"
+		origin_id = "myCustomOrigin"
+		custom_origin_config {
+			http_port = 80
+			https_port = 443
+			origin_protocol_policy = "http-only"
+			origin_ssl_protocols = [ "SSLv3", "TLSv1" ]
+		}
+	}
+	enabled = true
+	comment = "Some comment"
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myCustomOrigin"
+		smooth_streaming = false
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "all"
+			}
+		}
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	custom_error_response {
+		error_code = 404
+		error_caching_min_ttl = 30
+	}
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	%s
+}
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+
+var testAccAWSCloudFrontDistributionNoOptionalItemsConfig = fmt.Sprintf(`
+variable rand_id {
+	default = %d
+}
+
+resource "aws_cloudfront_distribution" "no_custom_error_responses" {
 	origin {
 		domain_name = "www.example.com"
 		origin_id = "myCustomOrigin"
