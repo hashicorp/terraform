@@ -18,6 +18,7 @@ BUG FIXES:
  * provider/aws: Fix updating `number_of_nodes` on `aws_redshift_cluster` [GH-6333]
  * provider/aws: Fix bug where `aws_elastic_beanstalk_environment` update config template didn't work [GH-6342]
  * provider/aws: Fix bug where `aws_elastic_beanstalk_environment` ignored `wait_for_ready_timeout` [GH-6358]
+ * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
 
 ## 0.6.15 (April 22, 2016)
 
