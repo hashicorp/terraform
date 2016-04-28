@@ -262,7 +262,7 @@ func testAccCheckBeanstalkEnvConfigValue(n string, expectedValue string) resourc
 
 		for _, value := range resp.Options[0].ValueOptions {
 			if *value != expectedValue {
-				return fmt.Errorf("Option setting value: %s. Expected %s", value, expectedValue)
+				return fmt.Errorf("Option setting value: %s. Expected %s", *value, expectedValue)
 			}
 		}
 
