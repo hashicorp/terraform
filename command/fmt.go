@@ -83,7 +83,7 @@ Options:
 
   -write           Write result to source file instead of STDOUT (disabled if using STDIN)
 
-  -diff            Display diffs instead of rewriting files
+  -diff            Display diffs of formatting changes
 
 `
 	return strings.TrimSpace(helpText)
