@@ -124,12 +124,16 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 			return err
 		}
 	}
+
 	if distributionConfig.Logging != nil && *distributionConfig.Logging.Enabled {
 		err = d.Set("logging_config", flattenLoggingConfig(distributionConfig.Logging))
-		if err != nil {
-			return err
-		}
+	} else {
+		err = d.Set("logging_config", schema.NewSet(loggingConfigHash, []interface{}{}))
 	}
+	if err != nil {
+		return err
+	}
+
 	if distributionConfig.Aliases != nil {
 		err = d.Set("aliases", flattenAliases(distributionConfig.Aliases))
 		if err != nil {
