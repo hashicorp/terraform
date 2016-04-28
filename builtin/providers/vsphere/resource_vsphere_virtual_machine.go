@@ -811,8 +811,15 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 	log.Printf("[DEBUG] disk controller: %#v\n", controller)
 
-	// TODO Check if diskPath & datastore exist
-	disk := devices.CreateDisk(controller, fmt.Sprintf("[%v] %v", datastore.Name(), diskPath))
+	// If diskPath is not specified, pass empty string to CreateDisk()
+	var newDiskPath string
+	if diskPath == "" {
+		newDiskPath = ""
+	} else {
+		// TODO Check if diskPath & datastore exist
+		newDiskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
+	}
+	disk := devices.CreateDisk(controller, newDiskPath)
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
