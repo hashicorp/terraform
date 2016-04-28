@@ -459,7 +459,15 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		log.Printf("[ERROR] %s", err)
 	}
 
-	vm.PowerOn(context.TODO())
+	task, err = vm.PowerOn(context.TODO())
+	if err != nil {
+		return err
+	}
+
+	err = task.Wait(context.TODO())
+	if err != nil {
+		log.Printf("[ERROR] %s", err)
+	}
 
 	ip, err := vm.WaitForIP(context.TODO())
 	if err != nil {
