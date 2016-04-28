@@ -461,12 +461,6 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 
 	vm.PowerOn(context.TODO())
 
-	toolsRunning, err := vm.IsToolsRunning(context.TODO())
-	for !toolsRunning {
-		time.Sleep(1000 * time.Millisecond)
-		toolsRunning, err = vm.IsToolsRunning(context.TODO())
-	}
-
 	ip, err := vm.WaitForIP(context.TODO())
 	if err != nil {
 		return err
