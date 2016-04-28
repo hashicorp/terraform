@@ -1,19 +1,8 @@
 package terraform
 
-/*
 import (
-	"bytes"
-	"fmt"
-	"os"
-	"reflect"
-	"sort"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"testing"
-	"time"
-
-	"github.com/hashicorp/terraform/config/module"
 )
 
 func TestContextImport(t *testing.T) {
@@ -24,24 +13,23 @@ func TestContextImport(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	state, err := ctx.Apply()
+	state, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "aws_instance.foo",
+				ID:   "bar",
+			},
+		},
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	mod := state.RootModule()
-	if len(mod.Resources) < 2 {
-		t.Fatalf("bad: %#v", mod.Resources)
-	}
-
 	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyStr)
+	expected := strings.TrimSpace(testImportStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
-*/
+
+const testImportStr = ``
