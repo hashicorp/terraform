@@ -109,7 +109,6 @@ The following arguments are supported:
   `"default"` or `"dedicated"`, see [AWS's Create Launch Configuration](http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_CreateLaunchConfiguration.html)
   for more details
 
-<a id="block-devices"></a>
 ## Block devices
 
 Each of the `*_block_device` attributes controls a portion of the AWS

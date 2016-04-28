@@ -69,7 +69,6 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
   "Instance Store") volumes on the instance. See [Block Devices](#block-devices) below for details.
 
 
-<a id="block-devices"></a>
 ## Block devices
 
 Each of the `*_block_device` attributes controls a portion of the AWS
