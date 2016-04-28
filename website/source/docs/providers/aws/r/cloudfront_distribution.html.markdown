@@ -89,27 +89,27 @@ of several sub-resources - these resources are laid out below.
 ### Top-Level Arguments
 
 * `aliases` (Optional) - Extra CNAMEs (alternate domain names), if any, for this distribution.
-* `cache_behavior` (Optional) - A [cache behavior](#cache_behavior) resource for this distribution (multiples allowed).
+* `cache_behavior` (Optional) - A [cache behavior](#cache_behavior_arguments) resource for this distribution (multiples allowed).
 * `comment` (Optional) - Any comments you want to include about the distribution.
-* `custom_error_response` (Optional) - One or more [custom error response](#custom_error_response) elements (multiples allowed).
-* `default_cache_behavior` (Required) - The [default cache behavior](#default_cache_behavior) for this distribution (maximum one).
+* `custom_error_response` (Optional) - One or more [custom error response](#custom_error_response_arguments) elements (multiples allowed).
+* `default_cache_behavior` (Required) - The [default cache behavior](#default_cache_behavior_arguments) for this distribution (maximum one).
 * `default_root_object` (Optional) - The object that you want CloudFront to return (for example, index.html) when an end user requests the root URL.
 * `enabled` (Required) - Whether the distribution is enabled to accept end user requests for content.
-* `logging_config` (Optional) - The [logging configuration](#logging_config) that controls how logs are written to your distribution (maximum one).
-* `origin` (Required) - One or more [origins](#origin) for this distribution (multiples allowed).
+* `logging_config` (Optional) - The [logging configuration](#logging_config_arguments) that controls how logs are written to your distribution (maximum one).
+* `origin` (Required) - One or more [origins](#origin_arguments) for this distribution (multiples allowed).
 * `price_class` (Optional) - The price class for this distribution. One of `PriceClass_All`, `PriceClass_200`, `PriceClass_100`
-* `restrictions` (Required) - The [restriction configuration](#restrictions) for this distribution (maximum one).
-* `viewer_certificate` (Required) - The [SSL configuration](#viewer_certificate) for this distribution (maximum one).
+* `restrictions` (Required) - The [restriction configuration](#restrictions_arguments) for this distribution (maximum one).
+* `viewer_certificate` (Required) - The [SSL configuration](#viewer_certificate_arguments) for this distribution (maximum one).
 * `web_acl_id` (Optional) - If you're using AWS WAF to filter CloudFront requests, the Id of the AWS WAF web ACL that is associated with the distribution.
 * `retain_on_delete` (Optional) - Disables the distribution instead of deleting it when destroying the resource through Terraform. If this is set, the distribution needs to be deleted manually afterwards. Default: `false`.
 
-#### <a name="cache_behavior"> `cache_behavior` Arguments
+#### <a name="cache_behavior_arguments"> `cache_behavior` Arguments
 
 * `allowed_methods` (Required) - Controls which HTTP methods CloudFront processes and forwards to your Amazon S3 bucket or your custom origin.
 * `cached_methods` (Required) - Controls whether CloudFront caches the response to requests using the specified HTTP methods.
 * `compress` (Optional) - Whether you want CloudFront to automatically compress content for web requests that include `Accept-Encoding: gzip` in the request header (default: `false`).
 * `default_ttl` (Required) - The default amount of time (in seconds) that an object is in a CloudFront cache before CloudFront forwards another request in the absence of an `Cache-Control max-age` or `Expires` header.
-* `forwarded_values` (Required) - The [forwarded values configuration](#forwarded_values) that specifies how CloudFront handles query strings, cookies and headers (maximum one).
+* `forwarded_values` (Required) - The [forwarded values configuration](#forwarded_values_arguments) that specifies how CloudFront handles query strings, cookies and headers (maximum one).
 * `max_ttl` (Required) - The maximum amount of time (in seconds) that an object is in a CloudFront cache before CloudFront forwards another request to your origin to determine whether the object has been updated. Only effective in the presence of `Cache-Control max-age`, `Cache-Control s-maxage`, and `Expires` headers.
 * `min_ttl` (Required) - The minimum amount of time that you want objects to stay in CloudFront caches before CloudFront queries your origin to see whether the object has been updated.
 * `path_pattern` (Required) - The pattern (for example, `images/*.jpg)` that specifies which requests you want this cache behavior to apply to.
@@ -118,55 +118,55 @@ of several sub-resources - these resources are laid out below.
 * `trusted_signers` (Optional) - The AWS accounts, if any, that you want to allow to create signed URLs for private content.
 * `viewer_protocol_policy` (Required) - Use this element to specify the protocol that users can use to access the files in the origin specified by TargetOriginId when a request matches the path pattern in PathPattern. One of `allow-all`, `https-only`, or `redirect-to-https`.
 
-##### <a name="forwarded_values"> `forwarded_values` Arguments
+##### <a name="forwarded_values_arguments"> `forwarded_values` Arguments
 
 * `cookies` (Optional) - The [forwarded values cookies](#cookies) that specifies how CloudFront handles cookies (maximum one).
 * `headers` (Optional) - Specifies the Headers, if any, that you want CloudFront to vary upon for this cache behavior. Specify `*` to include all headers.
 * `query_string` (Required) - Indicates whether you want CloudFront to forward query strings to the origin that is associated with this cache behavior.
 
-##### <a name="cookies"> `cookies` Arguments
+##### <a name="cookies_arguments"> `cookies` Arguments
 
 * `forward` (Required) - Specifies whether you want CloudFront to forward cookies to the origin that is associated with this cache behavior. You can specify `all`, `none` or `whitelist`.
 * `whitelisted_names` (Optional) - If you have specified `whitelist` to `forward`, the whitelisted cookies that you want CloudFront to forward to your origin.
 
-#### <a name="custom_error_response"> `custom_error_response` Arguments
+#### <a name="custom_error_response_arguments"> `custom_error_response` Arguments
 
 * `error_caching_min_ttl` (Optional) - The minimum amount of time you want HTTP error codes to stay in CloudFront caches before CloudFront queries your origin to see whether the object has been updated.
 * `error_code` (Required) - The 4xx or 5xx HTTP status code that you want to customize.
 * `response_code` (Optional) - The HTTP status code that you want CloudFront to return with the custom error page to the viewer.
 * `response_page_path` (Optional) - The path of the custom error page (for example, `/custom_404.html`).
 
-#### <a name="default_cache_behavior"> `default_cache_behavior` Arguments
+#### <a name="default_cache_behavior_arguments"> `default_cache_behavior` Arguments
 
-The arguments for `default_cache_behavior` are the same as for [`cache_behavior`](#cache_behavior), except for the `path_pattern` argument is not required.
+The arguments for `default_cache_behavior` are the same as for [`cache_behavior`](#cache_behavior_arguments), except for the `path_pattern` argument is not required.
 
-#### <a name="logging_config"> `logging_config` Arguments
+#### <a name="logging_config_arguments"> `logging_config` Arguments
 
 * `bucket` (Required) - The Amazon S3 bucket to store the access logs in, for example, `myawslogbucket.s3.amazonaws.com`.
 * `include_cookies` (Optional) - Specifies whether you want CloudFront to include cookies in access logs (default: `false`).
 * `prefix` (Optional) - An optional string that you want CloudFront to prefix to the access log filenames for this distribution, for example, `myprefix/`.
 
-#### <a name="origin"> `origin` Arguments
+#### <a name="origin_arguments"> `origin` Arguments
 
-* `custom_origin_config` - The [CloudFront custom origin](#custom_origin_config) configuration information. If an S3 origin is required, use `s3_origin_config` instead.
+* `custom_origin_config` - The [CloudFront custom origin](#custom_origin_config_arguments) configuration information. If an S3 origin is required, use `s3_origin_config` instead.
 * `domain_name` (Required) - The DNS domain name of either the S3 bucket, or web site of your custom origin.
 * `custom_header` (Optional) - One or more sub-resources with `name` and `value` parameters that specify header data that will be sent to the origin (multiples allowed).
 * `origin_id` (Required) - A unique identifier for the origin.
 * `origin_path` (Optional) - An optional element that causes CloudFront to request your content from a directory in your Amazon S3 bucket or your custom origin.
-* `s3_origin_config` - The [CloudFront S3 origin](#s3_origin_config) configuration information. If a custom origin is required, use `custom_origin_config` instead.
+* `s3_origin_config` - The [CloudFront S3 origin](#s3_origin_config_arguments) configuration information. If a custom origin is required, use `custom_origin_config` instead.
 
-##### <a name="custom_origin_config"> `custom_origin_config` Arguments
+##### <a name="custom_origin_config_arguments"> `custom_origin_config` Arguments
 
 * `http_port` (Required) - The HTTP port the custom origin listens on.
 * `https_port` (Required) - The HTTPS port the custom origin listens on.
 * `origin_protocol_policy` (Required) - The origin protocol policy to apply to your origin. One of `http-only`, `https-only`, or `match-viewer`.
 * `origin_ssl_protocols` (Required) - The SSL/TLS protocols that you want CloudFront to use when communicating with your origin over HTTPS. A list of one or more of `SSLv3`, `TLSv1`, `TLSv1.1`, and `TLSv1.2`.
 
-##### <a name="s3_origin_config"> `s3_origin_config` Arguments
+##### <a name="s3_origin_config_arguments"> `s3_origin_config` Arguments
 
 * `origin_access_identity` (Optional) - The [CloudFront origin access identity][5] to associate with the origin.
 
-#### <a name="restrictions"> `restrictions` Arguments
+#### <a name="restrictions_arguments"> `restrictions` Arguments
 
 The `restrictions` sub-resource takes another single sub-resource named `geo_restriction` (see the example for usage).
 
@@ -175,7 +175,7 @@ The arguments of `geo_restriction` are:
 * `locations` (Optional) - The [ISO 3166-1-alpha-2 codes][4] for which you want CloudFront either to distribute your content (`whitelist`) or not distribute your content (`blacklist`).
 * `restriction_type` (Required) - The method that you want to use to restrict distribution of your content by country: `none`, `whitelist`, or `blacklist`.
 
-#### <a name="viewer_certificate"> `viewer_certificate` Arguments
+#### <a name="viewer_certificate_arguments"> `viewer_certificate` Arguments
 
 * `acm_certificate_arn` - The ARN of the [AWS Certificate Manager][6] certificate that you wish to use with this distribution. Specify this, `cloudfront_default_certificate`, or `iam_certificate_id`.
 * `cloudfront_default_certificate` - `true` if you want viewers to use HTTPS to request your objects and you're using the CloudFront domain name for your distribution. Specify this, `acm_certificate_arn`, or `iam_certificate_id`.
