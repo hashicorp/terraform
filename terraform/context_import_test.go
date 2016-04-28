@@ -5,13 +5,20 @@ import (
 	"testing"
 )
 
-func TestContextImport(t *testing.T) {
+func TestContextImport_basic(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
 	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
 
 	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
@@ -32,4 +39,8 @@ func TestContextImport(t *testing.T) {
 	}
 }
 
-const testImportStr = ``
+const testImportStr = `
+aws_instance.foo:
+  ID = foo
+  provider = aws
+`

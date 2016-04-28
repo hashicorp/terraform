@@ -47,6 +47,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
+	log.Printf("STATE: %#v", state)
 	if n.Output != nil {
 		*n.Output = state
 	}
