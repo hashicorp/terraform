@@ -600,7 +600,12 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 	sfr := resp.SpotFleetRequestConfigs[0]
 
 	// if the request is cancelled, then it is gone
-	if *sfr.SpotFleetRequestState == "cancelled" {
+	cancelledStates := map[string]bool{
+		"cancelled":             true,
+		"cancelled_running":     true,
+		"cancelled_terminating": true,
+	}
+	if _, ok := cancelledStates[*sfr.SpotFleetRequestState]; ok {
 		d.SetId("")
 		return nil
 	}
