@@ -23,6 +23,9 @@ func (b *ImportGraphBuilder) Build(path []string) (*Graph, error) {
 // to build a complete graph.
 func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
+		// Add the import steps
+		&ImportStateTransformer{Targets: b.ImportTargets},
+
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
