@@ -97,17 +97,19 @@ The following arguments are supported:
 
 * `name` - (Required) The unique name for the Service to create
 * `domain` - (Required) A set of Domain names to serve as entry points for your
-Service. Defined below.
+Service. Defined below
 * `backend` - (Required) A set of Backends to service requests from your Domains.
-Defined below.
+Defined below
 * `gzip` - (Required) A set of gzip rules to control automatic gzipping of
-content. Defined below.
+content. Defined below
 * `header` - (Optional) A set of Headers to manipulate for each request. Defined
-below.
+below
 * `default_host` - (Optional) The default hostname
 * `default_ttl` - (Optional) The default Time-to-live (TTL) for requests
 * `force_destroy` - (Optional) Services that are active cannot be destroyed. In
 order to destroy the Service, set `force_destroy` to `true`. Default `false`.
+* `s3logging` - (Optional) A set of S3 Buckets to send streaming logs too.
+Defined below
 
 
 The `domain` block supports:
@@ -161,6 +163,32 @@ by the Action
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to `regex` and `regex_repeat`.)
 * `priority` - (Optional) Lower priorities execute first. (Default: `100`.)
 
+The `s3logging` block supports:
+
+* `name` - (Required) A unique name to identify this S3 Logging Bucket
+* `bucket_name` - (Optional) An optional comment about the Domain
+* `s3_access_key` - (Required) AWS Access Key of an account with the required
+permissions to post logs. It is **strongly** recommended you create a separate
+IAM user with permissions to only operate on this Bucket. This key will be
+not be encrypted. You can provide this key via an environment variable, `FASTLY_S3_ACCESS_KEY`
+* `s3_secret_key` - (Required) AWS Secret Key of an account with the required
+permissions to post logs. It is **strongly** recommended you create a separate
+IAM user with permissions to only operate on this Bucket. This secret will be
+not be encrypted. You can provide this secret via an environment variable, `FASTLY_S3_SECRET_KEY`
+* `path` - (Optional) Path to store the files. Must end with a trailing slash.
+If this field is left empty, the files will be saved in the bucket's root path.
+* `domain` - (Optional) If you created the S3 bucket outside of `us-east-1`,
+then specify the corresponding bucket endpoint. Ex: `s3-us-west-2.amazonaws.com`
+* `period` - (Optional) How frequently the logs should be transferred, in
+seconds. Default `3600`
+* `gzip_level` - (Optional) Level of GZIP compression, from `0-9`. `0` is no
+compression. `1` is fastest and least compressed, `9` is slowest and most
+compressed. Default `0`
+* `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Default
+Apache Common Log format (`%h %l %u %t %r %>s`)
+* `timestamp_format` - (Optional) `strftime` specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`).
+
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -171,6 +199,7 @@ The following attributes are exported:
 * `domain` – Set of Domains. See above for details
 * `backend` – Set of Backends. See above for details
 * `header` – Set of Headers. See above for details
+* `s3logging` – Set of S3 Logging configurations. See above for details
 * `default_host` – Default host specified
 * `default_ttl` - Default TTL
 * `force_destroy` - Force the destruction of the Service on delete
