@@ -35,6 +35,13 @@ resource "vsphere_folder" "frontend" {
   path = "frontend"
 }
 
+# Create a file
+resource "vsphere_file" "ubuntu_disk" {
+  datastore = "local"
+  source_file = "/home/ubuntu/my_disks/custom_ubuntu.vmdk"
+  destination_file = "/my_path/disks/custom_ubuntu.vmdk"
+}
+
 # Create a virtual machine within the folder
 resource "vsphere_virtual_machine" "web" {
   name   = "terraform-web"
