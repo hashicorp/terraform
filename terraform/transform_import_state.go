@@ -37,6 +37,8 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 type graphNodeImportState struct {
 	Addr *ResourceAddress // Addr is the resource address to import to
 	ID   string           // ID is the ID to import as
+
+	states []*InstanceState
 }
 
 func (n *graphNodeImportState) Name() string {
@@ -55,13 +57,16 @@ func (n *graphNodeImportState) Path() []string {
 // GraphNodeEvalable impl.
 func (n *graphNodeImportState) EvalTree() EvalNode {
 	var provider ResourceProvider
-	var states []*InstanceState
 	info := &InstanceInfo{
 		Id:         n.ID,
 		ModulePath: n.Addr.Path,
 		Type:       n.Addr.Type,
 	}
 
+	// Reset our states
+	n.states = nil
+
+	// Return our sequence
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalGetProvider{
@@ -71,7 +76,99 @@ func (n *graphNodeImportState) EvalTree() EvalNode {
 			&EvalImportState{
 				Provider: &provider,
 				Info:     info,
-				Output:   &states,
+				Output:   &n.states,
+			},
+		},
+	}
+}
+
+// GraphNodeDynamicExpandable impl.
+//
+// We use DynamicExpand as a way to generate the subgraph of refreshes
+// and state inserts we need to do for our import state. Since they're new
+// resources they don't depend on anything else and refreshes are isolated
+// so this is nearly a perfect use case for dynamic expand.
+func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	g := &Graph{Path: ctx.Path()}
+
+	// For each of the states, we add a node to handle the refresh/add to state.
+	// "n.states" is populated by our own EvalTree with the result of
+	// ImportState. Since DynamicExpand is always called after EvalTree, this
+	// is safe.
+	for _, state := range n.states {
+		g.Add(&graphNodeImportStateSub{
+			State: state,
+		})
+	}
+
+	// Root transform for a single root
+	t := &RootTransformer{}
+	if err := t.Transform(g); err != nil {
+		return nil, err
+	}
+
+	// Done!
+	return g, nil
+}
+
+// graphNodeImportStateSub is the sub-node of graphNodeImportState
+// and is part of the subgraph. This node is responsible for refreshing
+// and adding a resource to the state once it is imported.
+type graphNodeImportStateSub struct {
+	Target *ResourceAddress
+	State  *InstanceState
+	Path_  []string
+}
+
+func (n *graphNodeImportStateSub) Name() string {
+	return fmt.Sprintf("import %s result: %s", n.Target, n.State.ID)
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeImportStateSub) EvalTree() EvalNode {
+	// If the Ephemeral type isn't set, then it is an error
+	if n.State.Ephemeral.Type == "" {
+		err := fmt.Errorf(
+			"import of %s didn't set type for %s",
+			n.Target.String(), n.State.ID)
+		return &EvalReturnError{Error: &err}
+	}
+
+	// DeepCopy so we're only modifying our local copy
+	state := n.State.DeepCopy()
+
+	// Build the resource info
+	info := &InstanceInfo{
+		Id:         n.State.ID,
+		ModulePath: n.Path_,
+		Type:       n.State.Ephemeral.Type,
+	}
+
+	// Key is the resource key
+	key := &ResourceStateKey{
+		Name:  n.Target.Name,
+		Type:  info.Type,
+		Index: -1,
+	}
+
+	// The eval sequence
+	var provider ResourceProvider
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalGetProvider{
+				Name:   resourceProvider(info.Type, ""),
+				Output: &provider,
+			},
+			&EvalRefresh{
+				Provider: &provider,
+				State:    &state,
+				Info:     info,
+			},
+			&EvalWriteState{
+				Name:         key.String(),
+				ResourceType: info.Type,
+				Provider:     resourceProvider(info.Type, ""),
+				State:        &state,
 			},
 		},
 	}
