@@ -401,7 +401,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 }
 
 func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+	// flag if changes have to be applied
 	hasChanges := false
+	// flag if changes have to be done when powered off
+	rebootRequired := false
 
 	// make config spec
 	configSpec := types.VirtualMachineConfigSpec{}
@@ -409,11 +412,13 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("vcpu") {
 		configSpec.NumCPUs = d.Get("vcpu").(int)
 		hasChanges = true
+		rebootRequired = true
 	}
 
 	if d.HasChange("memory") {
 		configSpec.MemoryMB = int64(d.Get("memory").(int))
 		hasChanges = true
+		rebootRequired = true
 	}
 
 	// do nothing if there are no changes
@@ -435,21 +440,23 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	}
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
 
-	log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
+	if rebootRequired {
+		log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
 
-	task, err := vm.PowerOff(context.TODO())
-	if err != nil {
-		return err
-	}
+		task, err := vm.PowerOff(context.TODO())
+		if err != nil {
+			return err
+		}
 
-	err = task.Wait(context.TODO())
-	if err != nil {
-		return err
+		err = task.Wait(context.TODO())
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Printf("[INFO] Reconfiguring virtual machine: %s", d.Id())
 
-	task, err = vm.Reconfigure(context.TODO(), configSpec)
+	task, err := vm.Reconfigure(context.TODO(), configSpec)
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
 	}
@@ -459,14 +466,16 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 		log.Printf("[ERROR] %s", err)
 	}
 
-	task, err = vm.PowerOn(context.TODO())
-	if err != nil {
-		return err
-	}
+	if rebootRequired {
+		task, err = vm.PowerOn(context.TODO())
+		if err != nil {
+			return err
+		}
 
-	err = task.Wait(context.TODO())
-	if err != nil {
-		log.Printf("[ERROR] %s", err)
+		err = task.Wait(context.TODO())
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+		}
 	}
 
 	ip, err := vm.WaitForIP(context.TODO())
