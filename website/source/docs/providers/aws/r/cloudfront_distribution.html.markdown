@@ -153,7 +153,7 @@ The arguments for `default_cache_behavior` are the same as for [`cache_behavior`
 * `custom_header` (Optional) - One or more sub-resources with `name` and `value` parameters that specify header data that will be sent to the origin (multiples allowed).
 * `origin_id` (Required) - A unique identifier for the origin.
 * `origin_path` (Optional) - An optional element that causes CloudFront to request your content from a directory in your Amazon S3 bucket or your custom origin.
-* `s3_origin_config` - The [CloudFront S3 origin](#s3_origin_config) configuration information. If a custom origin is required, use `s3_origin_config` instead.
+* `s3_origin_config` - The [CloudFront S3 origin](#s3_origin_config) configuration information. If a custom origin is required, use `custom_origin_config` instead.
 
 ##### <a name="custom_origin_config"> `custom_origin_config` Arguments
 
