@@ -97,7 +97,9 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// is safe.
 	for _, state := range n.states {
 		g.Add(&graphNodeImportStateSub{
-			State: state,
+			Target: n.Addr,
+			Path_:  n.Path(),
+			State:  state,
 		})
 	}
 
@@ -163,6 +165,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 				Provider: &provider,
 				State:    &state,
 				Info:     info,
+				Output:   &state,
 			},
 			&EvalWriteState{
 				Name:         key.String(),
