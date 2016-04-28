@@ -11,6 +11,7 @@ IMPROVEMENTS:
  * provider/azurerm: Increase timeout for ARM Template deployments to 40 minutes [GH-6319]
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
  * provider/vsphere: Add ability to specify and mount bootable vmdk in `vsphere_virtual_machine` [GH-6146]
+ * provider/vsphere: Checking for empty diskPath in `vsphere_virtual_machine` before creating [GH-6400]
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
  * provider/cloudflare: Add proxied option to `cloudflare_record` [GH-5508]
  * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
