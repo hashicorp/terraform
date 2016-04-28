@@ -60,7 +60,6 @@ this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application
 
 
-<a id="option-settings"></a>
 ## Option Settings
 
 Some options can be stack-specific, check [AWS Docs](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html)
