@@ -90,6 +90,8 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 		if awserr, ok := err.(awserr.Error); ok {
 			if awserr.Code() == "ResourceNotFoundException" {
 				log.Printf("[INFO] Permission not found")
+				d.SetId("")
+				d.Set("id", "")
 				return nil
 			}
 		}
