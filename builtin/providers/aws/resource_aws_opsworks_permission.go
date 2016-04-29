@@ -98,15 +98,28 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	permission := resp.Permissions[0]
+	found := false
+	id := ""
+	for _, permission := range resp.Permissions {
+		id = *permission.IamUserArn + *permission.StackId
 
-	d.Set("allow_ssh", permission.AllowSsh)
-	d.Set("allow_sodo", permission.AllowSudo)
-	d.Set("user_arn", permission.IamUserArn)
-	d.Set("stack_id", permission.StackId)
-	id := *permission.IamUserArn + *permission.StackId
-	d.SetId(id)
-	d.Set("id", id)
+		if d.Get("user_arn").(string)+d.Get("stack_id").(string) == id {
+			found = true
+			d.SetId(id)
+			d.Set("id", id)
+			d.Set("allow_ssh", permission.AllowSudo)
+			d.Set("allow_sodo", permission.AllowSudo)
+			d.Set("user_arn", permission.IamUserArn)
+			d.Set("stack_id", permission.StackId)
+		}
+
+	}
+
+	if false == found {
+		d.SetId("")
+		d.Set("id", "")
+		log.Printf("[INFO] The correct permission could not be found for: %s on stack: %s", d.Get("user_arn"), d.Get("stack_id"))
+	}
 
 	return nil
 }
