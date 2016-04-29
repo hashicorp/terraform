@@ -111,17 +111,8 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceAwsOpsworksPermissionValidate(d *schema.ResourceData) error {
-	return nil
-}
-
 func resourceAwsOpsworksPermissionCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
-
-	err := resourceAwsOpsworksPermissionValidate(d)
-	if err != nil {
-		return err
-	}
 
 	req := &opsworks.SetPermissionInput{
 		AllowSudo:  aws.Bool(d.Get("allow_sudo").(bool)),
@@ -131,7 +122,7 @@ func resourceAwsOpsworksPermissionCreate(d *schema.ResourceData, meta interface{
 	}
 
 	var resp *opsworks.SetPermissionOutput
-	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		var cerr error
 		resp, cerr = client.SetPermission(req)
 		if cerr != nil {
