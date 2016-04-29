@@ -58,6 +58,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_dns_srv_record":         resourceArmDnsSrvRecord(),
 			"azurerm_dns_txt_record":         resourceArmDnsTxtRecord(),
 			"azurerm_dns_zone":               resourceArmDnsZone(),
+			"azurerm_load_balancer":          resourceArmBasicLoadBalancer(),
 			"azurerm_local_network_gateway":  resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":      resourceArmNetworkInterface(),
 			"azurerm_network_security_group": resourceArmNetworkSecurityGroup(),
