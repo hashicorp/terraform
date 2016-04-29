@@ -108,7 +108,24 @@ and [vSphere
 5.5](https://pubs.vmware.com/vsphere-55/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html).
 For additional information on roles and permissions, please refer to official
 VMware documentation.
- 
+
+## Customizations
+
+This provider use
+[customizations](https://pubs.vmware.com/vsphere-50/index.jsp#com.vmware.vsphere.vm_admin.doc_50/GUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html),
+this resource is used to configure guest operation system (Domain, hostname,
+etc..). The problem to work with this customizations are that only a certain OS
+are accepted. The list of accepted OS are
+[here](http://partnerweb.vmware.com/programs/guestOS/guest-os-customization-matrix.pdf)
+
+
+If the system are not in the list of the Supported OS, terraform will create a
+server but will fail with the following error
+
+```
+Customization of the guest operating system 'debian6_64Guest' is not supported in this configuration. Microsoft Vista (TM) and Linux guests with Logical Volume Manager are supported only for recent ESX host and VMware Tools versions. Refer to vCenter documentation for supported configurations.
+```
+
 ## Acceptance Tests
 
 The VMware vSphere provider's acceptance tests require the above provider
