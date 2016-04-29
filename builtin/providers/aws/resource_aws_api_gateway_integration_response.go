@@ -121,15 +121,11 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 	}
 
 	log.Printf("[DEBUG] Received API Gateway Integration Response: %s", integrationResponse)
-<<<<<<< HEAD
-	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
-=======
 
->>>>>>> 0238925511fc441731664c7bb91768450ac8b98a
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 	d.Set("response_templates", integrationResponse.ResponseTemplates)
 	d.Set("selection_pattern", integrationResponse.SelectionPattern)
-
+	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
 	return nil
 }
 
