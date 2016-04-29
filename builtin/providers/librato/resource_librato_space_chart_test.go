@@ -203,7 +203,7 @@ resource "librato_space_chart" "foobar" {
 
     # Minimal metric stream
     stream {
-        metric = "cpu"
+        metric = "librato.cpu.percent.idle"
         source = "*"
     }
 
@@ -214,7 +214,7 @@ resource "librato_space_chart" "foobar" {
 
     # Full metric stream
     stream {
-        metric = "cpu"
+        metric = "librato.cpu.percent.idle"
         source = "*"
         group_function = "average"
         summary_function = "max"
