@@ -80,11 +80,12 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	}
 
 	_, err := conn.PutIntegrationResponse(&apigateway.PutIntegrationResponseInput{
-		HttpMethod:         aws.String(d.Get("http_method").(string)),
-		ResourceId:         aws.String(d.Get("resource_id").(string)),
-		RestApiId:          aws.String(d.Get("rest_api_id").(string)),
-		StatusCode:         aws.String(d.Get("status_code").(string)),
-		ResponseTemplates:  aws.StringMap(templates),
+		HttpMethod:        aws.String(d.Get("http_method").(string)),
+		ResourceId:        aws.String(d.Get("resource_id").(string)),
+		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
+		StatusCode:        aws.String(d.Get("status_code").(string)),
+		ResponseTemplates: aws.StringMap(templates),
+		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
 		ResponseParameters: aws.StringMap(parameters),
 	})
 	if err != nil {
@@ -114,7 +115,9 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 		}
 		return err
 	}
+
 	log.Printf("[DEBUG] Received API Gateway Integration Response: %s", integrationResponse)
+	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 
 	return nil

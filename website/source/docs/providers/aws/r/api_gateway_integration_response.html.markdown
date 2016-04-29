@@ -63,3 +63,4 @@ The following arguments are supported:
 * `status_code` - (Required) The HTTP status code
 * `selection_pattern` - (Optional) Specifies the regular expression pattern used to choose an integration response based on the response from the backend
 * `response_templates` - (Optional) A map specifying the templates used to transform the integration response body
+* `response_parameters_in_json` - (Optional) A map written as JSON string specifying response parameters that can be read from the backend response
