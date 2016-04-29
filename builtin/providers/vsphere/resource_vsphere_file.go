@@ -58,14 +58,28 @@ func resourceVSphereFileCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] creating file: %#v", d)
 	client := meta.(*govmomi.Client)
 
-	f := file{
-		datastore:       d.Get("datastore").(string),
-		sourceFile:      d.Get("source_file").(string),
-		destinationFile: d.Get("destination_file").(string),
-	}
+	f := file{}
 
 	if v, ok := d.GetOk("datacenter"); ok {
 		f.datacenter = v.(string)
+	}
+
+	if v, ok := d.GetOk("datastore"); ok {
+		f.datastore = v.(string)
+	} else {
+		return fmt.Errorf("datastore argument is required")
+	}
+
+	if v, ok := d.GetOk("source_file"); ok {
+		f.sourceFile = v.(string)
+	} else {
+		return fmt.Errorf("source_file argument is required")
+	}
+
+	if v, ok := d.GetOk("destination_file"); ok {
+		f.destinationFile = v.(string)
+	} else {
+		return fmt.Errorf("destination_file argument is required")
 	}
 
 	err := createFile(client, &f)
@@ -110,14 +124,28 @@ func createFile(client *govmomi.Client, f *file) error {
 func resourceVSphereFileRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] reading file: %#v", d)
-	f := file{
-		datastore:       d.Get("datastore").(string),
-		sourceFile:      d.Get("source_file").(string),
-		destinationFile: d.Get("destination_file").(string),
-	}
+	f := file{}
 
 	if v, ok := d.GetOk("datacenter"); ok {
 		f.datacenter = v.(string)
+	}
+
+	if v, ok := d.GetOk("datastore"); ok {
+		f.datastore = v.(string)
+	} else {
+		return fmt.Errorf("datastore argument is required")
+	}
+
+	if v, ok := d.GetOk("source_file"); ok {
+		f.sourceFile = v.(string)
+	} else {
+		return fmt.Errorf("source_file argument is required")
+	}
+
+	if v, ok := d.GetOk("destination_file"); ok {
+		f.destinationFile = v.(string)
+	} else {
+		return fmt.Errorf("destination_file argument is required")
 	}
 
 	client := meta.(*govmomi.Client)
@@ -148,14 +176,28 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] updating file: %#v", d)
 	if d.HasChange("destination_file") {
 		oldDestinationFile, newDestinationFile := d.GetChange("destination_file")
-		f := file{
-			datastore:       d.Get("datastore").(string),
-			sourceFile:      d.Get("source_file").(string),
-			destinationFile: newDestinationFile.(string),
+		f := file{}
+
+		if v, ok := d.GetOk("datacenter"); ok {
+			f.datacenter = v.(string)
 		}
 
 		if v, ok := d.GetOk("datastore"); ok {
 			f.datastore = v.(string)
+		} else {
+			return fmt.Errorf("datastore argument is required")
+		}
+
+		if v, ok := d.GetOk("source_file"); ok {
+			f.sourceFile = v.(string)
+		} else {
+			return fmt.Errorf("source_file argument is required")
+		}
+
+		if v, ok := d.GetOk("destination_file"); ok {
+			f.destinationFile = v.(string)
+		} else {
+			return fmt.Errorf("destination_file argument is required")
 		}
 
 		client := meta.(*govmomi.Client)
@@ -191,14 +233,28 @@ func resourceVSphereFileUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceVSphereFileDelete(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] deleting file: %#v", d)
-	f := file{
-		datastore:       d.Get("datastore").(string),
-		sourceFile:      d.Get("source_file").(string),
-		destinationFile: d.Get("destination_file").(string),
-	}
+	f := file{}
 
 	if v, ok := d.GetOk("datacenter"); ok {
 		f.datacenter = v.(string)
+	}
+
+	if v, ok := d.GetOk("datastore"); ok {
+		f.datastore = v.(string)
+	} else {
+		return fmt.Errorf("datastore argument is required")
+	}
+
+	if v, ok := d.GetOk("source_file"); ok {
+		f.sourceFile = v.(string)
+	} else {
+		return fmt.Errorf("source_file argument is required")
+	}
+
+	if v, ok := d.GetOk("destination_file"); ok {
+		f.destinationFile = v.(string)
+	} else {
+		return fmt.Errorf("destination_file argument is required")
 	}
 
 	client := meta.(*govmomi.Client)
