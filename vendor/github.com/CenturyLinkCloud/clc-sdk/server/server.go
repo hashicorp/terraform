@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/CenturyLinkCloud/clc-sdk/api"
 	"github.com/CenturyLinkCloud/clc-sdk/status"
@@ -313,26 +314,34 @@ func UpdateCustomfields(fields []api.Customfields) api.Update {
 }
 
 type Server struct {
-	Name            string             `json:"name"`
-	Description     string             `json:"description,omitempty"`
-	GroupID         string             `json:"groupId"`
-	SourceServerID  string             `json:"sourceServerId"`
-	IsManagedOS     bool               `json:"isManagedOS,omitempty"`
-	PrimaryDNS      string             `json:"primaryDns,omitempty"`
-	SecondaryDNS    string             `json:"secondaryDns,omitempty"`
-	NetworkID       string             `json:"networkId,omitempty"`
-	IPaddress       string             `json:"ipAddress,omitempty"`
-	Password        string             `json:"password,omitempty"`
-	CPU             int                `json:"cpu"`
-	MemoryGB        int                `json:"memoryGB"`
-	Type            string             `json:"type"`
-	Storagetype     string             `json:"storageType,omitempty"`
-	Customfields    []api.Customfields `json:"customFields,omitempty"`
-	Additionaldisks []Disk             `json:"additionalDisks,omitempty"`
+	Name                 string             `json:"name"`
+	Description          string             `json:"description,omitempty"`
+	GroupID              string             `json:"groupId"`
+	SourceServerID       string             `json:"sourceServerId"`
+	IsManagedOS          bool               `json:"isManagedOS,omitempty"`
+	IsManagedBackup      bool               `json:"isManagedBackup,omitempty"`
+	PrimaryDNS           string             `json:"primaryDns,omitempty"`
+	SecondaryDNS         string             `json:"secondaryDns,omitempty"`
+	NetworkID            string             `json:"networkId,omitempty"`
+	IPaddress            string             `json:"ipAddress,omitempty"`
+	Password             string             `json:"password,omitempty"`
+	SourceServerPassword string             `json:"sourceServerPassword,omitempty"`
+	CPU                  int                `json:"cpu"`
+	CPUAutoscalePolicyID string             `json:"cpuAutoscalePolicyId,omitempty"`
+	MemoryGB             int                `json:"memoryGB"`
+	Type                 string             `json:"type"`
+	Storagetype          string             `json:"storageType,omitempty"`
+	AntiAffinityPolicyID string             `json:"antiAffinityPolicyId,omitempty"`
+	Customfields         []api.Customfields `json:"customFields,omitempty"`
+	Additionaldisks      []Disk             `json:"additionalDisks,omitempty"`
+	TTL                  *time.Time         `json:"ttl,omitempty"`
+	Packages             []Package          `json:"packages,omitempty"`
+	ConfigurationID      string             `json:"configurationId,omitempty"`
+	OSType               string             `json:"osType,omitempty"`
 }
 
 func (s *Server) Valid() bool {
-	return s.Name != "" && s.CPU != 0 && s.MemoryGB != 0 && s.GroupID != "" && s.SourceServerID != ""
+	return s.Name != "" && s.CPU != 0 && s.MemoryGB != 0 && s.GroupID != "" && s.SourceServerID != "" && s.Type != ""
 }
 
 type Response struct {
