@@ -12,16 +12,185 @@ Manages a V2 VM instance resource within OpenStack.
 
 ## Example Usage
 
+### Basic Instance
+
 ```
-resource "openstack_compute_instance_v2" "test-server" {
-  name = "tf-test"
+resource "openstack_compute_instance_v2" "basic" {
+  name = "basic"
   image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
   flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
   metadata {
     this = "that"
   }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Instance With Attached Volume
+
+```
+resource "openstack_blockstorage_volume_v1" "myvol" {
+  name = "myvol"
+  size = 1
+}
+
+resource "openstack_compute_instance_v2" "volume-attached" {
+  name = "volume-attached"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
   key_pair = "my_key_pair_name"
-  security_groups = ["test-group-1"]
+  security_groups = ["default"]
+
+  network {
+    name = "my_network"
+  }
+
+  volume {
+    volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
+  }
+}
+```
+
+### Boot From Volume
+
+```
+resource "openstack_compute_instance_v2" "boot-from-volume" {
+  name = "boot-from-volume"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid = "<image-id>"
+    source_type = "image"
+    volume_size = 5
+    boot_index = 0
+    destination_type = "volume"
+    delete_on_termination = true
+  }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Boot From an Existing Volume
+
+```
+resource "openstack_blockstorage_volume_v1" "myvol" {
+  name = "myvol"
+  size = 5
+  image_id = "<image-id>"
+}
+
+resource "openstack_compute_instance_v2" "boot-from-volume" {
+  name = "bootfromvolume"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid = "${openstack_blockstorage_volume_v1.myvol.id}"
+    source_type = "volume"
+    boot_index = 0
+    destination_type = "volume"
+    delete_on_termination = true
+  }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Instance With Multiple Networks
+
+```
+resource "openstack_compute_floatingip_v2" "myip" {
+  pool = "my_pool"
+}
+
+resource "openstack_compute_instance_v2" "multi-net" {
+  name = "multi-net"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  network {
+    name = "my_first_network"
+  }
+
+  network {
+    name = "my_second_network"
+    floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
+    # Terraform will use this network for provisioning
+    access_network = true
+  }
+}
+```
+
+### Instance With Personality
+
+```
+resource "openstack_compute_instance_v2" "personality" {
+  name = "personality"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  personality {
+    file = "/path/to/file/on/instance.txt
+    content = "contents of file"
+  }
+
+  network {
+    name = "my_network"
+  }
+}
+```
+
+### Instance with Multiple Ephemeral Disks
+
+```
+resource "openstack_compute_instance_v2" "multi-eph" {
+  name = "multi_eph"
+  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    boot_index = 0
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "image"
+    uuid = "<image-id>"
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "blank"
+    volume_size = 1
+  }
+
+  block_device {
+    boot_index = -1
+    delete_on_termination = true
+    destination_type = "local"
+    source_type = "blank"
+    volume_size = 1
+  }
 }
 ```
 
@@ -36,12 +205,12 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource.
 
 * `image_id` - (Optional; Required if `image_name` is empty and not booting
-    from a volume) The image ID of the desired image for the server. Changing
-    this creates a new server.
+    from a volume. Do not specify if booting from a volume.) The image ID of
+    the desired image for the server. Changing this creates a new server.
 
 * `image_name` - (Optional; Required if `image_id` is empty and not booting
-    from a volume) The name of the desired image for the server. Changing this
-    creates a new server.
+    from a volume. Do not specify if booting from a volume.) The name of the
+    desired image for the server. Changing this creates a new server.
 
 * `flavor_id` - (Optional; Required if `flavor_name` is empty) The flavor ID of
     the desired flavor for the server. Changing this resizes the existing server.
