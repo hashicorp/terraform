@@ -131,9 +131,7 @@ func testCheckTritonMachineHasFabric(name, fabricName string) resource.TestCheck
 			return fmt.Errorf("Bad: Check NICs Exist: %s", err)
 		}
 
-		fmt.Printf("%+v\n", machine.Primary)
 		for _, nic := range nics {
-			fmt.Printf("---\n%+v\n%+v\n", nic, network.Primary)
 			if nic.Network == network.Primary.ID {
 				return nil
 			}
