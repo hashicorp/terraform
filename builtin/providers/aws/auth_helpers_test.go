@@ -483,7 +483,7 @@ func unsetEnv(t *testing.T) func() {
 		t.Fatalf("Error unsetting env var AWS_SESSION_TOKEN: %s", err)
 	}
 	if err := os.Unsetenv("AWS_PROFILE"); err != nil {
-		t.Fatalf("Error unsetting env var AWS_TOKEN: %s", err)
+		t.Fatalf("Error unsetting env var AWS_PROFILE: %s", err)
 	}
 	if err := os.Unsetenv("AWS_SHARED_CREDENTIALS_FILE"); err != nil {
 		t.Fatalf("Error unsetting env var AWS_SHARED_CREDENTIALS_FILE: %s", err)
@@ -635,7 +635,7 @@ func getEnv() *currentEnv {
 		Key:           os.Getenv("AWS_ACCESS_KEY_ID"),
 		Secret:        os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		Token:         os.Getenv("AWS_SESSION_TOKEN"),
-		Profile:       os.Getenv("AWS_TOKEN"),
+		Profile:       os.Getenv("AWS_PROFILE"),
 		CredsFilename: os.Getenv("AWS_SHARED_CREDENTIALS_FILE"),
 	}
 }
