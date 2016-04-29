@@ -68,7 +68,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				ConflictsWith: []string{"alias"},
 			},
 
-			// Weight uses a special sentinel value to indicate it's presense.
+			// Weight uses a special sentinel value to indicate its presence.
 			// Because 0 is a valid value for Weight, we default to -1 so that any
 			// inclusion of a weight (zero or not) will be a usable value
 			"weight": &schema.Schema{

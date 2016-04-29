@@ -1150,3 +1150,22 @@ func sortInterfaceSlice(in []interface{}) []interface{} {
 
 	return b
 }
+
+func flattenApiGatewayThrottleSettings(settings *apigateway.ThrottleSettings) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if settings != nil {
+		r := make(map[string]interface{})
+		if settings.BurstLimit != nil {
+			r["burst_limit"] = *settings.BurstLimit
+		}
+
+		if settings.RateLimit != nil {
+			r["rate_limit"] = *settings.RateLimit
+		}
+
+		result = append(result, r)
+	}
+
+	return result
+}

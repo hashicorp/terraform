@@ -2,18 +2,33 @@
 
 FEATURES:
 
+ * **New resource:** `aws_api_gateway_account` [GH-6321]
  * **New resource:** `aws_api_gateway_authorizer` [GH-6320]
 
 IMPROVEMENTS:
 
+ * core: update HCL dependency to improve whitespace handling in `terraform fmt` [GH-6347]
  * provider/azurerm: Increase timeout for ARM Template deployments to 40 minutes [GH-6319]
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
+ * provider/vsphere: Add ability to specify and mount bootable vmdk in `vsphere_virtual_machine` [GH-6146]
+ * provider/vsphere: Checking for empty diskPath in `vsphere_virtual_machine` before creating [GH-6400]
+ * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
+ * provider/cloudflare: Add proxied option to `cloudflare_record` [GH-5508]
+ * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
 
 BUG FIXES:
 
+ * provider/aws: Allow account ID checks on EC2 instances & w/ federated accounts [GH-5030]
  * provider/aws: Fix issue with KMS Alias keys and name prefixes [GH-6328]
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
  * provider/aws: Fix updating `number_of_nodes` on `aws_redshift_cluster` [GH-6333]
+ * provider/aws: Fix bug where `aws_elastic_beanstalk_environment` update config template didn't work [GH-6342]
+ * provider/aws: Fix bug where `aws_elastic_beanstalk_environment` ignored `wait_for_ready_timeout` [GH-6358]
+ * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
+ * provider/aws: Respect `selection_pattern` in `aws_api_gateway_integration_response` (previously ignored field) [GH-5893]
+ * provider/aws: Refresh state on `aws_sqs_queue` not found [GH-6381]
+ * provider/aws: Omit `aws_cloudfront_distribution` custom_error fields when not explicitly set [GH-6382]
+ * provider/aws: Fix read of `aws_cloudwatch_log_group` after an update is applied [GH-6384]
 
 ## 0.6.15 (April 22, 2016)
 

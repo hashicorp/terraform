@@ -57,6 +57,9 @@ func testAccCheckAWSAPIGatewayIntegrationResponseAttributes(conf *apigateway.Int
 		if *conf.ResponseTemplates["application/xml"] != "#set($inputRoot = $input.path('$'))\n{ }" {
 			return fmt.Errorf("wrong ResponseTemplate for application/xml")
 		}
+		if conf.SelectionPattern == nil || *conf.SelectionPattern != ".*" {
+			return fmt.Errorf("wrong SelectionPattern (expected .*)")
+		}
 		if *conf.ResponseParameters["method.response.header.Content-Type"] != "integration.response.body.type" {
 			return fmt.Errorf("wrong ResponseParameters for header.Content-Type")
 		}
@@ -75,9 +78,13 @@ func testAccCheckAWSAPIGatewayIntegrationResponseAttributesUpdate(conf *apigatew
 		if conf.ResponseTemplates["application/xml"] != nil {
 			return fmt.Errorf("wrong ResponseTemplate for application/xml")
 		}
+		if conf.SelectionPattern != nil {
+			return fmt.Errorf("wrong SelectionPattern (expected nil)")
+		}
 		if conf.ResponseParameters["method.response.header.Content-Type"] != nil {
 			return fmt.Errorf("ResponseParameters for header.Content-Type shouldnt exist")
 		}
+
 		return nil
 	}
 }
@@ -203,6 +210,7 @@ resource "aws_api_gateway_integration_response" "test" {
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
   status_code = "${aws_api_gateway_method_response.error.status_code}"
+  selection_pattern = ".*"
 
   response_templates = {
     "application/json" = ""

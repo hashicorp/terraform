@@ -114,7 +114,6 @@ The following attributes are exported:
 
 ~> **NOTE:** When using `ELB` as the health_check_type, `health_check_grace_period` is required.
 
-<a id="waiting-for-capacity"></a>
 ## Waiting for Capacity
 
 A newly-created ASG is initially empty and begins to scale to `min_size` (or

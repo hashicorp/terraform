@@ -114,6 +114,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
 			"aws_ami_from_instance":                        resourceAwsAmiFromInstance(),
+			"aws_api_gateway_account":                      resourceAwsApiGatewayAccount(),
 			"aws_api_gateway_api_key":                      resourceAwsApiGatewayApiKey(),
 			"aws_api_gateway_authorizer":                   resourceAwsApiGatewayAuthorizer(),
 			"aws_api_gateway_deployment":                   resourceAwsApiGatewayDeployment(),

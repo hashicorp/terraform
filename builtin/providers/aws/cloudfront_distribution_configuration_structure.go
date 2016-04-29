@@ -719,12 +719,15 @@ func expandCustomErrorResponse(m map[string]interface{}) *cloudfront.CustomError
 	if v, ok := m["error_caching_min_ttl"]; ok {
 		er.ErrorCachingMinTTL = aws.Int64(int64(v.(int)))
 	}
-	if v, ok := m["response_code"]; ok {
+	if v, ok := m["response_code"]; ok && v.(int) != 0 {
 		er.ResponseCode = aws.String(strconv.Itoa(v.(int)))
+	} else {
+		er.ResponseCode = aws.String("")
 	}
 	if v, ok := m["response_page_path"]; ok {
 		er.ResponsePagePath = aws.String(v.(string))
 	}
+
 	return &er
 }
 
