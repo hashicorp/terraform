@@ -1,0 +1,29 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+				<li<%= sidebar_current("docs-librato-index") %>>
+				<a href="/docs/providers/librato/index.html">Librato Provider</a>
+                </li>
+
+				<li<%= sidebar_current(/^docs-librato-resource/) %>>
+				<a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-librato-resource-space") %>>
+					<a href="/docs/providers/librato/r/space.html">librato_space</a>
+                    </li>
+										<li<%= sidebar_current("docs-librato-resource-space-chart") %>>
+					<a href="/docs/providers/librato/r/space_chart.html">librato_space_chart</a>
+                    </li>
+				</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>
