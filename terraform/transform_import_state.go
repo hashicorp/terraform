@@ -51,7 +51,7 @@ func (n *graphNodeImportState) ProvidedBy() []string {
 
 // GraphNodeSubPath
 func (n *graphNodeImportState) Path() []string {
-	return n.Addr.Path
+	return normalizeModulePath(n.Addr.Path)
 }
 
 // GraphNodeEvalable impl.
@@ -59,7 +59,7 @@ func (n *graphNodeImportState) EvalTree() EvalNode {
 	var provider ResourceProvider
 	info := &InstanceInfo{
 		Id:         n.ID,
-		ModulePath: n.Addr.Path,
+		ModulePath: n.Path(),
 		Type:       n.Addr.Type,
 	}
 
@@ -124,6 +124,10 @@ type graphNodeImportStateSub struct {
 
 func (n *graphNodeImportStateSub) Name() string {
 	return fmt.Sprintf("import %s result: %s", n.Target, n.State.ID)
+}
+
+func (n *graphNodeImportStateSub) Path() []string {
+	return n.Path_
 }
 
 // GraphNodeEvalable impl.

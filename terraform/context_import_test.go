@@ -108,7 +108,7 @@ func TestContextImport_module(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testImportRefreshStr)
+	expected := strings.TrimSpace(testImportModuleStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
@@ -118,6 +118,14 @@ const testImportStr = `
 aws_instance.foo:
   ID = foo
   provider = aws
+`
+
+const testImportModuleStr = `
+<no state>
+module.foo:
+  aws_instance.foo:
+    ID = foo
+    provider = aws
 `
 
 const testImportRefreshStr = `
