@@ -109,6 +109,8 @@ func outputsStr(os []*Output) string {
 				switch rawV.(type) {
 				case *ResourceVariable:
 					kind = "resource"
+				case *DataSourceVariable:
+					kind = "data source"
 				case *UserVariable:
 					kind = "user"
 				}
@@ -158,6 +160,8 @@ func providerConfigsStr(pcs []*ProviderConfig) string {
 				switch rawV.(type) {
 				case *ResourceVariable:
 					kind = "resource"
+				case *DataSourceVariable:
+					kind = "data source"
 				case *UserVariable:
 					kind = "user"
 				}
@@ -228,6 +232,8 @@ func dataSourcesStr(rs []*DataSource) string {
 				switch rawV.(type) {
 				case *ResourceVariable:
 					kind = "resource"
+				case *DataSourceVariable:
+					kind = "data source"
 				case *UserVariable:
 					kind = "user"
 				}
@@ -316,6 +322,8 @@ func resourcesStr(rs []*Resource) string {
 				switch rawV.(type) {
 				case *ResourceVariable:
 					kind = "resource"
+				case *DataSourceVariable:
+					kind = "data source"
 				case *UserVariable:
 					kind = "user"
 				}

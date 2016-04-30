@@ -182,6 +182,86 @@ func TestResourceVariable_MultiIndex(t *testing.T) {
 	}
 }
 
+func TestNewDataSourceVariable(t *testing.T) {
+	v, err := NewDataSourceVariable("data.foo.bar.baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Type != "foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Field != "baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Multi {
+		t.Fatal("should not be multi")
+	}
+
+	if v.ResourceId() != "data.foo.bar" {
+		t.Fatalf("bad ResourceId: %#v", v)
+	}
+
+	if v.FullKey() != "data.foo.bar.baz" {
+		t.Fatalf("bad FullKey: %#v", v)
+	}
+}
+
+func TestDataSourceVariable_impl(t *testing.T) {
+	var _ InterpolatedVariable = new(DataSourceVariable)
+}
+
+func TestDataSourceVariable_Multi(t *testing.T) {
+	v, err := NewDataSourceVariable("data.foo.bar.*.baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Type != "foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Field != "baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if !v.Multi {
+		t.Fatal("should be multi")
+	}
+}
+
+func TestDataSourceVariable_MultiIndex(t *testing.T) {
+	cases := []struct {
+		Input string
+		Index int
+		Field string
+	}{
+		{"data.foo.bar.*.baz", -1, "baz"},
+		{"data.foo.bar.0.baz", 0, "baz"},
+		{"data.foo.bar.5.baz", 5, "baz"},
+	}
+
+	for _, tc := range cases {
+		v, err := NewDataSourceVariable(tc.Input)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !v.Multi {
+			t.Fatalf("should be multi: %s", tc.Input)
+		}
+		if v.Index != tc.Index {
+			t.Fatalf("bad: %d\n\n%s", v.Index, tc.Input)
+		}
+		if v.Field != tc.Field {
+			t.Fatalf("bad: %s\n\n%s", v.Field, tc.Input)
+		}
+	}
+}
+
 func TestUserVariable_impl(t *testing.T) {
 	var _ InterpolatedVariable = new(UserVariable)
 }

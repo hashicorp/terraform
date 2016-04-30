@@ -68,6 +68,19 @@ type ResourceVariable struct {
 	key string
 }
 
+// A DataSourceVariable is a variable that is referencing the field
+// of a data source, such as "${data.aws_ami.foo.id}"
+type DataSourceVariable struct {
+	Type  string // Data source, i.e. "aws_ami"
+	Name  string // Data block name
+	Field string // Data instance field name
+
+	Multi bool // True if multi-variable: aws_ami.foo.*.id
+	Index int  // Index for multi-variable: aws_ami.foo.1.id == 1
+
+	key string
+}
+
 // SelfVariable is a variable that is referencing the same resource
 // it is running on: "${self.address}"
 type SelfVariable struct {
@@ -104,6 +117,8 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
 		return NewModuleVariable(v)
+	} else if strings.HasPrefix(v, "data.") {
+		return NewDataSourceVariable(v)
 	} else if !strings.ContainsRune(v, '.') {
 		return NewSimpleVariable(v)
 	} else {
@@ -234,6 +249,58 @@ func (v *SelfVariable) FullKey() string {
 
 func (v *SelfVariable) GoString() string {
 	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewDataSourceVariable(key string) (*DataSourceVariable, error) {
+	parts := strings.SplitN(key, ".", 4)
+	if len(parts) < 4 {
+		return nil, fmt.Errorf(
+			"%s: data variables must be three parts: data.type.name.attr",
+			key)
+	}
+
+	// We don't actually need the "data" part on the front, since it's
+	// always constant anyway.
+	parts = parts[1:]
+
+	field := parts[2]
+	multi := false
+	var index int
+
+	if idx := strings.Index(field, "."); idx != -1 {
+		indexStr := field[:idx]
+		multi = indexStr == "*"
+		index = -1
+
+		if !multi {
+			indexInt, err := strconv.ParseInt(indexStr, 0, 0)
+			if err == nil {
+				multi = true
+				index = int(indexInt)
+			}
+		}
+
+		if multi {
+			field = field[idx+1:]
+		}
+	}
+
+	return &DataSourceVariable{
+		Type:  parts[0],
+		Name:  parts[1],
+		Field: field,
+		Multi: multi,
+		Index: index,
+		key:   key,
+	}, nil
+}
+
+func (v *DataSourceVariable) ResourceId() string {
+	return fmt.Sprintf("data.%s.%s", v.Type, v.Name)
+}
+
+func (v *DataSourceVariable) FullKey() string {
+	return v.key
 }
 
 func NewSimpleVariable(key string) (*SimpleVariable, error) {

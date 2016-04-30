@@ -452,6 +452,14 @@ func (c *Config) Validate() error {
 					"%s: resource count can't reference resource variable: %s",
 					n,
 					v.FullKey()))
+			case *DataSourceVariable:
+				// FIXME: This should actually be allowed, but there is some
+				// further work to do first, so for the moment we'll just
+				// treat this like a resource variable.
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference data source variable: %s",
+					n,
+					v.FullKey()))
 			case *UserVariable:
 				// Good
 			default:
