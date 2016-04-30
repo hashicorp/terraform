@@ -30,6 +30,44 @@ func TestProviderTransformer(t *testing.T) {
 	}
 }
 
+func TestProviderTransformer_moduleChild(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+
+	{
+		tf := &ImportStateTransformer{
+			Targets: []*ImportTarget{
+				&ImportTarget{
+					Addr: "module.moo.foo_instance.qux",
+					ID:   "bar",
+				},
+			},
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &ProviderTransformer{}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformProviderModuleChildStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestCloseProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 
@@ -153,6 +191,40 @@ func TestMissingProviderTransformer_moduleChild(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformMissingProviderModuleChildStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+
+	// We use the import state transformer since at the time of writing
+	// this test it is the first and only transformer that will introduce
+	// multiple module-path nodes at a single go.
+	{
+		tf := &ImportStateTransformer{
+			Targets: []*ImportTarget{
+				&ImportTarget{
+					Addr: "module.a.module.b.foo_instance.qux",
+					ID:   "bar",
+				},
+			},
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformMissingProviderModuleGrandchildStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
@@ -299,6 +371,20 @@ provider.foo (close)
 
 const testTransformMissingProviderModuleChildStr = `
 module.moo.foo_instance.qux (import id: bar)
+module.moo.provider.foo
+provider.foo
+`
+
+const testTransformMissingProviderModuleGrandchildStr = `
+module.a.module.b.foo_instance.qux (import id: bar)
+module.a.module.b.provider.foo
+module.a.provider.foo
+provider.foo
+`
+
+const testTransformProviderModuleChildStr = `
+module.moo.foo_instance.qux (import id: bar)
+  module.moo.provider.foo
 module.moo.provider.foo
 provider.foo
 `
