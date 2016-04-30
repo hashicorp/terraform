@@ -281,6 +281,44 @@ func TestContextImport_moduleExisting(t *testing.T) {
 	}
 }
 
+func TestContextImport_multiState(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+		&InstanceState{
+			ID:        "bar",
+			Ephemeral: EphemeralState{Type: "aws_instance_thing"},
+		},
+	}
+
+	state, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "aws_instance.foo",
+				ID:   "bar",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testImportMultiStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 const testImportStr = `
 aws_instance.foo:
   ID = foo
@@ -320,6 +358,15 @@ module.foo:
   aws_instance.foo:
     ID = foo
     provider = aws
+`
+
+const testImportMultiStr = `
+aws_instance.foo:
+  ID = foo
+  provider = aws
+aws_instance_thing.foo:
+  ID = bar
+  provider = aws
 `
 
 const testImportRefreshStr = `
