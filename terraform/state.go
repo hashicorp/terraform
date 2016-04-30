@@ -24,6 +24,28 @@ const (
 // rootModulePath is the path of the root module
 var rootModulePath = []string{"root"}
 
+// normalizeModulePath takes a raw module path and returns a path that
+// has the rootModulePath prepended to it. If I could go back in time I
+// would've never had a rootModulePath (empty path would be root). We can
+// still fix this but thats a big refactor that my branch doesn't make sense
+// for. Instead, this function normalizes paths.
+func normalizeModulePath(p []string) []string {
+	k := len(rootModulePath)
+
+	// If we already have a root module prefix, we're done
+	if len(p) >= len(rootModulePath) {
+		if reflect.DeepEqual(p[:k], rootModulePath) {
+			return p
+		}
+	}
+
+	// None? Prefix it
+	result := make([]string, len(rootModulePath)+len(p))
+	copy(result, rootModulePath)
+	copy(result[k:], p)
+	return result
+}
+
 // State keeps track of a snapshot state-of-the-world that Terraform
 // can use to keep track of what real world resources it is actually
 // managing. This is the latest format as of Terraform 0.3
