@@ -38,6 +38,9 @@ type GraphNodeProviderConsumer interface {
 type DisableProviderTransformer struct{}
 
 func (t *DisableProviderTransformer) Transform(g *Graph) error {
+	// Since we're comparing against edges, we need to make sure we connect
+	g.ConnectDependents()
+
 	for _, v := range g.Vertices() {
 		// We only care about providers
 		pn, ok := v.(GraphNodeProvider)
@@ -91,8 +94,9 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			for _, p := range pv.ProvidedBy() {
-				target := m[p]
+				target := m[providerMapKey(p, pv)]
 				if target == nil {
+					println(fmt.Sprintf("%#v\n\n%#v", m, providerMapKey(p, pv)))
 					err = multierror.Append(err, fmt.Errorf(
 						"%s: provider %s couldn't be found",
 						dag.VertexName(v), p))
@@ -120,7 +124,8 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			for _, p := range pv.ProvidedBy() {
-				source := cpm[p]
+				key := p
+				source := cpm[key]
 
 				if source == nil {
 					// Create a new graphNodeCloseProvider and add it to the graph
@@ -128,7 +133,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 					g.Add(source)
 
 					// Close node needs to depend on provider
-					provider, ok := pm[p]
+					provider, ok := pm[key]
 					if !ok {
 						err = multierror.Append(err, fmt.Errorf(
 							"%s: provider %s couldn't be found for closing",
@@ -139,7 +144,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 
 					// Make sure we also add the new graphNodeCloseProvider to the map
 					// so we don't create and add any duplicate graphNodeCloseProviders.
-					cpm[p] = source
+					cpm[key] = source
 				}
 
 				// Close node depends on all nodes provided by the provider
@@ -185,17 +190,15 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// If this node has a subpath, then we use that as a prefix
 		// into our map to check for an existing provider.
 		var path []string
-		pathPrefix := ""
 		if sp, ok := pv.(GraphNodeSubPath); ok {
 			raw := normalizeModulePath(sp.Path())
 			if len(raw) > len(rootModulePath) {
 				path = raw
-				pathPrefix = strings.Join(path, ".") + "."
 			}
 		}
 
 		for _, p := range pv.ProvidedBy() {
-			key := pathPrefix + p
+			key := providerMapKey(p, pv)
 			if _, ok := m[key]; ok {
 				// This provider already exists as a configure node
 				continue
@@ -260,6 +263,20 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 	}
 
 	return nil
+}
+
+// providerMapKey is a helper that gives us the key to use for the
+// maps returned by things such as providerVertexMap.
+func providerMapKey(k string, v dag.Vertex) string {
+	pathPrefix := ""
+	if sp, ok := v.(GraphNodeSubPath); ok {
+		raw := normalizeModulePath(sp.Path())
+		if len(raw) > len(rootModulePath) {
+			pathPrefix = modulePrefixStr(raw) + "."
+		}
+	}
+
+	return pathPrefix + k
 }
 
 func providerVertexMap(g *Graph) map[string]dag.Vertex {
