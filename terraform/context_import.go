@@ -48,12 +48,12 @@ func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	// Build the graph!
 	graph, err := builder.Build(RootModulePath)
 	if err != nil {
-		return nil, err
+		return c.state, err
 	}
 
 	// Walk it
 	if _, err := c.walk(graph, walkImport); err != nil {
-		return nil, err
+		return c.state, err
 	}
 
 	// Clean the state
