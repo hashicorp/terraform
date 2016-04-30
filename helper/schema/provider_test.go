@@ -201,6 +201,36 @@ func TestProviderValidateResource(t *testing.T) {
 	}
 }
 
+func TestProviderImportState_setsType(t *testing.T) {
+	var tVal string
+	stateFunc := func(d *ResourceData, meta interface{}) ([]*ResourceData, error) {
+		d.SetId("foo")
+		tVal = d.State().Ephemeral.Type
+		return []*ResourceData{d}, nil
+	}
+
+	p := &Provider{
+		ResourcesMap: map[string]*Resource{
+			"foo": &Resource{
+				Importer: &ResourceImporter{
+					State: stateFunc,
+				},
+			},
+		},
+	}
+
+	_, err := p.ImportState(&terraform.InstanceInfo{
+		Type: "foo",
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if tVal != "foo" {
+		t.Fatal("should set type")
+	}
+}
+
 func TestProviderMeta(t *testing.T) {
 	p := new(Provider)
 	if v := p.Meta(); v != nil {
