@@ -300,6 +300,7 @@ provider.foo (close)
 const testTransformMissingProviderModuleChildStr = `
 module.moo.foo_instance.qux (import id: bar)
 module.moo.provider.foo
+provider.foo
 `
 
 const testTransformPruneProviderBasicStr = `

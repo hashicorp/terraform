@@ -1,6 +1,5 @@
 package terraform
 
-/*
 import (
 	"strings"
 	"testing"
@@ -127,4 +126,3 @@ aws_instance.foo:
   provider = aws
   foo = bar
 `
-*/
