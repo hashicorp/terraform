@@ -181,6 +181,56 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	}
 }
 
+func TestContextImport_moduleExisting(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: []string{"root", "foo"},
+					Resources: map[string]*ResourceState{
+						"aws_instance.bar": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	state, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "module.foo.aws_instance.foo",
+				ID:   "bar",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testImportModuleExistingStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 const testImportStr = `
 aws_instance.foo:
   ID = foo
@@ -198,6 +248,15 @@ module.foo:
 const testImportModuleDepth2Str = `
 <no state>
 module.a.b:
+  aws_instance.foo:
+    ID = foo
+    provider = aws
+`
+
+const testImportModuleExistingStr = `
+module.foo:
+  aws_instance.bar:
+    ID = bar
   aws_instance.foo:
     ID = foo
     provider = aws
