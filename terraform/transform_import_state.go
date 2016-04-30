@@ -117,6 +117,29 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		addrs[i] = &addr
 	}
 
+	// Verify that all the addresses are clear
+	state, lock := ctx.State()
+	lock.RLock()
+	defer lock.RUnlock()
+	filter := &StateFilter{State: state}
+	for _, addr := range addrs {
+		result, err := filter.Filter(addr.String())
+		if err != nil {
+			return nil, fmt.Errorf("Error verifying address %s: %s", addr, err)
+		}
+
+		// Go through the filter results and it is an error if we find
+		// a matching InstanceState, meaning that we would have a collision.
+		for _, r := range result {
+			if _, ok := r.Value.(*InstanceState); ok {
+				return nil, fmt.Errorf(
+					"Can't import %s, would collide with an existing resource.\n\n"+
+						"Please remove or rename this resource before continuing.",
+					addr)
+			}
+		}
+	}
+
 	// For each of the states, we add a node to handle the refresh/add to state.
 	// "n.states" is populated by our own EvalTree with the result of
 	// ImportState. Since DynamicExpand is always called after EvalTree, this
