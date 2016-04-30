@@ -53,7 +53,7 @@ func TestContextImport_missingType(t *testing.T) {
 		},
 	}
 
-	_, err := ctx.Import(&ImportOpts{
+	state, err := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: "aws_instance.foo",
@@ -63,6 +63,12 @@ func TestContextImport_missingType(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("should error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := "<nil>"
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
 	}
 }
 
