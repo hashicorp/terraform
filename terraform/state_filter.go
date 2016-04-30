@@ -99,6 +99,10 @@ func (f *StateFilter) filterSingle(a *ResourceAddress) []*StateFilterResult {
 					continue
 				}
 
+				if a.Name != "" && a.Name != key.Name {
+					continue
+				}
+
 				// Build the address for this resource
 				addr := &ResourceAddress{
 					Path:  m.Path[1:],
