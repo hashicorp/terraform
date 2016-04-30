@@ -69,6 +69,12 @@ func TestStateFilterFilter(t *testing.T) {
 			},
 		},
 
+		"resource in module 2": {
+			"resource-in-module-2.tfstate",
+			[]string{"module.foo.aws_instance.foo"},
+			[]string{},
+		},
+
 		"single count index": {
 			"complete.tfstate",
 			[]string{"module.consul.aws_instance.consul-green[0]"},
