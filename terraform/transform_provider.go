@@ -223,8 +223,13 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 					return err
 				}
 
-				// Add this new vertex to our check list
-				check = append(check, v)
+				// We'll need the parent provider as well, so let's
+				// add a dummy node to check to make sure that we add
+				// that parent provider.
+				check = append(check, &graphNodeProviderConsumerDummy{
+					ProviderValue: p,
+					PathValue:     path[:len(path)-1],
+				})
 			}
 
 			m[key] = g.Add(v)
@@ -508,4 +513,21 @@ func (n *graphNodeProviderFlat) DependentOn() []string {
 	}
 
 	return result
+}
+
+// graphNodeProviderConsumerDummy is a struct that never enters the real
+// graph (though it could to no ill effect). It implements
+// GraphNodeProviderConsumer and GraphNodeSubpath as a way to force
+// certain transformations.
+type graphNodeProviderConsumerDummy struct {
+	ProviderValue string
+	PathValue     []string
+}
+
+func (n *graphNodeProviderConsumerDummy) Path() []string {
+	return n.PathValue
+}
+
+func (n *graphNodeProviderConsumerDummy) ProvidedBy() []string {
+	return []string{n.ProviderValue}
 }
