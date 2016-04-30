@@ -171,15 +171,32 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	m := providerVertexMap(g)
 
 	// Go through all the provider consumers and make sure we add
-	// that provider if it is missing.
-	for _, v := range g.Vertices() {
+	// that provider if it is missing. We use a for loop here instead
+	// of "range" since we'll modify check as we go to add more to check.
+	check := g.Vertices()
+	for i := 0; i < len(check); i++ {
+		v := check[i]
+
 		pv, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue
 		}
 
+		// If this node has a subpath, then we use that as a prefix
+		// into our map to check for an existing provider.
+		var path []string
+		pathPrefix := ""
+		if sp, ok := pv.(GraphNodeSubPath); ok {
+			raw := normalizeModulePath(sp.Path())
+			if len(raw) > len(rootModulePath) {
+				path = raw
+				pathPrefix = strings.Join(path, ".") + "."
+			}
+		}
+
 		for _, p := range pv.ProvidedBy() {
-			if _, ok := m[p]; ok {
+			key := pathPrefix + p
+			if _, ok := m[key]; ok {
 				// This provider already exists as a configure node
 				continue
 			}
@@ -197,7 +214,20 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			}
 
 			// Add the missing provider node to the graph
-			m[p] = g.Add(&graphNodeProvider{ProviderNameValue: p})
+			raw := &graphNodeProvider{ProviderNameValue: p}
+			var v dag.Vertex = raw
+			if len(path) > 0 {
+				var err error
+				v, err = raw.Flatten(path)
+				if err != nil {
+					return err
+				}
+
+				// Add this new vertex to our check list
+				check = append(check, v)
+			}
+
+			m[key] = g.Add(v)
 		}
 	}
 

@@ -42,7 +42,7 @@ type graphNodeImportState struct {
 }
 
 func (n *graphNodeImportState) Name() string {
-	return fmt.Sprintf("import %s (id: %s)", n.Addr, n.ID)
+	return fmt.Sprintf("%s (import id: %s)", n.Addr, n.ID)
 }
 
 func (n *graphNodeImportState) ProvidedBy() []string {

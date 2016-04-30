@@ -124,6 +124,40 @@ func TestMissingProviderTransformer(t *testing.T) {
 	}
 }
 
+func TestMissingProviderTransformer_moduleChild(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+
+	// We use the import state transformer since at the time of writing
+	// this test it is the first and only transformer that will introduce
+	// multiple module-path nodes at a single go.
+	{
+		tf := &ImportStateTransformer{
+			Targets: []*ImportTarget{
+				&ImportTarget{
+					Addr: "module.moo.foo_instance.qux",
+					ID:   "bar",
+				},
+			},
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformMissingProviderModuleChildStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestPruneProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-prune")
 
@@ -261,6 +295,11 @@ provider.foo
 provider.foo (close)
   foo_instance.web
   provider.foo
+`
+
+const testTransformMissingProviderModuleChildStr = `
+module.moo.foo_instance.qux (import id: bar)
+module.moo.provider.foo
 `
 
 const testTransformPruneProviderBasicStr = `
