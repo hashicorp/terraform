@@ -91,13 +91,39 @@ func (n *graphNodeImportState) EvalTree() EvalNode {
 func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	g := &Graph{Path: ctx.Path()}
 
+	// nameCounter is used to de-dup names in the state.
+	nameCounter := make(map[string]int)
+
+	// Compile the list of addresses that we'll be inserting into the state.
+	// We do this ahead of time so we can verify that we aren't importing
+	// something that already exists.
+	addrs := make([]*ResourceAddress, len(n.states))
+	for i, state := range n.states {
+		addr := *n.Addr
+		if t := state.Ephemeral.Type; t != "" {
+			addr.Type = t
+		}
+
+		// Determine if we need to suffix the name to de-dup
+		key := addr.String()
+		count, ok := nameCounter[key]
+		if ok {
+			count++
+			addr.Name += fmt.Sprintf("-%d", count)
+		}
+		nameCounter[key] = count
+
+		// Add it to our list
+		addrs[i] = &addr
+	}
+
 	// For each of the states, we add a node to handle the refresh/add to state.
 	// "n.states" is populated by our own EvalTree with the result of
 	// ImportState. Since DynamicExpand is always called after EvalTree, this
 	// is safe.
-	for _, state := range n.states {
+	for i, state := range n.states {
 		g.Add(&graphNodeImportStateSub{
-			Target: n.Addr,
+			Target: addrs[i],
 			Path_:  n.Path(),
 			State:  state,
 		})
