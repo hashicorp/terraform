@@ -214,6 +214,34 @@ func (p *Provider) Resources() []terraform.ResourceType {
 	return result
 }
 
-func (p *Provider) ImportState(info *terraform.InstanceInfo) ([]*terraform.InstanceState, error) {
-	return nil, nil
+func (p *Provider) ImportState(
+	info *terraform.InstanceInfo) ([]*terraform.InstanceState, error) {
+	// Find the resource
+	r, ok := p.ResourcesMap[info.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
+	}
+
+	// If it doesn't support import, error
+	if r.Importer == nil {
+		return nil, fmt.Errorf("resource %s doesn't support import", info.Type)
+	}
+
+	// Create the data
+	data := r.Data(nil)
+	data.SetType(info.Type)
+
+	// Call the import function
+	results, err := r.Importer.State(data, p.meta)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the results to InstanceState values and return it
+	states := make([]*terraform.InstanceState, len(results))
+	for i, r := range results {
+		states[i] = r.State()
+	}
+
+	return states, nil
 }
