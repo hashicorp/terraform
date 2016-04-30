@@ -32,6 +32,7 @@ BUG FIXES:
  * provider/aws: Respect `selection_pattern` in `aws_api_gateway_integration_response` (previously ignored field) [GH-5893]
  * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
+ * provider/docker: Fix crash when using empty string in the `command` list in `docker_container` resources [GH-6424]
 
 ## 0.6.15 (April 22, 2016)
 
