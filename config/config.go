@@ -568,7 +568,7 @@ func (c *Config) Validate() error {
 				continue
 			}
 
-			id := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
+			id := rv.ResourceId()
 			if _, ok := resources[id]; !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: unknown resource '%s' referenced in variable %s",

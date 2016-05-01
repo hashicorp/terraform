@@ -58,6 +58,7 @@ const (
 // A ResourceVariable is a variable that is referencing the field
 // of a resource, such as "${aws_instance.foo.ami}"
 type ResourceVariable struct {
+	Mode  ResourceMode
 	Type  string // Resource type, i.e. "aws_instance"
 	Name  string // Resource name
 	Field string // Resource field
@@ -171,11 +172,28 @@ func (v *PathVariable) FullKey() string {
 }
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {
-	parts := strings.SplitN(key, ".", 3)
-	if len(parts) < 3 {
-		return nil, fmt.Errorf(
-			"%s: resource variables must be three parts: type.name.attr",
-			key)
+	var mode ResourceMode
+	var parts []string
+	if strings.HasPrefix(key, "data.") {
+		mode = DataResourceMode
+		parts = strings.SplitN(key, ".", 4)
+		if len(parts) < 4 {
+			return nil, fmt.Errorf(
+				"%s: data variables must be four parts: data.TYPE.NAME.ATTR",
+				key)
+		}
+
+		// Don't actually need the "data." prefix for parsing, since it's
+		// always constant.
+		parts = parts[1:]
+	} else {
+		mode = ManagedResourceMode
+		parts = strings.SplitN(key, ".", 3)
+		if len(parts) < 3 {
+			return nil, fmt.Errorf(
+				"%s: resource variables must be three parts: TYPE.NAME.ATTR",
+				key)
+		}
 	}
 
 	field := parts[2]
@@ -201,6 +219,7 @@ func NewResourceVariable(key string) (*ResourceVariable, error) {
 	}
 
 	return &ResourceVariable{
+		Mode:  mode,
 		Type:  parts[0],
 		Name:  parts[1],
 		Field: field,
@@ -211,7 +230,14 @@ func NewResourceVariable(key string) (*ResourceVariable, error) {
 }
 
 func (v *ResourceVariable) ResourceId() string {
-	return fmt.Sprintf("%s.%s", v.Type, v.Name)
+	switch v.Mode {
+	case ManagedResourceMode:
+		return fmt.Sprintf("%s.%s", v.Type, v.Name)
+	case DataResourceMode:
+		return fmt.Sprintf("data.%s.%s", v.Type, v.Name)
+	default:
+		panic(fmt.Errorf("unknown resource mode %s", v.Mode))
+	}
 }
 
 func (v *ResourceVariable) FullKey() string {
