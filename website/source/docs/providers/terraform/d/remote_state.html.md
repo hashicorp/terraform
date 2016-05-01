@@ -1,7 +1,7 @@
 ---
 layout: "terraform"
 page_title: "Terraform: terraform_remote_state"
-sidebar_current: "docs-terraform-resource-remote-state"
+sidebar_current: "docs-terraform-datasource-remote-state"
 description: |-
   Accesses state meta data from a remote backend.
 ---
@@ -13,7 +13,7 @@ Retrieves state meta data from a remote backend
 ## Example Usage
 
 ```
-resource "terraform_remote_state" "vpc" {
+data "terraform_remote_state" "vpc" {
     backend = "atlas"
     config {
         name = "hashicorp/vpc-prod"
@@ -22,7 +22,7 @@ resource "terraform_remote_state" "vpc" {
 
 resource "aws_instance" "foo" {
     # ...
-    subnet_id = "${terraform_remote_state.vpc.output.subnet_id}"
+    subnet_id = "${data.terraform_remote_state.vpc.output.subnet_id}"
 }
 ```
 
