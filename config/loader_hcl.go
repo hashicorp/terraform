@@ -566,6 +566,7 @@ func loadResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		}
 
 		result = append(result, &Resource{
+			Mode:         ManagedResourceMode,
 			Name:         k,
 			Type:         t,
 			RawCount:     countConfig,
