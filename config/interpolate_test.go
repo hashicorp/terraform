@@ -81,6 +81,9 @@ func TestNewResourceVariable(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	if v.Mode != ManagedResourceMode {
+		t.Fatalf("bad: %#v", v)
+	}
 	if v.Type != "foo" {
 		t.Fatalf("bad: %#v", v)
 	}
@@ -95,6 +98,33 @@ func TestNewResourceVariable(t *testing.T) {
 	}
 
 	if v.FullKey() != "foo.bar.baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestNewResourceVariableData(t *testing.T) {
+	v, err := NewResourceVariable("data.foo.bar.baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Mode != DataResourceMode {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Type != "foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Field != "baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Multi {
+		t.Fatal("should not be multi")
+	}
+
+	if v.FullKey() != "data.foo.bar.baz" {
 		t.Fatalf("bad: %#v", v)
 	}
 }
