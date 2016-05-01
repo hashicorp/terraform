@@ -67,9 +67,11 @@ type ProviderConfig struct {
 }
 
 // A resource represents a single Terraform resource in the configuration.
-// A Terraform resource is something that represents some component that
-// can be created and managed, and has some properties associated with it.
+// A Terraform resource is something that supports some or all of the
+// usual "create, read, update, delete" operations, depending on
+// the given Mode.
 type Resource struct {
+	Mode         ResourceMode // which operations the resource supports
 	Name         string
 	Type         string
 	RawCount     *RawConfig
@@ -85,6 +87,7 @@ type Resource struct {
 // interpolation.
 func (r *Resource) Copy() *Resource {
 	n := &Resource{
+		Mode:         r.Mode,
 		Name:         r.Name,
 		Type:         r.Type,
 		RawCount:     r.RawCount.Copy(),
@@ -210,7 +213,14 @@ func (r *Resource) Count() (int, error) {
 
 // A unique identifier for this resource.
 func (r *Resource) Id() string {
-	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+	switch r.Mode {
+	case ManagedResourceMode:
+		return fmt.Sprintf("%s.%s", r.Type, r.Name)
+	case DataResourceMode:
+		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
+	default:
+		panic(fmt.Errorf("unknown resource mode %s", r.Mode))
+	}
 }
 
 // Validate does some basic semantic checking of the configuration.
@@ -804,13 +814,14 @@ func (c *ProviderConfig) mergerMerge(m merger) merger {
 }
 
 func (r *Resource) mergerName() string {
-	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+	return r.Id()
 }
 
 func (r *Resource) mergerMerge(m merger) merger {
 	r2 := m.(*Resource)
 
 	result := *r
+	result.Mode = r2.Mode
 	result.Name = r2.Name
 	result.Type = r2.Type
 	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
