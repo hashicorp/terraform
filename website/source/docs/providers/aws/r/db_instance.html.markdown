@@ -71,8 +71,8 @@ the final snapshot (if `final_snapshot_identifier` is specified). Default
 * `backup_retention_period` - (Optional) The days to retain backups for. Must be
 `1` or greater to be a source for a [Read Replica][1].
 * `backup_window` - (Optional) The backup window.
-* `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
-    storage_type of "io1".
+* `iops` - (Optional) The amount of provisioned IOPS. Will be used only if
+    the storage_type is "io1"; otherwise, the value will be ignored.
 * `maintenance_window` - (Optional) The window to perform maintenance in.
   Syntax: "ddd:hh24:mi-ddd:hh24:mi". Eg: "Mon:00:00-Mon:03:00".
   See [RDS Maintenance Window docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/AdjustingTheMaintenanceWindow.html) for more.

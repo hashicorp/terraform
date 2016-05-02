@@ -51,6 +51,80 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstanceIopsWithWrongStorageType(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBInstanceWrongIopsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "allocated_storage", "10"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "engine", "mysql"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "license_model", "general-public-license"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "name", "baz"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "username", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "storage_type", "gp2"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "iops", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstanceIopsWithCorrectStorageType(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBInstanceIopsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					testAccCheckAWSDBInstanceAttributes(&v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "allocated_storage", "10"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "engine", "mysql"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "license_model", "general-public-license"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "name", "baz"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "username", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "storage_type", "io1"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "iops", "100"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBInstanceReplica(t *testing.T) {
 	var s, r rds.DBInstance
 
@@ -524,3 +598,56 @@ resource "aws_db_instance" "enhanced_monitoring" {
 	skip_final_snapshot = true
 }
 `
+<<<<<<< 7080c876e217813f040271431c5a6f86545390a1
+=======
+
+var testAccAWSDBInstanceWrongIopsConfig = fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+	identifier = "foobarbaz-test-terraform-%d"
+
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	iops = "100"
+	storage_type = "gp2"
+
+
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
+	backup_retention_period = 0
+
+	parameter_group_name = "default.mysql5.6"
+}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
+var testAccAWSDBInstanceIopsConfig = fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+	identifier = "foobarbaz-test-terraform-%d"
+
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6.21"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	iops = "100"
+	storage_type = "io1"
+
+
+	# Maintenance Window is stored in lower case in the API, though not strictly
+	# documented. Terraform will downcase this to match (as opposed to throw a
+	# validation error).
+	maintenance_window = "Fri:09:00-Fri:09:30"
+
+	backup_retention_period = 0
+
+	parameter_group_name = "default.mysql5.6"
+}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+>>>>>>> Added test cases for iops/storage_type relationship
