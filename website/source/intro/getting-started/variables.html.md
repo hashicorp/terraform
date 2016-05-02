@@ -137,7 +137,7 @@ Then, replace the "aws\_instance" with the following:
 ```
 resource "aws_instance" "example" {
 	ami = "${lookup(var.amis, var.region)}"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 }
 ```
 
