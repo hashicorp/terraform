@@ -51,7 +51,7 @@ func TestAccAWSIAMServerCertificate_name_prefix(t *testing.T) {
 	})
 }
 
-func TestAccAWSIAMServerCertificate_recreate(t *testing.T) {
+func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
 	var cert iam.ServerCertificate
 
 	testDestroyCert := func(*terraform.State) error {
@@ -81,6 +81,10 @@ func TestAccAWSIAMServerCertificate_recreate(t *testing.T) {
 					testDestroyCert,
 				),
 				ExpectNonEmptyPlan: true,
+			},
+			// Follow up plan w/ empty config should be empty, since the Cert is gone
+			resource.TestStep{
+				Config: "",
 			},
 		},
 	})
