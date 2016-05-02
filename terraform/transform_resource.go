@@ -195,10 +195,8 @@ func (n *graphNodeExpandedResource) StateDependencies() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
-	var diff *InstanceDiff
 	var provider ResourceProvider
 	var resourceConfig *ResourceConfig
-	var state *InstanceState
 
 	// Build the resource. If we aren't part of a multi-resource, then
 	// we still consider ourselves as count index zero.
@@ -259,8 +257,34 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	info := n.instanceInfo()
 	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
 
+	// Each resource mode has its own lifecycle
+	switch n.Resource.Mode {
+	case config.ManagedResourceMode:
+		seq.Nodes = append(
+			seq.Nodes,
+			n.managedResourceEvalNodes(resource, info, resourceConfig)...,
+		)
+	case config.DataResourceMode:
+		seq.Nodes = append(
+			seq.Nodes,
+			n.dataResourceEvalNodes(resource, info, resourceConfig)...,
+		)
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", n.Resource.Mode))
+	}
+
+	return seq
+}
+
+func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource, info *InstanceInfo, resourceConfig *ResourceConfig) []EvalNode {
+	var diff *InstanceDiff
+	var provider ResourceProvider
+	var state *InstanceState
+
+	nodes := make([]EvalNode, 0, 5)
+
 	// Refresh the resource
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -290,7 +314,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	})
 
 	// Diff the resource
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkPlan},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -343,7 +367,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	})
 
 	// Diff the resource for destruction
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkPlanDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -374,7 +398,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	var createNew, tainted bool
 	var createBeforeDestroyEnabled bool
 	var wasChangeType DiffChangeType
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
@@ -557,7 +581,17 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		},
 	})
 
-	return seq
+	return nodes
+}
+
+func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, info *InstanceInfo, resourceConfig *ResourceConfig) []EvalNode {
+	//var diff *InstanceDiff
+	//var provider ResourceProvider
+	//var state *InstanceState
+
+	nodes := make([]EvalNode, 0, 5)
+
+	return nodes
 }
 
 // instanceInfo is used for EvalTree.
