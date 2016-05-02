@@ -285,6 +285,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 				if err != nil {
 					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), r, err)
 				}
+				log.Printf("DEBUG] Replacing Network Acl Association (%s) with Default Network ACL ID (%s)", *association.NetworkAclAssociationId, *defaultAcl.NetworkAclId)
 				_, err = conn.ReplaceNetworkAclAssociation(&ec2.ReplaceNetworkAclAssociationInput{
 					AssociationId: association.NetworkAclAssociationId,
 					NetworkAclId:  defaultAcl.NetworkAclId,
@@ -454,12 +455,30 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 				}
 
 				for _, a := range associations {
+					log.Printf("DEBUG] Replacing Network Acl Association (%s) with Default Network ACL ID (%s)", *a.NetworkAclAssociationId, *defaultAcl.NetworkAclId)
 					_, replaceErr := conn.ReplaceNetworkAclAssociation(&ec2.ReplaceNetworkAclAssociationInput{
 						AssociationId: a.NetworkAclAssociationId,
 						NetworkAclId:  defaultAcl.NetworkAclId,
 					})
 					if replaceErr != nil {
-						log.Printf("[ERR] Non retryable error in replacing associtions for Network ACL (%s): %s", d.Id(), replaceErr)
+						if replaceEc2err, ok := replaceErr.(awserr.Error); ok {
+							// It's possible that during an attempt to replace this
+							// association, the Subnet in question has already been moved to
+							// another ACL. This can happen if you're destroying a network acl
+							// and simultaneously re-associating it's subnet(s) with another
+							// ACL; Terraform may have already re-associated the subnet(s) by
+							// the time we attempt to destroy them, even between the time we
+							// list them and then try to destroy them. In this case, the
+							// association we're trying to replace will no longer exist and
+							// this call will fail. Here we trap that error and fail
+							// gracefully; the association we tried to replace gone, we trust
+							// someone else has taken ownership.
+							if replaceEc2err.Code() == "InvalidAssociationID.NotFound" {
+								log.Printf("[WARN] Network Association (%s) no longer found; Network Association likely updated or removed externally, removing from state", *a.NetworkAclAssociationId)
+								continue
+							}
+						}
+						log.Printf("[ERR] Non retry-able error in replacing associations for Network ACL (%s): %s", d.Id(), replaceErr)
 						return resource.NonRetryableError(replaceErr)
 					}
 				}
