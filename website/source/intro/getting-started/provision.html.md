@@ -26,7 +26,7 @@ To define a provisioner, modify the resource block defining the
 ```
 resource "aws_instance" "example" {
 	ami = "ami-b8b061d0"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 
 	provisioner "local-exec" {
 		command = "echo ${aws_instance.example.public_ip} > file.txt"
@@ -62,7 +62,7 @@ then run `apply`:
 $ terraform apply
 aws_instance.example: Creating...
   ami:           "" => "ami-b8b061d0"
-  instance_type: "" => "t1.micro"
+  instance_type: "" => "t2.micro"
 aws_eip.ip: Creating...
   instance: "" => "i-213f350a"
 
