@@ -230,6 +230,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Config:       &resourceConfig,
 		ResourceName: n.Resource.Name,
 		ResourceType: n.Resource.Type,
+		ResourceMode: n.Resource.Mode,
 	})
 
 	// Validate all the provisioners
