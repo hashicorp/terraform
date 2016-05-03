@@ -8,7 +8,6 @@ FEATURES:
  * **New resource:** `openstack_networking_secgroup_v2` [GH-6410]
  * **New resource:** `openstack_networking_secgroup_rule_v2` [GH-6410] 
  * **New resource:** `vsphere_file` [GH-6401]
- 
 
 IMPROVEMENTS:
 
@@ -40,6 +39,8 @@ BUG FIXES:
  * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
  * provider/aws: Fix issue replacing Network ACL Relationship [GH-6421]
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
+ * provider/cloudflare: can manage apex records [GH-6449]
+ * provider/cloudflare: won't refresh with incorrect record if names match [GH-6449]
  * provider/docker: Fix crash when using empty string in the `command` list in `docker_container` resources [GH-6424]
 
 ## 0.6.15 (April 22, 2016)
