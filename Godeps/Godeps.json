@@ -673,13 +673,13 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/atlas-go/archive",
-			"Comment": "20141209094003-90-g0008886",
-			"Rev": "0008886ebfa3b424bed03e2a5cbe4a2568ea0ff6"
+			"Comment": "20141209094003-92-g95fa852",
+			"Rev": "95fa852edca41c06c4ce526af4bb7dec4eaad434"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/atlas-go/v1",
-			"Comment": "20141209094003-90-g0008886",
-			"Rev": "0008886ebfa3b424bed03e2a5cbe4a2568ea0ff6"
+			"Comment": "20141209094003-92-g95fa852",
+			"Rev": "95fa852edca41c06c4ce526af4bb7dec4eaad434"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/consul/api",
