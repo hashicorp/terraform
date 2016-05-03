@@ -39,6 +39,32 @@ func TestAccCloudFlareRecord_Basic(t *testing.T) {
 	})
 }
 
+func TestAccCloudFlareRecord_Apex(t *testing.T) {
+	var record cloudflare.Record
+	domain := os.Getenv("CLOUDFLARE_DOMAIN")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFlareRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigApex, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
+					testAccCheckCloudFlareRecordAttributes(&record),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "name", "@"),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "value", "192.168.0.10"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCloudFlareRecord_Proxied(t *testing.T) {
 	var record cloudflare.Record
 	domain := os.Getenv("CLOUDFLARE_DOMAIN")
@@ -221,6 +247,15 @@ resource "cloudflare_record" "foobar" {
 	domain = "%s"
 
 	name = "terraform"
+	value = "192.168.0.10"
+	type = "A"
+	ttl = 3600
+}`
+
+const testAccCheckCloudFlareRecordConfigApex = `
+resource "cloudflare_record" "foobar" {
+	domain = "%s"
+	name = "@"
 	value = "192.168.0.10"
 	type = "A"
 	ttl = 3600
