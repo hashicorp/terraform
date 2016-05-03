@@ -6,9 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
@@ -730,7 +728,7 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 	var mvm mo.VirtualMachine
 
 	// wait for interfaces to appear
-	_, err = vm.WaitForNetIP(context.TODO())
+	_, err = vm.WaitForNetIP(context.TODO(), true)
 	if err != nil {
 		return err
 	}
@@ -800,10 +798,10 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
 	}
 
-	log.Printf("[DEBUG] ip address: %v", ip)
+	log.Printf("[DEBUG] ip address: %v", networkInterfaces[0]["ipv4_address"].(string))
 	d.SetConnInfo(map[string]string{
 		"type": "ssh",
-		"host": networkInterfaces[0]["ipv4_address"],
+		"host": networkInterfaces[0]["ipv4_address"].(string),
 	})
 
 	var rootDatastore string
