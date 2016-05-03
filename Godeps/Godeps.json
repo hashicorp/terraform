@@ -715,6 +715,10 @@
 			"Rev": "24fda80b7c713c52649e57ce20100d453f7bdb24"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/go-rootcerts",
+			"Rev": "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/go-uuid",
 			"Rev": "36289988d83ca270bc07c234c36f364b0dd9c9a7"
 		},
