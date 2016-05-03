@@ -24,6 +24,7 @@ IMPROVEMENTS:
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
  * provider/vsphere: Checking for empty diskPath in `vsphere_virtual_machine` before creating [GH-6400]
  * provider/vsphere: Support updates to vcpu and memory on `vsphere_virtual_machine` [GH-6356]
+ * provider/vsphere: Add support for IPV6 to `vsphere_virtual_machine` [GH-6457]
 
 BUG FIXES:
 
