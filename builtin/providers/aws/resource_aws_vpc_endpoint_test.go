@@ -16,9 +16,10 @@ func TestAccAWSVpcEndpoint_basic(t *testing.T) {
 	var endpoint ec2.VpcEndpoint
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpcEndpointDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpc_endpoint.second-private-s3",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpcEndpointWithRouteTableAndPolicyConfig,
@@ -35,9 +36,10 @@ func TestAccAWSVpcEndpoint_withRouteTableAndPolicy(t *testing.T) {
 	var routeTable ec2.RouteTable
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpcEndpointDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpc_endpoint.second-private-s3",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpcEndpointWithRouteTableAndPolicyConfig,

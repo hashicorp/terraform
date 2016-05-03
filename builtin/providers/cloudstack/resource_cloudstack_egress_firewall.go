@@ -1,6 +1,7 @@
 package cloudstack
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -20,10 +21,19 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 		Delete: resourceCloudStackEgressFirewallDelete,
 
 		Schema: map[string]*schema.Schema{
+			"network_id": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"network"},
+			},
+
 			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Deprecated:    "Please use the `network_id` field instead",
+				ConflictsWith: []string{"network_id"},
 			},
 
 			"managed": &schema.Schema{
@@ -99,8 +109,16 @@ func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
+	network, ok := d.GetOk("network_id")
+	if !ok {
+		network, ok = d.GetOk("network")
+	}
+	if !ok {
+		return errors.New("Either `network_id` or [deprecated] `network` must be provided.")
+	}
+
 	// Retrieve the network ID
-	networkid, e := retrieveID(cs, "network", d.Get("network").(string))
+	networkid, e := retrieveID(cs, "network", network.(string))
 	if e != nil {
 		return e.Error()
 	}

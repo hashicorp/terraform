@@ -66,7 +66,7 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 		templates[k] = v.(string)
 	}
 
-	_, err := conn.PutIntegrationResponse(&apigateway.PutIntegrationResponseInput{
+	input := apigateway.PutIntegrationResponseInput{
 		HttpMethod:        aws.String(d.Get("http_method").(string)),
 		ResourceId:        aws.String(d.Get("resource_id").(string)),
 		RestApiId:         aws.String(d.Get("rest_api_id").(string)),
@@ -74,7 +74,11 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 		ResponseTemplates: aws.StringMap(templates),
 		// TODO implement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
 		ResponseParameters: nil,
-	})
+	}
+	if v, ok := d.GetOk("selection_pattern"); ok {
+		input.SelectionPattern = aws.String(v.(string))
+	}
+	_, err := conn.PutIntegrationResponse(&input)
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration Response: %s", err)
 	}
@@ -82,7 +86,7 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
 	log.Printf("[DEBUG] API Gateway Integration Response ID: %s", d.Id())
 
-	return nil
+	return resourceAwsApiGatewayIntegrationResponseRead(d, meta)
 }
 
 func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta interface{}) error {
@@ -103,7 +107,10 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 		return err
 	}
 	log.Printf("[DEBUG] Received API Gateway Integration Response: %s", integrationResponse)
+
 	d.SetId(fmt.Sprintf("agir-%s-%s-%s-%s", d.Get("rest_api_id").(string), d.Get("resource_id").(string), d.Get("http_method").(string), d.Get("status_code").(string)))
+	d.Set("response_templates", integrationResponse.ResponseTemplates)
+	d.Set("selection_pattern", integrationResponse.SelectionPattern)
 
 	return nil
 }

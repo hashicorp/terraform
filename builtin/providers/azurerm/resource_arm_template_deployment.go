@@ -110,7 +110,7 @@ func resourceArmTemplateDeploymentCreate(d *schema.ResourceData, meta interface{
 		Pending: []string{"creating", "updating", "accepted", "running"},
 		Target:  []string{"succeeded"},
 		Refresh: templateDeploymentStateRefreshFunc(client, resGroup, name),
-		Timeout: 10 * time.Minute,
+		Timeout: 40 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for Template Deployment (%s) to become available: %s", name, err)

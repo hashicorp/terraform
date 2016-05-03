@@ -17,26 +17,14 @@ func resourceDnsRecordSet() *schema.Resource {
 		Delete: resourceDnsRecordSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"managed_zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"ttl": &schema.Schema{
-				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
@@ -49,12 +37,35 @@ func resourceDnsRecordSet() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+
+			"ttl": &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceDnsRecordSetCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
 
 	zone := d.Get("managed_zone").(string)
 
@@ -78,7 +89,7 @@ func resourceDnsRecordSetCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	log.Printf("[DEBUG] DNS Record create request: %#v", chg)
-	chg, err := config.clientDns.Changes.Create(config.Project, zone, chg).Do()
+	chg, err = config.clientDns.Changes.Create(project, zone, chg).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating DNS RecordSet: %s", err)
 	}
@@ -88,7 +99,7 @@ func resourceDnsRecordSetCreate(d *schema.ResourceData, meta interface{}) error 
 	w := &DnsChangeWaiter{
 		Service:     config.clientDns,
 		Change:      chg,
-		Project:     config.Project,
+		Project:     project,
 		ManagedZone: zone,
 	}
 	state := w.Conf()
@@ -106,6 +117,11 @@ func resourceDnsRecordSetCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceDnsRecordSetRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zone := d.Get("managed_zone").(string)
 
 	// name and type are effectively the 'key'
@@ -113,7 +129,7 @@ func resourceDnsRecordSetRead(d *schema.ResourceData, meta interface{}) error {
 	dnsType := d.Get("type").(string)
 
 	resp, err := config.clientDns.ResourceRecordSets.List(
-		config.Project, zone).Name(name).Type(dnsType).Do()
+		project, zone).Name(name).Type(dnsType).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing DNS Record Set %q because it's gone", d.Get("name").(string))
@@ -144,6 +160,11 @@ func resourceDnsRecordSetRead(d *schema.ResourceData, meta interface{}) error {
 func resourceDnsRecordSetDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	zone := d.Get("managed_zone").(string)
 
 	rrdatasCount := d.Get("rrdatas.#").(int)
@@ -165,7 +186,7 @@ func resourceDnsRecordSetDelete(d *schema.ResourceData, meta interface{}) error 
 		chg.Deletions[0].Rrdatas[i] = d.Get(rrdata).(string)
 	}
 	log.Printf("[DEBUG] DNS Record delete request: %#v", chg)
-	chg, err := config.clientDns.Changes.Create(config.Project, zone, chg).Do()
+	chg, err = config.clientDns.Changes.Create(project, zone, chg).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting DNS RecordSet: %s", err)
 	}
@@ -173,7 +194,7 @@ func resourceDnsRecordSetDelete(d *schema.ResourceData, meta interface{}) error 
 	w := &DnsChangeWaiter{
 		Service:     config.clientDns,
 		Change:      chg,
-		Project:     config.Project,
+		Project:     project,
 		ManagedZone: zone,
 	}
 	state := w.Conf()

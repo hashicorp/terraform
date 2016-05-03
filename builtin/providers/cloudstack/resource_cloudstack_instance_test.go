@@ -82,7 +82,7 @@ func TestAccCloudStackInstance_fixedIP(t *testing.T) {
 					testAccCheckCloudStackInstanceExists(
 						"cloudstack_instance.foobar", &instance),
 					resource.TestCheckResourceAttr(
-						"cloudstack_instance.foobar", "ipaddress", CLOUDSTACK_NETWORK_1_IPADDRESS1),
+						"cloudstack_instance.foobar", "ip_address", CLOUDSTACK_NETWORK_1_IPADDRESS1),
 				),
 			},
 		},
@@ -180,8 +180,8 @@ func testAccCheckCloudStackInstanceAttributes(
 			return fmt.Errorf("Bad template: %s", instance.Templatename)
 		}
 
-		if instance.Nic[0].Networkname != CLOUDSTACK_NETWORK_1 {
-			return fmt.Errorf("Bad network: %s", instance.Nic[0].Networkname)
+		if instance.Nic[0].Networkid != CLOUDSTACK_NETWORK_1 {
+			return fmt.Errorf("Bad network ID: %s", instance.Nic[0].Networkid)
 		}
 
 		return nil
@@ -234,7 +234,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   user_data = "foobar\nfoo\nbar"
@@ -250,7 +250,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-updated"
   display_name = "terraform-updated"
   service_offering= "%s"
-  network = "%s"
+  network_id = "%s"
   template = "%s"
   zone = "%s"
   user_data = "foobar\nfoo\nbar"
@@ -266,8 +266,8 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
-  ipaddress = "%s"
+  network_id = "%s"
+  ip_address = "%s"
   template = "%s"
   zone = "%s"
   expunge = true
@@ -287,8 +287,8 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-  network = "%s"
-  ipaddress = "%s"
+  network_id = "%s"
+  ip_address = "%s"
   template = "%s"
   zone = "%s"
 	keypair = "${cloudstack_ssh_keypair.foo.name}"
@@ -305,7 +305,7 @@ resource "cloudstack_instance" "foobar" {
   name = "terraform-test"
   display_name = "terraform-test"
   service_offering= "%s"
-	network = "%s"
+	network_id = "%s"
   template = "%s"
 	project = "%s"
   zone = "%s"

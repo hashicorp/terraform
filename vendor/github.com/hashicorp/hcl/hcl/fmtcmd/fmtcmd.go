@@ -60,8 +60,6 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool, opts 
 	if err != nil {
 		return err
 	}
-	// Files should end with newlines
-	res = append(res, []byte("\n")...)
 
 	if !bytes.Equal(src, res) {
 		// formatting has changed

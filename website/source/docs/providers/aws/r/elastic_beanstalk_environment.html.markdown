@@ -60,8 +60,10 @@ this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application
 
 
-<a id="option-settings"></a>
 ## Option Settings
+
+Some options can be stack-specific, check [AWS Docs](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html)
+for supported options and examples.
 
 The `setting` and `all_settings` mappings support the following format:
 
@@ -78,9 +80,9 @@ The following attributes are exported:
 * `description` - Description of the Elastic Beanstalk Environment.
 * `tier` - The environment tier specified.
 * `application` – The Elastic Beanstalk Application specified for this environment.
-* `setting` – Settings specifically set for this Environment.
-* `all_settings` – List of all option settings configured in the Environment. These
-  are a combination of default settings and their overrides from `settings` in
+* `setting` – Settings specifically set for this Environment.
+* `all_settings` – List of all option settings configured in the Environment. These
+  are a combination of default settings and their overrides from `setting` in
   the configuration.
 * `cname` - Fully qualified DNS name for the Environment.
 * `autoscaling_groups` - The autoscaling groups used by this environment.

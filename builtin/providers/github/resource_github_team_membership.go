@@ -31,7 +31,7 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				Default:      "member",
-				ValidateFunc: validateRoleValueFunc([]string{"member", "maintainer"}),
+				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
 		},
 	}

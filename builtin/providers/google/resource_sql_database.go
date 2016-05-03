@@ -22,11 +22,19 @@ func resourceSqlDatabase() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
 			"instance": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -38,9 +46,13 @@ func resourceSqlDatabase() *schema.Resource {
 func resourceSqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	database_name := d.Get("name").(string)
 	instance_name := d.Get("instance").(string)
-	project := config.Project
 
 	db := &sqladmin.Database{
 		Name:     database_name,
@@ -69,9 +81,13 @@ func resourceSqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	database_name := d.Get("name").(string)
 	instance_name := d.Get("instance").(string)
-	project := config.Project
 
 	db, err := config.clientSqlAdmin.Databases.Get(project, instance_name,
 		database_name).Do()
@@ -99,9 +115,13 @@ func resourceSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 func resourceSqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	database_name := d.Get("name").(string)
 	instance_name := d.Get("instance").(string)
-	project := config.Project
 
 	op, err := config.clientSqlAdmin.Databases.Delete(project, instance_name,
 		database_name).Do()

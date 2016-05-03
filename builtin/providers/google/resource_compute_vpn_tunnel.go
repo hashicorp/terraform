@@ -26,38 +26,44 @@ func resourceComputeVpnTunnel() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
+
 			"peer_ip": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validatePeerAddr,
 			},
+
 			"shared_secret": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+
 			"target_vpn_gateway": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"detailed_status": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"ike_version": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  2,
 				ForceNew: true,
 			},
+
 			"local_traffic_selector": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -65,10 +71,19 @@ func resourceComputeVpnTunnel() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"detailed_status": &schema.Schema{
+
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -80,13 +95,21 @@ func resourceComputeVpnTunnel() *schema.Resource {
 func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	region := getOptionalRegion(d, config)
 	peerIp := d.Get("peer_ip").(string)
 	sharedSecret := d.Get("shared_secret").(string)
 	targetVpnGateway := d.Get("target_vpn_gateway").(string)
 	ikeVersion := d.Get("ike_version").(int)
-	project := config.Project
 
 	if ikeVersion < 1 || ikeVersion > 2 {
 		return fmt.Errorf("Only IKE version 1 or 2 supported, not %d", ikeVersion)
@@ -132,9 +155,17 @@ func resourceComputeVpnTunnelCreate(d *schema.ResourceData, meta interface{}) er
 func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	region := getOptionalRegion(d, config)
-	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
 
@@ -162,9 +193,17 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 func resourceComputeVpnTunnelDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
-	region := getOptionalRegion(d, config)
-	project := config.Project
 
 	vpnTunnelsService := compute.NewVpnTunnelsService(config.clientCompute)
 

@@ -1,14 +1,14 @@
 ---
 layout: "github"
-page_title: "Github: github_team_repository"
+page_title: "GitHub: github_team_repository"
 sidebar_current: "docs-github-resource-team-repository"
 description: |-
-  Provides a Github team repository resource.
+  Provides a GitHub team repository resource.
 ---
 
 # github\_team_repository
 
-Provides a Github team repository resource.
+Provides a GitHub team repository resource.
 
 This resource allows you to add/remove repositories from teams in your organization. When applied,
 the repository will be added to the team. When destroyed, the repository will be removed from the team.
@@ -33,7 +33,7 @@ resource "github_team_repository" "some_team_repo" {
 
 The following arguments are supported:
 
-* `team_id` - (Required) The Github team id
+* `team_id` - (Required) The GitHub team id
 * `repository` - (Required) The repository to add to the team.
 * `permission` - (Optional) The permissions of team members regarding the repository. 
                   Must be one of `pull`, `push`, or `admin`. Defaults to `pull`.

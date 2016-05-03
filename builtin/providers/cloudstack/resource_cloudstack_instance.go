@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -37,17 +38,33 @@ func resourceCloudStackInstance() *schema.Resource {
 				Required: true,
 			},
 
-			"network": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"ipaddress": &schema.Schema{
+			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+
+			"network": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `network_id` field instead",
+			},
+
+			"ip_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"ipaddress": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				ForceNew:   true,
+				Deprecated: "Please use the `ip_address` field instead",
 			},
 
 			"template": &schema.Schema{
@@ -92,6 +109,12 @@ func resourceCloudStackInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -141,29 +164,42 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if zone.Networktype == "Advanced" {
+		network, ok := d.GetOk("network_id")
+		if !ok {
+			network, ok = d.GetOk("network")
+		}
+		if !ok {
+			return errors.New(
+				"Either `network_id` or [deprecated] `network` must be provided when using a zone with network type `advanced`.")
+		}
+
 		// Retrieve the network ID
-		networkid, e := retrieveID(cs, "network", d.Get("network").(string))
+		networkid, e := retrieveID(
+			cs,
+			"network",
+			network.(string),
+			cloudstack.WithProject(d.Get("project").(string)),
+		)
 		if e != nil {
 			return e.Error()
 		}
+
 		// Set the default network ID
 		p.SetNetworkids([]string{networkid})
 	}
 
 	// If there is a ipaddres supplied, add it to the parameter struct
-	if ipaddres, ok := d.GetOk("ipaddress"); ok {
-		p.SetIpaddress(ipaddres.(string))
+	ipaddress, ok := d.GetOk("ip_address")
+	if !ok {
+		ipaddress, ok = d.GetOk("ipaddress")
+	}
+	if ok {
+		p.SetIpaddress(ipaddress.(string))
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
-	if project, ok := d.GetOk("project"); ok {
-		// Retrieve the project ID
-		projectid, e := retrieveID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		// Set the default project ID
-		p.SetProjectid(projectid)
+	if err := setProjectid(p, cs, d); err != nil {
+		return err
 	}
 
 	// If a keypair is supplied, add it to the parameter struct
@@ -193,6 +229,11 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetUserdata(ud)
 	}
 
+	// If there is a group supplied, add it to the parameter struct
+	if group, ok := d.GetOk("group"); ok {
+		p.SetGroup(group.(string))
+	}
+
 	// Create the new instance
 	r, err := cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
@@ -214,7 +255,10 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the virtual machine details
-	vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(d.Id())
+	vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf("[DEBUG] Instance %s does no longer exist", d.Get("name").(string))
@@ -228,10 +272,10 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	// Update the config
 	d.Set("name", vm.Name)
 	d.Set("display_name", vm.Displayname)
-	d.Set("ipaddress", vm.Nic[0].Ipaddress)
-	//NB cloudstack sometimes sends back the wrong keypair name, so dont update it
+	d.Set("network_id", vm.Nic[0].Networkid)
+	d.Set("ip_address", vm.Nic[0].Ipaddress)
+	d.Set("group", vm.Group)
 
-	setValueOrID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
 	setValueOrID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrID(d, "template", vm.Templatename, vm.Templateid)
 	setValueOrID(d, "project", vm.Project, vm.Projectid)
@@ -264,6 +308,26 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 
 		d.SetPartial("display_name")
+	}
+
+	// Check if the group is changed and if so, update the virtual machine
+	if d.HasChange("group") {
+		log.Printf("[DEBUG] Group changed for %s, starting update", name)
+
+		// Create a new parameter struct
+		p := cs.VirtualMachine.NewUpdateVirtualMachineParams(d.Id())
+
+		// Set the new group
+		p.SetGroup(d.Get("group").(string))
+
+		// Update the display name
+		_, err := cs.VirtualMachine.UpdateVirtualMachine(p)
+		if err != nil {
+			return fmt.Errorf(
+				"Error updating the group for instance %s: %s", name, err)
+		}
+
+		d.SetPartial("group")
 	}
 
 	// Attributes that require reboot to update

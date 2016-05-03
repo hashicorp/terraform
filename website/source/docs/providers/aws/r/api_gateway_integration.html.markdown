@@ -52,7 +52,7 @@ The following arguments are supported:
   e.g. `arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:012345678901:function:my-func/invocations`
 * `credentials` - (Optional) The credentials required for the integration. For `AWS` integrations, 2 options are available. To specify an IAM Role for Amazon API Gateway to assume, use the role's ARN. To require that the caller's identity be passed through from the request, specify the string `arn:aws:iam::\*:user/\*`.
 * `integration_http_method` - (Optional) The integration HTTP method
-  (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`).
+  (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`). **Required** if `type` is `AWS` or `HTTP`.
   Not all methods are compatible with all `AWS` integrations.
   e.g. Lambda function [can only be invoked](https://github.com/awslabs/aws-apigateway-importer/issues/9#issuecomment-129651005) via `POST`.
 * `request_templates` - (Optional) A map of the integration's request templates.

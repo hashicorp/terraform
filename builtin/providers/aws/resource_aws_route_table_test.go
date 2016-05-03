@@ -59,9 +59,10 @@ func TestAccAWSRouteTable_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRouteTableDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route_table.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRouteTableConfig,
@@ -108,9 +109,10 @@ func TestAccAWSRouteTable_instance(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRouteTableDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route_table.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRouteTableConfigInstance,
@@ -128,9 +130,10 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 	var route_table ec2.RouteTable
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckRouteTableDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route_table.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRouteTableConfigTags,

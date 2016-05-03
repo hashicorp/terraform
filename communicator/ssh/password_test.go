@@ -1,9 +1,10 @@
 package ssh
 
 import (
-	"golang.org/x/crypto/ssh"
 	"reflect"
 	"testing"
+
+	"golang.org/x/crypto/ssh"
 )
 
 func TestPasswordKeyboardInteractive_Impl(t *testing.T) {

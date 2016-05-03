@@ -22,6 +22,10 @@ func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
 				t.Fatal("AWS_ACCOUNT_ID must be set")
 			}
 		},
+
+		IDRefreshName:   "aws_vpc_peering_connection.foo",
+		IDRefreshIgnore: []string{"auto_accept"},
+
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSVpcPeeringConnectionDestroy,
 		Steps: []resource.TestStep{
@@ -82,7 +86,11 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() { testAccPreCheck(t) },
+
+		IDRefreshName:   "aws_vpc_peering_connection.foo",
+		IDRefreshIgnore: []string{"auto_accept"},
+
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{

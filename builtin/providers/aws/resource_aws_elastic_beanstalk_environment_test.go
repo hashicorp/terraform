@@ -105,6 +105,41 @@ func TestAccAWSBeanstalkEnv_cname_prefix(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_config(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkConfigTemplate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tftest", &app),
+					testAccCheckBeanstalkEnvConfigValue("aws_elastic_beanstalk_environment.tftest", "1"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccBeanstalkConfigTemplateUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tftest", &app),
+					testAccCheckBeanstalkEnvConfigValue("aws_elastic_beanstalk_environment.tftest", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccBeanstalkConfigTemplateUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tftest", &app),
+					testAccCheckBeanstalkEnvConfigValue("aws_elastic_beanstalk_environment.tftest", "3"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckBeanstalkEnvDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
 
@@ -192,6 +227,49 @@ func testAccCheckBeanstalkEnvTier(n string, app *elasticbeanstalk.EnvironmentDes
 	}
 }
 
+func testAccCheckBeanstalkEnvConfigValue(n string, expectedValue string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn
+
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("Elastic Beanstalk ENV is not set")
+		}
+
+		resp, err := conn.DescribeConfigurationOptions(&elasticbeanstalk.DescribeConfigurationOptionsInput{
+			ApplicationName: aws.String(rs.Primary.Attributes["application"]),
+			EnvironmentName: aws.String(rs.Primary.Attributes["name"]),
+			Options: []*elasticbeanstalk.OptionSpecification{
+				{
+					Namespace:  aws.String("aws:elasticbeanstalk:application:environment"),
+					OptionName: aws.String("TEMPLATE"),
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		if len(resp.Options) != 1 {
+			return fmt.Errorf("Found %d options, expected 1.", len(resp.Options))
+		}
+
+		log.Printf("[DEBUG] %d Elastic Beanstalk Option values returned.", len(resp.Options[0].ValueOptions))
+
+		for _, value := range resp.Options[0].ValueOptions {
+			if *value != expectedValue {
+				return fmt.Errorf("Option setting value: %s. Expected %s", *value, expectedValue)
+			}
+		}
+
+		return nil
+	}
+}
+
 func describeBeanstalkEnv(conn *elasticbeanstalk.ElasticBeanstalk,
 	envID *string) (*elasticbeanstalk.EnvironmentDescription, error) {
 	describeBeanstalkEnvOpts := &elasticbeanstalk.DescribeEnvironmentsInput{
@@ -255,3 +333,84 @@ solution_stack_name = "64bit Amazon Linux running Python"
 }
 `, randString)
 }
+
+const testAccBeanstalkConfigTemplate = `
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tftest" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  template_name = "${aws_elastic_beanstalk_configuration_template.tftest.name}"
+}
+
+resource "aws_elastic_beanstalk_configuration_template" "tftest" {
+  name        = "tf-test-original"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TEMPLATE"
+    value     = "1"
+ }
+}
+`
+
+const testAccBeanstalkConfigTemplateUpdate = `
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tftest" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  template_name = "${aws_elastic_beanstalk_configuration_template.tftest.name}"
+}
+
+resource "aws_elastic_beanstalk_configuration_template" "tftest" {
+  name        = "tf-test-updated"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TEMPLATE"
+    value     = "2"
+  }
+}
+`
+
+const testAccBeanstalkConfigTemplateOverride = `
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tftest" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  template_name = "${aws_elastic_beanstalk_configuration_template.tftest.name}"
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TEMPLATE"
+    value     = "3"
+  }
+}
+
+resource "aws_elastic_beanstalk_configuration_template" "tftest" {
+  name        = "tf-test-updated"
+  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "TEMPLATE"
+    value     = "2"
+  }
+}
+`

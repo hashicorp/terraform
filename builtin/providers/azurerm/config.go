@@ -107,11 +107,6 @@ func setUserAgent(client *autorest.Client) {
 // getArmClient is a helper method which returns a fully instantiated
 // *ArmClient based on the Config's current settings.
 func (c *Config) getArmClient() (*ArmClient, error) {
-	spt, err := azure.NewServicePrincipalToken(c.ClientID, c.ClientSecret, c.TenantID, azure.AzureResourceManagerScope)
-	if err != nil {
-		return nil, err
-	}
-
 	// client declarations:
 	client := ArmClient{}
 
@@ -125,7 +120,20 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 		return nil, fmt.Errorf("Error creating Riviera client: %s", err)
 	}
 
+	// validate that the credentials are correct using Riviera. Note that this must be
+	// done _before_ using the Microsoft SDK, because Riviera handles errors. Using a
+	// namespace registration instead of a simple OAuth token refresh guarantees that
+	// service delegation is correct. This has the effect of registering Microsoft.Compute
+	// which is neccessary anyway.
+	if err := registerProviderWithSubscription("Microsoft.Compute", rivieraClient); err != nil {
+		return nil, err
+	}
 	client.rivieraClient = rivieraClient
+
+	spt, err := azure.NewServicePrincipalToken(c.ClientID, c.ClientSecret, c.TenantID, azure.AzureResourceManagerScope)
+	if err != nil {
+		return nil, err
+	}
 
 	// NOTE: these declarations should be left separate for clarity should the
 	// clients be wished to be configured with custom Responders/PollingModess etc...
