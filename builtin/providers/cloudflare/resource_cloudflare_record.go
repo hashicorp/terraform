@@ -3,7 +3,6 @@ package cloudflare
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -115,11 +114,12 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) error {
-	var (
-		client = meta.(*cloudflare.Client)
-		domain = d.Get("domain").(string)
-		rName  = strings.Join([]string{d.Get("name").(string), domain}, ".")
-	)
+	client := meta.(*cloudflare.Client)
+	domain := d.Get("domain").(string)
+	rName := domain
+	if v := d.Get("name").(string); v != "@" {
+		rName = v + "." + rName
+	}
 
 	zone, err := retrieveZone(client, domain)
 	if err != nil {
@@ -187,11 +187,12 @@ func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceCloudFlareRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	var (
-		client = meta.(*cloudflare.Client)
-		domain = d.Get("domain").(string)
-		rName  = strings.Join([]string{d.Get("name").(string), domain}, ".")
-	)
+	client := meta.(*cloudflare.Client)
+	domain := d.Get("domain").(string)
+	rName := domain
+	if v := d.Get("name").(string); v != "@" {
+		rName = v + "." + rName
+	}
 
 	zone, err := retrieveZone(client, domain)
 	if err != nil {
@@ -218,8 +219,7 @@ func resourceCloudFlareRecordDelete(d *schema.ResourceData, meta interface{}) er
 func retrieveRecord(
 	client *cloudflare.Client,
 	zone *cloudflare.Zone,
-	name string,
-) (*cloudflare.Record, error) {
+	name string) (*cloudflare.Record, error) {
 	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
 
 	rs, err := client.Records.List(ctx, zone.ID)
