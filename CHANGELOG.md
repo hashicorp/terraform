@@ -23,6 +23,7 @@ IMPROVEMENTS:
  * provider/vsphere: Add ability to specify and mount bootable vmdk in `vsphere_virtual_machine` [GH-6146]
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
  * provider/vsphere: Checking for empty diskPath in `vsphere_virtual_machine` before creating [GH-6400]
+ * provider/vsphere: Support updates to vcpu and memory on `vsphere_virtual_machine` [GH-6356]
 
 BUG FIXES:
 
