@@ -6,11 +6,13 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -100,6 +102,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	ruleType := d.Get("type").(string)
+	isVPC := sg.VpcId != nil && *sg.VpcId != ""
 
 	var autherr error
 	switch ruleType {
@@ -112,7 +115,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 			IpPermissions: []*ec2.IpPermission{perm},
 		}
 
-		if sg.VpcId == nil || *sg.VpcId == "" {
+		if !isVPC {
 			req.GroupId = nil
 			req.GroupName = sg.GroupName
 		}
@@ -137,11 +140,11 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 	if autherr != nil {
 		if awsErr, ok := autherr.(awserr.Error); ok {
 			if awsErr.Code() == "InvalidPermission.Duplicate" {
-				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found. This may be
+				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found on (%s). This may be
 a side effect of a now-fixed Terraform issue causing two security groups with
 identical attributes but different source_security_group_ids to overwrite each
 other in the state. See https://github.com/hashicorp/terraform/pull/2376 for more
-information and instructions for recovery. Error message: %s`, awsErr.Message())
+information and instructions for recovery. Error message: %s`, sg_id, awsErr.Message())
 			}
 		}
 
@@ -151,10 +154,44 @@ information and instructions for recovery. Error message: %s`, awsErr.Message())
 	}
 
 	id := ipPermissionIDHash(sg_id, ruleType, perm)
-	d.SetId(id)
-	log.Printf("[DEBUG] Security group rule ID set to %s", id)
+	log.Printf("[DEBUG] Computed group rule ID %s", id)
 
-	return resourceAwsSecurityGroupRuleRead(d, meta)
+	retErr := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		sg, err := findResourceSecurityGroup(conn, sg_id)
+
+		if err != nil {
+			log.Printf("[DEBUG] Error finding Secuirty Group (%s) for Rule (%s): %s", sg_id, id, err)
+			return resource.NonRetryableError(err)
+		}
+
+		var rules []*ec2.IpPermission
+		switch ruleType {
+		case "ingress":
+			rules = sg.IpPermissions
+		default:
+			rules = sg.IpPermissionsEgress
+		}
+
+		rule := findRuleMatch(perm, rules, isVPC)
+
+		if rule == nil {
+			log.Printf("[DEBUG] Unable to find matching %s Security Group Rule (%s) for Group %s",
+				ruleType, id, sg_id)
+			return resource.RetryableError(fmt.Errorf("No match found"))
+		}
+
+		log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", id, rule)
+		return nil
+	})
+
+	if retErr != nil {
+		log.Printf("[DEBUG] Error finding matching %s Security Group Rule (%s) for Group %s -- NO STATE WILL BE SAVED",
+			ruleType, id, sg_id)
+		return nil
+	}
+
+	d.SetId(id)
+	return nil
 }
 
 func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) error {
@@ -191,54 +228,7 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 		return nil
 	}
 
-	for _, r := range rules {
-		if r.ToPort != nil && *p.ToPort != *r.ToPort {
-			continue
-		}
-
-		if r.FromPort != nil && *p.FromPort != *r.FromPort {
-			continue
-		}
-
-		if r.IpProtocol != nil && *p.IpProtocol != *r.IpProtocol {
-			continue
-		}
-
-		remaining := len(p.IpRanges)
-		for _, ip := range p.IpRanges {
-			for _, rip := range r.IpRanges {
-				if *ip.CidrIp == *rip.CidrIp {
-					remaining--
-				}
-			}
-		}
-
-		if remaining > 0 {
-			continue
-		}
-
-		remaining = len(p.UserIdGroupPairs)
-		for _, ip := range p.UserIdGroupPairs {
-			for _, rip := range r.UserIdGroupPairs {
-				if isVPC {
-					if *ip.GroupId == *rip.GroupId {
-						remaining--
-					}
-				} else {
-					if *ip.GroupName == *rip.GroupName {
-						remaining--
-					}
-				}
-			}
-		}
-
-		if remaining > 0 {
-			continue
-		}
-
-		log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), r)
-		rule = r
-	}
+	rule = findRuleMatch(p, rules, isVPC)
 
 	if rule == nil {
 		log.Printf("[DEBUG] Unable to find matching %s Security Group Rule (%s) for Group %s",
@@ -246,6 +236,8 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 		d.SetId("")
 		return nil
 	}
+
+	log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), rule)
 
 	d.Set("from_port", rule.FromPort)
 	d.Set("to_port", rule.ToPort)
@@ -360,6 +352,58 @@ func (b ByGroupPair) Less(i, j int) bool {
 	}
 
 	panic("mismatched security group rules, may be a terraform bug")
+}
+
+func findRuleMatch(p *ec2.IpPermission, rules []*ec2.IpPermission, isVPC bool) *ec2.IpPermission {
+	var rule *ec2.IpPermission
+	for _, r := range rules {
+		if r.ToPort != nil && *p.ToPort != *r.ToPort {
+			continue
+		}
+
+		if r.FromPort != nil && *p.FromPort != *r.FromPort {
+			continue
+		}
+
+		if r.IpProtocol != nil && *p.IpProtocol != *r.IpProtocol {
+			continue
+		}
+
+		remaining := len(p.IpRanges)
+		for _, ip := range p.IpRanges {
+			for _, rip := range r.IpRanges {
+				if *ip.CidrIp == *rip.CidrIp {
+					remaining--
+				}
+			}
+		}
+
+		if remaining > 0 {
+			continue
+		}
+
+		remaining = len(p.UserIdGroupPairs)
+		for _, ip := range p.UserIdGroupPairs {
+			for _, rip := range r.UserIdGroupPairs {
+				if isVPC {
+					if *ip.GroupId == *rip.GroupId {
+						remaining--
+					}
+				} else {
+					if *ip.GroupName == *rip.GroupName {
+						remaining--
+					}
+				}
+			}
+		}
+
+		if remaining > 0 {
+			continue
+		}
+
+		rule = r
+	}
+	return rule
 }
 
 func ipPermissionIDHash(sg_id, ruleType string, ip *ec2.IpPermission) string {
