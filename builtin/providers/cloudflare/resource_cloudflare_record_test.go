@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
-	"golang.org/x/net/context"
-
-	"github.com/crackcomm/cloudflare"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+
+	// NOTE: Temporary until they merge my PR:
+	"github.com/mitchellh/cloudflare-go"
 )
 
 func TestAccCloudFlareRecord_Basic(t *testing.T) {
-	var record cloudflare.Record
+	var record cloudflare.DNSRecord
 	domain := os.Getenv("CLOUDFLARE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
@@ -40,7 +39,7 @@ func TestAccCloudFlareRecord_Basic(t *testing.T) {
 }
 
 func TestAccCloudFlareRecord_Apex(t *testing.T) {
-	var record cloudflare.Record
+	var record cloudflare.DNSRecord
 	domain := os.Getenv("CLOUDFLARE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
@@ -66,7 +65,7 @@ func TestAccCloudFlareRecord_Apex(t *testing.T) {
 }
 
 func TestAccCloudFlareRecord_Proxied(t *testing.T) {
-	var record cloudflare.Record
+	var record cloudflare.DNSRecord
 	domain := os.Getenv("CLOUDFLARE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
@@ -95,7 +94,7 @@ func TestAccCloudFlareRecord_Proxied(t *testing.T) {
 }
 
 func TestAccCloudFlareRecord_Updated(t *testing.T) {
-	var record cloudflare.Record
+	var record cloudflare.DNSRecord
 	domain := os.Getenv("CLOUDFLARE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
@@ -134,7 +133,7 @@ func TestAccCloudFlareRecord_Updated(t *testing.T) {
 }
 
 func TestAccCloudFlareRecord_forceNewRecord(t *testing.T) {
-	var afterCreate, afterUpdate cloudflare.Record
+	var afterCreate, afterUpdate cloudflare.DNSRecord
 	domain := os.Getenv("CLOUDFLARE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
@@ -160,7 +159,7 @@ func TestAccCloudFlareRecord_forceNewRecord(t *testing.T) {
 }
 
 func testAccCheckCloudFlareRecordRecreated(t *testing.T,
-	before, after *cloudflare.Record) resource.TestCheckFunc {
+	before, after *cloudflare.DNSRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if before.ID == after.ID {
 			t.Fatalf("Expected change of Record Ids, but both were %v", before.ID)
@@ -170,17 +169,14 @@ func testAccCheckCloudFlareRecordRecreated(t *testing.T,
 }
 
 func testAccCheckCloudFlareRecordDestroy(s *terraform.State) error {
-	var (
-		client = testAccProvider.Meta().(*cloudflare.Client)
-		ctx, _ = context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
-	)
+	client := testAccProvider.Meta().(*cloudflare.API)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "cloudflare_record" {
 			continue
 		}
 
-		_, err := client.Records.Details(ctx, rs.Primary.Attributes["zone_id"], rs.Primary.ID)
+		_, err := client.DNSRecord(rs.Primary.Attributes["zone_id"], rs.Primary.ID)
 		if err == nil {
 			return fmt.Errorf("Record still exists")
 		}
@@ -189,7 +185,7 @@ func testAccCheckCloudFlareRecordDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckCloudFlareRecordAttributes(record *cloudflare.Record) resource.TestCheckFunc {
+func testAccCheckCloudFlareRecordAttributes(record *cloudflare.DNSRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if record.Content != "192.168.0.10" {
@@ -200,7 +196,7 @@ func testAccCheckCloudFlareRecordAttributes(record *cloudflare.Record) resource.
 	}
 }
 
-func testAccCheckCloudFlareRecordAttributesUpdated(record *cloudflare.Record) resource.TestCheckFunc {
+func testAccCheckCloudFlareRecordAttributesUpdated(record *cloudflare.DNSRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if record.Content != "192.168.0.11" {
@@ -211,7 +207,7 @@ func testAccCheckCloudFlareRecordAttributesUpdated(record *cloudflare.Record) re
 	}
 }
 
-func testAccCheckCloudFlareRecordExists(n string, record *cloudflare.Record) resource.TestCheckFunc {
+func testAccCheckCloudFlareRecordExists(n string, record *cloudflare.DNSRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -222,12 +218,8 @@ func testAccCheckCloudFlareRecordExists(n string, record *cloudflare.Record) res
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		var (
-			client = testAccProvider.Meta().(*cloudflare.Client)
-			ctx, _ = context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
-		)
-
-		foundRecord, err := client.Records.Details(ctx, rs.Primary.Attributes["zone_id"], rs.Primary.ID)
+		client := testAccProvider.Meta().(*cloudflare.API)
+		foundRecord, err := client.DNSRecord(rs.Primary.Attributes["zone_id"], rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -236,7 +228,7 @@ func testAccCheckCloudFlareRecordExists(n string, record *cloudflare.Record) res
 			return fmt.Errorf("Record not found")
 		}
 
-		*record = *foundRecord
+		*record = foundRecord
 
 		return nil
 	}

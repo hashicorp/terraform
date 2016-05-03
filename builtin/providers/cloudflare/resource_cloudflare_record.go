@@ -3,12 +3,11 @@ package cloudflare
 import (
 	"fmt"
 	"log"
-	"time"
 
-	"golang.org/x/net/context"
-
-	"github.com/crackcomm/cloudflare"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	// NOTE: Temporary until they merge my PR:
+	"github.com/mitchellh/cloudflare-go"
 )
 
 func resourceCloudFlareRecord() *schema.Resource {
@@ -71,13 +70,13 @@ func resourceCloudFlareRecord() *schema.Resource {
 }
 
 func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudflare.Client)
+	client := meta.(*cloudflare.API)
 
-	newRecord := &cloudflare.Record{
-		Content:  d.Get("value").(string),
-		Name:     d.Get("name").(string),
-		Proxied:  d.Get("proxied").(bool),
+	newRecord := cloudflare.DNSRecord{
 		Type:     d.Get("type").(string),
+		Name:     d.Get("name").(string),
+		Content:  d.Get("value").(string),
+		Proxied:  d.Get("proxied").(bool),
 		ZoneName: d.Get("domain").(string),
 	}
 
@@ -89,24 +88,22 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 		newRecord.TTL = ttl.(int)
 	}
 
-	zone, err := retrieveZone(client, newRecord.ZoneName)
+	zoneId, err := client.ZoneIDByName(newRecord.ZoneName)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error finding zone %q: %s", newRecord.ZoneName, err)
 	}
 
-	d.Set("zone_id", zone.ID)
-	newRecord.ZoneID = zone.ID
+	d.Set("zone_id", zoneId)
+	newRecord.ZoneID = zoneId
 
 	log.Printf("[DEBUG] CloudFlare Record create configuration: %#v", newRecord)
 
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
-
-	err = client.Records.Create(ctx, newRecord)
+	r, err := client.CreateDNSRecord(zoneId, newRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to create record: %s", err)
 	}
 
-	d.SetId(newRecord.ID)
+	d.SetId(r.ID)
 
 	log.Printf("[INFO] CloudFlare Record ID: %s", d.Id())
 
@@ -114,19 +111,15 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudflare.Client)
+	client := meta.(*cloudflare.API)
 	domain := d.Get("domain").(string)
-	rName := domain
-	if v := d.Get("name").(string); v != "@" {
-		rName = v + "." + rName
-	}
 
-	zone, err := retrieveZone(client, domain)
+	zoneId, err := client.ZoneIDByName(domain)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error finding zone %q: %s", domain, err)
 	}
 
-	record, err := retrieveRecord(client, zone, rName)
+	record, err := client.DNSRecord(zoneId, d.Id())
 	if err != nil {
 		return err
 	}
@@ -138,21 +131,21 @@ func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("ttl", record.TTL)
 	d.Set("priority", record.Priority)
 	d.Set("proxied", record.Proxied)
-	d.Set("zone_id", zone.ID)
+	d.Set("zone_id", zoneId)
 
 	return nil
 }
 
 func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudflare.Client)
+	client := meta.(*cloudflare.API)
 
-	updateRecord := &cloudflare.Record{
-		Content:  d.Get("value").(string),
+	updateRecord := cloudflare.DNSRecord{
 		ID:       d.Id(),
-		Name:     d.Get("name").(string),
-		Proxied:  false,
 		Type:     d.Get("type").(string),
+		Name:     d.Get("name").(string),
+		Content:  d.Get("value").(string),
 		ZoneName: d.Get("domain").(string),
+		Proxied:  false,
 	}
 
 	if priority, ok := d.GetOk("priority"); ok {
@@ -167,18 +160,15 @@ func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) er
 		updateRecord.TTL = ttl.(int)
 	}
 
-	zone, err := retrieveZone(client, updateRecord.ZoneName)
+	zoneId, err := client.ZoneIDByName(updateRecord.ZoneName)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error finding zone %q: %s", updateRecord.ZoneName, err)
 	}
 
-	updateRecord.ZoneID = zone.ID
+	updateRecord.ZoneID = zoneId
 
 	log.Printf("[DEBUG] CloudFlare Record update configuration: %#v", updateRecord)
-
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
-
-	err = client.Records.Patch(ctx, updateRecord)
+	err = client.UpdateDNSRecord(zoneId, d.Id(), updateRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to update CloudFlare Record: %s", err)
 	}
@@ -187,79 +177,20 @@ func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceCloudFlareRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*cloudflare.Client)
+	client := meta.(*cloudflare.API)
 	domain := d.Get("domain").(string)
-	rName := domain
-	if v := d.Get("name").(string); v != "@" {
-		rName = v + "." + rName
-	}
 
-	zone, err := retrieveZone(client, domain)
+	zoneId, err := client.ZoneIDByName(domain)
 	if err != nil {
-		return err
-	}
-
-	record, err := retrieveRecord(client, zone, rName)
-	if err != nil {
-		return err
+		return fmt.Errorf("Error finding zone %q: %s", domain, err)
 	}
 
 	log.Printf("[INFO] Deleting CloudFlare Record: %s, %s", domain, d.Id())
 
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
-
-	err = client.Records.Delete(ctx, zone.ID, record.ID)
+	err = client.DeleteDNSRecord(zoneId, d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting CloudFlare Record: %s", err)
 	}
 
 	return nil
-}
-
-func retrieveRecord(
-	client *cloudflare.Client,
-	zone *cloudflare.Zone,
-	name string) (*cloudflare.Record, error) {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
-
-	rs, err := client.Records.List(ctx, zone.ID)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve records for (%s): %s", zone.Name, err)
-	}
-
-	var record *cloudflare.Record
-
-	for _, r := range rs {
-		if r.Name == name {
-			record = r
-		}
-	}
-	if record == nil {
-		return nil, fmt.Errorf("Unable to find Cloudflare record %s", name)
-	}
-
-	return record, nil
-}
-
-func retrieveZone(client *cloudflare.Client, domain string) (*cloudflare.Zone, error) {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
-
-	zs, err := client.Zones.List(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch zone for %s: %s", domain, err)
-	}
-
-	var zone *cloudflare.Zone
-
-	for _, z := range zs {
-		if z.Name == domain {
-			zone = z
-		}
-	}
-
-	if zone == nil {
-		return nil, fmt.Errorf("Failed to find zone for: %s", domain)
-	}
-
-	return zone, nil
 }
