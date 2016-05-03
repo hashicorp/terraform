@@ -433,7 +433,7 @@ type ServiceCreateRequest struct {
 }
 
 type ServiceLinkInfo struct {
-	From_service string `json:"from_service"`
+	From_service string `json:"from_service,omitempty"`
 	Name         string `json:"name"`
 	To_service   string `json:"to_service"`
 }

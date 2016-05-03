@@ -49,16 +49,10 @@ func resourceDockercloudNodeCluster() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
-			},
-			"state": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 			"tags": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
@@ -70,7 +64,7 @@ func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface
 	region := d.Get("region").(string)
 	size := d.Get("size").(string)
 
-	opts := &dockercloud.NodeCreateRequest{
+	opts := dockercloud.NodeCreateRequest{
 		Name:     d.Get("name").(string),
 		Region:   fmt.Sprintf("/api/infra/v1/region/%s/%s/", provider, region),
 		NodeType: fmt.Sprintf("/api/infra/v1/nodetype/%s/%s/", provider, size),
@@ -93,7 +87,7 @@ func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface
 		}
 	}
 
-	nodeCluster, err := dockercloud.CreateNodeCluster(*opts)
+	nodeCluster, err := dockercloud.CreateNodeCluster(opts)
 	if err != nil {
 		return err
 	}
@@ -103,7 +97,6 @@ func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface
 	}
 
 	d.SetId(nodeCluster.Uuid)
-	d.Set("state", nodeCluster.State)
 
 	stateConf := &resource.StateChangeConf{
 		Pending:        []string{"Deploying"},
@@ -115,13 +108,10 @@ func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface
 		NotFoundChecks: 60,
 	}
 
-	nodeClusterRaw, err := stateConf.WaitForState()
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error waiting for node cluster (%s) to become ready: %s", d.Id(), err)
 	}
-
-	nodeCluster = nodeClusterRaw.(dockercloud.NodeCluster)
-	d.Set("state", nodeCluster.State)
 
 	return resourceDockercloudNodeClusterRead(d, meta)
 }
@@ -145,13 +135,13 @@ func resourceDockercloudNodeClusterRead(d *schema.ResourceData, meta interface{}
 	d.Set("name", nodeCluster.Name)
 	d.Set("node_count", nodeCluster.Target_num_nodes)
 	d.Set("disk", nodeCluster.Disk)
-	d.Set("state", nodeCluster.State)
+	d.Set("tags", flattenNodeTags(nodeCluster.Tags))
 
 	return nil
 }
 
 func resourceDockercloudNodeClusterUpdate(d *schema.ResourceData, meta interface{}) error {
-	opts := &dockercloud.NodeCreateRequest{}
+	var opts dockercloud.NodeCreateRequest
 
 	if d.HasChange("node_count") {
 		_, newNum := d.GetChange("node_count")
@@ -173,7 +163,7 @@ func resourceDockercloudNodeClusterUpdate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error retrieving node cluster (%s): %s", d.Id(), err)
 	}
 
-	if err := nodeCluster.Update(*opts); err != nil {
+	if err := nodeCluster.Update(opts); err != nil {
 		return fmt.Errorf("Error updating node cluster: %s", err)
 	}
 
@@ -192,7 +182,7 @@ func resourceDockercloudNodeClusterUpdate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error waiting for node cluster (%s) to finish scaling: %s", d.Id(), err)
 	}
 
-	return nil
+	return resourceDockercloudNodeClusterRead(d, meta)
 }
 
 func resourceDockercloudNodeClusterDelete(d *schema.ResourceData, meta interface{}) error {
@@ -252,4 +242,14 @@ func newNodeClusterStateRefreshFunc(d *schema.ResourceData, meta interface{}) re
 
 		return nodeCluster, nodeCluster.State, nil
 	}
+}
+
+func flattenNodeTags(t []dockercloud.NodeTag) []string {
+	ret := make([]string, len(t))
+
+	for i, tag := range t {
+		ret[i] = tag.Name
+	}
+
+	return ret
 }

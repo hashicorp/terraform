@@ -1,14 +1,14 @@
 ---
 layout: "dockercloud"
-page_title: "Docker Cloud: dockercloud_service"
-sidebar_current: "docs-dockercloud-resource-service"
+page_title: "Docker Cloud: dockercloud_stack"
+sidebar_current: "docs-dockercloud-resource-stack"
 description: |-
-  Provides a Docker Cloud service resource.
+  Provides a Docker Cloud stack resource.
 ---
 
-# dockercloud\_service
+# dockercloud\_stack
 
-Provides a Docker Cloud service resource.
+Provides a Docker Cloud stack resource.
 
 ## Example Usage
 
@@ -21,11 +21,13 @@ resource "dockercloud_node_cluster" "default" {
     size = "t2.micro"
 }
 
-# Create a sample web service
-resource "dockercloud_service" "web" {
-    name = "web_server"
-    image = "python:3.2"
-    entrypoint = "python -m http.server"
+# Create a sample web stack
+resource "dockercloud_stack" "web" {
+    services {
+        name = "web_server"
+        image = "python:3.2"
+        entrypoint = "python -m http.server"
+    }
 
     # Explicitly set dependency on the node cluster
     depends_on = ["dockercloud_node_cluster.default"]
@@ -35,6 +37,18 @@ resource "dockercloud_service" "web" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `name` - (Required, string) The name of the stack (cannot contain underscores).
+* `services` - (Optional) Services deployed in the stack. See [Services](#services) block below.
+* `redeploy_on_change` - (Optional, bool) When a non-destructive config update is applied to the stack, redeploy the running containers with the new configuration (default: `false`).
+* `reuse_existing_volumes` - (Optional, bool) Reuse container volumes when redeploying.
+
+<a id="services"></a>
+### Services
+
+Similar to the `dockercloud_service` resource, this block can be repeated to define multiple services in the stack.
+
+The following parameters are supported:
 
 * `name` - (Required) The name of the service (cannot contain underscores).
 * `image` - (Required) The image to start the container with.
@@ -56,11 +70,9 @@ The following arguments are supported:
 * `env` - (Optional, block) Environment variables to be added in the containers on launch. See [Env](#env) below for details.
 * `links` - (Optional, block) Other services to link this service to. See [Links](#links) below for details.
 * `ports` - (Optional, block) Port information to be published in the containers for this service. See [Ports](#ports) below for details.
-* `redeploy_on_change` - (Optional, bool) When a non-destructive config update is applied to the service, redeploy the running containers with the new configuration (default: `false`).
-* `reuse_existing_volumes` - (Optional, bool) Reuse container volumes when redeploying.
 
 <a id="bindings"></a>
-### Bindings
+#### Bindings
 
 `bindings` is a block within the configuration that can be repeated to specify mount points in the container. Each `bindings` block supports the following:
 
@@ -70,7 +82,7 @@ The following arguments are supported:
 * `volumes_from` - (Optional, string) The resource URI of the service to mount volumes from.
 
 <a id="env"></a>
-### Env
+#### Env
 
 `env` is a block within the configuration that can be repeated to specify environment variables to be injected into each service container. Each `env` block supports the following:
 
@@ -78,7 +90,7 @@ The following arguments are supported:
 * `value` - (Required, string) Value of the environment variable.
 
 <a id="links"></a>
-### Links
+#### Links
 
 `links` is a block within the configuration that can be repeated to specify other containers to link this service to. Each `links` block supports the following:
 
@@ -86,7 +98,7 @@ The following arguments are supported:
 * `name` - (Optional, string) Override the default name with this value.
 
 <a id="ports"></a>
-### Ports
+#### Ports
 
 `ports` is a block within the configuration that can be repeated to specify the port mappings of the container. Each `ports` block supports the following:
 
@@ -99,5 +111,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The uuid of the service
-* `uri` - The DockerCloud URI of the service
-* `public_dns` - The assigned public DNS name of the service
+* `uri` - The DockerCloud URI of the stack

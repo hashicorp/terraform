@@ -112,6 +112,6 @@ const testAccCheckDockercloudNodeClusterConfig_basic = `
 resource "dockercloud_node_cluster" "foobar" {
     name = "foobar-test-terraform"
     node_provider = "aws"
-    size = "t2.micro"
+    size = "t2.nano"
     region = "us-east-1"
 }`

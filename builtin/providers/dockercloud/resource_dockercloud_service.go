@@ -1,11 +1,14 @@
 package dockercloud
 
 import (
+	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/docker/go-dockercloud/dockercloud"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -22,109 +25,227 @@ func resourceDockercloudService() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"image": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
 			},
 			"entrypoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
 			},
 			"command": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
 			},
 			"workdir": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
 			},
 			"pid": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(none|host)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"none\" or \"host\"", k))
+					}
+					return
+				},
 			},
 			"net": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(bridge|host)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"bridge\" or \"host\"", k))
+					}
+					return
+				},
+			},
+			"deployment_strategy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(EMPTIEST_NODE|HIGH_AVAILABILITY|EVERY_NODE)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"EMPTIEST_NODE\", \"HIGH_AVAILABILITY\" or \"EVERY_NODE\"", k))
+					}
+					return
+				},
+			},
+			"autorestart": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(OFF|ON_FAILURE|ALWAYS)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"OFF\", \"ON_FAILURE\" or \"ALWAYS\"", k))
+					}
+					return
+				},
+			},
+			"autodestroy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if !regexp.MustCompile(`^(OFF|ON_SUCCESS|ALWAYS)$`).MatchString(value) {
+						es = append(es, fmt.Errorf(
+							"%q must be one of \"OFF\", \"ON_SUCCESS\" or \"ALWAYS\"", k))
+					}
+					return
+				},
+			},
+			"autoredeploy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 			"privileged": &schema.Schema{
 				Type:     schema.TypeBool,
-				Default:  false,
 				Optional: true,
-				ForceNew: false,
 			},
-			"env": &schema.Schema{
-				Type:     schema.TypeList,
+			"sequential_deployment": &schema.Schema{
+				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: false,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"ports": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"internal": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
-							ForceNew: true,
-						},
-						"external": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-							ForceNew: true,
-						},
-						"ip": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-						},
-						"protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Default:  "tcp",
-							Optional: true,
-							ForceNew: true,
-						},
-					},
-				},
-			},
-			"tags": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: false,
-				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"container_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: false,
+			},
+			"roles": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"tags": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			"bindings": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Set:      bindingsHash,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"container_path": &schema.Schema{
+							Type:          schema.TypeString,
+							Optional:      true,
+							ConflictsWith: []string{"bindings.volumes_from"},
+						},
+						"host_path": &schema.Schema{
+							Type:          schema.TypeString,
+							Optional:      true,
+							ConflictsWith: []string{"bindings.volumes_from"},
+						},
+						"rewritable": &schema.Schema{
+							Type:     schema.TypeBool,
+							Default:  true,
+							Optional: true,
+						},
+						"volumes_from": &schema.Schema{
+							Type:          schema.TypeString,
+							Optional:      true,
+							ConflictsWith: []string{"bindings.container_path"},
+						},
+					},
+				},
+			},
+			"env": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Set:      envHash,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"key": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+			"links": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Set:      linksHash,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"to": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"ports": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Set:      portsHash,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"internal": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"external": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Default:  "tcp",
+							Optional: true,
+						},
+					},
+				},
 			},
 			"redeploy_on_change": &schema.Schema{
 				Type:     schema.TypeBool,
-				Default:  false,
 				Optional: true,
-				ForceNew: false,
+			},
+			"reuse_existing_volumes": &schema.Schema{
+				Type:     schema.TypeBool,
+				Default:  true,
+				Optional: true,
+			},
+			"uri": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"public_dns": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
 }
 
 func resourceDockercloudServiceCreate(d *schema.ResourceData, meta interface{}) error {
-	opts := &dockercloud.ServiceCreateRequest{
+	opts := dockercloud.ServiceCreateRequest{
 		Name:  d.Get("name").(string),
 		Image: d.Get("image").(string),
 	}
@@ -149,27 +270,59 @@ func resourceDockercloudServiceCreate(d *schema.ResourceData, meta interface{}) 
 		opts.Net = attr.(string)
 	}
 
+	if attr, ok := d.GetOk("deployment_strategy"); ok {
+		opts.Deployment_strategy = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("autorestart"); ok {
+		opts.Autorestart = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("autodestroy"); ok {
+		opts.Autodestroy = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("autoredeploy"); ok {
+		opts.Autoredeploy = attr.(bool)
+	}
+
 	if attr, ok := d.GetOk("privileged"); ok {
 		opts.Privileged = attr.(bool)
 	}
 
-	if attr, ok := d.GetOk("env"); ok {
-		opts.Container_envvars = envvarListToContainerEnvvar(attr.(*schema.Set))
-	}
-
-	if attr, ok := d.GetOk("ports"); ok {
-		opts.Container_ports = portSetToContainerPortInfo(attr.(*schema.Set))
-	}
-
-	if attr, ok := d.GetOk("tags"); ok {
-		opts.Tags = stringListToStringSlice(attr.([]interface{}))
+	if attr, ok := d.GetOk("sequential_deployment"); ok {
+		opts.Sequential_deployment = attr.(bool)
 	}
 
 	if attr, ok := d.GetOk("container_count"); ok {
 		opts.Target_num_containers = attr.(int)
 	}
 
-	service, err := dockercloud.CreateService(*opts)
+	if attr, ok := d.GetOk("roles"); ok {
+		opts.Roles = stringListToSlice(attr.([]interface{}))
+	}
+
+	if attr, ok := d.GetOk("bindings"); ok {
+		opts.Bindings = bindingsSetToServiceBinding(attr.(*schema.Set))
+	}
+
+	if attr, ok := d.GetOk("env"); ok {
+		opts.Container_envvars = envSetToContainerEnvvar(attr.(*schema.Set))
+	}
+
+	if attr, ok := d.GetOk("links"); ok {
+		opts.Linked_to_service = linksSetToServiceLinkInfo(attr.(*schema.Set))
+	}
+
+	if attr, ok := d.GetOk("ports"); ok {
+		opts.Container_ports = portsSetToContainerPortInfo(attr.(*schema.Set))
+	}
+
+	if attr, ok := d.GetOk("tags"); ok {
+		opts.Tags = stringListToSlice(attr.([]interface{}))
+	}
+
+	service, err := dockercloud.CreateService(opts)
 	if err != nil {
 		return err
 	}
@@ -179,7 +332,6 @@ func resourceDockercloudServiceCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.SetId(service.Uuid)
-	d.Set("state", service.State)
 
 	stateConf := &resource.StateChangeConf{
 		Pending:        []string{"Starting"},
@@ -191,13 +343,10 @@ func resourceDockercloudServiceCreate(d *schema.ResourceData, meta interface{}) 
 		NotFoundChecks: 60,
 	}
 
-	serviceRaw, err := stateConf.WaitForState()
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf("Error waiting for service (%s) to become ready: %s", d.Id(), err)
 	}
-
-	service = serviceRaw.(dockercloud.Service)
-	d.Set("state", service.State)
 
 	return resourceDockercloudServiceRead(d, meta)
 }
@@ -225,85 +374,139 @@ func resourceDockercloudServiceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("workdir", service.Working_dir)
 	d.Set("pid", service.Pid)
 	d.Set("net", service.Net)
+	d.Set("deployment_strategy", service.Deployment_strategy)
+	d.Set("autorestart", service.Autorestart)
+	d.Set("autodestroy", service.Autodestroy)
+	d.Set("autoredeploy", service.Autoredeploy)
 	d.Set("privileged", service.Privileged)
-	d.Set("env", containerEnvvarsToList(service.Container_envvars))
-	d.Set("tags", serviceTagsToList(service.Tags))
+	d.Set("sequential_deployment", service.Sequential_deployment)
 	d.Set("container_count", service.Target_num_containers)
-	d.Set("state", service.State)
+	d.Set("roles", service.Roles)
+	d.Set("tags", flattenTags(service.Tags))
+	d.Set("bindings", flattenBindings(service.Bindings))
+	d.Set("env", flattenEnv(service.Container_envvars))
+	d.Set("links", flattenLinks(service.Linked_to_service))
+	d.Set("ports", flattenPorts(service.Container_ports))
+	d.Set("uri", service.Resource_uri)
+	d.Set("public_dns", service.Public_dns)
 
 	return nil
 }
 
 func resourceDockercloudServiceUpdate(d *schema.ResourceData, meta interface{}) error {
 	var change bool
-
-	opts := &dockercloud.ServiceCreateRequest{}
+	var opts dockercloud.ServiceCreateRequest
 
 	if d.HasChange("image") {
-		_, newImage := d.GetChange("image")
-		opts.Image = newImage.(string)
+		_, v := d.GetChange("image")
+		opts.Image = v.(string)
 		change = true
 	}
 
 	if d.HasChange("entrypoint") {
-		_, newEntrypoint := d.GetChange("entrypoint")
-		opts.Entrypoint = newEntrypoint.(string)
+		_, v := d.GetChange("entrypoint")
+		opts.Entrypoint = v.(string)
 		change = true
 	}
 
 	if d.HasChange("command") {
-		_, newCommand := d.GetChange("command")
-		opts.Run_command = newCommand.(string)
+		_, v := d.GetChange("command")
+		opts.Run_command = v.(string)
 		change = true
 	}
 
 	if d.HasChange("workdir") {
-		_, newWorkdir := d.GetChange("workdir")
-		opts.Working_dir = newWorkdir.(string)
+		_, v := d.GetChange("workdir")
+		opts.Working_dir = v.(string)
 		change = true
 	}
 
 	if d.HasChange("pid") {
-		_, newPid := d.GetChange("pid")
-		opts.Pid = newPid.(string)
+		_, v := d.GetChange("pid")
+		opts.Pid = v.(string)
 		change = true
 	}
 
 	if d.HasChange("net") {
-		_, newNet := d.GetChange("net")
-		opts.Net = newNet.(string)
+		_, v := d.GetChange("net")
+		opts.Net = v.(string)
+		change = true
+	}
+
+	if d.HasChange("deployment_strategy") {
+		_, v := d.GetChange("deployment_strategy")
+		opts.Deployment_strategy = v.(string)
+		change = true
+	}
+
+	if d.HasChange("autorestart") {
+		_, v := d.GetChange("autorestart")
+		opts.Autorestart = v.(string)
+		change = true
+	}
+
+	if d.HasChange("autodestroy") {
+		_, v := d.GetChange("autodestroy")
+		opts.Autodestroy = v.(string)
+		change = true
+	}
+
+	if d.HasChange("autoredeploy") {
+		_, v := d.GetChange("autoredeploy")
+		opts.Autoredeploy = v.(bool)
 		change = true
 	}
 
 	if d.HasChange("privileged") {
-		_, newPrivileged := d.GetChange("privileged")
-		opts.Privileged = newPrivileged.(bool)
+		_, v := d.GetChange("privileged")
+		opts.Privileged = v.(bool)
 		change = true
 	}
 
-	if d.HasChange("env") {
-		_, newEnvvars := d.GetChange("env")
-		envvars := newEnvvars.(*schema.Set)
-		opts.Container_envvars = envvarListToContainerEnvvar(envvars)
+	if d.HasChange("sequential_deployment") {
+		_, v := d.GetChange("sequential_deployment")
+		opts.Sequential_deployment = v.(bool)
 		change = true
 	}
 
-	if d.HasChange("ports") {
-		_, newPorts := d.GetChange("ports")
-		ports := newPorts.(*schema.Set)
-		opts.Container_ports = portSetToContainerPortInfo(ports)
+	if d.HasChange("container_count") {
+		_, v := d.GetChange("container_count")
+		opts.Target_num_containers = v.(int)
+	}
+
+	if d.HasChange("roles") {
+		_, v := d.GetChange("roles")
+		opts.Roles = stringListToSlice(v.([]interface{}))
 		change = true
 	}
 
 	if d.HasChange("tags") {
-		_, newTags := d.GetChange("tags")
-		tags := newTags.([]interface{})
-		opts.Tags = stringListToStringSlice(tags)
+		_, v := d.GetChange("tags")
+		opts.Tags = stringListToSlice(v.([]interface{}))
 	}
 
-	if d.HasChange("container_count") {
-		_, newNum := d.GetChange("container_count")
-		opts.Target_num_containers = newNum.(int)
+	if d.HasChange("bindings") {
+		_, v := d.GetChange("bindings")
+		opts.Bindings = bindingsSetToServiceBinding(v.(*schema.Set))
+		change = true
+	}
+
+	if d.HasChange("env") {
+		_, v := d.GetChange("env")
+		opts.Container_envvars = envSetToContainerEnvvar(v.(*schema.Set))
+		change = true
+	}
+
+	if d.HasChange("links") {
+		_, v := d.GetChange("links")
+		opts.Linked_to_service = linksSetToServiceLinkInfo(v.(*schema.Set))
+		change = true
+	}
+
+	if d.HasChange("ports") {
+		_, v := d.GetChange("ports")
+		opts.Container_ports = portsSetToContainerPortInfo(v.(*schema.Set))
+		change = true
 	}
 
 	service, err := dockercloud.GetService(d.Id())
@@ -311,12 +514,13 @@ func resourceDockercloudServiceUpdate(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error retrieving service (%s): %s", d.Id(), err)
 	}
 
-	if err := service.Update(*opts); err != nil {
+	if err := service.Update(opts); err != nil {
 		return fmt.Errorf("Error updating service: %s", err)
 	}
 
 	if d.Get("redeploy_on_change").(bool) && change {
-		if err := service.Redeploy(dockercloud.ReuseVolumesOption{Reuse: true}); err != nil {
+		reuse := d.Get("reuse_existing_volumes").(bool)
+		if err := service.Redeploy(dockercloud.ReuseVolumesOption{Reuse: reuse}); err != nil {
 			return fmt.Errorf("Error redeploying containers: %s", err)
 		}
 
@@ -357,7 +561,7 @@ func resourceDockercloudServiceUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	return nil
+	return resourceDockercloudServiceRead(d, meta)
 }
 
 func resourceDockercloudServiceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -423,60 +627,239 @@ func newServiceStateRefreshFunc(d *schema.ResourceData, meta interface{}) resour
 	}
 }
 
-func portSetToContainerPortInfo(ports *schema.Set) []dockercloud.ContainerPortInfo {
-	containerPorts := []dockercloud.ContainerPortInfo{}
-	for _, portInt := range ports.List() {
-		containerPortInfo := dockercloud.ContainerPortInfo{}
-		port := portInt.(map[string]interface{})
+func bindingsSetToServiceBinding(s *schema.Set) []dockercloud.ServiceBinding {
+	serviceBindings := make([]dockercloud.ServiceBinding, s.Len())
 
-		containerPortInfo.Inner_port = port["internal"].(int)
-		containerPortInfo.Protocol = port["protocol"].(string)
+	for i, b := range s.List() {
+		var serviceBinding dockercloud.ServiceBinding
 
-		external, extOk := port["external"].(int)
-		if extOk {
-			containerPortInfo.Outer_port = external
+		binding := b.(map[string]interface{})
+
+		serviceBinding.Rewritable = binding["rewritable"].(bool)
+
+		v, ok := binding["container_path"]
+		if ok {
+			serviceBinding.Container_path = v.(string)
 		}
 
-		containerPorts = append(containerPorts, containerPortInfo)
+		v, ok = binding["host_path"]
+		if ok {
+			serviceBinding.Host_path = v.(string)
+		}
+
+		v, ok = binding["volumes_from"]
+		if ok {
+			serviceBinding.Volumes_from = v.(string)
+		}
+
+		serviceBindings[i] = serviceBinding
+	}
+
+	return serviceBindings
+}
+
+func flattenBindings(b []dockercloud.ServiceBinding) *schema.Set {
+	bindings := make([]interface{}, len(b))
+
+	for i, binding := range b {
+		bindings[i] = map[string]interface{}{
+			"container_path": binding.Container_path,
+			"host_path":      binding.Host_path,
+			"rewritable":     binding.Rewritable,
+			"volumes_from":   binding.Volumes_from,
+		}
+	}
+
+	return schema.NewSet(bindingsHash, bindings)
+}
+
+func bindingsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["container_path"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	if v, ok := m["host_path"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	if v, ok := m["rewritable"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(bool)))
+	}
+
+	if v, ok := m["volumes_from"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func envSetToContainerEnvvar(s *schema.Set) []dockercloud.ContainerEnvvar {
+	containerEnvvars := make([]dockercloud.ContainerEnvvar, s.Len())
+
+	for i, e := range s.List() {
+		envvar := e.(map[string]interface{})
+
+		containerEnvvars[i] = dockercloud.ContainerEnvvar{
+			Key:   envvar["key"].(string),
+			Value: envvar["value"].(string),
+		}
+	}
+
+	return containerEnvvars
+}
+
+func flattenEnv(e []dockercloud.ContainerEnvvar) *schema.Set {
+	envvars := make([]interface{}, len(e))
+
+	for i, env := range e {
+		envvars[i] = map[string]interface{}{
+			"key":   env.Key,
+			"value": env.Value,
+		}
+	}
+
+	return schema.NewSet(envHash, envvars)
+}
+
+func envHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["value"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func linksSetToServiceLinkInfo(s *schema.Set) []dockercloud.ServiceLinkInfo {
+	serviceLinks := make([]dockercloud.ServiceLinkInfo, s.Len())
+
+	for i, l := range s.List() {
+		var serviceLink dockercloud.ServiceLinkInfo
+
+		link := l.(map[string]interface{})
+
+		serviceLink.To_service = link["to"].(string)
+
+		v, ok := link["name"]
+		if ok {
+			serviceLink.Name = v.(string)
+		}
+
+		serviceLinks[i] = serviceLink
+	}
+
+	return serviceLinks
+}
+
+func flattenLinks(l []dockercloud.ServiceLinkInfo) *schema.Set {
+	links := make([]interface{}, len(l))
+
+	for i, link := range l {
+		links[i] = map[string]interface{}{
+			"to":   link.To_service,
+			"name": link.Name,
+		}
+	}
+
+	return schema.NewSet(linksHash, links)
+}
+
+func linksHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["to"].(string)))
+
+	if v, ok := m["name"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func portsSetToContainerPortInfo(s *schema.Set) []dockercloud.ContainerPortInfo {
+	containerPorts := make([]dockercloud.ContainerPortInfo, s.Len())
+
+	for i, p := range s.List() {
+		var containerPort dockercloud.ContainerPortInfo
+
+		port := p.(map[string]interface{})
+
+		containerPort.Inner_port = port["internal"].(int)
+		containerPort.Protocol = port["protocol"].(string)
+
+		v, ok := port["external"]
+		if ok {
+			containerPort.Outer_port = v.(int)
+		}
+
+		containerPorts[i] = containerPort
 	}
 
 	return containerPorts
 }
 
-func envvarListToContainerEnvvar(envvars *schema.Set) []dockercloud.ContainerEnvvar {
-	containerEnvvars := []dockercloud.ContainerEnvvar{}
-	for _, e := range envvars.List() {
-		envvar := strings.Split(e.(string), "=")
-		containerEnvvar := dockercloud.ContainerEnvvar{
-			Key:   envvar[0],
-			Value: envvar[1],
+func flattenPorts(p []dockercloud.ContainerPortInfo) *schema.Set {
+	ports := make([]interface{}, len(p))
+
+	for i, port := range p {
+		ports[i] = map[string]interface{}{
+			"internal": port.Inner_port,
+			"external": port.Outer_port,
+			"protocol": port.Protocol,
 		}
-		containerEnvvars = append(containerEnvvars, containerEnvvar)
 	}
-	return containerEnvvars
+
+	return schema.NewSet(portsHash, ports)
 }
 
-func containerEnvvarsToList(envvars []dockercloud.ContainerEnvvar) []string {
-	ret := []string{}
-	for _, envvar := range envvars {
-		envvarStr := fmt.Sprintf("%s=%s", envvar.Key, envvar.Value)
-		ret = append(ret, envvarStr)
+func portsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%d-", m["internal"].(int)))
+
+	if v, ok := m["external"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(int)))
 	}
+
+	if v, ok := m["protocol"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func flattenTags(t []dockercloud.ServiceTag) []string {
+	ret := make([]string, len(t))
+
+	for i, tag := range t {
+		ret[i] = tag.Name
+	}
+
 	return ret
 }
 
-func serviceTagsToList(tags []dockercloud.ServiceTag) []string {
-	ret := []string{}
-	for _, tag := range tags {
-		ret = append(ret, tag.Name)
+func stringListToSlice(s []interface{}) []string {
+	ret := make([]string, len(s))
+
+	for i, v := range s {
+		ret[i] = v.(string)
 	}
+
 	return ret
 }
 
-func stringListToStringSlice(stringList []interface{}) []string {
-	ret := []string{}
-	for _, v := range stringList {
-		ret = append(ret, v.(string))
+func stringSliceToList(s []string) []interface{} {
+	ret := make([]interface{}, len(s))
+
+	for i, v := range s {
+		ret[i] = v
 	}
+
 	return ret
 }

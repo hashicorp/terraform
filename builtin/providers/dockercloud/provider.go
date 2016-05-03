@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// Provider returns a schema.Provider for TutumCloud
+// Provider returns a schema.Provider for DockerCloud
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -32,6 +32,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"dockercloud_node_cluster": resourceDockercloudNodeCluster(),
 			"dockercloud_service":      resourceDockercloudService(),
+			"dockercloud_stack":        resourceDockercloudStack(),
 		},
 
 		ConfigureFunc: providerConfigure,

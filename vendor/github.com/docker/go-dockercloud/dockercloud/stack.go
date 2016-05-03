@@ -140,7 +140,7 @@ func (self *Stack) Update(createRequest StackCreateRequest) error {
 
 func (self *Stack) Start() error {
 
-	url := "stack/" + self.Uuid + "/start/"
+	url := "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/start/"
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
