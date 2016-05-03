@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New provider:** `librato` [GH-3371]
+ * **New provider:** `softlayer` [GH-4327]
  * **New resource:** `aws_api_gateway_account` [GH-6321]
  * **New resource:** `aws_api_gateway_authorizer` [GH-6320]
  * **New resource:** `openstack_networking_secgroup_v2` [GH-6410]
