@@ -80,6 +80,7 @@ The following arguments are supported:
 * `windows_opt_config` - (Optional) Extra options for clones of Windows machines.
 * `linked_clone` - (Optional) Specifies if the new machine is a [linked clone](https://www.vmware.com/support/ws5/doc/ws_clone_overview.html#wp1036396) of another machine or not.
 * `custom_configuration_parameters` - (Optional) Map of values that is set as virtual machine custom configurations.
+* `skip_customization` - (Optional) skip virtual machine customization (useful if OS is not in the guest OS support matrix of VMware like "other3xLinux64Guest").
 
 The `network_interface` block supports:
 

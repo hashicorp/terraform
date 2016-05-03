@@ -35,6 +35,13 @@ resource "vsphere_folder" "frontend" {
   path = "frontend"
 }
 
+# Create a file
+resource "vsphere_file" "ubuntu_disk" {
+  datastore = "local"
+  source_file = "/home/ubuntu/my_disks/custom_ubuntu.vmdk"
+  destination_file = "/my_path/disks/custom_ubuntu.vmdk"
+}
+
 # Create a virtual machine within the folder
 resource "vsphere_virtual_machine" "web" {
   name   = "terraform-web"
@@ -108,7 +115,29 @@ and [vSphere
 5.5](https://pubs.vmware.com/vsphere-55/index.jsp?topic=%2Fcom.vmware.vsphere.security.doc%2FGUID-18071E9A-EED1-4968-8D51-E0B4F526FDA3.html).
 For additional information on roles and permissions, please refer to official
 VMware documentation.
- 
+
+## Virtual Machine Customization
+
+Guest Operating Systems can be configured using
+[customizations](https://pubs.vmware.com/vsphere-50/index.jsp#com.vmware.vsphere.vm_admin.doc_50/GUID-80F3F5B5-F795-45F1-B0FA-3709978113D5.html),
+in order to set things properties such as domain and hostname. This mechanism
+is not compatible with all operating systems, however. A list of compatible
+operating systems can be found
+[here](http://partnerweb.vmware.com/programs/guestOS/guest-os-customization-matrix.pdf)
+
+If customization is attempted on an operating system which is not supported, Terraform will
+create the virtual machine, but fail with the following error message:
+
+```
+Customization of the guest operating system 'debian6_64Guest' is not
+supported in this configuration. Microsoft Vista (TM) and Linux guests with
+Logical Volume Manager are supported only for recent ESX host and VMware Tools
+versions. Refer to vCenter documentation for supported configurations.  ```
+```
+
+In order to skip the customization step for unsupported operating systems, use
+the `skip_customization` argument on the virtual machine resource.
+
 ## Acceptance Tests
 
 The VMware vSphere provider's acceptance tests require the above provider
