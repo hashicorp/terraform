@@ -5,9 +5,10 @@ FEATURES:
  * **New provider:** `librato` [GH-3371]
  * **New resource:** `aws_api_gateway_account` [GH-6321]
  * **New resource:** `aws_api_gateway_authorizer` [GH-6320]
- * **New resource:** `vsphere_file` [GH-6401]
  * **New resource:** `openstack_networking_secgroup_v2` [GH-6410]
- * **New resource:** `openstack_networking_secgroup_rule_v2` [GH-6410]
+ * **New resource:** `openstack_networking_secgroup_rule_v2` [GH-6410] 
+ * **New resource:** `vsphere_file` [GH-6401]
+ 
 
 IMPROVEMENTS:
 
