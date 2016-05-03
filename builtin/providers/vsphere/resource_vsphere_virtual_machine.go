@@ -403,7 +403,6 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 					},
 				},
 			},
-
 		},
 	}
 }
