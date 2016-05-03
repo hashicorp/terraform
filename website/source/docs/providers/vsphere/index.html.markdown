@@ -146,8 +146,10 @@ configuration fields to be set using the documented environment variables.
 In addition, the following environment variables are used in tests, and must be
 set to valid values for your VMware vSphere environment:
 
- * VSPHERE\_NETWORK\_GATEWAY
- * VSPHERE\_NETWORK\_IP\_ADDRESS
+ * VSPHERE\_IPV4\_GATEWAY
+ * VSPHERE\_IPV4\_ADDRESS
+ * VSPHERE\_IPV6\_GATEWAY
+ * VSPHERE\_IPV6\_ADDRESS
  * VSPHERE\_NETWORK\_LABEL
  * VSPHERE\_NETWORK\_LABEL\_DHCP
  * VSPHERE\_TEMPLATE
