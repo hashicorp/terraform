@@ -7,17 +7,17 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
 )
 
 type Client struct {
-	// Location of PowerDNS server to use
-	ServerUrl string
-	//	REST API Static authentication key
-	ApiKey string
-	Http   *http.Client
+	ServerUrl  string // Location of PowerDNS server to use
+	ApiKey     string // REST API Static authentication key
+	ApiVersion int    // API version to use
+	Http       *http.Client
 }
 
 // NewClient returns a new PowerDNS client
@@ -27,13 +27,24 @@ func NewClient(serverUrl string, apiKey string) (*Client, error) {
 		ApiKey:    apiKey,
 		Http:      cleanhttp.DefaultClient(),
 	}
+	var err error
+	client.ApiVersion, err = client.detectApiVersion()
+	if err != nil {
+		return nil, err
+	}
 	return &client, nil
 }
 
 // Creates a new request with necessary headers
 func (c *Client) newRequest(method string, endpoint string, body []byte) (*http.Request, error) {
 
-	url, err := url.Parse(c.ServerUrl + endpoint)
+	var urlStr string
+	if c.ApiVersion > 0 {
+		urlStr = c.ServerUrl + "/api/v" + strconv.Itoa(c.ApiVersion) + endpoint
+	} else {
+		urlStr = c.ServerUrl + endpoint
+	}
+	url, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, fmt.Errorf("Error during parting request URL: %s", err)
 	}
@@ -108,6 +119,24 @@ func parseId(recId string) (string, string, error) {
 		return s[0], s[1], nil
 	} else {
 		return "", "", fmt.Errorf("Unknown record ID format")
+	}
+}
+
+// Detects the API version in use on the server
+func (client *Client) detectApiVersion() (int, error) {
+	req, err := client.newRequest("GET", "/api/v1/servers", nil)
+	if err != nil {
+		return -1, err
+	}
+	resp, err := client.Http.Do(req)
+	if err != nil {
+		return -1, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 200 {
+		return 1, nil
+	} else {
+		return 0, nil
 	}
 }
 
