@@ -22,6 +22,7 @@ type ResourceData struct {
 	config *terraform.ResourceConfig
 	state  *terraform.InstanceState
 	diff   *terraform.InstanceDiff
+	meta   map[string]string
 
 	// Don't set
 	multiReader *MultiLevelFieldReader
@@ -233,6 +234,7 @@ func (d *ResourceData) SetType(t string) {
 func (d *ResourceData) State() *terraform.InstanceState {
 	var result terraform.InstanceState
 	result.ID = d.Id()
+	result.Meta = d.meta
 
 	// If we have no ID, then this resource doesn't exist and we just
 	// return nil.

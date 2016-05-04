@@ -295,6 +295,11 @@ func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
 		panic(err)
 	}
 
+	// Set the schema version to latest by default
+	result.meta = map[string]string{
+		"schema_version": strconv.Itoa(r.SchemaVersion),
+	}
+
 	return result
 }
 
