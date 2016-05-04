@@ -229,6 +229,7 @@ func (p *Provider) ImportState(
 
 	// Create the data
 	data := r.Data(nil)
+	data.SetId(info.Id)
 	data.SetType(info.Type)
 
 	// Call the import function
@@ -241,6 +242,17 @@ func (p *Provider) ImportState(
 	states := make([]*terraform.InstanceState, len(results))
 	for i, r := range results {
 		states[i] = r.State()
+	}
+
+	// Verify that all are non-nil. If there are any nil the error
+	// isn't obvious so we circumvent that with a friendlier error.
+	for _, s := range states {
+		if s == nil {
+			return nil, fmt.Errorf(
+				"nil entry in ImportState results. This is always a bug with\n" +
+					"the resource that is being imported. Please report this as\n" +
+					"a bug to Terraform.")
+		}
 	}
 
 	return states, nil
