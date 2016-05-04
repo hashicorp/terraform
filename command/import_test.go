@@ -24,14 +24,14 @@ func TestImport(t *testing.T) {
 		&terraform.InstanceState{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
-				Type: "aws_instance",
+				Type: "test_instance",
 			},
 		},
 	}
 
 	args := []string{
 		"-state", statePath,
-		"aws_instance.foo",
+		"test_instance.foo",
 		"bar",
 	}
 	if code := c.Run(args); code != 0 {
@@ -42,7 +42,7 @@ func TestImport(t *testing.T) {
 		t.Fatal("ImportState should be called")
 	}
 
-	testStateOutput(t, statePath, testRefreshStr)
+	testStateOutput(t, statePath, testImportStr)
 }
 
 /*
@@ -728,17 +728,10 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 		t.Fatalf("Expected:\n%s\n\nTo include: %q", actual, outputValue)
 	}
 }
-
-const refreshVarFile = `
-foo = "bar"
-`
-
-const testRefreshStr = `
-test_instance.foo:
-  ID = yes
-`
-const testRefreshCwdStr = `
-test_instance.foo:
-  ID = yes
-`
 */
+
+const testImportStr = `
+test_instance.foo:
+  ID = yay
+  provider = test
+`
