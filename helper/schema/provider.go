@@ -215,7 +215,8 @@ func (p *Provider) Resources() []terraform.ResourceType {
 }
 
 func (p *Provider) ImportState(
-	info *terraform.InstanceInfo) ([]*terraform.InstanceState, error) {
+	info *terraform.InstanceInfo,
+	id string) ([]*terraform.InstanceState, error) {
 	// Find the resource
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
@@ -229,7 +230,7 @@ func (p *Provider) ImportState(
 
 	// Create the data
 	data := r.Data(nil)
-	data.SetId(info.Id)
+	data.SetId(id)
 	data.SetType(info.Type)
 
 	// Call the import function
