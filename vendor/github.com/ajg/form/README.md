@@ -34,13 +34,13 @@ Given a type like the following...
 
 ```go
 type User struct {
-        Name         string            `form:"name"`
-        Email        string            `form:"email"`
-        Joined       time.Time         `form:"joined,omitempty"`
-        Posts        []int             `form:"posts"`
-        Preferences  map[string]string `form:"prefs"`
-        Avatar       []byte            `form:"avatar"`
-        PasswordHash int64             `form:"-"`
+	Name         string            `form:"name"`
+	Email        string            `form:"email"`
+	Joined       time.Time         `form:"joined,omitempty"`
+	Posts        []int             `form:"posts"`
+	Preferences  map[string]string `form:"prefs"`
+	Avatar       []byte            `form:"avatar"`
+	PasswordHash int64             `form:"-"`
 }
 ```
 
@@ -49,9 +49,9 @@ type User struct {
 
 ```go
 func PostUser(url string, u User) error {
-        var c http.Client
-        _, err := c.PostForm(url, form.EncodeToValues(u))
-        return err
+	var c http.Client
+	_, err := c.PostForm(url, form.EncodeToValues(u))
+	return err
 }
 ```
 
@@ -60,15 +60,15 @@ func PostUser(url string, u User) error {
 
 ```go
 func Handler(w http.ResponseWriter, r *http.Request) {
-        var u User
+	var u User
 
-        d := form.NewDecoder(r.Body)
-        if err := d.Decode(&u); err != nil {
-                http.Error(w, "Form could not be decoded", http.StatusBadRequest)
-                return
-        }
+	d := form.NewDecoder(r.Body)
+	if err := d.Decode(&u); err != nil {
+		http.Error(w, "Form could not be decoded", http.StatusBadRequest)
+		return
+	}
 
-        fmt.Fprintf(w, "Decoded: %#v", u)
+	fmt.Fprintf(w, "Decoded: %#v", u)
 }
 ```
 
@@ -149,20 +149,20 @@ import "encoding"
 type Binary []byte
 
 var (
-        _ encoding.TextMarshaler   = &Binary{}
-        _ encoding.TextUnmarshaler = &Binary{}
+	_ encoding.TextMarshaler   = &Binary{}
+	_ encoding.TextUnmarshaler = &Binary{}
 )
 
 func (b Binary) MarshalText() ([]byte, error) {
-        return []byte(base64.URLEncoding.EncodeToString([]byte(b))), nil
+	return []byte(base64.URLEncoding.EncodeToString([]byte(b))), nil
 }
 
 func (b *Binary) UnmarshalText(text []byte) error {
-        bs, err := base64.URLEncoding.DecodeString(string(text))
-        if err == nil {
-                *b = Binary(bs)
-        }
-        return err
+	bs, err := base64.URLEncoding.DecodeString(string(text))
+	if err == nil {
+		*b = Binary(bs)
+	}
+	return err
 }
 ```
 

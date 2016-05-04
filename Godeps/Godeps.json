@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v62",
+	"GodepVersion": "v63",
 	"Packages": [
 		"./..."
 	],
@@ -549,10 +549,6 @@
 			"Rev": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
 		},
 		{
-			"ImportPath": "github.com/crackcomm/cloudflare",
-			"Rev": "40f33bf6a6721e6d266a98d29e5a94afbe0169ed"
-		},
-		{
 			"ImportPath": "github.com/cyberdelia/heroku-go/v3",
 			"Rev": "81c5afa1abcf69cc18ccc24fa3716b5a455c9208"
 		},
@@ -926,6 +922,31 @@
 			"Rev": "56b76bdf51f7708750eac80fa38b952bb9f32639"
 		},
 		{
+			"ImportPath": "github.com/maximilien/softlayer-go/client",
+			"Comment": "v0.6.0",
+			"Rev": "85659debe44fab5792fc92cf755c04b115b9dc19"
+		},
+		{
+			"ImportPath": "github.com/maximilien/softlayer-go/common",
+			"Comment": "v0.6.0",
+			"Rev": "85659debe44fab5792fc92cf755c04b115b9dc19"
+		},
+		{
+			"ImportPath": "github.com/maximilien/softlayer-go/data_types",
+			"Comment": "v0.6.0",
+			"Rev": "85659debe44fab5792fc92cf755c04b115b9dc19"
+		},
+		{
+			"ImportPath": "github.com/maximilien/softlayer-go/services",
+			"Comment": "v0.6.0",
+			"Rev": "85659debe44fab5792fc92cf755c04b115b9dc19"
+		},
+		{
+			"ImportPath": "github.com/maximilien/softlayer-go/softlayer",
+			"Comment": "v0.6.0",
+			"Rev": "85659debe44fab5792fc92cf755c04b115b9dc19"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/cli",
 			"Rev": "cb6853d606ea4a12a15ac83cc43503df99fd28fb"
 		},
@@ -994,10 +1015,6 @@
 		{
 			"ImportPath": "github.com/pborman/uuid",
 			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
-		},
-		{
-			"ImportPath": "github.com/pearkes/cloudflare",
-			"Rev": "765ac1828a78ba49e6dc48309d56415c61806ac3"
 		},
 		{
 			"ImportPath": "github.com/pearkes/dnsimple",

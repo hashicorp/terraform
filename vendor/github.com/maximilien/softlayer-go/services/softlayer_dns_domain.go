@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	common "github.com/maximilien/softlayer-go/common"
 	datatypes "github.com/maximilien/softlayer-go/data_types"
-	"github.com/maximilien/softlayer-go/softlayer"
+	softlayer "github.com/maximilien/softlayer-go/softlayer"
 )
 
 type softLayer_Dns_Domain_Service struct {
@@ -39,12 +41,17 @@ func (sldds *softLayer_Dns_Domain_Service) CreateObject(template datatypes.SoftL
 		return datatypes.SoftLayer_Dns_Domain{}, err
 	}
 
-	response, err := sldds.client.DoRawHttpRequest(fmt.Sprintf("%s.json", sldds.GetName()), "POST", bytes.NewBuffer(requestBody))
+	response, errorCode, err := sldds.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s.json", sldds.GetName()), "POST", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return datatypes.SoftLayer_Dns_Domain{}, err
 	}
 
-	err = sldds.client.CheckForHttpResponseErrors(response)
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Dns_Domain#createObject, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Dns_Domain{}, errors.New(errorMessage)
+	}
+
+	err = sldds.client.GetHttpClient().CheckForHttpResponseErrors(response)
 	if err != nil {
 		return datatypes.SoftLayer_Dns_Domain{}, err
 	}
@@ -71,9 +78,14 @@ func (sldds *softLayer_Dns_Domain_Service) GetObject(dnsId int) (datatypes.SoftL
 		"secondary",
 	}
 
-	response, err := sldds.client.DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getObject.json", sldds.GetName(), dnsId), objectMask, "GET", new(bytes.Buffer))
+	response, errorCode, err := sldds.client.GetHttpClient().DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getObject.json", sldds.GetName(), dnsId), objectMask, "GET", new(bytes.Buffer))
 	if err != nil {
 		return datatypes.SoftLayer_Dns_Domain{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Dns_Domain#getObject, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Dns_Domain{}, errors.New(errorMessage)
 	}
 
 	dns_domain := datatypes.SoftLayer_Dns_Domain{}
@@ -86,10 +98,15 @@ func (sldds *softLayer_Dns_Domain_Service) GetObject(dnsId int) (datatypes.SoftL
 }
 
 func (sldds *softLayer_Dns_Domain_Service) DeleteObject(dnsId int) (bool, error) {
-	response, err := sldds.client.DoRawHttpRequest(fmt.Sprintf("%s/%d.json", sldds.GetName(), dnsId), "DELETE", new(bytes.Buffer))
+	response, errorCode, err := sldds.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d.json", sldds.GetName(), dnsId), "DELETE", new(bytes.Buffer))
 
 	if response_value := string(response[:]); response_value != "true" {
 		return false, errors.New(fmt.Sprintf("Failed to delete dns domain with id '%d', got '%s' as response from the API", dnsId, response_value))
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Dns_Domain#deleteObject, HTTP error code: '%d'", errorCode)
+		return false, errors.New(errorMessage)
 	}
 
 	return true, err

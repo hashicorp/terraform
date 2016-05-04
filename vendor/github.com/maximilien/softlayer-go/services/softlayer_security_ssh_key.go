@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	common "github.com/maximilien/softlayer-go/common"
 	datatypes "github.com/maximilien/softlayer-go/data_types"
 	softlayer "github.com/maximilien/softlayer-go/softlayer"
 )
@@ -36,12 +37,17 @@ func (slssks *softLayer_Security_Ssh_Key_Service) CreateObject(template datatype
 		return datatypes.SoftLayer_Security_Ssh_Key{}, err
 	}
 
-	data, err := slssks.client.DoRawHttpRequest(fmt.Sprintf("%s/createObject", slssks.GetName()), "POST", bytes.NewBuffer(requestBody))
+	data, errorCode, err := slssks.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/createObject", slssks.GetName()), "POST", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return datatypes.SoftLayer_Security_Ssh_Key{}, err
 	}
 
-	err = slssks.client.CheckForHttpResponseErrors(data)
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Security_Ssh_Key#createObject, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Security_Ssh_Key{}, errors.New(errorMessage)
+	}
+
+	err = slssks.client.GetHttpClient().CheckForHttpResponseErrors(data)
 	if err != nil {
 		return datatypes.SoftLayer_Security_Ssh_Key{}, err
 	}
@@ -66,9 +72,14 @@ func (slssks *softLayer_Security_Ssh_Key_Service) GetObject(sshKeyId int) (datat
 		"notes",
 	}
 
-	response, err := slssks.client.DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getObject.json", slssks.GetName(), sshKeyId), objectMask, "GET", new(bytes.Buffer))
+	response, errorCode, err := slssks.client.GetHttpClient().DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getObject.json", slssks.GetName(), sshKeyId), objectMask, "GET", new(bytes.Buffer))
 	if err != nil {
 		return datatypes.SoftLayer_Security_Ssh_Key{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Security_Ssh_Key#getObject, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Security_Ssh_Key{}, errors.New(errorMessage)
 	}
 
 	sshKey := datatypes.SoftLayer_Security_Ssh_Key{}
@@ -92,29 +103,50 @@ func (slssks *softLayer_Security_Ssh_Key_Service) EditObject(sshKeyId int, templ
 		return false, err
 	}
 
-	response, err := slssks.client.DoRawHttpRequest(fmt.Sprintf("%s/%d/editObject.json", slssks.GetName(), sshKeyId), "POST", bytes.NewBuffer(requestBody))
+	response, errorCode, err := slssks.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/editObject.json", slssks.GetName(), sshKeyId), "POST", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return false, err
+	}
 
 	if res := string(response[:]); res != "true" {
 		return false, errors.New(fmt.Sprintf("Failed to edit SSH key with id: %d, got '%s' as response from the API.", sshKeyId, res))
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Security_Ssh_Key#editObject, HTTP error code: '%d'", errorCode)
+		return false, errors.New(errorMessage)
 	}
 
 	return true, err
 }
 
 func (slssks *softLayer_Security_Ssh_Key_Service) DeleteObject(sshKeyId int) (bool, error) {
-	response, err := slssks.client.DoRawHttpRequest(fmt.Sprintf("%s/%d.json", slssks.GetName(), sshKeyId), "DELETE", new(bytes.Buffer))
+	response, errorCode, err := slssks.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d.json", slssks.GetName(), sshKeyId), "DELETE", new(bytes.Buffer))
+	if err != nil {
+		return false, err
+	}
 
 	if res := string(response[:]); res != "true" {
 		return false, errors.New(fmt.Sprintf("Failed to destroy ssh key with id '%d', got '%s' as response from the API.", sshKeyId, res))
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Security_Ssh_Key#deleteObject, HTTP error code: '%d'", errorCode)
+		return false, errors.New(errorMessage)
 	}
 
 	return true, err
 }
 
 func (slssks *softLayer_Security_Ssh_Key_Service) GetSoftwarePasswords(sshKeyId int) ([]datatypes.SoftLayer_Software_Component_Password, error) {
-	response, err := slssks.client.DoRawHttpRequest(fmt.Sprintf("%s/%d/getSoftwarePasswords.json", slssks.GetName(), sshKeyId), "GET", new(bytes.Buffer))
+	response, errorCode, err := slssks.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/getSoftwarePasswords.json", slssks.GetName(), sshKeyId), "GET", new(bytes.Buffer))
 	if err != nil {
 		return []datatypes.SoftLayer_Software_Component_Password{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Security_Ssh_Key#getSoftwarePasswords, HTTP error code: '%d'", errorCode)
+		return []datatypes.SoftLayer_Software_Component_Password{}, errors.New(errorMessage)
 	}
 
 	passwords := []datatypes.SoftLayer_Software_Component_Password{}
