@@ -3,8 +3,10 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
+	common "github.com/maximilien/softlayer-go/common"
 	datatypes "github.com/maximilien/softlayer-go/data_types"
 	softlayer "github.com/maximilien/softlayer-go/softlayer"
 )
@@ -35,9 +37,14 @@ func (slpo *softLayer_Product_Order_Service) PlaceOrder(order datatypes.SoftLaye
 		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, err
 	}
 
-	responseBytes, err := slpo.client.DoRawHttpRequest(fmt.Sprintf("%s/placeOrder.json", slpo.GetName()), "POST", bytes.NewBuffer(requestBody))
+	responseBytes, errorCode, err := slpo.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/placeOrder.json", slpo.GetName()), "POST", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Account#getAccountStatus, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, errors.New(errorMessage)
 	}
 
 	receipt := datatypes.SoftLayer_Container_Product_Order_Receipt{}
@@ -61,9 +68,14 @@ func (slpo *softLayer_Product_Order_Service) PlaceContainerOrderNetworkPerforman
 		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, err
 	}
 
-	responseBytes, err := slpo.client.DoRawHttpRequest(fmt.Sprintf("%s/placeOrder.json", slpo.GetName()), "POST", bytes.NewBuffer(requestBody))
+	responseBytes, errorCode, err := slpo.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/placeOrder.json", slpo.GetName()), "POST", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Product_Order#placeContainerOrderNetworkPerformanceStorageIscsi, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, errors.New(errorMessage)
 	}
 
 	receipt := datatypes.SoftLayer_Container_Product_Order_Receipt{}
@@ -87,9 +99,14 @@ func (slpo *softLayer_Product_Order_Service) PlaceContainerOrderVirtualGuestUpgr
 		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, err
 	}
 
-	responseBytes, err := slpo.client.DoRawHttpRequest(fmt.Sprintf("%s/placeOrder.json", slpo.GetName()), "POST", bytes.NewBuffer(requestBody))
+	responseBytes, errorCode, err := slpo.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/placeOrder.json", slpo.GetName()), "POST", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Product_Order#placeOrder, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Container_Product_Order_Receipt{}, errors.New(errorMessage)
 	}
 
 	receipt := datatypes.SoftLayer_Container_Product_Order_Receipt{}
