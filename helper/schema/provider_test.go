@@ -219,9 +219,8 @@ func TestProviderImportState_setsId(t *testing.T) {
 	}
 
 	_, err := p.ImportState(&terraform.InstanceInfo{
-		Id:   "bar",
 		Type: "foo",
-	})
+	}, "bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -251,7 +250,7 @@ func TestProviderImportState_setsType(t *testing.T) {
 
 	_, err := p.ImportState(&terraform.InstanceInfo{
 		Type: "foo",
-	})
+	}, "bar")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
