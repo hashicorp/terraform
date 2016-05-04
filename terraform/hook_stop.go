@@ -53,6 +53,14 @@ func (h *stopHook) PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error
 	return h.hook()
 }
 
+func (h *stopHook) PreImportState(*InstanceInfo) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostImportState(*InstanceInfo, []*InstanceState) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) PostStateUpdate(*State) (HookAction, error) {
 	return h.hook()
 }

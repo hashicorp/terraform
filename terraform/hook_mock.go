@@ -70,6 +70,17 @@ type MockHook struct {
 	PreRefreshReturn HookAction
 	PreRefreshError  error
 
+	PreImportStateCalled bool
+	PreImportStateInfo   *InstanceInfo
+	PreImportStateReturn HookAction
+	PreImportStateError  error
+
+	PostImportStateCalled bool
+	PostImportStateInfo   *InstanceInfo
+	PostImportStateState  []*InstanceState
+	PostImportStateReturn HookAction
+	PostImportStateError  error
+
 	PostStateUpdateCalled bool
 	PostStateUpdateState  *State
 	PostStateUpdateReturn HookAction
@@ -156,6 +167,19 @@ func (h *MockHook) PostRefresh(n *InstanceInfo, s *InstanceState) (HookAction, e
 	h.PostRefreshInfo = n
 	h.PostRefreshState = s
 	return h.PostRefreshReturn, h.PostRefreshError
+}
+
+func (h *MockHook) PreImportState(info *InstanceInfo) (HookAction, error) {
+	h.PreImportStateCalled = true
+	h.PreImportStateInfo = info
+	return h.PreImportStateReturn, h.PreImportStateError
+}
+
+func (h *MockHook) PostImportState(info *InstanceInfo, s []*InstanceState) (HookAction, error) {
+	h.PostImportStateCalled = true
+	h.PostImportStateInfo = info
+	h.PostImportStateState = s
+	return h.PostImportStateReturn, h.PostImportStateError
 }
 
 func (h *MockHook) PostStateUpdate(s *State) (HookAction, error) {
