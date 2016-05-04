@@ -10,6 +10,7 @@ type SoftLayer_Virtual_Guest_Block_Device_Template_Group_Service interface {
 	AddLocations(id int, locations []datatypes.SoftLayer_Location) (bool, error)
 
 	CreateFromExternalSource(configuration datatypes.SoftLayer_Container_Virtual_Guest_Block_Device_Template_Configuration) (datatypes.SoftLayer_Virtual_Guest_Block_Device_Template_Group, error)
+	CreatePublicArchiveTransaction(id int, groupName string, summary string, note string, locations []datatypes.SoftLayer_Location) (int, error)
 	CopyToExternalSource(configuration datatypes.SoftLayer_Container_Virtual_Guest_Block_Device_Template_Configuration) (bool, error)
 
 	DeleteObject(id int) (datatypes.SoftLayer_Provisioning_Version1_Transaction, error)

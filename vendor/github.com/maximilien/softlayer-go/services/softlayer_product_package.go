@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	common "github.com/maximilien/softlayer-go/common"
 	datatypes "github.com/maximilien/softlayer-go/data_types"
 	softlayer "github.com/maximilien/softlayer-go/softlayer"
 )
@@ -31,9 +32,14 @@ func (slpp *softLayer_Product_Package_Service) GetName() string {
 }
 
 func (slpp *softLayer_Product_Package_Service) GetItemPrices(packageId int) ([]datatypes.SoftLayer_Product_Item_Price, error) {
-	response, err := slpp.client.DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getItemPrices.json", slpp.GetName(), packageId), []string{"id", "item.id", "item.description", "item.capacity"}, "GET", new(bytes.Buffer))
+	response, errorCode, err := slpp.client.GetHttpClient().DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getItemPrices.json", slpp.GetName(), packageId), []string{"id", "item.id", "item.description", "item.capacity"}, "GET", new(bytes.Buffer))
 	if err != nil {
 		return []datatypes.SoftLayer_Product_Item_Price{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Product_Package#getItemPrices, HTTP error code: '%d'", errorCode)
+		return []datatypes.SoftLayer_Product_Item_Price{}, errors.New(errorMessage)
 	}
 
 	itemPrices := []datatypes.SoftLayer_Product_Item_Price{}
@@ -49,9 +55,14 @@ func (slpp *softLayer_Product_Package_Service) GetItemPricesBySize(packageId int
 	keyName := strconv.Itoa(size) + "_GB_PERFORMANCE_STORAGE_SPACE"
 	filter := string(`{"itemPrices":{"item":{"keyName":{"operation":"` + keyName + `"}}}}`)
 
-	response, err := slpp.client.DoRawHttpRequestWithObjectFilterAndObjectMask(fmt.Sprintf("%s/%d/getItemPrices.json", slpp.GetName(), packageId), []string{"id", "locationGroupId", "item.id", "item.keyName", "item.units", "item.description", "item.capacity"}, fmt.Sprintf(string(filter)), "GET", new(bytes.Buffer))
+	response, errorCode, err := slpp.client.GetHttpClient().DoRawHttpRequestWithObjectFilterAndObjectMask(fmt.Sprintf("%s/%d/getItemPrices.json", slpp.GetName(), packageId), []string{"id", "locationGroupId", "item.id", "item.keyName", "item.units", "item.description", "item.capacity"}, fmt.Sprintf(string(filter)), "GET", new(bytes.Buffer))
 	if err != nil {
 		return []datatypes.SoftLayer_Product_Item_Price{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Product_Package#getItemsPricesBySize, HTTP error code: '%d'", errorCode)
+		return []datatypes.SoftLayer_Product_Item_Price{}, errors.New(errorMessage)
 	}
 
 	itemPrices := []datatypes.SoftLayer_Product_Item_Price{}
@@ -82,9 +93,14 @@ func (slpp *softLayer_Product_Package_Service) GetItems(packageId int) ([]dataty
 		"prices.categories.name",
 	}
 
-	response, err := slpp.client.DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getItems.json", slpp.GetName(), packageId), objectMasks, "GET", new(bytes.Buffer))
+	response, errorCode, err := slpp.client.GetHttpClient().DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getItems.json", slpp.GetName(), packageId), objectMasks, "GET", new(bytes.Buffer))
 	if err != nil {
 		return []datatypes.SoftLayer_Product_Item{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Product_Package#getItems, HTTP error code: '%d'", errorCode)
+		return []datatypes.SoftLayer_Product_Item{}, errors.New(errorMessage)
 	}
 
 	productItems := []datatypes.SoftLayer_Product_Item{}
@@ -120,9 +136,14 @@ func (slpp *softLayer_Product_Package_Service) GetPackagesByType(packageType str
 
 	filterObject := string(`{"type":{"keyName":{"operation":"` + packageType + `"}}}`)
 
-	response, err := slpp.client.DoRawHttpRequestWithObjectFilterAndObjectMask(fmt.Sprintf("%s/getAllObjects.json", slpp.GetName()), objectMasks, filterObject, "GET", new(bytes.Buffer))
+	response, errorCode, err := slpp.client.GetHttpClient().DoRawHttpRequestWithObjectFilterAndObjectMask(fmt.Sprintf("%s/getAllObjects.json", slpp.GetName()), objectMasks, filterObject, "GET", new(bytes.Buffer))
 	if err != nil {
 		return []datatypes.Softlayer_Product_Package{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Product_Package#getPackagesByType, HTTP error code: '%d'", errorCode)
+		return []datatypes.Softlayer_Product_Package{}, errors.New(errorMessage)
 	}
 
 	productPackages := []*datatypes.Softlayer_Product_Package{}
