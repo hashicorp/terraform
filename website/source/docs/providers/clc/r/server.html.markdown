@@ -105,3 +105,25 @@ up in advance. Each `custom_fields` block supports the following:
 * `id` - (Required, string) The ID of the custom field to set.
 * `value` - (Required, string) The value for the specified field. 
 
+<a id="packages"></a>
+## Packages
+
+`packages` is a block within the configuration that may be repeated to
+specify packages and their associated parameters to be run at
+instantiation. Packages facilitate various tasks like ssh key
+installation, kernel upgrades, etc. Package ID as well as parameters
+are configured via this block.
+
+Example:
+
+```
+# Configure the CLC Provider
+provider "clc_server" "ubuntu" {
+  ...
+  packages
+    {
+      id = "77abb844-579d-478d-3955-c69ab4a7ba1a"
+      SshKey = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAA..."
+    }
+}
+```

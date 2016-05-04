@@ -69,6 +69,11 @@ func resourceCLCServer() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeMap},
 			},
+			"packages": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeMap},
+			},
 
 			// optional: misc state storage. non-CLC field
 			"metadata": &schema.Schema{
@@ -148,6 +153,12 @@ func resourceCLCServerCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Failed setting customfields: %v", err)
 	}
 	spec.Customfields = fields
+
+	pkgs, err := parsePackages(d)
+	if err != nil {
+		return fmt.Errorf("Failed setting packages: %v", err)
+	}
+	spec.Packages = pkgs
 
 	resp, err := client.Server.Create(spec)
 	if err != nil || !resp.IsQueued {
