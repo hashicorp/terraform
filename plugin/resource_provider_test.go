@@ -317,6 +317,45 @@ func TestResourceProvider_refresh(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_importState(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+
+	// Create a mock provider
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
+	}))
+	defer client.Close()
+
+	// Request the provider
+	raw, err := client.Dispense(ProviderPluginName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := raw.(terraform.ResourceProvider)
+
+	p.ImportStateReturn = []*terraform.InstanceState{
+		&terraform.InstanceState{
+			ID: "bob",
+		},
+	}
+
+	// ImportState
+	info := &terraform.InstanceInfo{}
+	states, err := provider.ImportState(info, "foo")
+	if !p.ImportStateCalled {
+		t.Fatal("ImportState should be called")
+	}
+	if !reflect.DeepEqual(p.ImportStateInfo, info) {
+		t.Fatalf("bad: %#v", p.ImportStateInfo)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+	if !reflect.DeepEqual(p.ImportStateReturn, states) {
+		t.Fatalf("bad: %#v", states)
+	}
+}
+
 func TestResourceProvider_resources(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
