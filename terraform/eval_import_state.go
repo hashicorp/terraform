@@ -17,7 +17,17 @@ type EvalImportState struct {
 func (n *EvalImportState) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 
-	// Refresh!
+	{
+		// Call pre-import hook
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreImportState(n.Info)
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Import!
 	state, err := provider.ImportState(n.Info)
 	if err != nil {
 		return nil, fmt.Errorf(
@@ -26,6 +36,16 @@ func (n *EvalImportState) Eval(ctx EvalContext) (interface{}, error) {
 
 	if n.Output != nil {
 		*n.Output = state
+	}
+
+	{
+		// Call post-import hook
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostImportState(n.Info, state)
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return nil, nil
