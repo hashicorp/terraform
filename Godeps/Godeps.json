@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/hashicorp/terraform",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v62",
+	"GodepVersion": "v63",
 	"Packages": [
 		"./..."
 	],
@@ -1225,78 +1225,78 @@
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/find",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/list",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/object",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/property",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/session",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/task",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/debug",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/methods",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/mo",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/progress",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/soap",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/types",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/vmware/govmomi/vim25/xml",
-			"Comment": "v0.3.0-18-g3b66976",
-			"Rev": "3b669760f460befb135048aea80d2f5fa13885ca"
+			"Comment": "v0.6.1",
+			"Rev": "18154e511bc8f6bc1fffe2e47d11ef4f1931a044"
 		},
 		{
 			"ImportPath": "github.com/xanzy/go-cloudstack/cloudstack",
