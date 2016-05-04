@@ -252,13 +252,13 @@ func (h *UiHook) PreRefresh(
 }
 
 func (h *UiHook) PreImportState(
-	n *terraform.InstanceInfo) (terraform.HookAction, error) {
+	n *terraform.InstanceInfo,
+	id string) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
-	id := n.HumanId()
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Importing from ID %q...",
-		id, n.Id)))
+		n.HumanId(), id)))
 	return terraform.HookActionContinue, nil
 }
 

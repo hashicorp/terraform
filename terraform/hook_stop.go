@@ -53,7 +53,7 @@ func (h *stopHook) PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error
 	return h.hook()
 }
 
-func (h *stopHook) PreImportState(*InstanceInfo) (HookAction, error) {
+func (h *stopHook) PreImportState(*InstanceInfo, string) (HookAction, error) {
 	return h.hook()
 }
 
