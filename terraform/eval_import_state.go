@@ -21,7 +21,7 @@ func (n *EvalImportState) Eval(ctx EvalContext) (interface{}, error) {
 	{
 		// Call pre-import hook
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreImportState(n.Info)
+			return h.PreImportState(n.Info, n.Id)
 		})
 		if err != nil {
 			return nil, err

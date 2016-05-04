@@ -72,6 +72,7 @@ type MockHook struct {
 
 	PreImportStateCalled bool
 	PreImportStateInfo   *InstanceInfo
+	PreImportStateId     string
 	PreImportStateReturn HookAction
 	PreImportStateError  error
 
@@ -169,9 +170,10 @@ func (h *MockHook) PostRefresh(n *InstanceInfo, s *InstanceState) (HookAction, e
 	return h.PostRefreshReturn, h.PostRefreshError
 }
 
-func (h *MockHook) PreImportState(info *InstanceInfo) (HookAction, error) {
+func (h *MockHook) PreImportState(info *InstanceInfo, id string) (HookAction, error) {
 	h.PreImportStateCalled = true
 	h.PreImportStateInfo = info
+	h.PreImportStateId = id
 	return h.PreImportStateReturn, h.PreImportStateError
 }
 

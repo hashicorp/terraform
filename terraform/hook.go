@@ -55,7 +55,7 @@ type Hook interface {
 
 	// PreImportState and PostImportState are called before and after
 	// a single resource's state is being improted.
-	PreImportState(*InstanceInfo) (HookAction, error)
+	PreImportState(*InstanceInfo, string) (HookAction, error)
 	PostImportState(*InstanceInfo, []*InstanceState) (HookAction, error)
 }
 
@@ -108,7 +108,7 @@ func (*NilHook) PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreImportState(*InstanceInfo) (HookAction, error) {
+func (*NilHook) PreImportState(*InstanceInfo, string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
