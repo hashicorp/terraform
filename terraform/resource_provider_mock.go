@@ -58,6 +58,7 @@ type MockResourceProvider struct {
 
 	ImportStateCalled      bool
 	ImportStateInfo        *InstanceInfo
+	ImportStateID          string
 	ImportStateReturn      []*InstanceState
 	ImportStateReturnError error
 	ImportStateFn          func(*InstanceInfo) ([]*InstanceState, error)
@@ -182,12 +183,13 @@ func (p *MockResourceProvider) Resources() []ResourceType {
 	return p.ResourcesReturn
 }
 
-func (p *MockResourceProvider) ImportState(info *InstanceInfo) ([]*InstanceState, error) {
+func (p *MockResourceProvider) ImportState(info *InstanceInfo, id string) ([]*InstanceState, error) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.ImportStateCalled = true
 	p.ImportStateInfo = info
+	p.ImportStateID = id
 	if p.ImportStateFn != nil {
 		return p.ImportStateFn(info)
 	}

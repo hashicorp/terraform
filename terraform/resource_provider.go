@@ -96,7 +96,7 @@ type ResourceProvider interface {
 	// to multiple. For example, an AWS security group may contain many rules.
 	// Each rule is represented by a separate resource in Terraform,
 	// therefore multiple states are returned.
-	ImportState(*InstanceInfo) ([]*InstanceState, error)
+	ImportState(*InstanceInfo, string) ([]*InstanceState, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
