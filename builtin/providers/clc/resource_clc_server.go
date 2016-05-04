@@ -44,15 +44,14 @@ func resourceCLCServer() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			// optional
 			"password": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
-			// optional
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "",
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
