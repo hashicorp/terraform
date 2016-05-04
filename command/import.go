@@ -3,8 +3,9 @@ package command
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // ImportCommand is a cli.Command implementation that imports resources
@@ -35,7 +36,6 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Build the context based on the arguments given
 	ctx, _, err := c.Context(contextOpts{
-		Path:        configPath,
 		StatePath:   c.Meta.statePath,
 		Parallelism: c.Meta.parallelism,
 	})
@@ -44,12 +44,23 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	newState, err := ctx.Refresh()
+	// Perform the import. Note that as you can see it is possible for this
+	// API to import more than one resource at once. For now, we only allow
+	// one while we stabilize this feature.
+	newState, err := ctx.Import(&terraform.ImportOpts{
+		Targets: []*terraform.ImportTarget{
+			&terraform.ImportTarget{
+				Addr: args[0],
+				ID:   args[1],
+			},
+		},
+	})
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error importing: %s", err))
 		return 1
 	}
 
+	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := c.Meta.PersistState(newState); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
