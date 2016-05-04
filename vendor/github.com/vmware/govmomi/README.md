@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/vmware/govmomi.png?branch=master)](https://travis-ci.org/vmware/govmomi)
+[![Build Status](https://ci.vmware.run/api/badges/vmware/govmomi/status.svg)](https://ci.vmware.run/vmware/govmomi)
 
 # govmomi
 
@@ -24,12 +25,29 @@ See [godoc.org][godoc] for documentation.
 
 [apiref]:http://pubs.vmware.com/vsphere-60/index.jsp#com.vmware.wssdk.apiref.doc/right-pane.html
 [godoc]:http://godoc.org/github.com/vmware/govmomi
+[drone]:https://drone.io
+[dronesrc]:https://github.com/drone/drone
+[dronecli]:http://readme.drone.io/devs/cli/
+
+#### Building with CI
+Merges to this repository will trigger builds in both Travis and [Drone][drone].
+
+To build locally with Drone:
+- Ensure that you have Docker 1.6 or higher installed.
+- Install the [Drone command line tools][dronecli].
+- Run `drone exec` from within the root directory of the govmomi repository.
 
 ## Status
 
 Changes to the API are subject to [semantic versioning](http://semver.org).
 
 Refer to the [CHANGELOG](CHANGELOG.md) for version to version changes.
+
+## Projects using govmomi
+
+* [Docker Machine](https://github.com/docker/machine/tree/master/drivers/vmwarevsphere)
+
+* [Terraform](https://github.com/hashicorp/terraform/tree/master/builtin/providers/vsphere)
 
 ## License
 
