@@ -201,6 +201,30 @@ func TestProviderValidateResource(t *testing.T) {
 	}
 }
 
+func TestProviderImportState_default(t *testing.T) {
+	p := &Provider{
+		ResourcesMap: map[string]*Resource{
+			"foo": &Resource{
+				Importer: &ResourceImporter{},
+			},
+		},
+	}
+
+	states, err := p.ImportState(&terraform.InstanceInfo{
+		Type: "foo",
+	}, "bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(states) != 1 {
+		t.Fatalf("bad: %#v", states)
+	}
+	if states[0].ID != "bar" {
+		t.Fatalf("bad: %#v", states)
+	}
+}
+
 func TestProviderImportState_setsId(t *testing.T) {
 	var val string
 	stateFunc := func(d *ResourceData, meta interface{}) ([]*ResourceData, error) {

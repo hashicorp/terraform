@@ -234,9 +234,13 @@ func (p *Provider) ImportState(
 	data.SetType(info.Type)
 
 	// Call the import function
-	results, err := r.Importer.State(data, p.meta)
-	if err != nil {
-		return nil, err
+	results := []*ResourceData{data}
+	if r.Importer.State != nil {
+		var err error
+		results, err = r.Importer.State(data, p.meta)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Convert the results to InstanceState values and return it

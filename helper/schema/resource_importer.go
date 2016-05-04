@@ -12,7 +12,8 @@ type ResourceImporter struct {
 	// The functions below must all be implemented for importing to work.
 
 	// State is called to convert an ID to one or more InstanceState to
-	// insert into the Terraform state.
+	// insert into the Terraform state. If this isn't specified, then
+	// the ID is passed straight through.
 	State StateFunc
 }
 
