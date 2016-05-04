@@ -146,9 +146,14 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	}
 
 	// Load the root module
-	mod, err := module.NewTreeModule("", copts.Path)
-	if err != nil {
-		return nil, false, fmt.Errorf("Error loading config: %s", err)
+	var mod *module.Tree
+	if copts.Path != "" {
+		mod, err = module.NewTreeModule("", copts.Path)
+		if err != nil {
+			return nil, false, fmt.Errorf("Error loading config: %s", err)
+		}
+	} else {
+		mod = module.NewEmptyTree()
 	}
 
 	err = mod.Load(m.moduleStorage(m.DataDir()), copts.GetMode)
