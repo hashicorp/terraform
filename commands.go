@@ -73,6 +73,12 @@ func init() {
 			}, nil
 		},
 
+		"import": func() (cli.Command, error) {
+			return &command.ImportCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"init": func() (cli.Command, error) {
 			return &command.InitCommand{
 				Meta: meta,
