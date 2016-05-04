@@ -873,6 +873,16 @@ func TestResourceData(t *testing.T) {
 	if v := data.Get("foo"); v != 42 {
 		t.Fatalf("bad: %#v", v)
 	}
+
+	// Set expectations
+	state.Meta = map[string]string{
+		"schema_version": "2",
+	}
+
+	result := data.State()
+	if !reflect.DeepEqual(result, state) {
+		t.Fatalf("bad: %#v", result)
+	}
 }
 
 func TestResourceData_blank(t *testing.T) {
