@@ -40,14 +40,17 @@ func resourceAwsSecurityGroupImportState(
 	for ruleType, perms := range permMap {
 		for _, perm := range perms {
 			// Construct the rule. We do this by populating the absolute
-			// minimum necessary for Refresh on the rule to work.
+			// minimum necessary for Refresh on the rule to work. This
+			// happens to be a lot of fields since they're almost all needed
+			// for de-dupping.
 			id := ipPermissionIDHash(sgId, ruleType, perm)
-			data := ruleResource.Data(nil)
-			data.SetId(id)
-			data.SetType("aws_security_group_rule")
-			data.Set("security_group_id", sgId)
-			data.Set("type", ruleType)
-			results = append(results, data)
+			d := ruleResource.Data(nil)
+			d.SetId(id)
+			d.SetType("aws_security_group_rule")
+			d.Set("security_group_id", sgId)
+			d.Set("type", ruleType)
+			setFromIPPerm(d, sg, perm)
+			results = append(results, d)
 		}
 	}
 
