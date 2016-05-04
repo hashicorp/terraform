@@ -251,6 +251,34 @@ func (h *UiHook) PreRefresh(
 	return terraform.HookActionContinue, nil
 }
 
+func (h *UiHook) PreImportState(
+	n *terraform.InstanceInfo) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	id := n.HumanId()
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: Importing from ID %q...",
+		id, n.Id)))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostImportState(
+	n *terraform.InstanceInfo,
+	s []*terraform.InstanceState) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	id := n.HumanId()
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold][green]%s: Import complete!", id)))
+	for _, s := range s {
+		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+			"[reset][green]  Imported %s (ID: %s)",
+			s.Ephemeral.Type, s.ID)))
+	}
+
+	return terraform.HookActionContinue, nil
+}
+
 func (h *UiHook) init() {
 	if h.Colorize == nil {
 		panic("colorize not given")

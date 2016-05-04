@@ -67,6 +67,14 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][green]\n" +
+			"Import success! The resources imported are shown above. These are\n" +
+			"now in your Terraform state. Import does not currently generate\n" +
+			"configuration, so you must do this next. If you do not create configuration\n" +
+			"for the above resources, then the next `terraform plan` will mark\n" +
+			"them for destruction.")))
+
 	return 0
 }
 
