@@ -3,8 +3,10 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
+	common "github.com/maximilien/softlayer-go/common"
 	datatypes "github.com/maximilien/softlayer-go/data_types"
 	softlayer "github.com/maximilien/softlayer-go/softlayer"
 )
@@ -35,12 +37,17 @@ func (slhs *softLayer_Hardware_Service) CreateObject(template datatypes.SoftLaye
 		return datatypes.SoftLayer_Hardware{}, err
 	}
 
-	response, err := slhs.client.DoRawHttpRequest(fmt.Sprintf("%s.json", slhs.GetName()), "POST", bytes.NewBuffer(requestBody))
+	response, errorCode, err := slhs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s.json", slhs.GetName()), "POST", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return datatypes.SoftLayer_Hardware{}, err
 	}
 
-	err = slhs.client.CheckForHttpResponseErrors(response)
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Hardware#createObject, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Hardware{}, errors.New(errorMessage)
+	}
+
+	err = slhs.client.GetHttpClient().CheckForHttpResponseErrors(response)
 	if err != nil {
 		return datatypes.SoftLayer_Hardware{}, err
 	}
@@ -69,12 +76,17 @@ func (slhs *softLayer_Hardware_Service) GetObject(id string) (datatypes.SoftLaye
 		"operatingSystem.passwords.username",
 	}
 
-	response, err := slhs.client.DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%s.json", slhs.GetName(), id), objectMask, "GET", new(bytes.Buffer))
+	response, errorCode, err := slhs.client.GetHttpClient().DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%s.json", slhs.GetName(), id), objectMask, "GET", new(bytes.Buffer))
 	if err != nil {
 		return datatypes.SoftLayer_Hardware{}, err
 	}
 
-	err = slhs.client.CheckForHttpResponseErrors(response)
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Hardware#getObject, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Hardware{}, errors.New(errorMessage)
+	}
+
+	err = slhs.client.GetHttpClient().CheckForHttpResponseErrors(response)
 	if err != nil {
 		return datatypes.SoftLayer_Hardware{}, err
 	}

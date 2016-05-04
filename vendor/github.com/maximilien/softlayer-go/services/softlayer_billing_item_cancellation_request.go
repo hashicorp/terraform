@@ -3,8 +3,10 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
+	common "github.com/maximilien/softlayer-go/common"
 	datatypes "github.com/maximilien/softlayer-go/data_types"
 	softlayer "github.com/maximilien/softlayer-go/softlayer"
 )
@@ -35,9 +37,14 @@ func (slbicr *softLayer_Billing_Item_Cancellation_Request_Service) CreateObject(
 		return datatypes.SoftLayer_Billing_Item_Cancellation_Request{}, err
 	}
 
-	responseBytes, err := slbicr.client.DoRawHttpRequest(fmt.Sprintf("%s/createObject.json", slbicr.GetName()), "POST", bytes.NewBuffer(requestBody))
+	responseBytes, errorCode, err := slbicr.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/createObject.json", slbicr.GetName()), "POST", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return datatypes.SoftLayer_Billing_Item_Cancellation_Request{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Billing_Item_Cancellation_Request#createObject TTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Billing_Item_Cancellation_Request{}, errors.New(errorMessage)
 	}
 
 	result := datatypes.SoftLayer_Billing_Item_Cancellation_Request{}
