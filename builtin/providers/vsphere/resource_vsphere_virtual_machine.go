@@ -941,7 +941,8 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		// TODO Check if diskPath & datastore exist
 		newDiskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
 	}
-	disk := devices.CreateDisk(controller, newDiskPath)
+
+	disk := devices.CreateDisk(controller, datastore.Reference(), newDiskPath)
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -1692,7 +1693,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	for _, dvc := range devices {
 		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
 		if devices.Type(dvc) == "ethernet" {
-			err := newVM.RemoveDevice(context.TODO(), dvc)
+			err := newVM.RemoveDevice(context.TODO(), false, dvc)
 			if err != nil {
 				return err
 			}
