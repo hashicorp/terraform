@@ -47,6 +47,7 @@ BUG FIXES:
  * provider/cloudflare: can manage apex records [GH-6449]
  * provider/cloudflare: won't refresh with incorrect record if names match [GH-6449]
  * provider/docker: Fix crash when using empty string in the `command` list in `docker_container` resources [GH-6424]
+ * provider/vsphere: Memory reservations are now set correctly in `vsphere_virtual_machine` resources [GH-6482]
 
 ## 0.6.15 (April 22, 2016)
 
