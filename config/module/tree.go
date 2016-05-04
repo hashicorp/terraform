@@ -33,6 +33,11 @@ func NewTree(name string, c *config.Config) *Tree {
 	return &Tree{config: c, name: name}
 }
 
+// NewEmptyTree returns a new tree that is empty (contains no configuration).
+func NewEmptyTree() *Tree {
+	return &Tree{config: &config.Config{}}
+}
+
 // NewTreeModule is like NewTree except it parses the configuration in
 // the directory and gives it a specific name. Use a blank name "" to specify
 // the root module.
