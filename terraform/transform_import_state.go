@@ -58,7 +58,7 @@ func (n *graphNodeImportState) Path() []string {
 func (n *graphNodeImportState) EvalTree() EvalNode {
 	var provider ResourceProvider
 	info := &InstanceInfo{
-		Id:         n.ID,
+		Id:         fmt.Sprintf("%s.%s", n.Addr.Type, n.Addr.Name),
 		ModulePath: n.Path(),
 		Type:       n.Addr.Type,
 	}
@@ -76,6 +76,7 @@ func (n *graphNodeImportState) EvalTree() EvalNode {
 			&EvalImportState{
 				Provider: &provider,
 				Info:     info,
+				Id:       n.ID,
 				Output:   &n.states,
 			},
 		},

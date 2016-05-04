@@ -10,6 +10,7 @@ import (
 type EvalImportState struct {
 	Provider *ResourceProvider
 	Info     *InstanceInfo
+	Id       string
 	Output   *[]*InstanceState
 }
 
@@ -28,10 +29,10 @@ func (n *EvalImportState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Import!
-	state, err := provider.ImportState(n.Info)
+	state, err := provider.ImportState(n.Info, n.Id)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"import %s (id: %s): %s", n.Info.Type, n.Info.Id, err)
+			"import %s (id: %s): %s", n.Info.HumanId(), n.Id, err)
 	}
 
 	if n.Output != nil {
