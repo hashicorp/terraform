@@ -103,8 +103,8 @@ type StateMigrateFunc func(
 func (r *Resource) Apply(
 	s *terraform.InstanceState,
 	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	data, err := schemaMap(r.Schema).Data(s, d)
+	pcr *ProviderConfigResult) (*terraform.InstanceState, error) {
+	data, err := schemaMap(r.Schema).Data(s, d, pcr)
 	if err != nil {
 		return s, err
 	}
@@ -118,7 +118,7 @@ func (r *Resource) Apply(
 	if d.Destroy || d.RequiresNew() {
 		if s.ID != "" {
 			// Destroy the resource since it is created
-			if err := r.Delete(data, meta); err != nil {
+			if err := r.Delete(data, pcr.Meta); err != nil {
 				return r.recordCurrentSchemaVersion(data.State()), err
 			}
 
@@ -133,7 +133,7 @@ func (r *Resource) Apply(
 		}
 
 		// Reset the data to be stateless since we just destroyed
-		data, err = schemaMap(r.Schema).Data(nil, d)
+		data, err = schemaMap(r.Schema).Data(nil, d, pcr)
 		if err != nil {
 			return nil, err
 		}
@@ -143,13 +143,13 @@ func (r *Resource) Apply(
 	if data.Id() == "" {
 		// We're creating, it is a new resource.
 		data.MarkNewResource()
-		err = r.Create(data, meta)
+		err = r.Create(data, pcr.Meta)
 	} else {
 		if r.Update == nil {
 			return s, fmt.Errorf("doesn't support update")
 		}
 
-		err = r.Update(data, meta)
+		err = r.Update(data, pcr.Meta)
 	}
 
 	return r.recordCurrentSchemaVersion(data.State()), err
@@ -159,19 +159,20 @@ func (r *Resource) Apply(
 // ResourceProvider interface.
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-	return schemaMap(r.Schema).Diff(s, c)
+	c *terraform.ResourceConfig,
+	pcr *ProviderConfigResult) (*terraform.InstanceDiff, error) {
+	return schemaMap(r.Schema).Diff(s, c, pcr)
 }
 
 // Validate validates the resource configuration against the schema.
-func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return schemaMap(r.Schema).Validate(c)
+func (r *Resource) Validate(c *terraform.ResourceConfig, pcr *ProviderConfigResult) ([]string, []error) {
+	return schemaMap(r.Schema).Validate(c, pcr)
 }
 
 // Refresh refreshes the state of the resource.
 func (r *Resource) Refresh(
 	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
+	pcr *ProviderConfigResult) (*terraform.InstanceState, error) {
 	// If the ID is already somehow blank, it doesn't exist
 	if s.ID == "" {
 		return nil, nil
@@ -180,12 +181,12 @@ func (r *Resource) Refresh(
 	if r.Exists != nil {
 		// Make a copy of data so that if it is modified it doesn't
 		// affect our Read later.
-		data, err := schemaMap(r.Schema).Data(s, nil)
+		data, err := schemaMap(r.Schema).Data(s, nil, pcr)
 		if err != nil {
 			return s, err
 		}
 
-		exists, err := r.Exists(data, meta)
+		exists, err := r.Exists(data, pcr.Meta)
 		if err != nil {
 			return s, err
 		}
@@ -196,18 +197,18 @@ func (r *Resource) Refresh(
 
 	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
 	if needsMigration && r.MigrateState != nil {
-		s, err := r.MigrateState(stateSchemaVersion, s, meta)
+		s, err := r.MigrateState(stateSchemaVersion, s, pcr.Meta)
 		if err != nil {
 			return s, err
 		}
 	}
 
-	data, err := schemaMap(r.Schema).Data(s, nil)
+	data, err := schemaMap(r.Schema).Data(s, nil, pcr)
 	if err != nil {
 		return s, err
 	}
 
-	err = r.Read(data, meta)
+	err = r.Read(data, pcr.Meta)
 	state := data.State()
 	if state != nil && state.ID == "" {
 		state = nil

@@ -17,6 +17,7 @@ import (
 type ConfigFieldReader struct {
 	Config *terraform.ResourceConfig
 	Schema map[string]*Schema
+	PCR    *ProviderConfigResult
 
 	indexMaps map[string]map[string]int
 	once      sync.Once
@@ -168,7 +169,7 @@ func (r *ConfigFieldReader) readPrimitive(
 	if !ok {
 		// Nothing in config, but we might still have a default from the schema
 		var err error
-		raw, err = schema.DefaultValue()
+		raw, err = schema.DefaultValue(r.PCR)
 		if err != nil {
 			return FieldReadResult{}, fmt.Errorf("%s, error loading default: %s", k, err)
 		}

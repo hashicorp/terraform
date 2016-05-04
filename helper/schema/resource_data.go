@@ -19,6 +19,7 @@ import (
 type ResourceData struct {
 	// Settable (internally)
 	schema map[string]*Schema
+	pcr    *ProviderConfigResult
 	config *terraform.ResourceConfig
 	state  *terraform.InstanceState
 	diff   *terraform.InstanceDiff
@@ -308,6 +309,7 @@ func (d *ResourceData) init() {
 		readers["config"] = &ConfigFieldReader{
 			Schema: d.schema,
 			Config: d.config,
+			PCR:    d.pcr,
 		}
 	}
 	if d.diff != nil {

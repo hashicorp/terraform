@@ -33,7 +33,7 @@ func resourceAzureStorageBlob() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
-				DefaultFunc: func() (interface{}, error) {
+				DefaultFunc: func(c *schema.DefaultFuncContext) (interface{}, error) {
 					return int64(0), nil
 				},
 			},

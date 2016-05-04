@@ -37,7 +37,8 @@ func TestResourceApply_create(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Apply(s, d, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Apply(s, d, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -86,7 +87,8 @@ func TestResourceApply_destroy(t *testing.T) {
 		Destroy: true,
 	}
 
-	actual, err := r.Apply(s, d, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Apply(s, d, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -148,7 +150,8 @@ func TestResourceApply_destroyCreate(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Apply(s, d, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Apply(s, d, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -199,7 +202,8 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 		Destroy: true,
 	}
 
-	actual, err := r.Apply(s, d, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Apply(s, d, &pcr)
 	if err == nil {
 		t.Fatal("should error")
 	}
@@ -250,7 +254,8 @@ func TestResourceApply_update(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Apply(s, d, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Apply(s, d, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -295,7 +300,8 @@ func TestResourceApply_updateNoCallback(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Apply(s, d, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Apply(s, d, &pcr)
 	if err == nil {
 		t.Fatal("should error")
 	}
@@ -347,7 +353,8 @@ func TestResourceApply_isNewResource(t *testing.T) {
 	// positive test
 	var s *terraform.InstanceState = nil
 
-	actual, err := r.Apply(s, d, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Apply(s, d, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -374,7 +381,7 @@ func TestResourceApply_isNewResource(t *testing.T) {
 		},
 	}
 
-	actual, err = r.Apply(s, d, nil)
+	actual, err = r.Apply(s, d, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -469,7 +476,7 @@ func TestResourceRefresh(t *testing.T) {
 
 	r.Read = func(d *ResourceData, m interface{}) error {
 		if m != 42 {
-			return fmt.Errorf("meta not passed")
+			return fmt.Errorf("meta not passed: %#v", m)
 		}
 
 		return d.Set("foo", d.Get("foo").(int)+1)
@@ -493,7 +500,7 @@ func TestResourceRefresh(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Refresh(s, 42)
+	actual, err := r.Refresh(s, &ProviderConfigResult{Meta: 42})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -523,7 +530,7 @@ func TestResourceRefresh_blankId(t *testing.T) {
 		Attributes: map[string]string{},
 	}
 
-	actual, err := r.Refresh(s, 42)
+	actual, err := r.Refresh(s, &ProviderConfigResult{Meta: 42})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -554,7 +561,7 @@ func TestResourceRefresh_delete(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Refresh(s, 42)
+	actual, err := r.Refresh(s, &ProviderConfigResult{Meta: 42})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -589,7 +596,7 @@ func TestResourceRefresh_existsError(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Refresh(s, 42)
+	actual, err := r.Refresh(s, &ProviderConfigResult{Meta: 42})
 	if err == nil {
 		t.Fatalf("should error")
 	}
@@ -623,7 +630,7 @@ func TestResourceRefresh_noExists(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Refresh(s, 42)
+	actual, err := r.Refresh(s, &ProviderConfigResult{Meta: 42})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -684,7 +691,7 @@ func TestResourceRefresh_needsMigration(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Refresh(s, 42)
+	actual, err := r.Refresh(s, &ProviderConfigResult{Meta: 42})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -738,7 +745,8 @@ func TestResourceRefresh_noMigrationNeeded(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Refresh(s, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Refresh(s, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -790,7 +798,8 @@ func TestResourceRefresh_stateSchemaVersionUnset(t *testing.T) {
 		},
 	}
 
-	actual, err := r.Refresh(s, nil)
+	var pcr ProviderConfigResult
+	actual, err := r.Refresh(s, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -841,7 +850,8 @@ func TestResourceRefresh_migrateStateErr(t *testing.T) {
 		},
 	}
 
-	_, err := r.Refresh(s, nil)
+	var pcr ProviderConfigResult
+	_, err := r.Refresh(s, &pcr)
 	if err == nil {
 		t.Fatal("expected error, but got none!")
 	}

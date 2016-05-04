@@ -23,7 +23,7 @@ func TestEnvDefaultFunc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual, err := f()
+	actual, err := f(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -35,7 +35,7 @@ func TestEnvDefaultFunc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual, err = f()
+	actual, err = f(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -61,7 +61,7 @@ func TestMultiEnvDefaultFunc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual, err := f()
+	actual, err := f(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -79,7 +79,7 @@ func TestMultiEnvDefaultFunc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual, err = f()
+	actual, err = f(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -92,7 +92,7 @@ func TestMultiEnvDefaultFunc(t *testing.T) {
 	}
 
 	// Test that the default value is returned when no keys are set
-	actual, err = f()
+	actual, err = f(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -126,6 +126,7 @@ func TestValueType_Zero(t *testing.T) {
 func TestSchemaMap_Diff(t *testing.T) {
 	cases := map[string]struct {
 		Schema          map[string]*Schema
+		PCR             *ProviderConfigResult
 		State           *terraform.InstanceState
 		Config          map[string]interface{}
 		ConfigVariables map[string]string
@@ -270,7 +271,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"availability_zone": &Schema{
 					Type:     TypeString,
 					Optional: true,
-					DefaultFunc: func() (interface{}, error) {
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
 						return "foo", nil
 					},
 				},
@@ -297,7 +298,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"availability_zone": &Schema{
 					Type:     TypeString,
 					Optional: true,
-					DefaultFunc: func() (interface{}, error) {
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
 						return "foo", nil
 					},
 				},
@@ -2344,6 +2345,72 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		"#61 DefaultFunc, depends on context": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
+						if i.Meta == nil {
+							return "", nil
+						}
+						return i.Meta.(string), nil
+					},
+				},
+			},
+
+			PCR: &ProviderConfigResult{
+				Meta: "foo",
+			},
+
+			State: nil,
+
+			Config: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		"#62 DefaultFunc, depends on context, configuration set": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
+						if i.ProviderData == nil {
+							return "", nil
+						}
+						return i.ProviderData.Get("foo").(string), nil
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "bar",
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for tn, tc := range cases {
@@ -2364,7 +2431,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		}
 
 		d, err := schemaMap(tc.Schema).Diff(
-			tc.State, terraform.NewResourceConfig(c))
+			tc.State, terraform.NewResourceConfig(c), tc.PCR)
 		if err != nil != tc.Err {
 			t.Fatalf("#%q err: %s", tn, err)
 		}
@@ -2375,9 +2442,62 @@ func TestSchemaMap_Diff(t *testing.T) {
 	}
 }
 
+func TestSchemaMap_DefaultFuncProviderData(t *testing.T) {
+	c, err := config.NewRawConfig(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	schema := map[string]*Schema{
+		"region": &Schema{
+			Type: TypeString,
+			DefaultFunc: func(c *DefaultFuncContext) (interface{}, error) {
+				fmt.Println(fmt.Sprintf("c: %#v", c.ProviderData))
+				if c.ProviderData == nil {
+					return "", nil
+				}
+				return c.ProviderData.Get("region").(string), nil
+			},
+		},
+	}
+
+	resourceConfig := terraform.NewResourceConfig(c)
+
+	pcr := &ProviderConfigResult{
+		Data: &ResourceData{
+			schema: map[string]*Schema{
+				"region": &Schema{
+					Type:    TypeString,
+					Default: "foo",
+				},
+			},
+			config: resourceConfig,
+		},
+	}
+
+	d, err := schemaMap(schema).Diff(nil, resourceConfig, pcr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	diff := &terraform.InstanceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"region": &terraform.ResourceAttrDiff{
+				Old: "",
+				New: "foo",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(d, diff) {
+		t.Fatalf("\n\nexpected: %#v\n\ngot:\n\n%#v", diff, d)
+	}
+}
+
 func TestSchemaMap_Input(t *testing.T) {
 	cases := map[string]struct {
 		Schema map[string]*Schema
+		PCR    *ProviderConfigResult
 		Config map[string]interface{}
 		Input  map[string]string
 		Result map[string]interface{}
@@ -2449,7 +2569,7 @@ func TestSchemaMap_Input(t *testing.T) {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type: TypeString,
-					DefaultFunc: func() (interface{}, error) {
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
 						return "foo", nil
 					},
 					Optional: true,
@@ -2487,7 +2607,7 @@ func TestSchemaMap_Input(t *testing.T) {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type: TypeString,
-					DefaultFunc: func() (interface{}, error) {
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
 						return nil, nil
 					},
 					Optional: true,
@@ -2522,7 +2642,7 @@ func TestSchemaMap_Input(t *testing.T) {
 		rc := terraform.NewResourceConfig(c)
 		rc.Config = make(map[string]interface{})
 
-		actual, err := schemaMap(tc.Schema).Input(input, rc)
+		actual, err := schemaMap(tc.Schema).Input(input, rc, tc.PCR)
 		if err != nil != tc.Err {
 			t.Fatalf("#%v err: %s", i, err)
 		}
@@ -2555,7 +2675,8 @@ func TestSchemaMap_InputDefault(t *testing.T) {
 			Optional: true,
 		},
 	}
-	actual, err := schemaMap(schema).Input(input, rc)
+	var pcr ProviderConfigResult
+	actual, err := schemaMap(schema).Input(input, rc, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2589,7 +2710,8 @@ func TestSchemaMap_InputDeprecated(t *testing.T) {
 			Optional:   true,
 		},
 	}
-	actual, err := schemaMap(schema).Input(input, rc)
+	var pcr ProviderConfigResult
+	actual, err := schemaMap(schema).Input(input, rc, &pcr)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2871,6 +2993,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 func TestSchemaMap_Validate(t *testing.T) {
 	cases := map[string]struct {
 		Schema   map[string]*Schema
+		PCR      *ProviderConfigResult
 		Config   map[string]interface{}
 		Vars     map[string]string
 		Err      bool
@@ -2980,7 +3103,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"availability_zone": &Schema{
 					Type:     TypeString,
 					Required: true,
-					DefaultFunc: func() (interface{}, error) {
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
 						return "foo", nil
 					},
 				},
@@ -2994,7 +3117,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"availability_zone": &Schema{
 					Type:     TypeString,
 					Required: true,
-					DefaultFunc: func() (interface{}, error) {
+					DefaultFunc: func(i *DefaultFuncContext) (interface{}, error) {
 						return nil, nil
 					},
 				},
@@ -3623,7 +3746,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			}
 		}
 
-		ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
+		ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c), tc.PCR)
 		if len(es) > 0 != tc.Err {
 			if len(es) == 0 {
 				t.Errorf("%q: no errors", tn)
@@ -3651,6 +3774,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 func TestSchemaSet_ValidateMaxItems(t *testing.T) {
 	cases := map[string]struct {
 		Schema          map[string]*Schema
+		PCR             *ProviderConfigResult
 		State           *terraform.InstanceState
 		Config          map[string]interface{}
 		ConfigVariables map[string]string
@@ -3717,7 +3841,7 @@ func TestSchemaSet_ValidateMaxItems(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%q: err: %s", tn, err)
 		}
-		_, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
+		_, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c), tc.PCR)
 
 		if len(es) > 0 != tc.Err {
 			if len(es) == 0 {
