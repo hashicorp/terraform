@@ -14,3 +14,11 @@ func ValidateJson(s string) (bool, error) {
 
 	return true, nil
 }
+
+func IsHttpErrorCode(errorCode int) bool {
+	if errorCode >= 400 {
+		return true
+	}
+
+	return false
+}

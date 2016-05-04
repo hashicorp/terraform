@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 	"time"
 
+	common "github.com/maximilien/softlayer-go/common"
 	datatypes "github.com/maximilien/softlayer-go/data_types"
 	softlayer "github.com/maximilien/softlayer-go/softlayer"
 )
@@ -95,72 +95,50 @@ func (slns *softLayer_Network_Storage_Service) CreateIscsiVolume(size int, locat
 }
 
 func (slvgs *softLayer_Network_Storage_Service) DeleteObject(volumeId int) (bool, error) {
-	response, err := slvgs.client.DoRawHttpRequest(fmt.Sprintf("%s/%d.json", slvgs.GetName(), volumeId), "DELETE", new(bytes.Buffer))
+	response, errorCode, err := slvgs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d.json", slvgs.GetName(), volumeId), "DELETE", new(bytes.Buffer))
+
+	if err != nil {
+		return false, err
+	}
 
 	if res := string(response[:]); res != "true" {
 		return false, errors.New(fmt.Sprintf("Failed to delete volume with id '%d', got '%s' as response from the API.", volumeId, res))
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Network_Storage#deleteObject, HTTP error code: '%d'", errorCode)
+		return false, errors.New(errorMessage)
 	}
 
 	return true, err
 }
 
 func (slns *softLayer_Network_Storage_Service) DeleteIscsiVolume(volumeId int, immediateCancellationFlag bool) error {
-	ObjectFilter := string(`{"iscsiNetworkStorage":{"id":{"operation":` + strconv.Itoa(volumeId) + `}}}`)
 
-	accountService, err := slns.client.GetSoftLayer_Account_Service()
+	billingItem, err := slns.GetBillingItem(volumeId)
 	if err != nil {
 		return err
 	}
 
-	iscsiStorages, err := accountService.GetIscsiNetworkStorageWithFilter(ObjectFilter)
-	if err != nil {
-		return err
-	}
+	if billingItem.Id > 0 {
+		billingItemService, err := slns.client.GetSoftLayer_Billing_Item_Service()
+		if err != nil {
+			return err
+		}
 
-	var accountId, billingItemId int
+		deleted, err := billingItemService.CancelService(billingItem.Id)
+		if err != nil {
+			return err
+		}
 
-	for i := 0; i < len(iscsiStorages); i++ {
-		if iscsiStorages[i].Id == volumeId {
-			accountId = iscsiStorages[i].AccountId
-			if reflect.ValueOf(iscsiStorages[i].BillingItem).IsNil() {
-				deleted, err := slns.DeleteObject(volumeId)
-				if err != nil {
-					return err
-				}
-				if deleted {
-					return nil
-				} else {
-					return errors.New(fmt.Sprintf("Cannot delete volume %d from client at present", volumeId))
-				}
-			} else {
-				billingItemId = iscsiStorages[i].BillingItem.Id
-				break
-			}
+		if deleted {
+			return nil
 		}
 	}
 
-	billingItemCancellationRequest := datatypes.SoftLayer_Billing_Item_Cancellation_Request{
-		ComplexType: "SoftLayer_Billing_Item_Cancellation_Request",
-		AccountId:   accountId,
-		Items: []datatypes.SoftLayer_Billing_Item_Cancellation_Request_Item{
-			{
-				BillingItemId:             billingItemId,
-				ImmediateCancellationFlag: immediateCancellationFlag,
-			},
-		},
-	}
+	errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Network_Storage_Service#deleteIscsiVolume with id: '%d'", volumeId)
 
-	billingItemCancellationRequestService, err := slns.client.GetSoftLayer_Billing_Item_Cancellation_Request_Service()
-	if err != nil {
-		return err
-	}
-
-	_, err = billingItemCancellationRequestService.CreateObject(billingItemCancellationRequest)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return errors.New(errorMessage)
 }
 
 func (slns *softLayer_Network_Storage_Service) GetIscsiVolume(volumeId int) (datatypes.SoftLayer_Network_Storage, error) {
@@ -184,10 +162,15 @@ func (slns *softLayer_Network_Storage_Service) GetIscsiVolume(volumeId int) (dat
 		"serviceResourceBackendIpAddress",
 	}
 
-	response, err := slns.client.DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getObject.json", slns.GetName(), volumeId), objectMask, "GET", new(bytes.Buffer))
+	response, errorCode, err := slns.client.GetHttpClient().DoRawHttpRequestWithObjectMask(fmt.Sprintf("%s/%d/getObject.json", slns.GetName(), volumeId), objectMask, "GET", new(bytes.Buffer))
 
 	if err != nil {
 		return datatypes.SoftLayer_Network_Storage{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Account#getAccountStatus, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Network_Storage{}, errors.New(errorMessage)
 	}
 
 	volume := datatypes.SoftLayer_Network_Storage{}
@@ -199,12 +182,38 @@ func (slns *softLayer_Network_Storage_Service) GetIscsiVolume(volumeId int) (dat
 	return volume, nil
 }
 
+func (slns *softLayer_Network_Storage_Service) GetBillingItem(volumeId int) (datatypes.SoftLayer_Billing_Item, error) {
+
+	response, errorCode, err := slns.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/getBillingItem.json", slns.GetName(), volumeId), "GET", new(bytes.Buffer))
+	if err != nil {
+		return datatypes.SoftLayer_Billing_Item{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_NetWork_Storage#getBillingItem, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Billing_Item{}, errors.New(errorMessage)
+	}
+
+	billingItem := datatypes.SoftLayer_Billing_Item{}
+	err = json.Unmarshal(response, &billingItem)
+	if err != nil {
+		return datatypes.SoftLayer_Billing_Item{}, err
+	}
+
+	return billingItem, nil
+}
+
 func (slns *softLayer_Network_Storage_Service) HasAllowedVirtualGuest(volumeId int, vmId int) (bool, error) {
 	filter := string(`{"allowedVirtualGuests":{"id":{"operation":"` + strconv.Itoa(vmId) + `"}}}`)
-	response, err := slns.client.DoRawHttpRequestWithObjectFilterAndObjectMask(fmt.Sprintf("%s/%d/getAllowedVirtualGuests.json", slns.GetName(), volumeId), []string{"id"}, fmt.Sprintf(string(filter)), "GET", new(bytes.Buffer))
+	response, errorCode, err := slns.client.GetHttpClient().DoRawHttpRequestWithObjectFilterAndObjectMask(fmt.Sprintf("%s/%d/getAllowedVirtualGuests.json", slns.GetName(), volumeId), []string{"id"}, fmt.Sprintf(string(filter)), "GET", new(bytes.Buffer))
 
 	if err != nil {
 		return false, errors.New(fmt.Sprintf("Cannot check authentication for volume %d in vm %d", volumeId, vmId))
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Network_Storage#hasAllowedVirtualGuest, HTTP error code: '%d'", errorCode)
+		return false, errors.New(errorMessage)
 	}
 
 	virtualGuest := []datatypes.SoftLayer_Virtual_Guest{}
@@ -231,7 +240,16 @@ func (slns *softLayer_Network_Storage_Service) AttachIscsiVolume(virtualGuest da
 		return false, err
 	}
 
-	resp, err := slns.client.DoRawHttpRequest(fmt.Sprintf("%s/%d/allowAccessFromVirtualGuest.json", slns.GetName(), volumeId), "PUT", bytes.NewBuffer(requestBody))
+	resp, errorCode, err := slns.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/allowAccessFromVirtualGuest.json", slns.GetName(), volumeId), "PUT", bytes.NewBuffer(requestBody))
+
+	if err != nil {
+		return false, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Network_Storage#attachIscsiVolume, HTTP error code: '%d'", errorCode)
+		return false, errors.New(errorMessage)
+	}
 
 	allowable, err := strconv.ParseBool(string(resp[:]))
 	if err != nil {
@@ -252,9 +270,14 @@ func (slns *softLayer_Network_Storage_Service) DetachIscsiVolume(virtualGuest da
 		return err
 	}
 
-	_, err = slns.client.DoRawHttpRequest(fmt.Sprintf("%s/%d/removeAccessFromVirtualGuest.json", slns.GetName(), volumeId), "PUT", bytes.NewBuffer(requestBody))
+	_, errorCode, err := slns.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/removeAccessFromVirtualGuest.json", slns.GetName(), volumeId), "PUT", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Account#getAccountStatus, HTTP error code: '%d'", errorCode)
+		return errors.New(errorMessage)
 	}
 
 	return nil

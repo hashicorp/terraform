@@ -15,3 +15,7 @@ type SoftLayer_Virtual_Guest_Block_Device_Template_Group_LocationsInitParameters
 type SoftLayer_Virtual_Guest_Block_Device_Template_Group_LocationsInitParameter struct {
 	Locations []SoftLayer_Location `json:"locations"`
 }
+
+type SoftLayer_Virtual_Guest_Block_Device_Template_GroupInitParameters2 struct {
+	Parameters []interface{} `json:"parameters"`
+}
