@@ -177,10 +177,12 @@ func (p *ResourceProvider) Refresh(
 }
 
 func (p *ResourceProvider) ImportState(
-	info *terraform.InstanceInfo) ([]*terraform.InstanceState, error) {
+	info *terraform.InstanceInfo,
+	id string) ([]*terraform.InstanceState, error) {
 	var resp ResourceProviderImportStateResponse
 	args := &ResourceProviderImportStateArgs{
 		Info: info,
+		Id:   id,
 	}
 
 	err := p.Client.Call("Plugin.ImportState", args, &resp)
@@ -265,6 +267,7 @@ type ResourceProviderRefreshResponse struct {
 
 type ResourceProviderImportStateArgs struct {
 	Info *terraform.InstanceInfo
+	Id   string
 }
 
 type ResourceProviderImportStateResponse struct {
@@ -391,7 +394,7 @@ func (s *ResourceProviderServer) Refresh(
 func (s *ResourceProviderServer) ImportState(
 	args *ResourceProviderImportStateArgs,
 	result *ResourceProviderImportStateResponse) error {
-	states, err := s.Provider.ImportState(args.Info)
+	states, err := s.Provider.ImportState(args.Info, args.Id)
 	*result = ResourceProviderImportStateResponse{
 		State: states,
 		Error: plugin.NewBasicError(err),
