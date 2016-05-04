@@ -698,6 +698,7 @@ func TestAccVSphereVirtualMachine_ipv4Andipv6(t *testing.T) {
 	}
 	template := os.Getenv("VSPHERE_TEMPLATE")
 	label := os.Getenv("VSPHERE_NETWORK_LABEL")
+	// TODO check that these evn vars are set correctly
 	ipv4Address := os.Getenv("VSPHERE_IPV4_ADDRESS")
 	ipv4Gateway := os.Getenv("VSPHERE_IPV4_GATEWAY")
 	ipv6Address := os.Getenv("VSPHERE_IPV6_ADDRESS")

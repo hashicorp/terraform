@@ -423,7 +423,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	configSpec := types.VirtualMachineConfigSpec{}
 
 	if d.HasChange("vcpu") {
-		configSpec.NumCPUs = d.Get("vcpu").(int32)
+		configSpec.NumCPUs = int32(d.Get("vcpu").(int))
 		hasChanges = true
 		rebootRequired = true
 	}
@@ -505,7 +505,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	vm := virtualMachine{
 		name:     d.Get("name").(string),
-		vcpu:     d.Get("vcpu").(int32),
+		vcpu:     int32(d.Get("vcpu").(int)),
 		memoryMb: int64(d.Get("memory").(int)),
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
@@ -595,8 +595,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["ipv4_address"].(string); ok && v != "" {
 				networks[i].ipv4Address = v
 			}
-			if v, ok := network["ipv4_prefix_length"].(int32); ok && v != 0 {
-				networks[i].ipv4PrefixLength = v
+
+			if v, ok := network["ipv4_prefix_length"].(int); ok && v != 0 {
+				networks[i].ipv4PrefixLength = int32(v)
 			}
 			if v, ok := network["ipv4_gateway"].(string); ok && v != "" {
 				networks[i].ipv4Gateway = v
@@ -604,8 +605,8 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["ipv6_address"].(string); ok && v != "" {
 				networks[i].ipv6Address = v
 			}
-			if v, ok := network["ipv6_prefix_length"].(int32); ok && v != 0 {
-				networks[i].ipv6PrefixLength = v
+			if v, ok := network["ipv6_prefix_length"].(int); ok && v != 0 {
+				networks[i].ipv6PrefixLength = int32(v)
 			}
 			if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
 				networks[i].ipv6Gateway = v
