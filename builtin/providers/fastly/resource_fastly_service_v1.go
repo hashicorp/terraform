@@ -548,7 +548,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					// need to trim leading/tailing spaces, incase the config has HEREDOC
 					// formatting and contains a trailing new line
 					Statement: strings.TrimSpace(cf["statement"].(string)),
-					Statement: cf["statement"].(string),
 					Priority:  cf["priority"].(int),
 				}
 
