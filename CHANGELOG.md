@@ -18,6 +18,7 @@ IMPROVEMENTS:
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
  * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
  * provider/aws: Improve error handling in IAM Server Certificates [GH-6442]
+ * provider/aws: Add support for response parameters to `api_gateway_method_response` & `api_gateway_integration_response` [GH-6344]
  * provider/triton: Add support for specifying network interfaces on `triton machine` resources [GH-6418]
  * provider/vsphere: Add `skip_customization` option to `vsphere_virtual_machine` resources [GH-6355]
  * provider/vsphere: Add ability to specify and mount bootable vmdk in `vsphere_virtual_machine` [GH-6146]
