@@ -82,7 +82,7 @@ func (o HttpNfcLease) HttpNfcLeaseGetManifest(ctx context.Context) error {
 }
 
 // HttpNfcLeaseProgress wraps methods.HttpNfcLeaseProgress
-func (o HttpNfcLease) HttpNfcLeaseProgress(ctx context.Context, percent int) error {
+func (o HttpNfcLease) HttpNfcLeaseProgress(ctx context.Context, percent int32) error {
 	req := types.HttpNfcLeaseProgress{
 		This:    o.Reference(),
 		Percent: percent,
