@@ -2,7 +2,7 @@
 
 This document is in place for developer documentation.  User documentation is located [HERE](https://www.terraform.io/docs/providers/vsphere/) on Terraform's website.
 
-Thank-you [@tkak](https://github.com/tkak) and [Rakuten, Inc.](https://github.com/rakutentech) for there original contribution of the source base used for this provider!
+Thank-you [@tkak](https://github.com/tkak) and [Rakuten, Inc.](https://github.com/rakutentech) for their original contribution of the source base used for this provider!
 
 ## Introductory Documentation
 
@@ -12,7 +12,7 @@ Both [README.md](../../../README.md) and [BUILDING.md](../../../BUILDING.md) sho
 
 This provider utilizes [govmomi](https://github.com/vmware/govmomi) Go Library for communicating to  VMware vSphere APIs (ESXi and/or vCenter).
 Because of the dependency this provider is compatible with VMware systems that are supported by govmomi. Much thanks to the dev team that maintains govmomi, and
-even more thanks to there guidance with the development of this provider.  We have had many issues answered by the govomi team!
+even more thanks to their guidance with the development of this provider.  We have had many issues answered by the govmomi team!
 
 #### vSphere CLI ~ [govc](https://github.com/vmware/govmomi/blob/master/govc/README.md)
 
