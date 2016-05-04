@@ -1692,7 +1692,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	for _, dvc := range devices {
 		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
 		if devices.Type(dvc) == "ethernet" {
-			err := newVM.RemoveDevice(context.TODO(), dvc)
+			err := newVM.RemoveDevice(context.TODO(), false, dvc)
 			if err != nil {
 				return err
 			}
