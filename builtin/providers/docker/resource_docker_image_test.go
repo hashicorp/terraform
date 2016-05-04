@@ -73,6 +73,22 @@ func TestAccDockerImage_destroy(t *testing.T) {
 	})
 }
 
+func TestAccDockerImage_registry(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccDockerImageDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerImageConfigRegistry,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("docker_image.registry", "latest", contentDigestRegexp),
+				),
+			},
+		},
+	})
+}
+
 func testAccDockerImageDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "docker_image" {
@@ -108,5 +124,21 @@ const testAccDockerImageKeepLocallyConfig = `
 resource "docker_image" "foobarzoo" {
 	name = "crux:3.1"
 	keep_locally = true
+}
+`
+
+const testAccDockerImageConfigRegistry = `
+resource "docker_registry" "registry" {
+	auth = {
+		username = "foo"
+		password = "bar"
+		server_address = "docker.io"
+	}
+}
+
+resource "docker_image" "registry" {
+	name = "alpine:3.1"
+	keep_updated = false
+	registry = "${docker_registry.registry.configurations}"
 }
 `

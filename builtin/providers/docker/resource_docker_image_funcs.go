@@ -148,11 +148,30 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 
 	// Plain username/repo or repo
 	default:
-		pullOpts.Repository = image
+		// registry/username/repo or registry/repo
+		splitImageName = strings.Split(image, "/")
+
+		pullOpts.Registry = splitImageName[0]
+		pullOpts.Repository = pullOpts.Registry + "/" + strings.Join(splitImageName[1:], "/")
+		pullOpts.Tag = "latest"
 	}
 
-	if err := client.PullImage(pullOpts, dc.AuthConfiguration{}); err != nil {
-		return fmt.Errorf("Error pulling image %s: %s\n", image, err)
+	var authConfiguration dc.AuthConfiguration
+
+	if data.DockerRegistry != nil {
+		authConfiguration = data.DockerRegistry.Configs[pullOpts.Registry]
+
+		if authConfiguration == (dc.AuthConfiguration{}) {
+			authConfiguration = data.DockerRegistry.Configs["http://"+pullOpts.Registry]
+		}
+
+		if authConfiguration == (dc.AuthConfiguration{}) {
+			authConfiguration = data.DockerRegistry.Configs["https://"+pullOpts.Registry]
+		}
+	}
+
+	if err := client.PullImage(pullOpts, authConfiguration); err != nil {
+		return fmt.Errorf("Error pulling image %s: %s\nauthentication: %s", image, err, authConfiguration)
 	}
 
 	return fetchLocalImages(data, client)
@@ -193,6 +212,16 @@ func findImage(d *schema.ResourceData, client *dc.Client) (*dc.APIImages, error)
 	foundImage := searchLocalImages(data, imageName)
 
 	if d.Get("keep_updated").(bool) || foundImage == nil {
+		if v, ok := d.GetOk("registry"); ok {
+			authConfigurations, err := deserializeDockerRegistryConfigurations(v.(string))
+
+			if err != nil {
+				return nil, fmt.Errorf("Unable to deserialize registry configuration: %s", err)
+			}
+
+			data.DockerRegistry = authConfigurations
+		}
+
 		if err := pullImage(&data, client, imageName); err != nil {
 			return nil, fmt.Errorf("Unable to pull image %s: %s", imageName, err)
 		}

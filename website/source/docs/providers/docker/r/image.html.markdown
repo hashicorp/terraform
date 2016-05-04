@@ -16,9 +16,19 @@ them.
 ## Example Usage
 
 ```
+# Log to a custom docker registry
+resource "docker_registry" "ubuntu_private" {
+    auth = {
+        username = "John"
+        password = "Doe"
+        server_address = "https://hub.docker.com/"
+    }
+}
+
 # Find the latest Ubuntu precise image.
 resource "docker_image" "ubuntu" {
     name = "ubuntu:precise"
+    registry = "${docker_registry.ubuntu_private.configurations}"
 }
 
 # Access it somewhere else with ${docker_image.ubuntu.latest}
@@ -36,6 +46,7 @@ The following arguments are supported:
 * `keep_locally` - (Optional, boolean) If true, then the Docker image won't be
   deleted on destroy operation. If this is false, it will delete the image from
   the docker local storage on destroy operation.
+* `registry` - (Optional, string) The only way to get this value is to use the `docker_registry` resource as is shown in the example above.
 
 ## Attributes Reference
 
