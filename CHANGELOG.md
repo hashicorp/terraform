@@ -3,12 +3,12 @@
 FEATURES:
 
  * **New provider:** `librato` [GH-3371]
+ * **New provider:** `softlayer` [GH-4327]
  * **New resource:** `aws_api_gateway_account` [GH-6321]
  * **New resource:** `aws_api_gateway_authorizer` [GH-6320]
  * **New resource:** `openstack_networking_secgroup_v2` [GH-6410]
  * **New resource:** `openstack_networking_secgroup_rule_v2` [GH-6410] 
  * **New resource:** `vsphere_file` [GH-6401]
- 
 
 IMPROVEMENTS:
 
@@ -18,11 +18,14 @@ IMPROVEMENTS:
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
  * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
  * provider/aws: Improve error handling in IAM Server Certificates [GH-6442]
+ * provider/aws: Add support for response parameters to `api_gateway_method_response` & `api_gateway_integration_response` [GH-6344]
  * provider/triton: Add support for specifying network interfaces on `triton machine` resources [GH-6418]
  * provider/vsphere: Add `skip_customization` option to `vsphere_virtual_machine` resources [GH-6355]
  * provider/vsphere: Add ability to specify and mount bootable vmdk in `vsphere_virtual_machine` [GH-6146]
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
  * provider/vsphere: Checking for empty diskPath in `vsphere_virtual_machine` before creating [GH-6400]
+ * provider/vsphere: Support updates to vcpu and memory on `vsphere_virtual_machine` [GH-6356]
+ * provider/vsphere: Add support for IPV6 to `vsphere_virtual_machine` [GH-6457]
 
 BUG FIXES:
 
@@ -34,10 +37,14 @@ BUG FIXES:
  * provider/aws: Fix updating `number_of_nodes` on `aws_redshift_cluster` [GH-6333]
  * provider/aws: Omit `aws_cloudfront_distribution` custom_error fields when not explicitly set [GH-6382]
  * provider/aws: Refresh state on `aws_sqs_queue` not found [GH-6381]
+ * provider/aws: Fix an eventually consistent issue aws_security_group_rule and possible duplications [GH-6325]
  * provider/aws: Respect `selection_pattern` in `aws_api_gateway_integration_response` (previously ignored field) [GH-5893]
  * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
  * provider/aws: Fix issue replacing Network ACL Relationship [GH-6421]
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
+ * provider/aws: Fix issue with encrypted snapshots of block devices in `aws_launch_configuration` resources [GH-6452]
+ * provider/cloudflare: can manage apex records [GH-6449]
+ * provider/cloudflare: won't refresh with incorrect record if names match [GH-6449]
  * provider/docker: Fix crash when using empty string in the `command` list in `docker_container` resources [GH-6424]
 
 ## 0.6.15 (April 22, 2016)

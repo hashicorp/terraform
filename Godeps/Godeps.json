@@ -367,8 +367,8 @@
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudfront",
-			"Comment": "v1.1.14",
-			"Rev": "6876e9922ff299adf36e43e04c94820077968b3b"
+			"Comment": "v1.1.15",
+			"Rev": "e7cf1e5986499eea7d4a87868f1eb578c8f2045a"
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/cloudtrail",
@@ -673,13 +673,13 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/atlas-go/archive",
-			"Comment": "20141209094003-90-g0008886",
-			"Rev": "0008886ebfa3b424bed03e2a5cbe4a2568ea0ff6"
+			"Comment": "20141209094003-92-g95fa852",
+			"Rev": "95fa852edca41c06c4ce526af4bb7dec4eaad434"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/atlas-go/v1",
-			"Comment": "20141209094003-90-g0008886",
-			"Rev": "0008886ebfa3b424bed03e2a5cbe4a2568ea0ff6"
+			"Comment": "20141209094003-92-g95fa852",
+			"Rev": "95fa852edca41c06c4ce526af4bb7dec4eaad434"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/consul/api",
@@ -713,6 +713,10 @@
 		{
 			"ImportPath": "github.com/hashicorp/go-retryablehttp",
 			"Rev": "24fda80b7c713c52649e57ce20100d453f7bdb24"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-rootcerts",
+			"Rev": "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-uuid",
@@ -926,6 +930,10 @@
 			"Rev": "cb6853d606ea4a12a15ac83cc43503df99fd28fb"
 		},
 		{
+			"ImportPath": "github.com/mitchellh/cloudflare-go",
+			"Rev": "84c7a0993a06d555dbfddd2b32f5fa9b92fa1dc1"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/colorstring",
 			"Rev": "8631ce90f28644f54aeedcb3e389a85174e067d1"
 		},
@@ -998,6 +1006,11 @@
 		{
 			"ImportPath": "github.com/pearkes/mailgun",
 			"Rev": "b88605989c4141d22a6d874f78800399e5bb7ac2"
+		},
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.3.0",
+			"Rev": "42fa80f2ac6ed17a977ce826074bd3009593fa9d"
 		},
 		{
 			"ImportPath": "github.com/rackspace/gophercloud",

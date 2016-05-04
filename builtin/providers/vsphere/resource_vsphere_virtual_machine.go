@@ -33,8 +33,10 @@ type networkInterface struct {
 	label            string
 	ipv4Address      string
 	ipv4PrefixLength int
+	ipv4Gateway      string
 	ipv6Address      string
 	ipv6PrefixLength int
+	ipv6Gateway      string
 	adapterType      string // TODO: Make "adapter_type" argument
 }
 
@@ -77,7 +79,6 @@ type virtualMachine struct {
 	networkInterfaces     []networkInterface
 	hardDisks             []hardDisk
 	cdroms                []cdrom
-	gateway               string
 	domain                string
 	timeZone              string
 	dnsSuffixes           []string
@@ -105,6 +106,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVSphereVirtualMachineCreate,
 		Read:   resourceVSphereVirtualMachineRead,
+		Update: resourceVSphereVirtualMachineUpdate,
 		Delete: resourceVSphereVirtualMachineDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -123,13 +125,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 			"vcpu": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"memory": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"memory_reservation": &schema.Schema{
@@ -164,9 +164,10 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				ForceNew: true,
 			},
 			"gateway": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "Please use network_interface.ipv4_gateway",
 			},
 
 			"domain": &schema.Schema{
@@ -286,16 +287,27 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Computed: true,
 						},
 
-						// TODO: Imprement ipv6 parameters to be optional
+						"ipv4_gateway": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"ipv6_address": &schema.Schema{
 							Type:     schema.TypeString,
-							Computed: true,
+							Optional: true,
 							ForceNew: true,
 						},
 
 						"ipv6_prefix_length": &schema.Schema{
 							Type:     schema.TypeInt,
-							Computed: true,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"ipv6_gateway": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 
@@ -401,6 +413,93 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 	}
 }
 
+func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{}) error {
+	// flag if changes have to be applied
+	hasChanges := false
+	// flag if changes have to be done when powered off
+	rebootRequired := false
+
+	// make config spec
+	configSpec := types.VirtualMachineConfigSpec{}
+
+	if d.HasChange("vcpu") {
+		configSpec.NumCPUs = d.Get("vcpu").(int)
+		hasChanges = true
+		rebootRequired = true
+	}
+
+	if d.HasChange("memory") {
+		configSpec.MemoryMB = int64(d.Get("memory").(int))
+		hasChanges = true
+		rebootRequired = true
+	}
+
+	// do nothing if there are no changes
+	if !hasChanges {
+		return nil
+	}
+
+	client := meta.(*govmomi.Client)
+	dc, err := getDatacenter(client, d.Get("datacenter").(string))
+	if err != nil {
+		return err
+	}
+	finder := find.NewFinder(client.Client, true)
+	finder = finder.SetDatacenter(dc)
+
+	vm, err := finder.VirtualMachine(context.TODO(), vmPath(d.Get("folder").(string), d.Get("name").(string)))
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
+
+	if rebootRequired {
+		log.Printf("[INFO] Shutting down virtual machine: %s", d.Id())
+
+		task, err := vm.PowerOff(context.TODO())
+		if err != nil {
+			return err
+		}
+
+		err = task.Wait(context.TODO())
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Printf("[INFO] Reconfiguring virtual machine: %s", d.Id())
+
+	task, err := vm.Reconfigure(context.TODO(), configSpec)
+	if err != nil {
+		log.Printf("[ERROR] %s", err)
+	}
+
+	err = task.Wait(context.TODO())
+	if err != nil {
+		log.Printf("[ERROR] %s", err)
+	}
+
+	if rebootRequired {
+		task, err = vm.PowerOn(context.TODO())
+		if err != nil {
+			return err
+		}
+
+		err = task.Wait(context.TODO())
+		if err != nil {
+			log.Printf("[ERROR] %s", err)
+		}
+	}
+
+	ip, err := vm.WaitForIP(context.TODO())
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] ip address: %v", ip)
+
+	return resourceVSphereVirtualMachineRead(d, meta)
+}
+
 func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*govmomi.Client)
 
@@ -427,10 +526,6 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("resource_pool"); ok {
 		vm.resourcePool = v.(string)
-	}
-
-	if v, ok := d.GetOk("gateway"); ok {
-		vm.gateway = v.(string)
 	}
 
 	if v, ok := d.GetOk("domain"); ok {
@@ -484,6 +579,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["ip_address"].(string); ok && v != "" {
 				networks[i].ipv4Address = v
 			}
+			if v, ok := d.GetOk("gateway"); ok {
+				networks[i].ipv4Gateway = v.(string)
+			}
 			if v, ok := network["subnet_mask"].(string); ok && v != "" {
 				ip := net.ParseIP(v).To4()
 				if ip != nil {
@@ -499,6 +597,18 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			}
 			if v, ok := network["ipv4_prefix_length"].(int); ok && v != 0 {
 				networks[i].ipv4PrefixLength = v
+			}
+			if v, ok := network["ipv4_gateway"].(string); ok && v != "" {
+				networks[i].ipv4Gateway = v
+			}
+			if v, ok := network["ipv6_address"].(string); ok && v != "" {
+				networks[i].ipv6Address = v
+			}
+			if v, ok := network["ipv6_prefix_length"].(int); ok && v != 0 {
+				networks[i].ipv6PrefixLength = v
+			}
+			if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
+				networks[i].ipv6Gateway = v
 			}
 		}
 		vm.networkInterfaces = networks
@@ -1387,12 +1497,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		}
 		networkDevices = append(networkDevices, nd)
 
-		// TODO: IPv6 support
 		var ipSetting types.CustomizationIPSettings
 		if network.ipv4Address == "" {
-			ipSetting = types.CustomizationIPSettings{
-				Ip: &types.CustomizationDhcpIpGenerator{},
-			}
+			ipSetting.Ip = &types.CustomizationDhcpIpGenerator{}
 		} else {
 			if network.ipv4PrefixLength == 0 {
 				return fmt.Errorf("Error: ipv4_prefix_length argument is empty.")
@@ -1400,20 +1507,38 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			m := net.CIDRMask(network.ipv4PrefixLength, 32)
 			sm := net.IPv4(m[0], m[1], m[2], m[3])
 			subnetMask := sm.String()
-			log.Printf("[DEBUG] gateway: %v", vm.gateway)
-			log.Printf("[DEBUG] ipv4 address: %v", network.ipv4Address)
-			log.Printf("[DEBUG] ipv4 prefix length: %v", network.ipv4PrefixLength)
-			log.Printf("[DEBUG] ipv4 subnet mask: %v", subnetMask)
-			ipSetting = types.CustomizationIPSettings{
-				Gateway: []string{
-					vm.gateway,
-				},
-				Ip: &types.CustomizationFixedIp{
-					IpAddress: network.ipv4Address,
-				},
-				SubnetMask: subnetMask,
+			log.Printf("[DEBUG] ipv4 gateway: %v\n", network.ipv4Gateway)
+			log.Printf("[DEBUG] ipv4 address: %v\n", network.ipv4Address)
+			log.Printf("[DEBUG] ipv4 prefix length: %v\n", network.ipv4PrefixLength)
+			log.Printf("[DEBUG] ipv4 subnet mask: %v\n", subnetMask)
+			ipSetting.Gateway = []string{
+				network.ipv4Gateway,
 			}
+			ipSetting.Ip = &types.CustomizationFixedIp{
+				IpAddress: network.ipv4Address,
+			}
+			ipSetting.SubnetMask = subnetMask
 		}
+
+		ipv6Spec := &types.CustomizationIPSettingsIpV6AddressSpec{}
+		if network.ipv6Address == "" {
+			ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
+				&types.CustomizationDhcpIpV6Generator{},
+			}
+		} else {
+			log.Printf("[DEBUG] ipv6 gateway: %v\n", network.ipv6Gateway)
+			log.Printf("[DEBUG] ipv6 address: %v\n", network.ipv6Address)
+			log.Printf("[DEBUG] ipv6 prefix length: %v\n", network.ipv6PrefixLength)
+
+			ipv6Spec.Ip = []types.BaseCustomizationIpV6Generator{
+				&types.CustomizationFixedIpV6{
+					IpAddress:  network.ipv6Address,
+					SubnetMask: network.ipv6PrefixLength,
+				},
+			}
+			ipv6Spec.Gateway = []string{network.ipv6Gateway}
+		}
+		ipSetting.IpV6Spec = ipv6Spec
 
 		// network config
 		config := types.CustomizationAdapterMapping{
