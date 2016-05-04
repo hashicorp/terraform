@@ -176,6 +176,24 @@ func (p *ResourceProvider) Refresh(
 	return resp.State, err
 }
 
+func (p *ResourceProvider) ImportState(
+	info *terraform.InstanceInfo) ([]*terraform.InstanceState, error) {
+	var resp ResourceProviderImportStateResponse
+	args := &ResourceProviderImportStateArgs{
+		Info: info,
+	}
+
+	err := p.Client.Call("Plugin.ImportState", args, &resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		err = resp.Error
+	}
+
+	return resp.State, err
+}
+
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	var result []terraform.ResourceType
 
@@ -242,6 +260,15 @@ type ResourceProviderRefreshArgs struct {
 
 type ResourceProviderRefreshResponse struct {
 	State *terraform.InstanceState
+	Error *plugin.BasicError
+}
+
+type ResourceProviderImportStateArgs struct {
+	Info *terraform.InstanceInfo
+}
+
+type ResourceProviderImportStateResponse struct {
+	State []*terraform.InstanceState
 	Error *plugin.BasicError
 }
 
@@ -356,6 +383,17 @@ func (s *ResourceProviderServer) Refresh(
 	newState, err := s.Provider.Refresh(args.Info, args.State)
 	*result = ResourceProviderRefreshResponse{
 		State: newState,
+		Error: plugin.NewBasicError(err),
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) ImportState(
+	args *ResourceProviderImportStateArgs,
+	result *ResourceProviderImportStateResponse) error {
+	states, err := s.Provider.ImportState(args.Info)
+	*result = ResourceProviderImportStateResponse{
+		State: states,
 		Error: plugin.NewBasicError(err),
 	}
 	return nil

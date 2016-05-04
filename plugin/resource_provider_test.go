@@ -334,8 +334,8 @@ func TestResourceProvider_resources(t *testing.T) {
 	provider := raw.(terraform.ResourceProvider)
 
 	expected := []terraform.ResourceType{
-		{"foo"},
-		{"bar"},
+		terraform.ResourceType{Name: "foo"},
+		terraform.ResourceType{Name: "bar", Importable: true},
 	}
 
 	p.ResourcesReturn = expected
