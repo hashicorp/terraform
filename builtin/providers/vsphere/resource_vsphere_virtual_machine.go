@@ -1553,6 +1553,9 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		NumCPUs:           vm.vcpu,
 		NumCoresPerSocket: 1,
 		MemoryMB:          vm.memoryMb,
+		MemoryAllocation: &types.ResourceAllocationInfo{
+			Reservation: vm.memoryAllocation.reservation,
+		},
 	}
 
 	log.Printf("[DEBUG] virtual machine config spec: %v", configSpec)
