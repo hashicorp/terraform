@@ -32,10 +32,10 @@ type networkInterface struct {
 	deviceName       string
 	label            string
 	ipv4Address      string
-	ipv4PrefixLength int
+	ipv4PrefixLength int32
 	ipv4Gateway      string
 	ipv6Address      string
-	ipv6PrefixLength int
+	ipv6PrefixLength int32
 	ipv6Gateway      string
 	adapterType      string // TODO: Make "adapter_type" argument
 }
@@ -72,7 +72,7 @@ type virtualMachine struct {
 	cluster               string
 	resourcePool          string
 	datastore             string
-	vcpu                  int
+	vcpu                  int32
 	memoryMb              int64
 	memoryAllocation      memoryAllocation
 	template              string
@@ -423,7 +423,7 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 	configSpec := types.VirtualMachineConfigSpec{}
 
 	if d.HasChange("vcpu") {
-		configSpec.NumCPUs = d.Get("vcpu").(int)
+		configSpec.NumCPUs = int32(d.Get("vcpu").(int))
 		hasChanges = true
 		rebootRequired = true
 	}
@@ -505,7 +505,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 	vm := virtualMachine{
 		name:     d.Get("name").(string),
-		vcpu:     d.Get("vcpu").(int),
+		vcpu:     int32(d.Get("vcpu").(int)),
 		memoryMb: int64(d.Get("memory").(int)),
 		memoryAllocation: memoryAllocation{
 			reservation: int64(d.Get("memory_reservation").(int)),
@@ -587,7 +587,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				if ip != nil {
 					mask := net.IPv4Mask(ip[0], ip[1], ip[2], ip[3])
 					pl, _ := mask.Size()
-					networks[i].ipv4PrefixLength = pl
+					networks[i].ipv4PrefixLength = int32(pl)
 				} else {
 					return fmt.Errorf("subnet_mask parameter is invalid.")
 				}
@@ -595,8 +595,9 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 			if v, ok := network["ipv4_address"].(string); ok && v != "" {
 				networks[i].ipv4Address = v
 			}
+
 			if v, ok := network["ipv4_prefix_length"].(int); ok && v != 0 {
-				networks[i].ipv4PrefixLength = v
+				networks[i].ipv4PrefixLength = int32(v)
 			}
 			if v, ok := network["ipv4_gateway"].(string); ok && v != "" {
 				networks[i].ipv4Gateway = v
@@ -605,7 +606,7 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 				networks[i].ipv6Address = v
 			}
 			if v, ok := network["ipv6_prefix_length"].(int); ok && v != 0 {
-				networks[i].ipv6PrefixLength = v
+				networks[i].ipv6PrefixLength = int32(v)
 			}
 			if v, ok := network["ipv6_gateway"].(string); ok && v != "" {
 				networks[i].ipv6Gateway = v
@@ -941,7 +942,8 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 		// TODO Check if diskPath & datastore exist
 		newDiskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
 	}
-	disk := devices.CreateDisk(controller, newDiskPath)
+
+	disk := devices.CreateDisk(controller, datastore.Reference(), newDiskPath)
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
 
@@ -1046,7 +1048,7 @@ func buildNetworkDevice(f *find.Finder, label, adapterType string) (*types.Virtu
 
 // buildVMRelocateSpec builds VirtualMachineRelocateSpec to set a place for a new VirtualMachine.
 func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *object.VirtualMachine, linkedClone bool, initType string) (types.VirtualMachineRelocateSpec, error) {
-	var key int
+	var key int32
 	var moveType string
 	if linkedClone {
 		moveType = "createNewChildDiskBacking"
@@ -1139,7 +1141,7 @@ func buildStoragePlacementSpecClone(c *govmomi.Client, f *object.DatacenterFolde
 		return types.StoragePlacementSpec{}
 	}
 
-	var key int
+	var key int32
 	for _, d := range devices.SelectByType((*types.VirtualDisk)(nil)) {
 		key = d.GetVirtualDevice().Key
 		log.Printf("[DEBUG] findDatastore: virtual devices: %#v\n", d.GetVirtualDevice())
@@ -1504,7 +1506,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 			if network.ipv4PrefixLength == 0 {
 				return fmt.Errorf("Error: ipv4_prefix_length argument is empty.")
 			}
-			m := net.CIDRMask(network.ipv4PrefixLength, 32)
+			m := net.CIDRMask(int(network.ipv4PrefixLength), 32)
 			sm := net.IPv4(m[0], m[1], m[2], m[3])
 			subnetMask := sm.String()
 			log.Printf("[DEBUG] ipv4 gateway: %v\n", network.ipv4Gateway)
@@ -1592,7 +1594,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 		guiUnattended := types.CustomizationGuiUnattended{
 			AutoLogon:      false,
 			AutoLogonCount: 1,
-			TimeZone:       timeZone,
+			TimeZone:       int32(timeZone),
 		}
 
 		customIdentification := types.CustomizationIdentification{}
@@ -1692,7 +1694,7 @@ func (vm *virtualMachine) deployVirtualMachine(c *govmomi.Client) error {
 	for _, dvc := range devices {
 		// Issue 3559/3560: Delete all ethernet devices to add the correct ones later
 		if devices.Type(dvc) == "ethernet" {
-			err := newVM.RemoveDevice(context.TODO(), dvc)
+			err := newVM.RemoveDevice(context.TODO(), false, dvc)
 			if err != nil {
 				return err
 			}

@@ -142,7 +142,7 @@ func (h HostSystem) Reconnect(ctx context.Context, cnxSpec *types.HostConnectSpe
 	return NewTask(h.c, res.Returnval), nil
 }
 
-func (h HostSystem) EnterMaintenanceMode(ctx context.Context, timeout int, evacuate bool, spec *types.HostMaintenanceSpec) (*Task, error) {
+func (h HostSystem) EnterMaintenanceMode(ctx context.Context, timeout int32, evacuate bool, spec *types.HostMaintenanceSpec) (*Task, error) {
 	req := types.EnterMaintenanceMode_Task{
 		This:                  h.Reference(),
 		Timeout:               timeout,
@@ -158,7 +158,7 @@ func (h HostSystem) EnterMaintenanceMode(ctx context.Context, timeout int, evacu
 	return NewTask(h.c, res.Returnval), nil
 }
 
-func (h HostSystem) ExitMaintenanceMode(ctx context.Context, timeout int) (*Task, error) {
+func (h HostSystem) ExitMaintenanceMode(ctx context.Context, timeout int32) (*Task, error) {
 	req := types.ExitMaintenanceMode_Task{
 		This:    h.Reference(),
 		Timeout: timeout,
