@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: Fix updating `number_of_nodes` on `aws_redshift_cluster` [GH-6333]
  * provider/aws: Omit `aws_cloudfront_distribution` custom_error fields when not explicitly set [GH-6382]
  * provider/aws: Refresh state on `aws_sqs_queue` not found [GH-6381]
+ * provider/aws: Fix issue in updating CloudFront distribution LoggingConfig [GH-6407]
  * provider/aws: Fix an eventually consistent issue aws_security_group_rule and possible duplications [GH-6325]
  * provider/aws: Respect `selection_pattern` in `aws_api_gateway_integration_response` (previously ignored field) [GH-5893]
  * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
