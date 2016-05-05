@@ -243,6 +243,20 @@ func (s *Schema) finalizeDiff(
 		return d
 	}
 
+	if s.Type == TypeBool {
+		normalizeBoolString := func(s string) string {
+			switch s {
+			case "0":
+				return "false"
+			case "1":
+				return "true"
+			}
+			return s
+		}
+		d.Old = normalizeBoolString(d.Old)
+		d.New = normalizeBoolString(d.New)
+	}
+
 	if d.NewRemoved {
 		return d
 	}
