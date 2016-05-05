@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticache"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -347,24 +346,20 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		}
 		// list tags for resource
 		// set tags
-		arn, err := buildECARN(d, meta)
+		arn := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+		resp, err := conn.ListTagsForResource(&elasticache.ListTagsForResourceInput{
+			ResourceName: aws.String(arn),
+		})
+
 		if err != nil {
-			log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for cluster %s", *c.CacheClusterId)
-		} else {
-			resp, err := conn.ListTagsForResource(&elasticache.ListTagsForResourceInput{
-				ResourceName: aws.String(arn),
-			})
-
-			if err != nil {
-				log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
-			}
-
-			var et []*elasticache.Tag
-			if len(resp.TagList) > 0 {
-				et = resp.TagList
-			}
-			d.Set("tags", tagsToMapEC(et))
+			log.Printf("[DEBUG] Error retrieving tags for ARN: %s", arn)
 		}
+
+		var et []*elasticache.Tag
+		if len(resp.TagList) > 0 {
+			et = resp.TagList
+		}
+		d.Set("tags", tagsToMapEC(et))
 	}
 
 	return nil
@@ -372,13 +367,9 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 
 func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
-	arn, err := buildECARN(d, meta)
-	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not updating Tags for cluster %s", d.Id())
-	} else {
-		if err := setTagsEC(conn, d, arn); err != nil {
-			return err
-		}
+	arn := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	if err := setTagsEC(conn, d, arn); err != nil {
+		return err
 	}
 
 	req := &elasticache.ModifyCacheClusterInput{
@@ -619,16 +610,7 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 	}
 }
 
-func buildECARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
-	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountID, d.Id())
-	return arn, nil
+func buildECARN(identifier, accountid, region string) string {
+	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountid, identifier)
+	return arn
 }
