@@ -59,6 +59,9 @@ func testAccCheckAWSAPIGatewayMockIntegrationAttributes(conf *apigateway.Integra
 		if *conf.Type != "MOCK" {
 			return fmt.Errorf("Wrong Type: %q", *conf.Type)
 		}
+		if *conf.RequestParameters["integration.request.header.X-Authorization"] != "'updated'" {
+			return fmt.Errorf("wrong updated RequestParameters for header.X-Authorization")
+		}
 		return nil
 	}
 }
@@ -79,6 +82,9 @@ func testAccCheckAWSAPIGatewayIntegrationAttributes(conf *apigateway.Integration
 		}
 		if *conf.RequestTemplates["application/xml"] != "#set($inputRoot = $input.path('$'))\n{ }" {
 			return fmt.Errorf("wrong RequestTemplate for application/xml")
+		}
+		if *conf.RequestParameters["integration.request.header.X-Authorization"] != "'static'" {
+			return fmt.Errorf("wrong RequestParameters for header.X-Authorization")
 		}
 		return nil
 	}
@@ -178,6 +184,12 @@ resource "aws_api_gateway_integration" "test" {
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
 
+  request_parameters_in_json = <<PARAMS
+  {
+	  "integration.request.header.X-Authorization": "'static'"
+  }
+  PARAMS
+
   type = "HTTP"
   uri = "https://www.google.de"
   integration_http_method = "GET"
@@ -210,6 +222,12 @@ resource "aws_api_gateway_integration" "test" {
   rest_api_id = "${aws_api_gateway_rest_api.test.id}"
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
+
+  request_parameters_in_json = <<PARAMS
+  {
+	  "integration.request.header.X-Authorization": "'updated'"
+  }
+  PARAMS
 
   type = "MOCK"
 }
