@@ -186,7 +186,7 @@ of several sub-resources - these resources are laid out below.
 
 ##### Forwarded Values Arguments
 
-  * `cookies` (Optional) - The [forwarded values cookies](#cookies-arguments)
+  * `cookies` (Required) - The [forwarded values cookies](#cookies-arguments)
     that specifies how CloudFront handles cookies (maximum one).
 
   * `headers` (Optional) - Specifies the Headers, if any, that you want
@@ -200,7 +200,8 @@ of several sub-resources - these resources are laid out below.
 
   * `forward` (Required) - Specifies whether you want CloudFront to forward
     cookies to the origin that is associated with this cache behavior. You can
-    specify `all`, `none` or `whitelist`.
+    specify `all`, `none` or `whitelist`. If `whitelist`, you must include the
+    subsequent `whitelisted_names`
 
   * `whitelisted_names` (Optional) - If you have specified `whitelist` to
     `forward`, the whitelisted cookies that you want CloudFront to forward to
