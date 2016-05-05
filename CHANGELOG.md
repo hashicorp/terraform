@@ -44,6 +44,7 @@ BUG FIXES:
  * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
  * provider/aws: Fix issue replacing Network ACL Relationship [GH-6421]
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
+ * provider/aws: Fix issue in upgrading AutoScaling Policy to use `min_adjustment_magnitude` [GH-6440]
  * provider/aws: Fix issue with encrypted snapshots of block devices in `aws_launch_configuration` resources [GH-6452]
  * provider/cloudflare: can manage apex records [GH-6449]
  * provider/cloudflare: won't refresh with incorrect record if names match [GH-6449]
