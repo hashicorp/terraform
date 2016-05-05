@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -35,6 +36,38 @@ func TestAccAWSAutoscalingPolicy_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_step", "metric_aggregation_type", "Minimum"),
 					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_step", "estimated_instance_warmup", "200"),
 					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_step", "autoscaling_group_name", "terraform-test-foobar5"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAutoscalingPolicy_upgrade(t *testing.T) {
+	var policy autoscaling.ScalingPolicy
+
+	name := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoscalingPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoscalingPolicyConfig_upgrade_614(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalingPolicyExists("aws_autoscaling_policy.foobar_simple", &policy),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_simple", "min_adjustment_step", "0"),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_simple", "min_adjustment_magnitude", "1"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoscalingPolicyConfig_upgrade_615(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalingPolicyExists("aws_autoscaling_policy.foobar_simple", &policy),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_simple", "min_adjustment_step", "0"),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_simple", "min_adjustment_magnitude", "1"),
 				),
 			},
 		},
@@ -137,3 +170,79 @@ resource "aws_autoscaling_policy" "foobar_step" {
 	autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
 }
 `)
+
+func testAccAWSAutoscalingPolicyConfig_upgrade_614(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  name          = "tf-test-%s"
+  image_id      = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "foobar" {
+  availability_zones        = ["us-west-2a"]
+  name                      = "terraform-test-%s"
+  max_size                  = 5
+  min_size                  = 1
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  force_delete              = true
+  termination_policies      = ["OldestInstance"]
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+
+  tag {
+    key                 = "Foo"
+    value               = "foo-bar"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_autoscaling_policy" "foobar_simple" {
+  name                   = "foobar_simple_%s"
+  adjustment_type        = "PercentChangeInCapacity"
+  cooldown               = 300
+  policy_type            = "SimpleScaling"
+  scaling_adjustment     = 2
+  min_adjustment_step    = 1
+  autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
+}
+`, name, name, name)
+}
+
+func testAccAWSAutoscalingPolicyConfig_upgrade_615(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  name          = "tf-test-%s"
+  image_id      = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "foobar" {
+  availability_zones        = ["us-west-2a"]
+  name                      = "terraform-test-%s"
+  max_size                  = 5
+  min_size                  = 1
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  force_delete              = true
+  termination_policies      = ["OldestInstance"]
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+
+  tag {
+    key                 = "Foo"
+    value               = "foo-bar"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_autoscaling_policy" "foobar_simple" {
+  name                     = "foobar_simple_%s"
+  adjustment_type          = "PercentChangeInCapacity"
+  cooldown                 = 300
+  policy_type              = "SimpleScaling"
+  scaling_adjustment       = 2
+  min_adjustment_magnitude = 1
+  autoscaling_group_name   = "${aws_autoscaling_group.foobar.name}"
+}
+`, name, name, name)
+}
