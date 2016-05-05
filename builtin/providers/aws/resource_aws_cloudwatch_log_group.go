@@ -19,9 +19,10 @@ func resourceAwsCloudWatchLogGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateLogGroupName,
 			},
 
 			"retention_in_days": &schema.Schema{
@@ -123,7 +124,9 @@ func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{
 			})
 		}
 
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceAwsCloudWatchLogGroupRead(d, meta)

@@ -104,9 +104,12 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	// The failed status is a status that we can assume just means the
 	// connection is gone. Destruction isn't allowed, and it eventually
 	// just "falls off" the console. See GH-2322
-	if *pc.Status.Code == "failed" {
-		d.SetId("")
-		return nil
+	if pc.Status != nil {
+		if *pc.Status.Code == "failed" || *pc.Status.Code == "deleted" {
+			log.Printf("[DEBUG] VPC Peering Connect (%s) in state (%s), removing", d.Id(), *pc.Status.Code)
+			d.SetId("")
+			return nil
+		}
 	}
 
 	d.Set("accept_status", *pc.Status.Code)
@@ -144,7 +147,6 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if _, ok := d.GetOk("auto_accept"); ok {
-
 		pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
 
 		if err != nil {
@@ -157,7 +159,6 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		pc := pcRaw.(*ec2.VpcPeeringConnection)
 
 		if pc.Status != nil && *pc.Status.Code == "pending-acceptance" {
-
 			status, err := resourceVPCPeeringConnectionAccept(conn, d.Id())
 			if err != nil {
 				return err

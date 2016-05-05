@@ -85,7 +85,7 @@ func resourceAwsEcsClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Deleting ECS cluster %s", d.Id())
 
-	err := resource.Retry(10*time.Minute, func() error {
+	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 		out, err := conn.DeleteCluster(&ecs.DeleteClusterInput{
 			Cluster: aws.String(d.Id()),
 		})
@@ -97,27 +97,27 @@ func resourceAwsEcsClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 		awsErr, ok := err.(awserr.Error)
 		if !ok {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		if awsErr.Code() == "ClusterContainsContainerInstancesException" {
 			log.Printf("[TRACE] Retrying ECS cluster %q deletion after %q", d.Id(), awsErr.Code())
-			return err
+			return resource.RetryableError(err)
 		}
 
 		if awsErr.Code() == "ClusterContainsServicesException" {
 			log.Printf("[TRACE] Retrying ECS cluster %q deletion after %q", d.Id(), awsErr.Code())
-			return err
+			return resource.RetryableError(err)
 		}
 
-		return resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 	})
 	if err != nil {
 		return err
 	}
 
 	clusterName := d.Get("name").(string)
-	err = resource.Retry(5*time.Minute, func() error {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		log.Printf("[DEBUG] Checking if ECS Cluster %q is INACTIVE", d.Id())
 		out, err := conn.DescribeClusters(&ecs.DescribeClustersInput{
 			Clusters: []*string{aws.String(clusterName)},
@@ -129,12 +129,13 @@ func resourceAwsEcsClusterDelete(d *schema.ResourceData, meta interface{}) error
 					return nil
 				}
 
-				return fmt.Errorf("ECS Cluster %q is still %q", clusterName, *c.Status)
+				return resource.RetryableError(
+					fmt.Errorf("ECS Cluster %q is still %q", clusterName, *c.Status))
 			}
 		}
 
 		if err != nil {
-			return resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		return nil

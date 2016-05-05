@@ -99,7 +99,13 @@ type Schema struct {
 	// TypeList, and represents what the element type is. If it is *Schema,
 	// the element type is just a simple value. If it is *Resource, the
 	// element type is a complex structure, potentially with its own lifecycle.
-	Elem interface{}
+	//
+	// MaxItems defines a maximum amount of items that can exist within a
+	// TypeSet or TypeList. Specific use cases would be if a TypeSet is being
+	// used to wrap a complex structure, however more than one instance would
+	// cause instability.
+	Elem     interface{}
+	MaxItems int
 
 	// The following fields are only valid for a TypeSet type.
 	//
@@ -540,6 +546,10 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 					return fmt.Errorf(
 						"%s: Elem must have only Type set", k)
 				}
+			}
+		} else {
+			if v.MaxItems > 0 {
+				return fmt.Errorf("%s: MaxItems is only supported on lists or sets", k)
 			}
 		}
 
@@ -1047,6 +1057,12 @@ func (m schemaMap) validateList(
 	if rawV.Kind() != reflect.Slice {
 		return nil, []error{fmt.Errorf(
 			"%s: should be a list", k)}
+	}
+
+	// Validate length
+	if schema.MaxItems > 0 && rawV.Len() > schema.MaxItems {
+		return nil, []error{fmt.Errorf(
+			"%s: attribute supports %d item maximum, config has %d declared", k, schema.MaxItems, rawV.Len())}
 	}
 
 	// Now build the []interface{}

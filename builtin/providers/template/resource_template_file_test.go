@@ -2,6 +2,9 @@ package template
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -75,6 +78,30 @@ func TestTemplateVariableChange(t *testing.T) {
 		Providers: testProviders,
 		Steps:     testSteps,
 	})
+}
+
+func TestValidateTemplateAttribute(t *testing.T) {
+	file, err := ioutil.TempFile("", "testtemplate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.WriteString("Hello world.")
+	file.Close()
+	defer os.Remove(file.Name())
+
+	ws, es := validateTemplateAttribute(file.Name(), "test")
+
+	if len(es) != 0 {
+		t.Fatalf("Unexpected errors: %#v", es)
+	}
+
+	if len(ws) != 1 {
+		t.Fatalf("Expected 1 warning, got %d", len(ws))
+	}
+
+	if !strings.Contains(ws[0], "Specifying a path directly is deprecated") {
+		t.Fatalf("Expected warning about path, got: %s", ws[0])
+	}
 }
 
 // This test covers a panic due to config.Func formerly being a

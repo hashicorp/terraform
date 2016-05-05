@@ -3,6 +3,8 @@ package aws
 import (
 	"log"
 
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -26,6 +28,10 @@ func resourceAwsEcrRepository() *schema.Resource {
 				Computed: true,
 			},
 			"registry_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"repository_url": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -81,7 +87,15 @@ func resourceAwsEcrRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("arn", *repository.RepositoryArn)
 	d.Set("registry_id", *repository.RegistryId)
 
+	repositoryUrl := buildRepositoryUrl(repository, meta.(*AWSClient).region)
+	log.Printf("[INFO] Setting the repository url to be %s", repositoryUrl)
+	d.Set("repository_url", repositoryUrl)
+
 	return nil
+}
+
+func buildRepositoryUrl(repo *ecr.Repository, region string) string {
+	return fmt.Sprintf("https://%s.dkr.ecr.%s.amazonaws.com/%s", *repo.RegistryId, region, *repo.RepositoryName)
 }
 
 func resourceAwsEcrRepositoryDelete(d *schema.ResourceData, meta interface{}) error {

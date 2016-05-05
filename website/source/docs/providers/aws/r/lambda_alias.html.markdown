@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_lambda_alias"
-sidebar_current: "docs-aws-resource-aws-lambda-alias"
+sidebar_current: "docs-aws-resource-lambda-alias"
 description: |-
   Creates a Lambda function alias.
 ---

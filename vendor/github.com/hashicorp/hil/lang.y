@@ -21,6 +21,7 @@ import (
 %token  <str> PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
+%token  <str> SQUARE_BRACKET_LEFT SQUARE_BRACKET_RIGHT
 
 %token <token> ARITH_OP IDENTIFIER INTEGER FLOAT STRING
 
@@ -43,17 +44,17 @@ top:
 	{
         parserResult = $1
 
-        // We want to make sure that the top value is always a Concat
-        // so that the return value is always a string type from an
+        // We want to make sure that the top value is always an Output
+        // so that the return value is always a string, list of map from an
         // interpolation.
         //
         // The logic for checking for a LiteralNode is a little annoying
         // because functionally the AST is the same, but we do that because
         // it makes for an easy literal check later (to check if a string
         // has any interpolations).
-        if _, ok := $1.(*ast.Concat); !ok {
+        if _, ok := $1.(*ast.Output); !ok {
             if n, ok := $1.(*ast.LiteralNode); !ok || n.Typex != ast.TypeString {
-                parserResult = &ast.Concat{
+                parserResult = &ast.Output{
                     Exprs: []ast.Node{$1},
                     Posx:  $1.Pos(),
                 }
@@ -69,13 +70,13 @@ literalModeTop:
 |   literalModeTop literalModeValue
     {
         var result []ast.Node
-        if c, ok := $1.(*ast.Concat); ok {
+        if c, ok := $1.(*ast.Output); ok {
             result = append(c.Exprs, $2)
         } else {
             result = []ast.Node{$1, $2}
         }
 
-        $$ = &ast.Concat{
+        $$ = &ast.Output{
             Exprs: result,
             Posx:  result[0].Pos(),
         }
@@ -156,6 +157,17 @@ expr:
 |   IDENTIFIER PAREN_LEFT args PAREN_RIGHT
     {
         $$ = &ast.Call{Func: $1.Value.(string), Args: $3, Posx: $1.Pos}
+    }
+|   IDENTIFIER SQUARE_BRACKET_LEFT expr SQUARE_BRACKET_RIGHT
+    {
+        $$ = &ast.Index{
+                Target: &ast.VariableAccess{
+                    Name: $1.Value.(string),
+                    Posx: $1.Pos,
+                },
+                Key: $3,
+                Posx: $1.Pos,
+            }
     }
 
 args:

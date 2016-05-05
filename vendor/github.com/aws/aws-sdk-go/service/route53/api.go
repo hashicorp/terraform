@@ -4,6 +4,7 @@
 package route53
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -32,12 +33,12 @@ func (c *Route53) AssociateVPCWithHostedZoneRequest(input *AssociateVPCWithHoste
 
 // This action associates a VPC with an hosted zone.
 //
-// To associate a VPC with an hosted zone, send a POST request to the 2013-04-01/hostedzone/hosted
-// zone ID/associatevpc resource. The request body must include an XML document
-// with a AssociateVPCWithHostedZoneRequest element. The response returns the
-// AssociateVPCWithHostedZoneResponse element that contains ChangeInfo for you
-// to track the progress of the AssociateVPCWithHostedZoneRequest you made.
-// See GetChange operation for how to track the progress of your change.
+// To associate a VPC with an hosted zone, send a POST request to the /Route
+// 53 API version/hostedzone/hosted zone ID/associatevpc resource. The request
+// body must include a document with a AssociateVPCWithHostedZoneRequest element.
+// The response returns the AssociateVPCWithHostedZoneResponse element that
+// contains ChangeInfo for you to track the progress of the AssociateVPCWithHostedZoneRequest
+// you made. See GetChange operation for how to track the progress of your change.
 func (c *Route53) AssociateVPCWithHostedZone(input *AssociateVPCWithHostedZoneInput) (*AssociateVPCWithHostedZoneOutput, error) {
 	req, out := c.AssociateVPCWithHostedZoneRequest(input)
 	err := req.Send()
@@ -65,13 +66,13 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 }
 
 // Use this action to create or change your authoritative DNS information. To
-// use this action, send a POST request to the 2013-04-01/hostedzone/hosted
-// Zone ID/rrset resource. The request body must include an XML document with
-// a ChangeResourceRecordSetsRequest element.
+// use this action, send a POST request to the /Route 53 API version/hostedzone/hosted
+// Zone ID/rrset resource. The request body must include a document with a ChangeResourceRecordSetsRequest
+// element.
 //
 // Changes are a list of change items and are considered transactional. For
 // more information on transactional changes, also known as change batches,
-// see POST ChangeResourceRecordSets (http://docs.aws.amazon.com/Route53/latest/APIReference/)
+// see POST ChangeResourceRecordSets (http://docs.aws.amazon.com/Route53/latest/APIReference/API_ChangeResourceRecordSets.html)
 // in the Amazon Route 53 API Reference.
 //
 // Due to the nature of transactional changes, you cannot delete the same resource
@@ -143,8 +144,8 @@ func (c *Route53) CreateHealthCheckRequest(input *CreateHealthCheckInput) (req *
 
 // This action creates a new health check.
 //
-// To create a new health check, send a POST request to the 2013-04-01/healthcheck
-// resource. The request body must include an XML document with a CreateHealthCheckRequest
+// To create a new health check, send a POST request to the /Route 53 API version/healthcheck
+// resource. The request body must include a document with a CreateHealthCheckRequest
 // element. The response returns the CreateHealthCheckResponse element that
 // contains metadata about the health check.
 func (c *Route53) CreateHealthCheck(input *CreateHealthCheckInput) (*CreateHealthCheckOutput, error) {
@@ -175,8 +176,8 @@ func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *re
 
 // This action creates a new hosted zone.
 //
-// To create a new hosted zone, send a POST request to the 2013-04-01/hostedzone
-// resource. The request body must include an XML document with a CreateHostedZoneRequest
+// To create a new hosted zone, send a POST request to the /Route 53 API version/hostedzone
+// resource. The request body must include a document with a CreateHostedZoneRequest
 // element. The response returns the CreateHostedZoneResponse element that contains
 // metadata about the hosted zone.
 //
@@ -223,10 +224,11 @@ func (c *Route53) CreateReusableDelegationSetRequest(input *CreateReusableDelega
 
 // This action creates a reusable delegationSet.
 //
-// To create a new reusable delegationSet, send a POST request to the 2013-04-01/delegationset
-// resource. The request body must include an XML document with a CreateReusableDelegationSetRequest
-// element. The response returns the CreateReusableDelegationSetResponse element
-// that contains metadata about the delegationSet.
+// To create a new reusable delegationSet, send a POST request to the /Route
+// 53 API version/delegationset resource. The request body must include a document
+// with a CreateReusableDelegationSetRequest element. The response returns the
+// CreateReusableDelegationSetResponse element that contains metadata about
+// the delegationSet.
 //
 // If the optional parameter HostedZoneId is specified, it marks the delegationSet
 // associated with that particular hosted zone as reusable.
@@ -260,8 +262,8 @@ func (c *Route53) CreateTrafficPolicyRequest(input *CreateTrafficPolicyInput) (r
 // sets for one domain name (such as example.com) or one subdomain name (such
 // as www.example.com).
 //
-// To create a traffic policy, send a POST request to the 2013-04-01/trafficpolicy
-// resource. The request body must include an XML document with a CreateTrafficPolicyRequest
+// To create a traffic policy, send a POST request to the /Route 53 API version/trafficpolicy
+// resource. The request body must include a document with a CreateTrafficPolicyRequest
 // element. The response includes the CreateTrafficPolicyResponse element, which
 // contains information about the new traffic policy.
 func (c *Route53) CreateTrafficPolicy(input *CreateTrafficPolicyInput) (*CreateTrafficPolicyOutput, error) {
@@ -297,10 +299,11 @@ func (c *Route53) CreateTrafficPolicyInstanceRequest(input *CreateTrafficPolicyI
 // responds to DNS queries for the domain or subdomain name by using the resource
 // record sets that CreateTrafficPolicyInstance created.
 //
-// To create a traffic policy instance, send a POST request to the 2013-04-01/trafficpolicyinstance
-// resource. The request body must include an XML document with a CreateTrafficPolicyRequest
-// element. The response returns the CreateTrafficPolicyInstanceResponse element,
-// which contains information about the traffic policy instance.
+// To create a traffic policy instance, send a POST request to the /Route 53
+// API version/trafficpolicyinstance resource. The request body must include
+// a document with a CreateTrafficPolicyRequest element. The response returns
+// the CreateTrafficPolicyInstanceResponse element, which contains information
+// about the traffic policy instance.
 func (c *Route53) CreateTrafficPolicyInstance(input *CreateTrafficPolicyInstanceInput) (*CreateTrafficPolicyInstanceOutput, error) {
 	req, out := c.CreateTrafficPolicyInstanceRequest(input)
 	err := req.Send()
@@ -334,8 +337,8 @@ func (c *Route53) CreateTrafficPolicyVersionRequest(input *CreateTrafficPolicyVe
 // You use traffic policies to create multiple DNS resource record sets for
 // one domain name (such as example.com) or one subdomain name (such as www.example.com).
 //
-// To create a new version, send a POST request to the 2013-04-01/trafficpolicy/
-// resource. The request body includes an XML document with a CreateTrafficPolicyVersionRequest
+// To create a new version, send a POST request to the /Route 53 API version/trafficpolicy/
+// resource. The request body includes a document with a CreateTrafficPolicyVersionRequest
 // element. The response returns the CreateTrafficPolicyVersionResponse element,
 // which contains information about the new version of the traffic policy.
 func (c *Route53) CreateTrafficPolicyVersion(input *CreateTrafficPolicyVersionInput) (*CreateTrafficPolicyVersionOutput, error) {
@@ -365,7 +368,7 @@ func (c *Route53) DeleteHealthCheckRequest(input *DeleteHealthCheckInput) (req *
 }
 
 // This action deletes a health check. To delete a health check, send a DELETE
-// request to the 2013-04-01/healthcheck/health check ID resource.
+// request to the /Route 53 API version/healthcheck/health check ID resource.
 //
 //  You can delete a health check only if there are no resource record sets
 // associated with this health check. If resource record sets are associated
@@ -401,7 +404,7 @@ func (c *Route53) DeleteHostedZoneRequest(input *DeleteHostedZoneInput) (req *re
 }
 
 // This action deletes a hosted zone. To delete a hosted zone, send a DELETE
-// request to the 2013-04-01/hostedzone/hosted zone ID resource.
+// request to the /Route 53 API version/hostedzone/hosted zone ID resource.
 //
 // For more information about deleting a hosted zone, see Deleting a Hosted
 // Zone (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DeleteHostedZone.html)
@@ -441,8 +444,8 @@ func (c *Route53) DeleteReusableDelegationSetRequest(input *DeleteReusableDelega
 }
 
 // This action deletes a reusable delegation set. To delete a reusable delegation
-// set, send a DELETE request to the 2013-04-01/delegationset/delegation set
-// ID resource.
+// set, send a DELETE request to the /Route 53 API version/delegationset/delegation
+// set ID resource.
 //
 //  You can delete a reusable delegation set only if there are no associated
 // hosted zones. If your reusable delegation set contains associated hosted
@@ -477,7 +480,7 @@ func (c *Route53) DeleteTrafficPolicyRequest(input *DeleteTrafficPolicyInput) (r
 }
 
 // Deletes a traffic policy. To delete a traffic policy, send a DELETE request
-// to the 2013-04-01/trafficpolicy resource.
+// to the /Route 53 API version/trafficpolicy resource.
 func (c *Route53) DeleteTrafficPolicy(input *DeleteTrafficPolicyInput) (*DeleteTrafficPolicyOutput, error) {
 	req, out := c.DeleteTrafficPolicyRequest(input)
 	err := req.Send()
@@ -507,8 +510,8 @@ func (c *Route53) DeleteTrafficPolicyInstanceRequest(input *DeleteTrafficPolicyI
 // Deletes a traffic policy instance and all of the resource record sets that
 // Amazon Route 53 created when you created the instance.
 //
-// To delete a traffic policy instance, send a DELETE request to the 2013-04-01/trafficpolicy/traffic
-// policy instance ID resource.
+// To delete a traffic policy instance, send a DELETE request to the /Route
+// 53 API version/trafficpolicy/traffic policy instance ID resource.
 //
 // When you delete a traffic policy instance, Amazon Route 53 also deletes
 // all of the resource record sets that were created when you created the traffic
@@ -541,11 +544,11 @@ func (c *Route53) DisassociateVPCFromHostedZoneRequest(input *DisassociateVPCFro
 
 // This action disassociates a VPC from an hosted zone.
 //
-// To disassociate a VPC to a hosted zone, send a POST request to the 2013-04-01/hostedzone/hosted
-// zone ID/disassociatevpc resource. The request body must include an XML document
-// with a DisassociateVPCFromHostedZoneRequest element. The response returns
-// the DisassociateVPCFromHostedZoneResponse element that contains ChangeInfo
-// for you to track the progress of the DisassociateVPCFromHostedZoneRequest
+// To disassociate a VPC to a hosted zone, send a POST request to the /Route
+// 53 API version/hostedzone/hosted zone ID/disassociatevpc resource. The request
+// body must include a document with a DisassociateVPCFromHostedZoneRequest
+// element. The response returns the DisassociateVPCFromHostedZoneResponse element
+// that contains ChangeInfo for you to track the progress of the DisassociateVPCFromHostedZoneRequest
 // you made. See GetChange operation for how to track the progress of your change.
 func (c *Route53) DisassociateVPCFromHostedZone(input *DisassociateVPCFromHostedZoneInput) (*DisassociateVPCFromHostedZoneOutput, error) {
 	req, out := c.DisassociateVPCFromHostedZoneRequest(input)
@@ -592,6 +595,9 @@ const opGetChangeDetails = "GetChangeDetails"
 
 // GetChangeDetailsRequest generates a request for the GetChangeDetails operation.
 func (c *Route53) GetChangeDetailsRequest(input *GetChangeDetailsInput) (req *request.Request, output *GetChangeDetailsOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, GetChangeDetails, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opGetChangeDetails,
 		HTTPMethod: "GET",
@@ -636,9 +642,10 @@ func (c *Route53) GetCheckerIpRangesRequest(input *GetCheckerIpRangesInput) (req
 }
 
 // To retrieve a list of the IP ranges used by Amazon Route 53 health checkers
-// to check the health of your resources, send a GET request to the 2013-04-01/checkeripranges
-// resource. You can use these IP addresses to configure router and firewall
-// rules to allow health checkers to check the health of your resources.
+// to check the health of your resources, send a GET request to the /Route 53
+// API version/checkeripranges resource. You can use these IP addresses to configure
+// router and firewall rules to allow health checkers to check the health of
+// your resources.
 func (c *Route53) GetCheckerIpRanges(input *GetCheckerIpRangesInput) (*GetCheckerIpRangesOutput, error) {
 	req, out := c.GetCheckerIpRangesRequest(input)
 	err := req.Send()
@@ -665,9 +672,9 @@ func (c *Route53) GetGeoLocationRequest(input *GetGeoLocationInput) (req *reques
 	return
 }
 
-// To retrieve a single geo location, send a GET request to the 2013-04-01/geolocation
-// resource with one of these options: continentcode | countrycode | countrycode
-// and subdivisioncode.
+// To retrieve a single geo location, send a GET request to the /Route 53 API
+// version/geolocation resource with one of these options: continentcode | countrycode
+// | countrycode and subdivisioncode.
 func (c *Route53) GetGeoLocation(input *GetGeoLocationInput) (*GetGeoLocationOutput, error) {
 	req, out := c.GetGeoLocationRequest(input)
 	err := req.Send()
@@ -694,7 +701,7 @@ func (c *Route53) GetHealthCheckRequest(input *GetHealthCheckInput) (req *reques
 	return
 }
 
-// To retrieve the health check, send a GET request to the 2013-04-01/healthcheck/health
+// To retrieve the health check, send a GET request to the /Route 53 API version/healthcheck/health
 // check ID resource.
 func (c *Route53) GetHealthCheck(input *GetHealthCheckInput) (*GetHealthCheckOutput, error) {
 	req, out := c.GetHealthCheckRequest(input)
@@ -723,7 +730,7 @@ func (c *Route53) GetHealthCheckCountRequest(input *GetHealthCheckCountInput) (r
 }
 
 // To retrieve a count of all your health checks, send a GET request to the
-// 2013-04-01/healthcheckcount resource.
+// /Route 53 API version/healthcheckcount resource.
 func (c *Route53) GetHealthCheckCount(input *GetHealthCheckCountInput) (*GetHealthCheckCountOutput, error) {
 	req, out := c.GetHealthCheckCountRequest(input)
 	err := req.Send()
@@ -752,8 +759,8 @@ func (c *Route53) GetHealthCheckLastFailureReasonRequest(input *GetHealthCheckLa
 
 // If you want to learn why a health check is currently failing or why it failed
 // most recently (if at all), you can get the failure reason for the most recent
-// failure. Send a GET request to the 2013-04-01/healthcheck/health check ID/lastfailurereason
-// resource.
+// failure. Send a GET request to the /Route 53 API version/healthcheck/health
+// check ID/lastfailurereason resource.
 func (c *Route53) GetHealthCheckLastFailureReason(input *GetHealthCheckLastFailureReasonInput) (*GetHealthCheckLastFailureReasonOutput, error) {
 	req, out := c.GetHealthCheckLastFailureReasonRequest(input)
 	err := req.Send()
@@ -780,9 +787,9 @@ func (c *Route53) GetHealthCheckStatusRequest(input *GetHealthCheckStatusInput) 
 	return
 }
 
-// To retrieve the health check status, send a GET request to the 2013-04-01/healthcheck/health
-// check ID/status resource. You can use this call to get a health check's current
-// status.
+// To retrieve the health check status, send a GET request to the /Route 53
+// API version/healthcheck/health check ID/status resource. You can use this
+// call to get a health check's current status.
 func (c *Route53) GetHealthCheckStatus(input *GetHealthCheckStatusInput) (*GetHealthCheckStatusOutput, error) {
 	req, out := c.GetHealthCheckStatusRequest(input)
 	err := req.Send()
@@ -810,9 +817,9 @@ func (c *Route53) GetHostedZoneRequest(input *GetHostedZoneInput) (req *request.
 }
 
 // To retrieve the delegation set for a hosted zone, send a GET request to the
-// 2013-04-01/hostedzone/hosted zone ID resource. The delegation set is the
-// four Amazon Route 53 name servers that were assigned to the hosted zone when
-// you created it.
+// /Route 53 API version/hostedzone/hosted zone ID resource. The delegation
+// set is the four Amazon Route 53 name servers that were assigned to the hosted
+// zone when you created it.
 func (c *Route53) GetHostedZone(input *GetHostedZoneInput) (*GetHostedZoneOutput, error) {
 	req, out := c.GetHostedZoneRequest(input)
 	err := req.Send()
@@ -839,8 +846,8 @@ func (c *Route53) GetHostedZoneCountRequest(input *GetHostedZoneCountInput) (req
 	return
 }
 
-// To retrieve a count of all your hosted zones, send a GET request to the 2013-04-01/hostedzonecount
-// resource.
+// To retrieve a count of all your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzonecount resource.
 func (c *Route53) GetHostedZoneCount(input *GetHostedZoneCountInput) (*GetHostedZoneCountOutput, error) {
 	req, out := c.GetHostedZoneCountRequest(input)
 	err := req.Send()
@@ -867,8 +874,8 @@ func (c *Route53) GetReusableDelegationSetRequest(input *GetReusableDelegationSe
 	return
 }
 
-// To retrieve the reusable delegation set, send a GET request to the 2013-04-01/delegationset/delegation
-// set ID resource.
+// To retrieve the reusable delegation set, send a GET request to the /Route
+// 53 API version/delegationset/delegation set ID resource.
 func (c *Route53) GetReusableDelegationSet(input *GetReusableDelegationSetInput) (*GetReusableDelegationSetOutput, error) {
 	req, out := c.GetReusableDelegationSetRequest(input)
 	err := req.Send()
@@ -896,7 +903,7 @@ func (c *Route53) GetTrafficPolicyRequest(input *GetTrafficPolicyInput) (req *re
 }
 
 // Gets information about a specific traffic policy version. To get the information,
-// send a GET request to the 2013-04-01/trafficpolicy resource.
+// send a GET request to the /Route 53 API version/trafficpolicy resource.
 func (c *Route53) GetTrafficPolicy(input *GetTrafficPolicyInput) (*GetTrafficPolicyOutput, error) {
 	req, out := c.GetTrafficPolicyRequest(input)
 	err := req.Send()
@@ -926,7 +933,7 @@ func (c *Route53) GetTrafficPolicyInstanceRequest(input *GetTrafficPolicyInstanc
 // Gets information about a specified traffic policy instance.
 //
 // To get information about the traffic policy instance, send a GET request
-// to the 2013-04-01/trafficpolicyinstance resource.
+// to the /Route 53 API version/trafficpolicyinstance resource.
 //
 // After you submit a CreateTrafficPolicyInstance or an UpdateTrafficPolicyInstance
 // request, there's a brief delay while Amazon Route 53 creates the resource
@@ -962,7 +969,7 @@ func (c *Route53) GetTrafficPolicyInstanceCountRequest(input *GetTrafficPolicyIn
 // current AWS account.
 //
 // To get the number of traffic policy instances, send a GET request to the
-// 2013-04-01/trafficpolicyinstancecount resource.
+// /Route 53 API version/trafficpolicyinstancecount resource.
 func (c *Route53) GetTrafficPolicyInstanceCount(input *GetTrafficPolicyInstanceCountInput) (*GetTrafficPolicyInstanceCountOutput, error) {
 	req, out := c.GetTrafficPolicyInstanceCountRequest(input)
 	err := req.Send()
@@ -973,6 +980,9 @@ const opListChangeBatchesByHostedZone = "ListChangeBatchesByHostedZone"
 
 // ListChangeBatchesByHostedZoneRequest generates a request for the ListChangeBatchesByHostedZone operation.
 func (c *Route53) ListChangeBatchesByHostedZoneRequest(input *ListChangeBatchesByHostedZoneInput) (req *request.Request, output *ListChangeBatchesByHostedZoneOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, ListChangeBatchesByHostedZone, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opListChangeBatchesByHostedZone,
 		HTTPMethod: "GET",
@@ -1001,6 +1011,9 @@ const opListChangeBatchesByRRSet = "ListChangeBatchesByRRSet"
 
 // ListChangeBatchesByRRSetRequest generates a request for the ListChangeBatchesByRRSet operation.
 func (c *Route53) ListChangeBatchesByRRSetRequest(input *ListChangeBatchesByRRSetInput) (req *request.Request, output *ListChangeBatchesByRRSetOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, ListChangeBatchesByRRSet, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opListChangeBatchesByRRSet,
 		HTTPMethod: "GET",
@@ -1046,8 +1059,8 @@ func (c *Route53) ListGeoLocationsRequest(input *ListGeoLocationsInput) (req *re
 }
 
 // To retrieve a list of supported geo locations, send a GET request to the
-// 2013-04-01/geolocations resource. The response to this request includes a
-// GeoLocationDetailsList element with zero, one, or multiple GeoLocationDetails
+// /Route 53 API version/geolocations resource. The response to this request
+// includes a GeoLocationDetailsList element with zero, one, or multiple GeoLocationDetails
 // child elements. The list is sorted by country code, and then subdivision
 // code, followed by continents at the end of the list.
 //
@@ -1090,12 +1103,13 @@ func (c *Route53) ListHealthChecksRequest(input *ListHealthChecksInput) (req *re
 	return
 }
 
-// To retrieve a list of your health checks, send a GET request to the 2013-04-01/healthcheck
-// resource. The response to this request includes a HealthChecks element with
-// zero, one, or multiple HealthCheck child elements. By default, the list of
-// health checks is displayed on a single page. You can control the length of
-// the page that is displayed by using the MaxItems parameter. You can use the
-// Marker parameter to control the health check that the list begins with.
+// To retrieve a list of your health checks, send a GET request to the /Route
+// 53 API version/healthcheck resource. The response to this request includes
+// a HealthChecks element with zero, one, or multiple HealthCheck child elements.
+// By default, the list of health checks is displayed on a single page. You
+// can control the length of the page that is displayed by using the MaxItems
+// parameter. You can use the Marker parameter to control the health check that
+// the list begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1139,12 +1153,13 @@ func (c *Route53) ListHostedZonesRequest(input *ListHostedZonesInput) (req *requ
 	return
 }
 
-// To retrieve a list of your hosted zones, send a GET request to the 2013-04-01/hostedzone
-// resource. The response to this request includes a HostedZones element with
-// zero, one, or multiple HostedZone child elements. By default, the list of
-// hosted zones is displayed on a single page. You can control the length of
-// the page that is displayed by using the MaxItems parameter. You can use the
-// Marker parameter to control the hosted zone that the list begins with.
+// To retrieve a list of your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzone resource. The response to this request includes
+// a HostedZones element with zero, one, or multiple HostedZone child elements.
+// By default, the list of hosted zones is displayed on a single page. You can
+// control the length of the page that is displayed by using the MaxItems parameter.
+// You can use the Marker parameter to control the hosted zone that the list
+// begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1183,13 +1198,13 @@ func (c *Route53) ListHostedZonesByNameRequest(input *ListHostedZonesByNameInput
 }
 
 // To retrieve a list of your hosted zones in lexicographic order, send a GET
-// request to the 2013-04-01/hostedzonesbyname resource. The response to this
-// request includes a HostedZones element with zero or more HostedZone child
-// elements lexicographically ordered by DNS name. By default, the list of hosted
-// zones is displayed on a single page. You can control the length of the page
-// that is displayed by using the MaxItems parameter. You can use the DNSName
-// and HostedZoneId parameters to control the hosted zone that the list begins
-// with.
+// request to the /Route 53 API version/hostedzonesbyname resource. The response
+// to this request includes a HostedZones element with zero or more HostedZone
+// child elements lexicographically ordered by DNS name. By default, the list
+// of hosted zones is displayed on a single page. You can control the length
+// of the page that is displayed by using the MaxItems parameter. You can use
+// the DNSName and HostedZoneId parameters to control the hosted zone that the
+// list begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1298,12 +1313,12 @@ func (c *Route53) ListReusableDelegationSetsRequest(input *ListReusableDelegatio
 }
 
 // To retrieve a list of your reusable delegation sets, send a GET request to
-// the 2013-04-01/delegationset resource. The response to this request includes
-// a DelegationSets element with zero, one, or multiple DelegationSet child
-// elements. By default, the list of delegation sets is displayed on a single
-// page. You can control the length of the page that is displayed by using the
-// MaxItems parameter. You can use the Marker parameter to control the delegation
-// set that the list begins with.
+// the /Route 53 API version/delegationset resource. The response to this request
+// includes a DelegationSets element with zero, one, or multiple DelegationSet
+// child elements. By default, the list of delegation sets is displayed on a
+// single page. You can control the length of the page that is displayed by
+// using the MaxItems parameter. You can use the Marker parameter to control
+// the delegation set that the list begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -1387,7 +1402,7 @@ func (c *Route53) ListTrafficPoliciesRequest(input *ListTrafficPoliciesInput) (r
 
 // Gets information about the latest version for every traffic policy that is
 // associated with the current AWS account. To get the information, send a GET
-// request to the 2013-04-01/trafficpolicy resource.
+// request to the /Route 53 API version/trafficpolicy resource.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
 // have a lot of traffic policies, you can use the maxitems parameter to list
@@ -1446,7 +1461,7 @@ func (c *Route53) ListTrafficPolicyInstancesRequest(input *ListTrafficPolicyInst
 // delay while Amazon Route 53 creates the resource record sets that are specified
 // in the traffic policy definition. For more information, see the State response
 // element. To get information about the traffic policy instances that are associated
-// with the current AWS account, send a GET request to the 2013-04-01/trafficpolicyinstance
+// with the current AWS account, send a GET request to the /Route 53 API version/trafficpolicyinstance
 // resource.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
@@ -1505,7 +1520,7 @@ func (c *Route53) ListTrafficPolicyInstancesByHostedZoneRequest(input *ListTraff
 // delay while Amazon Route 53 creates the resource record sets that are specified
 // in the traffic policy definition. For more information, see the State response
 // element. To get information about the traffic policy instances that you created
-// in a specified hosted zone, send a GET request to the 2013-04-01/trafficpolicyinstance
+// in a specified hosted zone, send a GET request to the /Route 53 API version/trafficpolicyinstance
 // resource and include the ID of the hosted zone.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
@@ -1565,8 +1580,8 @@ func (c *Route53) ListTrafficPolicyInstancesByPolicyRequest(input *ListTrafficPo
 // record sets that are specified in the traffic policy definition. For more
 // information, see the State response element. To get information about the
 // traffic policy instances that you created by using a specify traffic policy
-// version, send a GET request to the 2013-04-01/trafficpolicyinstance resource
-// and include the ID and version of the traffic policy.
+// version, send a GET request to the /Route 53 API version/trafficpolicyinstance
+// resource and include the ID and version of the traffic policy.
 //
 // Amazon Route 53 returns a maximum of 100 items in each response. If you
 // have a lot of traffic policy instances, you can use the MaxItems parameter
@@ -1672,10 +1687,10 @@ func (c *Route53) UpdateHealthCheckRequest(input *UpdateHealthCheckInput) (req *
 
 // This action updates an existing health check.
 //
-// To update a health check, send a POST request to the 2013-04-01/healthcheck/health
-// check ID resource. The request body must include an XML document with an
-// UpdateHealthCheckRequest element. The response returns an UpdateHealthCheckResponse
-// element, which contains metadata about the health check.
+// To update a health check, send a POST request to the /Route 53 API version/healthcheck/health
+// check ID resource. The request body must include a document with an UpdateHealthCheckRequest
+// element. The response returns an UpdateHealthCheckResponse element, which
+// contains metadata about the health check.
 func (c *Route53) UpdateHealthCheck(input *UpdateHealthCheckInput) (*UpdateHealthCheckOutput, error) {
 	req, out := c.UpdateHealthCheckRequest(input)
 	err := req.Send()
@@ -1702,9 +1717,10 @@ func (c *Route53) UpdateHostedZoneCommentRequest(input *UpdateHostedZoneCommentI
 	return
 }
 
-// To update the hosted zone comment, send a POST request to the 2013-04-01/hostedzone/hosted
-// zone ID resource. The request body must include an XML document with a UpdateHostedZoneCommentRequest
-// element. The response to this request includes the modified HostedZone element.
+// To update the hosted zone comment, send a POST request to the /Route 53 API
+// version/hostedzone/hosted zone ID resource. The request body must include
+// a document with a UpdateHostedZoneCommentRequest element. The response to
+// this request includes the modified HostedZone element.
 //
 //  The comment can have a maximum length of 256 characters.
 func (c *Route53) UpdateHostedZoneComment(input *UpdateHostedZoneCommentInput) (*UpdateHostedZoneCommentOutput, error) {
@@ -1735,10 +1751,10 @@ func (c *Route53) UpdateTrafficPolicyCommentRequest(input *UpdateTrafficPolicyCo
 
 // Updates the comment for a specified traffic policy version.
 //
-// To update the comment, send a POST request to the /2013-04-01/trafficpolicy/
+// To update the comment, send a POST request to the /Route 53 API version/trafficpolicy/
 // resource.
 //
-// The request body must include an XML document with an UpdateTrafficPolicyCommentRequest
+// The request body must include a document with an UpdateTrafficPolicyCommentRequest
 // element.
 func (c *Route53) UpdateTrafficPolicyComment(input *UpdateTrafficPolicyCommentInput) (*UpdateTrafficPolicyCommentOutput, error) {
 	req, out := c.UpdateTrafficPolicyCommentRequest(input)
@@ -1785,13 +1801,57 @@ func (c *Route53) UpdateTrafficPolicyInstanceRequest(input *UpdateTrafficPolicyI
 // set name (such as example.com) by using the new resource record sets. Amazon
 // Route 53 deletes the old group of resource record sets that are associated
 // with the root resource record set name.  To update a traffic policy instance,
-// send a POST request to the /2013-04-01/trafficpolicyinstance/traffic policy
-// ID resource. The request body must include an XML document with an UpdateTrafficPolicyInstanceRequest
+// send a POST request to the /Route 53 API version/trafficpolicyinstance/traffic
+// policy ID resource. The request body must include a document with an UpdateTrafficPolicyInstanceRequest
 // element.
 func (c *Route53) UpdateTrafficPolicyInstance(input *UpdateTrafficPolicyInstanceInput) (*UpdateTrafficPolicyInstanceOutput, error) {
 	req, out := c.UpdateTrafficPolicyInstanceRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// A complex type that contains information to uniquely identify the CloudWatch
+// alarm that you're associating with a Route 53 health check.
+type AlarmIdentifier struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the CloudWatch alarm.
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// The CloudWatchRegion that the CloudWatch alarm was created in.
+	Region *string `min:"1" type:"string" required:"true" enum:"CloudWatchRegion"`
+}
+
+// String returns the string representation
+func (s AlarmIdentifier) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AlarmIdentifier) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AlarmIdentifier) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AlarmIdentifier"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Region == nil {
+		invalidParams.Add(request.NewErrParamRequired("Region"))
+	}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Alias resource record sets only: Information about the CloudFront distribution,
@@ -1828,16 +1888,20 @@ type AliasTarget struct {
 	// the AWS Management Console, the ELB API, or the AWS CLI. Use the same method
 	// to get values for HostedZoneId and DNSName. If you get one value from the
 	// console and the other value from the API or the CLI, creating the resource
-	// record set will fail. An Amazon S3 bucket that is configured as a static
-	// website: Specify the domain name of the Amazon S3 website endpoint in which
-	// you created the bucket; for example, s3-website-us-east-1.amazonaws.com.
-	// For more information about valid values, see the table Amazon Simple Storage
-	// Service (S3) Website Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region)
+	// record set will fail. An Elastic Beanstalk environment: Specify the CNAME
+	// attribute for the environment. (The environment must have a regionalized
+	// domain name.)  An Amazon S3 bucket that is configured as a static website:
+	// Specify the domain name of the Amazon S3 website endpoint in which you created
+	// the bucket; for example, s3-website-us-east-1.amazonaws.com. For more information
+	// about valid values, see the table Amazon Simple Storage Service (S3) Website
+	// Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region)
 	// in the Amazon Web Services General Reference. For more information about
 	// using Amazon S3 buckets for websites, see Hosting a Static Website on Amazon
 	// S3 (http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html) in
-	// the Amazon Simple Storage Service Developer Guide.   For more information
-	// and an example, see Example: Creating Alias Resource Record Sets (http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html)
+	// the Amazon Simple Storage Service Developer Guide. Another Amazon Route 53
+	// resource record set: Specify the value of the Name element for a resource
+	// record set in the current hosted zone.  For more information and an example,
+	// see Example: Creating Alias Resource Record Sets (http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html)
 	// in the Amazon Route 53 API Reference.
 	DNSName *string `type:"string" required:"true"`
 
@@ -1925,6 +1989,25 @@ func (s AliasTarget) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AliasTarget) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AliasTarget"}
+	if s.DNSName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DNSName"))
+	}
+	if s.EvaluateTargetHealth == nil {
+		invalidParams.Add(request.NewErrParamRequired("EvaluateTargetHealth"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the request to associate a
 // VPC with an hosted zone.
 type AssociateVPCWithHostedZoneInput struct {
@@ -1951,6 +2034,27 @@ func (s AssociateVPCWithHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s AssociateVPCWithHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateVPCWithHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateVPCWithHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.VPC == nil {
+		invalidParams.Add(request.NewErrParamRequired("VPC"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2006,6 +2110,27 @@ func (s Change) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Change) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Change"}
+	if s.Action == nil {
+		invalidParams.Add(request.NewErrParamRequired("Action"))
+	}
+	if s.ResourceRecordSet == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceRecordSet"))
+	}
+	if s.ResourceRecordSet != nil {
+		if err := s.ResourceRecordSet.Validate(); err != nil {
+			invalidParams.AddNested("ResourceRecordSet", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains an optional comment and the changes that you
 // want to make with a change batch request.
 type ChangeBatch struct {
@@ -2029,9 +2154,35 @@ func (s ChangeBatch) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeBatch) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeBatch"}
+	if s.Changes == nil {
+		invalidParams.Add(request.NewErrParamRequired("Changes"))
+	}
+	if s.Changes != nil && len(s.Changes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Changes", 1))
+	}
+	if s.Changes != nil {
+		for i, v := range s.Changes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Changes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that lists the changes and information for a ChangeBatch.
 type ChangeBatchRecord struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// A list of changes made in the ChangeBatch.
 	Changes []*Change `locationNameList:"Change" min:"1" type:"list"`
@@ -2137,6 +2288,27 @@ func (s ChangeResourceRecordSetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeResourceRecordSetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeResourceRecordSetsInput"}
+	if s.ChangeBatch == nil {
+		invalidParams.Add(request.NewErrParamRequired("ChangeBatch"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.ChangeBatch != nil {
+		if err := s.ChangeBatch.Validate(); err != nil {
+			invalidParams.AddNested("ChangeBatch", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing the response for the request.
 type ChangeResourceRecordSetsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2192,6 +2364,28 @@ func (s ChangeTagsForResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ChangeTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ChangeTagsForResourceInput"}
+	if s.AddTags != nil && len(s.AddTags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AddTags", 1))
+	}
+	if s.RemoveTagKeys != nil && len(s.RemoveTagKeys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RemoveTagKeys", 1))
+	}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type ChangeTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
@@ -2204,6 +2398,62 @@ func (s ChangeTagsForResourceOutput) String() string {
 
 // GoString returns the string representation
 func (s ChangeTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// For CLOUDWATCH_METRIC health checks, a complex type that contains information
+// about the CloudWatch alarm that you're associating with the health check.
+type CloudWatchAlarmConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The arithmetic operation to use when comparing the specified Statistic and
+	// Threshold.
+	//
+	// Valid Values are GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold
+	// and LessThanOrEqualToThreshold
+	ComparisonOperator *string `type:"string" required:"true" enum:"ComparisonOperator"`
+
+	// A list of Dimension elements for the CloudWatch metric that is associated
+	// with the CloudWatch alarm. For information about the metrics and dimensions
+	// that CloudWatch supports, see Amazon CloudWatch Namespaces, Dimensions, and
+	// Metrics Reference (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
+	Dimensions []*Dimension `locationNameList:"Dimension" type:"list"`
+
+	// The number of periods over which data is compared to the specified threshold.
+	EvaluationPeriods *int64 `min:"1" type:"integer" required:"true"`
+
+	// The name of the CloudWatch metric that is associated with the CloudWatch
+	// alarm.
+	MetricName *string `min:"1" type:"string" required:"true"`
+
+	// The namespace of the CloudWatch metric that is associated with the CloudWatch
+	// alarm.
+	Namespace *string `min:"1" type:"string" required:"true"`
+
+	// An integer that represents the period in seconds over which the statistic
+	// is applied.
+	Period *int64 `min:"60" type:"integer" required:"true"`
+
+	// The statistic to apply to the CloudWatch metric that is associated with the
+	// CloudWatch alarm.
+	//
+	// Valid Values are SampleCount, Average, Sum, Minimum and Maximum
+	Statistic *string `type:"string" required:"true" enum:"Statistic"`
+
+	// The value that the metric is compared with to determine the state of the
+	// alarm. For example, if you want the health check to fail if the average TCP
+	// connection time is greater than 500 milliseconds for more than 60 seconds,
+	// the threshold is 500.
+	Threshold *float64 `type:"double" required:"true"`
+}
+
+// String returns the string representation
+func (s CloudWatchAlarmConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudWatchAlarmConfiguration) GoString() string {
 	return s.String()
 }
 
@@ -2234,6 +2484,30 @@ func (s CreateHealthCheckInput) String() string {
 // GoString returns the string representation
 func (s CreateHealthCheckInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHealthCheckInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+	if s.HealthCheckConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckConfig"))
+	}
+	if s.HealthCheckConfig != nil {
+		if err := s.HealthCheckConfig.Validate(); err != nil {
+			invalidParams.AddNested("HealthCheckConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the new health check.
@@ -2306,6 +2580,30 @@ func (s CreateHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHostedZoneInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing the response information for the new hosted zone.
 type CreateHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -2365,6 +2663,22 @@ func (s CreateReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateReusableDelegationSetInput"}
+	if s.CallerReference == nil {
+		invalidParams.Add(request.NewErrParamRequired("CallerReference"))
+	}
+	if s.CallerReference != nil && len(*s.CallerReference) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CallerReference", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateReusableDelegationSetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2410,6 +2724,22 @@ func (s CreateTrafficPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyInput"}
+	if s.Document == nil {
+		invalidParams.Add(request.NewErrParamRequired("Document"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // you want to create based on a specified traffic policy.
 type CreateTrafficPolicyInstanceInput struct {
@@ -2445,6 +2775,34 @@ func (s CreateTrafficPolicyInstanceInput) String() string {
 // GoString returns the string representation
 func (s CreateTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyInstanceInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.TTL == nil {
+		invalidParams.Add(request.NewErrParamRequired("TTL"))
+	}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the CreateTrafficPolicyInstance
@@ -2517,6 +2875,22 @@ func (s CreateTrafficPolicyVersionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTrafficPolicyVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTrafficPolicyVersionInput"}
+	if s.Document == nil {
+		invalidParams.Add(request.NewErrParamRequired("Document"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the CreateTrafficPolicyVersion
 // request.
 type CreateTrafficPolicyVersionOutput struct {
@@ -2581,6 +2955,19 @@ func (s DeleteHealthCheckInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHealthCheckInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type DeleteHealthCheckOutput struct {
 	_ struct{} `type:"structure"`
@@ -2613,6 +3000,19 @@ func (s DeleteHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s DeleteHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHostedZoneInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2652,6 +3052,19 @@ func (s DeleteReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteReusableDelegationSetInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Empty response for the request.
 type DeleteReusableDelegationSetOutput struct {
 	_ struct{} `type:"structure"`
@@ -2688,6 +3101,25 @@ func (s DeleteTrafficPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTrafficPolicyInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the traffic policy instance
 // that you want to delete.
 type DeleteTrafficPolicyInstanceInput struct {
@@ -2709,6 +3141,19 @@ func (s DeleteTrafficPolicyInstanceInput) String() string {
 // GoString returns the string representation
 func (s DeleteTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // An empty element.
@@ -2741,6 +3186,27 @@ func (s DeleteTrafficPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// The name and value of a dimension for a CloudWatch metric.
+type Dimension struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the dimension.
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// The value of the dimension.
+	Value *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Dimension) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Dimension) GoString() string {
+	return s.String()
+}
+
 // A complex type that contains information about the request to disassociate
 // a VPC from an hosted zone.
 type DisassociateVPCFromHostedZoneInput struct {
@@ -2766,6 +3232,27 @@ func (s DisassociateVPCFromHostedZoneInput) String() string {
 // GoString returns the string representation
 func (s DisassociateVPCFromHostedZoneInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateVPCFromHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateVPCFromHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.VPC == nil {
+		invalidParams.Add(request.NewErrParamRequired("VPC"))
+	}
+	if s.VPC != nil {
+		if err := s.VPC.Validate(); err != nil {
+			invalidParams.AddNested("VPC", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing the response information for the request.
@@ -2825,6 +3312,25 @@ func (s GeoLocation) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GeoLocation) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GeoLocation"}
+	if s.ContinentCode != nil && len(*s.ContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ContinentCode", 2))
+	}
+	if s.CountryCode != nil && len(*s.CountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CountryCode", 1))
+	}
+	if s.SubdivisionCode != nil && len(*s.SubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about a GeoLocation.
 type GeoLocationDetails struct {
 	_ struct{} `type:"structure"`
@@ -2869,7 +3375,7 @@ func (s GeoLocationDetails) GoString() string {
 
 // The input for a GetChangeDetails request.
 type GetChangeDetailsInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The ID of the change batch request. The value that you specify here is the
 	// value that ChangeResourceRecordSets returned in the Id element when you submitted
@@ -2887,14 +3393,27 @@ func (s GetChangeDetailsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetChangeDetailsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetChangeDetailsInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the ChangeBatchRecord element.
 type GetChangeDetailsOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// A complex type that contains information about the specified change batch,
 	// including the change batch ID, the status of the change, and the contained
 	// changes.
-	ChangeBatchRecord *ChangeBatchRecord `type:"structure" required:"true"`
+	ChangeBatchRecord *ChangeBatchRecord `deprecated:"true" type:"structure" required:"true"`
 }
 
 // String returns the string representation
@@ -2925,6 +3444,19 @@ func (s GetChangeInput) String() string {
 // GoString returns the string representation
 func (s GetChangeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetChangeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetChangeInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the ChangeInfo element.
@@ -3019,6 +3551,25 @@ func (s GetGeoLocationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetGeoLocationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetGeoLocationInput"}
+	if s.ContinentCode != nil && len(*s.ContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("ContinentCode", 2))
+	}
+	if s.CountryCode != nil && len(*s.CountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CountryCode", 1))
+	}
+	if s.SubdivisionCode != nil && len(*s.SubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified geo location.
 type GetGeoLocationOutput struct {
 	_ struct{} `type:"structure"`
@@ -3038,7 +3589,7 @@ func (s GetGeoLocationOutput) GoString() string {
 }
 
 // To retrieve a count of all your health checks, send a GET request to the
-// 2013-04-01/healthcheckcount resource.
+// /Route 53 API version/healthcheckcount resource.
 type GetHealthCheckCountInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3091,6 +3642,19 @@ func (s GetHealthCheckInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the request to get the most
 // recent failure reason for a health check.
 type GetHealthCheckLastFailureReasonInput struct {
@@ -3109,6 +3673,19 @@ func (s GetHealthCheckLastFailureReasonInput) String() string {
 // GoString returns the string representation
 func (s GetHealthCheckLastFailureReasonInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckLastFailureReasonInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckLastFailureReasonInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the most recent failure for
@@ -3222,6 +3799,19 @@ func (s GetHealthCheckStatusInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHealthCheckStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHealthCheckStatusInput"}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the status of the specified
 // health check.
 type GetHealthCheckStatusOutput struct {
@@ -3242,8 +3832,8 @@ func (s GetHealthCheckStatusOutput) GoString() string {
 	return s.String()
 }
 
-// To retrieve a count of all your hosted zones, send a GET request to the 2013-04-01/hostedzonecount
-// resource.
+// To retrieve a count of all your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzonecount resource.
 type GetHostedZoneCountInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3296,6 +3886,19 @@ func (s GetHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHostedZoneInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified hosted zone.
 type GetHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -3341,6 +3944,19 @@ func (s GetReusableDelegationSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetReusableDelegationSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetReusableDelegationSetInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing information about the specified reusable delegation
 // set.
 type GetReusableDelegationSetOutput struct {
@@ -3362,8 +3978,8 @@ func (s GetReusableDelegationSetOutput) GoString() string {
 }
 
 // Gets information about a specific traffic policy version. To get the information,
-// send a GET request to the 2013-04-01/trafficpolicy resource, and specify
-// the ID and the version of the traffic policy.
+// send a GET request to the /Route 53 API version/trafficpolicy resource, and
+// specify the ID and the version of the traffic policy.
 type GetTrafficPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3385,8 +4001,27 @@ func (s GetTrafficPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTrafficPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTrafficPolicyInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // To retrieve a count of all your traffic policy instances, send a GET request
-// to the 2013-04-01/trafficpolicyinstancecount resource.
+// to the /Route 53 API version/trafficpolicyinstancecount resource.
 type GetTrafficPolicyInstanceCountInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3424,7 +4059,7 @@ func (s GetTrafficPolicyInstanceCountOutput) GoString() string {
 // Gets information about a specified traffic policy instance.
 //
 // To get information about a traffic policy instance, send a GET request to
-// the 2013-04-01/trafficpolicyinstance/Id resource.
+// the /Route 53 API version/trafficpolicyinstance/Id resource.
 type GetTrafficPolicyInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3440,6 +4075,19 @@ func (s GetTrafficPolicyInstanceInput) String() string {
 // GoString returns the string representation
 func (s GetTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the resource record sets that
@@ -3486,6 +4134,10 @@ type HealthCheck struct {
 	// A unique string that identifies the request to create the health check.
 	CallerReference *string `min:"1" type:"string" required:"true"`
 
+	// For CLOUDWATCH_METRIC health checks, a complex type that contains information
+	// about the CloudWatch alarm that you're associating with the health check.
+	CloudWatchAlarmConfiguration *CloudWatchAlarmConfiguration `type:"structure"`
+
 	// A complex type that contains the health check configuration.
 	HealthCheckConfig *HealthCheckConfig `type:"structure" required:"true"`
 
@@ -3512,9 +4164,20 @@ func (s HealthCheck) GoString() string {
 type HealthCheckConfig struct {
 	_ struct{} `type:"structure"`
 
+	// A complex type that contains information to uniquely identify the CloudWatch
+	// alarm that you're associating with a Route 53 health check.
+	AlarmIdentifier *AlarmIdentifier `type:"structure"`
+
 	// For a specified parent health check, a list of HealthCheckId values for the
 	// associated child health checks.
 	ChildHealthChecks []*string `locationNameList:"ChildHealthCheck" type:"list"`
+
+	// Specify whether you want Amazon Route 53 to send the value of FullyQualifiedDomainName
+	// to the endpoint in the client_hello message during TLS negotiation. If you
+	// don't specify a value for EnableSNI, Amazon Route 53 defaults to true when
+	// Type is HTTPS or HTTPS_STR_MATCH and defaults to false when Type is any other
+	// value.
+	EnableSNI *bool `type:"boolean"`
 
 	// The number of consecutive health checks that an endpoint must pass or fail
 	// for Amazon Route 53 to change the current status of the endpoint from unhealthy
@@ -3536,6 +4199,10 @@ type HealthCheckConfig struct {
 	// IP Address of the instance being checked.
 	IPAddress *string `type:"string"`
 
+	// The status of the health check when CloudWatch has insufficient data about
+	// the state of associated alarm. Valid values are Healthy, Unhealthy and LastKnownStatus.
+	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
+
 	// A boolean value that indicates whether the status of health check should
 	// be inverted. For example, if a health check is healthy but Inverted is True,
 	// then Amazon Route 53 considers the health check to be unhealthy.
@@ -3551,6 +4218,11 @@ type HealthCheckConfig struct {
 	// For HTTPS and HTTPS_STR_MATCH this defaults to 443 if the port is not specified.
 	Port *int64 `min:"1" type:"integer"`
 
+	// A list of HealthCheckRegion values that you want Amazon Route 53 to use to
+	// perform health checks for the specified endpoint. You must specify at least
+	// three regions.
+	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
+
 	// The number of seconds between the time that Amazon Route 53 gets a response
 	// from your endpoint and the time that it sends the next health-check request.
 	//
@@ -3564,11 +4236,12 @@ type HealthCheckConfig struct {
 	ResourcePath *string `type:"string"`
 
 	// A string to search for in the body of a health check response. Required for
-	// HTTP_STR_MATCH and HTTPS_STR_MATCH health checks.
+	// HTTP_STR_MATCH and HTTPS_STR_MATCH health checks. Amazon Route 53 considers
+	// case when searching for SearchString in the response body.
 	SearchString *string `type:"string"`
 
 	// The type of health check to be performed. Currently supported types are TCP,
-	// HTTP, HTTPS, HTTP_STR_MATCH, and HTTPS_STR_MATCH.
+	// HTTP, HTTPS, HTTP_STR_MATCH, HTTPS_STR_MATCH, CALCULATED and CLOUDWATCH_METRIC.
 	Type *string `type:"string" required:"true" enum:"HealthCheckType"`
 }
 
@@ -3582,14 +4255,48 @@ func (s HealthCheckConfig) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *HealthCheckConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "HealthCheckConfig"}
+	if s.FailureThreshold != nil && *s.FailureThreshold < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("FailureThreshold", 1))
+	}
+	if s.Port != nil && *s.Port < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
+	}
+	if s.Regions != nil && len(s.Regions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	}
+	if s.RequestInterval != nil && *s.RequestInterval < 10 {
+		invalidParams.Add(request.NewErrParamMinValue("RequestInterval", 10))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.AlarmIdentifier != nil {
+		if err := s.AlarmIdentifier.Validate(); err != nil {
+			invalidParams.AddNested("AlarmIdentifier", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the IP address of a Amazon Route 53 health checker
 // and the reason for the health check status.
 type HealthCheckObservation struct {
 	_ struct{} `type:"structure"`
 
-	// The IP address of the Amazon Route 53 health checker that performed the health
-	// check.
+	// The IP address of the Amazon Route 53 health checker that performed this
+	// health check.
 	IPAddress *string `type:"string"`
+
+	// The HealthCheckRegion of the Amazon Route 53 health checker that performed
+	// this health check.
+	Region *string `min:"1" type:"string" enum:"HealthCheckRegion"`
 
 	// A complex type that contains information about the health check status for
 	// the current observation.
@@ -3670,10 +4377,10 @@ func (s HostedZoneConfig) GoString() string {
 
 // The input for a ListChangeBatchesByHostedZone request.
 type ListChangeBatchesByHostedZoneInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The end of the time period you want to see changes for.
-	EndDate *string `location:"querystring" locationName:"endDate" type:"string" required:"true"`
+	EndDate *string `location:"querystring" locationName:"endDate" deprecated:"true" type:"string" required:"true"`
 
 	// The ID of the hosted zone that you want to see changes for.
 	HostedZoneId *string `location:"uri" locationName:"Id" type:"string" required:"true"`
@@ -3685,7 +4392,7 @@ type ListChangeBatchesByHostedZoneInput struct {
 	MaxItems *string `location:"querystring" locationName:"maxItems" type:"string"`
 
 	// The start of the time period you want to see changes for.
-	StartDate *string `location:"querystring" locationName:"startDate" type:"string" required:"true"`
+	StartDate *string `location:"querystring" locationName:"startDate" deprecated:"true" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -3698,12 +4405,31 @@ func (s ListChangeBatchesByHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListChangeBatchesByHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListChangeBatchesByHostedZoneInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The input for a ListChangeBatchesByHostedZone request.
 type ListChangeBatchesByHostedZoneOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The change batches within the given hosted zone and time period.
-	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" type:"list" required:"true"`
+	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" deprecated:"true" type:"list" required:"true"`
 
 	// A flag that indicates if there are more change batches to list.
 	IsTruncated *bool `type:"boolean"`
@@ -3730,10 +4456,10 @@ func (s ListChangeBatchesByHostedZoneOutput) GoString() string {
 
 // The input for a ListChangeBatchesByRRSet request.
 type ListChangeBatchesByRRSetInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The end of the time period you want to see changes for.
-	EndDate *string `location:"querystring" locationName:"endDate" type:"string" required:"true"`
+	EndDate *string `location:"querystring" locationName:"endDate" deprecated:"true" type:"string" required:"true"`
 
 	// The ID of the hosted zone that you want to see changes for.
 	HostedZoneId *string `location:"uri" locationName:"Id" type:"string" required:"true"`
@@ -3751,7 +4477,7 @@ type ListChangeBatchesByRRSetInput struct {
 	SetIdentifier *string `location:"querystring" locationName:"identifier" min:"1" type:"string"`
 
 	// The start of the time period you want to see changes for.
-	StartDate *string `location:"querystring" locationName:"startDate" type:"string" required:"true"`
+	StartDate *string `location:"querystring" locationName:"startDate" deprecated:"true" type:"string" required:"true"`
 
 	// The type of the RRSet that you want to see changes for.
 	Type *string `location:"querystring" locationName:"type" type:"string" required:"true" enum:"RRType"`
@@ -3767,12 +4493,40 @@ func (s ListChangeBatchesByRRSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListChangeBatchesByRRSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListChangeBatchesByRRSetInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.SetIdentifier != nil && len(*s.SetIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SetIdentifier", 1))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The input for a ListChangeBatchesByRRSet request.
 type ListChangeBatchesByRRSetOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 
 	// The change batches within the given hosted zone and time period.
-	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" type:"list" required:"true"`
+	ChangeBatchRecords []*ChangeBatchRecord `locationNameList:"ChangeBatchRecord" min:"1" deprecated:"true" type:"list" required:"true"`
 
 	// A flag that indicates if there are more change batches to list.
 	IsTruncated *bool `type:"boolean"`
@@ -3839,6 +4593,25 @@ func (s ListGeoLocationsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListGeoLocationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListGeoLocationsInput"}
+	if s.StartContinentCode != nil && len(*s.StartContinentCode) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("StartContinentCode", 2))
+	}
+	if s.StartCountryCode != nil && len(*s.StartCountryCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartCountryCode", 1))
+	}
+	if s.StartSubdivisionCode != nil && len(*s.StartSubdivisionCode) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartSubdivisionCode", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the geo locations that are
 // returned by the request and information about the response.
 type ListGeoLocationsOutput struct {
@@ -3887,12 +4660,13 @@ func (s ListGeoLocationsOutput) GoString() string {
 	return s.String()
 }
 
-// To retrieve a list of your health checks, send a GET request to the 2013-04-01/healthcheck
-// resource. The response to this request includes a HealthChecks element with
-// zero or more HealthCheck child elements. By default, the list of health checks
-// is displayed on a single page. You can control the length of the page that
-// is displayed by using the MaxItems parameter. You can use the Marker parameter
-// to control the health check that the list begins with.
+// To retrieve a list of your health checks, send a GET request to the /Route
+// 53 API version/healthcheck resource. The response to this request includes
+// a HealthChecks element with zero or more HealthCheck child elements. By default,
+// the list of health checks is displayed on a single page. You can control
+// the length of the page that is displayed by using the MaxItems parameter.
+// You can use the Marker parameter to control the health check that the list
+// begins with.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
 // a value greater than 100, Amazon Route 53 returns only the first 100.
@@ -3962,13 +4736,13 @@ func (s ListHealthChecksOutput) GoString() string {
 }
 
 // To retrieve a list of your hosted zones in lexicographic order, send a GET
-// request to the 2013-04-01/hostedzonesbyname resource. The response to this
-// request includes a HostedZones element with zero or more HostedZone child
-// elements lexicographically ordered by DNS name. By default, the list of hosted
-// zones is displayed on a single page. You can control the length of the page
-// that is displayed by using the MaxItems parameter. You can use the DNSName
-// and HostedZoneId parameters to control the hosted zone that the list begins
-// with.
+// request to the /Route 53 API version/hostedzonesbyname resource. The response
+// to this request includes a HostedZones element with zero or more HostedZone
+// child elements lexicographically ordered by DNS name. By default, the list
+// of hosted zones is displayed on a single page. You can control the length
+// of the page that is displayed by using the MaxItems parameter. You can use
+// the DNSName and HostedZoneId parameters to control the hosted zone that the
+// list begins with.
 //
 // For more information about listing hosted zones, see Listing the Hosted
 // Zones for an AWS Account (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
@@ -4057,14 +4831,14 @@ func (s ListHostedZonesByNameOutput) GoString() string {
 	return s.String()
 }
 
-// To retrieve a list of your hosted zones, send a GET request to the 2013-04-01/hostedzone
-// resource. The response to this request includes a HostedZones element with
-// zero or more HostedZone child elements. By default, the list of hosted zones
-// is displayed on a single page. You can control the length of the page that
-// is displayed by using the MaxItems parameter. You can use the Marker parameter
-// to control the hosted zone that the list begins with. For more information
-// about listing hosted zones, see Listing the Hosted Zones for an AWS Account
-// (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
+// To retrieve a list of your hosted zones, send a GET request to the /Route
+// 53 API version/hostedzone resource. The response to this request includes
+// a HostedZones element with zero or more HostedZone child elements. By default,
+// the list of hosted zones is displayed on a single page. You can control the
+// length of the page that is displayed by using the MaxItems parameter. You
+// can use the Marker parameter to control the hosted zone that the list begins
+// with. For more information about listing hosted zones, see Listing the Hosted
+// Zones for an AWS Account (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/ListInfoOnHostedZone.html)
 // in the Amazon Route 53 Developer Guide.
 //
 //  Amazon Route 53 returns a maximum of 100 items. If you set MaxItems to
@@ -4182,6 +4956,22 @@ func (s ListResourceRecordSetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListResourceRecordSetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListResourceRecordSetsInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+	if s.StartRecordIdentifier != nil && len(*s.StartRecordIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StartRecordIdentifier", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // are returned by the request and information about the response.
 type ListResourceRecordSetsOutput struct {
@@ -4230,8 +5020,8 @@ func (s ListResourceRecordSetsOutput) GoString() string {
 }
 
 // To retrieve a list of your reusable delegation sets, send a GET request to
-// the 2013-04-01/delegationset resource. The response to this request includes
-// a DelegationSets element with zero or more DelegationSet child elements.
+// the /Route 53 API version/delegationset resource. The response to this request
+// includes a DelegationSets element with zero or more DelegationSet child elements.
 // By default, the list of reusable delegation sets is displayed on a single
 // page. You can control the length of the page that is displayed by using the
 // MaxItems parameter. You can use the Marker parameter to control the delegation
@@ -4333,6 +5123,22 @@ func (s ListTagsForResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceId"))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing tags for the specified resource.
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
@@ -4376,6 +5182,25 @@ func (s ListTagsForResourcesInput) String() string {
 // GoString returns the string representation
 func (s ListTagsForResourcesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourcesInput"}
+	if s.ResourceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceIds"))
+	}
+	if s.ResourceIds != nil && len(s.ResourceIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceIds", 1))
+	}
+	if s.ResourceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing tags for the specified resources.
@@ -4518,6 +5343,19 @@ func (s ListTrafficPolicyInstancesByHostedZoneInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyInstancesByHostedZoneInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyInstancesByHostedZoneInput"}
+	if s.HostedZoneId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HostedZoneId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the request.
 type ListTrafficPolicyInstancesByHostedZoneOutput struct {
 	_ struct{} `type:"structure"`
@@ -4627,6 +5465,25 @@ func (s ListTrafficPolicyInstancesByPolicyInput) String() string {
 // GoString returns the string representation
 func (s ListTrafficPolicyInstancesByPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyInstancesByPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyInstancesByPolicyInput"}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the request.
@@ -4822,6 +5679,19 @@ func (s ListTrafficPolicyVersionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTrafficPolicyVersionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTrafficPolicyVersionsInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains the response information for the request.
 type ListTrafficPolicyVersionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4885,6 +5755,19 @@ func (s ResourceRecord) String() string {
 // GoString returns the string representation
 func (s ResourceRecord) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceRecord) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceRecord"}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains information about the current resource record
@@ -5116,6 +5999,51 @@ func (s ResourceRecordSet) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceRecordSet) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceRecordSet"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Region != nil && len(*s.Region) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Region", 1))
+	}
+	if s.ResourceRecords != nil && len(s.ResourceRecords) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceRecords", 1))
+	}
+	if s.SetIdentifier != nil && len(*s.SetIdentifier) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SetIdentifier", 1))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.AliasTarget != nil {
+		if err := s.AliasTarget.Validate(); err != nil {
+			invalidParams.AddNested("AliasTarget", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.GeoLocation != nil {
+		if err := s.GeoLocation.Validate(); err != nil {
+			invalidParams.AddNested("GeoLocation", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ResourceRecords != nil {
+		for i, v := range s.ResourceRecords {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ResourceRecords", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type containing a resource and its associated tags.
 type ResourceTagSet struct {
 	_ struct{} `type:"structure"`
@@ -5277,11 +6205,24 @@ func (s TrafficPolicySummary) GoString() string {
 type UpdateHealthCheckInput struct {
 	_ struct{} `locationName:"UpdateHealthCheckRequest" type:"structure" xmlURI:"https://route53.amazonaws.com/doc/2013-04-01/"`
 
+	// A complex type that contains information to uniquely identify the CloudWatch
+	// alarm that you're associating with a Route 53 health check.
+	AlarmIdentifier *AlarmIdentifier `type:"structure"`
+
 	// For a specified parent health check, a list of HealthCheckId values for the
 	// associated child health checks.
 	//
 	// Specify this value only if you want to change it.
 	ChildHealthChecks []*string `locationNameList:"ChildHealthCheck" type:"list"`
+
+	// Specify whether you want Amazon Route 53 to send the value of FullyQualifiedDomainName
+	// to the endpoint in the client_hello message during TLS negotiation. If you
+	// don't specify a value for EnableSNI, Amazon Route 53 defaults to true when
+	// Type is HTTPS or HTTPS_STR_MATCH and defaults to false when Type is any other
+	// value.
+	//
+	// Specify this value only if you want to change it.
+	EnableSNI *bool `type:"boolean"`
 
 	// The number of consecutive health checks that an endpoint must pass or fail
 	// for Amazon Route 53 to change the current status of the endpoint from unhealthy
@@ -5320,6 +6261,8 @@ type UpdateHealthCheckInput struct {
 	// Specify this value only if you want to change it.
 	IPAddress *string `type:"string"`
 
+	InsufficientDataHealthStatus *string `type:"string" enum:"InsufficientDataHealthStatus"`
+
 	// A boolean value that indicates whether the status of health check should
 	// be inverted. For example, if a health check is healthy but Inverted is True,
 	// then Amazon Route 53 considers the health check to be unhealthy.
@@ -5333,6 +6276,15 @@ type UpdateHealthCheckInput struct {
 	// Specify this value only if you want to change it.
 	Port *int64 `min:"1" type:"integer"`
 
+	// A list of HealthCheckRegion values that specify the Amazon EC2 regions that
+	// you want Amazon Route 53 to use to perform health checks. You must specify
+	// at least three regions.
+	//
+	// When you remove a region from the list, Amazon Route 53 will briefly continue
+	// to check your endpoint from that region. Specify this value only if you want
+	// to change it.
+	Regions []*string `locationNameList:"Region" min:"1" type:"list"`
+
 	// The path that you want Amazon Route 53 to request when performing health
 	// checks. The path can be any value for which your endpoint will return an
 	// HTTP status code of 2xx or 3xx when the endpoint is healthy, for example
@@ -5344,7 +6296,8 @@ type UpdateHealthCheckInput struct {
 	// If the value of Type is HTTP_STR_MATCH or HTTP_STR_MATCH, the string that
 	// you want Amazon Route 53 to search for in the response body from the specified
 	// resource. If the string appears in the response body, Amazon Route 53 considers
-	// the resource healthy.
+	// the resource healthy. Amazon Route 53 considers case when searching for SearchString
+	// in the response body.
 	//
 	// Specify this value only if you want to change it.
 	SearchString *string `type:"string"`
@@ -5358,6 +6311,36 @@ func (s UpdateHealthCheckInput) String() string {
 // GoString returns the string representation
 func (s UpdateHealthCheckInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateHealthCheckInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateHealthCheckInput"}
+	if s.FailureThreshold != nil && *s.FailureThreshold < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("FailureThreshold", 1))
+	}
+	if s.HealthCheckId == nil {
+		invalidParams.Add(request.NewErrParamRequired("HealthCheckId"))
+	}
+	if s.HealthCheckVersion != nil && *s.HealthCheckVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("HealthCheckVersion", 1))
+	}
+	if s.Port != nil && *s.Port < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Port", 1))
+	}
+	if s.Regions != nil && len(s.Regions) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Regions", 1))
+	}
+	if s.AlarmIdentifier != nil {
+		if err := s.AlarmIdentifier.Validate(); err != nil {
+			invalidParams.AddNested("AlarmIdentifier", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateHealthCheckOutput struct {
@@ -5397,6 +6380,19 @@ func (s UpdateHostedZoneCommentInput) String() string {
 // GoString returns the string representation
 func (s UpdateHostedZoneCommentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateHostedZoneCommentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateHostedZoneCommentInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type containing information about the specified hosted zone after
@@ -5442,6 +6438,28 @@ func (s UpdateTrafficPolicyCommentInput) String() string {
 // GoString returns the string representation
 func (s UpdateTrafficPolicyCommentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTrafficPolicyCommentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTrafficPolicyCommentInput"}
+	if s.Comment == nil {
+		invalidParams.Add(request.NewErrParamRequired("Comment"))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Version == nil {
+		invalidParams.Add(request.NewErrParamRequired("Version"))
+	}
+	if s.Version != nil && *s.Version < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Version", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // A complex type that contains the response information for the traffic policy.
@@ -5493,6 +6511,31 @@ func (s UpdateTrafficPolicyInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTrafficPolicyInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTrafficPolicyInstanceInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.TTL == nil {
+		invalidParams.Add(request.NewErrParamRequired("TTL"))
+	}
+	if s.TrafficPolicyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyId"))
+	}
+	if s.TrafficPolicyVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrafficPolicyVersion"))
+	}
+	if s.TrafficPolicyVersion != nil && *s.TrafficPolicyVersion < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TrafficPolicyVersion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A complex type that contains information about the resource record sets that
 // Amazon Route 53 created based on a specified traffic policy.
 type UpdateTrafficPolicyInstanceOutput struct {
@@ -5531,6 +6574,19 @@ func (s VPC) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *VPC) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "VPC"}
+	if s.VPCRegion != nil && len(*s.VPCRegion) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VPCRegion", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 const (
 	// @enum ChangeAction
 	ChangeActionCreate = "CREATE"
@@ -5548,6 +6604,61 @@ const (
 )
 
 const (
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsEast1 = "us-east-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsWest1 = "us-west-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionUsWest2 = "us-west-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionEuCentral1 = "eu-central-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionEuWest1 = "eu-west-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApSoutheast1 = "ap-southeast-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApSoutheast2 = "ap-southeast-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApNortheast1 = "ap-northeast-1"
+	// @enum CloudWatchRegion
+	CloudWatchRegionApNortheast2 = "ap-northeast-2"
+	// @enum CloudWatchRegion
+	CloudWatchRegionSaEast1 = "sa-east-1"
+)
+
+const (
+	// @enum ComparisonOperator
+	ComparisonOperatorGreaterThanOrEqualToThreshold = "GreaterThanOrEqualToThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorGreaterThanThreshold = "GreaterThanThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorLessThanThreshold = "LessThanThreshold"
+	// @enum ComparisonOperator
+	ComparisonOperatorLessThanOrEqualToThreshold = "LessThanOrEqualToThreshold"
+)
+
+// An Amazon EC2 region that you want Amazon Route 53 to use to perform health
+// checks.
+const (
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsEast1 = "us-east-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsWest1 = "us-west-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionUsWest2 = "us-west-2"
+	// @enum HealthCheckRegion
+	HealthCheckRegionEuWest1 = "eu-west-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApSoutheast1 = "ap-southeast-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApSoutheast2 = "ap-southeast-2"
+	// @enum HealthCheckRegion
+	HealthCheckRegionApNortheast1 = "ap-northeast-1"
+	// @enum HealthCheckRegion
+	HealthCheckRegionSaEast1 = "sa-east-1"
+)
+
+const (
 	// @enum HealthCheckType
 	HealthCheckTypeHttp = "HTTP"
 	// @enum HealthCheckType
@@ -5560,6 +6671,17 @@ const (
 	HealthCheckTypeTcp = "TCP"
 	// @enum HealthCheckType
 	HealthCheckTypeCalculated = "CALCULATED"
+	// @enum HealthCheckType
+	HealthCheckTypeCloudwatchMetric = "CLOUDWATCH_METRIC"
+)
+
+const (
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusHealthy = "Healthy"
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusUnhealthy = "Unhealthy"
+	// @enum InsufficientDataHealthStatus
+	InsufficientDataHealthStatusLastKnownStatus = "LastKnownStatus"
 )
 
 const (
@@ -5610,9 +6732,24 @@ const (
 	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionApNortheast1 = "ap-northeast-1"
 	// @enum ResourceRecordSetRegion
+	ResourceRecordSetRegionApNortheast2 = "ap-northeast-2"
+	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionSaEast1 = "sa-east-1"
 	// @enum ResourceRecordSetRegion
 	ResourceRecordSetRegionCnNorth1 = "cn-north-1"
+)
+
+const (
+	// @enum Statistic
+	StatisticAverage = "Average"
+	// @enum Statistic
+	StatisticSum = "Sum"
+	// @enum Statistic
+	StatisticSampleCount = "SampleCount"
+	// @enum Statistic
+	StatisticMaximum = "Maximum"
+	// @enum Statistic
+	StatisticMinimum = "Minimum"
 )
 
 const (
@@ -5639,6 +6776,8 @@ const (
 	VPCRegionApSoutheast2 = "ap-southeast-2"
 	// @enum VPCRegion
 	VPCRegionApNortheast1 = "ap-northeast-1"
+	// @enum VPCRegion
+	VPCRegionApNortheast2 = "ap-northeast-2"
 	// @enum VPCRegion
 	VPCRegionSaEast1 = "sa-east-1"
 	// @enum VPCRegion

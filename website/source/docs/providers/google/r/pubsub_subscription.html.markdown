@@ -8,24 +8,26 @@ description: |-
 
 # google\_pubsub\_subscripion
 
-Creates a subscription in Google's pubsub queueing system.  For more information see
+Creates a subscription in Google's pubsub queueing system. For more information see
 [the official documentation](https://cloud.google.com/pubsub/docs) and
 [API](https://cloud.google.com/pubsub/reference/rest/v1/projects.subscriptions).
 
 
 ## Example Usage
 
-```
+```js
 resource "google_pubsub_subscription" "default" {
-    name = "default-subscription"
-    topic = "default-topic"
-    ack_deadline_seconds = 20
-    push_config {
-        endpoint = "https://example.com/push"
-        attributes {
-            x-goog-version = "v1"
-        }
+  name  = "default-subscription"
+  topic = "default-topic"
+
+  ack_deadline_seconds = 20
+
+  push_config {
+    endpoint = "https://example.com/push"
+    attributes {
+      x-goog-version = "v1"
     }
+  }
 }
 ```
 
@@ -39,9 +41,17 @@ The following arguments are supported:
 * `topic` - (Required) A topic to bind this subscription to, required by pubsub.
     Changing this forces a new resource to be created.
 
+- - -
+
 * `ack_deadline_seconds` - (Optional) The maximum number of seconds a
     subscriber has to acknowledge a received message, otherwise the message is
     redelivered. Changing this forces a new resource to be created.
+
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
+
+* `push_config` - (Optional) Block configuration for push options. More
+    configuration options are detailed below.
 
 The optional `push_config` block supports:
 
@@ -54,3 +64,7 @@ The optional `push_config` block supports:
     delivery. For more information, read [the API docs
     here](https://cloud.google.com/pubsub/reference/rest/v1/projects.subscriptions#PushConfig.FIELDS.attributes).
     Changing this forces a new resource to be created.
+
+## Attributes Reference
+
+Only the arguments listed above are exposed as attributes.

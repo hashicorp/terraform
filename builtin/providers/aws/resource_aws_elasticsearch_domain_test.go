@@ -60,8 +60,6 @@ func TestAccAWSElasticSearch_tags(t *testing.T) {
 				Config: testAccESDomainConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
-					testAccLoadESTags(&domain, &td),
-					testAccCheckElasticsearchServiceTags(&td.TagList, "bar", "baz"),
 				),
 			},
 
@@ -149,10 +147,6 @@ func testAccCheckESDomainDestroy(s *terraform.State) error {
 const testAccESDomainConfig = `
 resource "aws_elasticsearch_domain" "example" {
   domain_name = "tf-test-1"
-
-  tags {
-    bar = "baz"
-  }
 }
 `
 

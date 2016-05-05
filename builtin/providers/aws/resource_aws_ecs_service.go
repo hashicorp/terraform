@@ -71,6 +71,7 @@ func resourceAwsEcsService() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"elb_name": &schema.Schema{
@@ -131,21 +132,21 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	// See https://github.com/hashicorp/terraform/issues/2869
 	var out *ecs.CreateServiceOutput
 	var err error
-	err = resource.Retry(2*time.Minute, func() error {
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		out, err = conn.CreateService(&input)
 
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
 			if !ok {
-				return &resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 			if ec2err.Code() == "InvalidParameterException" {
 				log.Printf("[DEBUG] Trying to create ECS service again: %q",
 					ec2err.Message())
-				return err
+				return resource.RetryableError(err)
 			}
 
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		return nil
@@ -308,7 +309,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Wait until the ECS service is drained
-	err = resource.Retry(5*time.Minute, func() error {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		input := ecs.DeleteServiceInput{
 			Service: aws.String(d.Id()),
 			Cluster: aws.String(d.Get("cluster").(string)),
@@ -322,16 +323,16 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 		if ec2err.Code() == "InvalidParameterException" {
 			// Prevent "The service cannot be stopped while deployments are active."
 			log.Printf("[DEBUG] Trying to delete ECS service again: %q",
 				ec2err.Message())
-			return err
+			return resource.RetryableError(err)
 		}
 
-		return &resource.RetryError{Err: err}
+		return resource.NonRetryableError(err)
 
 	})
 	if err != nil {

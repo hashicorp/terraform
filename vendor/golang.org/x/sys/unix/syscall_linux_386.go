@@ -5,6 +5,8 @@
 // TODO(rsc): Rewrite all nn(SP) references into name+(nn-8)(FP)
 // so that go vet can check that they are correct.
 
+// +build 386,linux
+
 package unix
 
 import (
@@ -31,9 +33,36 @@ func NsecToTimeval(nsec int64) (tv Timeval) {
 	return
 }
 
+//sysnb	pipe(p *[2]_C_int) (err error)
+
+func Pipe(p []int) (err error) {
+	if len(p) != 2 {
+		return EINVAL
+	}
+	var pp [2]_C_int
+	err = pipe(&pp)
+	p[0] = int(pp[0])
+	p[1] = int(pp[1])
+	return
+}
+
+//sysnb pipe2(p *[2]_C_int, flags int) (err error)
+
+func Pipe2(p []int, flags int) (err error) {
+	if len(p) != 2 {
+		return EINVAL
+	}
+	var pp [2]_C_int
+	err = pipe2(&pp, flags)
+	p[0] = int(pp[0])
+	p[1] = int(pp[1])
+	return
+}
+
 // 64-bit file system and 32-bit uid calls
 // (386 default is 32-bit file system and 16-bit uid).
-//sys	Chown(path string, uid int, gid int) (err error) = SYS_CHOWN32
+//sys	Dup2(oldfd int, newfd int) (err error)
+//sys	Fadvise(fd int, offset int64, length int64, advice int) (err error) = SYS_FADVISE64_64
 //sys	Fchown(fd int, uid int, gid int) (err error) = SYS_FCHOWN32
 //sys	Fstat(fd int, stat *Stat_t) (err error) = SYS_FSTAT64
 //sys	Ftruncate(fd int, length int64) (err error) = SYS_FTRUNCATE64
@@ -41,6 +70,7 @@ func NsecToTimeval(nsec int64) (tv Timeval) {
 //sysnb	Geteuid() (euid int) = SYS_GETEUID32
 //sysnb	Getgid() (gid int) = SYS_GETGID32
 //sysnb	Getuid() (uid int) = SYS_GETUID32
+//sysnb	InotifyInit() (fd int, err error)
 //sys	Ioperm(from int, num int, on int) (err error)
 //sys	Iopl(level int) (err error)
 //sys	Lchown(path string, uid int, gid int) (err error) = SYS_LCHOWN32

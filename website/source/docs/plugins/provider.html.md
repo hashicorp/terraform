@@ -102,7 +102,7 @@ an error if it is invalid. An example test is shown below:
 
 ```
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }

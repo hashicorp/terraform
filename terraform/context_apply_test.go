@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -1052,6 +1053,47 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 
 	if _, err := ctx.Apply(); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
+	m := testModule(t, "apply-module-grandchild-provider-inherit")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	var callLock sync.Mutex
+	called := false
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if _, ok := c.Get("value"); !ok {
+			return fmt.Errorf("value is not found")
+		}
+		callLock.Lock()
+		called = true
+		callLock.Unlock()
+
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	callLock.Lock()
+	defer callLock.Unlock()
+	if called != true {
+		t.Fatalf("err: configure never called")
 	}
 }
 
@@ -3927,5 +3969,202 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 
 	if invokeCount != 3 {
 		t.Fatalf("bad: %d", invokeCount)
+	}
+}
+
+// GH-5254
+func TestContext2Apply_issue5254(t *testing.T) {
+	// Create a provider. We use "template" here just to match the repro
+	// we got from the issue itself.
+	p := testProvider("template")
+	p.ResourcesReturn = append(p.ResourcesReturn, ResourceType{
+		Name: "template_file",
+	})
+
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// Apply cleanly step 0
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "issue-5254/step-0"),
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Application success. Now make the modification and store a plan
+	ctx = testContext2(t, &ContextOpts{
+		Module: testModule(t, "issue-5254/step-1"),
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err = ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write / Read plan to simulate running it through a Plan file
+	var buf bytes.Buffer
+	if err := WritePlan(plan, &buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFromFile, err := ReadPlan(&buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx = planFromFile.Context(&ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
+		},
+	})
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+template_file.child:
+  ID = foo
+  template = Hi
+  type = template_file
+
+  Dependencies:
+    template_file.parent
+template_file.parent:
+  ID = foo
+  template = Hi
+  type = template_file
+		`)
+	if actual != expected {
+		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+	}
+}
+
+func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	p.ApplyFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "apply-tainted-targets"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.iambeingadded"},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.ifailedprovisioners": &ResourceState{
+							Tainted: []*InstanceState{
+								&InstanceState{
+									ID: "ifailedprovisioners",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write / Read plan to simulate running it through a Plan file
+	var buf bytes.Buffer
+	if err := WritePlan(plan, &buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	planFromFile, err := ReadPlan(&buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx = planFromFile.Context(&ContextOpts{
+		Module: testModule(t, "apply-tainted-targets"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(`
+aws_instance.iambeingadded:
+  ID = foo
+aws_instance.ifailedprovisioners: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = ifailedprovisioners
+		`)
+	if actual != expected {
+		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
+	}
+}
+
+// Higher level test exposing the bug this covers in
+// TestResource_ignoreChangesRequired
+func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
+	m := testModule(t, "apply-ignore-changes-create")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("bad: %s", state)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	// Expect no changes from original state
+	expected := strings.TrimSpace(`
+aws_instance.foo:
+  ID = foo
+  required_field = set
+  type = aws_instance
+`)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
 	}
 }

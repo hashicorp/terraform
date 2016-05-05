@@ -142,13 +142,7 @@ func (t Token) Value() interface{} {
 	case IDENT:
 		return t.Text
 	case HEREDOC:
-		// We need to find the end of the marker
-		idx := strings.IndexByte(t.Text, '\n')
-		if idx == -1 {
-			panic("heredoc doesn't contain newline")
-		}
-
-		return string(t.Text[idx+1 : len(t.Text)-idx+1])
+		return unindentHeredoc(t.Text)
 	case STRING:
 		// Determine the Unquote method to use. If it came from JSON,
 		// then we need to use the built-in unquote since we have to
@@ -167,4 +161,54 @@ func (t Token) Value() interface{} {
 	default:
 		panic(fmt.Sprintf("unimplemented Value for type: %s", t.Type))
 	}
+}
+
+// unindentHeredoc returns the string content of a HEREDOC if it is started with <<
+// and the content of a HEREDOC with the hanging indent removed if it is started with
+// a <<-, and the terminating line is at least as indented as the least indented line.
+func unindentHeredoc(heredoc string) string {
+	// We need to find the end of the marker
+	idx := strings.IndexByte(heredoc, '\n')
+	if idx == -1 {
+		panic("heredoc doesn't contain newline")
+	}
+
+	unindent := heredoc[2] == '-'
+
+	// We can optimize if the heredoc isn't marked for indentation
+	if !unindent {
+		return string(heredoc[idx+1 : len(heredoc)-idx+1])
+	}
+
+	// We need to unindent each line based on the indentation level of the marker
+	lines := strings.Split(string(heredoc[idx+1:len(heredoc)-idx+2]), "\n")
+	whitespacePrefix := lines[len(lines)-1]
+
+	isIndented := true
+	for _, v := range lines {
+		if strings.HasPrefix(v, whitespacePrefix) {
+			continue
+		}
+
+		isIndented = false
+		break
+	}
+
+	// If all lines are not at least as indented as the terminating mark, return the
+	// heredoc as is, but trim the leading space from the marker on the final line.
+	if !isIndented {
+		return strings.TrimRight(string(heredoc[idx+1:len(heredoc)-idx+1]), " \t")
+	}
+
+	unindentedLines := make([]string, len(lines))
+	for k, v := range lines {
+		if k == len(lines)-1 {
+			unindentedLines[k] = ""
+			break
+		}
+
+		unindentedLines[k] = strings.TrimPrefix(v, whitespacePrefix)
+	}
+
+	return strings.Join(unindentedLines, "\n")
 }

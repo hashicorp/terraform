@@ -29,6 +29,7 @@ func resourceFile() *schema.Resource {
 				Description:   "Contents of the template",
 				ForceNew:      true,
 				ConflictsWith: []string{"filename"},
+				ValidateFunc:  validateTemplateAttribute,
 			},
 			"filename": &schema.Schema{
 				Type:        schema.TypeString,
@@ -159,18 +160,32 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 		},
 	}
 
-	out, typ, err := hil.Eval(root, &cfg)
+	result, err := hil.Eval(root, &cfg)
 	if err != nil {
 		return "", err
 	}
-	if typ != ast.TypeString {
-		return "", fmt.Errorf("unexpected output ast.Type: %v", typ)
+	if result.Type != hil.TypeString {
+		return "", fmt.Errorf("unexpected output hil.Type: %v", result.Type)
 	}
 
-	return out.(string), nil
+	return result.Value.(string), nil
 }
 
 func hash(s string) string {
 	sha := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sha[:])
+}
+
+func validateTemplateAttribute(v interface{}, key string) (ws []string, es []error) {
+	_, wasPath, err := pathorcontents.Read(v.(string))
+	if err != nil {
+		es = append(es, err)
+		return
+	}
+
+	if wasPath {
+		ws = append(ws, fmt.Sprintf("%s: looks like you specified a path instead of file contents. Use `file()` to load this path. Specifying a path directly is deprecated and will be removed in a future version.", key))
+	}
+
+	return
 }

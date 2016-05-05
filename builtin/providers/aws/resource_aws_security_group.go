@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -92,8 +94,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 
 						"protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: protocolStateFunc,
 						},
 
 						"cidr_blocks": &schema.Schema{
@@ -136,8 +139,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 
 						"protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: protocolStateFunc,
 						},
 
 						"cidr_blocks": &schema.Schema{
@@ -273,12 +277,8 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	sg := sgRaw.(*ec2.SecurityGroup)
 
-	remoteIngressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissions)
-	remoteEgressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissionsEgress)
-
-	//
-	// TODO enforce the seperation of ips and security_groups in a rule block
-	//
+	remoteIngressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissions, sg.OwnerId)
+	remoteEgressRules := resourceAwsSecurityGroupIPPermGather(d.Id(), sg.IpPermissionsEgress, sg.OwnerId)
 
 	localIngressRules := d.Get("ingress").(*schema.Set).List()
 	localEgressRules := d.Get("egress").(*schema.Set).List()
@@ -345,14 +345,14 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
 			GroupId: aws.String(d.Id()),
 		})
 		if err != nil {
 			ec2err, ok := err.(awserr.Error)
 			if !ok {
-				return err
+				return resource.RetryableError(err)
 			}
 
 			switch ec2err.Code() {
@@ -360,10 +360,10 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 				return nil
 			case "DependencyViolation":
 				// If it is a dependency violation, we want to retry
-				return err
+				return resource.RetryableError(err)
 			default:
 				// Any other error, we want to quit the retry loop immediately
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 		}
 
@@ -376,7 +376,8 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
+	p := protocolForValue(m["protocol"].(string))
+	buf.WriteString(fmt.Sprintf("%s-", p))
 	buf.WriteString(fmt.Sprintf("%t-", m["self"].(bool)))
 
 	// We need to make sure to sort the strings below so that we always
@@ -409,7 +410,7 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpPermission) []map[string]interface{} {
+func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpPermission, ownerId *string) []map[string]interface{} {
 	ruleMap := make(map[string]map[string]interface{})
 	for _, perm := range permissions {
 		var fromPort, toPort int64
@@ -445,12 +446,9 @@ func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpP
 			m["cidr_blocks"] = list
 		}
 
-		var groups []string
-		if len(perm.UserIdGroupPairs) > 0 {
-			groups = flattenSecurityGroups(perm.UserIdGroupPairs)
-		}
-		for i, id := range groups {
-			if id == groupId {
+		groups := flattenSecurityGroups(perm.UserIdGroupPairs, ownerId)
+		for i, g := range groups {
+			if *g.GroupId == groupId {
 				groups[i], groups = groups[len(groups)-1], groups[:len(groups)-1]
 				m["self"] = true
 			}
@@ -464,7 +462,11 @@ func resourceAwsSecurityGroupIPPermGather(groupId string, permissions []*ec2.IpP
 			list := raw.(*schema.Set)
 
 			for _, g := range groups {
-				list.Add(g)
+				if g.GroupName != nil {
+					list.Add(*g.GroupName)
+				} else {
+					list.Add(*g.GroupId)
+				}
 			}
 
 			m["security_groups"] = list
@@ -531,12 +533,16 @@ func resourceAwsSecurityGroupUpdateRules(
 						GroupId:       group.GroupId,
 						IpPermissions: remove,
 					}
+					if group.VpcId == nil || *group.VpcId == "" {
+						req.GroupId = nil
+						req.GroupName = group.GroupName
+					}
 					_, err = conn.RevokeSecurityGroupIngress(req)
 				}
 
 				if err != nil {
 					return fmt.Errorf(
-						"Error authorizing security group %s rules: %s",
+						"Error revoking security group %s rules: %s",
 						ruleset, err)
 				}
 			}
@@ -817,8 +823,56 @@ func idHash(rType, protocol string, toPort, fromPort int64, self bool) string {
 	buf.WriteString(fmt.Sprintf("%s-", rType))
 	buf.WriteString(fmt.Sprintf("%d-", toPort))
 	buf.WriteString(fmt.Sprintf("%d-", fromPort))
-	buf.WriteString(fmt.Sprintf("%s-", protocol))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(protocol)))
 	buf.WriteString(fmt.Sprintf("%t-", self))
 
 	return fmt.Sprintf("rule-%d", hashcode.String(buf.String()))
+}
+
+// protocolStateFunc ensures we only store a string in any protocol field
+func protocolStateFunc(v interface{}) string {
+	switch v.(type) {
+	case string:
+		p := protocolForValue(v.(string))
+		return p
+	default:
+		log.Printf("[WARN] Non String value given for Protocol: %#v", v)
+		return ""
+	}
+}
+
+// protocolForValue converts a valid Internet Protocol number into it's name
+// representation. If a name is given, it validates that it's a proper protocol
+// name. Names/numbers are as defined at
+// https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+func protocolForValue(v string) string {
+	// special case -1
+	protocol := strings.ToLower(v)
+	if protocol == "-1" || protocol == "all" {
+		return "-1"
+	}
+	// if it's a name like tcp, return that
+	if _, ok := protocolIntegers()[protocol]; ok {
+		return protocol
+	}
+	// convert to int, look for that value
+	p, err := strconv.Atoi(protocol)
+	if err != nil {
+		// we were unable to convert to int, suggesting a string name, but it wasn't
+		// found above
+		log.Printf("[WARN] Unable to determine valid protocol: %s", err)
+		return protocol
+	}
+
+	for k, v := range protocolIntegers() {
+		if p == v {
+			// guard against protocolIntegers sometime in the future not having lower
+			// case ids in the map
+			return strings.ToLower(k)
+		}
+	}
+
+	// fall through
+	log.Printf("[WARN] Unable to determine valid protocol: no matching protocols found")
+	return protocol
 }

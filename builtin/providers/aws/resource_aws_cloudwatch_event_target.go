@@ -5,9 +5,11 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
 
@@ -28,7 +30,8 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 
 			"target_id": &schema.Schema{
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCloudWatchEventTargetId,
 			},
@@ -59,10 +62,14 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 	conn := meta.(*AWSClient).cloudwatcheventsconn
 
 	rule := d.Get("rule").(string)
-	targetId := d.Get("target_id").(string)
 
-	id := rule + "-" + targetId
-	d.SetId(id)
+	var targetId string
+	if v, ok := d.GetOk("target_id"); ok {
+		targetId = v.(string)
+	} else {
+		targetId = resource.UniqueId()
+		d.Set("target_id", targetId)
+	}
 
 	input := buildPutTargetInputStruct(d)
 	log.Printf("[DEBUG] Creating CloudWatch Event Target: %s", input)
@@ -75,6 +82,9 @@ func resourceAwsCloudWatchEventTargetCreate(d *schema.ResourceData, meta interfa
 		return fmt.Errorf("Creating CloudWatch Event Target failed: %s",
 			out.FailedEntries)
 	}
+
+	id := rule + "-" + targetId
+	d.SetId(id)
 
 	log.Printf("[INFO] CloudWatch Event Target %q created", d.Id())
 
@@ -93,6 +103,15 @@ func resourceAwsCloudWatchEventTargetRead(d *schema.ResourceData, meta interface
 			log.Printf("[WARN] Removing CloudWatch Event Target %q because it's gone.", d.Id())
 			d.SetId("")
 			return nil
+		}
+		if awsErr, ok := err.(awserr.Error); ok {
+			// This should never happen, but it's useful
+			// for recovering from https://github.com/hashicorp/terraform/issues/5389
+			if awsErr.Code() == "ValidationException" {
+				log.Printf("[WARN] Removing CloudWatch Event Target %q because it never existed.", d.Id())
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}

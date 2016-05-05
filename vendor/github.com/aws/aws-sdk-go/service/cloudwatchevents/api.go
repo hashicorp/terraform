@@ -4,6 +4,7 @@
 package cloudwatchevents
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -37,9 +38,9 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 // Deletes a rule. You must remove all targets from a rule using RemoveTargets
 // before you can delete the rule.
 //
-//  Note: When you make a change with this action, incoming events might still
-// continue to match to the deleted rule. Please allow a short period of time
-// for changes to take effect.
+//  Note: When you delete a rule, incoming events might still continue to match
+// to the deleted rule. Please allow a short period of time for changes to take
+// effect.
 func (c *CloudWatchEvents) DeleteRule(input *DeleteRuleInput) (*DeleteRuleOutput, error) {
 	req, out := c.DeleteRuleRequest(input)
 	err := req.Send()
@@ -98,9 +99,9 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 // Disables a rule. A disabled rule won't match any events, and won't self-trigger
 // if it has a schedule expression.
 //
-//  Note: When you make a change with this action, incoming events might still
-// continue to match to the disabled rule. Please allow a short period of time
-// for changes to take effect.
+//  Note: When you disable a rule, incoming events might still continue to
+// match to the disabled rule. Please allow a short period of time for changes
+// to take effect.
 func (c *CloudWatchEvents) DisableRule(input *DisableRuleInput) (*DisableRuleOutput, error) {
 	req, out := c.DisableRuleRequest(input)
 	err := req.Send()
@@ -131,9 +132,9 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 
 // Enables a rule. If the rule does not exist, the operation fails.
 //
-//  Note: When you make a change with this action, incoming events might not
-// immediately start matching to a newly enabled rule. Please allow a short
-// period of time for changes to take effect.
+//  Note: When you enable a rule, incoming events might not immediately start
+// matching to a newly enabled rule. Please allow a short period of time for
+// changes to take effect.
 func (c *CloudWatchEvents) EnableRule(input *EnableRuleInput) (*EnableRuleOutput, error) {
 	req, out := c.EnableRuleRequest(input)
 	err := req.Send()
@@ -160,12 +161,12 @@ func (c *CloudWatchEvents) ListRuleNamesByTargetRequest(input *ListRuleNamesByTa
 	return
 }
 
-// Lists the names of the rules that the given target is put to. Using this
-// action, you can find out which of the rules in Amazon CloudWatch Events can
-// invoke a specific target in your account. If you have more rules in your
-// account than the given limit, the results will be paginated. In that case,
-// use the next token returned in the response and repeat the ListRulesByTarget
-// action until the NextToken in the response is returned as null.
+// Lists the names of the rules that the given target is put to. You can see
+// which of the rules in Amazon CloudWatch Events can invoke a specific target
+// in your account. If you have more rules in your account than the given limit,
+// the results will be paginated. In that case, use the next token returned
+// in the response and repeat ListRulesByTarget until the NextToken in the response
+// is returned as null.
 func (c *CloudWatchEvents) ListRuleNamesByTarget(input *ListRuleNamesByTargetInput) (*ListRuleNamesByTargetOutput, error) {
 	req, out := c.ListRuleNamesByTargetRequest(input)
 	err := req.Send()
@@ -196,8 +197,7 @@ func (c *CloudWatchEvents) ListRulesRequest(input *ListRulesInput) (req *request
 // list all the rules or you can provide a prefix to match to the rule names.
 // If you have more rules in your account than the given limit, the results
 // will be paginated. In that case, use the next token returned in the response
-// and repeat the ListRules action until the NextToken in the response is returned
-// as null.
+// and repeat ListRules until the NextToken in the response is returned as null.
 func (c *CloudWatchEvents) ListRules(input *ListRulesInput) (*ListRulesOutput, error) {
 	req, out := c.ListRulesRequest(input)
 	err := req.Send()
@@ -282,9 +282,9 @@ func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Req
 // Creates or updates a rule. Rules are enabled by default, or based on value
 // of the State parameter. You can disable a rule using DisableRule.
 //
-//  Note: When you make a change with this action, incoming events might not
-// immediately start matching to new or updated rules. Please allow a short
-// period of time for changes to take effect.
+//  Note: When you create or update a rule, incoming events might not immediately
+// start matching to new or updated rules. Please allow a short period of time
+// for changes to take effect.
 //
 // A rule must contain at least an EventPattern or ScheduleExpression. Rules
 // with EventPatterns are triggered when a matching event is observed. Rules
@@ -323,13 +323,30 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 	return
 }
 
-// Adds target(s) to a rule. Updates the target(s) if they are already associated
+// Adds target(s) to a rule. Targets are the resources that can be invoked when
+// a rule is triggered. For example, AWS Lambda functions, Amazon Kinesis streams,
+// and built-in targets. Updates the target(s) if they are already associated
 // with the role. In other words, if there is already a target with the given
 // target ID, then the target associated with that ID is updated.
 //
-//  Note: When you make a change with this action, when the associated rule
-// triggers, new or updated targets might not be immediately invoked. Please
-// allow a short period of time for changes to take effect.
+// In order to be able to make API calls against the resources you own, Amazon
+// CloudWatch Events needs the appropriate permissions. For AWS Lambda and Amazon
+// SNS resources, CloudWatch Events relies on resource-based policies. For Amazon
+// Kinesis streams, CloudWatch Events relies on IAM roles. For more information,
+// see Permissions for Sending Events to Targets (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/EventsTargetPermissions.html)
+// in the Amazon CloudWatch Developer Guide.
+//
+// Input and InputPath are mutually-exclusive and optional parameters of a
+// target. When a rule is triggered due to a matched event, if for a target:
+//
+//  Neither Input nor InputPath is specified, then the entire event is passed
+// to the target in JSON form.  InputPath is specified in the form of JSONPath
+// (e.g. $.detail), then only the part of the event specified in the path is
+// passed to the target (e.g. only the detail part of the event is passed).
+//   Input is specified in the form of a valid JSON, then the matched event
+// is overridden with this constant.   Note: When you add targets to a rule,
+// when the associated rule triggers, new or updated targets might not be immediately
+// invoked. Please allow a short period of time for changes to take effect.
 func (c *CloudWatchEvents) PutTargets(input *PutTargetsInput) (*PutTargetsOutput, error) {
 	req, out := c.PutTargetsRequest(input)
 	err := req.Send()
@@ -359,9 +376,9 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 // Removes target(s) from a rule so that when the rule is triggered, those targets
 // will no longer be invoked.
 //
-//  Note: When you make a change with this action, when the associated rule
-// triggers, removed targets might still continue to be invoked. Please allow
-// a short period of time for changes to take effect.
+//  Note: When you remove a target, when the associated rule triggers, removed
+// targets might still continue to be invoked. Please allow a short period of
+// time for changes to take effect.
 func (c *CloudWatchEvents) RemoveTargets(input *RemoveTargetsInput) (*RemoveTargetsOutput, error) {
 	req, out := c.RemoveTargetsRequest(input)
 	err := req.Send()
@@ -419,6 +436,22 @@ func (s DeleteRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -449,6 +482,22 @@ func (s DescribeRuleInput) String() string {
 // GoString returns the string representation
 func (s DescribeRuleInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the DescribeRule operation.
@@ -505,6 +554,22 @@ func (s DisableRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -535,6 +600,22 @@ func (s EnableRuleInput) String() string {
 // GoString returns the string representation
 func (s EnableRuleInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableRuleOutput struct {
@@ -575,6 +656,28 @@ func (s ListRuleNamesByTargetInput) String() string {
 // GoString returns the string representation
 func (s ListRuleNamesByTargetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListRuleNamesByTargetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListRuleNamesByTargetInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.TargetArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetArn"))
+	}
+	if s.TargetArn != nil && len(*s.TargetArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TargetArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the ListRuleNamesByTarget operation.
@@ -623,6 +726,25 @@ func (s ListRulesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListRulesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListRulesInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NamePrefix != nil && len(*s.NamePrefix) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NamePrefix", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the ListRules operation.
 type ListRulesOutput struct {
 	_ struct{} `type:"structure"`
@@ -669,6 +791,28 @@ func (s ListTargetsByRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTargetsByRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTargetsByRuleInput"}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.Rule == nil {
+		invalidParams.Add(request.NewErrParamRequired("Rule"))
+	}
+	if s.Rule != nil && len(*s.Rule) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Rule", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the ListTargetsByRule operation.
 type ListTargetsByRuleOutput struct {
 	_ struct{} `type:"structure"`
@@ -710,6 +854,22 @@ func (s PutEventsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutEventsInput"}
+	if s.Entries == nil {
+		invalidParams.Add(request.NewErrParamRequired("Entries"))
+	}
+	if s.Entries != nil && len(s.Entries) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Entries", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the PutEvents operation.
 type PutEventsOutput struct {
 	_ struct{} `type:"structure"`
@@ -734,7 +894,7 @@ func (s PutEventsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains information about the event to be used in the PutEvents action.
+// Contains information about the event to be used in PutEvents.
 type PutEventsRequestEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -825,6 +985,25 @@ func (s PutRuleInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRuleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRuleInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of the PutRule operation.
 type PutRuleOutput struct {
 	_ struct{} `type:"structure"`
@@ -862,6 +1041,35 @@ func (s PutTargetsInput) String() string {
 // GoString returns the string representation
 func (s PutTargetsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutTargetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutTargetsInput"}
+	if s.Rule == nil {
+		invalidParams.Add(request.NewErrParamRequired("Rule"))
+	}
+	if s.Rule != nil && len(*s.Rule) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Rule", 1))
+	}
+	if s.Targets == nil {
+		invalidParams.Add(request.NewErrParamRequired("Targets"))
+	}
+	if s.Targets != nil {
+		for i, v := range s.Targets {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Targets", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the PutTargets operation.
@@ -928,6 +1136,28 @@ func (s RemoveTargetsInput) String() string {
 // GoString returns the string representation
 func (s RemoveTargetsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTargetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTargetsInput"}
+	if s.Ids == nil {
+		invalidParams.Add(request.NewErrParamRequired("Ids"))
+	}
+	if s.Ids != nil && len(s.Ids) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Ids", 1))
+	}
+	if s.Rule == nil {
+		invalidParams.Add(request.NewErrParamRequired("Rule"))
+	}
+	if s.Rule != nil && len(*s.Rule) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Rule", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the RemoveTargets operation.
@@ -1055,6 +1285,28 @@ func (s Target) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Target) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Target"}
+	if s.Arn == nil {
+		invalidParams.Add(request.NewErrParamRequired("Arn"))
+	}
+	if s.Arn != nil && len(*s.Arn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Arn", 1))
+	}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+	if s.Id != nil && len(*s.Id) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Container for the parameters to the TestEventPattern operation.
 type TestEventPatternInput struct {
 	_ struct{} `type:"structure"`
@@ -1074,6 +1326,22 @@ func (s TestEventPatternInput) String() string {
 // GoString returns the string representation
 func (s TestEventPatternInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestEventPatternInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestEventPatternInput"}
+	if s.Event == nil {
+		invalidParams.Add(request.NewErrParamRequired("Event"))
+	}
+	if s.EventPattern == nil {
+		invalidParams.Add(request.NewErrParamRequired("EventPattern"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of the TestEventPattern operation.

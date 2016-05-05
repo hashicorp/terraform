@@ -502,6 +502,103 @@ func TestResourceStateTaint(t *testing.T) {
 	}
 }
 
+func TestResourceStateUntaint(t *testing.T) {
+	cases := map[string]struct {
+		Input          *ResourceState
+		Index          func() int
+		ExpectedOutput *ResourceState
+		ExpectedErrMsg string
+	}{
+		"no primary, no tainted, err": {
+			Input:          &ResourceState{},
+			ExpectedOutput: &ResourceState{},
+			ExpectedErrMsg: "Nothing to untaint",
+		},
+
+		"one tainted, no primary": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+			ExpectedOutput: &ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+				Tainted: []*InstanceState{},
+			},
+		},
+
+		"one tainted, existing primary error": {
+			Input: &ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+			ExpectedErrMsg: "Resource has a primary",
+		},
+
+		"multiple tainted, no index": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+					&InstanceState{ID: "foo"},
+				},
+			},
+			ExpectedErrMsg: "please specify an index",
+		},
+
+		"multiple tainted, with index": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+					&InstanceState{ID: "foo"},
+				},
+			},
+			Index: func() int { return 1 },
+			ExpectedOutput: &ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+				},
+			},
+		},
+
+		"index out of bounds error": {
+			Input: &ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+					&InstanceState{ID: "foo"},
+				},
+			},
+			Index:          func() int { return 2 },
+			ExpectedErrMsg: "out of range",
+		},
+	}
+
+	for k, tc := range cases {
+		index := -1
+		if tc.Index != nil {
+			index = tc.Index()
+		}
+		err := tc.Input.Untaint(index)
+		if tc.ExpectedErrMsg == "" && err != nil {
+			t.Fatalf("[%s] unexpected err: %s", k, err)
+		}
+		if tc.ExpectedErrMsg != "" {
+			if strings.Contains(err.Error(), tc.ExpectedErrMsg) {
+				continue
+			}
+			t.Fatalf("[%s] expected err: %s to contain: %s",
+				k, err, tc.ExpectedErrMsg)
+		}
+		if !reflect.DeepEqual(tc.Input, tc.ExpectedOutput) {
+			t.Fatalf(
+				"Failure: %s\n\nExpected: %#v\n\nGot: %#v",
+				k, tc.ExpectedOutput, tc.Input)
+		}
+	}
+}
+
 func TestInstanceStateEmpty(t *testing.T) {
 	cases := map[string]struct {
 		In     *InstanceState

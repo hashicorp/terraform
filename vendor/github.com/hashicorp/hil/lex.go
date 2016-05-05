@@ -166,6 +166,10 @@ func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
 			return PAREN_LEFT
 		case ')':
 			return PAREN_RIGHT
+		case '[':
+			return SQUARE_BRACKET_LEFT
+		case ']':
+			return SQUARE_BRACKET_RIGHT
 		case ',':
 			return COMMA
 		case '+':

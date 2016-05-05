@@ -24,7 +24,7 @@ func resourceLBVipV1() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -264,7 +264,7 @@ func resourceLBVipV1Delete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"ACTIVE"},
+		Pending:    []string{"ACTIVE", "PENDING_DELETE"},
 		Target:     []string{"DELETED"},
 		Refresh:    waitForLBVIPDelete(networkingClient, d.Id()),
 		Timeout:    2 * time.Minute,

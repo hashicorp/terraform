@@ -49,11 +49,11 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 			},
 			"notification_target_arn": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"role_arn": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 		},
 	}
@@ -64,16 +64,16 @@ func resourceAwsAutoscalingLifecycleHookPut(d *schema.ResourceData, meta interfa
 	params := getAwsAutoscalingPutLifecycleHookInput(d)
 
 	log.Printf("[DEBUG] AutoScaling PutLifecyleHook: %s", params)
-	err := resource.Retry(5*time.Minute, func() error {
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.PutLifecycleHook(&params)
 
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if strings.Contains(awsErr.Message(), "Unable to publish test message to notification target") {
-					return fmt.Errorf("[DEBUG] Retrying AWS AutoScaling Lifecycle Hook: %s", params)
+					return resource.RetryableError(fmt.Errorf("[DEBUG] Retrying AWS AutoScaling Lifecycle Hook: %s", params))
 				}
 			}
-			return resource.RetryError{Err: fmt.Errorf("Error putting lifecycle hook: %s", err)}
+			return resource.NonRetryableError(fmt.Errorf("Error putting lifecycle hook: %s", err))
 		}
 		return nil
 	})

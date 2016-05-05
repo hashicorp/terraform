@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// Amazon Kinesis is a managed service that scales elastically for real time
-// processing of streaming big data.
+// Amazon Kinesis Streams is a managed service that scales elastically for real
+// time processing of streaming big data.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type Kinesis struct {

@@ -1,3 +1,4 @@
+// +build 386,darwin
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_darwin.go
 
@@ -28,7 +29,7 @@ type Timeval struct {
 	Usec int32
 }
 
-type Timeval32 [0]byte
+type Timeval32 struct{}
 
 type Rusage struct {
 	Utime    Timeval

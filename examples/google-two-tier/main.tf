@@ -3,7 +3,7 @@
 provider "google" {
   region = "${var.region}"
   project = "${var.project_name}"
-  account_file = "${file(var.account_file_path)}"
+  credentials = "${file("${var.credentials_file_path}")}"
 }
 
 resource "google_compute_http_health_check" "default" {
@@ -31,31 +31,47 @@ resource "google_compute_instance" "www" {
   count = 3
 
   name = "tf-www-${count.index}"
-  machine_type = "n1-standard-1"
+  machine_type = "f1-micro"
   zone = "${var.region_zone}"
   tags = ["www-node"]
 
   disk {
-    image = "ubuntu-os-cloud/ubuntu-1204-precise-v20150625"
+    image = "ubuntu-os-cloud/ubuntu-1404-trusty-v20160314"
   }
 
   network_interface {
     network = "default"
     access_config {
-        # Ephemeral
+      # Ephemeral
     }
   }
 
   metadata {
-    sshKeys = "ubuntu:${file("~/.ssh/gcloud_id_rsa.pub")}"
-    startup-script = <<SCRIPT
-apt-get -y update
-apt-get -y install nginx
-HOSTNAME=$(hostname | tr -d "\n")
-IP=$(curl -s -H "Metadata-Flavor:Google" http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip)
-echo "Welcome to ${count.index} - $HOSTNAME ($IP)" > /usr/share/nginx/www/index.html
-service nginx start
-SCRIPT
+    ssh-keys = "root:${file("${var.public_key_path}")}"
+  }
+
+  provisioner "file" {
+    source = "${var.install_script_src_path}"
+    destination = "${var.install_script_dest_path}"
+    connection {
+      type = "ssh"
+      user = "root"
+      private_key = "${file("${var.private_key_path}")}"
+      agent = false
+    }
+  }
+
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "root"
+      private_key = "${file("${var.private_key_path}")}"
+      agent = false
+    }
+    inline = [
+      "chmod +x ${var.install_script_dest_path}",
+      "${var.install_script_dest_path} ${count.index}"
+    ]
   }
 
   service_account {

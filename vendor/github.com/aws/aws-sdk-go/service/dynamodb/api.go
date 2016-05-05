@@ -4,6 +4,7 @@
 package dynamodb
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -185,9 +186,9 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 //
 //   There are more than 25 requests in the batch.
 //
-//   Any individual item in a batch exceeds 400 KB.
+//  Any individual item in a batch exceeds 400 KB.
 //
-//   The total request size exceeds 16 MB.
+//  The total request size exceeds 16 MB.
 func (c *DynamoDB) BatchWriteItem(input *BatchWriteItemInput) (*BatchWriteItemOutput, error) {
 	req, out := c.BatchWriteItemRequest(input)
 	err := req.Send()
@@ -315,6 +316,80 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Req
 // Use the DescribeTable API to check the status of the table.
 func (c *DynamoDB) DeleteTable(input *DeleteTableInput) (*DeleteTableOutput, error) {
 	req, out := c.DeleteTableRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeLimits = "DescribeLimits"
+
+// DescribeLimitsRequest generates a request for the DescribeLimits operation.
+func (c *DynamoDB) DescribeLimitsRequest(input *DescribeLimitsInput) (req *request.Request, output *DescribeLimitsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeLimits,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeLimitsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeLimitsOutput{}
+	req.Data = output
+	return
+}
+
+// Returns the current provisioned-capacity limits for your AWS account in a
+// region, both for the region as a whole and for any one DynamoDB table that
+// you create there.
+//
+// When you establish an AWS account, the account has initial limits on the
+// maximum read capacity units and write capacity units that you can provision
+// across all of your DynamoDB tables in a given region. Also, there are per-table
+// limits that apply when you create a table there. For more information, see
+// Limits (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+// page in the Amazon DynamoDB Developer Guide.
+//
+// Although you can increase these limits by filing a case at AWS Support Center
+// (https://console.aws.amazon.com/support/home#/), obtaining the increase is
+// not instantaneous. The DescribeLimits API lets you write code to compare
+// the capacity you are currently using to those limits imposed by your account
+// so that you have enough time to apply for an increase before you hit a limit.
+//
+//  For example, you could use one of the AWS SDKs to do the following:
+//
+//  Call DescribeLimits for a particular region to obtain your current account
+// limits on provisioned capacity there. Create a variable to hold the aggregate
+// read capacity units provisioned for all your tables in that region, and one
+// to hold the aggregate write capacity units. Zero them both. Call ListTables
+// to obtain a list of all your DynamoDB tables. For each table name listed
+// by ListTables, do the following:
+//
+//  Call DescribeTable with the table name. Use the data returned by DescribeTable
+// to add the read capacity units and write capacity units provisioned for the
+// table itself to your variables. If the table has one or more global secondary
+// indexes (GSIs), loop over these GSIs and add their provisioned capacity values
+// to your variables as well.   Report the account limits for that region returned
+// by DescribeLimits, along with the total current provisioned capacity levels
+// you have calculated.  This will let you see whether you are getting close
+// to your account-level limits.
+//
+// The per-table limits apply only when you are creating a new table. They
+// restrict the sum of the provisioned capacity of the new table itself and
+// all its global secondary indexes.
+//
+// For existing tables and their GSIs, DynamoDB will not let you increase provisioned
+// capacity extremely rapidly, but the only upper limit that applies is that
+// the aggregate provisioned capacity over all your tables and GSIs cannot exceed
+// either of the per-account limits.
+//
+// DescribeLimits should only be called periodically. You can expect throttling
+// errors if you call it more than once in a minute.
+//
+//  The DescribeLimits Request element has no content.
+func (c *DynamoDB) DescribeLimits(input *DescribeLimitsInput) (*DescribeLimitsOutput, error) {
+	req, out := c.DescribeLimitsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -470,8 +545,10 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 // see the ReturnValues description below.
 //
 //  To prevent a new item from replacing an existing item, use a conditional
-// put operation with ComparisonOperator set to NULL for the primary key attribute,
-// or attributes.
+// expression that contains the attribute_not_exists function with the name
+// of the attribute being used as the partition key for the table. Since every
+// record must contain that attribute, the attribute_not_exists function will
+// only succeed if no matching item exists.
 //
 //  For more information about using this API, see Working with Items (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithItems.html)
 // in the Amazon DynamoDB Developer Guide.
@@ -510,12 +587,12 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output
 // A Query operation uses the primary key of a table or a secondary index to
 // directly access items from that table or index.
 //
-// Use the KeyConditionExpression parameter to provide a specific hash key
-// value. The Query operation will return all of the items from the table or
-// index with that hash key value. You can optionally narrow the scope of the
-// Query operation by specifying a range key value and a comparison operator
-// in KeyConditionExpression. You can use the ScanIndexForward parameter to
-// get results in forward or reverse order, by range key or by index key.
+// Use the KeyConditionExpression parameter to provide a specific value for
+// the partition key. The Query operation will return all of the items from
+// the table or index with that partition key value. You can optionally narrow
+// the scope of the Query operation by specifying a sort key value and a comparison
+// operator in KeyConditionExpression. You can use the ScanIndexForward parameter
+// to get results in forward or reverse order, by sort key.
 //
 // Queries that do not return results consume the minimum number of read capacity
 // units for that type of read operation.
@@ -588,9 +665,11 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *
 // more information, see Parallel Scan (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html#QueryAndScanParallelScan)
 // in the Amazon DynamoDB Developer Guide.
 //
-// By default, Scan uses eventually consistent reads when acessing the data
-// in the table or local secondary index. However, you can use strongly consistent
-// reads instead by setting the ConsistentRead parameter to true.
+// By default, Scan uses eventually consistent reads when accessing the data
+// in a table; therefore, the result set might not include the changes to data
+// in the table immediately before the operation began. If you need a consistent
+// copy of the data, as of the time that the Scan begins, you can set the ConsistentRead
+// parameter to true.
 func (c *DynamoDB) Scan(input *ScanInput) (*ScanOutput, error) {
 	req, out := c.ScanRequest(input)
 	err := req.Send()
@@ -629,9 +708,7 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Reque
 // does not already exist. You can put, delete, or add attribute values. You
 // can also perform a conditional update on an existing item (insert a new attribute
 // name-value pair if it doesn't exist, or replace an existing name-value pair
-// if it has certain expected attribute values). If conditions are specified
-// and the item does not exist, then the operation fails and a new item is not
-// created.
+// if it has certain expected attribute values).
 //
 // You can also return the item's attribute values in the same UpdateItem operation
 // using the ReturnValues parameter.
@@ -675,7 +752,7 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 //  Create a new global secondary index on the table. Once the index begins
 // backfilling, you can use UpdateTable to perform other operations.
 //
-//   UpdateTable is an asynchronous operation; while it is executing, the table
+//  UpdateTable is an asynchronous operation; while it is executing, the table
 // status changes from ACTIVE to UPDATING. While it is UPDATING, you cannot
 // issue another UpdateTable request. When the table returns to the ACTIVE state,
 // the UpdateTable operation is complete.
@@ -692,7 +769,10 @@ type AttributeDefinition struct {
 	// A name for the attribute.
 	AttributeName *string `min:"1" type:"string" required:"true"`
 
-	// The data type for the attribute.
+	// The data type for the attribute, where:
+	//
+	//  S - the attribute is of type String N - the attribute is of type Number
+	// B - the attribute is of type Binary
 	AttributeType *string `type:"string" required:"true" enum:"ScalarAttributeType"`
 }
 
@@ -706,6 +786,25 @@ func (s AttributeDefinition) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttributeDefinition) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttributeDefinition"}
+	if s.AttributeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeName"))
+	}
+	if s.AttributeName != nil && len(*s.AttributeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributeName", 1))
+	}
+	if s.AttributeType == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the data for an attribute. You can set one, and only one, of the
 // elements.
 //
@@ -717,6 +816,8 @@ type AttributeValue struct {
 	_ struct{} `type:"structure"`
 
 	// A Binary data type.
+	//
+	// B is automatically base64 encoded/decoded by the SDK.
 	B []byte `type:"blob"`
 
 	// A Boolean data type.
@@ -905,9 +1006,9 @@ type BatchGetItemInput struct {
 	//
 	//   Keys - An array of primary key attribute values that define specific items
 	// in the table. For each primary key, you must provide all of the key attributes.
-	// For example, with a hash type primary key, you only need to provide the hash
-	// attribute. For a hash-and-range type primary key, you must provide both the
-	// hash attribute and the range attribute.
+	// For example, with a simple primary key, you only need to provide the partition
+	// key value. For a composite key, you must provide both the partition key value
+	// and the sort key value.
 	//
 	//   ProjectionExpression - A string that identifies one or more attributes
 	// to retrieve from the table. These attributes can include scalars, sets, or
@@ -943,7 +1044,7 @@ type BatchGetItemInput struct {
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -951,7 +1052,7 @@ type BatchGetItemInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
@@ -966,6 +1067,32 @@ func (s BatchGetItemInput) String() string {
 // GoString returns the string representation
 func (s BatchGetItemInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetItemInput"}
+	if s.RequestItems == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequestItems"))
+	}
+	if s.RequestItems != nil && len(s.RequestItems) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestItems", 1))
+	}
+	if s.RequestItems != nil {
+		for i, v := range s.RequestItems {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "RequestItems", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a BatchGetItem operation.
@@ -1033,9 +1160,9 @@ type BatchWriteItemInput struct {
 	//   Key - A map of primary key attribute values that uniquely identify the
 	// ! item. Each entry in this map consists of an attribute name and an attribute
 	// value. For each primary key, you must provide all of the key attributes.
-	// For example, with a hash type primary key, you only need to provide the hash
-	// attribute. For a hash-and-range type primary key, you must provide both the
-	// hash attribute and the range attribute.
+	// For example, with a simple primary key, you only need to provide a value
+	// for the partition key. For a composite primary key, you must provide values
+	// for both the partition key and the sort key.
 	//
 	//     PutRequest - Perform a PutItem operation on the specified item. The
 	// item to be put is identified by an Item subelement:
@@ -1054,7 +1181,7 @@ type BatchWriteItemInput struct {
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -1062,7 +1189,7 @@ type BatchWriteItemInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
@@ -1085,6 +1212,22 @@ func (s BatchWriteItemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchWriteItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchWriteItemInput"}
+	if s.RequestItems == nil {
+		invalidParams.Add(request.NewErrParamRequired("RequestItems"))
+	}
+	if s.RequestItems != nil && len(s.RequestItems) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RequestItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a BatchWriteItem operation.
 type BatchWriteItemOutput struct {
 	_ struct{} `type:"structure"`
@@ -1104,8 +1247,8 @@ type BatchWriteItemOutput struct {
 	//
 	// Each entry consists of the following subelements:
 	//
-	//   ItemCollectionKey - The hash key value of the item collection. This is
-	// the same as the hash key of the item.
+	//   ItemCollectionKey - The partition key value of the item collection. This
+	// is the same as the partition key value of the item.
 	//
 	//   SizeEstimateRange - An estimate of item collection size, expressed in
 	// GB. This is a two-element array containing a lower bound and an upper bound
@@ -1354,6 +1497,19 @@ func (s Condition) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Condition) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Condition"}
+	if s.ComparisonOperator == nil {
+		invalidParams.Add(request.NewErrParamRequired("ComparisonOperator"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The capacity units consumed by an operation. The data returned includes the
 // total provisioned throughput consumed, along with statistics for the table
 // and any indexes involved in the operation. ConsumedCapacity is only returned
@@ -1423,6 +1579,54 @@ func (s CreateGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateGlobalSecondaryIndexAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateGlobalSecondaryIndexAction"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.Projection == nil {
+		invalidParams.Add(request.NewErrParamRequired("Projection"))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Projection != nil {
+		if err := s.Projection.Validate(); err != nil {
+			invalidParams.AddNested("Projection", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a CreateTable operation.
 type CreateTableInput struct {
 	_ struct{} `type:"structure"`
@@ -1471,12 +1675,25 @@ type CreateTableInput struct {
 	//
 	//   AttributeName - The name of this key attribute.
 	//
-	//   KeyType - Determines whether the key attribute is HASH or RANGE.
+	//   KeyType - The role that the key attribute will assume:
 	//
-	//   For a primary key that consists of a hash attribute, you must provide
-	// exactly one element with a KeyType of HASH.
+	//  HASH - partition key
 	//
-	// For a primary key that consists of hash and range attributes, you must provide
+	//  RANGE - sort key
+	//
+	//     The partition key of an item is also known as its hash attribute. The
+	// term "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// to evenly distribute data items across partitions, based on their partition
+	// key values.
+	//
+	// The sort key of an item is also known as its range attribute. The term "range
+	// attribute" derives from the way DynamoDB stores items with the same partition
+	// key physically close together, in sorted order by the sort key value.
+	//
+	// For a simple primary key (partition key), you must provide exactly one element
+	// with a KeyType of HASH.
+	//
+	// For a composite primary key (partition key and sort key), you must provide
 	// exactly two elements, in this order: The first element must have a KeyType
 	// of HASH, and the second element must have a KeyType of RANGE.
 	//
@@ -1485,9 +1702,9 @@ type CreateTableInput struct {
 	KeySchema []*KeySchemaElement `min:"1" type:"list" required:"true"`
 
 	// One or more local secondary indexes (the maximum is five) to be created on
-	// the table. Each index is scoped to a given hash key value. There is a 10
-	// GB size limit per hash key; otherwise, the size of a local secondary index
-	// is unconstrained.
+	// the table. Each index is scoped to a given partition key value. There is
+	// a 10 GB size limit per partition key value; otherwise, the size of a local
+	// secondary index is unconstrained.
 	//
 	// Each local secondary index in the array includes the following:
 	//
@@ -1495,7 +1712,7 @@ type CreateTableInput struct {
 	// for this table.
 	//
 	//    KeySchema - Specifies the key schema for the local secondary index. The
-	// key schema must begin with the same hash key attribute as the table.
+	// key schema must begin with the same partition key as the table.
 	//
 	//   Projection - Specifies attributes that are copied (projected) from the
 	// table into the index. These are in addition to the primary key attributes
@@ -1562,6 +1779,79 @@ func (s CreateTableInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTableInput"}
+	if s.AttributeDefinitions == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeDefinitions"))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.AttributeDefinitions != nil {
+		for i, v := range s.AttributeDefinitions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AttributeDefinitions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.GlobalSecondaryIndexes != nil {
+		for i, v := range s.GlobalSecondaryIndexes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.LocalSecondaryIndexes != nil {
+		for i, v := range s.LocalSecondaryIndexes {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "LocalSecondaryIndexes", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a CreateTable operation.
 type CreateTableOutput struct {
 	_ struct{} `type:"structure"`
@@ -1598,6 +1888,22 @@ func (s DeleteGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteGlobalSecondaryIndexAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteGlobalSecondaryIndexAction"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a DeleteItem operation.
 type DeleteItemInput struct {
 	_ struct{} `type:"structure"`
@@ -1612,7 +1918,7 @@ type DeleteItemInput struct {
 	//
 	// These function names are case-sensitive.
 	//
-	//   Comparison operators:  = | <> | < | > | <= | >= | BETWEEN | IN
+	//   Comparison operators:  = |  |  |  | = | = | BETWEEN | IN
 	//
 	//    Logical operators: AND | OR | NOT
 	//
@@ -1901,15 +2207,15 @@ type DeleteItemInput struct {
 	// key of the item to delete.
 	//
 	// For the primary key, you must provide all of the attributes. For example,
-	// with a hash type primary key, you only need to provide the hash attribute.
-	// For a hash-and-range type primary key, you must provide both the hash attribute
-	// and the range attribute.
+	// with a simple primary key, you only need to provide a value for the partition
+	// key. For a composite primary key, you must provide values for both the partition
+	// key and the sort key.
 	Key map[string]*AttributeValue `type:"map" required:"true"`
 
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -1917,7 +2223,7 @@ type DeleteItemInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
@@ -1952,6 +2258,25 @@ func (s DeleteItemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteItemInput"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a DeleteItem operation.
 type DeleteItemOutput struct {
 	_ struct{} `type:"structure"`
@@ -1976,8 +2301,8 @@ type DeleteItemOutput struct {
 	//
 	// Each ItemCollectionMetrics element consists of:
 	//
-	//  ItemCollectionKey - The hash key value of the item collection. This is
-	// the same as the hash key of the item.
+	//  ItemCollectionKey - The partition key value of the item collection. This
+	// is the same as the partition key value of the item itself.
 	//
 	// SizeEstimateRange - An estimate of item collection size, in gigabytes. This
 	// value is a two-element array containing a lower bound and an upper bound
@@ -2039,6 +2364,22 @@ func (s DeleteTableInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTableInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a DeleteTable operation.
 type DeleteTableOutput struct {
 	_ struct{} `type:"structure"`
@@ -2054,6 +2395,54 @@ func (s DeleteTableOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteTableOutput) GoString() string {
+	return s.String()
+}
+
+// Represents the input of a DescribeLimits operation. Has no content.
+type DescribeLimitsInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeLimitsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeLimitsInput) GoString() string {
+	return s.String()
+}
+
+// Represents the output of a DescribeLimits operation.
+type DescribeLimitsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum total read capacity units that your account allows you to provision
+	// across all of your tables in this region.
+	AccountMaxReadCapacityUnits *int64 `min:"1" type:"long"`
+
+	// The maximum total write capacity units that your account allows you to provision
+	// across all of your tables in this region.
+	AccountMaxWriteCapacityUnits *int64 `min:"1" type:"long"`
+
+	// The maximum read capacity units that your account allows you to provision
+	// for a new table that you are creating in this region, including the read
+	// capacity units provisioned for its global secondary indexes (GSIs).
+	TableMaxReadCapacityUnits *int64 `min:"1" type:"long"`
+
+	// The maximum write capacity units that your account allows you to provision
+	// for a new table that you are creating in this region, including the write
+	// capacity units provisioned for its global secondary indexes (GSIs).
+	TableMaxWriteCapacityUnits *int64 `min:"1" type:"long"`
+}
+
+// String returns the string representation
+func (s DescribeLimitsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeLimitsOutput) GoString() string {
 	return s.String()
 }
 
@@ -2073,6 +2462,22 @@ func (s DescribeTableInput) String() string {
 // GoString returns the string representation
 func (s DescribeTableInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTableInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a DescribeTable operation.
@@ -2372,9 +2777,9 @@ type GetItemInput struct {
 	// key of the item to retrieve.
 	//
 	// For the primary key, you must provide all of the attributes. For example,
-	// with a hash type primary key, you only need to provide the hash attribute.
-	// For a hash-and-range type primary key, you must provide both the hash attribute
-	// and the range attribute.
+	// with a simple primary key, you only need to provide a value for the partition
+	// key. For a composite primary key, you must provide values for both the partition
+	// key and the sort key.
 	Key map[string]*AttributeValue `type:"map" required:"true"`
 
 	// A string that identifies one or more attributes to retrieve from the table.
@@ -2394,7 +2799,7 @@ type GetItemInput struct {
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -2402,7 +2807,7 @@ type GetItemInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
@@ -2420,6 +2825,28 @@ func (s GetItemInput) String() string {
 // GoString returns the string representation
 func (s GetItemInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetItemInput"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a GetItem operation.
@@ -2457,7 +2884,20 @@ type GlobalSecondaryIndex struct {
 	IndexName *string `min:"3" type:"string" required:"true"`
 
 	// The complete key schema for a global secondary index, which consists of one
-	// or more pairs of attribute names and key types (HASH or RANGE).
+	// or more pairs of attribute names and key types:
+	//
+	//  HASH - partition key
+	//
+	//  RANGE - sort key
+	//
+	//   The partition key of an item is also known as its hash attribute. The
+	// term "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// to evenly distribute data items across partitions, based on their partition
+	// key values.
+	//
+	// The sort key of an item is also known as its range attribute. The term "range
+	// attribute" derives from the way DynamoDB stores items with the same partition
+	// key physically close together, in sorted order by the sort key value.
 	KeySchema []*KeySchemaElement `min:"1" type:"list" required:"true"`
 
 	// Represents attributes that are copied (projected) from the table into an
@@ -2484,14 +2924,62 @@ func (s GlobalSecondaryIndex) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GlobalSecondaryIndex) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GlobalSecondaryIndex"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.Projection == nil {
+		invalidParams.Add(request.NewErrParamRequired("Projection"))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Projection != nil {
+		if err := s.Projection.Validate(); err != nil {
+			invalidParams.AddNested("Projection", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the properties of a global secondary index.
 type GlobalSecondaryIndexDescription struct {
 	_ struct{} `type:"structure"`
 
 	// Indicates whether the index is currently backfilling. Backfilling is the
 	// process of reading items from the table and determining whether they can
-	// be added to the index. (Not all items will qualify: For example, a hash key
-	// attribute cannot have any duplicates.) If an item can be added to the index,
+	// be added to the index. (Not all items will qualify: For example, a partition
+	// key cannot have any duplicate values.) If an item can be added to the index,
 	// DynamoDB will do so. After all items have been processed, the backfilling
 	// operation is complete and Backfilling is false.
 	//
@@ -2525,8 +3013,21 @@ type GlobalSecondaryIndexDescription struct {
 	// every six hours. Recent changes might not be reflected in this value.
 	ItemCount *int64 `type:"long"`
 
-	// The complete key schema for the global secondary index, consisting of one
-	// or more pairs of attribute names and key types (HASH or RANGE).
+	// The complete key schema for a global secondary index, which consists of one
+	// or more pairs of attribute names and key types:
+	//
+	//  HASH - partition key
+	//
+	//  RANGE - sort key
+	//
+	//   The partition key of an item is also known as its hash attribute. The
+	// term "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// to evenly distribute data items across partitions, based on their partition
+	// key values.
+	//
+	// The sort key of an item is also known as its range attribute. The term "range
+	// attribute" derives from the way DynamoDB stores items with the same partition
+	// key physically close together, in sorted order by the sort key value.
 	KeySchema []*KeySchemaElement `min:"1" type:"list"`
 
 	// Represents attributes that are copied (projected) from the table into an
@@ -2591,6 +3092,31 @@ func (s GlobalSecondaryIndexUpdate) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GlobalSecondaryIndexUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GlobalSecondaryIndexUpdate"}
+	if s.Create != nil {
+		if err := s.Create.Validate(); err != nil {
+			invalidParams.AddNested("Create", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Delete != nil {
+		if err := s.Delete.Validate(); err != nil {
+			invalidParams.AddNested("Delete", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Update != nil {
+		if err := s.Update.Validate(); err != nil {
+			invalidParams.AddNested("Update", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Information about item collections, if any, that were affected by the operation.
 // ItemCollectionMetrics is only returned if the request asked for it. If the
 // table does not have any local secondary indexes, this information is not
@@ -2598,8 +3124,8 @@ func (s GlobalSecondaryIndexUpdate) GoString() string {
 type ItemCollectionMetrics struct {
 	_ struct{} `type:"structure"`
 
-	// The hash key value of the item collection. This value is the same as the
-	// hash key of the item.
+	// The partition key value of the item collection. This value is the same as
+	// the partition key value of the item.
 	ItemCollectionKey map[string]*AttributeValue `type:"map"`
 
 	// An estimate of item collection size, in gigabytes. This value is a two-element
@@ -2628,16 +3154,33 @@ func (s ItemCollectionMetrics) GoString() string {
 // that make up the primary key of a table, or the key attributes of an index.
 //
 // A KeySchemaElement represents exactly one attribute of the primary key.
-// For example, a hash type primary key would be represented by one KeySchemaElement.
-// A hash-and-range type primary key would require one KeySchemaElement for
-// the hash attribute, and another KeySchemaElement for the range attribute.
+// For example, a simple primary key would be represented by one KeySchemaElement
+// (for the partition key). A composite primary key would require one KeySchemaElement
+// for the partition key, and another KeySchemaElement for the sort key.
+//
+// A KeySchemaElement must be a scalar, top-level attribute (not a nested attribute).
+// The data type must be one of String, Number, or Binary. The attribute cannot
+// be nested within a List or a Map.
 type KeySchemaElement struct {
 	_ struct{} `type:"structure"`
 
 	// The name of a key attribute.
 	AttributeName *string `min:"1" type:"string" required:"true"`
 
-	// The attribute data, consisting of the data type and the attribute value itself.
+	// The role that this key attribute will assume:
+	//
+	//  HASH - partition key
+	//
+	//  RANGE - sort key
+	//
+	//   The partition key of an item is also known as its hash attribute. The
+	// term "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// to evenly distribute data items across partitions, based on their partition
+	// key values.
+	//
+	// The sort key of an item is also known as its range attribute. The term "range
+	// attribute" derives from the way DynamoDB stores items with the same partition
+	// key physically close together, in sorted order by the sort key value.
 	KeyType *string `type:"string" required:"true" enum:"KeyType"`
 }
 
@@ -2651,13 +3194,32 @@ func (s KeySchemaElement) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *KeySchemaElement) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "KeySchemaElement"}
+	if s.AttributeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("AttributeName"))
+	}
+	if s.AttributeName != nil && len(*s.AttributeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributeName", 1))
+	}
+	if s.KeyType == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents a set of primary keys and, for each key, the attributes to retrieve
 // from the table.
 //
 // For each primary key, you must provide all of the key attributes. For example,
-// with a hash type primary key, you only need to provide the hash attribute.
-// For a hash-and-range type primary key, you must provide both the hash attribute
-// and the range attribute.
+// with a simple primary key, you only need to provide the partition key. For
+// a composite primary key, you must provide both the partition key and the
+// sort key.
 type KeysAndAttributes struct {
 	_ struct{} `type:"structure"`
 
@@ -2735,6 +3297,25 @@ func (s KeysAndAttributes) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *KeysAndAttributes) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "KeysAndAttributes"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.Keys == nil {
+		invalidParams.Add(request.NewErrParamRequired("Keys"))
+	}
+	if s.Keys != nil && len(s.Keys) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Keys", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a ListTables operation.
 type ListTablesInput struct {
 	_ struct{} `type:"structure"`
@@ -2757,6 +3338,22 @@ func (s ListTablesInput) String() string {
 // GoString returns the string representation
 func (s ListTablesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTablesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTablesInput"}
+	if s.ExclusiveStartTableName != nil && len(*s.ExclusiveStartTableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusiveStartTableName", 3))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a ListTables operation.
@@ -2799,7 +3396,20 @@ type LocalSecondaryIndex struct {
 	IndexName *string `min:"3" type:"string" required:"true"`
 
 	// The complete key schema for the local secondary index, consisting of one
-	// or more pairs of attribute names and key types (HASH or RANGE).
+	// or more pairs of attribute names and key types:
+	//
+	//  HASH - partition key
+	//
+	//  RANGE - sort key
+	//
+	//   The partition key of an item is also known as its hash attribute. The
+	// term "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// to evenly distribute data items across partitions, based on their partition
+	// key values.
+	//
+	// The sort key of an item is also known as its range attribute. The term "range
+	// attribute" derives from the way DynamoDB stores items with the same partition
+	// key physically close together, in sorted order by the sort key value.
 	KeySchema []*KeySchemaElement `min:"1" type:"list" required:"true"`
 
 	// Represents attributes that are copied (projected) from the table into an
@@ -2816,6 +3426,46 @@ func (s LocalSecondaryIndex) String() string {
 // GoString returns the string representation
 func (s LocalSecondaryIndex) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *LocalSecondaryIndex) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "LocalSecondaryIndex"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.KeySchema == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeySchema"))
+	}
+	if s.KeySchema != nil && len(s.KeySchema) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeySchema", 1))
+	}
+	if s.Projection == nil {
+		invalidParams.Add(request.NewErrParamRequired("Projection"))
+	}
+	if s.KeySchema != nil {
+		for i, v := range s.KeySchema {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeySchema", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Projection != nil {
+		if err := s.Projection.Validate(); err != nil {
+			invalidParams.AddNested("Projection", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the properties of a local secondary index.
@@ -2837,8 +3487,21 @@ type LocalSecondaryIndexDescription struct {
 	// every six hours. Recent changes might not be reflected in this value.
 	ItemCount *int64 `type:"long"`
 
-	// The complete index key schema, which consists of one or more pairs of attribute
-	// names and key types (HASH or RANGE).
+	// The complete key schema for the local secondary index, consisting of one
+	// or more pairs of attribute names and key types:
+	//
+	//  HASH - partition key
+	//
+	//  RANGE - sort key
+	//
+	//   The partition key of an item is also known as its hash attribute. The
+	// term "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// to evenly distribute data items across partitions, based on their partition
+	// key values.
+	//
+	// The sort key of an item is also known as its range attribute. The term "range
+	// attribute" derives from the way DynamoDB stores items with the same partition
+	// key physically close together, in sorted order by the sort key value.
 	KeySchema []*KeySchemaElement `min:"1" type:"list"`
 
 	// Represents attributes that are copied (projected) from the table into an
@@ -2892,6 +3555,19 @@ func (s Projection) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Projection) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Projection"}
+	if s.NonKeyAttributes != nil && len(s.NonKeyAttributes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NonKeyAttributes", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the provisioned throughput settings for a specified table or index.
 // The settings can be modified using the UpdateTable operation.
 //
@@ -2922,6 +3598,28 @@ func (s ProvisionedThroughput) String() string {
 // GoString returns the string representation
 func (s ProvisionedThroughput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ProvisionedThroughput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ProvisionedThroughput"}
+	if s.ReadCapacityUnits == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReadCapacityUnits"))
+	}
+	if s.ReadCapacityUnits != nil && *s.ReadCapacityUnits < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("ReadCapacityUnits", 1))
+	}
+	if s.WriteCapacityUnits == nil {
+		invalidParams.Add(request.NewErrParamRequired("WriteCapacityUnits"))
+	}
+	if s.WriteCapacityUnits != nil && *s.WriteCapacityUnits < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("WriteCapacityUnits", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the provisioned throughput settings for the table, consisting
@@ -2976,7 +3674,7 @@ type PutItemInput struct {
 	//
 	// These function names are case-sensitive.
 	//
-	//   Comparison operators:  = | <> | < | > | <= | >= | BETWEEN | IN
+	//   Comparison operators:  = |  |  |  | = | = | BETWEEN | IN
 	//
 	//    Logical operators: AND | OR | NOT
 	//
@@ -3266,9 +3964,9 @@ type PutItemInput struct {
 	// pairs for the item.
 	//
 	// You must provide all of the attributes for the primary key. For example,
-	// with a hash type primary key, you only need to provide the hash attribute.
-	// For a hash-and-range type primary key, you must provide both the hash attribute
-	// and the range attribute.
+	// with a simple primary key, you only need to provide a value for the partition
+	// key. For a composite primary key, you must provide both values for both the
+	// partition key and the sort key.
 	//
 	// If you specify any attributes that are part of an index key, then the data
 	// types for those attributes must match those of the schema in the table's
@@ -3283,7 +3981,7 @@ type PutItemInput struct {
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -3291,7 +3989,7 @@ type PutItemInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
@@ -3312,8 +4010,6 @@ type PutItemInput struct {
 	//
 	//   ALL_OLD - If PutItem overwrote an attribute name-value pair, then the
 	// content of the old item is returned.
-	//
-	//   Other "Valid Values" are not relevant to PutItem.
 	ReturnValues *string `type:"string" enum:"ReturnValue"`
 
 	// The name of the table to contain the item.
@@ -3328,6 +4024,25 @@ func (s PutItemInput) String() string {
 // GoString returns the string representation
 func (s PutItemInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutItemInput"}
+	if s.Item == nil {
+		invalidParams.Add(request.NewErrParamRequired("Item"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a PutItem operation.
@@ -3354,8 +4069,8 @@ type PutItemOutput struct {
 	//
 	// Each ItemCollectionMetrics element consists of:
 	//
-	//  ItemCollectionKey - The hash key value of the item collection. This is
-	// the same as the hash key of the item.
+	//  ItemCollectionKey - The partition key value of the item collection. This
+	// is the same as the partition key value of the item itself.
 	//
 	// SizeEstimateRange - An estimate of item collection size, in gigabytes. This
 	// value is a two-element array containing a lower bound and an upper bound
@@ -3553,50 +4268,51 @@ type QueryInput struct {
 	// The condition that specifies the key value(s) for items to be retrieved by
 	// the Query action.
 	//
-	// The condition must perform an equality test on a single hash key value.
+	// The condition must perform an equality test on a single partition key value.
 	// The condition can also perform one of several comparison tests on a single
-	// range key value. Query can use KeyConditionExpression to retrieve one item
-	// with a given hash and range key value, or several items that have the same
-	// hash key value but different range key values.
+	// sort key value. Query can use KeyConditionExpression to retrieve one item
+	// with a given partition key value and sort key value, or several items that
+	// have the same partition key value but different sort key values.
 	//
-	// The hash key equality test is required, and must be specified in the following
-	// format:
+	// The partition key equality test is required, and must be specified in the
+	// following format:
 	//
-	//  hashAttributeName = :hashval
+	//  partitionKeyName = :partitionkeyval
 	//
-	// If you also want to provide a range key condition, it must be combined using
-	// AND with the hash key condition. Following is an example, using the = comparison
-	// operator for the range key:
+	// If you also want to provide a condition for the sort key, it must be combined
+	// using AND with the condition for the sort key. Following is an example, using
+	// the = comparison operator for the sort key:
 	//
-	//  hashAttributeName = :hashval AND rangeAttributeName = :rangeval
+	//  partitionKeyName = :partitionkeyval AND sortKeyName = :sortkeyval
 	//
-	// Valid comparisons for the range key condition are as follows:
+	// Valid comparisons for the sort key condition are as follows:
 	//
-	//   rangeAttributeName = :rangeval - true if the range key is equal to :rangeval.
+	//   sortKeyName = :sortkeyval - true if the sort key value is equal to :sortkeyval.
 	//
-	//   rangeAttributeName < :rangeval - true if the range key is less than :rangeval.
+	//   sortKeyName  :sortkeyval - true if the sort key value is less than :sortkeyval.
 	//
-	//   rangeAttributeName <= :rangeval - true if the range key is less than or
-	// equal to :rangeval.
+	//   sortKeyName = :sortkeyval - true if the sort key value is less than or
+	// equal to :sortkeyval.
 	//
-	//   rangeAttributeName > :rangeval - true if the range key is greater than
-	// :rangeval.
+	//   sortKeyName  :sortkeyval - true if the sort key value is greater than
+	// :sortkeyval.
 	//
-	//   rangeAttributeName >= :rangeval - true if the range key is greater than
-	// or equal to :rangeval.
+	//   sortKeyName = :sortkeyval - true if the sort key value is greater than
+	// or equal to :sortkeyval.
 	//
-	//   rangeAttributeName BETWEEN :rangeval1 AND :rangeval2 - true if the range
-	// key is greater than or equal to :rangeval1, and less than or equal to :rangeval2.
+	//   sortKeyName BETWEEN :sortkeyval1 AND :sortkeyval2 - true if the sort key
+	// value is greater than or equal to :sortkeyval1, and less than or equal to
+	// :sortkeyval2.
 	//
-	//   begins_with (rangeAttributeName, :rangeval) - true if the range key begins
-	// with a particular operand. (You cannot use this function with a range key
+	//   begins_with (sortKeyName, :sortkeyval) - true if the sort key value begins
+	// with a particular operand. (You cannot use this function with a sort key
 	// that is of type Number.) Note that the function name begins_with is case-sensitive.
 	//
 	//   Use the ExpressionAttributeValues parameter to replace tokens such as
-	// :hashval and :rangeval with actual values at runtime.
+	// :partitionval and :sortval with actual values at runtime.
 	//
 	// You can optionally use the ExpressionAttributeNames parameter to replace
-	// the names of the hash and range attributes with placeholder tokens. This
+	// the names of the partition key and sort key with placeholder tokens. This
 	// option might be necessary if an attribute name conflicts with a DynamoDB
 	// reserved word. For example, the following KeyConditionExpression parameter
 	// causes an error because Size is a reserved word:
@@ -3621,17 +4337,17 @@ type QueryInput struct {
 	//
 	//  The selection criteria for the query. For a query on a table, you can have
 	// conditions only on the table primary key attributes. You must provide the
-	// hash key attribute name and value as an EQ condition. You can optionally
-	// provide a second condition, referring to the range key attribute.
+	// partition key name and value as an EQ condition. You can optionally provide
+	// a second condition, referring to the sort key.
 	//
-	//  If you don't provide a range key condition, all of the items that match
-	// the hash key will be retrieved. If a FilterExpression or QueryFilter is present,
-	// it will be applied after the items are retrieved.
+	//  If you don't provide a sort key condition, all of the items that match
+	// the partition key will be retrieved. If a FilterExpression or QueryFilter
+	// is present, it will be applied after the items are retrieved.
 	//
 	// For a query on an index, you can have conditions only on the index key attributes.
-	// You must provide the index hash attribute name and value as an EQ condition.
-	// You can optionally provide a second condition, referring to the index key
-	// range attribute.
+	// You must provide the index partition key name and value as an EQ condition.
+	// You can optionally provide a second condition, referring to the index sort
+	// key.
 	//
 	// Each KeyConditions element consists of an attribute name to compare, along
 	// with the following:
@@ -3766,7 +4482,7 @@ type QueryInput struct {
 	// must evaluate to true, rather than all of them.)
 	//
 	// Note that QueryFilter does not allow key attributes. You cannot define a
-	// filter condition on a hash key or range key.
+	// filter condition on a partition key or a sort key.
 	//
 	// Each QueryFilter element consists of an attribute name to compare, along
 	// with the following:
@@ -3788,7 +4504,7 @@ type QueryInput struct {
 	// For information on specifying data types in JSON, see JSON Data Format (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataFormat.html)
 	// in the Amazon DynamoDB Developer Guide.
 	//
-	//   ComparisonOperator - A comparator for evaluating attributes. For example,
+	//  ComparisonOperator - A comparator for evaluating attributes. For example,
 	// equals, greater than, less than, etc.
 	//
 	// The following comparison operators are available:
@@ -3804,7 +4520,7 @@ type QueryInput struct {
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -3812,26 +4528,26 @@ type QueryInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
 	ReturnConsumedCapacity *string `type:"string" enum:"ReturnConsumedCapacity"`
 
-	// Specifies the order in which to return the query results - either ascending
-	// (true) or descending (false).
+	// Specifies the order for index traversal: If true (default), the traversal
+	// is performed in ascending order; if false, the traversal is performed in
+	// descending order.
 	//
-	// Items with the same hash key are stored in sorted order by range key .If
-	// the range key data type is Number, the results are stored in numeric order.
-	// For type String, the results are returned in order of ASCII character code
-	// values. For type Binary, DynamoDB treats each byte of the binary data as
-	// unsigned.
+	// Items with the same partition key value are stored in sorted order by sort
+	// key. If the sort key data type is Number, the results are stored in numeric
+	// order. For type String, the results are stored in order of ASCII character
+	// code values. For type Binary, DynamoDB treats each byte of the binary data
+	// as unsigned.
 	//
-	// If ScanIndexForward is true, DynamoDB returns the results in order, by range
-	// key. This is the default behavior.
-	//
-	// If ScanIndexForward is false, DynamoDB sorts the results in descending order
-	// by range key, and then returns the results to the client.
+	// If ScanIndexForward is true, DynamoDB returns the results in the order in
+	// which they are stored (by sort key value). This is the default behavior.
+	// If ScanIndexForward is false, DynamoDB reads the results in reverse order
+	// by sort key value, and then returns the results to the client.
 	ScanIndexForward *bool `type:"boolean"`
 
 	// The attributes to be returned in the result. You can retrieve all item attributes,
@@ -3893,6 +4609,51 @@ func (s QueryInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *QueryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "QueryInput"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.KeyConditions != nil {
+		for i, v := range s.KeyConditions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "KeyConditions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.QueryFilter != nil {
+		for i, v := range s.QueryFilter {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "QueryFilter", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a Query operation.
 type QueryOutput struct {
 	_ struct{} `type:"structure"`
@@ -3909,7 +4670,7 @@ type QueryOutput struct {
 	//
 	// If you used a QueryFilter in the request, then Count is the number of items
 	// returned after the filter was applied, and ScannedCount is the number of
-	// matching items before> the filter was applied.
+	// matching items before the filter was applied.
 	//
 	// If you did not use a filter in the request, then Count and ScannedCount
 	// are the same.
@@ -3994,19 +4755,16 @@ type ScanInput struct {
 
 	// A Boolean value that determines the read consistency model during the scan:
 	//
-	//   If ConsistentRead is false, then Scan will use eventually consistent reads.
-	// The data returned from Scan might not contain the results of other recently
-	// completed write operations (PutItem, UpdateItem or DeleteItem). The Scan
-	// response might include some stale data.
+	//   If ConsistentRead is false, then the data returned from Scan might not
+	// contain the results from other recently completed write operations (PutItem,
+	// UpdateItem or DeleteItem).
 	//
-	//   If ConsistentRead is true, then Scan will use strongly consistent reads.
-	// All of the write operations that completed before the Scan began are guaranteed
-	// to be contained in the Scan response.
+	//   If ConsistentRead is true, then all of the write operations that completed
+	// before the Scan began are guaranteed to be contained in the Scan response.
 	//
-	//   The default setting for ConsistentRead is false, meaning that eventually
-	// consistent reads will be used.
+	//   The default setting for ConsistentRead is false.
 	//
-	// Strongly consistent reads are not supported on global secondary indexes.
+	// The ConsistentRead parameter is not supported on global secondary indexes.
 	// If you scan a global secondary index with ConsistentRead set to true, you
 	// will receive a ValidationException.
 	ConsistentRead *bool `type:"boolean"`
@@ -4127,7 +4885,7 @@ type ScanInput struct {
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -4135,7 +4893,7 @@ type ScanInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
@@ -4177,7 +4935,7 @@ type ScanInput struct {
 	// For information on specifying data types in JSON, see JSON Data Format (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataFormat.html)
 	// in the Amazon DynamoDB Developer Guide.
 	//
-	//   ComparisonOperator - A comparator for evaluating attributes. For example,
+	//  ComparisonOperator - A comparator for evaluating attributes. For example,
 	// equals, greater than, less than, etc.
 	//
 	// The following comparison operators are available:
@@ -4251,6 +5009,44 @@ func (s ScanInput) String() string {
 // GoString returns the string representation
 func (s ScanInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ScanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ScanInput"}
+	if s.AttributesToGet != nil && len(s.AttributesToGet) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AttributesToGet", 1))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.TotalSegments != nil && *s.TotalSegments < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TotalSegments", 1))
+	}
+	if s.ScanFilter != nil {
+		for i, v := range s.ScanFilter {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ScanFilter", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a Scan operation.
@@ -4370,7 +5166,7 @@ type TableDescription struct {
 	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// The global secondary indexes, if any, on the table. Each index is scoped
-	// to a given hash key value. Each element is composed of:
+	// to a given partition key value. Each element is composed of:
 	//
 	//   Backfilling - If true, then the index is currently in the backfilling
 	// phase. Backfilling occurs only when a new global secondary index is added
@@ -4400,7 +5196,7 @@ type TableDescription struct {
 	//
 	//   KeySchema - Specifies the complete index key schema. The attribute names
 	// in the key schema must be between 1 and 255 characters (inclusive). The key
-	// schema must begin with the same hash key attribute as the table.
+	// schema must begin with the same partition key as the table.
 	//
 	//   Projection - Specifies attributes that are copied (projected) from the
 	// table into the index. These are in addition to the primary key attributes
@@ -4438,7 +5234,20 @@ type TableDescription struct {
 	//
 	//   AttributeName - The name of the attribute.
 	//
-	//   KeyType - The key type for the attribute. Can be either HASH or RANGE.
+	//   KeyType - The role of the attribute:
+	//
+	// .  HASH - partition key
+	//
+	//  RANGE - sort key
+	//
+	//   The partition key of an item is also known as its hash attribute. The
+	// term "hash attribute" derives from DynamoDB' usage of an internal hash function
+	// to evenly distribute data items across partitions, based on their partition
+	// key values.
+	//
+	// The sort key of an item is also known as its range attribute. The term "range
+	// attribute" derives from the way DynamoDB stores items with the same partition
+	// key physically close together, in sorted order by the sort key value.
 	//
 	//   For more information about primary keys, see Primary Key (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataModel.html#DataModelPrimaryKey)
 	// in the Amazon DynamoDB Developer Guide.
@@ -4463,7 +5272,7 @@ type TableDescription struct {
 	LatestStreamLabel *string `type:"string"`
 
 	// Represents one or more local secondary indexes on the table. Each index is
-	// scoped to a given hash key value. Tables with one or more local secondary
+	// scoped to a given partition key value. Tables with one or more local secondary
 	// indexes are subject to an item collection size limit, where the amount of
 	// data within a given item collection cannot exceed 10 GB. Each element is
 	// composed of:
@@ -4472,7 +5281,7 @@ type TableDescription struct {
 	//
 	//   KeySchema - Specifies the complete index key schema. The attribute names
 	// in the key schema must be between 1 and 255 characters (inclusive). The key
-	// schema must begin with the same hash key attribute as the table.
+	// schema must begin with the same partition key as the table.
 	//
 	//   Projection - Specifies attributes that are copied (projected) from the
 	// table into the index. These are in addition to the primary key attributes
@@ -4573,6 +5382,30 @@ func (s UpdateGlobalSecondaryIndexAction) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateGlobalSecondaryIndexAction) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateGlobalSecondaryIndexAction"}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 3))
+	}
+	if s.ProvisionedThroughput == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProvisionedThroughput"))
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of an UpdateItem operation.
 type UpdateItemInput struct {
 	_ struct{} `type:"structure"`
@@ -4589,7 +5422,7 @@ type UpdateItemInput struct {
 	// and the new value for each. If you are updating an attribute that is an index
 	// key attribute for any indexes on that table, the attribute type must match
 	// the index key type defined in the AttributesDefinition of the table description.
-	// You can use UpdateItem to update any nonkey attributes.
+	// You can use UpdateItem to update any non-key attributes.
 	//
 	// Attribute values cannot be null. String and Binary type attributes must
 	// have lengths greater than zero. Set type attributes must not be empty. Requests
@@ -4676,7 +5509,7 @@ type UpdateItemInput struct {
 	//
 	// These function names are case-sensitive.
 	//
-	//   Comparison operators:  = | <> | < | > | <= | >= | BETWEEN | IN
+	//   Comparison operators:  = |  |  |  | = | = | BETWEEN | IN
 	//
 	//    Logical operators: AND | OR | NOT
 	//
@@ -4965,15 +5798,15 @@ type UpdateItemInput struct {
 	// name and a value for that attribute.
 	//
 	// For the primary key, you must provide all of the attributes. For example,
-	// with a hash type primary key, you only need to provide the hash attribute.
-	// For a hash-and-range type primary key, you must provide both the hash attribute
-	// and the range attribute.
+	// with a simple primary key, you only need to provide a value for the partition
+	// key. For a composite primary key, you must provide values for both the partition
+	// key and the sort key.
 	Key map[string]*AttributeValue `type:"map" required:"true"`
 
 	// Determines the level of detail about provisioned throughput consumption that
 	// is returned in the response:
 	//
-	//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+	//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 	// operation, together with ConsumedCapacity for each table and secondary index
 	// that was accessed.
 	//
@@ -4981,7 +5814,7 @@ type UpdateItemInput struct {
 	// any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 	// information for table(s).
 	//
-	//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+	// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 	// operation.
 	//
 	// NONE - No ConsumedCapacity details are included in the response.
@@ -5008,6 +5841,12 @@ type UpdateItemInput struct {
 	//   ALL_NEW - All of the attributes of the new version of the item are returned.
 	//
 	//   UPDATED_NEW - The new versions of only the updated attributes are returned.
+	//
+	//   There is no additional cost associated with requesting a return value
+	// aside from the small network and processing overhead of receiving a larger
+	// response. No Read Capacity Units are consumed.
+	//
+	// Values returned are strongly consistent
 	ReturnValues *string `type:"string" enum:"ReturnValue"`
 
 	// The name of the table containing the item to update.
@@ -5100,6 +5939,25 @@ func (s UpdateItemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateItemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateItemInput"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of an UpdateItem operation.
 type UpdateItemOutput struct {
 	_ struct{} `type:"structure"`
@@ -5184,6 +6042,47 @@ func (s UpdateTableInput) String() string {
 // GoString returns the string representation
 func (s UpdateTableInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateTableInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateTableInput"}
+	if s.TableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TableName"))
+	}
+	if s.TableName != nil && len(*s.TableName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("TableName", 3))
+	}
+	if s.AttributeDefinitions != nil {
+		for i, v := range s.AttributeDefinitions {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "AttributeDefinitions", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.GlobalSecondaryIndexUpdates != nil {
+		for i, v := range s.GlobalSecondaryIndexUpdates {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "GlobalSecondaryIndexUpdates", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.ProvisionedThroughput != nil {
+		if err := s.ProvisionedThroughput.Validate(); err != nil {
+			invalidParams.AddNested("ProvisionedThroughput", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of an UpdateTable operation.
@@ -5303,7 +6202,7 @@ const (
 // Determines the level of detail about provisioned throughput consumption that
 // is returned in the response:
 //
-//   INDEXES - The response includes the aggregate ConsumedCapacity for the
+//  INDEXES - The response includes the aggregate ConsumedCapacity for the
 // operation, together with ConsumedCapacity for each table and secondary index
 // that was accessed.
 //
@@ -5311,7 +6210,7 @@ const (
 // any indexes at all. In these cases, specifying INDEXES will only return ConsumedCapacity
 // information for table(s).
 //
-//  TOTAL - The response includes only the aggregate ConsumedCapacity for the
+// TOTAL - The response includes only the aggregate ConsumedCapacity for the
 // operation.
 //
 // NONE - No ConsumedCapacity details are included in the response.

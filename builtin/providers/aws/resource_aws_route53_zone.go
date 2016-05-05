@@ -138,6 +138,14 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	// In the import case this will be empty
+	if _, ok := d.GetOk("zone_id"); !ok {
+		d.Set("zone_id", d.Id())
+	}
+	if _, ok := d.GetOk("name"); !ok {
+		d.Set("name", zone.HostedZone.Name)
+	}
+
 	if !*zone.HostedZone.Config.PrivateZone {
 		ns := make([]string, len(zone.DelegationSet.NameServers))
 		for i := range zone.DelegationSet.NameServers {
@@ -156,10 +164,24 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 		}
 
+		// In the import case we just associate it with the first VPC
+		if _, ok := d.GetOk("vpc_id"); !ok {
+			if len(zone.VPCs) > 1 {
+				return fmt.Errorf(
+					"Can't import a route53_zone with more than one VPC attachment")
+			}
+
+			if len(zone.VPCs) > 0 {
+				d.Set("vpc_id", zone.VPCs[0].VPCId)
+				d.Set("vpc_region", zone.VPCs[0].VPCRegion)
+			}
+		}
+
 		var associatedVPC *route53.VPC
 		for _, vpc := range zone.VPCs {
 			if *vpc.VPCId == d.Get("vpc_id") {
 				associatedVPC = vpc
+				break
 			}
 		}
 		if associatedVPC == nil {
@@ -169,6 +191,10 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 
 	if zone.DelegationSet != nil && zone.DelegationSet.Id != nil {
 		d.Set("delegation_set_id", cleanDelegationSetId(*zone.DelegationSet.Id))
+	}
+
+	if zone.HostedZone != nil && zone.HostedZone.Config != nil && zone.HostedZone.Config.Comment != nil {
+		d.Set("comment", zone.HostedZone.Config.Comment)
 	}
 
 	// get tags
@@ -197,11 +223,29 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
+	d.Partial(true)
+
+	if d.HasChange("comment") {
+		zoneInput := route53.UpdateHostedZoneCommentInput{
+			Id:      aws.String(d.Id()),
+			Comment: aws.String(d.Get("comment").(string)),
+		}
+
+		_, err := conn.UpdateHostedZoneComment(&zoneInput)
+		if err != nil {
+			return err
+		} else {
+			d.SetPartial("comment")
+		}
+	}
+
 	if err := setTagsR53(conn, d, "hostedzone"); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
 	}
+
+	d.Partial(false)
 
 	return resourceAwsRoute53ZoneRead(d, meta)
 }

@@ -459,19 +459,31 @@ func (s *DatabaseFlags) MarshalJSON() ([]byte, error) {
 
 // DatabaseInstance: A Cloud SQL instance resource.
 type DatabaseInstance struct {
+	// BackendType: FIRST_GEN: Basic Cloud SQL instance that runs in a
+	// Google-managed container.
+	// SECOND_GEN: A newer Cloud SQL backend that runs in a Compute Engine
+	// VM.
+	// EXTERNAL: A MySQL server that is not managed by Google.
+	BackendType string `json:"backendType,omitempty"`
+
 	// CurrentDiskSize: The current disk usage of the instance in bytes.
+	// This property has been deprecated. Users should use the
+	// "cloudsql.googleapis.com/database/disk/bytes_used" metric in Cloud
+	// Monitoring API instead. Please see
+	// https://groups.google.com/d/msg/google-cloud-sql-announce/I_7-F9EBhT0/BtvFtdFeAgAJ for
+	// details.
 	CurrentDiskSize int64 `json:"currentDiskSize,omitempty,string"`
 
 	// DatabaseVersion: The database engine type and version. Can be
-	// MYSQL_5_5 or MYSQL_5_6. Defaults to MYSQL_5_5. The databaseVersion
+	// MYSQL_5_5 or MYSQL_5_6. Defaults to MYSQL_5_6. The databaseVersion
 	// can not be changed after instance creation.
 	DatabaseVersion string `json:"databaseVersion,omitempty"`
 
 	// Etag: HTTP 1.1 Entity tag for the resource.
 	Etag string `json:"etag,omitempty"`
 
-	// FailoverReplica: The name and status of the failover replica. Only
-	// applies to Second Generation instances.
+	// FailoverReplica: The name and status of the failover replica. This
+	// property is applicable only to Second Generation instances.
 	FailoverReplica *DatabaseInstanceFailoverReplica `json:"failoverReplica,omitempty"`
 
 	// InstanceType: The instance type. This can be one of the
@@ -487,7 +499,8 @@ type DatabaseInstance struct {
 	// IpAddresses: The assigned IP addresses for the instance.
 	IpAddresses []*IpMapping `json:"ipAddresses,omitempty"`
 
-	// Ipv6Address: The IPv6 address assigned to the instance.
+	// Ipv6Address: The IPv6 address assigned to the instance. This property
+	// is applicable only to First Generation instances.
 	Ipv6Address string `json:"ipv6Address,omitempty"`
 
 	// Kind: This is always sql#instance.
@@ -512,9 +525,11 @@ type DatabaseInstance struct {
 	// instance. The Google apps domain is prefixed if applicable.
 	Project string `json:"project,omitempty"`
 
-	// Region: The geographical region. Can be us-central, asia-east1 or
-	// europe-west1. Defaults to us-central. The region can not be changed
-	// after instance creation.
+	// Region: The geographical region. Can be us-central (FIRST_GEN
+	// instances only), us-central1 (SECOND_GEN instances only), asia-east1
+	// or europe-west1. Defaults to us-central or us-central1 depending on
+	// the instance type (First Generation or Second Generation). The region
+	// can not be changed after instance creation.
 	Region string `json:"region,omitempty"`
 
 	// ReplicaConfiguration: Configuration specific to read-replicas
@@ -531,7 +546,8 @@ type DatabaseInstance struct {
 	ServerCaCert *SslCert `json:"serverCaCert,omitempty"`
 
 	// ServiceAccountEmailAddress: The service account email address
-	// assigned to the instance.
+	// assigned to the instance. This property is applicable only to Second
+	// Generation instances.
 	ServiceAccountEmailAddress string `json:"serviceAccountEmailAddress,omitempty"`
 
 	// Settings: The user settings.
@@ -549,11 +565,15 @@ type DatabaseInstance struct {
 	// UNKNOWN_STATE: The state of the instance is unknown.
 	State string `json:"state,omitempty"`
 
+	// SuspensionReason: If the instance state is SUSPENDED, the reason for
+	// the suspension.
+	SuspensionReason []string `json:"suspensionReason,omitempty"`
+
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
 	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "CurrentDiskSize") to
+	// ForceSendFields is a list of field names (e.g. "BackendType") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -569,10 +589,15 @@ func (s *DatabaseInstance) MarshalJSON() ([]byte, error) {
 }
 
 // DatabaseInstanceFailoverReplica: The name and status of the failover
-// replica. Only applies to Second Generation instances.
+// replica. This property is applicable only to Second Generation
+// instances.
 type DatabaseInstanceFailoverReplica struct {
+	// Available: The availability status of the failover replica. A false
+	// status indicates that the failover replica is out of sync. The master
+	// can only failover to the falover replica when the status is true.
 	Available bool `json:"available,omitempty"`
 
+	// Name: The name of the failover replica.
 	Name string `json:"name,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Available") to
@@ -1443,11 +1468,13 @@ type Settings struct {
 	// following.
 	// ALWAYS: The instance should always be active.
 	// NEVER: The instance should never be activated.
-	// ON_DEMAND: The instance is activated upon receiving requests.
+	// ON_DEMAND: The instance is activated upon receiving requests; only
+	// applicable to First Generation instances.
 	ActivationPolicy string `json:"activationPolicy,omitempty"`
 
 	// AuthorizedGaeApplications: The App Engine app IDs that can access
-	// this instance.
+	// this instance. This property is only applicable to First Generation
+	// instances.
 	AuthorizedGaeApplications []string `json:"authorizedGaeApplications,omitempty"`
 
 	// BackupConfiguration: The daily backup configuration for the instance.
@@ -1455,15 +1482,18 @@ type Settings struct {
 
 	// CrashSafeReplicationEnabled: Configuration specific to read replica
 	// instances. Indicates whether database flags for crash-safe
-	// replication are enabled.
+	// replication are enabled. This property is only applicable to First
+	// Generation instances.
 	CrashSafeReplicationEnabled bool `json:"crashSafeReplicationEnabled,omitempty"`
 
-	// DataDiskSizeGb: The size of data disk, in GB. Only supported for 2nd
-	// Generation instances. The data disk size minimum is 10GB.
+	// DataDiskSizeGb: The size of data disk, in GB. The data disk size
+	// minimum is 10GB. This property is only applicable to Second
+	// Generation instances.
 	DataDiskSizeGb int64 `json:"dataDiskSizeGb,omitempty,string"`
 
-	// DataDiskType: The type of data disk. Only supported for 2nd
-	// Generation instances. The default type is SSD.
+	// DataDiskType: The type of data disk. Only supported for Second
+	// Generation instances. The default type is PD_SSD. This property is
+	// only applicable to Second Generation instances.
 	DataDiskType string `json:"dataDiskType,omitempty"`
 
 	// DatabaseFlags: The database flags passed to the instance at startup.
@@ -1475,7 +1505,8 @@ type Settings struct {
 
 	// IpConfiguration: The settings for IP Management. This allows to
 	// enable or disable the instance IP and manage which external networks
-	// can connect to the instance.
+	// can connect to the instance. The IPv4 address cannot be disabled for
+	// Second Generation instances.
 	IpConfiguration *IpConfiguration `json:"ipConfiguration,omitempty"`
 
 	// Kind: This is always sql#settings.
@@ -1483,20 +1514,24 @@ type Settings struct {
 
 	// LocationPreference: The location preference settings. This allows the
 	// instance to be located as near as possible to either an App Engine
-	// app or GCE zone for better performance.
+	// app or GCE zone for better performance. App Engine co-location is
+	// only applicable to First Generation instances.
 	LocationPreference *LocationPreference `json:"locationPreference,omitempty"`
 
 	// MaintenanceWindow: The maintenance window for this instance. This
 	// specifies when the instance may be restarted for maintenance
-	// purposes.
+	// purposes. This property is only applicable to Second Generation
+	// instances.
 	MaintenanceWindow *MaintenanceWindow `json:"maintenanceWindow,omitempty"`
 
 	// PricingPlan: The pricing plan for this instance. This can be either
-	// PER_USE or PACKAGE.
+	// PER_USE or PACKAGE. Only PER_USE is supported for Second Generation
+	// instances.
 	PricingPlan string `json:"pricingPlan,omitempty"`
 
 	// ReplicationType: The type of replication this instance uses. This can
-	// be either ASYNCHRONOUS or SYNCHRONOUS.
+	// be either ASYNCHRONOUS or SYNCHRONOUS. This property is only
+	// applicable to First Generation instances.
 	ReplicationType string `json:"replicationType,omitempty"`
 
 	// SettingsVersion: The version of instance settings. This is a required
@@ -1770,8 +1805,8 @@ type User struct {
 
 	// Host: The host name from which the user can connect. For insert
 	// operations, host defaults to an empty string. For update operations,
-	// host is specified as part of the request URL. The host name is not
-	// mutable with this API.
+	// host is specified as part of the request URL. The host name cannot be
+	// updated after insertion.
 	Host string `json:"host,omitempty"`
 
 	// Instance: The name of the Cloud SQL instance. This does not include
@@ -2314,8 +2349,7 @@ type DatabasesDeleteCall struct {
 	ctx_       context.Context
 }
 
-// Delete: Deletes a resource containing information about a database
-// inside a Cloud SQL instance.
+// Delete: Deletes a database from a Cloud SQL instance.
 func (r *DatabasesService) Delete(project string, instance string, database string) *DatabasesDeleteCall {
 	c := &DatabasesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.project = project
@@ -2395,7 +2429,7 @@ func (c *DatabasesDeleteCall) Do(opts ...googleapi.CallOption) (*Operation, erro
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes a resource containing information about a database inside a Cloud SQL instance.",
+	//   "description": "Deletes a database from a Cloud SQL instance.",
 	//   "httpMethod": "DELETE",
 	//   "id": "sql.databases.delete",
 	//   "parameterOrder": [
@@ -3258,7 +3292,7 @@ type InstancesCloneCall struct {
 }
 
 // Clone: Creates a Cloud SQL instance as a clone of the source
-// instance.
+// instance. The API is not ready for Second Generation instances yet.
 func (r *InstancesService) Clone(project string, instance string, instancesclonerequest *InstancesCloneRequest) *InstancesCloneCall {
 	c := &InstancesCloneCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.project = project
@@ -3343,7 +3377,7 @@ func (c *InstancesCloneCall) Do(opts ...googleapi.CallOption) (*Operation, error
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a Cloud SQL instance as a clone of the source instance.",
+	//   "description": "Creates a Cloud SQL instance as a clone of the source instance. The API is not ready for Second Generation instances yet.",
 	//   "httpMethod": "POST",
 	//   "id": "sql.instances.clone",
 	//   "parameterOrder": [

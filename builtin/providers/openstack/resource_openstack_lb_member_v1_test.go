@@ -109,6 +109,7 @@ var testAccLBV1Member_basic = fmt.Sprintf(`
     pool_id = "${openstack_lb_pool_v1.pool_1.id}"
     address = "192.168.199.10"
     port = 80
+    admin_state_up = true
   }`)
 
 var testAccLBV1Member_update = fmt.Sprintf(`

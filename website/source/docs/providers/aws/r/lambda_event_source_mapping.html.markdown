@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_lambda_event_source_mapping"
-sidebar_current: "docs-aws-resource-aws-lambda-event-source-mapping"
+sidebar_current: "docs-aws-resource-lambda-event-source-mapping"
 description: |-
   Provides a Lambda event source mapping. This allows Lambda functions to get events from Kinesis and DynamoDB.
 ---

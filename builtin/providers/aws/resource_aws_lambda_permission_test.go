@@ -329,20 +329,20 @@ func testAccCheckLambdaPermissionExists(n string, statement *LambdaPolicyStateme
 
 		// IAM is eventually consistent
 		var foundStatement *LambdaPolicyStatement
-		err := resource.Retry(5*time.Minute, func() error {
+		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 			var err error
 			foundStatement, err = lambdaPermissionExists(rs, conn)
 			if err != nil {
 				if strings.HasPrefix(err.Error(), "ResourceNotFoundException") {
-					return err
+					return resource.RetryableError(err)
 				}
 				if strings.HasPrefix(err.Error(), "Lambda policy not found") {
-					return err
+					return resource.RetryableError(err)
 				}
 				if strings.HasPrefix(err.Error(), "Failed to find statement") {
-					return err
+					return resource.RetryableError(err)
 				}
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 			return nil
 		})
@@ -365,13 +365,13 @@ func testAccCheckAWSLambdaPermissionDestroy(s *terraform.State) error {
 		}
 
 		// IAM is eventually consistent
-		err := resource.Retry(5*time.Minute, func() error {
+		err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 			err := isLambdaPermissionGone(rs, conn)
 			if err != nil {
 				if !strings.HasPrefix(err.Error(), "Error unmarshalling Lambda policy") {
-					return err
+					return resource.RetryableError(err)
 				}
-				return resource.RetryError{Err: err}
+				return resource.NonRetryableError(err)
 			}
 			return nil
 		})

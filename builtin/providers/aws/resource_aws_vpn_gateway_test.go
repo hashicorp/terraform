@@ -32,9 +32,10 @@ func TestAccAWSVpnGateway_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpnGatewayDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpn_gateway.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpnGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpnGatewayConfig,
@@ -70,9 +71,10 @@ func TestAccAWSVpnGateway_delete(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpnGatewayDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpn_gateway.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpnGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpnGatewayConfig,
@@ -91,9 +93,10 @@ func TestAccAWSVpnGateway_tags(t *testing.T) {
 	var v ec2.VpnGateway
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpnGatewayDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpn_gateway.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpnGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCheckVpnGatewayConfigTags,

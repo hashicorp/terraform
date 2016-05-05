@@ -29,23 +29,17 @@ All documentation is available on the [Terraform website](http://www.terraform.i
 Developing Terraform
 --------------------
 
-If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.4+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
+If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.6+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
 
-For local dev first make sure Go is properly installed, including setting up a [GOPATH](http://golang.org/doc/code.html#GOPATH). You will also need to add `$GOPATH/bin` to your `$PATH`. Next, install the following software packages, which are needed for some dependencies:
+For local dev first make sure Go is properly installed, including setting up a [GOPATH](http://golang.org/doc/code.html#GOPATH). You will also need to add `$GOPATH/bin` to your `$PATH`.
 
-- [Git](http://git-scm.com/)
-- [Mercurial](http://mercurial.selenic.com/)
-
-Next, clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. Install the necessary dependencies by running `make updatedeps` and then just type `make`. This will compile some more dependencies and then run the tests. If this exits with exit status 0, then everything is working!
+Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
 
 ```sh
-$ make updatedeps
-...
 $ make
-...
 ```
 
-To compile a development version of Terraform and the built-in plugins, run `make dev`. This will put Terraform binaries in the `bin` and `$GOPATH/bin` folders:
+To compile a development version of Terraform and the built-in plugins, run `make dev`. This will build everything using [gox](https://github.com/mitchellh/gox) and put Terraform binaries in the `bin` and `$GOPATH/bin` folders:
 
 ```sh
 $ make dev
@@ -73,30 +67,85 @@ If you're working on the core of Terraform, and only wish to rebuild that withou
 $ make core-dev
 ```
 
-### Acceptance Tests
+### Dependencies
 
-Terraform also has a comprehensive [acceptance test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering most of the major features of the built-in providers.
+Terraform stores its dependencies under `vendor/`, which [Go 1.6+ will automatically recognize and load](https://golang.org/cmd/go/#hdr-Vendor_Directories). We use [`godep`](https://github.com/tools/godep) to manage the vendored dependencies.
 
-If you're working on a feature of a provider and want to verify it is functioning (and hasn't broken anything else), we recommend running the acceptance tests. Note that we *do not require* that you run or write acceptance tests to have a PR accepted. The acceptance tests are just here for your convenience.
+Generally speaking, `godep` operations follow this pattern:
 
-**Warning:** The acceptance tests create/destroy/modify *real resources*, which may incur real costs. In the presence of a bug, it is technically possible that broken providers could corrupt existing infrastructure as well. Therefore, please run the acceptance providers at your own risk. At the very least, we recommend running them in their own private account for whatever provider you're testing.
+ 1. Get current state of dependencies into your `$GOPATH` with `godep restore`.
+ 2. Make changes to the packages in `$GOPATH`.
+ 3. Tell `godep` to capture those changes in the Terraform repo.
 
-To run the acceptance tests, invoke `make testacc`:
+If you're developing Terraform, there are a few tasks you might need to perform.
 
-```sh
-$ make testacc TEST=./builtin/providers/aws TESTARGS='-run=Vpc'
-go generate ./...
-TF_ACC=1 go test ./builtin/providers/aws -v -run=Vpc -timeout 90m
-=== RUN TestAccVpc_basic
-2015/02/10 14:11:17 [INFO] Test: Using us-west-2 as test region
-[...]
-[...]
-...
+#### Adding a dependency
+
+If you're adding a dependency, you'll need to vendor it in the same Pull Request as the code that depends on it. You should do this in a separate commit from your code, as makes PR review easier and Git history simpler to read in the future.
+
+Because godep captures new dependencies from the local `$GOPATH`, you first need to `godep restore` from the master branch to ensure that the only diff is your new dependency.
+
+Assuming your work is on a branch called `my-feature-branch`, the steps look like this:
+
+```bash
+# Get latest master branch's dependencies staged in local $GOPATH
+git checkout master
+git pull
+godep restore -v
+
+# Capture the new dependency referenced from my-feature-branch
+git checkout my-feature-branch
+git rebase master
+godep save ./...
+
+# There should now be a diff in `vendor/` with added files for your dependency,
+# and a diff in Godeps/Godeps.json with metadata for your dependency.
+
+# Make a commit with your new dependencies added
+git add -A
+git commit -m "vendor: Capture new dependency upstream-pkg"
+
+# Push to your branch (may need -f if you rebased)
+git push origin my-feature-branch
 ```
 
-The `TEST` variable is required, and you should specify the folder where the provider is. The `TESTARGS` variable is recommended to filter down to a specific resource to test, since testing all of them at once can take a very long time.
+#### Updating a dependency
 
-Acceptance tests typically require other environment variables to be set for things such as access keys. The provider itself should error early and tell you what to set, so it is not documented here.
+If you're updating an existing dependency, godep provides a specific command to snag the newer version from your `$GOPATH`.
+
+```bash
+# Get latest master branch's dependencies staged in local $GOPATH
+git checkout master
+git pull
+godep restore -v
+
+# Make your way to the dependency in question and checkout the target ref
+pushd $GOPATH/src/github.com/some/dependency
+git checkout v-1.next
+
+# Head back to Terraform on a feature branch and update the dependncy to the
+# version currently in your $GOPATH
+popd
+git checkout my-feature-branch
+godep update github.com/some/dependency/...
+
+# There should now be a diff in `vendor/` with changed files for your dependency,
+# and a diff in Godeps/Godeps.json with metadata for the updated dependency.
+
+# Make a commit with the updated dependency
+git add -A
+git commit -m "vendor: Update dependency upstream-pkg to 1.4.6"
+
+# Push to your branch
+git push origin my-feature-branch
+```
+
+### Acceptance Tests
+
+Terraform has a comprehensive [acceptance
+test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering the
+built-in providers. Our [Contributing Guide](https://github.com/hashicorp/terraform/blob/master/.github/CONTRIBUTING.md) includes details about how and when to write and run acceptance tests in order to help contributions get accepted quickly.
+
 
 ### Cross Compilation and Building for Distribution
 

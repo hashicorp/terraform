@@ -3,18 +3,18 @@ package aws
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSCloudTrail_basic(t *testing.T) {
 	var trail cloudtrail.Trail
+	cloudTrailRandInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +22,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig,
+				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "include_global_service_events", "true"),
@@ -31,7 +31,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfigModified,
+				Config: testAccAWSCloudTrailConfigModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "s3_key_prefix", "/prefix"),
@@ -46,6 +46,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 
 func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 	var trail cloudtrail.Trail
+	cloudTrailRandInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -53,7 +54,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig,
+				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					// AWS will create the trail with logging turned off.
@@ -64,7 +65,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfigModified,
+				Config: testAccAWSCloudTrailConfigModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", false, &trail),
@@ -73,7 +74,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig,
+				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					testAccCheckCloudTrailLoggingEnabled("aws_cloudtrail.foobar", true, &trail),
@@ -87,6 +88,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 
 func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 	var trail cloudtrail.Trail
+	cloudTrailRandInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -94,7 +96,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig,
+				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "is_multi_region_trail", "false"),
@@ -103,7 +105,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfigMultiRegion,
+				Config: testAccAWSCloudTrailConfigMultiRegion(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "is_multi_region_trail", "true"),
@@ -112,7 +114,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig,
+				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "is_multi_region_trail", "false"),
@@ -126,6 +128,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 
 func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 	var trail cloudtrail.Trail
+	cloudTrailRandInt := acctest.RandInt()
 
 	// TODO: Add test for KMS Key ID
 	// once https://github.com/hashicorp/terraform/pull/3928 is merged
@@ -135,7 +138,7 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig_logValidation,
+				Config: testAccAWSCloudTrailConfig_logValidation(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "s3_key_prefix", ""),
@@ -145,7 +148,7 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig_logValidationModified,
+				Config: testAccAWSCloudTrailConfig_logValidationModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "s3_key_prefix", ""),
@@ -162,6 +165,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 	var trail cloudtrail.Trail
 	var trailTags []*cloudtrail.Tag
 	var trailTagsModified []*cloudtrail.Tag
+	cloudTrailRandInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -169,7 +173,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig_tags,
+				Config: testAccAWSCloudTrailConfig_tags(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "2"),
@@ -180,7 +184,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig_tagsModified,
+				Config: testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "3"),
@@ -191,7 +195,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudTrailConfig_tagsModifiedAgain,
+				Config: testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
 					resource.TestCheckResourceAttr("aws_cloudtrail.foobar", "tags.#", "0"),
@@ -365,9 +369,8 @@ func testAccCheckCloudTrailLoadTags(trail *cloudtrail.Trail, tags *[]*cloudtrail
 	}
 }
 
-var cloudTrailRandInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-
-var testAccAWSCloudTrailConfig = fmt.Sprintf(`
+func testAccAWSCloudTrailConfig(cloudTrailRandInt int) string {
+	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
     name = "tf-trail-foobar"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
@@ -404,8 +407,10 @@ resource "aws_s3_bucket" "foo" {
 POLICY
 }
 `, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
 
-var testAccAWSCloudTrailConfigModified = fmt.Sprintf(`
+func testAccAWSCloudTrailConfigModified(cloudTrailRandInt int) string {
+	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
     name = "tf-trail-foobar"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
@@ -445,8 +450,10 @@ resource "aws_s3_bucket" "foo" {
 POLICY
 }
 `, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
 
-var testAccAWSCloudTrailConfigMultiRegion = fmt.Sprintf(`
+func testAccAWSCloudTrailConfigMultiRegion(cloudTrailRandInt int) string {
+	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
     name = "tf-trail-foobar"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
@@ -484,8 +491,10 @@ resource "aws_s3_bucket" "foo" {
 POLICY
 }
 `, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
 
-var testAccAWSCloudTrailConfig_logValidation = fmt.Sprintf(`
+func testAccAWSCloudTrailConfig_logValidation(cloudTrailRandInt int) string {
+	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
     name = "tf-acc-trail-log-validation-test"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
@@ -525,8 +534,10 @@ resource "aws_s3_bucket" "foo" {
 POLICY
 }
 `, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
 
-var testAccAWSCloudTrailConfig_logValidationModified = fmt.Sprintf(`
+func testAccAWSCloudTrailConfig_logValidationModified(cloudTrailRandInt int) string {
+	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
     name = "tf-acc-trail-log-validation-test"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
@@ -564,6 +575,7 @@ resource "aws_s3_bucket" "foo" {
 POLICY
 }
 `, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
 
 var testAccAWSCloudTrailConfig_tags_tpl = `
 resource "aws_cloudtrail" "foobar" {
@@ -604,16 +616,24 @@ POLICY
 }
 `
 
-var testAccAWSCloudTrailConfig_tags = fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-	`tags {
+func testAccAWSCloudTrailConfig_tags(cloudTrailRandInt int) string {
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+		`tags {
 		Foo = "moo"
 		Pooh = "hi"
 	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
-var testAccAWSCloudTrailConfig_tagsModified = fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-	`tags {
+}
+
+func testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt int) string {
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+		`tags {
 		Foo = "moo"
 		Pooh = "hi"
 		Moo = "boom"
 	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
-var testAccAWSCloudTrailConfig_tagsModifiedAgain = fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-	"", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}
+
+func testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt int) string {
+	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
+		"", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+}

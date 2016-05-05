@@ -122,7 +122,7 @@ resource "google_compute_vpn_tunnel" "foobar" {
 	region = "${google_compute_forwarding_rule.foobar_udp4500.region}"
 	target_vpn_gateway = "${google_compute_vpn_gateway.foobar.self_link}"
 	shared_secret = "unguessable"
-	peer_ip = "0.0.0.0"
+	peer_ip = "8.8.8.8"
 }`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
 	acctest.RandString(10), acctest.RandString(10), acctest.RandString(10),
 	acctest.RandString(10))

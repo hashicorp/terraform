@@ -31,6 +31,7 @@ func resourceAwsVpc() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"enable_dns_hostnames": &schema.Schema{
@@ -140,6 +141,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	vpcid := d.Id()
 	d.Set("cidr_block", vpc.CidrBlock)
 	d.Set("dhcp_options_id", vpc.DhcpOptionsId)
+	d.Set("instance_tenancy", vpc.InstanceTenancy)
 
 	// Tags
 	d.Set("tags", tagsToMap(vpc.Tags))
@@ -154,7 +156,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_support", *resp.EnableDnsSupport)
+	d.Set("enable_dns_support", *resp.EnableDnsSupport.Value)
 	attribute = "enableDnsHostnames"
 	DescribeAttrOpts = &ec2.DescribeVpcAttributeInput{
 		Attribute: &attribute,
@@ -164,7 +166,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames)
+	d.Set("enable_dns_hostnames", *resp.EnableDnsHostnames.Value)
 
 	DescribeClassiclinkOpts := &ec2.DescribeVpcClassicLinkInput{
 		VpcIds: []*string{&vpcid},
@@ -308,7 +310,7 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteVpc(DeleteVpcOpts)
 		if err == nil {
 			return nil
@@ -316,19 +318,17 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 
 		ec2err, ok := err.(awserr.Error)
 		if !ok {
-			return &resource.RetryError{Err: err}
+			return resource.NonRetryableError(err)
 		}
 
 		switch ec2err.Code() {
 		case "InvalidVpcID.NotFound":
 			return nil
 		case "DependencyViolation":
-			return err
+			return resource.RetryableError(err)
 		}
 
-		return &resource.RetryError{
-			Err: fmt.Errorf("Error deleting VPC: %s", err),
-		}
+		return resource.NonRetryableError(fmt.Errorf("Error deleting VPC: %s", err))
 	})
 }
 

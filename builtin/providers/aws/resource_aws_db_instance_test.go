@@ -100,7 +100,7 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNoSnapshotInstanceConfig,
+				Config: testAccNoSnapshotInstanceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.no_snapshot", &nosnap),
 				),
@@ -362,10 +362,8 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 // Database names cannot collide, and deletion takes so long, that making the
 // name a bit random helps so able we can kill a test that's just waiting for a
 // delete and not be blocked on kicking off another one.
-var testAccAWSDBInstanceConfig = fmt.Sprintf(`
+var testAccAWSDBInstanceConfig = `
 resource "aws_db_instance" "bar" {
-	identifier = "foobarbaz-test-terraform-%d"
-
 	allocated_storage = 10
 	engine = "MySQL"
 	engine_version = "5.6.21"
@@ -383,7 +381,7 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
-}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+}`
 
 func testAccReplicaInstanceConfig(val int) string {
 	return fmt.Sprintf(`
@@ -404,7 +402,7 @@ func testAccReplicaInstanceConfig(val int) string {
 	}
 	
 	resource "aws_db_instance" "replica" {
-	  identifier = "tf-replica-db-%d"
+		identifier = "tf-replica-db-%d"
 		backup_retention_period = 0
 		replicate_source_db = "${aws_db_instance.bar.identifier}"
 		allocated_storage = "${aws_db_instance.bar.allocated_storage}"
@@ -449,12 +447,13 @@ resource "aws_db_instance" "snapshot" {
 }`, acctest.RandInt())
 }
 
-var testAccNoSnapshotInstanceConfig = `
+func testAccNoSnapshotInstanceConfig() string {
+	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
 }
 resource "aws_db_instance" "no_snapshot" {
-	identifier = "foobarbaz-test-terraform-snapshot-2"
+	identifier = "tf-test-%s"
 
 	allocated_storage = 5
 	engine = "mysql"
@@ -471,13 +470,10 @@ resource "aws_db_instance" "no_snapshot" {
 	skip_final_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
 }
-`
-
-var testAccSnapshotInstanceConfig_enhancedMonitoring = `
-provider "aws" {
-  region = "us-east-1"
+`, acctest.RandString(5))
 }
 
+var testAccSnapshotInstanceConfig_enhancedMonitoring = `
 resource "aws_iam_role" "enhanced_policy_role" {
     name = "enhanced-monitoring-role"
     assume_role_policy = <<EOF
@@ -514,7 +510,7 @@ resource "aws_db_instance" "enhanced_monitoring" {
 	allocated_storage = 5
 	engine = "mysql"
 	engine_version = "5.6.21"
-	instance_class = "db.t2.small"
+	instance_class = "db.m3.medium"
 	name = "baz"
 	password = "barbarbarbar"
 	username = "foo"

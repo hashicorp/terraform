@@ -93,7 +93,8 @@ The following arguments are supported:
 * `records` - (Required for non-alias records) A string list of records.
 * `weight` - (Optional) The weight of weighted record (0-255).
 * `set_identifier` - (Optional) Unique identifier to differentiate weighted
-record from one another. Required for each weighted record.
+ and failover records from one another. Required if using `weighted` or
+ `failover` attributes
 * `failover` - (Optional) The routing behavior when associated health check fails. Must be PRIMARY or SECONDARY.
 * `health_check_id` - (Optional) The health check the record should be associated with.
 * `alias` - (Optional) An alias block. Conflicts with `ttl` & `records`.

@@ -15,6 +15,8 @@ Creates or registers an SSH key pair.
 ```
 resource "cloudstack_ssh_keypair" "default" {
   name = "myKey"
+  public_key = "${file("~/.ssh/id_rsa.pub")}"
+  project = "myProject"
 }
 ```
 
@@ -26,9 +28,14 @@ The following arguments are supported:
     within a CloudStack account. Changing this forces a new resource to be
     created.
 
-* `public_key` - (Optional) The path to a public key that will be uploaded
-    the remote machine. If this is omitted, CloudStack will generate a new
-    key pair. Changing this forces a new resource to be created.
+* `public_key` - (Optional) The public key to register with CloudStack. If
+    this is omitted, CloudStack will generate a new key pair. The key can
+    be loaded from a file on disk using the [`file()` interpolation
+    function](/docs/configuration/interpolation.html#file_path_). Changing
+    this forces a new resource to be created.
+
+* `project` - (Optional) The name or ID of the project to register this
+    key to. Changing this forces a new resource to be created.
 
 ## Attributes Reference
 

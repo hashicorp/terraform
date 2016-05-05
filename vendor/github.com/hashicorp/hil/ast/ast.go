@@ -52,4 +52,6 @@ const (
 	TypeString
 	TypeInt
 	TypeFloat
+	TypeList
+	TypeMap
 )

@@ -176,8 +176,8 @@ func (p *ResourceProvisioner) runScripts(
 		go p.copyOutput(o, outR, outDoneCh)
 		go p.copyOutput(o, errR, errDoneCh)
 
+		remotePath := comm.ScriptPath()
 		err = retryFunc(comm.Timeout(), func() error {
-			remotePath := comm.ScriptPath()
 
 			if err := comm.UploadScript(remotePath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
@@ -206,6 +206,14 @@ func (p *ResourceProvisioner) runScripts(
 		errW.Close()
 		<-outDoneCh
 		<-errDoneCh
+
+		// Upload a blank follow up file in the same path to prevent residual
+		// script contents from remaining on remote machine
+		empty := bytes.NewReader([]byte(""))
+		if err := comm.Upload(remotePath, empty); err != nil {
+			// This feature is best-effort.
+			log.Printf("[WARN] Failed to upload empty follow up script: %v", err)
+		}
 
 		// If we have an error, return it out now that we've cleaned up
 		if err != nil {

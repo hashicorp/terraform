@@ -66,7 +66,6 @@ The following arguments are supported:
   See docs for [supported metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
 * `namespace` - (Required) The namespace for the alarm's associated metric. See docs for the [list of namespaces](https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/aws-namespaces.html).
   See docs for [supported metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
-* `namespace` - (Required) The namespace for the alarm's associated metric.
 * `period` - (Required) The period in seconds over which the specified `statistic` is applied.
 * `statistic` - (Required) The statistic to apply to the alarm's associated metric.
    Either of the following is supported: `SampleCount`, `Average`, `Sum`, `Minimum`, `Maximum`
@@ -78,3 +77,10 @@ The following arguments are supported:
 * `insufficient_data_actions` - (Optional) The list of actions to execute when this alarm transitions into an INSUFFICIENT_DATA state from any other state. Each action is specified as an Amazon Resource Number (ARN).
 * `ok_actions` - (Optional) The list of actions to execute when this alarm transitions into an OK state from any other state. Each action is specified as an Amazon Resource Number (ARN).
 * `unit` - (Optional) The unit for the alarm's associated metric.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `id` - The ID of the health check
+

@@ -12,11 +12,11 @@ Manages a zone within Google Cloud DNS.
 
 ## Example Usage
 
-```
+```js
 resource "google_dns_managed_zone" "prod" {
-    name = "prod-zone"
-    dns_name = "prod.mydomain.com."
-    description = "Production DNS zone"
+  name        = "prod-zone"
+  dns_name    = "prod.mydomain.com."
+  description = "Production DNS zone"
 }
 ```
 
@@ -24,19 +24,23 @@ resource "google_dns_managed_zone" "prod" {
 
 The following arguments are supported:
 
+* `dns_name` - (Required) The DNS name of this zone, e.g. "terraform.io".
+
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `dns_name` - (Required) The DNS name of this zone, e.g. "terraform.io".
+- - -
 
-* `description` - (Optional) A textual description field.
+* `description` - (Optional) A textual description field. Defaults to 'Managed by Terraform'.
+
+* `project` - (Optional) The project in which the resource belongs. If it
+    is not provided, the provider project is used.
 
 ## Attributes Reference
 
-The following attributes are exported:
+In addition to the arguments listed above, the following computed attributes are
+exported:
 
-* `name` - The name of the resource.
-* `dns_name` - The DNS name of this zone.
 * `name_servers` - The list of nameservers that will be authoritative for this
-  domain.  Use NS records to redirect from your DNS provider to these names,
-thus making Google Cloud DNS authoritative for this zone.
+    domain. Use NS records to redirect from your DNS provider to these names,
+    thus making Google Cloud DNS authoritative for this zone.

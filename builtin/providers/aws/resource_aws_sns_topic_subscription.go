@@ -8,9 +8,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"time"
 )
 
 const awsSNSPendingConfirmationMessage = "pending confirmation"
@@ -213,7 +214,7 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 
 		log.Printf("[DEBUG] SNS create topic subscription is pending so fetching the subscription list for topic : %s (%s) @ '%s'", endpoint, protocol, topic_arn)
 
-		err = resource.Retry(time.Duration(int(time.Minute)*confirmation_timeout_in_minutes), func() error {
+		err = resource.Retry(time.Duration(confirmation_timeout_in_minutes)*time.Minute, func() *resource.RetryError {
 
 			subscription, err := findSubscriptionByNonID(d, snsconn)
 
@@ -223,10 +224,12 @@ func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.
 			}
 
 			if err != nil {
-				return fmt.Errorf("Error fetching subscriptions for SNS topic %s: %s", topic_arn, err)
+				return resource.RetryableError(
+					fmt.Errorf("Error fetching subscriptions for SNS topic %s: %s", topic_arn, err))
 			}
 
-			return fmt.Errorf("Endpoint (%s) did not autoconfirm the subscription for topic %s", endpoint, topic_arn)
+			return resource.RetryableError(
+				fmt.Errorf("Endpoint (%s) did not autoconfirm the subscription for topic %s", endpoint, topic_arn))
 		})
 
 		if err != nil {

@@ -14,9 +14,10 @@ import (
 
 func TestAccAWSVpnConnection_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccAwsVpnConnectionDestroy,
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpn_connection.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccAwsVpnConnectionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAwsVpnConnectionConfig,

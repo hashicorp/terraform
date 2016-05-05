@@ -7,18 +7,23 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSIAMRolePolicy_basic(t *testing.T) {
+	role := acctest.RandString(10)
+	policy1 := acctest.RandString(10)
+	policy2 := acctest.RandString(10)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMRolePolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccIAMRolePolicyConfig,
+				Config: testAccIAMRolePolicyConfig(role, policy1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMRolePolicy(
 						"aws_iam_role.role",
@@ -27,7 +32,7 @@ func TestAccAWSIAMRolePolicy_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccIAMRolePolicyConfigUpdate,
+				Config: testAccIAMRolePolicyConfigUpdate(role, policy1, policy2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMRolePolicy(
 						"aws_iam_role.role",
@@ -105,36 +110,40 @@ func testAccCheckIAMRolePolicy(
 	}
 }
 
-const testAccIAMRolePolicyConfig = `
+func testAccIAMRolePolicyConfig(role, policy1 string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
-	name = "test_role"
+	name = "tf_test_role_%s"
 	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
 }
 
 resource "aws_iam_role_policy" "foo" {
-	name = "foo_policy"
+	name = "tf_test_policy_%s"
 	role = "${aws_iam_role.role.name}"
 	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
-`
+`, role, policy1)
+}
 
-const testAccIAMRolePolicyConfigUpdate = `
+func testAccIAMRolePolicyConfigUpdate(role, policy1, policy2 string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "role" {
-	name = "test_role"
+	name = "tf_test_role_%s"
 	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
 }
 
 resource "aws_iam_role_policy" "foo" {
-	name = "foo_policy"
+	name = "tf_test_policy_%s"
 	role = "${aws_iam_role.role.name}"
 	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
 
 resource "aws_iam_role_policy" "bar" {
-	name = "bar_policy"
+	name = "tf_test_policy_2_%s"
 	role = "${aws_iam_role.role.name}"
 	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
-`
+`, role, policy1, policy2)
+}

@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build arm,linux
+
 package unix
 
 import (
@@ -23,6 +25,30 @@ func NsecToTimeval(nsec int64) (tv Timeval) {
 	nsec += 999 // round up to microsecond
 	tv.Sec = int32(nsec / 1e9)
 	tv.Usec = int32(nsec % 1e9 / 1e3)
+	return
+}
+
+func Pipe(p []int) (err error) {
+	if len(p) != 2 {
+		return EINVAL
+	}
+	var pp [2]_C_int
+	err = pipe2(&pp, 0)
+	p[0] = int(pp[0])
+	p[1] = int(pp[1])
+	return
+}
+
+//sysnb pipe2(p *[2]_C_int, flags int) (err error)
+
+func Pipe2(p []int, flags int) (err error) {
+	if len(p) != 2 {
+		return EINVAL
+	}
+	var pp [2]_C_int
+	err = pipe2(&pp, flags)
+	p[0] = int(pp[0])
+	p[1] = int(pp[1])
 	return
 }
 
@@ -57,13 +83,14 @@ func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
 
 // 64-bit file system and 32-bit uid calls
 // (16-bit uid calls are not always supported in newer kernels)
-//sys	Chown(path string, uid int, gid int) (err error) = SYS_CHOWN32
+//sys	Dup2(oldfd int, newfd int) (err error)
 //sys	Fchown(fd int, uid int, gid int) (err error) = SYS_FCHOWN32
 //sys	Fstat(fd int, stat *Stat_t) (err error) = SYS_FSTAT64
 //sysnb	Getegid() (egid int) = SYS_GETEGID32
 //sysnb	Geteuid() (euid int) = SYS_GETEUID32
 //sysnb	Getgid() (gid int) = SYS_GETGID32
 //sysnb	Getuid() (uid int) = SYS_GETUID32
+//sysnb	InotifyInit() (fd int, err error)
 //sys	Lchown(path string, uid int, gid int) (err error) = SYS_LCHOWN32
 //sys	Listen(s int, n int) (err error)
 //sys	Lstat(path string, stat *Stat_t) (err error) = SYS_LSTAT64
@@ -87,6 +114,14 @@ func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
 //sys   Pwrite(fd int, p []byte, offset int64) (n int, err error) = SYS_PWRITE64
 //sys	Truncate(path string, length int64) (err error) = SYS_TRUNCATE64
 //sys	Ftruncate(fd int, length int64) (err error) = SYS_FTRUNCATE64
+
+func Fadvise(fd int, offset int64, length int64, advice int) (err error) {
+	_, _, e1 := Syscall6(SYS_ARM_FADVISE64_64, uintptr(fd), uintptr(advice), uintptr(offset), uintptr(offset>>32), uintptr(length), uintptr(length>>32))
+	if e1 != 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
 
 //sys	mmap2(addr uintptr, length uintptr, prot int, flags int, fd int, pageOffset uintptr) (xaddr uintptr, err error)
 

@@ -1,0 +1,3 @@
+module "grandchild" {
+  source = "./grandchild"
+}

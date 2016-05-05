@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	types "github.com/hmrc/vmware-govcd/types/v56"
 )
@@ -156,8 +157,8 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[INFO] NETWORK: %#v", newnetwork)
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
-		return vcdClient.OrgVdc.CreateOrgVDCNetwork(newnetwork)
+	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
+		return resource.RetryableError(vcdClient.OrgVdc.CreateOrgVDCNetwork(newnetwork))
 	})
 	if err != nil {
 		return fmt.Errorf("Error: %#v", err)
@@ -174,13 +175,13 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if dhcp, ok := d.GetOk("dhcp_pool"); ok {
-		err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+		err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 			task, err := edgeGateway.AddDhcpPool(network.OrgVDCNetwork, dhcp.(*schema.Set).List())
 			if err != nil {
-				return fmt.Errorf("Error adding DHCP pool: %#v", err)
+				return resource.RetryableError(fmt.Errorf("Error adding DHCP pool: %#v", err))
 			}
 
-			return task.WaitTaskCompletion()
+			return resource.RetryableError(task.WaitTaskCompletion())
 		})
 		if err != nil {
 			return fmt.Errorf("Error completing tasks: %#v", err)
@@ -239,12 +240,13 @@ func resourceVcdNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error finding network: %#v", err)
 	}
 
-	err = retryCall(vcdClient.MaxRetryTimeout, func() error {
+	err = retryCall(vcdClient.MaxRetryTimeout, func() *resource.RetryError {
 		task, err := network.Delete()
 		if err != nil {
-			return fmt.Errorf("Error Deleting Network: %#v", err)
+			return resource.RetryableError(
+				fmt.Errorf("Error Deleting Network: %#v", err))
 		}
-		return task.WaitTaskCompletion()
+		return resource.RetryableError(task.WaitTaskCompletion())
 	})
 	if err != nil {
 		return err

@@ -32,18 +32,21 @@ func resourceStorageBucketObject() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"source": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"content"},
-			},
-
 			"content": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"source"},
+			},
+
+			"crc32c": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"md5hash": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"predefined_acl": &schema.Schema{
@@ -53,14 +56,11 @@ func resourceStorageBucketObject() *schema.Resource {
 				ForceNew:   true,
 			},
 
-			"md5hash": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"crc32c": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+			"source": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"content"},
 			},
 		},
 	}
