@@ -182,13 +182,16 @@ in order to compare it with allowed/forbidden ones.
 Approaches differ per auth providers:
 
  * EC2 instance w/ IAM Instance Profile - [Metadata API](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html)
-    is always used
+    is always used. Introduced in Terraform `0.6.16`.
  * All other providers (ENV vars, shared creds file, ...)
     will try two approaches in the following order
    * `iam:GetUser` - typically useful for IAM Users. It also means
       that each user needs to be privileged to call `iam:GetUser` for themselves.
+   * `sts:GetCallerIdentity` - _Should_ work for both IAM Users and federated IAM Roles,
+      introduced in Terraform `0.6.16`.
    * `iam:ListRoles` - this is specifically useful for IdP-federated profiles
       which cannot use `iam:GetUser`. It also means that each federated user
       need to be _assuming_ an IAM role which allows `iam:ListRoles`.
-      There is currently no better clean way to get account ID
-      out of the API when using federated account unfortunately.
+      Used in Terraform `0.6.16+`.
+      There used to be no better way to get account ID out of the API
+      when using federated account until `sts:GetCallerIdentity` was introduced.
