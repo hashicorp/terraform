@@ -75,7 +75,7 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 	parameters := make(map[string]string)
 	if v, ok := d.GetOk("response_parameters_in_json"); ok {
 		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
-			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
+			return fmt.Errorf("Error unmarshaling response_parameters_in_json: %s", err)
 		}
 	}
 
