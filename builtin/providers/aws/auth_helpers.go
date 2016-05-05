@@ -14,10 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
-func GetAccountId(iamconn *iam.IAM, authProviderName string) (string, error) {
+func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, error) {
 	// If we have creds from instance profile, we can use metadata API
 	if authProviderName == ec2rolecreds.ProviderName {
 		log.Println("[DEBUG] Trying to get account ID via AWS Metadata API")
@@ -42,16 +43,24 @@ func GetAccountId(iamconn *iam.IAM, authProviderName string) (string, error) {
 		return parseAccountIdFromArn(*outUser.User.Arn)
 	}
 
-	// Then try IAM ListRoles
 	awsErr, ok := err.(awserr.Error)
 	// AccessDenied and ValidationError can be raised
 	// if credentials belong to federated profile, so we ignore these
 	if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError") {
 		return "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
 	}
-
 	log.Printf("[DEBUG] Getting account ID via iam:GetUser failed: %s", err)
-	log.Println("[DEBUG] Trying to get account ID via iam:ListRoles instead")
+
+	// Then try STS GetCallerIdentity
+	log.Println("[DEBUG] Trying to get account ID via sts:GetCallerIdentity")
+	outCallerIdentity, err := stsconn.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err == nil {
+		return *outCallerIdentity.Account, nil
+	}
+	log.Printf("[DEBUG] Getting account ID via sts:GetCallerIdentity failed: %s", err)
+
+	// Then try IAM ListRoles
+	log.Println("[DEBUG] Trying to get account ID via iam:ListRoles")
 	outRoles, err := iamconn.ListRoles(&iam.ListRolesInput{
 		MaxItems: aws.Int64(int64(1)),
 	})
