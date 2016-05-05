@@ -191,10 +191,12 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	})
 
 	if err != nil {
-		if _, isTimeout := err.(resource.ErrTimeout); isTimeout {
-			// Policy really doesn't exist
-			d.SetId("")
-			return nil
+		if tErr, isTimeout := err.(*resource.TimeoutError); isTimeout {
+			if awsErr, ok := tErr.LastError.(awserr.Error); ok && awsErr.Code() == "ResourceNotFoundException" {
+				// Policy really doesn't exist
+				d.SetId("")
+				return nil
+			}
 		}
 
 		return err

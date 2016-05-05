@@ -1,11 +1,8 @@
 package resource
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"math"
-	"strings"
 	"time"
 )
 
@@ -110,7 +107,9 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				// not finding it for awhile, and if so, report an error.
 				notfoundTick += 1
 				if notfoundTick > conf.NotFoundChecks {
-					resulterr = ErrResourceNotFound
+					resulterr = &NotFoundError{
+						LastError: resulterr,
+					}
 					return
 				}
 			} else {
@@ -139,10 +138,10 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				}
 
 				if !found {
-					resulterr = ErrUnexpectedState{
+					resulterr = &UnexpectedStateError{
+						LastError:     resulterr,
 						State:         currentState,
 						ExpectedState: conf.Target,
-						LastError:     resulterr,
 					}
 					return
 				}
@@ -154,42 +153,9 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 	case <-doneCh:
 		return result, resulterr
 	case <-time.After(conf.Timeout):
-		return nil, ErrTimeout{
-			ExpectedState: conf.Target,
+		return nil, &TimeoutError{
 			LastError:     resulterr,
+			ExpectedState: conf.Target,
 		}
 	}
-}
-
-// ErrResourceNotFound is returned when NotFoundChecks is set and the number of attempts is exceeded
-var ErrResourceNotFound = errors.New("couldn't find resource")
-
-// ErrUnexpectedState is returned when Refresh returns a state that's neither in Target nor Pending
-type ErrUnexpectedState struct {
-	State         string
-	ExpectedState []string
-	LastError     error
-}
-
-func (e ErrUnexpectedState) Error() string {
-	return fmt.Sprintf(
-		"unexpected state '%s', wanted target '%s'. last error: %s",
-		e.State,
-		strings.Join(e.ExpectedState, ", "),
-		e.LastError,
-	)
-}
-
-// ErrTimeout is returned when WaitForState times out
-type ErrTimeout struct {
-	ExpectedState []string
-	LastError     error
-}
-
-func (e ErrTimeout) Error() string {
-	return fmt.Sprintf(
-		"timeout while waiting for state to become '%s'. last error: %s",
-		strings.Join(e.ExpectedState, ", "),
-		e.LastError,
-	)
 }
