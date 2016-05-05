@@ -1092,6 +1092,22 @@ func (s AddTagsToOnPremisesInstancesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsToOnPremisesInstancesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsToOnPremisesInstancesInput"}
+	if s.InstanceNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceNames"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AddTagsToOnPremisesInstancesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1176,6 +1192,25 @@ func (s BatchGetApplicationRevisionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetApplicationRevisionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetApplicationRevisionsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.Revisions == nil {
+		invalidParams.Add(request.NewErrParamRequired("Revisions"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a batch get application revisions operation.
 type BatchGetApplicationRevisionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -1258,6 +1293,25 @@ func (s BatchGetDeploymentGroupsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetDeploymentGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetDeploymentGroupsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.DeploymentGroupNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentGroupNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a batch get deployment groups operation.
 type BatchGetDeploymentGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -1298,6 +1352,22 @@ func (s BatchGetDeploymentInstancesInput) String() string {
 // GoString returns the string representation
 func (s BatchGetDeploymentInstancesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchGetDeploymentInstancesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchGetDeploymentInstancesInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+	if s.InstanceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a batch get deployment instance operation.
@@ -1412,6 +1482,22 @@ func (s CreateApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a create application operation.
 type CreateApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -1464,6 +1550,22 @@ func (s CreateDeploymentConfigInput) String() string {
 // GoString returns the string representation
 func (s CreateDeploymentConfigInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeploymentConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeploymentConfigInput"}
+	if s.DeploymentConfigName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentConfigName"))
+	}
+	if s.DeploymentConfigName != nil && len(*s.DeploymentConfigName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentConfigName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a create deployment configuration operation.
@@ -1576,6 +1678,34 @@ func (s CreateDeploymentGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeploymentGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeploymentGroupInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.DeploymentConfigName != nil && len(*s.DeploymentConfigName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentConfigName", 1))
+	}
+	if s.DeploymentGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentGroupName"))
+	}
+	if s.DeploymentGroupName != nil && len(*s.DeploymentGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentGroupName", 1))
+	}
+	if s.ServiceRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceRoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a create deployment group operation.
 type CreateDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -1641,6 +1771,28 @@ func (s CreateDeploymentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeploymentInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.DeploymentConfigName != nil && len(*s.DeploymentConfigName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentConfigName", 1))
+	}
+	if s.DeploymentGroupName != nil && len(*s.DeploymentGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a create deployment operation.
 type CreateDeploymentOutput struct {
 	_ struct{} `type:"structure"`
@@ -1678,6 +1830,22 @@ func (s DeleteApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1709,6 +1877,22 @@ func (s DeleteDeploymentConfigInput) String() string {
 // GoString returns the string representation
 func (s DeleteDeploymentConfigInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeploymentConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeploymentConfigInput"}
+	if s.DeploymentConfigName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentConfigName"))
+	}
+	if s.DeploymentConfigName != nil && len(*s.DeploymentConfigName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentConfigName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteDeploymentConfigOutput struct {
@@ -1745,6 +1929,28 @@ func (s DeleteDeploymentGroupInput) String() string {
 // GoString returns the string representation
 func (s DeleteDeploymentGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeploymentGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeploymentGroupInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.DeploymentGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentGroupName"))
+	}
+	if s.DeploymentGroupName != nil && len(*s.DeploymentGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a delete deployment group operation.
@@ -1966,6 +2172,19 @@ func (s DeregisterOnPremisesInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterOnPremisesInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterOnPremisesInstanceInput"}
+	if s.InstanceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeregisterOnPremisesInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2132,6 +2351,22 @@ func (s GetApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a get application operation.
 type GetApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -2169,6 +2404,25 @@ func (s GetApplicationRevisionInput) String() string {
 // GoString returns the string representation
 func (s GetApplicationRevisionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetApplicationRevisionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetApplicationRevisionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.Revision == nil {
+		invalidParams.Add(request.NewErrParamRequired("Revision"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a get application revision operation.
@@ -2214,6 +2468,22 @@ func (s GetDeploymentConfigInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeploymentConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeploymentConfigInput"}
+	if s.DeploymentConfigName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentConfigName"))
+	}
+	if s.DeploymentConfigName != nil && len(*s.DeploymentConfigName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentConfigName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a get deployment configuration operation.
 type GetDeploymentConfigOutput struct {
 	_ struct{} `type:"structure"`
@@ -2254,6 +2524,28 @@ func (s GetDeploymentGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeploymentGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeploymentGroupInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.DeploymentGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentGroupName"))
+	}
+	if s.DeploymentGroupName != nil && len(*s.DeploymentGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a get deployment group operation.
 type GetDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -2290,6 +2582,19 @@ func (s GetDeploymentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeploymentInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a get deployment instance operation.
 type GetDeploymentInstanceInput struct {
 	_ struct{} `type:"structure"`
@@ -2309,6 +2614,22 @@ func (s GetDeploymentInstanceInput) String() string {
 // GoString returns the string representation
 func (s GetDeploymentInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeploymentInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeploymentInstanceInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a get deployment instance operation.
@@ -2363,6 +2684,19 @@ func (s GetOnPremisesInstanceInput) String() string {
 // GoString returns the string representation
 func (s GetOnPremisesInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetOnPremisesInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetOnPremisesInstanceInput"}
+	if s.InstanceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a get on-premises instance operation.
@@ -2571,6 +2905,22 @@ func (s ListApplicationRevisionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListApplicationRevisionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListApplicationRevisionsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a list application revisions operation.
 type ListApplicationRevisionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2703,6 +3053,22 @@ func (s ListDeploymentGroupsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListDeploymentGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListDeploymentGroupsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a list deployment groups operation.
 type ListDeploymentGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2758,6 +3124,19 @@ func (s ListDeploymentInstancesInput) String() string {
 // GoString returns the string representation
 func (s ListDeploymentInstancesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListDeploymentInstancesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListDeploymentInstancesInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a list deployment instances operation.
@@ -2819,6 +3198,22 @@ func (s ListDeploymentsInput) String() string {
 // GoString returns the string representation
 func (s ListDeploymentsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListDeploymentsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListDeploymentsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.DeploymentGroupName != nil && len(*s.DeploymentGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a list deployments operation.
@@ -2966,6 +3361,25 @@ func (s RegisterApplicationRevisionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterApplicationRevisionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterApplicationRevisionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.Revision == nil {
+		invalidParams.Add(request.NewErrParamRequired("Revision"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RegisterApplicationRevisionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3001,6 +3415,22 @@ func (s RegisterOnPremisesInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterOnPremisesInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterOnPremisesInstanceInput"}
+	if s.IamUserArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamUserArn"))
+	}
+	if s.InstanceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RegisterOnPremisesInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3034,6 +3464,22 @@ func (s RemoveTagsFromOnPremisesInstancesInput) String() string {
 // GoString returns the string representation
 func (s RemoveTagsFromOnPremisesInstancesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsFromOnPremisesInstancesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsFromOnPremisesInstancesInput"}
+	if s.InstanceNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceNames"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RemoveTagsFromOnPremisesInstancesOutput struct {
@@ -3158,6 +3604,19 @@ func (s StopDeploymentInput) String() string {
 // GoString returns the string representation
 func (s StopDeploymentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopDeploymentInput"}
+	if s.DeploymentId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeploymentId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of a stop deployment operation.
@@ -3307,6 +3766,22 @@ func (s UpdateApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApplicationInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.NewApplicationName != nil && len(*s.NewApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NewApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3369,6 +3844,34 @@ func (s UpdateDeploymentGroupInput) String() string {
 // GoString returns the string representation
 func (s UpdateDeploymentGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateDeploymentGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateDeploymentGroupInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.CurrentDeploymentGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CurrentDeploymentGroupName"))
+	}
+	if s.CurrentDeploymentGroupName != nil && len(*s.CurrentDeploymentGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CurrentDeploymentGroupName", 1))
+	}
+	if s.DeploymentConfigName != nil && len(*s.DeploymentConfigName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeploymentConfigName", 1))
+	}
+	if s.NewDeploymentGroupName != nil && len(*s.NewDeploymentGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NewDeploymentGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the output of an update deployment group operation.

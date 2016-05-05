@@ -879,6 +879,19 @@ func (s CancelUpdateStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CancelUpdateStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CancelUpdateStackInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CancelUpdateStackOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -976,6 +989,22 @@ func (s ContinueUpdateRollbackInput) String() string {
 // GoString returns the string representation
 func (s ContinueUpdateRollbackInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ContinueUpdateRollbackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ContinueUpdateRollbackInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for a ContinueUpdateRollback action.
@@ -1096,6 +1125,40 @@ func (s CreateChangeSetInput) String() string {
 // GoString returns the string representation
 func (s CreateChangeSetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateChangeSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateChangeSetInput"}
+	if s.ChangeSetName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ChangeSetName"))
+	}
+	if s.ChangeSetName != nil && len(*s.ChangeSetName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ChangeSetName", 1))
+	}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
+	}
+	if s.Description != nil && len(*s.Description) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Description", 1))
+	}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+	if s.TemplateBody != nil && len(*s.TemplateBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateBody", 1))
+	}
+	if s.TemplateURL != nil && len(*s.TemplateURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateURL", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the CreateChangeSet action.
@@ -1238,6 +1301,34 @@ func (s CreateStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateStackInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackPolicyBody != nil && len(*s.StackPolicyBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyBody", 1))
+	}
+	if s.StackPolicyURL != nil && len(*s.StackPolicyURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyURL", 1))
+	}
+	if s.TemplateBody != nil && len(*s.TemplateBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateBody", 1))
+	}
+	if s.TemplateURL != nil && len(*s.TemplateURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateURL", 1))
+	}
+	if s.TimeoutInMinutes != nil && *s.TimeoutInMinutes < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TimeoutInMinutes", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for a CreateStack action.
 type CreateStackOutput struct {
 	_ struct{} `type:"structure"`
@@ -1277,6 +1368,25 @@ func (s DeleteChangeSetInput) String() string {
 // GoString returns the string representation
 func (s DeleteChangeSetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteChangeSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteChangeSetInput"}
+	if s.ChangeSetName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ChangeSetName"))
+	}
+	if s.ChangeSetName != nil && len(*s.ChangeSetName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ChangeSetName", 1))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the DeleteChangeSet action.
@@ -1320,6 +1430,19 @@ func (s DeleteStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteStackInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteStackOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1350,6 +1473,19 @@ func (s DescribeAccountLimitsInput) String() string {
 // GoString returns the string representation
 func (s DescribeAccountLimitsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAccountLimitsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAccountLimitsInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the DescribeAccountLimits action.
@@ -1400,6 +1536,28 @@ func (s DescribeChangeSetInput) String() string {
 // GoString returns the string representation
 func (s DescribeChangeSetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeChangeSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeChangeSetInput"}
+	if s.ChangeSetName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ChangeSetName"))
+	}
+	if s.ChangeSetName != nil && len(*s.ChangeSetName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ChangeSetName", 1))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the DescribeChangeSet action.
@@ -1495,6 +1653,19 @@ func (s DescribeStackEventsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStackEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStackEventsInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for a DescribeStackEvents action.
 type DescribeStackEventsOutput struct {
 	_ struct{} `type:"structure"`
@@ -1543,6 +1714,22 @@ func (s DescribeStackResourceInput) String() string {
 // GoString returns the string representation
 func (s DescribeStackResourceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStackResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStackResourceInput"}
+	if s.LogicalResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogicalResourceId"))
+	}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for a DescribeStackResource action.
@@ -1653,6 +1840,19 @@ func (s DescribeStacksInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStacksInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStacksInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for a DescribeStacks action.
 type DescribeStacksOutput struct {
 	_ struct{} `type:"structure"`
@@ -1710,6 +1910,22 @@ func (s EstimateTemplateCostInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EstimateTemplateCostInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EstimateTemplateCostInput"}
+	if s.TemplateBody != nil && len(*s.TemplateBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateBody", 1))
+	}
+	if s.TemplateURL != nil && len(*s.TemplateURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateURL", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for a EstimateTemplateCost action.
 type EstimateTemplateCostOutput struct {
 	_ struct{} `type:"structure"`
@@ -1752,6 +1968,25 @@ func (s ExecuteChangeSetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExecuteChangeSetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExecuteChangeSetInput"}
+	if s.ChangeSetName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ChangeSetName"))
+	}
+	if s.ChangeSetName != nil && len(*s.ChangeSetName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ChangeSetName", 1))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the ExecuteChangeSet action.
 type ExecuteChangeSetOutput struct {
 	_ struct{} `type:"structure"`
@@ -1784,6 +2019,19 @@ func (s GetStackPolicyInput) String() string {
 // GoString returns the string representation
 func (s GetStackPolicyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetStackPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetStackPolicyInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the GetStackPolicy action.
@@ -1827,6 +2075,19 @@ func (s GetTemplateInput) String() string {
 // GoString returns the string representation
 func (s GetTemplateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTemplateInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for GetTemplate action.
@@ -1889,6 +2150,25 @@ func (s GetTemplateSummaryInput) String() string {
 // GoString returns the string representation
 func (s GetTemplateSummaryInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTemplateSummaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTemplateSummaryInput"}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+	if s.TemplateBody != nil && len(*s.TemplateBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateBody", 1))
+	}
+	if s.TemplateURL != nil && len(*s.TemplateURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateURL", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for the GetTemplateSummary action.
@@ -1958,6 +2238,25 @@ func (s ListChangeSetsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListChangeSetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListChangeSetsInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for the ListChangeSets action.
 type ListChangeSetsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2008,6 +2307,22 @@ func (s ListStackResourcesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListStackResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListStackResourcesInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for a ListStackResources action.
 type ListStackResourcesOutput struct {
 	_ struct{} `type:"structure"`
@@ -2051,6 +2366,19 @@ func (s ListStacksInput) String() string {
 // GoString returns the string representation
 func (s ListStacksInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListStacksInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListStacksInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for ListStacks action.
@@ -2358,6 +2686,25 @@ func (s SetStackPolicyInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetStackPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetStackPolicyInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackPolicyBody != nil && len(*s.StackPolicyBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyBody", 1))
+	}
+	if s.StackPolicyURL != nil && len(*s.StackPolicyURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyURL", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetStackPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2403,6 +2750,34 @@ func (s SignalResourceInput) String() string {
 // GoString returns the string representation
 func (s SignalResourceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SignalResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SignalResourceInput"}
+	if s.LogicalResourceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogicalResourceId"))
+	}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackName != nil && len(*s.StackName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackName", 1))
+	}
+	if s.Status == nil {
+		invalidParams.Add(request.NewErrParamRequired("Status"))
+	}
+	if s.UniqueId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UniqueId"))
+	}
+	if s.UniqueId != nil && len(*s.UniqueId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("UniqueId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SignalResourceOutput struct {
@@ -2878,6 +3253,37 @@ func (s UpdateStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateStackInput"}
+	if s.StackName == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackName"))
+	}
+	if s.StackPolicyBody != nil && len(*s.StackPolicyBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyBody", 1))
+	}
+	if s.StackPolicyDuringUpdateBody != nil && len(*s.StackPolicyDuringUpdateBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyDuringUpdateBody", 1))
+	}
+	if s.StackPolicyDuringUpdateURL != nil && len(*s.StackPolicyDuringUpdateURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyDuringUpdateURL", 1))
+	}
+	if s.StackPolicyURL != nil && len(*s.StackPolicyURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("StackPolicyURL", 1))
+	}
+	if s.TemplateBody != nil && len(*s.TemplateBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateBody", 1))
+	}
+	if s.TemplateURL != nil && len(*s.TemplateURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateURL", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The output for a UpdateStack action.
 type UpdateStackOutput struct {
 	_ struct{} `type:"structure"`
@@ -2927,6 +3333,22 @@ func (s ValidateTemplateInput) String() string {
 // GoString returns the string representation
 func (s ValidateTemplateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ValidateTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ValidateTemplateInput"}
+	if s.TemplateBody != nil && len(*s.TemplateBody) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateBody", 1))
+	}
+	if s.TemplateURL != nil && len(*s.TemplateURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateURL", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The output for ValidateTemplate action.
