@@ -4,6 +4,7 @@
 package elasticbeanstalk
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -38,6 +39,35 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironment
 // deployment.
 func (c *ElasticBeanstalk) AbortEnvironmentUpdate(input *AbortEnvironmentUpdateInput) (*AbortEnvironmentUpdateOutput, error) {
 	req, out := c.AbortEnvironmentUpdateRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opApplyEnvironmentManagedAction = "ApplyEnvironmentManagedAction"
+
+// ApplyEnvironmentManagedActionRequest generates a request for the ApplyEnvironmentManagedAction operation.
+func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvironmentManagedActionInput) (req *request.Request, output *ApplyEnvironmentManagedActionOutput) {
+	op := &request.Operation{
+		Name:       opApplyEnvironmentManagedAction,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ApplyEnvironmentManagedActionInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ApplyEnvironmentManagedActionOutput{}
+	req.Data = output
+	return
+}
+
+// Applies a scheduled managed action immediately. A managed action can be applied
+// only if its status is Scheduled. Get the status and action ID of a managed
+// action with DescribeEnvironmentManagedActions.
+func (c *ElasticBeanstalk) ApplyEnvironmentManagedAction(input *ApplyEnvironmentManagedActionInput) (*ApplyEnvironmentManagedActionOutput, error) {
+	req, out := c.ApplyEnvironmentManagedActionRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -536,6 +566,60 @@ func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvir
 // Beanstalk Enhanced Health.
 func (c *ElasticBeanstalk) DescribeEnvironmentHealth(input *DescribeEnvironmentHealthInput) (*DescribeEnvironmentHealthOutput, error) {
 	req, out := c.DescribeEnvironmentHealthRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeEnvironmentManagedActionHistory = "DescribeEnvironmentManagedActionHistory"
+
+// DescribeEnvironmentManagedActionHistoryRequest generates a request for the DescribeEnvironmentManagedActionHistory operation.
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input *DescribeEnvironmentManagedActionHistoryInput) (req *request.Request, output *DescribeEnvironmentManagedActionHistoryOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEnvironmentManagedActionHistory,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEnvironmentManagedActionHistoryInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeEnvironmentManagedActionHistoryOutput{}
+	req.Data = output
+	return
+}
+
+// Lists an environment's completed and failed managed actions.
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistory(input *DescribeEnvironmentManagedActionHistoryInput) (*DescribeEnvironmentManagedActionHistoryOutput, error) {
+	req, out := c.DescribeEnvironmentManagedActionHistoryRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeEnvironmentManagedActions = "DescribeEnvironmentManagedActions"
+
+// DescribeEnvironmentManagedActionsRequest generates a request for the DescribeEnvironmentManagedActions operation.
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *DescribeEnvironmentManagedActionsInput) (req *request.Request, output *DescribeEnvironmentManagedActionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEnvironmentManagedActions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEnvironmentManagedActionsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeEnvironmentManagedActionsOutput{}
+	req.Data = output
+	return
+}
+
+// Lists an environment's upcoming and in-progress managed actions.
+func (c *ElasticBeanstalk) DescribeEnvironmentManagedActions(input *DescribeEnvironmentManagedActionsInput) (*DescribeEnvironmentManagedActionsOutput, error) {
+	req, out := c.DescribeEnvironmentManagedActionsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1067,6 +1151,19 @@ func (s AbortEnvironmentUpdateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AbortEnvironmentUpdateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AbortEnvironmentUpdateInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AbortEnvironmentUpdateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1218,6 +1315,70 @@ func (s ApplicationVersionDescriptionMessage) GoString() string {
 	return s.String()
 }
 
+// Request to execute a scheduled managed action immediately.
+type ApplyEnvironmentManagedActionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The action ID of the scheduled managed action to execute.
+	ActionId *string `type:"string" required:"true"`
+
+	// The environment ID of the target environment.
+	EnvironmentId *string `type:"string"`
+
+	// The name of the target environment.
+	EnvironmentName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ApplyEnvironmentManagedActionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplyEnvironmentManagedActionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ApplyEnvironmentManagedActionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ApplyEnvironmentManagedActionInput"}
+	if s.ActionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ActionId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The result message containing information about the managed action.
+type ApplyEnvironmentManagedActionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the managed action.
+	ActionDescription *string `type:"string"`
+
+	// The action ID of the managed action.
+	ActionId *string `type:"string"`
+
+	// The type of managed action.
+	ActionType *string `type:"string" enum:"ActionType"`
+
+	// The status of the managed action.
+	Status *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ApplyEnvironmentManagedActionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplyEnvironmentManagedActionOutput) GoString() string {
+	return s.String()
+}
+
 // Describes an Auto Scaling launch configuration.
 type AutoScalingGroup struct {
 	_ struct{} `type:"structure"`
@@ -1299,6 +1460,22 @@ func (s CheckDNSAvailabilityInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CheckDNSAvailabilityInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CheckDNSAvailabilityInput"}
+	if s.CNAMEPrefix == nil {
+		invalidParams.Add(request.NewErrParamRequired("CNAMEPrefix"))
+	}
+	if s.CNAMEPrefix != nil && len(*s.CNAMEPrefix) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("CNAMEPrefix", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Indicates if the specified CNAME is available.
 type CheckDNSAvailabilityOutput struct {
 	_ struct{} `type:"structure"`
@@ -1353,6 +1530,22 @@ func (s ComposeEnvironmentsInput) String() string {
 // GoString returns the string representation
 func (s ComposeEnvironmentsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ComposeEnvironmentsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ComposeEnvironmentsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.GroupName != nil && len(*s.GroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes the possible values for a configuration option.
@@ -1462,6 +1655,19 @@ func (s ConfigurationOptionSetting) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ConfigurationOptionSetting) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ConfigurationOptionSetting"}
+	if s.ResourceName != nil && len(*s.ResourceName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes the settings for a configuration set.
 type ConfigurationSettingsDescription struct {
 	_ struct{} `type:"structure"`
@@ -1537,6 +1743,22 @@ func (s CreateApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1592,6 +1814,28 @@ func (s CreateApplicationVersionInput) String() string {
 // GoString returns the string representation
 func (s CreateApplicationVersionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateApplicationVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateApplicationVersionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionLabel"))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to create a configuration template.
@@ -1664,6 +1908,43 @@ func (s CreateConfigurationTemplateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateConfigurationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateConfigurationTemplateInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TemplateName"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.SourceConfiguration != nil {
+		if err := s.SourceConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("SourceConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1683,7 +1964,7 @@ type CreateEnvironmentInput struct {
 
 	// A unique name for the deployment environment. Used in the application URL.
 	//
-	// Constraint: Must be from 4 to 23 characters in length. The name can contain
+	// Constraint: Must be from 4 to 40 characters in length. The name can contain
 	// only letters, numbers, and hyphens. It cannot start or end with a hyphen.
 	// This name must be unique in your account. If the specified name already exists,
 	// AWS Elastic Beanstalk returns an InvalidParameterValue error.
@@ -1755,6 +2036,67 @@ func (s CreateEnvironmentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEnvironmentInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.CNAMEPrefix != nil && len(*s.CNAMEPrefix) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("CNAMEPrefix", 4))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.GroupName != nil && len(*s.GroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupName", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.OptionsToRemove != nil {
+		for i, v := range s.OptionsToRemove {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionsToRemove", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateStorageLocationInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1809,6 +2151,22 @@ func (s DeleteApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1851,6 +2209,28 @@ func (s DeleteApplicationVersionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteApplicationVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteApplicationVersionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionLabel"))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteApplicationVersionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1884,6 +2264,28 @@ func (s DeleteConfigurationTemplateInput) String() string {
 // GoString returns the string representation
 func (s DeleteConfigurationTemplateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteConfigurationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteConfigurationTemplateInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TemplateName"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteConfigurationTemplateOutput struct {
@@ -1921,6 +2323,28 @@ func (s DeleteEnvironmentConfigurationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEnvironmentConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEnvironmentConfigurationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName == nil {
+		invalidParams.Add(request.NewErrParamRequired("EnvironmentName"))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteEnvironmentConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1932,6 +2356,39 @@ func (s DeleteEnvironmentConfigurationOutput) String() string {
 
 // GoString returns the string representation
 func (s DeleteEnvironmentConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// Information about an application version deployment.
+type Deployment struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the deployment. This number increases by one each time that you
+	// deploy source code or change instance configuration settings.
+	DeploymentId *int64 `type:"long"`
+
+	// For in-progress deployments, the time that the deloyment started.
+	//
+	// For completed deployments, the time that the deployment ended.
+	DeploymentTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The status of the deployment:
+	//
+	//   In Progress : The deployment is in progress.  Deployed : The deployment
+	// succeeded.  Failed : The deployment failed.
+	Status *string `type:"string"`
+
+	// The version label of the application version in the deployment.
+	VersionLabel *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Deployment) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Deployment) GoString() string {
 	return s.String()
 }
 
@@ -1956,6 +2413,19 @@ func (s DescribeApplicationVersionsInput) String() string {
 // GoString returns the string representation
 func (s DescribeApplicationVersionsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeApplicationVersionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeApplicationVersionsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Result message wrapping a list of application version descriptions.
@@ -2046,6 +2516,35 @@ func (s DescribeConfigurationOptionsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeConfigurationOptionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeConfigurationOptionsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.Options != nil {
+		for i, v := range s.Options {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Options", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes the settings for a specified configuration set.
 type DescribeConfigurationOptionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2102,6 +2601,28 @@ func (s DescribeConfigurationSettingsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeConfigurationSettingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeConfigurationSettingsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The results from a request to change the configuration settings of an environment.
 type DescribeConfigurationSettingsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2153,6 +2674,19 @@ func (s DescribeEnvironmentHealthInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentHealthInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentHealthInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // See the example below for a sample response.
 type DescribeEnvironmentHealthOutput struct {
 	_ struct{} `type:"structure"`
@@ -2195,6 +2729,110 @@ func (s DescribeEnvironmentHealthOutput) GoString() string {
 	return s.String()
 }
 
+// Request to list completed and failed managed actions.
+type DescribeEnvironmentManagedActionHistoryInput struct {
+	_ struct{} `type:"structure"`
+
+	// The environment ID of the target environment.
+	EnvironmentId *string `type:"string"`
+
+	// The name of the target environment.
+	EnvironmentName *string `min:"4" type:"string"`
+
+	// The maximum number of items to return for a single request.
+	MaxItems *int64 `type:"integer"`
+
+	// The pagination token returned by a previous request.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentManagedActionHistoryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentManagedActionHistoryInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// A result message containing a list of completed and failed managed actions.
+type DescribeEnvironmentManagedActionHistoryOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of completed and failed managed actions.
+	ManagedActionHistoryItems []*ManagedActionHistoryItem `min:"1" type:"list"`
+
+	// A pagination token that you pass to DescribeEnvironmentManagedActionHistory
+	// to get the next page of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionHistoryOutput) GoString() string {
+	return s.String()
+}
+
+// Request to list an environment's upcoming and in-progress managed actions.
+type DescribeEnvironmentManagedActionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The environment ID of the target environment.
+	EnvironmentId *string `type:"string"`
+
+	// The name of the target environment.
+	EnvironmentName *string `type:"string"`
+
+	// To show only actions with a particular status, specify a status.
+	Status *string `type:"string" enum:"ActionStatus"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionsInput) GoString() string {
+	return s.String()
+}
+
+// The result message containing a list of managed actions.
+type DescribeEnvironmentManagedActionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of upcoming and in-progress managed actions.
+	ManagedActions []*ManagedAction `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeEnvironmentManagedActionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEnvironmentManagedActionsOutput) GoString() string {
+	return s.String()
+}
+
 // Request to describe the resources in an environment.
 type DescribeEnvironmentResourcesInput struct {
 	_ struct{} `type:"structure"`
@@ -2222,6 +2860,19 @@ func (s DescribeEnvironmentResourcesInput) String() string {
 // GoString returns the string representation
 func (s DescribeEnvironmentResourcesInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentResourcesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentResourcesInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Result message containing a list of environment resource descriptions.
@@ -2285,6 +2936,22 @@ func (s DescribeEnvironmentsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEnvironmentsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEnvironmentsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to retrieve a list of events for an environment.
 type DescribeEventsInput struct {
 	_ struct{} `type:"structure"`
@@ -2343,6 +3010,31 @@ func (s DescribeEventsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEventsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEventsInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.MaxRecords != nil && *s.MaxRecords < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxRecords", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Result message wrapping a list of event descriptions.
 type DescribeEventsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2391,6 +3083,22 @@ func (s DescribeInstancesHealthInput) String() string {
 // GoString returns the string representation
 func (s DescribeInstancesHealthInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeInstancesHealthInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeInstancesHealthInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // See the example below for a sample response.
@@ -2924,6 +3632,77 @@ func (s LoadBalancerDescription) GoString() string {
 	return s.String()
 }
 
+// The record of an upcoming or in-progress managed action.
+type ManagedAction struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the managed action.
+	ActionDescription *string `type:"string"`
+
+	// A unique identifier for the managed action.
+	ActionId *string `type:"string"`
+
+	// The type of managed action.
+	ActionType *string `type:"string" enum:"ActionType"`
+
+	// The status of the managed action. If the action is Scheduled, you can apply
+	// it immediately with ApplyEnvironmentManagedAction.
+	Status *string `type:"string" enum:"ActionStatus"`
+
+	// The start time of the maintenance window in which the managed action will
+	// execute.
+	WindowStartTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+}
+
+// String returns the string representation
+func (s ManagedAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ManagedAction) GoString() string {
+	return s.String()
+}
+
+// The record of a completed or failed managed action.
+type ManagedActionHistoryItem struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the managed action.
+	ActionDescription *string `type:"string"`
+
+	// A unique identifier for the managed action.
+	ActionId *string `type:"string"`
+
+	// The type of the managed action.
+	ActionType *string `type:"string" enum:"ActionType"`
+
+	// The date and time that the action started executing.
+	ExecutedTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// If the action failed, a description of the failure.
+	FailureDescription *string `type:"string"`
+
+	// If the action failed, the type of failure.
+	FailureType *string `type:"string" enum:"FailureType"`
+
+	// The date and time that the action finished executing.
+	FinishedTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
+	// The status of the action.
+	Status *string `type:"string" enum:"ActionHistoryStatus"`
+}
+
+// String returns the string representation
+func (s ManagedActionHistoryItem) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ManagedActionHistoryItem) GoString() string {
+	return s.String()
+}
+
 // A regular expression representing a restriction on a string configuration
 // option value.
 type OptionRestrictionRegex struct {
@@ -2969,6 +3748,19 @@ func (s OptionSpecification) String() string {
 // GoString returns the string representation
 func (s OptionSpecification) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OptionSpecification) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OptionSpecification"}
+	if s.ResourceName != nil && len(*s.ResourceName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ResourceName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes a queue.
@@ -3018,6 +3810,19 @@ func (s RebuildEnvironmentInput) String() string {
 // GoString returns the string representation
 func (s RebuildEnvironmentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebuildEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebuildEnvironmentInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RebuildEnvironmentOutput struct {
@@ -3073,6 +3878,22 @@ func (s RequestEnvironmentInfoInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RequestEnvironmentInfoInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RequestEnvironmentInfoInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.InfoType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InfoType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RequestEnvironmentInfoOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3113,6 +3934,19 @@ func (s RestartAppServerInput) String() string {
 // GoString returns the string representation
 func (s RestartAppServerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestartAppServerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestartAppServerInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RestartAppServerOutput struct {
@@ -3165,6 +3999,22 @@ func (s RetrieveEnvironmentInfoInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RetrieveEnvironmentInfoInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RetrieveEnvironmentInfoInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.InfoType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InfoType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Result message containing a description of the requested environment info.
 type RetrieveEnvironmentInfoOutput struct {
 	_ struct{} `type:"structure"`
@@ -3213,6 +4063,9 @@ type SingleInstanceHealth struct {
 	// Represents the application metrics for a specified environment.
 	ApplicationMetrics *ApplicationMetrics `type:"structure"`
 
+	// The availability zone in which the instance runs.
+	AvailabilityZone *string `type:"string"`
+
 	// Represents the causes, which provide more information about the current health
 	// status.
 	Causes []*string `type:"list"`
@@ -3222,12 +4075,18 @@ type SingleInstanceHealth struct {
 	// (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
 	Color *string `type:"string"`
 
+	// Information about the most recent deployment to an instance.
+	Deployment *Deployment `type:"structure"`
+
 	// Returns the health status of the specified instance. For more information,
 	// see Health Colors and Statuses (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
 	HealthStatus *string `type:"string"`
 
 	// The ID of the Amazon EC2 instance.
 	InstanceId *string `min:"1" type:"string"`
+
+	// The instance's type.
+	InstanceType *string `type:"string"`
 
 	// The time at which the EC2 instance was launched.
 	LaunchedAt *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -3287,6 +4146,22 @@ func (s SourceConfiguration) String() string {
 // GoString returns the string representation
 func (s SourceConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SourceConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SourceConfiguration"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Represents the percentage of requests over the last 10 seconds that resulted
@@ -3365,6 +4240,22 @@ func (s SwapEnvironmentCNAMEsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SwapEnvironmentCNAMEsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SwapEnvironmentCNAMEsInput"}
+	if s.DestinationEnvironmentName != nil && len(*s.DestinationEnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationEnvironmentName", 4))
+	}
+	if s.SourceEnvironmentName != nil && len(*s.SourceEnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("SourceEnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SwapEnvironmentCNAMEsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3425,6 +4316,22 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Value != nil && len(*s.Value) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Value", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Request to terminate an environment.
 type TerminateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
@@ -3472,6 +4379,19 @@ func (s TerminateEnvironmentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TerminateEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TerminateEnvironmentInput"}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes a trigger.
 type Trigger struct {
 	_ struct{} `type:"structure"`
@@ -3514,6 +4434,22 @@ func (s UpdateApplicationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApplicationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApplicationInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3541,6 +4477,28 @@ func (s UpdateApplicationVersionInput) String() string {
 // GoString returns the string representation
 func (s UpdateApplicationVersionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApplicationVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApplicationVersionInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.VersionLabel == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionLabel"))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result message containing the options for the specified solution stack.
@@ -3581,6 +4539,48 @@ func (s UpdateConfigurationTemplateInput) String() string {
 // GoString returns the string representation
 func (s UpdateConfigurationTemplateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateConfigurationTemplateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateConfigurationTemplateInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.TemplateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TemplateName"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.OptionsToRemove != nil {
+		for i, v := range s.OptionsToRemove {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionsToRemove", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Request to update an environment.
@@ -3659,6 +4659,51 @@ func (s UpdateEnvironmentInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateEnvironmentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateEnvironmentInput"}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.GroupName != nil && len(*s.GroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("GroupName", 1))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.OptionsToRemove != nil {
+		for i, v := range s.OptionsToRemove {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionsToRemove", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // A list of validation messages for a specified configuration template.
 type ValidateConfigurationSettingsInput struct {
 	_ struct{} `type:"structure"`
@@ -3689,6 +4734,41 @@ func (s ValidateConfigurationSettingsInput) String() string {
 // GoString returns the string representation
 func (s ValidateConfigurationSettingsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ValidateConfigurationSettingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ValidateConfigurationSettingsInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.EnvironmentName != nil && len(*s.EnvironmentName) < 4 {
+		invalidParams.Add(request.NewErrParamMinLen("EnvironmentName", 4))
+	}
+	if s.OptionSettings == nil {
+		invalidParams.Add(request.NewErrParamRequired("OptionSettings"))
+	}
+	if s.TemplateName != nil && len(*s.TemplateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TemplateName", 1))
+	}
+	if s.OptionSettings != nil {
+		for i, v := range s.OptionSettings {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "OptionSettings", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Provides a list of validation messages.
@@ -3737,6 +4817,35 @@ func (s ValidationMessage) String() string {
 func (s ValidationMessage) GoString() string {
 	return s.String()
 }
+
+const (
+	// @enum ActionHistoryStatus
+	ActionHistoryStatusCompleted = "Completed"
+	// @enum ActionHistoryStatus
+	ActionHistoryStatusFailed = "Failed"
+	// @enum ActionHistoryStatus
+	ActionHistoryStatusUnknown = "Unknown"
+)
+
+const (
+	// @enum ActionStatus
+	ActionStatusScheduled = "Scheduled"
+	// @enum ActionStatus
+	ActionStatusPending = "Pending"
+	// @enum ActionStatus
+	ActionStatusRunning = "Running"
+	// @enum ActionStatus
+	ActionStatusUnknown = "Unknown"
+)
+
+const (
+	// @enum ActionType
+	ActionTypeInstanceRefresh = "InstanceRefresh"
+	// @enum ActionType
+	ActionTypePlatformUpdate = "PlatformUpdate"
+	// @enum ActionType
+	ActionTypeUnknown = "Unknown"
+)
 
 const (
 	// @enum ApplicationVersionStatus
@@ -3850,6 +4959,23 @@ const (
 )
 
 const (
+	// @enum FailureType
+	FailureTypeUpdateCancelled = "UpdateCancelled"
+	// @enum FailureType
+	FailureTypeCancellationFailed = "CancellationFailed"
+	// @enum FailureType
+	FailureTypeRollbackFailed = "RollbackFailed"
+	// @enum FailureType
+	FailureTypeRollbackSuccessful = "RollbackSuccessful"
+	// @enum FailureType
+	FailureTypeInternalFailure = "InternalFailure"
+	// @enum FailureType
+	FailureTypeInvalidEnvironmentState = "InvalidEnvironmentState"
+	// @enum FailureType
+	FailureTypePermissionsError = "PermissionsError"
+)
+
+const (
 	// @enum InstancesHealthAttribute
 	InstancesHealthAttributeHealthStatus = "HealthStatus"
 	// @enum InstancesHealthAttribute
@@ -3864,6 +4990,12 @@ const (
 	InstancesHealthAttributeLaunchedAt = "LaunchedAt"
 	// @enum InstancesHealthAttribute
 	InstancesHealthAttributeSystem = "System"
+	// @enum InstancesHealthAttribute
+	InstancesHealthAttributeDeployment = "Deployment"
+	// @enum InstancesHealthAttribute
+	InstancesHealthAttributeAvailabilityZone = "AvailabilityZone"
+	// @enum InstancesHealthAttribute
+	InstancesHealthAttributeInstanceType = "InstanceType"
 	// @enum InstancesHealthAttribute
 	InstancesHealthAttributeAll = "All"
 )

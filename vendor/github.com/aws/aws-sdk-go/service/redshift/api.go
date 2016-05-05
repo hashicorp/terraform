@@ -2365,6 +2365,19 @@ func (s AuthorizeClusterSecurityGroupIngressInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeClusterSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeClusterSecurityGroupIngressInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AuthorizeClusterSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2406,6 +2419,22 @@ func (s AuthorizeSnapshotAccessInput) String() string {
 // GoString returns the string representation
 func (s AuthorizeSnapshotAccessInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeSnapshotAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeSnapshotAccessInput"}
+	if s.AccountWithRestoreAccess == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountWithRestoreAccess"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AuthorizeSnapshotAccessOutput struct {
@@ -2925,6 +2954,22 @@ func (s CopyClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CopyClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CopyClusterSnapshotInput"}
+	if s.SourceSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceSnapshotIdentifier"))
+	}
+	if s.TargetSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetSnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CopyClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3180,6 +3225,28 @@ func (s CreateClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.MasterUserPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUserPassword"))
+	}
+	if s.MasterUsername == nil {
+		invalidParams.Add(request.NewErrParamRequired("MasterUsername"))
+	}
+	if s.NodeType == nil {
+		invalidParams.Add(request.NewErrParamRequired("NodeType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3238,6 +3305,25 @@ func (s CreateClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterParameterGroupInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.ParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupFamily"))
+	}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3285,6 +3371,22 @@ func (s CreateClusterSecurityGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSecurityGroupInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateClusterSecurityGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3330,6 +3432,22 @@ func (s CreateClusterSnapshotInput) String() string {
 // GoString returns the string representation
 func (s CreateClusterSnapshotInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateClusterSnapshotOutput struct {
@@ -3381,6 +3499,25 @@ func (s CreateClusterSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s CreateClusterSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.SubnetIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateClusterSubnetGroupOutput struct {
@@ -3468,6 +3605,22 @@ func (s CreateEventSubscriptionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEventSubscriptionInput"}
+	if s.SnsTopicArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnsTopicArn"))
+	}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3504,6 +3657,19 @@ func (s CreateHsmClientCertificateInput) String() string {
 // GoString returns the string representation
 func (s CreateHsmClientCertificateInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHsmClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHsmClientCertificateInput"}
+	if s.HsmClientCertificateIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmClientCertificateIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateHsmClientCertificateOutput struct {
@@ -3562,6 +3728,34 @@ func (s CreateHsmConfigurationInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateHsmConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateHsmConfigurationInput"}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.HsmConfigurationIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmConfigurationIdentifier"))
+	}
+	if s.HsmIpAddress == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmIpAddress"))
+	}
+	if s.HsmPartitionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmPartitionName"))
+	}
+	if s.HsmPartitionPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmPartitionPassword"))
+	}
+	if s.HsmServerPublicCertificate == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmServerPublicCertificate"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateHsmConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3614,6 +3808,19 @@ func (s CreateSnapshotCopyGrantInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSnapshotCopyGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSnapshotCopyGrantInput"}
+	if s.SnapshotCopyGrantName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotCopyGrantName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateSnapshotCopyGrantOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3661,6 +3868,22 @@ func (s CreateTagsInput) String() string {
 // GoString returns the string representation
 func (s CreateTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTagsInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateTagsOutput struct {
@@ -3747,6 +3970,19 @@ func (s DeleteClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3786,6 +4022,19 @@ func (s DeleteClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3815,6 +4064,19 @@ func (s DeleteClusterSecurityGroupInput) String() string {
 // GoString returns the string representation
 func (s DeleteClusterSecurityGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSecurityGroupInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteClusterSecurityGroupOutput struct {
@@ -3858,6 +4120,19 @@ func (s DeleteClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSnapshotInput"}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3892,6 +4167,19 @@ func (s DeleteClusterSubnetGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteClusterSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3921,6 +4209,19 @@ func (s DeleteEventSubscriptionInput) String() string {
 // GoString returns the string representation
 func (s DeleteEventSubscriptionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEventSubscriptionInput"}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteEventSubscriptionOutput struct {
@@ -3954,6 +4255,19 @@ func (s DeleteHsmClientCertificateInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHsmClientCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHsmClientCertificateInput"}
+	if s.HsmClientCertificateIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmClientCertificateIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteHsmClientCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3983,6 +4297,19 @@ func (s DeleteHsmConfigurationInput) String() string {
 // GoString returns the string representation
 func (s DeleteHsmConfigurationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteHsmConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteHsmConfigurationInput"}
+	if s.HsmConfigurationIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("HsmConfigurationIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteHsmConfigurationOutput struct {
@@ -4015,6 +4342,19 @@ func (s DeleteSnapshotCopyGrantInput) String() string {
 // GoString returns the string representation
 func (s DeleteSnapshotCopyGrantInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSnapshotCopyGrantInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSnapshotCopyGrantInput"}
+	if s.SnapshotCopyGrantName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotCopyGrantName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteSnapshotCopyGrantOutput struct {
@@ -4051,6 +4391,22 @@ func (s DeleteTagsInput) String() string {
 // GoString returns the string representation
 func (s DeleteTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTagsInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteTagsOutput struct {
@@ -4187,6 +4543,19 @@ func (s DescribeClusterParametersInput) String() string {
 // GoString returns the string representation
 func (s DescribeClusterParametersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeClusterParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeClusterParametersInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output from the DescribeClusterParameters action.
@@ -4663,6 +5032,19 @@ func (s DescribeDefaultClusterParametersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDefaultClusterParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDefaultClusterParametersInput"}
+	if s.ParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupFamily"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeDefaultClusterParametersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5054,6 +5436,19 @@ func (s DescribeLoggingStatusInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLoggingStatusInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLoggingStatusInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeOrderableClusterOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5260,6 +5655,19 @@ func (s DescribeResizeInput) String() string {
 // GoString returns the string representation
 func (s DescribeResizeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeResizeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeResizeInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes the result of a cluster resize operation.
@@ -5572,6 +5980,19 @@ func (s DisableLoggingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableLoggingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableLoggingInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DisableSnapshotCopyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5591,6 +6012,19 @@ func (s DisableSnapshotCopyInput) String() string {
 // GoString returns the string representation
 func (s DisableSnapshotCopyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisableSnapshotCopyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisableSnapshotCopyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DisableSnapshotCopyOutput struct {
@@ -5695,6 +6129,22 @@ func (s EnableLoggingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableLoggingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableLoggingInput"}
+	if s.BucketName == nil {
+		invalidParams.Add(request.NewErrParamRequired("BucketName"))
+	}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type EnableSnapshotCopyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5732,6 +6182,22 @@ func (s EnableSnapshotCopyInput) String() string {
 // GoString returns the string representation
 func (s EnableSnapshotCopyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnableSnapshotCopyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnableSnapshotCopyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.DestinationRegion == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationRegion"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type EnableSnapshotCopyOutput struct {
@@ -6102,6 +6568,19 @@ func (s ModifyClusterIamRolesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterIamRolesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterIamRolesInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyClusterIamRolesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6300,6 +6779,19 @@ func (s ModifyClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6344,6 +6836,22 @@ func (s ModifyClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+	if s.Parameters == nil {
+		invalidParams.Add(request.NewErrParamRequired("Parameters"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyClusterSubnetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6366,6 +6874,22 @@ func (s ModifyClusterSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s ModifyClusterSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyClusterSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyClusterSubnetGroupInput"}
+	if s.ClusterSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSubnetGroupName"))
+	}
+	if s.SubnetIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifyClusterSubnetGroupOutput struct {
@@ -6443,6 +6967,19 @@ func (s ModifyEventSubscriptionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyEventSubscriptionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyEventSubscriptionInput"}
+	if s.SubscriptionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubscriptionName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyEventSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6490,6 +7027,22 @@ func (s ModifySnapshotCopyRetentionPeriodInput) String() string {
 // GoString returns the string representation
 func (s ModifySnapshotCopyRetentionPeriodInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifySnapshotCopyRetentionPeriodInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifySnapshotCopyRetentionPeriodInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.RetentionPeriod == nil {
+		invalidParams.Add(request.NewErrParamRequired("RetentionPeriod"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifySnapshotCopyRetentionPeriodOutput struct {
@@ -6647,6 +7200,19 @@ func (s PurchaseReservedNodeOfferingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurchaseReservedNodeOfferingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurchaseReservedNodeOfferingInput"}
+	if s.ReservedNodeOfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedNodeOfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PurchaseReservedNodeOfferingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6680,6 +7246,19 @@ func (s RebootClusterInput) String() string {
 // GoString returns the string representation
 func (s RebootClusterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebootClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebootClusterInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RebootClusterOutput struct {
@@ -6855,6 +7434,19 @@ func (s ResetClusterParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResetClusterParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResetClusterParameterGroupInput"}
+	if s.ParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RestoreFromClusterSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7015,6 +7607,22 @@ func (s RestoreFromClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestoreFromClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestoreFromClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RestoreFromClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7111,6 +7719,31 @@ func (s RestoreTableFromClusterSnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RestoreTableFromClusterSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RestoreTableFromClusterSnapshotInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+	if s.NewTableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("NewTableName"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+	if s.SourceDatabaseName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceDatabaseName"))
+	}
+	if s.SourceTableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceTableName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RestoreTableFromClusterSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7163,6 +7796,19 @@ func (s RevokeClusterSecurityGroupIngressInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeClusterSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeClusterSecurityGroupIngressInput"}
+	if s.ClusterSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RevokeClusterSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7206,6 +7852,22 @@ func (s RevokeSnapshotAccessInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeSnapshotAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeSnapshotAccessInput"}
+	if s.AccountWithRestoreAccess == nil {
+		invalidParams.Add(request.NewErrParamRequired("AccountWithRestoreAccess"))
+	}
+	if s.SnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RevokeSnapshotAccessOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7241,6 +7903,19 @@ func (s RotateEncryptionKeyInput) String() string {
 // GoString returns the string representation
 func (s RotateEncryptionKeyInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RotateEncryptionKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RotateEncryptionKeyInput"}
+	if s.ClusterIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RotateEncryptionKeyOutput struct {

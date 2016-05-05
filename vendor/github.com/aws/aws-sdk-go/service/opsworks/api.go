@@ -4,6 +4,8 @@
 package opsworks
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/private/protocol"
@@ -2534,6 +2536,22 @@ func (s AssignInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssignInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssignInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.LayerIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AssignInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2566,6 +2584,19 @@ func (s AssignVolumeInput) String() string {
 // GoString returns the string representation
 func (s AssignVolumeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssignVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssignVolumeInput"}
+	if s.VolumeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AssignVolumeOutput struct {
@@ -2602,6 +2633,19 @@ func (s AssociateElasticIpInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateElasticIpInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateElasticIpInput"}
+	if s.ElasticIp == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticIp"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AssociateElasticIpOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2635,6 +2679,22 @@ func (s AttachElasticLoadBalancerInput) String() string {
 // GoString returns the string representation
 func (s AttachElasticLoadBalancerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AttachElasticLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AttachElasticLoadBalancerInput"}
+	if s.ElasticLoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticLoadBalancerName"))
+	}
+	if s.LayerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AttachElasticLoadBalancerOutput struct {
@@ -2704,6 +2764,22 @@ func (s AutoScalingThresholds) String() string {
 // GoString returns the string representation
 func (s AutoScalingThresholds) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AutoScalingThresholds) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AutoScalingThresholds"}
+	if s.IgnoreMetricsTime != nil && *s.IgnoreMetricsTime < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("IgnoreMetricsTime", 1))
+	}
+	if s.ThresholdsWaitTime != nil && *s.ThresholdsWaitTime < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("ThresholdsWaitTime", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes a block device mapping. This data type maps directly to the Amazon
@@ -2949,6 +3025,22 @@ func (s CloneStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CloneStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CloneStackInput"}
+	if s.ServiceRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceRoleArn"))
+	}
+	if s.SourceStackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceStackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a CloneStack request.
 type CloneStackOutput struct {
 	_ struct{} `type:"structure"`
@@ -3085,6 +3177,40 @@ func (s CreateAppInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateAppInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateAppInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.Environment != nil {
+		for i, v := range s.Environment {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Environment", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.SslConfiguration != nil {
+		if err := s.SslConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("SslConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a CreateApp request.
 type CreateAppOutput struct {
 	_ struct{} `type:"structure"`
@@ -3130,6 +3256,9 @@ type CreateDeploymentInput struct {
 	// The instance IDs for the deployment targets.
 	InstanceIds []*string `type:"list"`
 
+	// The layer IDs for the deployment targets.
+	LayerIds []*string `type:"list"`
+
 	// The stack ID.
 	StackId *string `type:"string" required:"true"`
 }
@@ -3142,6 +3271,27 @@ func (s CreateDeploymentInput) String() string {
 // GoString returns the string representation
 func (s CreateDeploymentInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeploymentInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeploymentInput"}
+	if s.Command == nil {
+		invalidParams.Add(request.NewErrParamRequired("Command"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+	if s.Command != nil {
+		if err := s.Command.Validate(); err != nil {
+			invalidParams.AddNested("Command", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a CreateDeployment request.
@@ -3262,6 +3412,18 @@ type CreateInstanceInput struct {
 	// AWS OpsWorks to launch the instance in a different subnet.
 	SubnetId *string `type:"string"`
 
+	// The instance's tenancy option. The default option is no tenancy, or if the
+	// instance is running in a VPC, inherit tenancy settings from the VPC. The
+	// following are valid values for this parameter: dedicated, default, or host.
+	// Because there are costs associated with changes in tenancy options, we recommend
+	// that you research tenancy options before choosing them for your instances.
+	// For more information about dedicated hosts, see Dedicated Hosts Overview
+	// (https://aws.amazon.com/ec2/dedicated-hosts/) and Amazon EC2 Dedicated Hosts
+	// (https://aws.amazon.com/ec2/dedicated-hosts/). For more information about
+	// dedicated instances, see Dedicated Instances (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/dedicated-instance.html)
+	// and Amazon EC2 Dedicated Instances (https://aws.amazon.com/ec2/purchasing-options/dedicated-instances/).
+	Tenancy *string `type:"string"`
+
 	// The instance's virtualization type, paravirtual or hvm.
 	VirtualizationType *string `type:"string"`
 }
@@ -3274,6 +3436,25 @@ func (s CreateInstanceInput) String() string {
 // GoString returns the string representation
 func (s CreateInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateInstanceInput"}
+	if s.InstanceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceType"))
+	}
+	if s.LayerIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerIds"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a CreateInstance request.
@@ -3384,6 +3565,38 @@ func (s CreateLayerInput) String() string {
 // GoString returns the string representation
 func (s CreateLayerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateLayerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateLayerInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Shortname == nil {
+		invalidParams.Add(request.NewErrParamRequired("Shortname"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.VolumeConfigurations != nil {
+		for i, v := range s.VolumeConfigurations {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "VolumeConfigurations", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a CreateLayer request.
@@ -3579,6 +3792,28 @@ func (s CreateStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateStackInput"}
+	if s.DefaultInstanceProfileArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("DefaultInstanceProfileArn"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Region == nil {
+		invalidParams.Add(request.NewErrParamRequired("Region"))
+	}
+	if s.ServiceRoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServiceRoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a CreateStack request.
 type CreateStackOutput struct {
 	_ struct{} `type:"structure"`
@@ -3627,6 +3862,19 @@ func (s CreateUserProfileInput) String() string {
 // GoString returns the string representation
 func (s CreateUserProfileInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateUserProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateUserProfileInput"}
+	if s.IamUserArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamUserArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a CreateUserProfile request.
@@ -3689,6 +3937,19 @@ func (s DeleteAppInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteAppInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteAppInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteAppOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3726,6 +3987,19 @@ func (s DeleteInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3755,6 +4029,19 @@ func (s DeleteLayerInput) String() string {
 // GoString returns the string representation
 func (s DeleteLayerInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLayerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLayerInput"}
+	if s.LayerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteLayerOutput struct {
@@ -3788,6 +4075,19 @@ func (s DeleteStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteStackInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteStackOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3817,6 +4117,19 @@ func (s DeleteUserProfileInput) String() string {
 // GoString returns the string representation
 func (s DeleteUserProfileInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteUserProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteUserProfileInput"}
+	if s.IamUserArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamUserArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteUserProfileOutput struct {
@@ -3952,6 +4265,19 @@ func (s DeploymentCommand) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeploymentCommand) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeploymentCommand"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeregisterEcsClusterInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3967,6 +4293,19 @@ func (s DeregisterEcsClusterInput) String() string {
 // GoString returns the string representation
 func (s DeregisterEcsClusterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterEcsClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterEcsClusterInput"}
+	if s.EcsClusterArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("EcsClusterArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeregisterEcsClusterOutput struct {
@@ -4000,6 +4339,19 @@ func (s DeregisterElasticIpInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterElasticIpInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterElasticIpInput"}
+	if s.ElasticIp == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticIp"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeregisterElasticIpOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4029,6 +4381,19 @@ func (s DeregisterInstanceInput) String() string {
 // GoString returns the string representation
 func (s DeregisterInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeregisterInstanceOutput struct {
@@ -4062,6 +4427,19 @@ func (s DeregisterRdsDbInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterRdsDbInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterRdsDbInstanceInput"}
+	if s.RdsDbInstanceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RdsDbInstanceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeregisterRdsDbInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4093,6 +4471,19 @@ func (s DeregisterVolumeInput) String() string {
 // GoString returns the string representation
 func (s DeregisterVolumeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterVolumeInput"}
+	if s.VolumeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeregisterVolumeOutput struct {
@@ -4526,6 +4917,19 @@ func (s DescribeLoadBasedAutoScalingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeLoadBasedAutoScalingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeLoadBasedAutoScalingInput"}
+	if s.LayerIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a DescribeLoadBasedAutoScaling request.
 type DescribeLoadBasedAutoScalingOutput struct {
 	_ struct{} `type:"structure"`
@@ -4688,6 +5092,19 @@ func (s DescribeRdsDbInstancesInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeRdsDbInstancesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeRdsDbInstancesInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a DescribeRdsDbInstances request.
 type DescribeRdsDbInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4768,6 +5185,19 @@ func (s DescribeStackProvisioningParametersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStackProvisioningParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStackProvisioningParametersInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a DescribeStackProvisioningParameters request.
 type DescribeStackProvisioningParametersOutput struct {
 	_ struct{} `type:"structure"`
@@ -4804,6 +5234,19 @@ func (s DescribeStackSummaryInput) String() string {
 // GoString returns the string representation
 func (s DescribeStackSummaryInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStackSummaryInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStackSummaryInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a DescribeStackSummary request.
@@ -4875,6 +5318,19 @@ func (s DescribeTimeBasedAutoScalingInput) String() string {
 // GoString returns the string representation
 func (s DescribeTimeBasedAutoScalingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTimeBasedAutoScalingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTimeBasedAutoScalingInput"}
+	if s.InstanceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a DescribeTimeBasedAutoScaling request.
@@ -5000,6 +5456,22 @@ func (s DetachElasticLoadBalancerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DetachElasticLoadBalancerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DetachElasticLoadBalancerInput"}
+	if s.ElasticLoadBalancerName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticLoadBalancerName"))
+	}
+	if s.LayerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DetachElasticLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5029,6 +5501,19 @@ func (s DisassociateElasticIpInput) String() string {
 // GoString returns the string representation
 func (s DisassociateElasticIpInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateElasticIpInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateElasticIpInput"}
+	if s.ElasticIp == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticIp"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DisassociateElasticIpOutput struct {
@@ -5211,6 +5696,22 @@ func (s EnvironmentVariable) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EnvironmentVariable) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EnvironmentVariable"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type GetHostnameSuggestionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5226,6 +5727,19 @@ func (s GetHostnameSuggestionInput) String() string {
 // GoString returns the string representation
 func (s GetHostnameSuggestionInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetHostnameSuggestionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetHostnameSuggestionInput"}
+	if s.LayerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a GetHostnameSuggestion request.
@@ -5270,6 +5784,22 @@ func (s GrantAccessInput) String() string {
 // GoString returns the string representation
 func (s GrantAccessInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GrantAccessInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GrantAccessInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.ValidForInMinutes != nil && *s.ValidForInMinutes < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("ValidForInMinutes", 60))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a GrantAccess request.
@@ -5425,6 +5955,9 @@ type Instance struct {
 
 	// The instance's subnet ID; applicable only if the stack is running in a VPC.
 	SubnetId *string `type:"string"`
+
+	// The instance's tenancy option, such as dedicated or host.
+	Tenancy *string `type:"string"`
 
 	// The instance's virtualization type: paravirtual or hvm.
 	VirtualizationType *string `type:"string" enum:"VirtualizationType"`
@@ -5837,6 +6370,19 @@ func (s RebootInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebootInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebootInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RebootInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5911,6 +6457,22 @@ func (s RegisterEcsClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterEcsClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterEcsClusterInput"}
+	if s.EcsClusterArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("EcsClusterArn"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a RegisterEcsCluster request.
 type RegisterEcsClusterOutput struct {
 	_ struct{} `type:"structure"`
@@ -5947,6 +6509,22 @@ func (s RegisterElasticIpInput) String() string {
 // GoString returns the string representation
 func (s RegisterElasticIpInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterElasticIpInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterElasticIpInput"}
+	if s.ElasticIp == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticIp"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a RegisterElasticIp request.
@@ -6003,6 +6581,19 @@ func (s RegisterInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterInstanceInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the response to a RegisterInstanceResult request.
 type RegisterInstanceOutput struct {
 	_ struct{} `type:"structure"`
@@ -6047,6 +6638,28 @@ func (s RegisterRdsDbInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterRdsDbInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterRdsDbInstanceInput"}
+	if s.DbPassword == nil {
+		invalidParams.Add(request.NewErrParamRequired("DbPassword"))
+	}
+	if s.DbUser == nil {
+		invalidParams.Add(request.NewErrParamRequired("DbUser"))
+	}
+	if s.RdsDbInstanceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RdsDbInstanceArn"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type RegisterRdsDbInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6079,6 +6692,19 @@ func (s RegisterVolumeInput) String() string {
 // GoString returns the string representation
 func (s RegisterVolumeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterVolumeInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the response to a RegisterVolume request.
@@ -6213,6 +6839,29 @@ func (s SetLoadBasedAutoScalingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetLoadBasedAutoScalingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetLoadBasedAutoScalingInput"}
+	if s.LayerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerId"))
+	}
+	if s.DownScaling != nil {
+		if err := s.DownScaling.Validate(); err != nil {
+			invalidParams.AddNested("DownScaling", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.UpScaling != nil {
+		if err := s.UpScaling.Validate(); err != nil {
+			invalidParams.AddNested("UpScaling", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetLoadBasedAutoScalingOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6260,6 +6909,22 @@ func (s SetPermissionInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetPermissionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetPermissionInput"}
+	if s.IamUserArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamUserArn"))
+	}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type SetPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6292,6 +6957,19 @@ func (s SetTimeBasedAutoScalingInput) String() string {
 // GoString returns the string representation
 func (s SetTimeBasedAutoScalingInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetTimeBasedAutoScalingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetTimeBasedAutoScalingInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type SetTimeBasedAutoScalingOutput struct {
@@ -6406,6 +7084,22 @@ func (s SslConfiguration) String() string {
 // GoString returns the string representation
 func (s SslConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SslConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SslConfiguration"}
+	if s.Certificate == nil {
+		invalidParams.Add(request.NewErrParamRequired("Certificate"))
+	}
+	if s.PrivateKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("PrivateKey"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes a stack.
@@ -6583,6 +7277,19 @@ func (s StartInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type StartInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6612,6 +7319,19 @@ func (s StartStackInput) String() string {
 // GoString returns the string representation
 func (s StartStackInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartStackInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type StartStackOutput struct {
@@ -6645,6 +7365,19 @@ func (s StopInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type StopInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6674,6 +7407,19 @@ func (s StopStackInput) String() string {
 // GoString returns the string representation
 func (s StopStackInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopStackInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type StopStackOutput struct {
@@ -6759,6 +7505,19 @@ func (s UnassignInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UnassignInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UnassignInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UnassignInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6788,6 +7547,19 @@ func (s UnassignVolumeInput) String() string {
 // GoString returns the string representation
 func (s UnassignVolumeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UnassignVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UnassignVolumeInput"}
+	if s.VolumeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UnassignVolumeOutput struct {
@@ -6865,6 +7637,34 @@ func (s UpdateAppInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateAppInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateAppInput"}
+	if s.AppId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AppId"))
+	}
+	if s.Environment != nil {
+		for i, v := range s.Environment {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Environment", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+	if s.SslConfiguration != nil {
+		if err := s.SslConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("SslConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateAppOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6897,6 +7697,19 @@ func (s UpdateElasticIpInput) String() string {
 // GoString returns the string representation
 func (s UpdateElasticIpInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateElasticIpInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateElasticIpInput"}
+	if s.ElasticIp == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticIp"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateElasticIpOutput struct {
@@ -7007,6 +7820,19 @@ func (s UpdateInstanceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7102,6 +7928,29 @@ func (s UpdateLayerInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateLayerInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateLayerInput"}
+	if s.LayerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("LayerId"))
+	}
+	if s.VolumeConfigurations != nil {
+		for i, v := range s.VolumeConfigurations {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "VolumeConfigurations", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateLayerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7168,6 +8017,19 @@ func (s UpdateRdsDbInstanceInput) String() string {
 // GoString returns the string representation
 func (s UpdateRdsDbInstanceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateRdsDbInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateRdsDbInstanceInput"}
+	if s.RdsDbInstanceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RdsDbInstanceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateRdsDbInstanceOutput struct {
@@ -7329,6 +8191,19 @@ func (s UpdateStackInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateStackInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateStackInput"}
+	if s.StackId == nil {
+		invalidParams.Add(request.NewErrParamRequired("StackId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateStackOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7374,6 +8249,19 @@ func (s UpdateUserProfileInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateUserProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateUserProfileInput"}
+	if s.IamUserArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamUserArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type UpdateUserProfileOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7409,6 +8297,19 @@ func (s UpdateVolumeInput) String() string {
 // GoString returns the string representation
 func (s UpdateVolumeInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateVolumeInput"}
+	if s.VolumeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type UpdateVolumeOutput struct {
@@ -7476,7 +8377,7 @@ type Volume struct {
 	// For PIOPS volumes, the IOPS per disk.
 	Iops *int64 `type:"integer"`
 
-	// The volume mount point. For example "/dev/sdh".
+	// The volume mount point. For example, "/mnt/disk1".
 	MountPoint *string `type:"string"`
 
 	// The volume name.
@@ -7546,6 +8447,25 @@ func (s VolumeConfiguration) String() string {
 // GoString returns the string representation
 func (s VolumeConfiguration) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *VolumeConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "VolumeConfiguration"}
+	if s.MountPoint == nil {
+		invalidParams.Add(request.NewErrParamRequired("MountPoint"))
+	}
+	if s.NumberOfDisks == nil {
+		invalidParams.Add(request.NewErrParamRequired("NumberOfDisks"))
+	}
+	if s.Size == nil {
+		invalidParams.Add(request.NewErrParamRequired("Size"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Describes a time-based instance's auto scaling schedule. The schedule consists

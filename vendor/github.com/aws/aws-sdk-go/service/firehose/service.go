@@ -12,7 +12,8 @@ import (
 )
 
 // Amazon Kinesis Firehose is a fully-managed service that delivers real-time
-// streaming data to destinations such as Amazon S3 and Amazon Redshift.
+// streaming data to destinations such as Amazon Simple Storage Service (Amazon
+// S3), Amazon Elasticsearch Service (Amazon ES), and Amazon Redshift.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type Firehose struct {

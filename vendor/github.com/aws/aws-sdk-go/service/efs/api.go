@@ -4,6 +4,7 @@
 package efs
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -548,6 +549,22 @@ func (s CreateFileSystemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateFileSystemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateFileSystemInput"}
+	if s.CreationToken == nil {
+		invalidParams.Add(request.NewErrParamRequired("CreationToken"))
+	}
+	if s.CreationToken != nil && len(*s.CreationToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CreationToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateMountTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -575,6 +592,22 @@ func (s CreateMountTargetInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateMountTargetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateMountTargetInput"}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+	if s.SubnetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -594,6 +627,32 @@ func (s CreateTagsInput) String() string {
 // GoString returns the string representation
 func (s CreateTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateTagsInput"}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateTagsOutput struct {
@@ -627,6 +686,19 @@ func (s DeleteFileSystemInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteFileSystemInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteFileSystemInput"}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteFileSystemOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -656,6 +728,19 @@ func (s DeleteMountTargetInput) String() string {
 // GoString returns the string representation
 func (s DeleteMountTargetInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteMountTargetInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteMountTargetInput"}
+	if s.MountTargetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("MountTargetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteMountTargetOutput struct {
@@ -690,6 +775,22 @@ func (s DeleteTagsInput) String() string {
 // GoString returns the string representation
 func (s DeleteTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteTagsInput"}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteTagsOutput struct {
@@ -740,6 +841,22 @@ func (s DescribeFileSystemsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeFileSystemsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeFileSystemsInput"}
+	if s.CreationToken != nil && len(*s.CreationToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CreationToken", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DescribeFileSystemsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -779,6 +896,19 @@ func (s DescribeMountTargetSecurityGroupsInput) String() string {
 // GoString returns the string representation
 func (s DescribeMountTargetSecurityGroupsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeMountTargetSecurityGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeMountTargetSecurityGroupsInput"}
+	if s.MountTargetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("MountTargetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeMountTargetSecurityGroupsOutput struct {
@@ -827,6 +957,19 @@ func (s DescribeMountTargetsInput) String() string {
 // GoString returns the string representation
 func (s DescribeMountTargetsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeMountTargetsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeMountTargetsInput"}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeMountTargetsOutput struct {
@@ -880,6 +1023,22 @@ func (s DescribeTagsInput) String() string {
 // GoString returns the string representation
 func (s DescribeTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeTagsInput"}
+	if s.FileSystemId == nil {
+		invalidParams.Add(request.NewErrParamRequired("FileSystemId"))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeTagsOutput struct {
@@ -1009,6 +1168,19 @@ func (s ModifyMountTargetSecurityGroupsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyMountTargetSecurityGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyMountTargetSecurityGroupsInput"}
+	if s.MountTargetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("MountTargetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyMountTargetSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1081,6 +1253,25 @@ func (s Tag) String() string {
 // GoString returns the string representation
 func (s Tag) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 const (
