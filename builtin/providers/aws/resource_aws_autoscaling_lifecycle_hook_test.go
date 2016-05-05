@@ -109,7 +109,7 @@ func testAccAWSAutoscalingLifecycleHookConfig(name string) string {
 resource "aws_launch_configuration" "foobar" {
     name = "%s"
     image_id = "ami-21f78e11"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
 }
 
 resource "aws_sqs_queue" "foobar" {
@@ -195,7 +195,7 @@ func testAccAWSAutoscalingLifecycleHookConfig_omitDefaultResult(name string) str
 resource "aws_launch_configuration" "foobar" {
   name          = "%s"
   image_id      = "ami-21f78e11"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
 }
 
 resource "aws_sqs_queue" "foobar" {

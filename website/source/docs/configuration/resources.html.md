@@ -26,7 +26,7 @@ A resource configuration looks like the following:
 ```
 resource "aws_instance" "web" {
     ami = "ami-408c7f28"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
 }
 ```
 

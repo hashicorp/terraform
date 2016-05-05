@@ -213,7 +213,7 @@ resource "aws_sns_topic" "topic_example" {
 resource "aws_launch_configuration" "foobar" {
   name = "foobarautoscaling-terraform-test"
   image_id = "ami-21f78e11"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "bar" {
@@ -247,7 +247,7 @@ resource "aws_sns_topic" "topic_example" {
 resource "aws_launch_configuration" "foobar" {
   name = "foobarautoscaling-terraform-test"
   image_id = "ami-21f78e11"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "bar" {
@@ -296,7 +296,7 @@ resource "aws_sns_topic" "user_updates" {
 
 resource "aws_launch_configuration" "foobar" {
   image_id = "ami-21f78e11"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "bar" {

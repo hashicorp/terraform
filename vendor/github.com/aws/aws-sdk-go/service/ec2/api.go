@@ -27415,7 +27415,7 @@ const (
 
 const (
 	// @enum InstanceType
-	InstanceTypeT1Micro = "t1.micro"
+	InstanceTypeT1Micro = "t2.micro"
 	// @enum InstanceType
 	InstanceTypeM1Small = "m1.small"
 	// @enum InstanceType

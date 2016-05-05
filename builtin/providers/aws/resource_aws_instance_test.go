@@ -972,7 +972,7 @@ resource "aws_subnet" "foo" {
 
 resource "aws_instance" "foo_instance" {
   ami = "ami-21f78e11"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
   vpc_security_group_ids = ["${aws_security_group.tf_test_foo.id}"]
   subnet_id = "${aws_subnet.foo.id}"
   associate_public_ip_address = true
@@ -1018,7 +1018,7 @@ resource "aws_subnet" "foo" {
 
 resource "aws_instance" "foo_instance" {
   ami = "ami-21f78e11"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
   vpc_security_group_ids = ["${aws_security_group.tf_test_foo.id}"]
   subnet_id = "${aws_subnet.foo.id}"
 	depends_on = ["aws_internet_gateway.gw"]
@@ -1043,7 +1043,7 @@ resource "aws_key_pair" "debugging" {
 
 resource "aws_instance" "foo" {
   ami = "ami-408c7f28"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
   key_name = "${aws_key_pair.debugging.key_name}"
 }
 `
@@ -1061,7 +1061,7 @@ resource "aws_subnet" "foo" {
 resource "aws_instance" "foo" {
 	// This is an AMI with RootDeviceName: "/dev/sda1"; actual root: "/dev/sda"
 	ami = "ami-ef5b69df"
-	instance_type = "t1.micro"
+	instance_type = "t2.micro"
 	subnet_id = "${aws_subnet.foo.id}"
 	root_block_device {
 		volume_size = 13

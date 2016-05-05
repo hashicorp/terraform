@@ -314,7 +314,7 @@ var testAccAWSLaunchConfigurationWithSpotPriceConfig = fmt.Sprintf(`
 resource "aws_launch_configuration" "bar" {
   name = "terraform-test-%d"
   image_id = "ami-21f78e11"
-  instance_type = "t1.micro"
+  instance_type = "t2.micro"
   spot_price = "0.01"
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
@@ -322,7 +322,7 @@ resource "aws_launch_configuration" "bar" {
 const testAccAWSLaunchConfigurationNoNameConfig = `
 resource "aws_launch_configuration" "bar" {
    image_id = "ami-21f78e11"
-   instance_type = "t1.micro"
+   instance_type = "t2.micro"
    user_data = "foobar-user-data-change"
    associate_public_ip_address = false
 }
@@ -332,7 +332,7 @@ const testAccAWSLaunchConfigurationPrefixNameConfig = `
 resource "aws_launch_configuration" "baz" {
    name_prefix = "baz-"
    image_id = "ami-21f78e11"
-   instance_type = "t1.micro"
+   instance_type = "t2.micro"
    user_data = "foobar-user-data-change"
    associate_public_ip_address = false
 }

@@ -122,7 +122,7 @@ var testAccAWSAutoscalingScheduleConfig = fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
     name = "terraform-test-foobar5"
     image_id = "ami-21f78e11"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "foobar" {
@@ -157,7 +157,7 @@ var testAccAWSAutoscalingScheduleConfig_recurrence = fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
     name = "terraform-test-foobar5"
     image_id = "ami-21f78e11"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "foobar" {
@@ -191,7 +191,7 @@ var testAccAWSAutoscalingScheduleConfig_zeroValues = fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
     name = "terraform-test-foobar5"
     image_id = "ami-21f78e11"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "foobar" {
