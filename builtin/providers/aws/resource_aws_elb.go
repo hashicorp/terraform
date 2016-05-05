@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -30,6 +31,11 @@ func resourceAwsElb() *schema.Resource {
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateElbName,
+			},
+
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"internal": &schema.Schema{
@@ -367,6 +373,13 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog)); err != nil {
 			return err
 		}
+	}
+
+	arn, arnErr := buildElbARN(d.Id(), meta)
+	if arnErr != nil {
+		return arnErr
+	} else {
+		d.Set("arn", arn)
 	}
 
 	resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
@@ -793,4 +806,18 @@ func sourceSGIdByName(meta interface{}, sg, vpcId string) (string, error) {
 
 	group := resp.SecurityGroups[0]
 	return *group.GroupId, nil
+}
+
+func buildElbARN(identifier string, meta interface{}) (string, error) {
+	iamconn := meta.(*AWSClient).iamconn
+	region := meta.(*AWSClient).region
+	// An zero value GetUserInput{} defers to the currently logged in user
+	resp, err := iamconn.GetUser(&iam.GetUserInput{})
+	if err != nil {
+		return "", err
+	}
+	userARN := *resp.User.Arn
+	accountID := strings.Split(userARN, ":")[4]
+	arn := fmt.Sprintf("arn:aws:elasticloadbalancing:%s:%s:loadbalancer:%s", region, accountID, identifier)
+	return arn, nil
 }
