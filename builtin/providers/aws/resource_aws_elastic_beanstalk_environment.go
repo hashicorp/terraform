@@ -680,20 +680,44 @@ func dropGeneratedSecurityGroup(settingValue string, meta interface{}) string {
 
 	groups := strings.Split(settingValue, ",")
 
-	resp, err := conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
-		GroupIds: aws.StringSlice(groups),
-	})
+	// Check to see if groups are ec2-classic or vpc security groups
+	ec2Classic := true
+	beanstalkSGRegexp := "sg-[0-9a-fA-F]{8}"
+	for _, g := range groups {
+		if ok, _ := regexp.MatchString(beanstalkSGRegexp, g); ok {
+			ec2Classic = false
+			break
+		}
+	}
+
+	var resp *ec2.DescribeSecurityGroupsOutput
+	var err error
+
+	if ec2Classic {
+		resp, err = conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+			GroupNames: aws.StringSlice(groups),
+		})
+	} else {
+		resp, err = conn.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+			GroupIds: aws.StringSlice(groups),
+		})
+	}
 
 	if err != nil {
 		log.Printf("[DEBUG] Elastic Beanstalk error describing SecurityGroups: %v", err)
 		return settingValue
 	}
 
+	log.Printf("[DEBUG] Elastic Beanstalk using ec2-classic security-groups: %t", ec2Classic)
 	var legitGroups []string
 	for _, group := range resp.SecurityGroups {
 		log.Printf("[DEBUG] Elastic Beanstalk SecurityGroup: %v", *group.GroupName)
 		if !strings.HasPrefix(*group.GroupName, "awseb") {
-			legitGroups = append(legitGroups, *group.GroupId)
+			if ec2Classic {
+				legitGroups = append(legitGroups, *group.GroupName)
+			} else {
+				legitGroups = append(legitGroups, *group.GroupId)
+			}
 		}
 	}
 
