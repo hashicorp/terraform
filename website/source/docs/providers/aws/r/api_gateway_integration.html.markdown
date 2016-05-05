@@ -56,3 +56,6 @@ The following arguments are supported:
   Not all methods are compatible with all `AWS` integrations.
   e.g. Lambda function [can only be invoked](https://github.com/awslabs/aws-apigateway-importer/issues/9#issuecomment-129651005) via `POST`.
 * `request_templates` - (Optional) A map of the integration's request templates.
+* `request_parameters_in_json` - (Optional) A map written as a JSON string specifying
+  the request query string parameters and headers that should be passed to the
+  backend responder
