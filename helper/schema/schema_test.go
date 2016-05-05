@@ -2846,13 +2846,14 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			map[string]*Schema{
 				"foo": &Schema{
 					Type:     TypeSet,
+					Elem:     &Schema{Type: TypeInt},
 					Required: true,
 					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 						return
 					},
 				},
 			},
-			true,
+			false,
 		},
 	}
 
@@ -3582,6 +3583,54 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Config: map[string]interface{}{
 				"maybe": "true",
+			},
+		},
+
+		"ValidateFunc gets decoded list": {
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Elem:     &Schema{Type: TypeInt},
+					Required: true,
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						if _, ok := v.([]interface{}); !ok {
+							t.Fatalf("Expected []interface, got: %#v", v)
+						}
+						for _, elem := range v.([]interface{}) {
+							if _, ok := elem.(int); !ok {
+								t.Fatalf("Expected int, got: %#v", v)
+							}
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, 2, 5},
+			},
+		},
+
+		"ValidateFunc gets decoded set": {
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Elem:     &Schema{Type: TypeInt},
+					Required: true,
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						if _, ok := v.(*Set); !ok {
+							t.Fatalf("Expected *Set, got: %#v", v)
+						}
+						for _, elem := range v.(*Set).List() {
+							if _, ok := elem.(int); !ok {
+								t.Fatalf("Expected int, got: %#v", v)
+							}
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, 2, 5},
 			},
 		},
 

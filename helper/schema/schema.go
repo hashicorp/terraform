@@ -142,8 +142,6 @@ type Schema struct {
 	// logic. It is yielded the provided config value as an interface{} that is
 	// guaranteed to be of the proper Schema type, and it can yield warnings or
 	// errors based on inspection of that value.
-	//
-	// ValidateFunc currently only works for primitive types.
 	ValidateFunc SchemaValidateFunc
 }
 
@@ -550,13 +548,6 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 		} else {
 			if v.MaxItems > 0 {
 				return fmt.Errorf("%s: MaxItems is only supported on lists or sets", k)
-			}
-		}
-
-		if v.ValidateFunc != nil {
-			switch v.Type {
-			case TypeList, TypeSet:
-				return fmt.Errorf("ValidateFunc is not yet supported on lists or sets.")
 			}
 		}
 	}
@@ -1086,6 +1077,31 @@ func (m schemaMap) validateList(
 			ws2, es2 = m.validateType(key, raw, t, c)
 		}
 
+		if len(ws2) > 0 {
+			ws = append(ws, ws2...)
+		}
+		if len(es2) > 0 {
+			es = append(es, es2...)
+		}
+	}
+
+	// Call the Set/List-level validation function, if there's one set
+	if schema.ValidateFunc != nil {
+		var ws2 []string
+		var es2 []error
+
+		switch schema.Type {
+		case TypeSet:
+			set := schema.ZeroValue().(*Set)
+			for _, elem := range raws {
+				set.Add(elem)
+			}
+			ws2, es2 = schema.ValidateFunc(set, k)
+		case TypeList:
+			ws2, es2 = schema.ValidateFunc(raws, k)
+		default:
+			return nil, []error{fmt.Errorf("%s: unexpected schema Type", k)}
+		}
 		if len(ws2) > 0 {
 			ws = append(ws, ws2...)
 		}
