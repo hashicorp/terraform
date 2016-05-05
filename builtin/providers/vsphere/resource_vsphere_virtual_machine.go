@@ -296,13 +296,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"ipv6_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"ipv6_prefix_length": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"ipv6_gateway": &schema.Schema{
