@@ -32,12 +32,12 @@ func init() {
 }
 
 func DockerCloudCall(url string, requestType string, requestBody []byte) ([]byte, error) {
-
-	LoadAuth()
 	if !IsAuthenticated() {
-		return nil, fmt.Errorf("Couldn't find any DockerCloud credentials in ~/.docker/config.json or environment variables DOCKERCLOUD_USER and DOCKERCLOUD_APIKEY")
+		err := LoadAuth()
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	client := &http.Client{Jar: jar}
 
 	req, err := http.NewRequest(requestType, BaseUrl+url, bytes.NewBuffer(requestBody))

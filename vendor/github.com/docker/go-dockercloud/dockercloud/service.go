@@ -107,10 +107,11 @@ func CreateService(createRequest ServiceCreateRequest) (Service, error) {
 
 func (self *Service) Logs(c chan Logs) {
 
-	endpoint := "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/logs/?user=" + User + "&token=" + ApiKey
+	endpoint := "api/app/" + appSubsystemVersion + "/service/" + self.Uuid + "/logs/"
 	url := StreamUrl + endpoint
 
 	header := http.Header{}
+	header.Add("Authorization", AuthHeader)
 	header.Add("User-Agent", customUserAgent)
 
 	var Dialer websocket.Dialer
@@ -122,11 +123,8 @@ func (self *Service) Logs(c chan Logs) {
 	var msg Logs
 	for {
 		if err = ws.ReadJSON(&msg); err != nil {
-			if err != nil && err.Error() != "EOF" {
-				log.Println(err)
-			} else {
-				break
-			}
+			log.Println(err)
+			break
 		}
 		c <- msg
 	}
@@ -154,7 +152,6 @@ func (self *Service) Scale() error {
 }
 
 func (self *Service) Update(createRequest ServiceCreateRequest) error {
-
 	url := "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/"
 	request := "PATCH"
 

@@ -83,10 +83,11 @@ func GetContainer(uuid string) (Container, error) {
 
 func (self *Container) Logs(c chan Logs) {
 
-	endpoint := "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/logs/?user=" + User + "&token=" + ApiKey
+	endpoint := "api/app/" + appSubsystemVersion + "/container/" + self.Uuid + "/logs/"
 	url := StreamUrl + endpoint
 
 	header := http.Header{}
+	header.Add("Authorization", AuthHeader)
 	header.Add("User-Agent", customUserAgent)
 
 	var Dialer websocket.Dialer
@@ -98,11 +99,8 @@ func (self *Container) Logs(c chan Logs) {
 	var msg Logs
 	for {
 		if err = ws.ReadJSON(&msg); err != nil {
-			if err != nil && err.Error() != "EOF" {
-				log.Println(err)
-			} else {
-				break
-			}
+			log.Println(err)
+			break
 		}
 		c <- msg
 	}
