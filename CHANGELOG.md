@@ -20,6 +20,7 @@ IMPROVEMENTS:
  * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
  * provider/aws: Improve error handling in IAM Server Certificates [GH-6442]
  * provider/aws: Add support for response parameters to `api_gateway_method_response` & `api_gateway_integration_response` [GH-6344]
+ * provider/aws: Add support for request parameters to `api_gateway_method` & `api_gateway_integration` [GH-6501]
  * provider/aws: Allow empty S3 config in Cloudfront Origin [GH-6487]
  * provider/aws: Use `sts:GetCallerIdentity` as additional method for getting AWS account ID [GH-6385]
  * provider/triton: Add support for specifying network interfaces on `triton machine` resources [GH-6418]
