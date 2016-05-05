@@ -527,6 +527,15 @@ func expandOrigin(m map[string]interface{}) *cloudfront.Origin {
 			origin.S3OriginConfig = expandS3OriginConfig(s[0].(map[string]interface{}))
 		}
 	}
+
+	// if both custom and s3 origin are missing, add an empty s3 origin
+	// One or the other must be specified, but the S3 origin can be "empty"
+	if origin.S3OriginConfig == nil && origin.CustomOriginConfig == nil {
+		origin.S3OriginConfig = &cloudfront.S3OriginConfig{
+			OriginAccessIdentity: aws.String(""),
+		}
+	}
+
 	return origin
 }
 
@@ -544,7 +553,9 @@ func flattenOrigin(or *cloudfront.Origin) map[string]interface{} {
 		m["origin_path"] = *or.OriginPath
 	}
 	if or.S3OriginConfig != nil {
-		m["s3_origin_config"] = schema.NewSet(s3OriginConfigHash, []interface{}{flattenS3OriginConfig(or.S3OriginConfig)})
+		if or.S3OriginConfig.OriginAccessIdentity != nil && *or.S3OriginConfig.OriginAccessIdentity != "" {
+			m["s3_origin_config"] = schema.NewSet(s3OriginConfigHash, []interface{}{flattenS3OriginConfig(or.S3OriginConfig)})
+		}
 	}
 	return m
 }
