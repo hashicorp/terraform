@@ -184,11 +184,11 @@ resource "aws_api_gateway_method_response" "error" {
     "application/json" = "Error"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Content-Type": true
-	}
-	PARAMS
+  response_parameters_in_json = <<PARAMS
+  {
+    "method.response.header.Content-Type": true
+  }
+  PARAMS
 }
 `
 
@@ -224,11 +224,11 @@ resource "aws_api_gateway_method_response" "error" {
     "application/json" = "Empty"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Host": true
-	}
-	PARAMS
+  response_parameters_in_json = <<PARAMS
+  {
+    "method.response.header.Host": true
+  }
+  PARAMS
 
 }
 `

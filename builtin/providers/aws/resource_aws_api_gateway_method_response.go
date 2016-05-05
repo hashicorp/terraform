@@ -130,7 +130,7 @@ func resourceAwsApiGatewayMethodResponseUpdate(d *schema.ResourceData, meta inte
 	}
 
 	if d.HasChange("response_parameters_in_json") {
-		ops, err := expandApiGatewayMethodResponseParametersJSONOperations(d, "response_parameters_in_json", "responseParameters")
+		ops, err := expandApiGatewayMethodParametersJSONOperations(d, "response_parameters_in_json", "responseParameters")
 		if err != nil {
 			return err
 		}
