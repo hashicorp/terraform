@@ -4,6 +4,7 @@
 package firehose
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -43,38 +44,38 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 // AWS accounts or different regions in the same AWS account can have the same
 // name.
 //
-// By default, you can create up to 5 delivery streams per region.
+// By default, you can create up to 20 delivery streams per region.
 //
 // A delivery stream can only be configured with a single destination, Amazon
 // S3 or Amazon Redshift. For correct CreateDeliveryStream request syntax, specify
-// only one destination configuration parameter: either RedshiftDestinationConfiguration
-// or S3DestinationConfiguration
+// only one destination configuration parameter: either ElasticsearchDestinationConfiguration,
+// RedshiftDestinationConfiguration or S3DestinationConfiguration
 //
 // As part of S3DestinationConfiguration, optional values BufferingHints, EncryptionConfiguration,
 // and CompressionFormat can be provided. By default, if no BufferingHints value
-// is provided, Amazon Kinesis Firehose buffers data up to 5 MB or for 5 minutes,
-// whichever condition is satisfied first. Note that BufferingHints is a hint,
-// so there are some cases where the service cannot adhere to these conditions
-// strictly; for example, record boundaries are such that the size is a little
-// over or under the configured buffering size. By default, no encryption is
-// performed. We strongly recommend that you enable encryption to ensure secure
-// data storage in Amazon S3.
+// is provided, Firehose buffers data up to 5 MB or for 5 minutes, whichever
+// condition is satisfied first. Note that BufferingHints is a hint, so there
+// are some cases where the service cannot adhere to these conditions strictly;
+// for example, record boundaries are such that the size is a little over or
+// under the configured buffering size. By default, no encryption is performed.
+// We strongly recommend that you enable encryption to ensure secure data storage
+// in Amazon S3.
 //
 // A few notes about RedshiftDestinationConfiguration:
 //
 //  An Amazon Redshift destination requires an S3 bucket as intermediate location,
-// as Amazon Kinesis Firehose first delivers data to S3 and then uses COPY syntax
-// to load data into an Amazon Redshift table. This is specified in the RedshiftDestinationConfiguration.S3Configuration
+// as Firehose first delivers data to S3 and then uses COPY syntax to load data
+// into an Amazon Redshift table. This is specified in the RedshiftDestinationConfiguration.S3Configuration
 // parameter element. The compression formats SNAPPY or ZIP cannot be specified
 // in RedshiftDestinationConfiguration.S3Configuration because the Amazon Redshift
 // COPY operation that reads from the S3 bucket doesn't support these compression
 // formats. We strongly recommend that the username and password provided is
-// used exclusively for Amazon Kinesis Firehose purposes, and that the permissions
-// for the account are restricted for Amazon Redshift INSERT permissions.  Amazon
-// Kinesis Firehose assumes the IAM role that is configured as part of destinations.
-// The IAM role should allow the Amazon Kinesis Firehose principal to assume
-// the role, and the role should have permissions that allows the service to
-// deliver the data. For more information, see Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3)
+// used exclusively for Firehose purposes, and that the permissions for the
+// account are restricted for Amazon Redshift INSERT permissions.  Firehose
+// assumes the IAM role that is configured as part of destinations. The IAM
+// role should allow the Firehose principal to assume the role, and the role
+// should have permissions that allows the service to deliver the data. For
+// more information, see Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3)
 // in the Amazon Kinesis Firehose Developer Guide.
 func (c *Firehose) CreateDeliveryStream(input *CreateDeliveryStreamInput) (*CreateDeliveryStreamOutput, error) {
 	req, out := c.CreateDeliveryStreamRequest(input)
@@ -220,15 +221,11 @@ func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request
 // 1,000 KB in size, and any kind of data, for example, a segment from a log
 // file, geographic location data, web site clickstream data, etc.
 //
-// Amazon Kinesis Firehose buffers records before delivering them to the destination.
-// To disambiguate the data blobs at the destination, a common solution is to
-// use delimiters in the data, such as a newline (\n) or some other character
-// unique within the data. This allows the consumer application(s) to parse
-// individual data items when reading the data from the destination.
-//
-// Amazon Kinesis Firehose does not maintain data record ordering. If the destination
-// data needs to be re-ordered by the consumer application, the producer should
-// include some form of sequence number in each data record.
+// Firehose buffers records before delivering them to the destination. To disambiguate
+// the data blobs at the destination, a common solution is to use delimiters
+// in the data, such as a newline (\n) or some other character unique within
+// the data. This allows the consumer application(s) to parse individual data
+// items when reading the data from the destination.
 //
 // The PutRecord operation returns a RecordId, which is a unique string assigned
 // to each record. Producer applications can use this ID for purposes such as
@@ -238,10 +235,10 @@ func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request
 // and retry. If the exception persists, it is possible that the throughput
 // limits have been exceeded for the delivery stream.
 //
-// Data records sent to Amazon Kinesis Firehose are stored for 24 hours from
-// the time they are added to a delivery stream as it attempts to send the records
-// to the destination. If the destination is unreachable for more than 24 hours,
-// the data is no longer available.
+// Data records sent to Firehose are stored for 24 hours from the time they
+// are added to a delivery stream as it attempts to send the records to the
+// destination. If the destination is unreachable for more than 24 hours, the
+// data is no longer available.
 func (c *Firehose) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 	req, out := c.PutRecordRequest(input)
 	err := req.Send()
@@ -287,11 +284,11 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 // 1,000 KB in size, and any kind of data, for example, a segment from a log
 // file, geographic location data, web site clickstream data, and so on.
 //
-// Amazon Kinesis Firehose buffers records before delivering them to the destination.
-// To disambiguate the data blobs at the destination, a common solution is to
-// use delimiters in the data, such as a newline (\n) or some other character
-// unique within the data. This allows the consumer application(s) to parse
-// individual data items when reading the data from the destination.
+// Firehose buffers records before delivering them to the destination. To disambiguate
+// the data blobs at the destination, a common solution is to use delimiters
+// in the data, such as a newline (\n) or some other character unique within
+// the data. This allows the consumer application(s) to parse individual data
+// items when reading the data from the destination.
 //
 // The PutRecordBatch response includes a count of any failed records, FailedPutCount,
 // and an array of responses, RequestResponses. The FailedPutCount value is
@@ -300,9 +297,9 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 // directly correlates with a record in the request array using the same ordering,
 // from the top to the bottom of the request and response. RequestResponses
 // always includes the same number of records as the request array. RequestResponses
-// both successfully and unsuccessfully processed records. Amazon Kinesis Firehose
-// attempts to process all records in each PutRecordBatch request. A single
-// record failure does not stop the processing of subsequent records.
+// both successfully and unsuccessfully processed records. Firehose attempts
+// to process all records in each PutRecordBatch request. A single record failure
+// does not stop the processing of subsequent records.
 //
 // A successfully processed record includes a RecordId value, which is a unique
 // value identified for the record. An unsuccessfully processed record includes
@@ -320,10 +317,10 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 // off and retry. If the exception persists, it is possible that the throughput
 // limits have been exceeded for the delivery stream.
 //
-// Data records sent to Amazon Kinesis Firehose are stored for 24 hours from
-// the time they are added to a delivery stream as it attempts to send the records
-// to the destination. If the destination is unreachable for more than 24 hours,
-// the data is no longer available.
+// Data records sent to Firehose are stored for 24 hours from the time they
+// are added to a delivery stream as it attempts to send the records to the
+// destination. If the destination is unreachable for more than 24 hours, the
+// data is no longer available.
 func (c *Firehose) PutRecordBatch(input *PutRecordBatchInput) (*PutRecordBatchOutput, error) {
 	req, out := c.PutRecordBatchRequest(input)
 	err := req.Send()
@@ -350,7 +347,10 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 	return
 }
 
-// Updates the specified destination of the specified delivery stream.
+// Updates the specified destination of the specified delivery stream. Note:
+// Switching between Elasticsearch and other services is not supported. For
+// Elasticsearch destination, you can only update an existing Elasticsearch
+// destination with this operation.
 //
 // This operation can be used to change the destination type (for example,
 // to replace the Amazon S3 destination with Amazon Redshift) or change the
@@ -360,23 +360,23 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 // so data writes to the delivery stream can continue during this process. The
 // updated configurations are normally effective within a few minutes.
 //
-// If the destination type is the same, Amazon Kinesis Firehose merges the
-// configuration parameters specified in the UpdateDestination request with
-// the destination configuration that already exists on the delivery stream.
-// If any of the parameters are not specified in the update request, then the
-// existing configuration parameters are retained. For example, in the Amazon
-// S3 destination, if EncryptionConfiguration is not specified then the existing
-// EncryptionConfiguration is maintained on the destination.
+// If the destination type is the same, Firehose merges the configuration parameters
+// specified in the UpdateDestination request with the destination configuration
+// that already exists on the delivery stream. If any of the parameters are
+// not specified in the update request, then the existing configuration parameters
+// are retained. For example, in the Amazon S3 destination, if EncryptionConfiguration
+// is not specified then the existing EncryptionConfiguration is maintained
+// on the destination.
 //
 // If the destination type is not the same, for example, changing the destination
-// from Amazon S3 to Amazon Redshift, Amazon Kinesis Firehose does not merge
-// any parameters. In this case, all parameters must be specified.
+// from Amazon S3 to Amazon Redshift, Firehose does not merge any parameters.
+// In this case, all parameters must be specified.
 //
-// Amazon Kinesis Firehose uses the CurrentDeliveryStreamVersionId to avoid
-// race conditions and conflicting merges. This is a required field in every
-// request and the service only updates the configuration if the existing configuration
-// matches the VersionId. After the update is applied successfully, the VersionId
-// is updated, which can be retrieved with the DescribeDeliveryStream operation.
+// Firehose uses the CurrentDeliveryStreamVersionId to avoid race conditions
+// and conflicting merges. This is a required field in every request and the
+// service only updates the configuration if the existing configuration matches
+// the VersionId. After the update is applied successfully, the VersionId is
+// updated, which can be retrieved with the DescribeDeliveryStream operation.
 // The new VersionId should be uses to set CurrentDeliveryStreamVersionId in
 // the next UpdateDestination operation.
 func (c *Firehose) UpdateDestination(input *UpdateDestinationInput) (*UpdateDestinationOutput, error) {
@@ -385,7 +385,9 @@ func (c *Firehose) UpdateDestination(input *UpdateDestinationInput) (*UpdateDest
 	return out, err
 }
 
-// Describes the buffering to perform before delivering data to the destination.
+// Describes hints for the buffering to perform before delivering data to the
+// destination. Please note that these options are treated as hints, and therefore
+// Firehose may choose to use different values when it is optimal.
 type BufferingHints struct {
 	_ struct{} `type:"structure"`
 
@@ -412,6 +414,48 @@ func (s BufferingHints) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BufferingHints) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BufferingHints"}
+	if s.IntervalInSeconds != nil && *s.IntervalInSeconds < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("IntervalInSeconds", 60))
+	}
+	if s.SizeInMBs != nil && *s.SizeInMBs < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("SizeInMBs", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Describes CloudWatch logging options for your delivery stream.
+type CloudWatchLoggingOptions struct {
+	_ struct{} `type:"structure"`
+
+	// Enables or disables CloudWatch logging.
+	Enabled *bool `type:"boolean"`
+
+	// The CloudWatch group name for logging. This value is required if Enabled
+	// is true.
+	LogGroupName *string `type:"string"`
+
+	// The CloudWatch log stream name for logging. This value is required if Enabled
+	// is true.
+	LogStreamName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CloudWatchLoggingOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CloudWatchLoggingOptions) GoString() string {
+	return s.String()
+}
+
 // Describes a COPY command for Amazon Redshift.
 type CopyCommand struct {
 	_ struct{} `type:"structure"`
@@ -419,7 +463,7 @@ type CopyCommand struct {
 	// Optional parameters to use with the Amazon Redshift COPY command. For more
 	// information, see the "Optional Parameters" section of Amazon Redshift COPY
 	// command (http://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html). Some
-	// possible examples that would apply to Amazon Kinesis Firehose are as follows.
+	// possible examples that would apply to Firehose are as follows.
 	//
 	// delimiter '\t' lzop; - fields are delimited with "\t" (TAB character) and
 	// compressed using lzop.
@@ -435,7 +479,7 @@ type CopyCommand struct {
 	//  JSON 's3://mybucket/jsonpaths.txt' - data is in JSON format, and the path
 	// specified is the format of the data.
 	//
-	// For more examples, see and Amazon Redshift COPY command exmaples (http://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html).
+	// For more examples, see Amazon Redshift COPY command examples (http://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html).
 	CopyOptions *string `type:"string"`
 
 	// A comma-separated list of column names.
@@ -455,6 +499,22 @@ func (s CopyCommand) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CopyCommand) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CopyCommand"}
+	if s.DataTableName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DataTableName"))
+	}
+	if s.DataTableName != nil && len(*s.DataTableName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DataTableName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the parameters for CreateDeliveryStream.
 type CreateDeliveryStreamInput struct {
 	_ struct{} `type:"structure"`
@@ -462,12 +522,18 @@ type CreateDeliveryStreamInput struct {
 	// The name of the delivery stream.
 	DeliveryStreamName *string `min:"1" type:"string" required:"true"`
 
+	// The destination in Amazon ES. This value cannot be specified if Amazon S3
+	// or Amazon Redshift is the desired destination (see restrictions listed above).
+	ElasticsearchDestinationConfiguration *ElasticsearchDestinationConfiguration `type:"structure"`
+
 	// The destination in Amazon Redshift. This value cannot be specified if Amazon
-	// S3 is the desired destination (see restrictions listed above).
+	// S3 or Amazon Elasticsearch is the desired destination (see restrictions listed
+	// above).
 	RedshiftDestinationConfiguration *RedshiftDestinationConfiguration `type:"structure"`
 
-	// The destination in Amazon S3. This value must be specified if RedshiftDestinationConfiguration
-	// is specified (see restrictions listed above).
+	// The destination in Amazon S3. This value must be specified if ElasticsearchDestinationConfiguration
+	// or RedshiftDestinationConfiguration is specified (see restrictions listed
+	// above).
 	S3DestinationConfiguration *S3DestinationConfiguration `type:"structure"`
 }
 
@@ -479,6 +545,37 @@ func (s CreateDeliveryStreamInput) String() string {
 // GoString returns the string representation
 func (s CreateDeliveryStreamInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateDeliveryStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateDeliveryStreamInput"}
+	if s.DeliveryStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryStreamName"))
+	}
+	if s.DeliveryStreamName != nil && len(*s.DeliveryStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryStreamName", 1))
+	}
+	if s.ElasticsearchDestinationConfiguration != nil {
+		if err := s.ElasticsearchDestinationConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ElasticsearchDestinationConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.RedshiftDestinationConfiguration != nil {
+		if err := s.RedshiftDestinationConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("RedshiftDestinationConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3DestinationConfiguration != nil {
+		if err := s.S3DestinationConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("S3DestinationConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output of CreateDeliveryStream.
@@ -515,6 +612,22 @@ func (s DeleteDeliveryStreamInput) String() string {
 // GoString returns the string representation
 func (s DeleteDeliveryStreamInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteDeliveryStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteDeliveryStreamInput"}
+	if s.DeliveryStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryStreamName"))
+	}
+	if s.DeliveryStreamName != nil && len(*s.DeliveryStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryStreamName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output of DeleteDeliveryStream.
@@ -583,7 +696,7 @@ type DescribeDeliveryStreamInput struct {
 	DeliveryStreamName *string `min:"1" type:"string" required:"true"`
 
 	// Specifies the destination ID to start returning the destination information.
-	// Currently Amazon Kinesis Firehose supports one destination per delivery stream.
+	// Currently Firehose supports one destination per delivery stream.
 	ExclusiveStartDestinationId *string `min:"1" type:"string"`
 
 	// The limit on the number of destinations to return. Currently, you can have
@@ -599,6 +712,28 @@ func (s DescribeDeliveryStreamInput) String() string {
 // GoString returns the string representation
 func (s DescribeDeliveryStreamInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeDeliveryStreamInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeDeliveryStreamInput"}
+	if s.DeliveryStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryStreamName"))
+	}
+	if s.DeliveryStreamName != nil && len(*s.DeliveryStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryStreamName", 1))
+	}
+	if s.ExclusiveStartDestinationId != nil && len(*s.ExclusiveStartDestinationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusiveStartDestinationId", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output of DescribeDeliveryStream.
@@ -626,6 +761,9 @@ type DestinationDescription struct {
 	// The ID of the destination.
 	DestinationId *string `min:"1" type:"string" required:"true"`
 
+	// The destination in Amazon ES.
+	ElasticsearchDestinationDescription *ElasticsearchDestinationDescription `type:"structure"`
+
 	// The destination in Amazon Redshift.
 	RedshiftDestinationDescription *RedshiftDestinationDescription `type:"structure"`
 
@@ -640,6 +778,308 @@ func (s DestinationDescription) String() string {
 
 // GoString returns the string representation
 func (s DestinationDescription) GoString() string {
+	return s.String()
+}
+
+// Describes the buffering to perform before delivering data to the Amazon ES
+// destination.
+type ElasticsearchBufferingHints struct {
+	_ struct{} `type:"structure"`
+
+	// Buffer incoming data for the specified period of time, in seconds, before
+	// delivering it to the destination. The default value is 300 (5 minutes).
+	IntervalInSeconds *int64 `min:"60" type:"integer"`
+
+	// Buffer incoming data to the specified size, in MBs, before delivering it
+	// to the destination. The default value is 5.
+	//
+	// We recommend setting SizeInMBs to a value greater than the amount of data
+	// you typically ingest into the delivery stream in 10 seconds. For example,
+	// if you typically ingest data at 1 MB/sec, set SizeInMBs to be 10 MB or higher.
+	SizeInMBs *int64 `min:"1" type:"integer"`
+}
+
+// String returns the string representation
+func (s ElasticsearchBufferingHints) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ElasticsearchBufferingHints) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ElasticsearchBufferingHints) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ElasticsearchBufferingHints"}
+	if s.IntervalInSeconds != nil && *s.IntervalInSeconds < 60 {
+		invalidParams.Add(request.NewErrParamMinValue("IntervalInSeconds", 60))
+	}
+	if s.SizeInMBs != nil && *s.SizeInMBs < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("SizeInMBs", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Describes the configuration of a destination in Amazon ES.
+type ElasticsearchDestinationConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Buffering options. If no value is specified, ElasticsearchBufferingHints
+	// object default values are used.
+	BufferingHints *ElasticsearchBufferingHints `type:"structure"`
+
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
+
+	// The ARN of the Amazon ES domain. The IAM role must have permission for DescribeElasticsearchDomain,
+	// DescribeElasticsearchDomains , and DescribeElasticsearchDomainConfig after
+	// assuming RoleARN.
+	DomainARN *string `min:"1" type:"string" required:"true"`
+
+	// The Elasticsearch index name.
+	IndexName *string `min:"1" type:"string" required:"true"`
+
+	// The Elasticsearch index rotation period. Index rotation appends a timestamp
+	// to the IndexName to facilitate expiration of old data. For more information,
+	// see Index Rotation for Amazon Elasticsearch Service Destination (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html#es-index-rotation).
+	// Default value is OneDay.
+	IndexRotationPeriod *string `type:"string" enum:"ElasticsearchIndexRotationPeriod"`
+
+	// Configures retry behavior in the event that Firehose is unable to deliver
+	// documents to Amazon ES. Default value is 300 (5 minutes).
+	RetryOptions *ElasticsearchRetryOptions `type:"structure"`
+
+	// The ARN of the IAM role to be assumed by Firehose for calling the Amazon
+	// ES Configuration API and for indexing documents. For more information, see
+	// Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3).
+	RoleARN *string `min:"1" type:"string" required:"true"`
+
+	// Defines how documents should be delivered to Amazon S3. When set to FailedDocumentsOnly,
+	// Firehose writes any documents that could not be indexed to the configured
+	// Amazon S3 destination, with elasticsearch-failed/ appended to the key prefix.
+	// When set to AllDocuments, Firehose delivers all incoming records to Amazon
+	// S3, and also writes failed documents with elasticsearch-failed/ appended
+	// to the prefix. For more information, see Amazon S3 Backup for Amazon Elasticsearch
+	// Service Destination (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html#es-s3-backup).
+	// Default value is FailedDocumentsOnly.
+	S3BackupMode *string `type:"string" enum:"ElasticsearchS3BackupMode"`
+
+	// Describes the configuration of a destination in Amazon S3.
+	S3Configuration *S3DestinationConfiguration `type:"structure" required:"true"`
+
+	// The Elasticsearch type name.
+	TypeName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ElasticsearchDestinationConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ElasticsearchDestinationConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ElasticsearchDestinationConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ElasticsearchDestinationConfiguration"}
+	if s.DomainARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainARN"))
+	}
+	if s.DomainARN != nil && len(*s.DomainARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainARN", 1))
+	}
+	if s.IndexName == nil {
+		invalidParams.Add(request.NewErrParamRequired("IndexName"))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 1))
+	}
+	if s.RoleARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleARN"))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.S3Configuration == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3Configuration"))
+	}
+	if s.TypeName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TypeName"))
+	}
+	if s.TypeName != nil && len(*s.TypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TypeName", 1))
+	}
+	if s.BufferingHints != nil {
+		if err := s.BufferingHints.Validate(); err != nil {
+			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3Configuration != nil {
+		if err := s.S3Configuration.Validate(); err != nil {
+			invalidParams.AddNested("S3Configuration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The destination description in Amazon ES.
+type ElasticsearchDestinationDescription struct {
+	_ struct{} `type:"structure"`
+
+	// Buffering options.
+	BufferingHints *ElasticsearchBufferingHints `type:"structure"`
+
+	// CloudWatch logging options.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
+
+	// The ARN of the Amazon ES domain.
+	DomainARN *string `min:"1" type:"string"`
+
+	// The Elasticsearch index name.
+	IndexName *string `min:"1" type:"string"`
+
+	// The Elasticsearch index rotation period
+	IndexRotationPeriod *string `type:"string" enum:"ElasticsearchIndexRotationPeriod"`
+
+	// Elasticsearch retry options.
+	RetryOptions *ElasticsearchRetryOptions `type:"structure"`
+
+	// The ARN of the AWS credentials.
+	RoleARN *string `min:"1" type:"string"`
+
+	// Amazon S3 backup mode.
+	S3BackupMode *string `type:"string" enum:"ElasticsearchS3BackupMode"`
+
+	// Describes a destination in Amazon S3.
+	S3DestinationDescription *S3DestinationDescription `type:"structure"`
+
+	// The Elasticsearch type name.
+	TypeName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ElasticsearchDestinationDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ElasticsearchDestinationDescription) GoString() string {
+	return s.String()
+}
+
+// Describes an update for a destination in Amazon ES.
+type ElasticsearchDestinationUpdate struct {
+	_ struct{} `type:"structure"`
+
+	// Buffering options. If no value is specified, ElasticsearchBufferingHints
+	// object default values are used.
+	BufferingHints *ElasticsearchBufferingHints `type:"structure"`
+
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
+
+	// The ARN of the Amazon ES domain. The IAM role must have permission for DescribeElasticsearchDomain,
+	// DescribeElasticsearchDomains , and DescribeElasticsearchDomainConfig after
+	// assuming RoleARN.
+	DomainARN *string `min:"1" type:"string"`
+
+	// The Elasticsearch index name.
+	IndexName *string `min:"1" type:"string"`
+
+	// The Elasticsearch index rotation period. Index rotation appends a timestamp
+	// to the IndexName to facilitate the expiration of old data. For more information,
+	// see Index Rotation for Amazon Elasticsearch Service Destination (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html#es-index-rotation).
+	// Default value is OneDay.
+	IndexRotationPeriod *string `type:"string" enum:"ElasticsearchIndexRotationPeriod"`
+
+	// Configures retry behavior in the event that Firehose is unable to deliver
+	// documents to Amazon ES. Default value is 300 (5 minutes).
+	RetryOptions *ElasticsearchRetryOptions `type:"structure"`
+
+	// The ARN of the IAM role to be assumed by Firehose for calling the Amazon
+	// ES Configuration API and for indexing documents. For more information, see
+	// Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3).
+	RoleARN *string `min:"1" type:"string"`
+
+	// Describes an update for a destination in Amazon S3.
+	S3Update *S3DestinationUpdate `type:"structure"`
+
+	// The Elasticsearch type name.
+	TypeName *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ElasticsearchDestinationUpdate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ElasticsearchDestinationUpdate) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ElasticsearchDestinationUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ElasticsearchDestinationUpdate"}
+	if s.DomainARN != nil && len(*s.DomainARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainARN", 1))
+	}
+	if s.IndexName != nil && len(*s.IndexName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("IndexName", 1))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.TypeName != nil && len(*s.TypeName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TypeName", 1))
+	}
+	if s.BufferingHints != nil {
+		if err := s.BufferingHints.Validate(); err != nil {
+			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3Update != nil {
+		if err := s.S3Update.Validate(); err != nil {
+			invalidParams.AddNested("S3Update", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Configures retry behavior in the event that Firehose is unable to deliver
+// documents to Amazon ES.
+type ElasticsearchRetryOptions struct {
+	_ struct{} `type:"structure"`
+
+	// After an initial failure to deliver to Amazon ES, the total amount of time
+	// during which Firehose re-attempts delivery. After this time has elapsed,
+	// the failed documents are written to Amazon S3. Default value is 300 seconds.
+	// A value of 0 (zero) results in no retries.
+	DurationInSeconds *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s ElasticsearchRetryOptions) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ElasticsearchRetryOptions) GoString() string {
 	return s.String()
 }
 
@@ -665,6 +1105,21 @@ func (s EncryptionConfiguration) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EncryptionConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EncryptionConfiguration"}
+	if s.KMSEncryptionConfig != nil {
+		if err := s.KMSEncryptionConfig.Validate(); err != nil {
+			invalidParams.AddNested("KMSEncryptionConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes an encryption key for a destination in Amazon S3.
 type KMSEncryptionConfig struct {
 	_ struct{} `type:"structure"`
@@ -682,6 +1137,22 @@ func (s KMSEncryptionConfig) String() string {
 // GoString returns the string representation
 func (s KMSEncryptionConfig) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *KMSEncryptionConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "KMSEncryptionConfig"}
+	if s.AWSKMSKeyARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("AWSKMSKeyARN"))
+	}
+	if s.AWSKMSKeyARN != nil && len(*s.AWSKMSKeyARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("AWSKMSKeyARN", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the parameters for ListDeliveryStreams.
@@ -703,6 +1174,22 @@ func (s ListDeliveryStreamsInput) String() string {
 // GoString returns the string representation
 func (s ListDeliveryStreamsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListDeliveryStreamsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListDeliveryStreamsInput"}
+	if s.ExclusiveStartDeliveryStreamName != nil && len(*s.ExclusiveStartDeliveryStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ExclusiveStartDeliveryStreamName", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output of ListDeliveryStreams.
@@ -745,6 +1232,38 @@ func (s PutRecordBatchInput) String() string {
 // GoString returns the string representation
 func (s PutRecordBatchInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRecordBatchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRecordBatchInput"}
+	if s.DeliveryStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryStreamName"))
+	}
+	if s.DeliveryStreamName != nil && len(*s.DeliveryStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryStreamName", 1))
+	}
+	if s.Records == nil {
+		invalidParams.Add(request.NewErrParamRequired("Records"))
+	}
+	if s.Records != nil && len(s.Records) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Records", 1))
+	}
+	if s.Records != nil {
+		for i, v := range s.Records {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Records", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output of PutRecordBatch.
@@ -817,6 +1336,30 @@ func (s PutRecordInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutRecordInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutRecordInput"}
+	if s.DeliveryStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryStreamName"))
+	}
+	if s.DeliveryStreamName != nil && len(*s.DeliveryStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryStreamName", 1))
+	}
+	if s.Record == nil {
+		invalidParams.Add(request.NewErrParamRequired("Record"))
+	}
+	if s.Record != nil {
+		if err := s.Record.Validate(); err != nil {
+			invalidParams.AddNested("Record", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the output of PutRecord.
 type PutRecordOutput struct {
 	_ struct{} `type:"structure"`
@@ -856,9 +1399,25 @@ func (s Record) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Record) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Record"}
+	if s.Data == nil {
+		invalidParams.Add(request.NewErrParamRequired("Data"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes the configuration of a destination in Amazon Redshift.
 type RedshiftDestinationConfiguration struct {
 	_ struct{} `type:"structure"`
+
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The database connection string.
 	ClusterJDBCURL *string `min:"1" type:"string" required:"true"`
@@ -894,9 +1453,62 @@ func (s RedshiftDestinationConfiguration) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RedshiftDestinationConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RedshiftDestinationConfiguration"}
+	if s.ClusterJDBCURL == nil {
+		invalidParams.Add(request.NewErrParamRequired("ClusterJDBCURL"))
+	}
+	if s.ClusterJDBCURL != nil && len(*s.ClusterJDBCURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClusterJDBCURL", 1))
+	}
+	if s.CopyCommand == nil {
+		invalidParams.Add(request.NewErrParamRequired("CopyCommand"))
+	}
+	if s.Password == nil {
+		invalidParams.Add(request.NewErrParamRequired("Password"))
+	}
+	if s.Password != nil && len(*s.Password) < 6 {
+		invalidParams.Add(request.NewErrParamMinLen("Password", 6))
+	}
+	if s.RoleARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleARN"))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.S3Configuration == nil {
+		invalidParams.Add(request.NewErrParamRequired("S3Configuration"))
+	}
+	if s.Username == nil {
+		invalidParams.Add(request.NewErrParamRequired("Username"))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
+	}
+	if s.CopyCommand != nil {
+		if err := s.CopyCommand.Validate(); err != nil {
+			invalidParams.AddNested("CopyCommand", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3Configuration != nil {
+		if err := s.S3Configuration.Validate(); err != nil {
+			invalidParams.AddNested("S3Configuration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes a destination in Amazon Redshift.
 type RedshiftDestinationDescription struct {
 	_ struct{} `type:"structure"`
+
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The database connection string.
 	ClusterJDBCURL *string `min:"1" type:"string" required:"true"`
@@ -927,6 +1539,9 @@ func (s RedshiftDestinationDescription) GoString() string {
 // Describes an update for a destination in Amazon Redshift.
 type RedshiftDestinationUpdate struct {
 	_ struct{} `type:"structure"`
+
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The database connection string.
 	ClusterJDBCURL *string `min:"1" type:"string"`
@@ -961,6 +1576,38 @@ func (s RedshiftDestinationUpdate) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RedshiftDestinationUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RedshiftDestinationUpdate"}
+	if s.ClusterJDBCURL != nil && len(*s.ClusterJDBCURL) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClusterJDBCURL", 1))
+	}
+	if s.Password != nil && len(*s.Password) < 6 {
+		invalidParams.Add(request.NewErrParamMinLen("Password", 6))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.Username != nil && len(*s.Username) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Username", 1))
+	}
+	if s.CopyCommand != nil {
+		if err := s.CopyCommand.Validate(); err != nil {
+			invalidParams.AddNested("CopyCommand", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3Update != nil {
+		if err := s.S3Update.Validate(); err != nil {
+			invalidParams.AddNested("S3Update", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes the configuration of a destination in Amazon S3.
 type S3DestinationConfiguration struct {
 	_ struct{} `type:"structure"`
@@ -971,6 +1618,9 @@ type S3DestinationConfiguration struct {
 	// The buffering option. If no value is specified, BufferingHints object default
 	// values are used.
 	BufferingHints *BufferingHints `type:"structure"`
+
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The compression format. If no value is specified, the default is UNCOMPRESSED.
 	//
@@ -1005,6 +1655,38 @@ func (s S3DestinationConfiguration) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *S3DestinationConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "S3DestinationConfiguration"}
+	if s.BucketARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("BucketARN"))
+	}
+	if s.BucketARN != nil && len(*s.BucketARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BucketARN", 1))
+	}
+	if s.RoleARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleARN"))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.BufferingHints != nil {
+		if err := s.BufferingHints.Validate(); err != nil {
+			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.EncryptionConfiguration != nil {
+		if err := s.EncryptionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Describes a destination in Amazon S3.
 type S3DestinationDescription struct {
 	_ struct{} `type:"structure"`
@@ -1015,6 +1697,9 @@ type S3DestinationDescription struct {
 	// The buffering option. If no value is specified, BufferingHints object default
 	// values are used.
 	BufferingHints *BufferingHints `type:"structure" required:"true"`
+
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The compression format. If no value is specified, the default is NOCOMPRESSION.
 	CompressionFormat *string `type:"string" required:"true" enum:"CompressionFormat"`
@@ -1056,6 +1741,9 @@ type S3DestinationUpdate struct {
 	// values are used.
 	BufferingHints *BufferingHints `type:"structure"`
 
+	// Describes CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
+
 	// The compression format. If no value is specified, the default is NOCOMPRESSION.
 	//
 	// The compression formats SNAPPY or ZIP cannot be specified for Amazon Redshift
@@ -1089,6 +1777,32 @@ func (s S3DestinationUpdate) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *S3DestinationUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "S3DestinationUpdate"}
+	if s.BucketARN != nil && len(*s.BucketARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BucketARN", 1))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.BufferingHints != nil {
+		if err := s.BufferingHints.Validate(); err != nil {
+			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.EncryptionConfiguration != nil {
+		if err := s.EncryptionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Contains the parameters for UpdateDestination.
 type UpdateDestinationInput struct {
 	_ struct{} `type:"structure"`
@@ -1107,6 +1821,9 @@ type UpdateDestinationInput struct {
 	// The ID of the destination.
 	DestinationId *string `min:"1" type:"string" required:"true"`
 
+	// Describes an update for a destination in Amazon ES.
+	ElasticsearchDestinationUpdate *ElasticsearchDestinationUpdate `type:"structure"`
+
 	// Describes an update for a destination in Amazon Redshift.
 	RedshiftDestinationUpdate *RedshiftDestinationUpdate `type:"structure"`
 
@@ -1122,6 +1839,49 @@ func (s UpdateDestinationInput) String() string {
 // GoString returns the string representation
 func (s UpdateDestinationInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateDestinationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateDestinationInput"}
+	if s.CurrentDeliveryStreamVersionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CurrentDeliveryStreamVersionId"))
+	}
+	if s.CurrentDeliveryStreamVersionId != nil && len(*s.CurrentDeliveryStreamVersionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CurrentDeliveryStreamVersionId", 1))
+	}
+	if s.DeliveryStreamName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DeliveryStreamName"))
+	}
+	if s.DeliveryStreamName != nil && len(*s.DeliveryStreamName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DeliveryStreamName", 1))
+	}
+	if s.DestinationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationId"))
+	}
+	if s.DestinationId != nil && len(*s.DestinationId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("DestinationId", 1))
+	}
+	if s.ElasticsearchDestinationUpdate != nil {
+		if err := s.ElasticsearchDestinationUpdate.Validate(); err != nil {
+			invalidParams.AddNested("ElasticsearchDestinationUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.RedshiftDestinationUpdate != nil {
+		if err := s.RedshiftDestinationUpdate.Validate(); err != nil {
+			invalidParams.AddNested("RedshiftDestinationUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3DestinationUpdate != nil {
+		if err := s.S3DestinationUpdate.Validate(); err != nil {
+			invalidParams.AddNested("S3DestinationUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains the output of UpdateDestination.
@@ -1157,6 +1917,26 @@ const (
 	DeliveryStreamStatusDeleting = "DELETING"
 	// @enum DeliveryStreamStatus
 	DeliveryStreamStatusActive = "ACTIVE"
+)
+
+const (
+	// @enum ElasticsearchIndexRotationPeriod
+	ElasticsearchIndexRotationPeriodNoRotation = "NoRotation"
+	// @enum ElasticsearchIndexRotationPeriod
+	ElasticsearchIndexRotationPeriodOneHour = "OneHour"
+	// @enum ElasticsearchIndexRotationPeriod
+	ElasticsearchIndexRotationPeriodOneDay = "OneDay"
+	// @enum ElasticsearchIndexRotationPeriod
+	ElasticsearchIndexRotationPeriodOneWeek = "OneWeek"
+	// @enum ElasticsearchIndexRotationPeriod
+	ElasticsearchIndexRotationPeriodOneMonth = "OneMonth"
+)
+
+const (
+	// @enum ElasticsearchS3BackupMode
+	ElasticsearchS3BackupModeFailedDocumentsOnly = "FailedDocumentsOnly"
+	// @enum ElasticsearchS3BackupMode
+	ElasticsearchS3BackupModeAllDocuments = "AllDocuments"
 )
 
 const (

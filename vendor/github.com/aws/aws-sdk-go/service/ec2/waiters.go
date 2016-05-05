@@ -493,7 +493,7 @@ func (c *EC2) WaitUntilNatGatewayAvailable(input *DescribeNatGatewaysInput) erro
 				State:    "retry",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidNatGatewayIDNotFound",
+				Expected: "NatGatewayNotFound",
 			},
 		},
 	}
@@ -522,7 +522,7 @@ func (c *EC2) WaitUntilNetworkInterfaceAvailable(input *DescribeNetworkInterface
 				State:    "failure",
 				Matcher:  "error",
 				Argument: "",
-				Expected: "InvalidNetworkInterfaceIDNotFound",
+				Expected: "InvalidNetworkInterfaceID.NotFound",
 			},
 		},
 	}

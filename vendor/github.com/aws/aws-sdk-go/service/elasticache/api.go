@@ -1379,6 +1379,22 @@ func (s AddTagsToResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsToResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsToResourceInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of an AuthorizeCacheSecurityGroupIngress action.
 type AuthorizeCacheSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
@@ -1404,6 +1420,25 @@ func (s AuthorizeCacheSecurityGroupIngressInput) String() string {
 // GoString returns the string representation
 func (s AuthorizeCacheSecurityGroupIngressInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AuthorizeCacheSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AuthorizeCacheSecurityGroupIngressInput"}
+	if s.CacheSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSecurityGroupName"))
+	}
+	if s.EC2SecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("EC2SecurityGroupName"))
+	}
+	if s.EC2SecurityGroupOwnerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("EC2SecurityGroupOwnerId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type AuthorizeCacheSecurityGroupIngressOutput struct {
@@ -1898,6 +1933,22 @@ func (s CopySnapshotInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CopySnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CopySnapshotInput"}
+	if s.SourceSnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SourceSnapshotName"))
+	}
+	if s.TargetSnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("TargetSnapshotName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CopySnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2126,6 +2177,19 @@ func (s CreateCacheClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateCacheClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateCacheClusterInput"}
+	if s.CacheClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateCacheClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2170,6 +2234,25 @@ func (s CreateCacheParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateCacheParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateCacheParameterGroupInput"}
+	if s.CacheParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheParameterGroupFamily"))
+	}
+	if s.CacheParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheParameterGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateCacheParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2212,6 +2295,22 @@ func (s CreateCacheSecurityGroupInput) String() string {
 // GoString returns the string representation
 func (s CreateCacheSecurityGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateCacheSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateCacheSecurityGroupInput"}
+	if s.CacheSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSecurityGroupName"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateCacheSecurityGroupOutput struct {
@@ -2259,6 +2358,25 @@ func (s CreateCacheSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s CreateCacheSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateCacheSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateCacheSubnetGroupInput"}
+	if s.CacheSubnetGroupDescription == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSubnetGroupDescription"))
+	}
+	if s.CacheSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSubnetGroupName"))
+	}
+	if s.SubnetIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetIds"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateCacheSubnetGroupOutput struct {
@@ -2469,6 +2587,22 @@ func (s CreateReplicationGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateReplicationGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateReplicationGroupInput"}
+	if s.ReplicationGroupDescription == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupDescription"))
+	}
+	if s.ReplicationGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type CreateReplicationGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2506,6 +2640,22 @@ func (s CreateSnapshotInput) String() string {
 // GoString returns the string representation
 func (s CreateSnapshotInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSnapshotInput"}
+	if s.CacheClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheClusterId"))
+	}
+	if s.SnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type CreateSnapshotOutput struct {
@@ -2550,6 +2700,19 @@ func (s DeleteCacheClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteCacheClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteCacheClusterInput"}
+	if s.CacheClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteCacheClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2588,6 +2751,19 @@ func (s DeleteCacheParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteCacheParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteCacheParameterGroupInput"}
+	if s.CacheParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteCacheParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2622,6 +2798,19 @@ func (s DeleteCacheSecurityGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteCacheSecurityGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteCacheSecurityGroupInput"}
+	if s.CacheSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSecurityGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteCacheSecurityGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2654,6 +2843,19 @@ func (s DeleteCacheSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s DeleteCacheSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteCacheSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteCacheSubnetGroupInput"}
+	if s.CacheSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSubnetGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteCacheSubnetGroupOutput struct {
@@ -2699,6 +2901,19 @@ func (s DeleteReplicationGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteReplicationGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteReplicationGroupInput"}
+	if s.ReplicationGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type DeleteReplicationGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2732,6 +2947,19 @@ func (s DeleteSnapshotInput) String() string {
 // GoString returns the string representation
 func (s DeleteSnapshotInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSnapshotInput"}
+	if s.SnapshotName == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DeleteSnapshotOutput struct {
@@ -2974,6 +3202,19 @@ func (s DescribeCacheParametersInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeCacheParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeCacheParametersInput"}
+	if s.CacheParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheParameterGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the output of a DescribeCacheParameters action.
 type DescribeCacheParametersOutput struct {
 	_ struct{} `type:"structure"`
@@ -3138,6 +3379,19 @@ func (s DescribeEngineDefaultParametersInput) String() string {
 // GoString returns the string representation
 func (s DescribeEngineDefaultParametersInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEngineDefaultParametersInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEngineDefaultParametersInput"}
+	if s.CacheParameterGroupFamily == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheParameterGroupFamily"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type DescribeEngineDefaultParametersOutput struct {
@@ -3734,6 +3988,19 @@ func (s ListTagsForResourceInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a ModifyCacheCluster action.
 type ModifyCacheClusterInput struct {
 	_ struct{} `type:"structure"`
@@ -3940,6 +4207,19 @@ func (s ModifyCacheClusterInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyCacheClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyCacheClusterInput"}
+	if s.CacheClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheClusterId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type ModifyCacheClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3980,6 +4260,22 @@ func (s ModifyCacheParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyCacheParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyCacheParameterGroupInput"}
+	if s.CacheParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheParameterGroupName"))
+	}
+	if s.ParameterNameValues == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterNameValues"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a ModifyCacheSubnetGroup action.
 type ModifyCacheSubnetGroupInput struct {
 	_ struct{} `type:"structure"`
@@ -4007,6 +4303,19 @@ func (s ModifyCacheSubnetGroupInput) String() string {
 // GoString returns the string representation
 func (s ModifyCacheSubnetGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyCacheSubnetGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyCacheSubnetGroupInput"}
+	if s.CacheSubnetGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSubnetGroupName"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifyCacheSubnetGroupOutput struct {
@@ -4159,6 +4468,19 @@ func (s ModifyReplicationGroupInput) String() string {
 // GoString returns the string representation
 func (s ModifyReplicationGroupInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyReplicationGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyReplicationGroupInput"}
+	if s.ReplicationGroupId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReplicationGroupId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type ModifyReplicationGroupOutput struct {
@@ -4420,6 +4742,19 @@ func (s PurchaseReservedCacheNodesOfferingInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PurchaseReservedCacheNodesOfferingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PurchaseReservedCacheNodesOfferingInput"}
+	if s.ReservedCacheNodesOfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedCacheNodesOfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type PurchaseReservedCacheNodesOfferingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4458,6 +4793,22 @@ func (s RebootCacheClusterInput) String() string {
 // GoString returns the string representation
 func (s RebootCacheClusterInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RebootCacheClusterInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RebootCacheClusterInput"}
+	if s.CacheClusterId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheClusterId"))
+	}
+	if s.CacheNodeIdsToReboot == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheNodeIdsToReboot"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RebootCacheClusterOutput struct {
@@ -4525,6 +4876,22 @@ func (s RemoveTagsFromResourceInput) String() string {
 // GoString returns the string representation
 func (s RemoveTagsFromResourceInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsFromResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsFromResourceInput"}
+	if s.ResourceName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceName"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // Contains all of the attributes of a specific replication group.
@@ -4754,6 +5121,22 @@ func (s ResetCacheParameterGroupInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResetCacheParameterGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResetCacheParameterGroupInput"}
+	if s.CacheParameterGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheParameterGroupName"))
+	}
+	if s.ParameterNameValues == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterNameValues"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Represents the input of a RevokeCacheSecurityGroupIngress action.
 type RevokeCacheSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
@@ -4778,6 +5161,25 @@ func (s RevokeCacheSecurityGroupIngressInput) String() string {
 // GoString returns the string representation
 func (s RevokeCacheSecurityGroupIngressInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RevokeCacheSecurityGroupIngressInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RevokeCacheSecurityGroupIngressInput"}
+	if s.CacheSecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("CacheSecurityGroupName"))
+	}
+	if s.EC2SecurityGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("EC2SecurityGroupName"))
+	}
+	if s.EC2SecurityGroupOwnerId == nil {
+		invalidParams.Add(request.NewErrParamRequired("EC2SecurityGroupOwnerId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RevokeCacheSecurityGroupIngressOutput struct {

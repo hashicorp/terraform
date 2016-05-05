@@ -4,6 +4,7 @@
 package elasticsearchservice
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -346,6 +347,32 @@ func (s AddTagsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AddTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AddTagsInput"}
+	if s.ARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("ARN"))
+	}
+	if s.TagList == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagList"))
+	}
+	if s.TagList != nil {
+		for i, v := range s.TagList {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TagList", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 type AddTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -431,6 +458,22 @@ func (s CreateElasticsearchDomainInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateElasticsearchDomainInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateElasticsearchDomainInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a CreateElasticsearchDomain operation. Contains the status
 // of the newly created Elasticsearch domain.
 type CreateElasticsearchDomainOutput struct {
@@ -467,6 +510,22 @@ func (s DeleteElasticsearchDomainInput) String() string {
 // GoString returns the string representation
 func (s DeleteElasticsearchDomainInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteElasticsearchDomainInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteElasticsearchDomainInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of a DeleteElasticsearchDomain request. Contains the status of
@@ -508,6 +567,22 @@ func (s DescribeElasticsearchDomainConfigInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeElasticsearchDomainConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeElasticsearchDomainConfigInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a DescribeElasticsearchDomainConfig request. Contains the configuration
 // information of the requested domain.
 type DescribeElasticsearchDomainConfigOutput struct {
@@ -546,6 +621,22 @@ func (s DescribeElasticsearchDomainInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeElasticsearchDomainInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeElasticsearchDomainInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a DescribeElasticsearchDomain request. Contains the status
 // of the domain specified in the request.
 type DescribeElasticsearchDomainOutput struct {
@@ -582,6 +673,19 @@ func (s DescribeElasticsearchDomainsInput) String() string {
 // GoString returns the string representation
 func (s DescribeElasticsearchDomainsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeElasticsearchDomainsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeElasticsearchDomainsInput"}
+	if s.DomainNames == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainNames"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of a DescribeElasticsearchDomains request. Contains the status
@@ -881,6 +985,19 @@ func (s ListTagsInput) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsInput"}
+	if s.ARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("ARN"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // The result of a ListTags operation. Contains tags for all requested Elasticsearch
 // domains.
 type ListTagsOutput struct {
@@ -953,6 +1070,22 @@ func (s RemoveTagsInput) String() string {
 // GoString returns the string representation
 func (s RemoveTagsInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RemoveTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RemoveTagsInput"}
+	if s.ARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("ARN"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 type RemoveTagsOutput struct {
@@ -1035,6 +1168,25 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Value == nil {
+		invalidParams.Add(request.NewErrParamRequired("Value"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
 // Container for the parameters to the UpdateElasticsearchDomain operation.
 // Specifies the type and number of instances in the domain cluster.
 type UpdateElasticsearchDomainConfigInput struct {
@@ -1071,6 +1223,22 @@ func (s UpdateElasticsearchDomainConfigInput) String() string {
 // GoString returns the string representation
 func (s UpdateElasticsearchDomainConfigInput) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateElasticsearchDomainConfigInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateElasticsearchDomainConfigInput"}
+	if s.DomainName == nil {
+		invalidParams.Add(request.NewErrParamRequired("DomainName"))
+	}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // The result of an UpdateElasticsearchDomain request. Contains the status of
