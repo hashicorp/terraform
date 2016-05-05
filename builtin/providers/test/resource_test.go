@@ -124,6 +124,47 @@ resource "test_resource" "foo" {
 	})
 }
 
+// Covers specific scenario in #6005, handled by normalizing boolean strings in
+// helper/schema
+func TestResource_ignoreChangesForceNewBoolean(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required           = "yep"
+  optional_force_new = "one"
+  optional_bool      = true
+  lifecycle {
+    ignore_changes = ["optional_force_new"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required           = "yep"
+  optional_force_new = "two"
+  optional_bool      = true
+  lifecycle {
+    ignore_changes = ["optional_force_new"]
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestResource_ignoreChangesMap(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,

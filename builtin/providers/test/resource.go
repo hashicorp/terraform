@@ -21,6 +21,10 @@ func testResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"optional_bool": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"optional_force_new": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
