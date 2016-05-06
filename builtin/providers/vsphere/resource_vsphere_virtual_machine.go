@@ -795,6 +795,19 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
+	for _, v := range mvm.Guest.IpStack {
+		for _, route := range v.IpRouteConfig.IpRoute {
+			if route.Network == "0.0.0.0" {
+				deviceID, err := strconv.Atoi(route.Gateway.Device)
+				if err != nil {
+					log.Printf("[DEBUG] error at processing device id %#v: %#v", route.Gateway.Device, err)
+				} else {
+					log.Printf("[DEBUG] gateway of device id %d: %s", deviceID, route.Gateway.IpAddress)
+					networkInterfaces[deviceID]["ipv4_gateway"] = route.Gateway.IpAddress
+				}
+			}
+		}
+	}
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
 	err = d.Set("network_interface", networkInterfaces)
 	if err != nil {
