@@ -7,18 +7,18 @@ import (
 func resourceDockerRegistry() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDockerRegistryCreate,
-		Update: resourceDockerRegistryUpdate,
 		Delete: resourceDockerRegistryDelete,
 		Read:   resourceDockerRegistryRead,
+		Update: resourceDockerRegistryRead,
 
 		Schema: map[string]*schema.Schema{
 			"settings_file": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"auth"},
+				ConflictsWith: []string{"auths"},
 			},
 
-			"auth": &schema.Schema{
+			"auths": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
@@ -51,7 +51,6 @@ func resourceDockerRegistry() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 		},
 	}

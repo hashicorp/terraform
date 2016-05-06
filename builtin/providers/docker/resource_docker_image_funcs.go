@@ -171,7 +171,7 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 	}
 
 	if err := client.PullImage(pullOpts, authConfiguration); err != nil {
-		return fmt.Errorf("Error pulling image %s: %s\nauthentication: %s", image, err, authConfiguration)
+		return fmt.Errorf("Error pulling image %s: %s\n", image, err)
 	}
 
 	return fetchLocalImages(data, client)

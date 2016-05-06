@@ -34,13 +34,13 @@ resource "docker_image" "ubuntu" {
 The following arguments are supported:
 
 * `settings_file` - (Optional, string) Path to the docker configuration file.
-* `auth` - (Optional, block) See [Auth](#auth) below for details.
+* `auths` - (Optional, block) See [Auths](#auths) below for details.
 
-<a id="auth"></a>
-### Auth
+<a id="auths"></a>
+### Auths
 
-`auth` is a block within the configuration that can be repeated to specify
-the port mappings of the container. Each `ports` block supports
+`auths` is a block within the configuration that can be repeated to specify
+the auth to use with an image. Each `auths` block supports
 the following:
 
 * `server_address` - (Required, string) Docker registry url.

@@ -129,7 +129,7 @@ resource "docker_image" "foobarzoo" {
 
 const testAccDockerImageConfigRegistry = `
 resource "docker_registry" "registry" {
-	auth = {
+	auths = {
 		username = "foo"
 		password = "bar"
 		server_address = "docker.io"

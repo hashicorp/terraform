@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,10 +15,6 @@ import (
 func resourceDockerRegistryCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(fmt.Sprintf("%d", rand.Int()))
 
-	return resourceDockerRegistryRead(d, meta)
-}
-
-func resourceDockerRegistryUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceDockerRegistryRead(d, meta)
 }
 
@@ -54,10 +51,10 @@ func loadAuthconfigurations(d *schema.ResourceData) (*dc.AuthConfigurations, err
 		if err != nil {
 			return nil, err
 		}
-	} else if auth, ok := d.GetOk("auth"); ok {
-		authConfigurations = loadConfigurationFromResource(auth.([]interface{}))
+	} else if auths, ok := d.GetOk("auths"); ok {
+		authConfigurations = loadConfigurationFromResource(auths.([]interface{}))
 	} else {
-		return nil, fmt.Errorf("Invalid registry configuration missing 'auth' or 'settings_file' field")
+		return nil, fmt.Errorf("Invalid registry configuration missing 'auths' or 'settings_file' field")
 	}
 
 	if len(authConfigurations.Configs) == 0 {
@@ -89,13 +86,17 @@ func loadConfigurationFromResource(in []interface{}) *dc.AuthConfigurations {
 		Configs: make(map[string]dc.AuthConfiguration),
 	}
 
+	// Remove 'http://' and 'https://'
+	rp := regexp.MustCompile("http[s]{0,1}://")
+	configName := rp.ReplaceAllString(auth["server_address"].(string), "")
+
 	authConfiguration := dc.AuthConfiguration{}
 	authConfiguration.Username = auth["username"].(string)
 	authConfiguration.Password = auth["password"].(string)
-	authConfiguration.ServerAddress = auth["server_address"].(string)
+	authConfiguration.ServerAddress = configName
 	authConfiguration.Email = auth["email"].(string)
 
-	authConfigurations.Configs[authConfiguration.ServerAddress] = authConfiguration
+	authConfigurations.Configs[configName] = authConfiguration
 
 	return authConfigurations
 }
