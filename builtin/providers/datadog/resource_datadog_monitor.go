@@ -135,7 +135,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		}
 		o.Silenced = s
 	}
-	if attr, ok := d.GetOk("notify_data"); ok {
+	if attr, ok := d.GetOk("notify_no_data"); ok {
 		o.NotifyNoData = attr.(bool)
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
@@ -149,9 +149,6 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	}
 	if attr, ok := d.GetOk("timeout_h"); ok {
 		o.TimeoutH = attr.(int)
-	}
-	if attr, ok := d.GetOk("escalation_message"); ok {
-		o.EscalationMessage = attr.(string)
 	}
 	if attr, ok := d.GetOk("escalation_message"); ok {
 		o.EscalationMessage = attr.(string)
@@ -226,7 +223,7 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("type", m.Type)
 	d.Set("thresholds", m.Options.Thresholds)
 	d.Set("notify_no_data", m.Options.NotifyNoData)
-	d.Set("notify_no_data_timeframe", m.Options.NoDataTimeframe)
+	d.Set("no_data_timeframe", m.Options.NoDataTimeframe)
 	d.Set("renotify_interval", m.Options.RenotifyInterval)
 	d.Set("notify_audit", m.Options.NotifyAudit)
 	d.Set("timeout_h", m.Options.TimeoutH)
@@ -275,7 +272,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	if attr, ok := d.GetOk("notify_no_data"); ok {
 		o.NotifyNoData = attr.(bool)
 	}
-	if attr, ok := d.GetOk("notify_no_data_timeframe"); ok {
+	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = attr.(int)
 	}
 	if attr, ok := d.GetOk("renotify_interval"); ok {
