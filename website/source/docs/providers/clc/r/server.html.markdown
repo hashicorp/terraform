@@ -10,7 +10,12 @@ description: |-
 
 Manages a CLC server.
 
-See also [Complete API documentation](https://www.ctl.io/api-docs/v2/#servers-create-server).
+Resources and Documentation:
+
+- [Datacenter / Capability Map](https://www.ctl.io/data-centers/) 
+- [Hyperscale](https://www.ctl.io/hyperscale/) and [Bare Metal](https://www.ctl.io/bare-metal/) Servers
+- [REST API](https://www.ctl.io/api-docs/v2/#servers-create-server)
+
 
 ## Example Usage
 
@@ -65,9 +70,52 @@ The following arguments are supported:
   When absent, the default network will be used.
 * `storage_type` - (Optional, string) Backup and replication strategy for disks. 
   One of "standard", "premium"
+* `aa_policy_id` - (Optional, string | hyperscale) Anti-Affinity policy ID
+* `configuration_id` - (Optional, string | bareMetal) Hardware configuration ID
+* `os_type` - (Optional, string | bareMetal) Operating system to install. 
 * `additional_disks` - (Optional) See [Disks](#disks) below for details. 
 * `custom_fields` - (Optional) See [CustomFields](#custom_fields) below for details.
 * `metadata` - (Optional) Misc state storage for non-CLC metadata. 
+
+
+<a id="server-types"></a>
+## Server Types
+
+#### standard
+
+Cloud servers `standard` offer basic, commodity level
+performance with mixed spindle/SSD storage profiles. Additional
+features storage backups, snapshot/clone/archive, and widespread
+availability.
+
+
+#### hyperscale
+
+Hyperscale `hyperscale` servers offer significantly higher IOPS than standard
+servers for CPU and IO intensive servers. See the
+[FAQ](https://www.ctl.io/knowledge-base/servers/hyperscale-server-faq/)
+for more details.
+
+Physical host redundancy can be managed via
+[Anti-Affinity policies](https://www.ctl.io/knowledge-base/servers/centurylink-cloud-anti-affinity-policies/). 
+
+#### bareMetal
+
+Bare metal `bareMetal` offers optimal compute performance and is
+available in select datacenters in CLC for approved customers. For
+more info see the
+[FAQ](https://www.ctl.io/knowledge-base/servers/bare-metal-faq/).
+
+For `bareMetal`, the required fields `source_server_id`, `cpu`, and
+`memory_mb` are ignored and instead the following fields are required:
+
+- configuration_id
+- os_type
+
+Values for `configuration_id` and `os_type` are specific to each
+datacenter and are available via the API endpoints
+[here](https://www.ctl.io/api-docs/v2/#data-centers-get-data-center-bare-metal-capabilities).
+
 
 
 
@@ -127,3 +175,8 @@ provider "clc_server" "ubuntu" {
     }
 }
 ```
+
+
+
+
+
