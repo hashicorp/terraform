@@ -52,6 +52,7 @@ BUG FIXES:
  * provider/aws: Fix issue with encrypted snapshots of block devices in `aws_launch_configuration` resources [GH-6452]
  * provider/cloudflare: can manage apex records [GH-6449]
  * provider/cloudflare: won't refresh with incorrect record if names match [GH-6449]
+ * provider/datadog: `notify_no_data` and `no_data_timeframe` are set correctly for `datadog_monitor` resources [GH-6509]
  * provider/docker: Fix crash when using empty string in the `command` list in `docker_container` resources [GH-6424]
  * provider/vsphere: Memory reservations are now set correctly in `vsphere_virtual_machine` resources [GH-6482]
 
