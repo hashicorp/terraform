@@ -189,9 +189,20 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		// more unique ID conditionals
 		if domain == "vpc" {
+			// Track if our InstanceID has changed, to conditionally include the
+			// PrivateIP Address in the AssociateAddress change
+			var instanceChange bool
+			if d.HasChange("instance") {
+				instanceChange = true
+			}
 			var privateIpAddress *string
-			if v := d.Get("private_ip").(string); v != "" {
-				privateIpAddress = aws.String(v)
+			if !instanceChange {
+				if v := d.Get("private_ip").(string); v != "" {
+					// Do not include the Private IP address if the Instance has changed,
+					// as the private IP of the different Instance will not match the
+					// request
+					privateIpAddress = aws.String(v)
+				}
 			}
 			assocOpts = &ec2.AssociateAddressInput{
 				NetworkInterfaceId: aws.String(networkInterfaceId),
