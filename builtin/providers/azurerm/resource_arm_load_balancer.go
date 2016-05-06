@@ -69,7 +69,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 
 			"frontend_ip_private_ip_allocation": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 			"tags": tagsSchema(),
 		},
