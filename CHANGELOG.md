@@ -31,6 +31,8 @@ IMPROVEMENTS:
  * provider/vsphere: Checking for empty diskPath in `vsphere_virtual_machine` before creating [GH-6400]
  * provider/vsphere: Support updates to vcpu and memory on `vsphere_virtual_machine` [GH-6356]
  * provider/vsphere: Add support for IPV6 to `vsphere_virtual_machine` [GH-6457]
+ * remote/s3: Logic for loading credentials now follows the same [conventions as AWS provider](https://www.terraform.io/docs/providers/aws/index.html#authentication)
+    which means it also supports EC2 role auth and session token (e.g. assumed IAM Roles) [GH-5270]
 
 BUG FIXES:
 
