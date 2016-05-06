@@ -46,7 +46,7 @@ func (c *Client) newRequest(method string, endpoint string, body []byte) (*http.
 	}
 	url, err := url.Parse(urlStr)
 	if err != nil {
-		return nil, fmt.Errorf("Error during parting request URL: %s", err)
+		return nil, fmt.Errorf("Error during parsing request URL: %s", err)
 	}
 
 	var bodyReader io.Reader
