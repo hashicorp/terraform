@@ -814,7 +814,10 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 
 	profile := &compute.OSProfile{
 		AdminUsername: &adminUsername,
-		AdminPassword: &adminPassword,
+	}
+
+	if adminPassword != "" {
+		profile.AdminPassword = &adminPassword
 	}
 
 	if _, ok := d.GetOk("os_profile_windows_config"); ok {
