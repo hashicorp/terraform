@@ -1,6 +1,6 @@
 ## 0.6.16 (Unreleased)
 
-Notes:
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/aws: `aws_eip` field `private_ip` is now a computed value, and cannot be set in your configuration. 
     Use `associate_with_private_ip` instead. See [GH-6521]
