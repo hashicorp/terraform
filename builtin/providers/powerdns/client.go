@@ -70,20 +70,21 @@ func (c *Client) newRequest(method string, endpoint string, body []byte) (*http.
 }
 
 type ZoneInfo struct {
-	Id      string   `json:"id"`
-	Name    string   `json:"name"`
-	URL     string   `json:"url"`
-	Kind    string   `json:"kind"`
-	DnsSec  bool     `json:"dnsssec"`
-	Serial  int64    `json:"serial"`
-	Records []Record `json:"records,omitempty"`
+	Id                 string              `json:"id"`
+	Name               string              `json:"name"`
+	URL                string              `json:"url"`
+	Kind               string              `json:"kind"`
+	DnsSec             bool                `json:"dnsssec"`
+	Serial             int64               `json:"serial"`
+	Records            []Record            `json:"records,omitempty"`
+	ResourceRecordSets []ResourceRecordSet `json:"rrsets,omitempty"`
 }
 
 type Record struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Content  string `json:"content"`
-	TTL      int    `json:"ttl"`
+	TTL      int    `json:"ttl"` // For API v0
 	Disabled bool   `json:"disabled"`
 }
 
@@ -91,6 +92,7 @@ type ResourceRecordSet struct {
 	Name       string   `json:"name"`
 	Type       string   `json:"type"`
 	ChangeType string   `json:"changetype"`
+	TTL        int      `json:"ttl"` // For API v1
 	Records    []Record `json:"records,omitempty"`
 }
 
@@ -123,6 +125,8 @@ func parseId(recId string) (string, string, error) {
 }
 
 // Detects the API version in use on the server
+// Uses int to represent the API version: 0 is the legacy AKA version 3.4 API
+// Any other integer correlates with te same API version
 func (client *Client) detectApiVersion() (int, error) {
 	req, err := client.newRequest("GET", "/api/v1/servers", nil)
 	if err != nil {
@@ -183,7 +187,20 @@ func (client *Client) ListRecords(zone string) ([]Record, error) {
 		return nil, err
 	}
 
-	return zoneInfo.Records, nil
+	records := zoneInfo.Records
+	// Convert the API v1 response to v0 record structure
+	for _, rrs := range zoneInfo.ResourceRecordSets {
+		for _, record := range rrs.Records {
+			records = append(records, Record{
+				Name:    rrs.Name,
+				Type:    rrs.Type,
+				Content: record.Content,
+				TTL:     rrs.TTL,
+			})
+		}
+	}
+
+	return records, nil
 }
 
 // Returns only records of specified name and type
