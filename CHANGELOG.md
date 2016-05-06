@@ -62,6 +62,7 @@ BUG FIXES:
  * provider/datadog: `notify_no_data` and `no_data_timeframe` are set correctly for `datadog_monitor` resources [GH-6509]
  * provider/docker: Fix crash when using empty string in the `command` list in `docker_container` resources [GH-6424]
  * provider/vsphere: Memory reservations are now set correctly in `vsphere_virtual_machine` resources [GH-6482]
+ * provider/azurerm: Fix issue that updating `azurerm_virtual_machine` was failing due to empty adminPassword [GH-6528]
 
 ## 0.6.15 (April 22, 2016)
 
