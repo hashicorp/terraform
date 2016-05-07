@@ -2,6 +2,7 @@ package triton
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/joyent/gocommon/errors"
 	"github.com/joyent/gosdc/cloudapi"
 )
 
@@ -54,6 +55,9 @@ func resourceFirewallRuleExists(d *schema.ResourceData, meta interface{}) (bool,
 	client := meta.(*cloudapi.Client)
 
 	rule, err := client.GetFirewallRule(d.Id())
+	if errors.IsResourceNotFound(err) {
+		return false, nil
+	}
 
 	return rule != nil && err == nil, err
 }
