@@ -453,7 +453,7 @@
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/emr",
 			"Comment": "v1.1.15",
-			"Rev": "e7cf1e5986499eea7d4a87868f1eb578c8f2045a"
+			"Rev": "2cc71659118a868dc7544a7ef0808eb42d487011"
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/firehose",
