@@ -108,6 +108,12 @@ func Provider() terraform.ResourceProvider {
 				Default:     false,
 				Description: descriptions["insecure"],
 			},
+			"validate_credentials": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: descriptions["validate_credentials"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -300,6 +306,9 @@ func init() {
 
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
+
+		"validate_credentials": "Accounts credentials will be validated against IAM as well as allowed_account_ids and forbidden_account_ids.\n" +
+			"default value is `true`",
 	}
 }
 
@@ -333,6 +342,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	if v, ok := d.GetOk("forbidden_account_ids"); ok {
 		config.ForbiddenAccountIds = v.(*schema.Set).List()
 	}
+
+	config.ValidateCredentialsAndAccountID = d.Get("validate_credentials").(bool)
 
 	return config.Client()
 }

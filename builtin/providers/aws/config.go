@@ -71,7 +71,9 @@ type Config struct {
 	Ec2Endpoint      string
 	IamEndpoint      string
 	ElbEndpoint      string
-	Insecure         bool
+
+	Insecure                        bool
+	ValidateCredentialsAndAccountID bool
 }
 
 type AWSClient struct {
@@ -180,10 +182,26 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing STS connection")
 		client.stsconn = sts.New(sess)
 
-		err = c.ValidateCredentials(client.iamconn)
-		if err != nil {
-			errs = append(errs, err)
-			return nil, &multierror.Error{Errors: errs}
+		if c.ValidateCredentialsAndAccountID {
+			log.Println("[INFO] Validating Credentials")
+			err = c.ValidateCredentials(client.iamconn)
+			if err != nil {
+				errs = append(errs, err)
+				return nil, &multierror.Error{Errors: errs}
+			}
+
+			accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
+			if err == nil {
+				client.accountid = accountId
+			}
+
+			log.Println("[INFO] Validating Account ID")
+			authErr := c.ValidateAccountId(client.accountid)
+			if authErr != nil {
+				errs = append(errs, authErr)
+			}
+		} else {
+			log.Println("[INFO] skipping IAM credential and Account ID validation")
 		}
 
 		// Some services exist only in us-east-1, e.g. because they manage
@@ -192,11 +210,6 @@ func (c *Config) Client() (interface{}, error) {
 		// endpoints:
 		// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		usEast1Sess := sess.Copy(&aws.Config{Region: aws.String("us-east-1")})
-
-		accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
-		if err == nil {
-			client.accountid = accountId
-		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
 		dynamoSess := sess.Copy(&aws.Config{Endpoint: aws.String(c.DynamoDBEndpoint)})
@@ -228,11 +241,6 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Elastic Beanstalk Connection")
 		client.elasticbeanstalkconn = elasticbeanstalk.New(sess)
 
-		authErr := c.ValidateAccountId(client.accountid)
-		if authErr != nil {
-			errs = append(errs, authErr)
-		}
-
 		log.Println("[INFO] Initializing Kinesis Firehose Connection")
 		client.firehoseconn = firehose.New(sess)
 
@@ -240,7 +248,6 @@ func (c *Config) Client() (interface{}, error) {
 		client.autoscalingconn = autoscaling.New(sess)
 
 		log.Println("[INFO] Initializing EC2 Connection")
-
 		awsEc2Sess := sess.Copy(&aws.Config{Endpoint: aws.String(c.Ec2Endpoint)})
 		client.ec2conn = ec2.New(awsEc2Sess)
 
