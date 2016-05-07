@@ -718,7 +718,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-retryablehttp",
-			"Rev": "24fda80b7c713c52649e57ce20100d453f7bdb24"
+			"Rev": "5ec125ef739293cb4d57c3456dd92ba9af29ed6e"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-rootcerts",
