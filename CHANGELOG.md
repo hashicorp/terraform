@@ -30,6 +30,7 @@ IMPROVEMENTS:
  * provider/aws: Use `sts:GetCallerIdentity` as additional method for getting AWS account ID [GH-6385]
  * provider/aws: Add agent_version argument to `aws_opswork_stack` [GH-6493] 
  * provider/triton: Add support for specifying network interfaces on `triton machine` resources [GH-6418]
+ * provider/triton: Deleted firewall rules no longer prevent refresh [GH-6529]
  * provider/vsphere: Add `skip_customization` option to `vsphere_virtual_machine` resources [GH-6355]
  * provider/vsphere: Add ability to specify and mount bootable vmdk in `vsphere_virtual_machine` [GH-6146]
  * provider/vsphere: Add support for `memory_reservation` to `vsphere_virtual_machine` [GH-6036]
