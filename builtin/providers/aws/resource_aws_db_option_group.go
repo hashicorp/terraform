@@ -267,7 +267,7 @@ func resourceAwsDbOptionHash(v interface{}) int {
 
 func buildRDSOptionGroupARN(identifier, accountid, region string) (string, error) {
 	if accountid == "" {
-		return "", fmt.Errorf("[ERROR] No AccountId found")
+		return "", fmt.Errorf("Unable to construct RDS Option Group ARN because of missing AWS Account ID")
 	}
 	arn := fmt.Sprintf("arn:aws:rds:%s:%s:og:%s", region, accountid, identifier)
 	return arn, nil
