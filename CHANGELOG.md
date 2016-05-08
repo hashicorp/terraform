@@ -64,6 +64,7 @@ BUG FIXES:
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
  * provider/azure: `ssh_keys` can now be set for `azurerm_virtual_machine` resources, allowing provisioning [GH-6541]
  * provider/azurerm: Fix issue that updating `azurerm_virtual_machine` was failing due to empty adminPassword [GH-6528]
+ * provider/azurerm: `storage_data_disk` settings now work correctly on `azurerm_virtual_machine` resources [GH-6543]
  * provider/cloudflare: can manage apex records [GH-6449]
  * provider/cloudflare: won't refresh with incorrect record if names match [GH-6449]
  * provider/datadog: `notify_no_data` and `no_data_timeframe` are set correctly for `datadog_monitor` resources [GH-6509]
