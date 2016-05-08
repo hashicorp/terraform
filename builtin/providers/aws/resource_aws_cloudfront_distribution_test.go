@@ -30,6 +30,11 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
 					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution",
+						"hosted_zone_id",
+						"Z2FDTNDATAQYW2",
+					),
 				),
 			},
 		},
