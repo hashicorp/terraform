@@ -69,6 +69,31 @@ type ResourceProvider interface {
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
+
+	// ValidateDataSource is called once at the beginning with the raw
+	// configuration (no interpolation done) and can return a list of warnings
+	// and/or errors.
+	//
+	// This is called once per data source instance.
+	//
+	// This should not assume any of the values in the resource configuration
+	// are valid since it is possible they have to be interpolated still.
+	// The primary use case of this call is to check that the required keys
+	// are set and that the general structure is correct.
+	ValidateDataSource(string, *ResourceConfig) ([]string, []error)
+
+	// DataSources returns all of the available data sources that this
+	// provider implements.
+	DataSources() []DataSource
+
+	// ReadDataDiff produces a diff that represents the state that will
+	// be produced when the given data source is read using a later call
+	// to ReadDataApply.
+	ReadDataDiff(*InstanceInfo, *ResourceConfig) (*InstanceDiff, error)
+
+	// ReadDataApply initializes a data instance using the configuration
+	// in a diff produced by ReadDataDiff.
+	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
@@ -79,6 +104,11 @@ type ResourceProviderCloser interface {
 
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
+	Name string
+}
+
+// DataSource is a data source that a resource provider implements.
+type DataSource struct {
 	Name string
 }
 
@@ -94,8 +124,18 @@ func ResourceProviderFactoryFixed(p ResourceProvider) ResourceProviderFactory {
 	}
 }
 
-func ProviderSatisfies(p ResourceProvider, n string) bool {
+func ProviderHasResource(p ResourceProvider, n string) bool {
 	for _, rt := range p.Resources() {
+		if rt.Name == n {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ProviderHasDataSource(p ResourceProvider, n string) bool {
+	for _, rt := range p.DataSources() {
 		if rt.Name == n {
 			return true
 		}
