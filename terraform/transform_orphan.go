@@ -175,6 +175,7 @@ func (n *graphNodeOrphanResource) ResourceAddress() *ResourceAddress {
 		Name:         n.ResourceKey.Name,
 		Path:         n.Path[1:],
 		Type:         n.ResourceKey.Type,
+		Mode:         n.ResourceKey.Mode,
 	}
 }
 
