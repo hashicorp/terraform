@@ -3,6 +3,8 @@ package terraform
 import (
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 func TestParseResourceAddress(t *testing.T) {
@@ -11,9 +13,21 @@ func TestParseResourceAddress(t *testing.T) {
 		Expected *ResourceAddress
 		Output   string
 	}{
-		"implicit primary, no specific index": {
+		"implicit primary managed instance, no specific index": {
 			"aws_instance.foo",
 			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"",
+		},
+		"implicit primary data instance, no specific index": {
+			"data.aws_instance.foo",
+			&ResourceAddress{
+				Mode:         config.DataResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -24,6 +38,7 @@ func TestParseResourceAddress(t *testing.T) {
 		"implicit primary, explicit index": {
 			"aws_instance.foo[2]",
 			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -34,6 +49,7 @@ func TestParseResourceAddress(t *testing.T) {
 		"implicit primary, explicit index over ten": {
 			"aws_instance.foo[12]",
 			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -44,6 +60,7 @@ func TestParseResourceAddress(t *testing.T) {
 		"explicit primary, explicit index": {
 			"aws_instance.foo.primary[2]",
 			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
 				Type:            "aws_instance",
 				Name:            "foo",
 				InstanceType:    TypePrimary,
@@ -55,6 +72,7 @@ func TestParseResourceAddress(t *testing.T) {
 		"tainted": {
 			"aws_instance.foo.tainted",
 			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
 				Type:            "aws_instance",
 				Name:            "foo",
 				InstanceType:    TypeTainted,
@@ -66,6 +84,7 @@ func TestParseResourceAddress(t *testing.T) {
 		"deposed": {
 			"aws_instance.foo.deposed",
 			&ResourceAddress{
+				Mode:            config.ManagedResourceMode,
 				Type:            "aws_instance",
 				Name:            "foo",
 				InstanceType:    TypeDeposed,
@@ -77,6 +96,7 @@ func TestParseResourceAddress(t *testing.T) {
 		"with a hyphen": {
 			"aws_instance.foo-bar",
 			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo-bar",
 				InstanceType: TypePrimary,
@@ -84,10 +104,23 @@ func TestParseResourceAddress(t *testing.T) {
 			},
 			"",
 		},
-		"in a module": {
+		"managed in a module": {
 			"module.child.aws_instance.foo",
 			&ResourceAddress{
 				Path:         []string{"child"},
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"",
+		},
+		"data in a module": {
+			"module.child.data.aws_instance.foo",
+			&ResourceAddress{
+				Path:         []string{"child"},
+				Mode:         config.DataResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -99,6 +132,7 @@ func TestParseResourceAddress(t *testing.T) {
 			"module.a.module.b.module.forever.aws_instance.foo",
 			&ResourceAddress{
 				Path:         []string{"a", "b", "forever"},
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -133,7 +167,7 @@ func TestParseResourceAddress(t *testing.T) {
 	for tn, tc := range cases {
 		out, err := ParseResourceAddress(tc.Input)
 		if err != nil {
-			t.Fatalf("unexpected err: %#v", err)
+			t.Fatalf("%s: unexpected err: %#v", tn, err)
 		}
 
 		if !reflect.DeepEqual(out, tc.Expected) {
@@ -158,12 +192,14 @@ func TestResourceAddressEquals(t *testing.T) {
 	}{
 		"basic match": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        0,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -173,12 +209,14 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"address does not set index": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        -1,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -188,12 +226,14 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"other does not set index": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        3,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -203,12 +243,14 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"neither sets index": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        -1,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -218,12 +260,14 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"index over ten": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        1,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -233,13 +277,32 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"different type": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        0,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_vpc",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        0,
+			},
+			Expect: false,
+		},
+		"different mode": {
+			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        0,
+			},
+			Other: &ResourceAddress{
+				Mode:         config.DataResourceMode,
+				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        0,
@@ -248,12 +311,14 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"different name": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        0,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "bar",
 				InstanceType: TypePrimary,
@@ -263,12 +328,14 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"different instance type": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        0,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypeTainted,
@@ -278,12 +345,14 @@ func TestResourceAddressEquals(t *testing.T) {
 		},
 		"different index": {
 			Address: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
 				Index:        0,
 			},
 			Other: &ResourceAddress{
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -291,7 +360,7 @@ func TestResourceAddressEquals(t *testing.T) {
 			},
 			Expect: false,
 		},
-		"module address matches address of resource inside module": {
+		"module address matches address of managed resource inside module": {
 			Address: &ResourceAddress{
 				Path:         []string{"a", "b"},
 				Type:         "",
@@ -301,6 +370,7 @@ func TestResourceAddressEquals(t *testing.T) {
 			},
 			Other: &ResourceAddress{
 				Path:         []string{"a", "b"},
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -308,7 +378,25 @@ func TestResourceAddressEquals(t *testing.T) {
 			},
 			Expect: true,
 		},
-		"module address doesn't match resource outside module": {
+		"module address matches address of data resource inside module": {
+			Address: &ResourceAddress{
+				Path:         []string{"a", "b"},
+				Type:         "",
+				Name:         "",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			Other: &ResourceAddress{
+				Path:         []string{"a", "b"},
+				Mode:         config.DataResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        0,
+			},
+			Expect: true,
+		},
+		"module address doesn't match managed resource outside module": {
 			Address: &ResourceAddress{
 				Path:         []string{"a", "b"},
 				Type:         "",
@@ -318,6 +406,25 @@ func TestResourceAddressEquals(t *testing.T) {
 			},
 			Other: &ResourceAddress{
 				Path:         []string{"a"},
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        0,
+			},
+			Expect: false,
+		},
+		"module address doesn't match data resource outside module": {
+			Address: &ResourceAddress{
+				Path:         []string{"a", "b"},
+				Type:         "",
+				Name:         "",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			Other: &ResourceAddress{
+				Path:         []string{"a"},
+				Mode:         config.DataResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -328,6 +435,7 @@ func TestResourceAddressEquals(t *testing.T) {
 		"nil path vs empty path should match": {
 			Address: &ResourceAddress{
 				Path:         []string{},
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
@@ -335,6 +443,7 @@ func TestResourceAddressEquals(t *testing.T) {
 			},
 			Other: &ResourceAddress{
 				Path:         nil,
+				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
 				Name:         "foo",
 				InstanceType: TypePrimary,
