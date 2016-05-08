@@ -33,7 +33,7 @@ This defines three variables within your Terraform configuration.
 The first two have empty blocks `{}`. The third sets a default. If
 a default value is set, the variable is optional. Otherwise, the
 variable is required. If you run `terraform plan` now, Terraform will
-error since the required variables are not set.
+prompt you for the values for these variables since the required variables are not set.
 
 ## Using Variables in Configuration
 
