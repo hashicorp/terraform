@@ -389,6 +389,77 @@ func TestResourceProvider_resources(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_readdataapply(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+
+	// Create a mock provider
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
+	}))
+	defer client.Close()
+
+	// Request the provider
+	raw, err := client.Dispense(ProviderPluginName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := raw.(terraform.ResourceProvider)
+
+	p.ReadDataApplyReturn = &terraform.InstanceState{
+		ID: "bob",
+	}
+
+	// ReadDataApply
+	info := &terraform.InstanceInfo{}
+	diff := &terraform.InstanceDiff{}
+	newState, err := provider.ReadDataApply(info, diff)
+	if !p.ReadDataApplyCalled {
+		t.Fatal("ReadDataApply should be called")
+	}
+	if !reflect.DeepEqual(p.ReadDataApplyDiff, diff) {
+		t.Fatalf("bad: %#v", p.ReadDataApplyDiff)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+	if !reflect.DeepEqual(p.ReadDataApplyReturn, newState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
+func TestResourceProvider_datasources(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+
+	// Create a mock provider
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
+	}))
+	defer client.Close()
+
+	// Request the provider
+	raw, err := client.Dispense(ProviderPluginName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := raw.(terraform.ResourceProvider)
+
+	expected := []terraform.DataSource{
+		{"foo"},
+		{"bar"},
+	}
+
+	p.DataSourcesReturn = expected
+
+	// DataSources
+	result := provider.DataSources()
+	if !p.DataSourcesCalled {
+		t.Fatal("DataSources should be called")
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
 func TestResourceProvider_validate(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 
@@ -625,6 +696,44 @@ func TestResourceProvider_validateResource_warns(t *testing.T) {
 	expected := []string{"foo"}
 	if !reflect.DeepEqual(w, expected) {
 		t.Fatalf("bad: %#v", w)
+	}
+}
+
+func TestResourceProvider_validateDataSource(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+
+	// Create a mock provider
+	client, _ := plugin.TestPluginRPCConn(t, pluginMap(&ServeOpts{
+		ProviderFunc: testProviderFixed(p),
+	}))
+	defer client.Close()
+
+	// Request the provider
+	raw, err := client.Dispense(ProviderPluginName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := raw.(terraform.ResourceProvider)
+
+	// Configure
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
+	w, e := provider.ValidateDataSource("foo", config)
+	if !p.ValidateDataSourceCalled {
+		t.Fatal("configure should be called")
+	}
+	if p.ValidateDataSourceType != "foo" {
+		t.Fatalf("bad: %#v", p.ValidateDataSourceType)
+	}
+	if !reflect.DeepEqual(p.ValidateDataSourceConfig, config) {
+		t.Fatalf("bad: %#v", p.ValidateDataSourceConfig)
+	}
+	if w != nil {
+		t.Fatalf("bad: %#v", w)
+	}
+	if e != nil {
+		t.Fatalf("bad: %#v", e)
 	}
 }
 

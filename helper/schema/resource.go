@@ -175,6 +175,33 @@ func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return schemaMap(r.Schema).Validate(c)
 }
 
+// ReadDataApply loads the data for a data source, given a diff that
+// describes the configuration arguments and desired computed attributes.
+func (r *Resource) ReadDataApply(
+	d *terraform.InstanceDiff,
+	meta interface{},
+) (*terraform.InstanceState, error) {
+
+	// Data sources are always built completely from scratch
+	// on each read, so the source state is always nil.
+	data, err := schemaMap(r.Schema).Data(nil, d)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.Read(data, meta)
+	state := data.State()
+	if state != nil && state.ID == "" {
+		// Data sources can set an ID if they want, but they aren't
+		// required to; we'll provide a placeholder if they don't,
+		// to preserve the invariant that all resources have non-empty
+		// ids.
+		state.ID = "-"
+	}
+
+	return r.recordCurrentSchemaVersion(state), err
+}
+
 // Refresh refreshes the state of the resource.
 func (r *Resource) Refresh(
 	s *terraform.InstanceState,
