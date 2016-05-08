@@ -144,9 +144,8 @@ func resourceArmVirtualMachine() *schema.Resource {
 			},
 
 			"storage_data_disk": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
@@ -167,6 +166,14 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"disk_size_gb": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+								if value < 1 || value > 1023 {
+									errors = append(errors, fmt.Errorf(
+										"The `disk_size_gb` can only be between 1 and 1023"))
+								}
+								return
+							},
 						},
 
 						"lun": &schema.Schema{
@@ -175,7 +182,6 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceArmVirtualMachineStorageDataDiskHash,
 			},
 
 			"os_profile": &schema.Schema{
@@ -420,10 +426,11 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Waiting for Virtual Machine (%s) to become available", name)
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"Creating", "Updating"},
-		Target:  []string{"Succeeded"},
-		Refresh: virtualMachineStateRefreshFunc(client, resGroup, name),
-		Timeout: 10 * time.Minute,
+		Pending:    []string{"Creating", "Updating"},
+		Target:     []string{"Succeeded"},
+		Refresh:    virtualMachineStateRefreshFunc(client, resGroup, name),
+		Timeout:    20 * time.Minute,
+		MinTimeout: 10 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("Error waiting for Virtual Machine (%s) to become available: %s", name, err)
@@ -663,17 +670,17 @@ func flattenAzureRmVirtualMachineOsProfileSecrets(secrets *[]compute.VaultSecret
 	return result
 }
 
-func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(*disks))
-	for _, i := range *disks {
+func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) interface{} {
+	result := make([]interface{}, len(*disks))
+	for i, disk := range *disks {
 		l := make(map[string]interface{})
-		l["name"] = *i.Name
-		l["vhd_url"] = *i.Vhd.URI
-		l["create_option"] = i.CreateOption
-		l["disk_size_gb"] = *i.DiskSizeGB
-		l["lun"] = *i.Lun
+		l["name"] = *disk.Name
+		l["vhd_uri"] = *disk.Vhd.URI
+		l["create_option"] = disk.CreateOption
+		l["disk_size_gb"] = *disk.DiskSizeGB
+		l["lun"] = *disk.Lun
 
-		result = append(result, l)
+		result[i] = l
 	}
 	return result
 }
