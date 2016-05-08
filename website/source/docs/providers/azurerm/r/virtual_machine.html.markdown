@@ -153,6 +153,12 @@ For more information on the different example configurations, please check out t
 * `admin_password` - (Required) Specifies the password of the administrator account.
 * `custom_data` - (Optional) Specifies a base-64 encoded string of custom data. The base-64 encoded string is decoded to a binary array that is saved as a file on the Virtual Machine. The maximum length of the binary array is 65535 bytes.
 
+~> **NOTE:** `admin_password` must be between 6-72 characters long and must satisfy at least 3 of password complexity requirements from the following:  
+1. Contains an uppercase character  
+2. Contains a lowercase character  
+3. Contains a numeric digit  
+4. Contains a special character
+
 `os_profile_windows_config` supports the following:
 
 * `provision_vm_agent` - (Optional)
