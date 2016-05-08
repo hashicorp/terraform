@@ -96,6 +96,17 @@ func formatPlanModuleExpand(
 			color = "green"
 			symbol = "+"
 			oldValues = false
+
+			// If we're "creating" a data resource then we'll present it
+			// to the user as a "read" operation, so it's clear that this
+			// operation won't change anything outside of the Terraform state.
+			// Unfortunately by the time we get here we only have the name
+			// to work with, so we need to cheat and exploit knowledge of the
+			// naming scheme for data resources.
+			if strings.HasPrefix(name, "data.") {
+				symbol = "<="
+				color = "cyan"
+			}
 		case terraform.DiffDestroy:
 			color = "red"
 			symbol = "-"
