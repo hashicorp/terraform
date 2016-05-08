@@ -363,7 +363,7 @@ func expandForwardedValues(m map[string]interface{}) *cloudfront.ForwardedValues
 	fv := &cloudfront.ForwardedValues{
 		QueryString: aws.Bool(m["query_string"].(bool)),
 	}
-	if v, ok := m["cookies"]; ok {
+	if v, ok := m["cookies"]; ok && v.(*schema.Set).Len() > 0 {
 		fv.Cookies = expandCookiePreference(v.(*schema.Set).List()[0].(map[string]interface{}))
 	}
 	if v, ok := m["headers"]; ok {
@@ -390,7 +390,7 @@ func forwardedValuesHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%t-", m["query_string"].(bool)))
-	if d, ok := m["cookies"]; ok {
+	if d, ok := m["cookies"]; ok && d.(*schema.Set).Len() > 0 {
 		buf.WriteString(fmt.Sprintf("%d-", cookiePreferenceHash(d.(*schema.Set).List()[0].(map[string]interface{}))))
 	}
 	if d, ok := m["headers"]; ok {
