@@ -938,3 +938,14 @@ func (v *Variable) inferTypeFromDefault() VariableType {
 
 	return VariableTypeUnknown
 }
+
+func (m ResourceMode) Taintable() bool {
+	switch m {
+	case ManagedResourceMode:
+		return true
+	case DataResourceMode:
+		return false
+	default:
+		panic(fmt.Errorf("unsupported ResourceMode value %s", m))
+	}
+}
