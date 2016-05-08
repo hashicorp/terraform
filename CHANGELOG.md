@@ -27,6 +27,7 @@ IMPROVEMENTS:
  * provider/aws: Improve error handling in IAM Server Certificates [GH-6442]
  * provider/aws: Use `sts:GetCallerIdentity` as additional method for getting AWS account ID [GH-6385]
  * provider/aws: `aws_redshift_cluster` `automated_snapshot_retention_period` didn't allow 0 value [GH-6537]
+ * provider/aws: Add CloudFront `hosted_zone_id` attribute [GH-6530]
  * provider/azurerm: Increase timeout for ARM Template deployments to 40 minutes [GH-6319]
  * provider/cloudflare: Add proxied option to `cloudflare_record` [GH-5508]
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
