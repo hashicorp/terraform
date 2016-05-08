@@ -43,7 +43,7 @@ string.
 * `preferred_maintenance_window` - (Optional) The weekly time range (in UTC) during which automated cluster maintenance can occur.
                                               Format: ddd:hh24:mi-ddd:hh24:mi
 * `cluster_parameter_group_name` - (Optional) The name of the parameter group to be associated with this cluster.
-* `automated_snapshot_retention_period` - (Optional) The number of days that automated snapshots are retained. If the value is 0, automated snapshots are disabled. Even if automated snapshots are disabled, you can still create manual snapshots when you want with create-cluster-snapshot.
+* `automated_snapshot_retention_period` - (Optional) The number of days that automated snapshots are retained. If the value is 0, automated snapshots are disabled. Even if automated snapshots are disabled, you can still create manual snapshots when you want with create-cluster-snapshot. Default is 1.
 * `port` - (Optional) The port number on which the cluster accepts incoming connections.
                       The cluster is accessible only via the JDBC and ODBC connection strings. Part of the connection string requires the port on which the cluster will listen for incoming connections. Default port is 5439.
 * `cluster_version` - (Optional) The version of the Amazon Redshift engine software that you want to deploy on the cluster.
