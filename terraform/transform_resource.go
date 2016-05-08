@@ -586,10 +586,231 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 
 func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, info *InstanceInfo, resourceConfig *ResourceConfig) []EvalNode {
 	//var diff *InstanceDiff
-	//var provider ResourceProvider
-	//var state *InstanceState
+	var provider ResourceProvider
+	var config *ResourceConfig
+	var diff *InstanceDiff
+	var state *InstanceState
 
 	nodes := make([]EvalNode, 0, 5)
+
+	// Refresh the resource
+	// TODO: Interpolate and then check if the config has any computed stuff.
+	// If it doesn't, then do the diff/apply/writestate steps here so we
+	// can get this data resource populated early enough for its values to
+	// be visible during plan.
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+
+				// Always destroy the existing state first, since we must
+				// make sure that values from a previous read will not
+				// get interpolated if we end up needing to defer our
+				// loading until apply time.
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state, // state is nil here
+				},
+
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
+				// The rest of this pass can proceed only if there are no
+				// computed values in our config.
+				// (If there are, we'll deal with this during the plan and
+				// apply phases.)
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if config.ComputedKeys != nil && len(config.ComputedKeys) > 0 {
+							return true, EvalEarlyExitError{}
+						}
+
+						return true, nil
+					},
+					Then: EvalNoop{},
+				},
+
+				// The remainder of this pass is the same as running
+				// a "plan" pass immediately followed by an "apply" pass,
+				// populating the state early so it'll be available to
+				// provider configurations that need this data during
+				// refresh/plan.
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+
+				&EvalReadDataDiff{
+					Info:        info,
+					Config:      &config,
+					Provider:    &provider,
+					Output:      &diff,
+					OutputState: &state,
+				},
+
+				&EvalReadDataApply{
+					Info:     info,
+					Diff:     &diff,
+					Provider: &provider,
+					Output:   &state,
+				},
+
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
+				},
+
+				&EvalUpdateStateHook{},
+			},
+		},
+	})
+
+	// Diff the resource
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkPlan},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+
+				// If we already have a state (created either during refresh
+				// or on a previous apply) then we don't need to do any
+				// more work on it during apply.
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if state != nil {
+							return true, EvalEarlyExitError{}
+						}
+
+						return true, nil
+					},
+					Then: EvalNoop{},
+				},
+
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+
+				&EvalReadDataDiff{
+					Info:        info,
+					Config:      &config,
+					Provider:    &provider,
+					Output:      &diff,
+					OutputState: &state,
+				},
+
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
+				},
+
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+			},
+		},
+	})
+
+	// Apply
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkApply, walkDestroy},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				// Get the saved diff for apply
+				&EvalReadDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+
+				// Stop here if we don't actually have a diff
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if diff == nil {
+							return true, EvalEarlyExitError{}
+						}
+
+						if len(diff.Attributes) == 0 {
+							return true, EvalEarlyExitError{}
+						}
+
+						return true, nil
+					},
+					Then: EvalNoop{},
+				},
+
+				// We need to re-interpolate the config here, rather than
+				// just using the diff's values directly, because we've
+				// potentially learned more variable values during the
+				// apply pass that weren't known when the diff was produced.
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig.Copy(),
+					Resource: resource,
+					Output:   &config,
+				},
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+
+				// Make a new diff with our newly-interpolated config.
+				&EvalReadDataDiff{
+					Info:     info,
+					Config:   &config,
+					Provider: &provider,
+					Output:   &diff,
+				},
+
+				&EvalReadDataApply{
+					Info:     info,
+					Diff:     &diff,
+					Provider: &provider,
+					Output:   &state,
+				},
+
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
+					Dependencies: n.StateDependencies(),
+					State:        &state,
+				},
+
+				// Clear the diff now that we've applied it, so
+				// later nodes won't see a diff that's now a no-op.
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: nil,
+				},
+
+				&EvalUpdateStateHook{},
+			},
+		},
+	})
 
 	return nodes
 }
