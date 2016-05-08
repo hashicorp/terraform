@@ -114,6 +114,26 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
+			// The plan's state must mach our current state, to avoid
+			// accidentally re-applying a state or applying a plan
+			// that was generated against a different lineage of states.
+			if state != nil {
+				if planState := state.State(); planState != nil {
+					stateMatch, err := m.stateMatchesCurrent(planState)
+
+					if err != nil {
+						return nil, false, fmt.Errorf("Error verifying plan state: %s", err)
+					}
+					if !stateMatch {
+						return nil, false, fmt.Errorf(
+							"Plan does not apply to current state.\n\n" +
+								"Perhaps you have tried to apply a plan that was already applied,\n" +
+								"or somebody else has applied another plan first.\n",
+						)
+					}
+				}
+			}
+
 			// Set our state
 			m.state = state
 			m.stateOutPath = statePath
@@ -166,6 +186,33 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	opts.State = state.State()
 	ctx, err := terraform.NewContext(opts)
 	return ctx, false, err
+}
+
+func (m *Meta) stateMatchesCurrent(state *terraform.State) (bool, error) {
+	currentStateResult, err := m.State()
+	if err != nil {
+		return false, err
+	}
+	currentState := currentStateResult.State()
+
+	// If we have no current state then no state can match.
+	if currentState == nil {
+		return false, nil
+	}
+
+	if !currentState.SameLineage(state) {
+		return false, nil
+	}
+
+	if currentState.Serial != state.Serial {
+		return false, nil
+	}
+
+	if !currentState.Equal(state) {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // DataDir returns the directory where local data will be stored.

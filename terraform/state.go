@@ -362,6 +362,9 @@ func (s *State) RootModule() *ModuleState {
 }
 
 // Equal tests if one state is equal to another.
+//
+// "Equal" here means "contains the same resources", so two states with
+// different serials/lineages but the same contents will return true.
 func (s *State) Equal(other *State) bool {
 	// If one is nil, we do a direct check
 	if s == nil || other == nil {
