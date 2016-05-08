@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.google.com/p/go-uuid/uuid"
+
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -34,6 +36,12 @@ type State struct {
 	// the State file. It is used to detect potentially conflicting
 	// updates.
 	Serial int64 `json:"serial"`
+
+	// Lineage is set when a new, blank state is created and then never
+	// updated. This is used to identify whether another state is a
+	// later or earlier version of the same state lineage, or whether it
+	// is is of different lineage.
+	Lineage string `json:"lineage,omitempty"`
 
 	// Remote is used to track the metadata required to
 	// pull and push state files from a remote storage endpoint.
@@ -280,6 +288,20 @@ func (s *State) IncrementSerialMaybe(other *State) {
 	}
 }
 
+// CompatibleLineage returns true if the other state is of compatible
+// lineage to this state. Lineage is compatible if either it's set to
+// the same value or, for backward compatibility, if one of the states
+// has an empty lineage.
+func (s *State) CompatibleLineage(other *State) bool {
+	if s.Lineage == "" || other.Lineage == "" {
+		// One of the states predates the concept of state lineage,
+		// so we'll just assume that the states are compatible.
+		return true
+	}
+
+	return s.Lineage == other.Lineage
+}
+
 func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
@@ -290,6 +312,9 @@ func (s *State) init() {
 		}
 		root.init()
 		s.Modules = []*ModuleState{root}
+	}
+	if s.Lineage == "" {
+		s.Lineage = uuid.New()
 	}
 }
 

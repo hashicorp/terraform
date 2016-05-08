@@ -279,6 +279,36 @@ func TestStateEqual(t *testing.T) {
 	}
 }
 
+func TestStateLineage(t *testing.T) {
+	state := NewState()
+
+	if state.Lineage == "" {
+		t.Fatalf("New state gets lineage")
+	}
+
+	newState := &State{
+		Serial:  state.Serial + 1,
+		Lineage: state.Lineage,
+	}
+
+	if !state.CompatibleLineage(newState) {
+		t.Fatalf("New state should have compatible lineage")
+	}
+
+	oldState := &State{
+		Serial:  state.Serial,
+		Lineage: "",
+	}
+	if !state.CompatibleLineage(oldState) {
+		t.Fatalf("Old state should have compatible lineage")
+	}
+
+	unrelatedState := NewState()
+	if state.CompatibleLineage(unrelatedState) {
+		t.Fatalf("Unrelated state should have incompatible lineage")
+	}
+}
+
 func TestStateIncrementSerialMaybe(t *testing.T) {
 	cases := map[string]struct {
 		S1, S2 *State
