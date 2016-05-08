@@ -132,6 +132,38 @@ func TestProviderResources(t *testing.T) {
 	}
 }
 
+func TestProviderDataSources(t *testing.T) {
+	cases := []struct {
+		P      *Provider
+		Result []terraform.DataSource
+	}{
+		{
+			P:      &Provider{},
+			Result: []terraform.DataSource{},
+		},
+
+		{
+			P: &Provider{
+				DataSourcesMap: map[string]*Resource{
+					"foo": nil,
+					"bar": nil,
+				},
+			},
+			Result: []terraform.DataSource{
+				terraform.DataSource{Name: "bar"},
+				terraform.DataSource{Name: "foo"},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		actual := tc.P.DataSources()
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("%d: got %#v; want %#v", i, actual, tc.Result)
+		}
+	}
+}
+
 func TestProviderValidate(t *testing.T) {
 	cases := []struct {
 		P      *Provider

@@ -156,6 +156,30 @@ func (p *ResourceProvider) Diff(
 	return resp.Diff, err
 }
 
+func (p *ResourceProvider) ValidateDataSource(
+	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	var resp ResourceProviderValidateResourceResponse
+	args := ResourceProviderValidateResourceArgs{
+		Config: c,
+		Type:   t,
+	}
+
+	err := p.Client.Call("Plugin.ValidateDataSource", &args, &resp)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	var errs []error
+	if len(resp.Errors) > 0 {
+		errs = make([]error, len(resp.Errors))
+		for i, err := range resp.Errors {
+			errs[i] = err
+		}
+	}
+
+	return resp.Warnings, errs
+}
+
 func (p *ResourceProvider) Refresh(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState) (*terraform.InstanceState, error) {
@@ -200,6 +224,58 @@ func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	var result []terraform.ResourceType
 
 	err := p.Client.Call("Plugin.Resources", new(interface{}), &result)
+	if err != nil {
+		// TODO: panic, log, what?
+		return nil
+	}
+
+	return result
+}
+
+func (p *ResourceProvider) ReadDataDiff(
+	info *terraform.InstanceInfo,
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	var resp ResourceProviderReadDataDiffResponse
+	args := &ResourceProviderReadDataDiffArgs{
+		Info:   info,
+		Config: c,
+	}
+
+	err := p.Client.Call("Plugin.ReadDataDiff", args, &resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		err = resp.Error
+	}
+
+	return resp.Diff, err
+}
+
+func (p *ResourceProvider) ReadDataApply(
+	info *terraform.InstanceInfo,
+	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+	var resp ResourceProviderReadDataApplyResponse
+	args := &ResourceProviderReadDataApplyArgs{
+		Info: info,
+		Diff: d,
+	}
+
+	err := p.Client.Call("Plugin.ReadDataApply", args, &resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		err = resp.Error
+	}
+
+	return resp.State, err
+}
+
+func (p *ResourceProvider) DataSources() []terraform.DataSource {
+	var result []terraform.DataSource
+
+	err := p.Client.Call("Plugin.DataSources", new(interface{}), &result)
 	if err != nil {
 		// TODO: panic, log, what?
 		return nil
@@ -272,6 +348,26 @@ type ResourceProviderImportStateArgs struct {
 
 type ResourceProviderImportStateResponse struct {
 	State []*terraform.InstanceState
+	Error *plugin.BasicError
+}
+
+type ResourceProviderReadDataApplyArgs struct {
+	Info *terraform.InstanceInfo
+	Diff *terraform.InstanceDiff
+}
+
+type ResourceProviderReadDataApplyResponse struct {
+	State *terraform.InstanceState
+	Error *plugin.BasicError
+}
+
+type ResourceProviderReadDataDiffArgs struct {
+	Info   *terraform.InstanceInfo
+	Config *terraform.ResourceConfig
+}
+
+type ResourceProviderReadDataDiffResponse struct {
+	Diff  *terraform.InstanceDiff
 	Error *plugin.BasicError
 }
 
@@ -406,5 +502,49 @@ func (s *ResourceProviderServer) Resources(
 	nothing interface{},
 	result *[]terraform.ResourceType) error {
 	*result = s.Provider.Resources()
+	return nil
+}
+
+func (s *ResourceProviderServer) ValidateDataSource(
+	args *ResourceProviderValidateResourceArgs,
+	reply *ResourceProviderValidateResourceResponse) error {
+	warns, errs := s.Provider.ValidateDataSource(args.Type, args.Config)
+	berrs := make([]*plugin.BasicError, len(errs))
+	for i, err := range errs {
+		berrs[i] = plugin.NewBasicError(err)
+	}
+	*reply = ResourceProviderValidateResourceResponse{
+		Warnings: warns,
+		Errors:   berrs,
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) ReadDataDiff(
+	args *ResourceProviderReadDataDiffArgs,
+	result *ResourceProviderReadDataDiffResponse) error {
+	diff, err := s.Provider.ReadDataDiff(args.Info, args.Config)
+	*result = ResourceProviderReadDataDiffResponse{
+		Diff:  diff,
+		Error: plugin.NewBasicError(err),
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) ReadDataApply(
+	args *ResourceProviderReadDataApplyArgs,
+	result *ResourceProviderReadDataApplyResponse) error {
+	newState, err := s.Provider.ReadDataApply(args.Info, args.Diff)
+	*result = ResourceProviderReadDataApplyResponse{
+		State: newState,
+		Error: plugin.NewBasicError(err),
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) DataSources(
+	nothing interface{},
+	result *[]terraform.DataSource) error {
+	*result = s.Provider.DataSources()
 	return nil
 }

@@ -33,6 +33,14 @@ type Provider struct {
 	// Diff, etc. to the proper resource.
 	ResourcesMap map[string]*Resource
 
+	// DataSourcesMap is the collection of available data sources that
+	// this provider implements, with a Resource instance defining
+	// the schema and Read operation of each.
+	//
+	// Resource instances for data sources must have a Read function
+	// and must *not* implement Create, Update or Delete.
+	DataSourcesMap map[string]*Resource
+
 	// ConfigureFunc is a function for configuring the provider. If the
 	// provider doesn't need to be configured, this can be omitted.
 	//
@@ -68,7 +76,19 @@ func (p *Provider) InternalValidate() error {
 
 	for k, r := range p.ResourcesMap {
 		if err := r.InternalValidate(nil); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
+			return fmt.Errorf("resource %s: %s", k, err)
+		}
+	}
+
+	for k, r := range p.DataSourcesMap {
+		if err := r.InternalValidate(nil); err != nil {
+			return fmt.Errorf("data source %s: %s", k, err)
+		}
+
+		if r.Create != nil || r.Update != nil || r.Delete != nil {
+			return fmt.Errorf(
+				"data source %s: must not have Create, Update or Delete", k,
+			)
 		}
 	}
 
@@ -261,4 +281,60 @@ func (p *Provider) ImportState(
 	}
 
 	return states, nil
+}
+
+// ValidateDataSource implementation of terraform.ResourceProvider interface.
+func (p *Provider) ValidateDataSource(
+	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	r, ok := p.DataSourcesMap[t]
+	if !ok {
+		return nil, []error{fmt.Errorf(
+			"Provider doesn't support data source: %s", t)}
+	}
+
+	return r.Validate(c)
+}
+
+// ReadDataDiff implementation of terraform.ResourceProvider interface.
+func (p *Provider) ReadDataDiff(
+	info *terraform.InstanceInfo,
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+
+	r, ok := p.DataSourcesMap[info.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown data source: %s", info.Type)
+	}
+
+	return r.Diff(nil, c)
+}
+
+// RefreshData implementation of terraform.ResourceProvider interface.
+func (p *Provider) ReadDataApply(
+	info *terraform.InstanceInfo,
+	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+
+	r, ok := p.DataSourcesMap[info.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown data source: %s", info.Type)
+	}
+
+	return r.ReadDataApply(d, p.meta)
+}
+
+// DataSources implementation of terraform.ResourceProvider interface.
+func (p *Provider) DataSources() []terraform.DataSource {
+	keys := make([]string, 0, len(p.DataSourcesMap))
+	for k, _ := range p.DataSourcesMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	result := make([]terraform.DataSource, 0, len(keys))
+	for _, k := range keys {
+		result = append(result, terraform.DataSource{
+			Name: k,
+		})
+	}
+
+	return result
 }
