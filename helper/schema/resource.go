@@ -89,6 +89,11 @@ type Resource struct {
 	// must be validated. The validity of ResourceImporter is verified
 	// by InternalValidate on Resource.
 	Importer *ResourceImporter
+
+	// If non-empty, this string is emitted as a warning during Validate.
+	// This is a private interface for now, for use by DataSourceResourceShim,
+	// and not for general use. (But maybe later...)
+	deprecationMessage string
 }
 
 // See Resource documentation.
@@ -176,7 +181,13 @@ func (r *Resource) Diff(
 
 // Validate validates the resource configuration against the schema.
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return schemaMap(r.Schema).Validate(c)
+	warns, errs := schemaMap(r.Schema).Validate(c)
+
+	if r.deprecationMessage != "" {
+		warns = append(warns, r.deprecationMessage)
+	}
+
+	return warns, errs
 }
 
 // ReadDataApply loads the data for a data source, given a diff that
