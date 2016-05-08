@@ -735,6 +735,34 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 		},
 	})
 
+	// Diff the resource for destruction
+	nodes = append(nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkPlanDestroy},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+
+				// Since EvalDiffDestroy doesn't interact with the
+				// provider at all, we can safely share the same
+				// implementation for data vs. managed resources.
+				&EvalDiffDestroy{
+					Info:   info,
+					State:  &state,
+					Output: &diff,
+				},
+
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+			},
+		},
+	})
+
 	// Apply
 	nodes = append(nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply, walkDestroy},

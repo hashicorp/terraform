@@ -80,6 +80,16 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 	diff := *n.Diff
 
+	// If the diff is for *destroying* this resource then we'll
+	// just drop its state and move on, since data resources don't
+	// support an actual "destroy" action.
+	if diff.Destroy {
+		if n.Output != nil {
+			*n.Output = nil
+		}
+		return nil, nil
+	}
+
 	// For the purpose of external hooks we present a data apply as a
 	// "Refresh" rather than an "Apply" because creating a data source
 	// is presented to users/callers as a "read" operation.
