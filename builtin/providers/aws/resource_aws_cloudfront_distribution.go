@@ -454,6 +454,10 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"hosted_zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			// retain_on_delete is a non-API attribute that may help facilitate speedy
 			// deletion of a resoruce. It's mainly here for testing purposes, so
 			// enable at your own risk.

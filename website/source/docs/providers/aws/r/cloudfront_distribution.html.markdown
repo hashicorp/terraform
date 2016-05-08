@@ -346,6 +346,10 @@ The following attributes are exported:
 
   * `etag` - The current version of the distribution's information. For example:
     `E2QWRUHAPOMQZL`.
+  
+  * `hosted_zone_id` - The CloudFront Route 53 zone ID that can be used to
+     route an [Alias Resource Record Set][7] to. This attribute is simply an
+     alias for the zone ID `Z2FDTNDATAQYW2`.
 
 
 [1]: http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html
@@ -354,3 +358,4 @@ The following attributes are exported:
 [4]: http://www.iso.org/iso/country_codes/iso_3166_code_lists/country_names_and_code_elements.htm
 [5]: /docs/providers/aws/r/cloudfront_origin_access_identity.html
 [6]: https://aws.amazon.com/certificate-manager/
+[7]: http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html
