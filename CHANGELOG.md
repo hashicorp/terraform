@@ -12,6 +12,7 @@ FEATURES:
  * **New resource:** `aws_api_gateway_account` [GH-6321]
  * **New resource:** `aws_api_gateway_authorizer` [GH-6320]
  * **New resource:** `aws_db_event_subscription` [GH-6367]
+ * **New resource:** `aws_db_option_group` [GH-4401]
  * **New resource:** `openstack_networking_secgroup_rule_v2` [GH-6410] 
  * **New resource:** `openstack_networking_secgroup_v2` [GH-6410]
  * **New resource:** `vsphere_file` [GH-6401]
