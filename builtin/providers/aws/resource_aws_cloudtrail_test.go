@@ -372,7 +372,7 @@ func testAccCheckCloudTrailLoadTags(trail *cloudtrail.Trail, tags *[]*cloudtrail
 func testAccAWSCloudTrailConfig(cloudTrailRandInt int) string {
 	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
-    name = "tf-trail-foobar"
+    name = "tf-trail-foobar-%d"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
 }
 
@@ -406,13 +406,13 @@ resource "aws_s3_bucket" "foo" {
 }
 POLICY
 }
-`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfigModified(cloudTrailRandInt int) string {
 	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
-    name = "tf-trail-foobar"
+    name = "tf-trail-foobar-%d"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     s3_key_prefix = "/prefix"
     include_global_service_events = false
@@ -449,13 +449,13 @@ resource "aws_s3_bucket" "foo" {
 }
 POLICY
 }
-`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfigMultiRegion(cloudTrailRandInt int) string {
 	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
-    name = "tf-trail-foobar"
+    name = "tf-trail-foobar-%d"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     is_multi_region_trail = true
 }
@@ -490,13 +490,13 @@ resource "aws_s3_bucket" "foo" {
 }
 POLICY
 }
-`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_logValidation(cloudTrailRandInt int) string {
 	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
-    name = "tf-acc-trail-log-validation-test"
+    name = "tf-acc-trail-log-validation-test-%d"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     is_multi_region_trail = true
     include_global_service_events = true
@@ -533,13 +533,13 @@ resource "aws_s3_bucket" "foo" {
 }
 POLICY
 }
-`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_logValidationModified(cloudTrailRandInt int) string {
 	return fmt.Sprintf(`
 resource "aws_cloudtrail" "foobar" {
-    name = "tf-acc-trail-log-validation-test"
+    name = "tf-acc-trail-log-validation-test-%d"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     include_global_service_events = true
 }
@@ -574,12 +574,12 @@ resource "aws_s3_bucket" "foo" {
 }
 POLICY
 }
-`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 var testAccAWSCloudTrailConfig_tags_tpl = `
 resource "aws_cloudtrail" "foobar" {
-    name = "tf-acc-trail-log-validation-test"
+    name = "tf-acc-trail-log-validation-test-%d"
     s3_bucket_name = "${aws_s3_bucket.foo.id}"
     %s
 }
@@ -621,7 +621,7 @@ func testAccAWSCloudTrailConfig_tags(cloudTrailRandInt int) string {
 		`tags {
 		Foo = "moo"
 		Pooh = "hi"
-	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt int) string {
@@ -630,10 +630,10 @@ func testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt int) string {
 		Foo = "moo"
 		Pooh = "hi"
 		Moo = "boom"
-	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+	}`, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
 
 func testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt int) string {
 	return fmt.Sprintf(testAccAWSCloudTrailConfig_tags_tpl,
-		"", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
+		"", cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt, cloudTrailRandInt)
 }
