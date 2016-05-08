@@ -59,6 +59,7 @@ BUG FIXES:
  * provider/aws: Omit `aws_cloudfront_distribution` custom_error fields when not explicitly set [GH-6382]
  * provider/aws: Refresh state on `aws_sqs_queue` not found [GH-6381]
  * provider/aws: Respect `selection_pattern` in `aws_api_gateway_integration_response` (previously ignored field) [GH-5893]
+ * provider/aws: `aws_cloudfront_distribution` resources now require the `cookies` argument [GH-6505]
  * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
  * provider/azure: `ssh_keys` can now be set for `azurerm_virtual_machine` resources, allowing provisioning [GH-6541]
