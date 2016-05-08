@@ -10,6 +10,7 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
 			"terraform_remote_state": schema.DataSourceResourceShim(
+				"terraform_remote_state",
 				dataSourceRemoteState(),
 			),
 		},

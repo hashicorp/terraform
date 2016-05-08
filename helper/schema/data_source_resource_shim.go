@@ -1,5 +1,9 @@
 package schema
 
+import (
+	"fmt"
+)
+
 // DataSourceResourceShim takes a Resource instance describing a data source
 // (with a Read implementation and a Schema, at least) and returns a new
 // Resource instance with additional Create and Delete implementations that
@@ -14,11 +18,7 @@ package schema
 //
 // The provided Resource instance, and its schema, will be modified in-place
 // to make it suitable for use as a full resource.
-func DataSourceResourceShim(dataSource *Resource) *Resource {
-	// TODO: Somehow emit a warning when a shim resource is used,
-	// recommending that the user switch to using the data source
-	// instead.
-
+func DataSourceResourceShim(name string, dataSource *Resource) *Resource {
 	// Recursively, in-place adjust the schema so that it has ForceNew
 	// on any user-settable resource.
 	dataSourceResourceShimAdjustSchema(dataSource.Schema)
@@ -29,6 +29,13 @@ func DataSourceResourceShim(dataSource *Resource) *Resource {
 		return nil
 	}
 	dataSource.Update = nil // should already be nil, but let's make sure
+
+	// FIXME: Link to some further docs either on the website or in the
+	// changelog, once such a thing exists.
+	dataSource.deprecationMessage = fmt.Sprintf(
+		"using %s as a resource is deprecated; consider using the data source instead",
+		name,
+	)
 
 	return dataSource
 }
