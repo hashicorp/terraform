@@ -277,7 +277,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Required: true,
 						},
 						"ssh_keys": &schema.Schema{
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -291,7 +291,6 @@ func resourceArmVirtualMachine() *schema.Resource {
 									},
 								},
 							},
-							Set: resourceArmVirtualMachineStorageOsProfileLinuxConfigSshKeyHash,
 						},
 					},
 				},
@@ -491,7 +490,7 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if resp.Properties.OsProfile.LinuxConfiguration != nil {
-		if err := d.Set("os_profile_linux_config", schema.NewSet(resourceArmVirtualMachineStorageOsProfileLinuxConfigHash, flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.Properties.OsProfile.LinuxConfiguration))); err != nil {
+		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.Properties.OsProfile.LinuxConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Linux Configuration: %#v", err)
 		}
 	}
@@ -582,17 +581,6 @@ func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
-
-	return hashcode.String(buf.String())
-}
-
-func resourceArmVirtualMachineStorageOsProfileLinuxConfigSshKeyHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["path"].(string)))
-	if m["key_data"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["key_data"].(string)))
-	}
 
 	return hashcode.String(buf.String())
 }
@@ -747,15 +735,15 @@ func flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(config *compute.W
 }
 
 func flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(config *compute.LinuxConfiguration) []interface{} {
-	result := map[string]interface{}{
-		"disable_password_authentication": *config.DisablePasswordAuthentication,
-	}
+
+	result := make(map[string]interface{})
+	result["disable_password_authentication"] = *config.DisablePasswordAuthentication
 
 	if config.SSH != nil && len(*config.SSH.PublicKeys) > 0 {
-		ssh_keys := make([]map[string]interface{}, 0, len(*config.SSH.PublicKeys))
+		ssh_keys := make([]map[string]interface{}, len(*config.SSH.PublicKeys))
 		for _, i := range *config.SSH.PublicKeys {
 			key := make(map[string]interface{})
-			key["name"] = *i.Path
+			key["path"] = *i.Path
 
 			if i.KeyData != nil {
 				key["key_data"] = *i.KeyData
@@ -910,7 +898,7 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 		DisablePasswordAuthentication: &disablePasswordAuth,
 	}
 
-	linuxKeys := linuxConfig["ssh_keys"].(*schema.Set).List()
+	linuxKeys := linuxConfig["ssh_keys"].([]interface{})
 	sshPublicKeys := make([]compute.SSHPublicKey, 0, len(linuxKeys))
 	for _, key := range linuxKeys {
 		sshKey := key.(map[string]interface{})
