@@ -11,6 +11,9 @@ description: |-
 Provides an AWS EIP Association as a top level resource, to associate and
 disassociate Elastic IPs from AWS Instances and Network Interfaces.
 
+~> **NOTE:** `aws_eip_association` is useful in scenarios where EIPs are either
+pre-existing or distributed to customers or users and therefore cannot be changed.
+
 ## Example Usage
 
 ```

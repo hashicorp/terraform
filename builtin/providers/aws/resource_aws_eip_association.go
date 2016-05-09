@@ -20,6 +20,7 @@ func resourceAwsEipAssociation() *schema.Resource {
 			"allocation_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -32,24 +33,28 @@ func resourceAwsEipAssociation() *schema.Resource {
 			"instance_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
 			"network_interface_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
 			"private_ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
 			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 		},
@@ -93,47 +98,28 @@ func resourceAwsEipAssociationCreate(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(*resp.AssociationId)
 
-	daRequest := &ec2.DescribeAddressesInput{
-		Filters: []*ec2.Filter{},
-	}
-
-	if v, ok := d.GetOk("allocation_id"); ok {
-		daRequest.Filters = append(daRequest.Filters,
-			&ec2.Filter{
-				Name:   aws.String("allocation-id"),
-				Values: []*string{aws.String(v.(string))},
-			},
-		)
-	}
-	if v, ok := d.GetOk("public_ip"); ok {
-		daRequest.Filters = append(daRequest.Filters,
-			&ec2.Filter{
-				Name:   aws.String("public-ip"),
-				Values: []*string{aws.String(v.(string))},
-			},
-		)
-	}
-
-	daResp, err := conn.DescribeAddresses(daRequest)
-
-	if err != nil {
-		return fmt.Errorf("Error reading EC2 Elastic IP %s: %#v", d.Get("allocation_id").(string), err)
-	}
-
-	return readAwsEipAssociation(d, daResp.Addresses[0])
+	return resourceAwsEipAssociationRead(d, meta)
 }
 
 func resourceAwsEipAssociationRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.DescribeAddressesInput{
-		AllocationIds: []*string{aws.String(d.Get("allocation_id").(string))},
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("association-id"),
+				Values: []*string{aws.String(d.Id())},
+			},
+		},
 	}
 
 	response, err := conn.DescribeAddresses(request)
-
 	if err != nil {
 		return fmt.Errorf("Error reading EC2 Elastic IP %s: %#v", d.Get("allocation_id").(string), err)
+	}
+
+	if response.Addresses == nil || len(response.Addresses) == 0 {
+		return fmt.Errorf("Unable to find EIP Association: %s", d.Id())
 	}
 
 	return readAwsEipAssociation(d, response.Addresses[0])
@@ -155,10 +141,10 @@ func resourceAwsEipAssociationDelete(d *schema.ResourceData, meta interface{}) e
 }
 
 func readAwsEipAssociation(d *schema.ResourceData, address *ec2.Address) error {
-	if err := d.Set("allocation_id", *address.AllocationId); err != nil {
+	if err := d.Set("allocation_id", address.AllocationId); err != nil {
 		return err
 	}
-	if err := d.Set("instance_id", *address.InstanceId); err != nil {
+	if err := d.Set("instance_id", address.InstanceId); err != nil {
 		return err
 	}
 	if err := d.Set("network_interface_id", address.NetworkInterfaceId); err != nil {
