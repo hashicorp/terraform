@@ -25,6 +25,7 @@ func resourceAwsOpsworksStack() *schema.Resource {
 			"agent_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 			"id": &schema.Schema{
