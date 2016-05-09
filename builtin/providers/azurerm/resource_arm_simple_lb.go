@@ -153,6 +153,7 @@ func resourceArmSimpleLb() *schema.Resource {
 				},
 				Set: resourceARMLoadBalancerRuleHash,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -387,12 +388,14 @@ func resourceArmSimpleLbCreate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGrp := d.Get("resource_group_name").(string)
+	tags := d.Get("tags").(map[string]interface{})
 
 	loadBalancer := network.LoadBalancer{
 		Name:       &name,
 		Type:       &typ,
 		Location:   &location,
 		Properties: &network.LoadBalancerPropertiesFormat{},
+		Tags:       expandTags(tags),
 	}
 
 	fipconfs, err := pullOutFrontEndIps(d)
@@ -603,6 +606,8 @@ func iResourceArmSimpleLbRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	flattenAndSetTags(d, loadBalancer.Tags)
+
 	return nil
 }
 
