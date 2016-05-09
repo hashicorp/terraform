@@ -53,6 +53,11 @@ func resourceArmNetworkInterface() *schema.Resource {
 				Computed: true,
 			},
 
+			"private_ip_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -241,7 +246,7 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Netowkr Interface %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure Network Interface %s: %s", name, err)
 	}
 
 	iface := *resp.Properties
@@ -249,6 +254,18 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	if iface.MacAddress != nil {
 		if *iface.MacAddress != "" {
 			d.Set("mac_address", iface.MacAddress)
+		}
+	}
+
+	if iface.IPConfigurations != nil && len(*iface.IPConfigurations) > 0 {
+		var privateIPAddress *string
+		///TODO: Change this to a loop when https://github.com/Azure/azure-sdk-for-go/issues/259 is fixed
+		if (*iface.IPConfigurations)[0].Properties != nil {
+			privateIPAddress = (*iface.IPConfigurations)[0].Properties.PrivateIPAddress
+		}
+
+		if *privateIPAddress != "" {
+			d.Set("private_ip_address", *privateIPAddress)
 		}
 	}
 
