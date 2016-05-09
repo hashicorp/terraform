@@ -64,7 +64,7 @@ resource "docker_registry" "foo" {
 
 const testAddDockerRegistryConfig = `
 resource "docker_registry" "foobar" {
-  auths = {
+  auth = {
     username = "foo"
     password = "bar"
     server_address = "docker.io"

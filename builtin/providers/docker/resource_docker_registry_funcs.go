@@ -12,13 +12,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceDockerRegistryCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDockerRegistryRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(fmt.Sprintf("%d", rand.Int()))
 
-	return resourceDockerRegistryRead(d, meta)
-}
-
-func resourceDockerRegistryRead(d *schema.ResourceData, meta interface{}) error {
 	authConfigurations, err := loadAuthconfigurations(d)
 
 	if err != nil {
@@ -37,6 +33,7 @@ func resourceDockerRegistryRead(d *schema.ResourceData, meta interface{}) error 
 
 func resourceDockerRegistryDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
+	d.Set("configurations", "")
 
 	return nil
 }
@@ -51,10 +48,10 @@ func loadAuthconfigurations(d *schema.ResourceData) (*dc.AuthConfigurations, err
 		if err != nil {
 			return nil, err
 		}
-	} else if auths, ok := d.GetOk("auths"); ok {
-		authConfigurations = loadConfigurationFromResource(auths.([]interface{}))
+	} else if auth, ok := d.GetOk("auth"); ok {
+		authConfigurations = loadConfigurationFromResource(auth.([]interface{}))
 	} else {
-		return nil, fmt.Errorf("Invalid registry configuration missing 'auths' or 'settings_file' field")
+		return nil, fmt.Errorf("Invalid registry configuration missing 'auth' or 'settings_file' field")
 	}
 
 	if len(authConfigurations.Configs) == 0 {

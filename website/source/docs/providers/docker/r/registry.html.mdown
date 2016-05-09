@@ -3,7 +3,7 @@ layout: "docker"
 page_title: "Docker: docker_registry"
 sidebar_current: "docs-docker-resource-registry"
 description: |-
-  Logs to a Docker registry, downloads and exports a Docker image.
+  Manages credentials for one or many docker registries.
 ---
 
 # docker\_registry
@@ -34,13 +34,13 @@ resource "docker_image" "ubuntu" {
 The following arguments are supported:
 
 * `settings_file` - (Optional, string) Path to the docker configuration file.
-* `auths` - (Optional, block) See [Auths](#auths) below for details.
+* `auth` - (Optional, block) See [Auth](#auth) below for details.
 
-<a id="auths"></a>
-### Auths
+<a id="auth"></a>
+### Auth
 
-`auths` is a block within the configuration that can be repeated to specify
-the auth to use with an image. Each `auths` block supports
+`auth` is a block within the configuration that can be repeated to specify
+the auth to use with an image. Each `auth` block supports
 the following:
 
 * `server_address` - (Required, string) Docker registry url.

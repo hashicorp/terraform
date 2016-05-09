@@ -18,7 +18,7 @@ them.
 ```
 # Log to a custom docker registry
 resource "docker_registry" "ubuntu_private" {
-    auths = {
+    auth = {
         username = "John"
         password = "Doe"
         server_address = "https://hub.docker.com/"
