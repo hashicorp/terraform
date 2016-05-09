@@ -35,9 +35,6 @@ The following arguments are supported:
 * `pool` - (Required) The name of the pool from which to obtain the floating
     IP. Changing this creates a new floating IP.
 
-* `port_id` - ID of an existing port with at least one IP address to associate with
-this floating IP.
-
 ## Attributes Reference
 
 The following attributes are exported:
