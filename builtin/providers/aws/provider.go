@@ -162,6 +162,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_efs_file_system":                          resourceAwsEfsFileSystem(),
 			"aws_efs_mount_target":                         resourceAwsEfsMountTarget(),
 			"aws_eip":                                      resourceAwsEip(),
+			"aws_eip_association":                          resourceAwsEipAssociation(),
 			"aws_elasticache_cluster":                      resourceAwsElasticacheCluster(),
 			"aws_elasticache_parameter_group":              resourceAwsElasticacheParameterGroup(),
 			"aws_elasticache_security_group":               resourceAwsElasticacheSecurityGroup(),
