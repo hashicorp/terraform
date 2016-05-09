@@ -407,7 +407,7 @@ resource "aws_db_instance" "bar" {
 var testAccAWSDBInstanceConfigWithOptionGroup = fmt.Sprintf(`
 
 resource "aws_db_option_group" "bar" {
-	option_group_name = "option-group-test-terraform"
+	name = "option-group-test-terraform"
 	option_group_description = "Test option group for terraform"
 	engine_name = "mysql"
 	major_engine_version = "5.6"
@@ -426,7 +426,7 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
-	option_group_name = "${aws_db_option_group.bar.option_group_name}"
+	option_group_name = "${aws_db_option_group.bar.name}"
 }`, acctest.RandInt())
 
 func testAccReplicaInstanceConfig(val int) string {
