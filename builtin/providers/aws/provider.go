@@ -148,6 +148,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_db_event_subscription":                    resourceAwsDbEventSubscription(),
 			"aws_db_instance":                              resourceAwsDbInstance(),
 			"aws_db_option_group":                          resourceAwsDbOptionGroup(),
+			"aws_db_cluster_parameter_group":               resourceAwsDbClusterParameterGroup(),
 			"aws_db_parameter_group":                       resourceAwsDbParameterGroup(),
 			"aws_db_security_group":                        resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":                          resourceAwsDbSubnetGroup(),
