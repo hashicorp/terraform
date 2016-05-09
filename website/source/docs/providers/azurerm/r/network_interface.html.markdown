@@ -95,6 +95,7 @@ The following attributes are exported:
 
 * `id` - The virtual NetworkConfiguration ID.
 * `mac_address` - The media access control (MAC) address of the network interface.
+* `private_ip_address` - The private ip address of the network interface.
 * `virtual_machine_id` - Reference to a VM with which this NIC has been associated.
 * `applied_dns_servers` - If the VM that uses this NIC is part of an Availability Set, then this list will have the union of all DNS servers from all NICs that are part of the Availability Set
 * `internal_fqdn` - Fully qualified DNS name supporting internal communications between VMs in the same VNet
