@@ -82,6 +82,7 @@ func (c *OutputCommand) Run(args []string) int {
 
 		for _, k := range ks {
 			v := mod.Outputs[k]
+
 			c.Ui.Output(fmt.Sprintf("%s = %s", k, v))
 		}
 		return 0
