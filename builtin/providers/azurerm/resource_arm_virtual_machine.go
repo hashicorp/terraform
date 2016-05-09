@@ -118,6 +118,11 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"os_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -126,6 +131,11 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"vhd_uri": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+						},
+
+						"image_uri": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 
 						"caching": &schema.Schema{
@@ -1082,6 +1092,7 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 
 	name := disk["name"].(string)
 	vhdURI := disk["vhd_uri"].(string)
+	imageURI := disk["image_uri"].(string)
 	createOption := disk["create_option"].(string)
 
 	osDisk := &compute.OSDisk{
@@ -1090,6 +1101,22 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 			URI: &vhdURI,
 		},
 		CreateOption: compute.DiskCreateOptionTypes(createOption),
+	}
+
+	if v := disk["image_uri"].(string); v != "" {
+		osDisk.Image = &compute.VirtualHardDisk{
+			URI: &imageURI,
+		}
+	}
+
+	if v := disk["os_type"].(string); v != "" {
+		if v == "linux" {
+			osDisk.OsType = compute.Linux
+		} else if v == "windows" {
+			osDisk.OsType = compute.Windows
+		} else {
+			return nil, fmt.Errorf("[ERROR] os_type must be 'linux' or 'windows'")
+		}
 	}
 
 	if v := disk["caching"].(string); v != "" {
