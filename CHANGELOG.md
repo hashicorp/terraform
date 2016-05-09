@@ -62,7 +62,7 @@ BUG FIXES:
  * provider/aws: `aws_cloudfront_distribution` resources now require the `cookies` argument [GH-6505]
  * provider/aws: `aws_route` crash when used with `aws_vpc_endpoint` [GH-6338]
  * provider/aws: validate `cluster_id` length for `aws_elasticache_cluster` [GH-6330]
- * provider/azure: `ssh_keys` can now be set for `azurerm_virtual_machine` resources, allowing provisioning [GH-6541]
+ * provider/azurerm: `ssh_keys` can now be set for `azurerm_virtual_machine` resources, allowing provisioning [GH-6541]
  * provider/azurerm: Fix issue that updating `azurerm_virtual_machine` was failing due to empty adminPassword [GH-6528]
  * provider/azurerm: `storage_data_disk` settings now work correctly on `azurerm_virtual_machine` resources [GH-6543]
  * provider/cloudflare: can manage apex records [GH-6449]
