@@ -5,11 +5,11 @@ The example launches a Ubuntu 14.04, runs apt-get update and installs nginx. Als
 To run, configure your Digital Ocean provider as described in https://www.terraform.io/docs/providers/digitalocean/index.html
 
 ## Prerequisites
-You need to export you DigitalOcean via your environment
-For Example add the following to you ~/.bashrc file
+You need to export you DigitalOcean API Token as an environment variable
 
 export DIGITALOCEAN_TOKEN="Put Your Token Here" 
 
 ## Run this example using:
 
+    terrafor plan
     terraform apply 
