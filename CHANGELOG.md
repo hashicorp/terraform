@@ -29,6 +29,7 @@ IMPROVEMENTS:
  * provider/aws: `aws_redshift_cluster` `automated_snapshot_retention_period` didn't allow 0 value [GH-6537]
  * provider/aws: Add CloudFront `hosted_zone_id` attribute [GH-6530]
  * provider/azurerm: Increase timeout for ARM Template deployments to 40 minutes [GH-6319]
+ * provider/azurerm: Make `private_ip_address` an exported field on `azurerm_network_interface` [GH-6538]
  * provider/cloudflare: Add proxied option to `cloudflare_record` [GH-5508]
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
  * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
