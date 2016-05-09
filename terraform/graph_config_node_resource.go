@@ -297,6 +297,12 @@ func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
 		return true
 	}
 
+	// If the whole module is being destroyed, then the resource nodes in that
+	// module are irrelevant - we only need to keep the destroy nodes.
+	if opts.ModDiff != nil && opts.ModDiff.Destroy == true {
+		return true
+	}
+
 	// Grab the ID which is the prefix (in the case count > 0 at some point)
 	prefix := n.Resource.Id()
 
