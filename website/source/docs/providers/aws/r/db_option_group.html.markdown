@@ -12,7 +12,7 @@ Provides an RDS DB option group resource.
 
 ```
 resource "aws_db_option_group" "bar" {
-  option_group_name = "option-group-test-terraform"
+  name = "option-group-test-terraform"
   option_group_description = "Terraform Option Group"
   engine_name = "sqlserver-ee"
   major_engine_version = "11.00"
@@ -33,7 +33,7 @@ resource "aws_db_option_group" "bar" {
 
 The following arguments are supported:
 
-* `option_group_name` - (Required) The name of the Option group to be created.
+* `name` - (Required) The name of the Option group to be created.
 * `option_group_description` - (Required) The description of the option group.
 * `engine_name` - (Required) Specifies the name of the engine that this option group should be associated with..
 * `major_engine_version` - (Required) Specifies the major version of the engine that this option group should be associated with.
