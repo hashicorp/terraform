@@ -55,6 +55,39 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
+			"condition": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"statement": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The statement used to determine if the condition is met",
+							StateFunc: func(v interface{}) string {
+								value := v.(string)
+								// Trim newlines and spaces, to match Fastly API
+								return strings.TrimSpace(value)
+							},
+						},
+						"priority": &schema.Schema{
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "A number used to determine the order in which multiple conditions execute. Lower numbers execute first",
+						},
+						"type": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Type of the condition, either `REQUEST`, `RESPONSE`, or `CACHE`",
+						},
+					},
+				},
+			},
+
 			"default_ttl": &schema.Schema{
 				Type:        schema.TypeInt,
 				Optional:    true,
@@ -409,6 +442,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		"header",
 		"gzip",
 		"s3logging",
+		"condition",
 	} {
 		if d.HasChange(v) {
 			needsChange = true
@@ -463,13 +497,70 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// Conditions need to be updated first, as they can be referenced by other
+		// configuraiton objects (Backends, Request Headers, etc)
+
+		// Find difference in Conditions
+		if d.HasChange("condition") {
+			// Note: we don't utilize the PUT endpoint to update these objects, we simply
+			// destroy any that have changed, and create new ones with the updated
+			// values. This is how Terraform works with nested sub resources, we only
+			// get the full diff not a partial set item diff. Because this is done
+			// on a new version of the Fastly Service configuration, this is considered safe
+
+			oc, nc := d.GetChange("condition")
+			if oc == nil {
+				oc = new(schema.Set)
+			}
+			if nc == nil {
+				nc = new(schema.Set)
+			}
+
+			ocs := oc.(*schema.Set)
+			ncs := nc.(*schema.Set)
+			removeConditions := ocs.Difference(ncs).List()
+			addConditions := ncs.Difference(ocs).List()
+
+			// DELETE old Conditions
+			for _, cRaw := range removeConditions {
+				cf := cRaw.(map[string]interface{})
+				opts := gofastly.DeleteConditionInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    cf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Conditions Removal opts: %#v", opts)
+				err := conn.DeleteCondition(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new Conditions
+			for _, cRaw := range addConditions {
+				cf := cRaw.(map[string]interface{})
+				opts := gofastly.CreateConditionInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    cf["name"].(string),
+					Type:    cf["type"].(string),
+					// need to trim leading/tailing spaces, incase the config has HEREDOC
+					// formatting and contains a trailing new line
+					Statement: strings.TrimSpace(cf["statement"].(string)),
+					Priority:  cf["priority"].(int),
+				}
+
+				log.Printf("[DEBUG] Create Conditions Opts: %#v", opts)
+				_, err := conn.CreateCondition(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// Find differences in domains
 		if d.HasChange("domain") {
-			// Note: we don't utilize the PUT endpoint to update a Domain, we simply
-			// destroy it and create a new one. This is how Terraform works with nested
-			// sub resources, we only get the full diff not a partial set item diff.
-			// Because this is done on a new version of the configuration, this is
-			// considered safe
 			od, nd := d.GetChange("domain")
 			if od == nil {
 				od = new(schema.Set)
@@ -523,12 +614,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 		// find difference in backends
 		if d.HasChange("backend") {
-			// POST new Backends
-			// Note: we don't utilize the PUT endpoint to update a Backend, we simply
-			// destroy it and create a new one. This is how Terraform works with nested
-			// sub resources, we only get the full diff not a partial set item diff.
-			// Because this is done on a new version of the configuration, this is
-			// considered safe
 			ob, nb := d.GetChange("backend")
 			if ob == nil {
 				ob = new(schema.Set)
@@ -558,6 +643,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				}
 			}
 
+			// Find and post new Backends
 			for _, dRaw := range addBackends {
 				df := dRaw.(map[string]interface{})
 				opts := gofastly.CreateBackendInput{
@@ -585,11 +671,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if d.HasChange("header") {
-			// Note: we don't utilize the PUT endpoint to update a Header, we simply
-			// destroy it and create a new one. This is how Terraform works with nested
-			// sub resources, we only get the full diff not a partial set item diff.
-			// Because this is done on a new version of the configuration, this is
-			// considered safe
 			oh, nh := d.GetChange("header")
 			if oh == nil {
 				oh = new(schema.Set)
@@ -640,11 +721,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 		// Find differences in Gzips
 		if d.HasChange("gzip") {
-			// Note: we don't utilize the PUT endpoint to update a Gzip rule, we simply
-			// destroy it and create a new one. This is how Terraform works with nested
-			// sub resources, we only get the full diff not a partial set item diff.
-			// Because this is done on a new version of the configuration, this is
-			// considered safe
 			og, ng := d.GetChange("gzip")
 			if og == nil {
 				og = new(schema.Set)
@@ -714,12 +790,6 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 		// find difference in s3logging
 		if d.HasChange("s3logging") {
-			// POST new Logging
-			// Note: we don't utilize the PUT endpoint to update a S3 Logs, we simply
-			// destroy it and create a new one. This is how Terraform works with nested
-			// sub resources, we only get the full diff not a partial set item diff.
-			// Because this is done on a new version of the configuration, this is
-			// considered safe
 			os, ns := d.GetChange("s3logging")
 			if os == nil {
 				os = new(schema.Set)
@@ -945,6 +1015,23 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 
 		if err := d.Set("s3logging", sl); err != nil {
 			log.Printf("[WARN] Error setting S3 Logging for (%s): %s", d.Id(), err)
+		}
+
+		// refresh Conditions
+		log.Printf("[DEBUG] Refreshing Conditions for (%s)", d.Id())
+		conditionList, err := conn.ListConditions(&gofastly.ListConditionsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Conditions for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		cl := flattenConditions(conditionList)
+
+		if err := d.Set("condition", cl); err != nil {
+			log.Printf("[WARN] Error setting Conditions for (%s): %s", d.Id(), err)
 		}
 
 	} else {
@@ -1214,4 +1301,28 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 	}
 
 	return sl
+}
+
+func flattenConditions(conditionList []*gofastly.Condition) []map[string]interface{} {
+	var cl []map[string]interface{}
+	for _, c := range conditionList {
+		// Convert Conditions to a map for saving to state.
+		nc := map[string]interface{}{
+			"name":      c.Name,
+			"statement": c.Statement,
+			"type":      c.Type,
+			"priority":  c.Priority,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range nc {
+			if v == "" {
+				delete(nc, k)
+			}
+		}
+
+		cl = append(cl, nc)
+	}
+
+	return cl
 }

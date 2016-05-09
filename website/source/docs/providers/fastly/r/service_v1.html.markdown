@@ -100,6 +100,8 @@ The following arguments are supported:
 Service. Defined below
 * `backend` - (Required) A set of Backends to service requests from your Domains.
 Defined below
+* `condition` - (Optional) A set of conditions to add logic to any basic
+configuration object in this service. Defined below
 * `gzip` - (Required) A set of gzip rules to control automatic gzipping of
 content. Defined below
 * `header` - (Optional) A set of Headers to manipulate for each request. Defined
@@ -134,6 +136,20 @@ Default `200`
 * `port` - (Optional) The port number Backend responds on. Default `80`
 * `ssl_check_cert` - (Optional) Be strict on checking SSL certs. Default `true`
 * `weight` - (Optional) The [portion of traffic](https://docs.fastly.com/guides/performance-tuning/load-balancing-configuration.html#how-weight-affects-load-balancing) to send to this Backend. Each Backend receives `weight / total` of the traffic. Default `100`
+
+The `condition` block supports allows you to add logic to any basic configuration
+object in a service. See Fastly's documentation
+["About Conditions"](https://docs.fastly.com/guides/conditions/about-conditions)
+for more detailed information on using Conditions. The Condition `name` can be
+used in the `request_condition`, `response_condition`, or
+`cache_condition` attributes of other block settings
+
+* `name` - (Required) A unique name of the condition
+* `statement` - (Required) The statement used to determine if the condition is met
+* `priority` - (Required) A number used to determine the order in which multiple
+conditions execute. Lower numbers execute first
+* `type` - (Required) Type of the condition, either `REQUEST` (req), `RESPONSE`
+(req, resp), or `CACHE` (req, beresp)
 
 The `gzip` block supports:
 
