@@ -738,6 +738,13 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 	}
 
 	d.SetId(vm.Path())
+
+	if n, ok := d.GetOk("network_interface"); ok {
+		d.Set("network_interface", n)
+	} else {
+		log.Printf("[DEBUG] Could not set network_interface")
+	}
+
 	log.Printf("[INFO] Created virtual machine: %s", d.Id())
 
 	return resourceVSphereVirtualMachineRead(d, meta)
@@ -759,11 +766,29 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	var mvm mo.VirtualMachine
-
-	collector := property.DefaultCollector(client.Client)
-	if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
+	ip, err := vm.WaitForIP(context.TODO())
+	if err != nil {
 		return err
+	}
+	log.Printf("[DEBUG] ip address: %v", ip)
+	d.SetConnInfo(map[string]string{
+		"type": "ssh",
+		"host": ip,
+	})
+
+	var mvm mo.VirtualMachine
+	collector := property.DefaultCollector(client.Client)
+	for {
+		if err := collector.RetrieveOne(context.TODO(), vm.Reference(), []string{"guest", "summary", "datastore"}, &mvm); err != nil {
+			return err
+		}
+
+		if mvm.Guest.Net == nil {
+			log.Printf("[DEBUG] Waiting for network: %#v", mvm.Guest.Net)
+			time.Sleep(1000 * time.Millisecond)
+		} else {
+			break
+		}
 	}
 
 	log.Printf("[DEBUG] %#v", dc)
@@ -795,21 +820,16 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 			networkInterfaces = append(networkInterfaces, networkInterface)
 		}
 	}
+
+	if gateway, ok := d.GetOk("network_interface.0.ipv4_gateway"); ok {
+		networkInterfaces[0]["ipv4_gateway"] = gateway
+	}
+
 	log.Printf("[DEBUG] networkInterfaces: %#v", networkInterfaces)
 	err = d.Set("network_interface", networkInterfaces)
 	if err != nil {
 		return fmt.Errorf("Invalid network interfaces to set: %#v", networkInterfaces)
 	}
-
-	ip, err := vm.WaitForIP(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] ip address: %v", ip)
-	d.SetConnInfo(map[string]string{
-		"type": "ssh",
-		"host": ip,
-	})
 
 	var rootDatastore string
 	for _, v := range mvm.Datastore {
