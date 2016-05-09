@@ -104,13 +104,21 @@ resource "azurerm_simple_lb" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     frontend_allocation_method = "Dynamic"
     frontend_public_ip_address = "${azurerm_public_ip.test.id}"
-    probe_protocol = "Tcp"
-    probe_port = 22
-    probe_interval = 5
-    probe_number_of_probes = 16
-    rule_protocol = "Tcp"
-    rule_load_distribution = "Default"
-    rule_frontend_port = 22
-    rule_backend_port = 22
+
+    probe {
+        name = "testProbe1"
+        protocol = "Tcp"
+        port = 22
+        interval = 5
+        number_of_probes = 16
+    }
+    rule {
+	protocol = "Tcp"
+	load_distribution = "Default"
+	frontend_port = 22
+	backend_port = 22
+	name = "rule1"
+	probe_name = "testProbe1"
+    }
 }
 `
