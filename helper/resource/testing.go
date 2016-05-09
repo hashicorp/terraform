@@ -82,10 +82,25 @@ type TestCase struct {
 // tests will only need one step.
 type TestStep struct {
 	// PreConfig is called before the Config is applied to perform any per-step
-	// setup that needs to happen
+	// setup that needs to happen. This is called regardless of "test mode"
+	// below.
 	PreConfig func()
 
-	// Config a string of the configuration to give to Terraform.
+	//---------------------------------------------------------------
+	// Test modes. One of the following groups of settings must be
+	// set to determine what the test step will do. Ideally we would've
+	// used Go interfaces here but there are now hundreds of tests we don't
+	// want to re-type so instead we just determine which step logic
+	// to run based on what settings below are set.
+	//---------------------------------------------------------------
+
+	//---------------------------------------------------------------
+	// Plan, Apply testing
+	//---------------------------------------------------------------
+
+	// Config a string of the configuration to give to Terraform. If this
+	// is set, then the TestCase will execute this step with the same logic
+	// as a `terraform apply`.
 	Config string
 
 	// Check is called after the Config is applied. Use this step to
