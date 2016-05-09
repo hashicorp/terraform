@@ -32,6 +32,7 @@ IMPROVEMENTS:
  * provider/azurerm: Increase timeout for ARM Template deployments to 40 minutes [GH-6319]
  * provider/azurerm: Make `private_ip_address` an exported field on `azurerm_network_interface` [GH-6538]
  * provider/azurerm: Add support for `tags` to `azurerm_virtual_machine` [GH-6556]
+ * provider/azurerm: Add `os_type` and `image_uri` in `azurerm_virtual_machine` [GH-6553]
  * provider/cloudflare: Add proxied option to `cloudflare_record` [GH-5508]
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
  * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
