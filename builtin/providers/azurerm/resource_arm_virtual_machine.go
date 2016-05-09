@@ -339,6 +339,8 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -352,6 +354,8 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	tags := d.Get("tags").(map[string]interface{})
+	expandedTags := expandTags(tags)
 
 	osDisk, err := expandAzureRmVirtualMachineOsDisk(d)
 	if err != nil {
@@ -406,6 +410,7 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		Name:       &name,
 		Location:   &location,
 		Properties: &properties,
+		Tags:       expandedTags,
 	}
 
 	if _, ok := d.GetOk("plan"); ok {
@@ -513,6 +518,8 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Network Interfaces: %#v", err)
 		}
 	}
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }
