@@ -259,8 +259,9 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	if iface.IPConfigurations != nil && len(*iface.IPConfigurations) > 0 {
 		var privateIPAddress *string
-		for _, ipConfig := range *iface.IPConfigurations {
-			privateIPAddress = ipConfig.Properties.PrivateIPAddress
+		///TODO: Change this to a loop when https://github.com/Azure/azure-sdk-for-go/issues/259 is fixed
+		if (*iface.IPConfigurations)[0].Properties != nil {
+			privateIPAddress = (*iface.IPConfigurations)[0].Properties.PrivateIPAddress
 		}
 
 		if *privateIPAddress != "" {
