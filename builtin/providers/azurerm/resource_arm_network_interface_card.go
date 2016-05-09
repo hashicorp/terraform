@@ -55,7 +55,6 @@ func resourceArmNetworkInterface() *schema.Resource {
 
 			"private_ip_address": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 
