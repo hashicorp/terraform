@@ -195,7 +195,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 
 	// Build the resource info
 	info := &InstanceInfo{
-		Id:         n.State.ID,
+		Id:         fmt.Sprintf("%s.%s", n.Target.Type, n.Target.Name),
 		ModulePath: n.Path_,
 		Type:       n.State.Ephemeral.Type,
 	}
@@ -220,6 +220,11 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 				State:    &state,
 				Info:     info,
 				Output:   &state,
+			},
+			&EvalImportStateVerify{
+				Info:  info,
+				Id:    n.State.ID,
+				State: &state,
 			},
 			&EvalWriteState{
 				Name:         key.String(),
