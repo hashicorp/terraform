@@ -17,7 +17,64 @@ func TestAccDnsRecordSet_basic(t *testing.T) {
 		CheckDestroy: testAccCheckDnsRecordSetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDnsRecordSet_basic(zoneName),
+				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.10", 300),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDnsRecordSetExists(
+						"google_dns_record_set.foobar", zoneName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDnsRecordSet_modify(t *testing.T) {
+	zoneName := fmt.Sprintf("dnszone-test-%s", acctest.RandString(10))
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDnsRecordSetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.10", 300),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDnsRecordSetExists(
+						"google_dns_record_set.foobar", zoneName),
+				),
+			},
+			resource.TestStep{
+				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.11", 300),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDnsRecordSetExists(
+						"google_dns_record_set.foobar", zoneName),
+				),
+			},
+			resource.TestStep{
+				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.11", 600),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDnsRecordSetExists(
+						"google_dns_record_set.foobar", zoneName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDnsRecordSet_changeType(t *testing.T) {
+	zoneName := fmt.Sprintf("dnszone-test-%s", acctest.RandString(10))
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDnsRecordSetDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.10", 300),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDnsRecordSetExists(
+						"google_dns_record_set.foobar", zoneName),
+				),
+			},
+			resource.TestStep{
+				Config: testAccDnsRecordSet_bigChange(zoneName, 600),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(
 						"google_dns_record_set.foobar", zoneName),
@@ -65,20 +122,19 @@ func testAccCheckDnsRecordSetExists(resourceType, resourceName string) resource.
 		if err != nil {
 			return fmt.Errorf("Error confirming DNS RecordSet existence: %#v", err)
 		}
-		if len(resp.Rrsets) == 0 {
+		switch len(resp.Rrsets) {
+		case 0:
 			// The resource doesn't exist anymore
 			return fmt.Errorf("DNS RecordSet not found")
-		}
-
-		if len(resp.Rrsets) > 1 {
+		case 1:
+			return nil
+		default:
 			return fmt.Errorf("Only expected 1 record set, got %d", len(resp.Rrsets))
 		}
-
-		return nil
 	}
 }
 
-func testAccDnsRecordSet_basic(zoneName string) string {
+func testAccDnsRecordSet_basic(zoneName string, addr2 string, ttl int) string {
 	return fmt.Sprintf(`
 	resource "google_dns_managed_zone" "parent-zone" {
 		name = "%s"
@@ -89,8 +145,25 @@ func testAccDnsRecordSet_basic(zoneName string) string {
 		managed_zone = "${google_dns_managed_zone.parent-zone.name}"
 		name = "test-record.terraform.test."
 		type = "A"
-		rrdatas = ["127.0.0.1", "127.0.0.10"]
-		ttl = 600
+		rrdatas = ["127.0.0.1", "%s"]
+		ttl = %d
 	}
-	`, zoneName)
+	`, zoneName, addr2, ttl)
+}
+
+func testAccDnsRecordSet_bigChange(zoneName string, ttl int) string {
+	return fmt.Sprintf(`
+	resource "google_dns_managed_zone" "parent-zone" {
+		name = "%s"
+		dns_name = "terraform.test."
+		description = "Test Description"
+	}
+	resource "google_dns_record_set" "foobar" {
+		managed_zone = "${google_dns_managed_zone.parent-zone.name}"
+		name = "test-record.terraform.test."
+		type = "CNAME"
+		rrdatas = ["www.terraform.io."]
+		ttl = %d
+	}
+	`, zoneName, ttl)
 }
