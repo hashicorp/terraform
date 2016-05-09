@@ -36,6 +36,7 @@ IMPROVEMENTS:
  * provider/cloudflare: Add proxied option to `cloudflare_record` [GH-5508]
  * provider/docker: Add ability to keep docker image locally on terraform destroy [GH-6376]
  * provider/fastly: Add S3 Log Streaming to Fastly Service [GH-6378]
+ * provider/fastly: Add Conditions to Fastly Service [GH-6481]
  * provider/triton: Add support for specifying network interfaces on `triton machine` resources [GH-6418]
  * provider/triton: Deleted firewall rules no longer prevent refresh [GH-6529]
  * provider/vsphere: Add `skip_customization` option to `vsphere_virtual_machine` resources [GH-6355]
