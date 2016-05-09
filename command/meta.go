@@ -108,14 +108,39 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, plan)
+			// Load the latest state we have cached so we can make sure
+			// that the plan is applicable to the same state. This protects
+			// against the user accidentally re-applying a plan.
+			currentStateResult, err := m.State()
+			if err != nil {
+				return nil, false, err
+			}
+			currentState := currentStateResult.State()
+
+			// Also load the state that was current when the plan was created.
+			planState, statePath, err := StateFromPlan(m.statePath, plan)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
+			var currentSerial, planSerial int64
+			if currentState != nil {
+				currentSerial = currentState.Serial
+			}
+			if planState != nil {
+				if state := planState.State(); state != nil {
+					planSerial = state.Serial
+				}
+			}
+
+			if currentSerial != planSerial {
+				return nil, false, fmt.Errorf(
+					"Plan file applies to outdated state. Use 'terraform plan' to create a new plan.",
+				)
+			}
+
 			// Set our state
-			m.state = state
+			m.state = planState
 			m.stateOutPath = statePath
 
 			if len(m.variables) > 0 {
