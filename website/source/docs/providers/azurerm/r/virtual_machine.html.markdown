@@ -137,6 +137,8 @@ For more information on the different example configurations, please check out t
 * `vhd_uri` - (Required) Specifies the vhd uri.
 * `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `attach` and `FromImage`.
 * `caching` - (Optional) Specifies the caching requirements.
+* `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version.
+* `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
 `storage_data_disk` supports the following:
 
