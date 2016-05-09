@@ -57,7 +57,7 @@ func resourceServiceV1() *schema.Resource {
 
 			"condition": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": &schema.Schema{
