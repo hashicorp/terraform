@@ -70,10 +70,10 @@ resource "azurerm_virtual_machine" "test" {
     vm_size = "Standard_A0"
 
     storage_image_reference {
-	publisher = "Canonical"
-	offer = "UbuntuServer"
-	sku = "14.04.2-LTS"
-	version = "latest"
+        publisher = "Canonical"
+        offer = "UbuntuServer"
+        sku = "14.04.2-LTS"
+        version = "latest"
     }
 
     storage_os_disk {
@@ -84,13 +84,17 @@ resource "azurerm_virtual_machine" "test" {
     }
 
     os_profile {
-	computer_name = "hostname"
-	admin_username = "testadmin"
-	admin_password = "Password1234!"
+	    computer_name = "hostname"
+	    admin_username = "testadmin"
+	    admin_password = "Password1234!"
     }
 
     os_profile_linux_config {
-	disable_password_authentication = false
+	    disable_password_authentication = false
+    }
+    
+    tags {
+        environment = "staging"
     }
 }
 ```
@@ -115,6 +119,7 @@ The following arguments are supported:
 * `os_profile_linux_config` - (Required, when a linux machine) A Linux config block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `network_interface_ids` - (Required) Specifies the list of resource IDs for the network interfaces associated with the virtual machine.
+* `tags` - (Optional) A mapping of tags to assign to the resource. 
 
 For more information on the different example configurations, please check out the [azure documentation](https://msdn.microsoft.com/en-us/library/mt163591.aspx#Anchor_2)
 
