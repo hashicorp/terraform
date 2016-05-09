@@ -28,6 +28,7 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 			"instance_template": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"name": &schema.Schema{
