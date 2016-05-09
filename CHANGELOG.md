@@ -47,6 +47,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Boolean values in diffs are normalized to `true` and `false`, eliminating some erroneous diffs [GH-6499]
+ * core: Fix a bug causing "attribute not found" messages during destroy [GH-6557]
  * provider/aws: Allow account ID checks on EC2 instances & w/ federated accounts [GH-5030]
  * provider/aws: Fix an eventually consistent issue aws_security_group_rule and possible duplications [GH-6325]
  * provider/aws: Fix bug where `aws_elastic_beanstalk_environment` ignored `wait_for_ready_timeout` [GH-6358]
