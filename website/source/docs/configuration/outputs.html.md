@@ -76,8 +76,8 @@ displayed in place of their value.
 
 ### Limitations of Sensitive Outputs
 
-* the values of sensitive outputs are still stored in the Terraform
+* The values of sensitive outputs are still stored in the Terraform
   state, and available using the `terraform output` command, so cannot be
   relied on as a sole means of protecting values.
-* sensitivity is not tracked internally, so if the output is interpolated in
+* Sensitivity is not tracked internally, so if the output is interpolated in
   another module into a resource, the value will be displayed. 
