@@ -57,3 +57,27 @@ output NAME {
 	value = VALUE
 }
 ```
+
+## Sensitive Outputs
+
+Outputs can be marked as containing sensitive material by setting the
+`sensitive` attribute to `true`, like this:
+
+```
+output "sensitive" {
+    sensitive = true
+    value = VALUE 
+}
+```
+
+When outputs are displayed on-screen following a `terraform apply` or
+`terraform refresh`, sensitive outputs are redacted, with `<sensitive>`
+displayed in place of their value.
+
+### Limitations of Sensitive Outputs
+
+* The values of sensitive outputs are still stored in the Terraform
+  state, and available using the `terraform output` command, so cannot be
+  relied on as a sole means of protecting values.
+* Sensitivity is not tracked internally, so if the output is interpolated in
+  another module into a resource, the value will be displayed. 

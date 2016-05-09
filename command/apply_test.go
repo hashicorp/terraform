@@ -886,6 +886,36 @@ func TestApply_stateNoExist(t *testing.T) {
 	}
 }
 
+func TestApply_sensitiveOutput(t *testing.T) {
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply-sensitive-output"),
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "notsensitive = Hello world") {
+		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
+	}
+	if !strings.Contains(output, "sensitive    = <sensitive>") {
+		t.Fatalf("bad: output should contain 'sensitive' output\n%s", output)
+	}
+}
+
 func TestApply_vars(t *testing.T) {
 	statePath := testTempFile(t)
 

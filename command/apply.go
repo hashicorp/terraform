@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -250,7 +251,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(state); outputs != "" {
+		if outputs := outputsAsString(state, ctx.Module().Config().Outputs); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
@@ -376,7 +377,7 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *terraform.State) string {
+func outputsAsString(state *terraform.State, schema []*config.Output) string {
 	if state == nil {
 		return ""
 	}
@@ -384,6 +385,11 @@ func outputsAsString(state *terraform.State) string {
 	outputs := state.RootModule().Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
+		schemaMap := make(map[string]*config.Output)
+		for _, s := range schema {
+			schemaMap[s.Name] = s
+		}
+
 		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
 
 		// Output the outputs in alphabetical order
@@ -400,11 +406,18 @@ func outputsAsString(state *terraform.State) string {
 		for _, k := range keys {
 			v := outputs[k]
 
-			outputBuf.WriteString(fmt.Sprintf(
-				"  %s%s = %s\n",
-				k,
-				strings.Repeat(" ", keyLen-len(k)),
-				v))
+			if schemaMap[k].Sensitive {
+				outputBuf.WriteString(fmt.Sprintf(
+					"  %s%s = <sensitive>\n",
+					k,
+					strings.Repeat(" ", keyLen-len(k))))
+			} else {
+				outputBuf.WriteString(fmt.Sprintf(
+					"  %s%s = %s\n",
+					k,
+					strings.Repeat(" ", keyLen-len(k)),
+					v))
+			}
 		}
 	}
 

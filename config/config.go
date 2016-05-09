@@ -146,9 +146,12 @@ type Variable struct {
 }
 
 // Output is an output defined within the configuration. An output is
-// resulting data that is highlighted by Terraform when finished.
+// resulting data that is highlighted by Terraform when finished. An
+// output marked Sensitive will be output in a masked form following
+// application, but will still be available in state.
 type Output struct {
 	Name      string
+	Sensitive bool
 	RawConfig *RawConfig
 }
 
@@ -558,9 +561,22 @@ func (c *Config) Validate() error {
 		for k := range o.RawConfig.Raw {
 			if k == "value" {
 				valueKeyFound = true
-			} else {
-				invalidKeys = append(invalidKeys, k)
+				continue
 			}
+			if k == "sensitive" {
+				if sensitive, ok := o.RawConfig.config[k].(bool); ok {
+					if sensitive {
+						o.Sensitive = true
+					}
+					continue
+				}
+
+				errs = append(errs, fmt.Errorf(
+					"%s: value for 'sensitive' must be boolean",
+					o.Name))
+				continue
+			}
+			invalidKeys = append(invalidKeys, k)
 		}
 		if len(invalidKeys) > 0 {
 			errs = append(errs, fmt.Errorf(
