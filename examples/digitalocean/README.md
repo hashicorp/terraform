@@ -11,5 +11,5 @@ export DIGITALOCEAN_TOKEN="Put Your Token Here"
 
 ## Run this example using:
 
-    terrafor plan
+    terraform plan
     terraform apply 
